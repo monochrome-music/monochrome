@@ -14,7 +14,7 @@ export class UIRenderer {
             <div class="track-item" data-track-id="${track.id}">
                 ${trackNumberHTML}
                 <div class="track-item-info">
-                    ${showCover ? `<img src="${this.api.getCoverUrl(track.album?.cover, '80')}" alt="Track Cover" class="track-item-cover" loading="lazy">` : ''}
+                    ${showCover ? `<img src="${this.api.getCoverUrl(track.album?.cover, '1280')}" alt="Track Cover" class="track-item-cover" loading="lazy">` : ''}
                     <div class="track-item-details">
                         <div class="title">${track.title}</div>
                         <div class="artist">${track.artist?.name ?? 'Unknown Artist'}</div>

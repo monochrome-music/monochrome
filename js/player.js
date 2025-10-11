@@ -27,7 +27,7 @@ export class Player {
         const track = currentQueue[this.currentQueueIndex];
         
         document.querySelector('.now-playing-bar .cover').src = 
-            this.api.getCoverUrl(track.album?.cover, '80');
+            this.api.getCoverUrl(track.album?.cover, '1280');
         document.querySelector('.now-playing-bar .title').textContent = track.title;
         document.querySelector('.now-playing-bar .artist').textContent = track.artist?.name || 'Unknown Artist';
         document.title = `${track.title} • ${track.artist?.name || 'Unknown'}`;
