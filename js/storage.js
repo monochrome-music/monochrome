@@ -1,10 +1,7 @@
 export const apiSettings = {
     STORAGE_KEY: 'monochrome-api-instances',
     defaultInstances: [
-        'https://triton.squid.wtf',
-        'https://kraken.squid.wtf',
-        'https://zeus.squid.wtf',
-        'https://aether.squid.wtf',
+        'https://api.monochrome.prigoana.com',
         'https://tidal.401658.xyz'
     ],
     
