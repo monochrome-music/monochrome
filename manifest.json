@@ -28,7 +28,7 @@
       "name": "Search",
       "short_name": "Search",
       "description": "Search for music",
-      "url": "/#search",
+      "url": "/search",
       "icons": [
         {
           "src": "https://prigoana.com/favicon.png",

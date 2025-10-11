@@ -1,3 +1,4 @@
+//sw.js
 const CACHE_NAME = 'monochrome-v1';
 const urlsToCache = [
     '/',

@@ -45,6 +45,53 @@ export class UIRenderer {
         `;
     }
 
+    createSkeletonTrack(showCover = false) {
+        return `
+            <div class="skeleton-track">
+                <div class="skeleton skeleton-track-number"></div>
+                <div class="skeleton-track-info">
+                    ${showCover ? '<div class="skeleton skeleton-track-cover"></div>' : ''}
+                    <div class="skeleton-track-details">
+                        <div class="skeleton skeleton-track-title"></div>
+                        <div class="skeleton skeleton-track-artist"></div>
+                    </div>
+                </div>
+                <div class="skeleton skeleton-track-duration"></div>
+            </div>
+        `;
+    }
+
+    createSkeletonCard(isArtist = false) {
+        return `
+            <div class="skeleton-card ${isArtist ? 'artist' : ''}">
+                <div class="skeleton skeleton-card-image"></div>
+                <div class="skeleton skeleton-card-title"></div>
+                <div class="skeleton skeleton-card-subtitle"></div>
+            </div>
+        `;
+    }
+
+    createSkeletonDetailHeader(isArtist = false) {
+        return `
+            <div class="skeleton-detail-header">
+                <div class="skeleton skeleton-detail-image ${isArtist ? 'artist' : ''}"></div>
+                <div class="skeleton-detail-info">
+                    <div class="skeleton skeleton-detail-type"></div>
+                    <div class="skeleton skeleton-detail-title"></div>
+                    <div class="skeleton skeleton-detail-meta"></div>
+                </div>
+            </div>
+        `;
+    }
+
+    createSkeletonTracks(count = 5, showCover = false) {
+        return `<div class="skeleton-container">${Array(count).fill(0).map(() => this.createSkeletonTrack(showCover)).join('')}</div>`;
+    }
+
+    createSkeletonCards(count = 6, isArtist = false) {
+        return `<div class="card-grid">${Array(count).fill(0).map(() => this.createSkeletonCard(isArtist)).join('')}</div>`;
+    }
+
     renderListWithTracks(container, tracks, showCover) {
         container.innerHTML = tracks.map((track, i) => 
             this.createTrackItemHTML(track, i, showCover)
@@ -85,92 +132,109 @@ export class UIRenderer {
             : createPlaceholder("You haven't viewed any artists yet.");
     }
 
-async renderSearchPage(query) {
-    this.showPage('search');
-    document.getElementById('search-results-title').textContent = `Search Results for "${query}"`;
-    
-    const tracksContainer = document.getElementById('search-tracks-container');
-    const artistsContainer = document.getElementById('search-artists-container');
-    const albumsContainer = document.getElementById('search-albums-container');
-    
-    tracksContainer.innerHTML = createPlaceholder('Searching...', true);
-    artistsContainer.innerHTML = createPlaceholder('Searching...', true);
-    albumsContainer.innerHTML = createPlaceholder('Searching...', true);
-    
-    try {
-        const [tracksResult, artistsResult, albumsResult] = await Promise.all([
-            this.api.searchTracks(query),
-            this.api.searchArtists(query),
-            this.api.searchAlbums(query)
-        ]);
+    async renderSearchPage(query) {
+        this.showPage('search');
+        document.getElementById('search-results-title').textContent = `Search Results for "${query}"`;
         
-        let finalTracks = tracksResult.items;
-        let finalArtists = artistsResult.items;
-        let finalAlbums = albumsResult.items;
+        const tracksContainer = document.getElementById('search-tracks-container');
+        const artistsContainer = document.getElementById('search-artists-container');
+        const albumsContainer = document.getElementById('search-albums-container');
         
-        if (finalArtists.length === 0 && finalTracks.length > 0) {
-            console.log('Using fallback: extracting artists from tracks');
-            const artistMap = new Map();
-            finalTracks.forEach(track => {
-                if (track.artist && !artistMap.has(track.artist.id)) {
-                    artistMap.set(track.artist.id, track.artist);
-                }
-                if (track.artists) {
-                    track.artists.forEach(artist => {
-                        if (!artistMap.has(artist.id)) {
-                            artistMap.set(artist.id, artist);
-                        }
-                    });
-                }
-            });
-            finalArtists = Array.from(artistMap.values());
-        }
+        tracksContainer.innerHTML = this.createSkeletonTracks(8, false);
+        artistsContainer.innerHTML = this.createSkeletonCards(6, true);
+        albumsContainer.innerHTML = this.createSkeletonCards(6, false);
         
-        if (finalAlbums.length === 0 && finalTracks.length > 0) {
-            console.log('Using fallback: extracting albums from tracks');
-            const albumMap = new Map();
-            finalTracks.forEach(track => {
-                if (track.album && !albumMap.has(track.album.id)) {
-                    albumMap.set(track.album.id, track.album);
-                }
-            });
-            finalAlbums = Array.from(albumMap.values());
-        }
-        
-        if (finalTracks.length) {
-            this.renderListWithTracks(tracksContainer, finalTracks, false);
-        } else {
-            tracksContainer.innerHTML = createPlaceholder('No tracks found.');
-        }
-        
-        artistsContainer.innerHTML = finalArtists.length
-            ? finalArtists.map(artist => this.createArtistCardHTML(artist)).join('')
-            : createPlaceholder('No artists found.');
-        
-        albumsContainer.innerHTML = finalAlbums.length
-            ? finalAlbums.map(album => this.createAlbumCardHTML(album)).join('')
-            : createPlaceholder('No albums found.');
+        try {
+            const [tracksResult, artistsResult, albumsResult] = await Promise.all([
+                this.api.searchTracks(query),
+                this.api.searchArtists(query),
+                this.api.searchAlbums(query)
+            ]);
             
-    } catch (error) {
-        console.error("Search failed:", error);
-        const errorMsg = createPlaceholder(`Error during search. ${error.message}`);
-        tracksContainer.innerHTML = errorMsg;
-        artistsContainer.innerHTML = errorMsg;
-        albumsContainer.innerHTML = errorMsg;
+            let finalTracks = tracksResult.items;
+            let finalArtists = artistsResult.items;
+            let finalAlbums = albumsResult.items;
+            
+            if (finalArtists.length === 0 && finalTracks.length > 0) {
+                console.log('Using fallback: extracting artists from tracks');
+                const artistMap = new Map();
+                finalTracks.forEach(track => {
+                    if (track.artist && !artistMap.has(track.artist.id)) {
+                        artistMap.set(track.artist.id, track.artist);
+                    }
+                    if (track.artists) {
+                        track.artists.forEach(artist => {
+                            if (!artistMap.has(artist.id)) {
+                                artistMap.set(artist.id, artist);
+                            }
+                        });
+                    }
+                });
+                finalArtists = Array.from(artistMap.values());
+            }
+            
+            if (finalAlbums.length === 0 && finalTracks.length > 0) {
+                console.log('Using fallback: extracting albums from tracks');
+                const albumMap = new Map();
+                finalTracks.forEach(track => {
+                    if (track.album && !albumMap.has(track.album.id)) {
+                        albumMap.set(track.album.id, track.album);
+                    }
+                });
+                finalAlbums = Array.from(albumMap.values());
+            }
+            
+            if (finalTracks.length) {
+                this.renderListWithTracks(tracksContainer, finalTracks, false);
+            } else {
+                tracksContainer.innerHTML = createPlaceholder('No tracks found.');
+            }
+            
+            artistsContainer.innerHTML = finalArtists.length
+                ? finalArtists.map(artist => this.createArtistCardHTML(artist)).join('')
+                : createPlaceholder('No artists found.');
+            
+            albumsContainer.innerHTML = finalAlbums.length
+                ? finalAlbums.map(album => this.createAlbumCardHTML(album)).join('')
+                : createPlaceholder('No albums found.');
+                
+        } catch (error) {
+            console.error("Search failed:", error);
+            const errorMsg = createPlaceholder(`Error during search. ${error.message}`);
+            tracksContainer.innerHTML = errorMsg;
+            artistsContainer.innerHTML = errorMsg;
+            albumsContainer.innerHTML = errorMsg;
+        }
     }
-}
 
     async renderAlbumPage(albumId) {
         this.showPage('album');
+        
+        const imageEl = document.getElementById('album-detail-image');
+        const titleEl = document.getElementById('album-detail-title');
+        const metaEl = document.getElementById('album-detail-meta');
         const tracklistContainer = document.getElementById('album-detail-tracklist');
-        tracklistContainer.innerHTML = createPlaceholder('Loading...', true);
+        
+        imageEl.src = '';
+        imageEl.style.backgroundColor = 'var(--muted)';
+        titleEl.innerHTML = '<div class="skeleton" style="height: 48px; width: 300px; max-width: 90%;"></div>';
+        metaEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 200px; max-width: 80%;"></div>';
+        tracklistContainer.innerHTML = `
+            <div class="track-list-header">
+                <span style="width: 40px; text-align: center;">#</span>
+                <span>Title</span>
+                <span class="duration-header">Duration</span>
+            </div>
+            ${this.createSkeletonTracks(10, false)}
+        `;
         
         try {
             const { album, tracks } = await this.api.getAlbum(albumId);
             
-            document.getElementById('album-detail-image').src = this.api.getCoverUrl(album.cover);
-            document.getElementById('album-detail-title').textContent = album.title;
-            document.getElementById('album-detail-meta').innerHTML = 
+            imageEl.src = this.api.getCoverUrl(album.cover);
+            imageEl.style.backgroundColor = '';
+            titleEl.textContent = album.title;
+            metaEl.innerHTML = 
                 `By <a href="#artist/${album.artist.id}">${album.artist.name}</a> • ${new Date(album.releaseDate).getFullYear()}`;
             
             tracklistContainer.innerHTML = `
@@ -193,19 +257,27 @@ async renderSearchPage(query) {
 
     async renderArtistPage(artistId) {
         this.showPage('artist');
+        
+        const imageEl = document.getElementById('artist-detail-image');
+        const nameEl = document.getElementById('artist-detail-name');
+        const metaEl = document.getElementById('artist-detail-meta');
         const tracksContainer = document.getElementById('artist-detail-tracks');
         const albumsContainer = document.getElementById('artist-detail-albums');
         
-        tracksContainer.innerHTML = albumsContainer.innerHTML = createPlaceholder('Loading...', true);
+        imageEl.src = '';
+        imageEl.style.backgroundColor = 'var(--muted)';
+        nameEl.innerHTML = '<div class="skeleton" style="height: 48px; width: 300px; max-width: 90%;"></div>';
+        metaEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 150px;"></div>';
+        tracksContainer.innerHTML = this.createSkeletonTracks(5, true);
+        albumsContainer.innerHTML = this.createSkeletonCards(6, false);
         
         try {
             const artist = await this.api.getArtist(artistId);
             
-            document.getElementById('artist-detail-image').src = 
-                this.api.getArtistPictureUrl(artist.picture, '750');
-            document.getElementById('artist-detail-name').textContent = artist.name;
-            document.getElementById('artist-detail-meta').textContent = 
-                `${artist.popularity} popularity`;
+            imageEl.src = this.api.getArtistPictureUrl(artist.picture, '750');
+            imageEl.style.backgroundColor = '';
+            nameEl.textContent = artist.name;
+            metaEl.textContent = `${artist.popularity} popularity`;
             
             this.renderListWithTracks(tracksContainer, artist.tracks, true);
             albumsContainer.innerHTML = artist.albums.map(album => 
@@ -220,41 +292,41 @@ async renderSearchPage(query) {
         }
     }
 
-renderApiSettings() {
-    const container = document.getElementById('api-instance-list');
-    const instances = this.api.settings.getInstances();
-    const defaultInstancesSet = new Set(this.api.settings.defaultInstances);
-    
-    container.innerHTML = instances.map((url, index) => `
-        <li data-index="${index}">
-            <span class="instance-url">${url}</span>
-            <div class="controls">
-                <button class="move-up" title="Move Up" ${index === 0 ? 'disabled' : ''}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 19V5M5 12l7-7 7 7"/>
-                    </svg>
-                </button>
-                <button class="move-down" title="Move Down" ${index === instances.length - 1 ? 'disabled' : ''}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 5v14M19 12l-7 7-7-7"/>
-                    </svg>
-                </button>
-                ${!defaultInstancesSet.has(url) ? `
-                    <button class="delete-instance" title="Delete">
+    renderApiSettings() {
+        const container = document.getElementById('api-instance-list');
+        const instances = this.api.settings.getInstances();
+        const defaultInstancesSet = new Set(this.api.settings.defaultInstances);
+        
+        container.innerHTML = instances.map((url, index) => `
+            <li data-index="${index}">
+                <span class="instance-url">${url}</span>
+                <div class="controls">
+                    <button class="move-up" title="Move Up" ${index === 0 ? 'disabled' : ''}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            <path d="M12 19V5M5 12l7-7 7 7"/>
                         </svg>
                     </button>
-                ` : ''}
-            </div>
-        </li>
-    `).join('');
+                    <button class="move-down" title="Move Down" ${index === instances.length - 1 ? 'disabled' : ''}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 5v14M19 12l-7 7-7-7"/>
+                        </svg>
+                    </button>
+                    ${!defaultInstancesSet.has(url) ? `
+                        <button class="delete-instance" title="Delete">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    ` : ''}
+                </div>
+            </li>
+        `).join('');
 
-    const stats = this.api.getCacheStats();
-    const cacheInfo = document.getElementById('cache-info');
-    if (cacheInfo) {
-        cacheInfo.textContent = `Cache: ${stats.memoryEntries}/${stats.maxSize} entries`;
+        const stats = this.api.getCacheStats();
+        const cacheInfo = document.getElementById('cache-info');
+        if (cacheInfo) {
+            cacheInfo.textContent = `Cache: ${stats.memoryEntries}/${stats.maxSize} entries`;
+        }
     }
-}
 }

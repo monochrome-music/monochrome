@@ -1,3 +1,4 @@
+//js/storage.js
 export const apiSettings = {
     STORAGE_KEY: 'monochrome-api-instances',
     defaultInstances: [

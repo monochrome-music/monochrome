@@ -1,3 +1,4 @@
+//js/cache.js
 export class APICache {
     constructor(options = {}) {
         this.memoryCache = new Map();

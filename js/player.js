@@ -1,3 +1,4 @@
+//js/player.js
 import { REPEAT_MODE, SVG_PLAY, SVG_PAUSE, formatTime } from './utils.js';
 
 export class Player {

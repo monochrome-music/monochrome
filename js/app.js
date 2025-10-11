@@ -1,3 +1,4 @@
+//js/app.js
 import { LosslessAPI } from './api.js';
 import { apiSettings } from './storage.js';
 import { UIRenderer } from './ui.js';
