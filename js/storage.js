@@ -3,12 +3,12 @@ export const apiSettings = {
     STORAGE_KEY: 'monochrome-api-instances',
     defaultInstances: [
         'https://hifi.prigoana.com',
-        'https://tidal.401658.xyz',
         'https://hund.qqdl.site',
         'https://katze.qqdl.site',
         'https://maus.qqdl.site',
         'https://vogel.qqdl.site',
-        'https://wolf.qqdl.site'
+        'https://wolf.qqdl.site',
+        'https://tidal.401658.xyz'
     ],
     
     getInstances() {

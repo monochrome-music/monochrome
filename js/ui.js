@@ -1,4 +1,4 @@
-import { formatTime, createPlaceholder, trackDataStore } from './utils.js';
+import { formatTime, createPlaceholder, trackDataStore, hasExplicitContent } from './utils.js';
 import { recentActivityManager } from './storage.js';
 
 export class UIRenderer {
@@ -6,17 +6,25 @@ export class UIRenderer {
         this.api = api;
     }
 
+    createExplicitBadge() {
+        return '<span class="explicit-badge" title="Explicit">E</span>';
+    }
+
     createTrackItemHTML(track, index, showCover = false) {
         const playIconSmall = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
-        const trackNumberHTML = `<div class="track-number" style="font-size: 1.1em; display: flex; align-items: center; justify-content: center;">${showCover ? playIconSmall : index + 1}</div>`;
+        const trackNumberHTML = `<div class="track-number">${showCover ? playIconSmall : index + 1}</div>`;
+        const explicitBadge = hasExplicitContent(track) ? this.createExplicitBadge() : '';
         
         return `
             <div class="track-item" data-track-id="${track.id}">
                 ${trackNumberHTML}
                 <div class="track-item-info">
-                    ${showCover ? `<img src="${this.api.getCoverUrl(track.album?.cover, '1280')}" alt="Track Cover" class="track-item-cover" loading="lazy">` : ''}
+                    ${showCover ? `<img src="${this.api.getCoverUrl(track.album?.cover, '80')}" alt="Track Cover" class="track-item-cover" loading="lazy">` : ''}
                     <div class="track-item-details">
-                        <div class="title">${track.title}</div>
+                        <div class="title">
+                            ${track.title}
+                            ${explicitBadge}
+                        </div>
                         <div class="artist">${track.artist?.name ?? 'Unknown Artist'}</div>
                     </div>
                 </div>
@@ -26,10 +34,13 @@ export class UIRenderer {
     }
 
     createAlbumCardHTML(album) {
+        const explicitBadge = hasExplicitContent(album) ? this.createExplicitBadge() : '';
         return `
             <a href="#album/${album.id}" class="card">
-                <img src="${this.api.getCoverUrl(album.cover)}" alt="${album.title}" class="card-image" loading="lazy">
-                <h3 class="card-title">${album.title}</h3>
+                <div class="card-image-wrapper">
+                    <img src="${this.api.getCoverUrl(album.cover, '320')}" alt="${album.title}" class="card-image" loading="lazy">
+                </div>
+                <h3 class="card-title">${album.title} ${explicitBadge}</h3>
                 <p class="card-subtitle">Album • ${album.artist?.name ?? ''}</p>
             </a>
         `;
@@ -38,7 +49,9 @@ export class UIRenderer {
     createArtistCardHTML(artist) {
         return `
             <a href="#artist/${artist.id}" class="card artist">
-                <img src="${this.api.getArtistPictureUrl(artist.picture, '750')}" alt="${artist.name}" class="card-image" loading="lazy">
+                <div class="card-image-wrapper">
+                    <img src="${this.api.getArtistPictureUrl(artist.picture, '320')}" alt="${artist.name}" class="card-image" loading="lazy">
+                </div>
                 <h3 class="card-title">${artist.name}</h3>
                 <p class="card-subtitle">Artist</p>
             </a>
@@ -71,19 +84,6 @@ export class UIRenderer {
         `;
     }
 
-    createSkeletonDetailHeader(isArtist = false) {
-        return `
-            <div class="skeleton-detail-header">
-                <div class="skeleton skeleton-detail-image ${isArtist ? 'artist' : ''}"></div>
-                <div class="skeleton-detail-info">
-                    <div class="skeleton skeleton-detail-type"></div>
-                    <div class="skeleton skeleton-detail-title"></div>
-                    <div class="skeleton skeleton-detail-meta"></div>
-                </div>
-            </div>
-        `;
-    }
-
     createSkeletonTracks(count = 5, showCover = false) {
         return `<div class="skeleton-container">${Array(count).fill(0).map(() => this.createSkeletonTrack(showCover)).join('')}</div>`;
     }
@@ -93,9 +93,19 @@ export class UIRenderer {
     }
 
     renderListWithTracks(container, tracks, showCover) {
-        container.innerHTML = tracks.map((track, i) => 
+        const fragment = document.createDocumentFragment();
+        const tempDiv = document.createElement('div');
+        
+        tempDiv.innerHTML = tracks.map((track, i) => 
             this.createTrackItemHTML(track, i, showCover)
         ).join('');
+        
+        while (tempDiv.firstChild) {
+            fragment.appendChild(tempDiv.firstChild);
+        }
+        
+        container.innerHTML = '';
+        container.appendChild(fragment);
         
         tracks.forEach(track => {
             const element = container.querySelector(`[data-track-id="${track.id}"]`);
@@ -156,7 +166,6 @@ export class UIRenderer {
             let finalAlbums = albumsResult.items;
             
             if (finalArtists.length === 0 && finalTracks.length > 0) {
-                console.log('Using fallback: extracting artists from tracks');
                 const artistMap = new Map();
                 finalTracks.forEach(track => {
                     if (track.artist && !artistMap.has(track.artist.id)) {
@@ -174,7 +183,6 @@ export class UIRenderer {
             }
             
             if (finalAlbums.length === 0 && finalTracks.length > 0) {
-                console.log('Using fallback: extracting albums from tracks');
                 const albumMap = new Map();
                 finalTracks.forEach(track => {
                     if (track.album && !albumMap.has(track.album.id)) {
@@ -231,9 +239,12 @@ export class UIRenderer {
         try {
             const { album, tracks } = await this.api.getAlbum(albumId);
             
-            imageEl.src = this.api.getCoverUrl(album.cover);
+            imageEl.src = this.api.getCoverUrl(album.cover, '640');
             imageEl.style.backgroundColor = '';
-            titleEl.textContent = album.title;
+            
+            const explicitBadge = hasExplicitContent(album) ? this.createExplicitBadge() : '';
+            titleEl.innerHTML = `${album.title} ${explicitBadge}`;
+            
             metaEl.innerHTML = 
                 `By <a href="#artist/${album.artist.id}">${album.artist.name}</a> • ${new Date(album.releaseDate).getFullYear()}`;
             
@@ -274,7 +285,7 @@ export class UIRenderer {
         try {
             const artist = await this.api.getArtist(artistId);
             
-            imageEl.src = this.api.getArtistPictureUrl(artist.picture, '750');
+            imageEl.src = this.api.getArtistPictureUrl(artist.picture, '640');
             imageEl.style.backgroundColor = '';
             nameEl.textContent = artist.name;
             metaEl.textContent = `${artist.popularity} popularity`;

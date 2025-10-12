@@ -1,4 +1,3 @@
-//js/player.js
 import { REPEAT_MODE, SVG_PLAY, SVG_PAUSE, formatTime } from './utils.js';
 
 export class Player {
@@ -12,10 +11,59 @@ export class Player {
         this.currentQueueIndex = -1;
         this.shuffleActive = false;
         this.repeatMode = REPEAT_MODE.OFF;
+        this.preloadCache = new Map();
+        this.preloadAbortController = null;
     }
 
     setQuality(quality) {
         this.quality = quality;
+    }
+
+    async preloadNextTracks() {
+        if (this.preloadAbortController) {
+            this.preloadAbortController.abort();
+        }
+        
+        this.preloadAbortController = new AbortController();
+        const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
+        const tracksToPreload = [];
+        
+        for (let i = 1; i <= 2; i++) {
+            const nextIndex = this.currentQueueIndex + i;
+            if (nextIndex < currentQueue.length) {
+                tracksToPreload.push({ track: currentQueue[nextIndex], index: nextIndex });
+            }
+        }
+        
+        for (const { track, index } of tracksToPreload) {
+            if (this.preloadCache.has(track.id)) continue;
+            
+            try {
+                const streamUrl = await this.api.getStreamUrl(track.id, this.quality);
+                
+                if (this.preloadAbortController.signal.aborted) break;
+                
+                fetch(streamUrl, {
+                    signal: this.preloadAbortController.signal,
+                    method: 'GET',
+                    mode: 'cors',
+                    cache: 'default'
+                }).then(response => {
+                    if (response.ok) {
+                        this.preloadCache.set(track.id, streamUrl);
+                    }
+                }).catch(err => {
+                    if (err.name !== 'AbortError') {
+                        console.debug('Preload failed for:', track.title);
+                    }
+                });
+                
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.debug('Failed to get stream URL for preload:', track.title);
+                }
+            }
+        }
     }
 
     async playTrackFromQueue() {
@@ -27,7 +75,7 @@ export class Player {
         const track = currentQueue[this.currentQueueIndex];
         
         document.querySelector('.now-playing-bar .cover').src = 
-            this.api.getCoverUrl(track.album?.cover, '1280');
+            this.api.getCoverUrl(track.album?.cover, '160');
         document.querySelector('.now-playing-bar .title').textContent = track.title;
         document.querySelector('.now-playing-bar .artist').textContent = track.artist?.name || 'Unknown Artist';
         document.title = `${track.title} • ${track.artist?.name || 'Unknown'}`;
@@ -36,9 +84,19 @@ export class Player {
         this.updateMediaSession(track);
 
         try {
-            const streamUrl = await this.api.getStreamUrl(track.id, this.quality);
+            let streamUrl;
+            
+            if (this.preloadCache.has(track.id)) {
+                streamUrl = this.preloadCache.get(track.id);
+            } else {
+                streamUrl = await this.api.getStreamUrl(track.id, this.quality);
+            }
+            
             this.audio.src = streamUrl;
             await this.audio.play();
+            
+            this.preloadNextTracks();
+            
         } catch (error) {
             console.error(`Could not get track URL for: ${track.title}`, error);
             document.querySelector('.now-playing-bar .title').textContent = `Error: ${track.title}`;
@@ -111,6 +169,9 @@ export class Player {
             this.queue = [...this.originalQueueBeforeShuffle];
             this.currentQueueIndex = this.queue.findIndex(t => t.id === currentTrack?.id);
         }
+        
+        this.preloadCache.clear();
+        this.preloadNextTracks();
     }
 
     toggleRepeat() {
@@ -122,6 +183,7 @@ export class Player {
         this.queue = tracks;
         this.currentQueueIndex = startIndex;
         this.shuffleActive = false;
+        this.preloadCache.clear();
     }
 
     addToQueue(track) {
@@ -141,34 +203,34 @@ export class Player {
         });
     }
 
-updateMediaSession(track) {
-    if (!('mediaSession' in navigator)) return;
-    
-    const artwork = [];
-    const sizes = ['1280'];
-    
-    const coverId = track.album?.cover;
-    
-    if (coverId) {
-        sizes.forEach(size => {
-            const url = this.api.getCoverUrl(coverId, size);
-            artwork.push({
-                src: url,
-                sizes: `${size}x${size}`,
-                type: 'image/jpeg'
+    updateMediaSession(track) {
+        if (!('mediaSession' in navigator)) return;
+        
+        const artwork = [];
+        const sizes = ['96', '128', '192', '256', '384', '512'];
+        
+        const coverId = track.album?.cover;
+        
+        if (coverId) {
+            sizes.forEach(size => {
+                const url = this.api.getCoverUrl(coverId, size);
+                artwork.push({
+                    src: url,
+                    sizes: `${size}x${size}`,
+                    type: 'image/jpeg'
+                });
             });
+        }
+        
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: track.title || 'Unknown Title',
+            artist: track.artist?.name || 'Unknown Artist',
+            album: track.album?.title || 'Unknown Album',
+            artwork: artwork.length > 0 ? artwork : undefined
         });
-    }
-    
-    navigator.mediaSession.metadata = new MediaMetadata({
-        title: track.title || 'Unknown Title',
-        artist: track.artist?.name || 'Unknown Artist',
-        album: track.album?.title || 'Unknown Album',
-        artwork: artwork.length > 0 ? artwork : undefined
-    });
 
-    navigator.mediaSession.playbackState = this.audio.paused ? 'paused' : 'playing';
-}
+        navigator.mediaSession.playbackState = this.audio.paused ? 'paused' : 'playing';
+    }
 
     updateMediaSessionPlaybackState() {
         if ('mediaSession' in navigator) {

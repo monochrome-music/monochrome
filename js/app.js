@@ -1,4 +1,3 @@
-//js/app.js
 import { LosslessAPI } from './api.js';
 import { apiSettings } from './storage.js';
 import { UIRenderer } from './ui.js';
@@ -6,7 +5,7 @@ import { Player } from './player.js';
 import { 
     QUALITY, REPEAT_MODE, SVG_PLAY, SVG_PAUSE, 
     SVG_VOLUME, SVG_MUTE, formatTime, trackDataStore,
-    buildTrackFilename, RATE_LIMIT_ERROR_MESSAGE
+    buildTrackFilename, RATE_LIMIT_ERROR_MESSAGE, debounce
 } from './utils.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -95,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="track-item ${isPlaying ? 'playing' : ''}" data-queue-index="${index}">
                     <div class="track-number">${index + 1}</div>
                     <div class="track-item-info">
-                        <img src="${api.getCoverUrl(track.album?.cover, '40')}" 
+                        <img src="${api.getCoverUrl(track.album?.cover, '80')}" 
                              class="track-item-cover" loading="lazy">
                         <div class="track-item-details">
                             <div class="title">${track.title}</div>
@@ -160,12 +159,12 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const tempEl = document.createElement('div');
                 tempEl.textContent = `Downloading: ${contextTrack.title}...`;
-                tempEl.style.cssText = 'position:fixed;bottom:20px;right:20px;background:var(--card);padding:1rem;border-radius:var(--radius);border:1px solid var(--border);z-index:9999;';
+                tempEl.style.cssText = 'position:fixed;bottom:100px;right:20px;background:var(--card);padding:1rem 1.5rem;border-radius:var(--radius);border:1px solid var(--border);z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.5);';
                 document.body.appendChild(tempEl);
                 
                 await api.downloadTrack(contextTrack.id, QUALITY, filename);
                 
-                tempEl.textContent = `Downloaded: ${contextTrack.title}`;
+                tempEl.textContent = `✓ Downloaded: ${contextTrack.title}`;
                 setTimeout(() => tempEl.remove(), 3000);
             } catch (error) {
                 const errorMsg = error.message === RATE_LIMIT_ERROR_MESSAGE 
@@ -176,6 +175,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         contextMenu.style.display = 'none';
+    });
+
+    const performSearch = debounce((query) => {
+        if (query) {
+            window.location.hash = `#search/${encodeURIComponent(query)}`;
+        }
+    }, 300);
+
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+        if (query.length > 2) {
+            performSearch(query);
+        }
     });
 
     searchForm.addEventListener('submit', e => {
@@ -219,18 +231,41 @@ document.addEventListener('DOMContentLoaded', () => {
         playPauseBtn.innerHTML = SVG_PLAY;
     });
 
+    let isSeeking = false;
+    let wasPlaying = false;
+
     const seek = (bar, fill, event, setter) => {
         const rect = bar.getBoundingClientRect();
         const position = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
         setter(position);
     };
 
+    progressBar.addEventListener('mousedown', () => {
+        isSeeking = true;
+        wasPlaying = !audioPlayer.paused;
+        if (wasPlaying) audioPlayer.pause();
+    });
+
+    document.addEventListener('mouseup', (e) => {
+        if (isSeeking) {
+            seek(progressBar, progressFill, e, position => {
+                if (!isNaN(audioPlayer.duration)) {
+                    audioPlayer.currentTime = position * audioPlayer.duration;
+                    if (wasPlaying) audioPlayer.play();
+                }
+            });
+            isSeeking = false;
+        }
+    });
+
     progressBar.addEventListener('click', e => {
-        seek(progressBar, progressFill, e, position => {
-            if (!isNaN(audioPlayer.duration)) {
-                audioPlayer.currentTime = position * audioPlayer.duration;
-            }
-        });
+        if (!isSeeking) {
+            seek(progressBar, progressFill, e, position => {
+                if (!isNaN(audioPlayer.duration)) {
+                    audioPlayer.currentTime = position * audioPlayer.duration;
+                }
+            });
+        }
     });
 
     volumeBar.addEventListener('click', e => {

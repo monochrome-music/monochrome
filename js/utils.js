@@ -1,4 +1,3 @@
-//js/utils.js
 export const QUALITY = 'LOSSLESS';
 
 export const REPEAT_MODE = {
@@ -140,3 +139,19 @@ export const deriveTrackQuality = (track) => {
 };
 
 export const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+export const hasExplicitContent = (item) => {
+    return item?.explicit === true || item?.explicitLyrics === true;
+};
+
+export const debounce = (func, wait) => {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+};
