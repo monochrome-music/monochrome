@@ -2,7 +2,7 @@
 export const apiSettings = {
     STORAGE_KEY: 'monochrome-api-instances',
     defaultInstances: [
-        'https://api.monochrome.prigoana.com',
+        'https://hifi.prigoana.com',
         'https://tidal.401658.xyz'
     ],
     
