@@ -6,6 +6,7 @@ export const apiSettings = {
         'https://oregon.monochrome.tf/',
         'https://virginia.monochrome.tf/',
         'https://singapore.monochrome.tf/',
+        'https://tokyo.monochrome.tf/',
         'https://hund.qqdl.site',
         'https://katze.qqdl.site',
         'https://maus.qqdl.site',
