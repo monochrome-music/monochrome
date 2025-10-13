@@ -1,8 +1,11 @@
-//js/storage.js
 export const apiSettings = {
     STORAGE_KEY: 'monochrome-api-instances',
     defaultInstances: [
-        'https://hifi.prigoana.com',
+        'https://frankfurt.monochrome.tf/',
+        'https://ohio.monochrome.tf/',
+        'https://oregon.monochrome.tf/',
+        'https://virginia.monochrome.tf/',
+        'https://singapore.monochrome.tf/',
         'https://hund.qqdl.site',
         'https://katze.qqdl.site',
         'https://maus.qqdl.site',
