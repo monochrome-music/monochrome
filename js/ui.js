@@ -239,7 +239,7 @@ export class UIRenderer {
         try {
             const { album, tracks } = await this.api.getAlbum(albumId);
             
-            imageEl.src = this.api.getCoverUrl(album.cover, '640');
+            imageEl.src = this.api.getCoverUrl(album.cover, '1280');
             imageEl.style.backgroundColor = '';
             
             const explicitBadge = hasExplicitContent(album) ? this.createExplicitBadge() : '';
@@ -285,7 +285,7 @@ export class UIRenderer {
         try {
             const artist = await this.api.getArtist(artistId);
             
-            imageEl.src = this.api.getArtistPictureUrl(artist.picture, '640');
+            imageEl.src = this.api.getArtistPictureUrl(artist.picture, '750');
             imageEl.style.backgroundColor = '';
             nameEl.textContent = artist.name;
             metaEl.textContent = `${artist.popularity} popularity`;
