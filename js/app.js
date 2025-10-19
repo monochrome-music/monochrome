@@ -1,5 +1,5 @@
 import { LosslessAPI } from './api.js';
-import { apiSettings } from './storage.js';
+import { apiSettings, themeManager } from './storage.js';
 import { UIRenderer } from './ui.js';
 import { Player } from './player.js';
 import { 
@@ -26,16 +26,6 @@ function createDownloadNotification() {
     if (!downloadNotificationContainer) {
         downloadNotificationContainer = document.createElement('div');
         downloadNotificationContainer.id = 'download-notifications';
-        downloadNotificationContainer.style.cssText = `
-            position: fixed;
-            bottom: 120px;
-            right: 20px;
-            z-index: 9999;
-            max-width: 350px;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        `;
         document.body.appendChild(downloadNotificationContainer);
     }
     return downloadNotificationContainer;
@@ -47,14 +37,6 @@ function addDownloadTask(trackId, track, filename, api) {
     const taskEl = document.createElement('div');
     taskEl.className = 'download-task';
     taskEl.dataset.trackId = trackId;
-    taskEl.style.cssText = `
-        background: var(--card);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 1rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-        animation: slideIn 0.3s ease;
-    `;
     
     taskEl.innerHTML = `
         <div style="display: flex; align-items: start; gap: 0.75rem;">
@@ -111,11 +93,6 @@ function updateDownloadProgress(trackId, progress) {
             : '?';
         
         statusEl.textContent = `Downloading: ${receivedMB}MB / ${totalMB}MB (${percent}%)`;
-    } else if (progress.stage === 'metadata') {
-        const percent = Math.round(progress.progress * 100);
-        progressFill.style.width = `${percent}%`;
-        progressFill.style.background = '#a855f7';
-        statusEl.textContent = `Embedding metadata: ${percent}%`;
     }
 }
 
@@ -170,10 +147,7 @@ function removeDownloadTask(trackId) {
     }, 300);
 }
 
-async function downloadTrackBlob(track, quality, api, coverUrl = null) {
-    console.log('[Download] Starting download for:', track.title, 'Quality:', quality);
-    console.log('[Download] Cover URL:', coverUrl);
-    
+async function downloadTrackBlob(track, quality, api) {
     const lookup = await api.getTrack(track.id, quality);
     let streamUrl;
 
@@ -186,28 +160,12 @@ async function downloadTrackBlob(track, quality, api, coverUrl = null) {
         }
     }
 
-    console.log('[Download] Fetching from:', streamUrl);
     const response = await fetch(streamUrl);
     if (!response.ok) {
         throw new Error(`Failed to fetch track: ${response.status}`);
     }
     
-    let blob = await response.blob();
-    console.log('[Download] Downloaded blob size:', blob.size, 'type:', blob.type);
-    
-    if (quality === 'LOSSLESS' && coverUrl) {
-        console.log('[Download] Attempting to embed metadata...');
-        try {
-            const processedBlob = await api.metadataEmbedder.embedMetadata(blob, track, coverUrl, null);
-            console.log('[Download] Metadata embedded. New size:', processedBlob.size);
-            blob = processedBlob;
-        } catch (error) {
-            console.error('[Download] Metadata embedding failed:', error);
-        }
-    } else {
-        console.log('[Download] Skipping metadata - Quality:', quality, 'Has cover:', !!coverUrl);
-    }
-    
+    const blob = await response.blob();
     return blob;
 }
 
@@ -219,8 +177,6 @@ async function downloadAlbumAsZip(album, tracks, api, quality) {
     const albumTitle = sanitizeForFilename(album.title || 'Unknown Album');
     const folderName = `${albumTitle} - ${artistName} - monochrome.tf`;
     
-    const coverUrl = album.cover ? api.getCoverUrl(album.cover, '1280') : null;
-    
     const notification = createBulkDownloadNotification('album', album.title, tracks.length);
     
     try {
@@ -230,7 +186,7 @@ async function downloadAlbumAsZip(album, tracks, api, quality) {
             
             updateBulkDownloadProgress(notification, i, tracks.length, track.title);
             
-            const blob = await downloadTrackBlob(track, quality, api, coverUrl);
+            const blob = await downloadTrackBlob(track, quality, api);
             zip.file(`${folderName}/${filename}`, blob);
         }
         
@@ -279,11 +235,9 @@ async function downloadDiscography(artist, api, quality) {
                 const albumTitle = sanitizeForFilename(fullAlbum.title || 'Unknown Album');
                 const albumFolder = `${rootFolder}/${albumTitle}`;
                 
-                const coverUrl = fullAlbum.cover ? api.getCoverUrl(fullAlbum.cover, '1280') : null;
-                
                 for (const track of tracks) {
                     const filename = buildTrackFilename(track, quality);
-                    const blob = await downloadTrackBlob(track, quality, api, coverUrl);
+                    const blob = await downloadTrackBlob(track, quality, api);
                     zip.file(`${albumFolder}/${filename}`, blob);
                 }
             } catch (error) {
@@ -320,14 +274,6 @@ function createBulkDownloadNotification(type, name, totalItems) {
     
     const notifEl = document.createElement('div');
     notifEl.className = 'download-task bulk-download';
-    notifEl.style.cssText = `
-        background: var(--card);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 1rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-        animation: slideIn 0.3s ease;
-    `;
     
     notifEl.innerHTML = `
         <div style="display: flex; align-items: start; gap: 0.75rem;">
@@ -383,65 +329,20 @@ function completeBulkDownload(notifEl, success = true, message = null) {
     }
 }
 
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-    
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
-    
-    .animate-spin {
-        animation: spin 1s linear infinite;
-    }
-    
-    .download-cancel:hover {
-        background: var(--secondary) !important;
-        color: var(--foreground) !important;
-    }
-
-    .now-playing-bar .title,
-    .now-playing-bar .artist {
-        cursor: pointer;
-        transition: color 0.2s;
-    }
-
-    .now-playing-bar .title:hover,
-    .now-playing-bar .artist:hover {
-        color: var(--highlight);
-        text-decoration: underline;
-    }
-`;
-document.head.appendChild(style);
-
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const api = new LosslessAPI(apiSettings);
     const ui = new UIRenderer(api);
     
     const audioPlayer = document.getElementById('audio-player');
     const currentQuality = localStorage.getItem('playback-quality') || 'LOSSLESS';
     const player = new Player(audioPlayer, api, currentQuality);
+    
+    const savedCrossfade = localStorage.getItem('crossfade-enabled') === 'true';
+    const savedCrossfadeDuration = parseInt(localStorage.getItem('crossfade-duration') || '5');
+    player.setCrossfade(savedCrossfade, savedCrossfadeDuration);
+    
+    const currentTheme = themeManager.getTheme();
+    themeManager.setTheme(currentTheme);
     
     const mainContent = document.querySelector('.main-content');
     const playPauseBtn = document.querySelector('.play-pause-btn');
@@ -468,6 +369,104 @@ document.addEventListener('DOMContentLoaded', () => {
     const hamburgerBtn = document.getElementById('hamburger-btn');
 
     let contextTrack = null;
+    let draggedQueueIndex = null;
+
+    const themePicker = document.getElementById('theme-picker');
+    themePicker.querySelectorAll('.theme-option').forEach(option => {
+        if (option.dataset.theme === currentTheme) {
+            option.classList.add('active');
+        }
+        
+        option.addEventListener('click', () => {
+            const theme = option.dataset.theme;
+            
+            themePicker.querySelectorAll('.theme-option').forEach(opt => opt.classList.remove('active'));
+            option.classList.add('active');
+            
+            if (theme === 'custom') {
+                document.getElementById('custom-theme-editor').classList.add('show');
+                renderCustomThemeEditor();
+            } else {
+                document.getElementById('custom-theme-editor').classList.remove('show');
+                themeManager.setTheme(theme);
+            }
+        });
+    });
+    document.getElementById('refresh-speed-test-btn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('refresh-speed-test-btn');
+    const originalText = btn.textContent;
+    btn.textContent = 'Testing...';
+    btn.disabled = true;
+    
+    try {
+        await apiSettings.refreshSpeedTests();
+        ui.renderApiSettings();
+        btn.textContent = 'Done!';
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }, 1500);
+    } catch (error) {
+        console.error('Failed to refresh speed tests:', error);
+        btn.textContent = 'Error';
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.disabled = false;
+        }, 1500);
+    }
+});
+    function renderCustomThemeEditor() {
+        const grid = document.getElementById('theme-color-grid');
+        const customTheme = themeManager.getCustomTheme() || {
+            background: '#000000',
+            foreground: '#fafafa',
+            primary: '#ffffff',
+            secondary: '#27272a',
+            muted: '#27272a',
+            border: '#27272a',
+            highlight: '#ffffff'
+        };
+        
+        grid.innerHTML = Object.entries(customTheme).map(([key, value]) => `
+            <div class="theme-color-input">
+                <label>${key}</label>
+                <input type="color" data-color="${key}" value="${value}">
+            </div>
+        `).join('');
+    }
+
+    document.getElementById('apply-custom-theme')?.addEventListener('click', () => {
+        const colors = {};
+        document.querySelectorAll('#theme-color-grid input[type="color"]').forEach(input => {
+            colors[input.dataset.color] = input.value;
+        });
+        themeManager.setCustomTheme(colors);
+    });
+
+    document.getElementById('reset-custom-theme')?.addEventListener('click', () => {
+        renderCustomThemeEditor();
+    });
+
+    const crossfadeToggle = document.getElementById('crossfade-toggle');
+    const crossfadeDurationSetting = document.getElementById('crossfade-duration-setting');
+    const crossfadeDurationInput = document.getElementById('crossfade-duration');
+    
+    crossfadeToggle.checked = savedCrossfade;
+    crossfadeDurationSetting.style.display = savedCrossfade ? 'flex' : 'none';
+    crossfadeDurationInput.value = savedCrossfadeDuration;
+    
+    crossfadeToggle.addEventListener('change', (e) => {
+        const enabled = e.target.checked;
+        localStorage.setItem('crossfade-enabled', enabled);
+        crossfadeDurationSetting.style.display = enabled ? 'flex' : 'none';
+        player.setCrossfade(enabled, parseInt(crossfadeDurationInput.value));
+    });
+    
+    crossfadeDurationInput.addEventListener('change', (e) => {
+        const duration = parseInt(e.target.value);
+        localStorage.setItem('crossfade-duration', duration);
+        player.setCrossfade(crossfadeToggle.checked, duration);
+    });
 
     const qualitySetting = document.getElementById('quality-setting');
     if (qualitySetting) {
@@ -497,6 +496,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.addEventListener('click', async (e) => {
+        if (e.target.closest('#play-album-btn')) {
+            const btn = e.target.closest('#play-album-btn');
+            if (btn.disabled) return;
+            
+            const albumId = window.location.hash.split('/')[1];
+            if (!albumId) return;
+            
+            try {
+                const { tracks } = await api.getAlbum(albumId);
+                if (tracks.length > 0) {
+                    player.setQueue(tracks, 0);
+                    shuffleBtn.classList.remove('active');
+                    player.playTrackFromQueue();
+                }
+            } catch (error) {
+                console.error('Failed to play album:', error);
+                alert('Failed to play album: ' + error.message);
+            }
+        }
+        
         if (e.target.closest('#download-album-btn')) {
             const btn = e.target.closest('#download-album-btn');
             if (btn.disabled) return;
@@ -590,12 +609,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         const html = currentQueue.map((track, index) => {
-            const isPlaying = index === player.currentQueueIndex && 
-                              track.id === (currentQueue[player.currentQueueIndex] || {}).id;
+            const isPlaying = index === player.currentQueueIndex;
             
             return `
-                <div class="track-item ${isPlaying ? 'playing' : ''}" data-queue-index="${index}" data-track-id="${track.id}">
-                    <div class="track-number">${index + 1}</div>
+                <div class="queue-track-item ${isPlaying ? 'playing' : ''}" data-queue-index="${index}" data-track-id="${track.id}" draggable="true">
+                    <div class="drag-handle">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="5" y1="8" x2="19" y2="8"></line>
+                            <line x1="5" y1="16" x2="19" y2="16"></line>
+                        </svg>
+                    </div>
                     <div class="track-item-info">
                         <img src="${api.getCoverUrl(track.album?.cover, '80')}" 
                              class="track-item-cover" loading="lazy">
@@ -605,22 +628,88 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     </div>
                     <div class="track-item-duration">${formatTime(track.duration)}</div>
+                    <button class="track-menu-btn" data-track-index="${index}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="1"></circle>
+                            <circle cx="12" cy="5" r="1"></circle>
+                            <circle cx="12" cy="19" r="1"></circle>
+                        </svg>
+                    </button>
                 </div>
             `;
         }).join('');
         
         queueList.innerHTML = html;
         
-        queueList.querySelectorAll('.track-item').forEach((item, index) => {
-            item.addEventListener('click', () => {
+        queueList.querySelectorAll('.queue-track-item').forEach((item) => {
+            const index = parseInt(item.dataset.queueIndex);
+            
+            item.addEventListener('click', (e) => {
+                if (e.target.closest('.track-menu-btn')) return;
                 player.playAtIndex(index);
-                player.updatePlayingTrackIndicator();
                 renderQueue();
+            });
+            
+            item.addEventListener('dragstart', (e) => {
+                draggedQueueIndex = index;
+                item.style.opacity = '0.5';
+            });
+            
+            item.addEventListener('dragend', () => {
+                item.style.opacity = '1';
+            });
+            
+            item.addEventListener('dragover', (e) => {
+                e.preventDefault();
+            });
+            
+            item.addEventListener('drop', (e) => {
+                e.preventDefault();
+                if (draggedQueueIndex !== null && draggedQueueIndex !== index) {
+                    player.moveInQueue(draggedQueueIndex, index);
+                    renderQueue();
+                }
             });
         });
         
-        player.updatePlayingTrackIndicator();
+        queueList.querySelectorAll('.track-menu-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const index = parseInt(btn.dataset.trackIndex);
+                showQueueTrackMenu(e, index);
+            });
+        });
     };
+
+    function showQueueTrackMenu(e, trackIndex) {
+        const menu = document.getElementById('queue-track-menu');
+        menu.style.top = `${e.pageY}px`;
+        menu.style.left = `${e.pageX}px`;
+        menu.classList.add('show');
+        menu.dataset.trackIndex = trackIndex;
+        
+        document.addEventListener('click', hideQueueTrackMenu);
+    }
+
+    function hideQueueTrackMenu() {
+        const menu = document.getElementById('queue-track-menu');
+        menu.classList.remove('show');
+        document.removeEventListener('click', hideQueueTrackMenu);
+    }
+
+    document.getElementById('queue-track-menu').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const action = e.target.dataset.action;
+        const menu = document.getElementById('queue-track-menu');
+        const trackIndex = parseInt(menu.dataset.trackIndex);
+        
+        if (action === 'remove') {
+            player.removeFromQueue(trackIndex);
+            renderQueue();
+        }
+        
+        hideQueueTrackMenu();
+    });
 
     mainContent.addEventListener('click', e => {
         const trackItem = e.target.closest('.track-item');
@@ -642,7 +731,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     mainContent.addEventListener('contextmenu', e => {
         const trackItem = e.target.closest('.track-item');
-        if (trackItem) {
+        if (trackItem && !trackItem.dataset.queueIndex) {
             e.preventDefault();
             contextTrack = trackDataStore.get(trackItem);
             
@@ -677,15 +766,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     api
                 );
                 
-                const coverUrl = contextTrack.album?.cover 
-                    ? api.getCoverUrl(contextTrack.album.cover, '1280')
-                    : null;
-                
                 await api.downloadTrack(contextTrack.id, quality, filename, {
                     signal: abortController.signal,
-                    track: contextTrack,
-                    coverUrl: coverUrl,
-                    embedMetadata: true,
                     onProgress: (progress) => {
                         updateDownloadProgress(contextTrack.id, progress);
                     }
@@ -869,53 +951,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.getElementById('api-instance-list').addEventListener('click', e => {
+    document.getElementById('api-instance-list').addEventListener('click', async e => {
         const button = e.target.closest('button');
         if (!button) return;
         
         const li = button.closest('li');
         const index = parseInt(li.dataset.index, 10);
-        const instances = apiSettings.getInstances();
+        const instances = await apiSettings.getInstances();
         
         if (button.classList.contains('move-up') && index > 0) {
             [instances[index], instances[index - 1]] = [instances[index - 1], instances[index]];
         } else if (button.classList.contains('move-down') && index < instances.length - 1) {
             [instances[index], instances[index + 1]] = [instances[index + 1], instances[index]];
-        } else if (button.classList.contains('delete-instance')) {
-            instances.splice(index, 1);
         }
         
         apiSettings.saveInstances(instances);
         ui.renderApiSettings();
-    });
-
-    document.getElementById('add-instance-form').addEventListener('submit', e => {
-        e.preventDefault();
-        const input = document.getElementById('custom-instance-input');
-        const newUrl = input.value.trim();
-        
-        if (newUrl) {
-            try {
-                const url = new URL(newUrl);
-                if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-                    throw new Error('Invalid protocol');
-                }
-                
-                const instances = apiSettings.getInstances();
-                const formattedUrl = newUrl.endsWith('/') ? newUrl.slice(0, -1) : newUrl;
-                
-                if (!instances.includes(formattedUrl)) {
-                    instances.push(formattedUrl);
-                    apiSettings.saveInstances(instances);
-                    ui.renderApiSettings();
-                    input.value = '';
-                } else {
-                    alert('This instance is already in the list.');
-                }
-            } catch (error) {
-                alert('Please enter a valid URL (e.g., https://example.com)');
-            }
-        }
     });
 
     document.getElementById('clear-cache-btn')?.addEventListener('click', async () => {

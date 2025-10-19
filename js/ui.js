@@ -304,40 +304,46 @@ export class UIRenderer {
     }
 
     renderApiSettings() {
-        const container = document.getElementById('api-instance-list');
-        const instances = this.api.settings.getInstances();
-        const defaultInstancesSet = new Set(this.api.settings.defaultInstances);
+    const container = document.getElementById('api-instance-list');
+    this.api.settings.getInstances().then(instances => {
+        const cachedData = this.api.settings.getCachedSpeedTests();
+        const speeds = cachedData?.speeds || {};
         
-        container.innerHTML = instances.map((url, index) => `
-            <li data-index="${index}">
-                <span class="instance-url">${url}</span>
-                <div class="controls">
-                    <button class="move-up" title="Move Up" ${index === 0 ? 'disabled' : ''}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 19V5M5 12l7-7 7 7"/>
-                        </svg>
-                    </button>
-                    <button class="move-down" title="Move Down" ${index === instances.length - 1 ? 'disabled' : ''}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 5v14M19 12l-7 7-7-7"/>
-                        </svg>
-                    </button>
-                    ${!defaultInstancesSet.has(url) ? `
-                        <button class="delete-instance" title="Delete">
+        container.innerHTML = instances.map((url, index) => {
+            const speedInfo = speeds[url];
+            const speedText = speedInfo 
+                ? (speedInfo.speed === Infinity 
+                    ? `<span style="color: var(--muted-foreground); font-size: 0.8rem;">Failed</span>` 
+                    : `<span style="color: var(--muted-foreground); font-size: 0.8rem;">${speedInfo.speed.toFixed(0)}ms</span>`)
+                : '';
+            
+            return `
+                <li data-index="${index}">
+                    <div style="flex: 1; min-width: 0;">
+                        <div class="instance-url">${url}</div>
+                        ${speedText}
+                    </div>
+                    <div class="controls">
+                        <button class="move-up" title="Move Up" ${index === 0 ? 'disabled' : ''}>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                <path d="M12 19V5M5 12l7-7 7 7"/>
                             </svg>
                         </button>
-                    ` : ''}
-                </div>
-            </li>
-        `).join('');
+                        <button class="move-down" title="Move Down" ${index === instances.length - 1 ? 'disabled' : ''}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 5v14M19 12l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                    </div>
+                </li>
+            `;
+        }).join('');
 
         const stats = this.api.getCacheStats();
         const cacheInfo = document.getElementById('cache-info');
         if (cacheInfo) {
             cacheInfo.textContent = `Cache: ${stats.memoryEntries}/${stats.maxSize} entries`;
         }
-    }
+    });
+}
 }

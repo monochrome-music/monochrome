@@ -14,8 +14,23 @@ export class Player {
         this.preloadCache = new Map();
         this.preloadAbortController = null;
         this.currentTrack = null;
+        this.crossfadeEnabled = false;
+        this.crossfadeDuration = 5;
+        this.nextAudioElement = null;
+        this.isCrossfading = false;
 
         this.setupMediaSession();
+        this.setupCrossfade();
+    }
+
+    setupCrossfade() {
+        this.nextAudioElement = document.createElement('audio');
+        this.nextAudioElement.preload = 'auto';
+    }
+
+    setCrossfade(enabled, duration = 5) {
+        this.crossfadeEnabled = enabled;
+        this.crossfadeDuration = Math.max(1, Math.min(12, duration));
     }
 
     setupMediaSession() {
@@ -81,7 +96,7 @@ export class Player {
             }
         }
         
-        for (const { track } of tracksToPreload) {
+        for (const { track, index } of tracksToPreload) {
             if (this.preloadCache.has(track.id)) continue;
             
             try {
@@ -89,18 +104,11 @@ export class Player {
                 
                 if (this.preloadAbortController.signal.aborted) break;
                 
-                fetch(streamUrl, {
-                    signal: this.preloadAbortController.signal,
-                    method: 'HEAD',
-                    mode: 'cors',
-                    cache: 'default'
-                }).then(() => {
-                    this.preloadCache.set(track.id, streamUrl);
-                }).catch(err => {
-                    if (err.name !== 'AbortError') {
-                        console.debug('Preload failed for:', track.title);
-                    }
-                });
+                this.preloadCache.set(track.id, streamUrl);
+                
+                if (index === this.currentQueueIndex + 1 && this.crossfadeEnabled) {
+                    this.nextAudioElement.src = streamUrl;
+                }
                 
             } catch (error) {
                 if (error.name !== 'AbortError') {
@@ -137,16 +145,88 @@ export class Player {
                 streamUrl = await this.api.getStreamUrl(track.id, this.quality);
             }
             
-            this.audio.src = streamUrl;
+            if (this.isCrossfading && this.nextAudioElement.src === streamUrl) {
+                const temp = this.audio;
+                this.audio = this.nextAudioElement;
+                this.nextAudioElement = temp;
+                
+                this.nextAudioElement.pause();
+                this.nextAudioElement.currentTime = 0;
+            } else {
+                this.audio.src = streamUrl;
+            }
+            
             await this.audio.play();
+            this.isCrossfading = false;
             
             this.updateMediaSessionPlaybackState();
             this.preloadNextTracks();
+            this.setupCrossfadeListener();
             
         } catch (error) {
             console.error(`Could not play track: ${track.title}`, error);
             document.querySelector('.now-playing-bar .title').textContent = `Error: ${track.title}`;
             document.querySelector('.now-playing-bar .artist').textContent = error.message || 'Could not load track';
+        }
+    }
+
+    setupCrossfadeListener() {
+        if (!this.crossfadeEnabled) return;
+        
+        const checkCrossfade = () => {
+            const timeRemaining = this.audio.duration - this.audio.currentTime;
+            
+            if (timeRemaining <= this.crossfadeDuration && timeRemaining > 0 && !this.isCrossfading) {
+                this.startCrossfade();
+            }
+        };
+        
+        this.audio.removeEventListener('timeupdate', this.crossfadeCheck);
+        this.crossfadeCheck = checkCrossfade;
+        this.audio.addEventListener('timeupdate', this.crossfadeCheck);
+    }
+
+    async startCrossfade() {
+        if (this.repeatMode === REPEAT_MODE.ONE) return;
+        
+        const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
+        const nextIndex = this.currentQueueIndex + 1;
+        
+        if (nextIndex >= currentQueue.length && this.repeatMode !== REPEAT_MODE.ALL) return;
+        
+        this.isCrossfading = true;
+        const targetIndex = nextIndex >= currentQueue.length ? 0 : nextIndex;
+        const nextTrack = currentQueue[targetIndex];
+        
+        if (this.nextAudioElement.src && this.preloadCache.has(nextTrack.id)) {
+            try {
+                await this.nextAudioElement.play();
+                this.nextAudioElement.volume = 0;
+                
+                const fadeSteps = 20;
+                const fadeInterval = (this.crossfadeDuration * 1000) / fadeSteps;
+                
+                let step = 0;
+                const fadeTimer = setInterval(() => {
+                    step++;
+                    const progress = step / fadeSteps;
+                    
+                    this.audio.volume = Math.max(0, 1 - progress);
+                    this.nextAudioElement.volume = Math.min(1, progress);
+                    
+                    if (step >= fadeSteps) {
+                        clearInterval(fadeTimer);
+                        this.audio.pause();
+                        this.audio.volume = 1;
+                        this.currentQueueIndex = targetIndex;
+                        this.playTrackFromQueue();
+                    }
+                }, fadeInterval);
+                
+            } catch (error) {
+                console.error('Crossfade failed:', error);
+                this.isCrossfading = false;
+            }
         }
     }
 
@@ -253,6 +333,44 @@ export class Player {
         if (!this.currentTrack || this.currentQueueIndex === -1) {
             this.currentQueueIndex = this.queue.length - 1;
             this.playTrackFromQueue();
+        }
+    }
+
+    removeFromQueue(index) {
+        const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
+        
+        if (index < 0 || index >= currentQueue.length) return;
+        
+        if (this.shuffleActive) {
+            this.shuffledQueue.splice(index, 1);
+        } else {
+            this.queue.splice(index, 1);
+        }
+        
+        if (index < this.currentQueueIndex) {
+            this.currentQueueIndex--;
+        } else if (index === this.currentQueueIndex) {
+            if (currentQueue.length > 0) {
+                this.playTrackFromQueue();
+            }
+        }
+    }
+
+    moveInQueue(fromIndex, toIndex) {
+        const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
+        
+        if (fromIndex < 0 || fromIndex >= currentQueue.length) return;
+        if (toIndex < 0 || toIndex >= currentQueue.length) return;
+        
+        const [track] = currentQueue.splice(fromIndex, 1);
+        currentQueue.splice(toIndex, 0, track);
+        
+        if (this.currentQueueIndex === fromIndex) {
+            this.currentQueueIndex = toIndex;
+        } else if (fromIndex < this.currentQueueIndex && toIndex >= this.currentQueueIndex) {
+            this.currentQueueIndex--;
+        } else if (fromIndex > this.currentQueueIndex && toIndex <= this.currentQueueIndex) {
+            this.currentQueueIndex++;
         }
     }
 

@@ -1,6 +1,5 @@
 import { RATE_LIMIT_ERROR_MESSAGE, deriveTrackQuality, delay } from './utils.js';
 import { APICache } from './cache.js';
-import { MetadataEmbedder } from './metadata.js';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 
@@ -12,7 +11,6 @@ export class LosslessAPI {
             ttl: 1000 * 60 * 30
         });
         this.streamCache = new Map();
-        this.metadataEmbedder = new MetadataEmbedder();
         
         setInterval(() => {
             this.cache.clearExpired();
@@ -29,7 +27,7 @@ export class LosslessAPI {
     }
 
     async fetchWithRetry(relativePath, options = {}) {
-        const instances = this.settings.getInstances();
+        const instances = await this.settings.getInstances();
         if (instances.length === 0) {
             throw new Error("No API instances configured.");
         }
@@ -207,7 +205,7 @@ export class LosslessAPI {
                     return parsed.urls[0];
                 }
             } catch {
-                const match = decoded.match(/https?:\/\/[\w\-.~:?#[```@!$&'()*+,;=%/]+/);
+                const match = decoded.match(/https?:\/\/[\w\-.~:?#[@!$&'()*+,;=%/]+/);
                 return match ? match[0] : null;
             }
         } catch (error) {
@@ -401,7 +399,7 @@ export class LosslessAPI {
     }
 
     async downloadTrack(id, quality = 'LOSSLESS', filename, options = {}) {
-        const { onProgress, embedMetadata = true, track, coverUrl } = options;
+        const { onProgress } = options;
         
         try {
             const lookup = await this.getTrack(id, quality);
@@ -450,24 +448,7 @@ export class LosslessAPI {
                     }
                 }
 
-                let blob = new Blob(chunks, { type: response.headers.get('Content-Type') || 'audio/flac' });
-
-                if (embedMetadata && track && quality === 'LOSSLESS' && coverUrl) {
-                    if (onProgress) {
-                        onProgress({ stage: 'metadata', progress: 0 });
-                    }
-
-                    try {
-                        blob = await this.metadataEmbedder.embedMetadata(blob, track, coverUrl, (progress) => {
-                            if (onProgress) {
-                                onProgress({ stage: 'metadata', progress });
-                            }
-                        });
-                    } catch (metaError) {
-                        console.warn('Metadata embedding failed, downloading without metadata:', metaError);
-                    }
-                }
-
+                const blob = new Blob(chunks, { type: response.headers.get('Content-Type') || 'audio/flac' });
                 this.triggerDownload(blob, filename);
             } else {
                 const blob = await response.blob();
