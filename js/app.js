@@ -890,7 +890,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const updateVolumeUI = () => {
         const { volume, muted } = audioPlayer;
         volumeBtn.innerHTML = (muted || volume === 0) ? SVG_MUTE : SVG_VOLUME;
-        volumeFill.style.width = `${muted ? 0 : volume * 100}%`;
+
+        const effectiveVolume = muted ? 0 : volume * 100;
+
+        volumeFill.style.setProperty('--volume-level', `${effectiveVolume}%`);
     };
 
     volumeBtn.addEventListener('click', () => {

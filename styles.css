@@ -920,7 +920,7 @@ input:checked + .slider:before {
 }
 
 .volume-controls .volume-bar .volume-fill {
-    width: 70%;
+    width: var(--volume-level, 70%);
     height: 100%;
     background-color: var(--foreground);
     border-radius: 2px;
@@ -933,7 +933,7 @@ input:checked + .slider:before {
 .volume-controls .volume-bar:hover .volume-fill::after {
     content: '';
     position: absolute;
-    right: 0;
+    left: calc(var(--volume-level, 70%) - 6px);
     top: 50%;
     transform: translateY(-50%);
     width: 12px;
