@@ -3,17 +3,445 @@ import { apiSettings } from './storage.js';
 import { UIRenderer } from './ui.js';
 import { Player } from './player.js';
 import { 
-    QUALITY, REPEAT_MODE, SVG_PLAY, SVG_PAUSE, 
+    REPEAT_MODE, SVG_PLAY, SVG_PAUSE, 
     SVG_VOLUME, SVG_MUTE, formatTime, trackDataStore,
-    buildTrackFilename, RATE_LIMIT_ERROR_MESSAGE, debounce
+    buildTrackFilename, RATE_LIMIT_ERROR_MESSAGE, debounce,
+    sanitizeForFilename
 } from './utils.js';
+
+const downloadTasks = new Map();
+let downloadNotificationContainer = null;
+
+async function loadJSZip() {
+    try {
+        const module = await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm');
+        return module.default;
+    } catch (error) {
+        console.error('Failed to load JSZip:', error);
+        throw new Error('Failed to load ZIP library');
+    }
+}
+
+function createDownloadNotification() {
+    if (!downloadNotificationContainer) {
+        downloadNotificationContainer = document.createElement('div');
+        downloadNotificationContainer.id = 'download-notifications';
+        downloadNotificationContainer.style.cssText = `
+            position: fixed;
+            bottom: 120px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 350px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        `;
+        document.body.appendChild(downloadNotificationContainer);
+    }
+    return downloadNotificationContainer;
+}
+
+function addDownloadTask(trackId, track, filename, api) {
+    const container = createDownloadNotification();
+    
+    const taskEl = document.createElement('div');
+    taskEl.className = 'download-task';
+    taskEl.dataset.trackId = trackId;
+    taskEl.style.cssText = `
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        animation: slideIn 0.3s ease;
+    `;
+    
+    taskEl.innerHTML = `
+        <div style="display: flex; align-items: start; gap: 0.75rem;">
+            <img src="${api.getCoverUrl(track.album?.cover, '80')}" 
+                 style="width: 40px; height: 40px; border-radius: 4px; flex-shrink: 0;">
+            <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 500; font-size: 0.9rem; margin-bottom: 0.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${track.title}</div>
+                <div style="font-size: 0.8rem; color: var(--muted-foreground); margin-bottom: 0.5rem;">${track.artist?.name || 'Unknown'}</div>
+                <div class="download-progress-bar" style="height: 4px; background: var(--secondary); border-radius: 2px; overflow: hidden;">
+                    <div class="download-progress-fill" style="width: 0%; height: 100%; background: var(--highlight); transition: width 0.2s;"></div>
+                </div>
+                <div class="download-status" style="font-size: 0.75rem; color: var(--muted-foreground); margin-top: 0.25rem;">Starting...</div>
+            </div>
+            <button class="download-cancel" style="background: transparent; border: none; color: var(--muted-foreground); cursor: pointer; padding: 4px; border-radius: 4px; transition: all 0.2s;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+    `;
+    
+    container.appendChild(taskEl);
+    
+    const abortController = new AbortController();
+    downloadTasks.set(trackId, { taskEl, abortController });
+    
+    taskEl.querySelector('.download-cancel').addEventListener('click', () => {
+        abortController.abort();
+        removeDownloadTask(trackId);
+    });
+    
+    return { taskEl, abortController };
+}
+
+function updateDownloadProgress(trackId, progress) {
+    const task = downloadTasks.get(trackId);
+    if (!task) return;
+    
+    const { taskEl } = task;
+    const progressFill = taskEl.querySelector('.download-progress-fill');
+    const statusEl = taskEl.querySelector('.download-status');
+    
+    if (progress.stage === 'downloading') {
+        const percent = progress.totalBytes 
+            ? Math.round((progress.receivedBytes / progress.totalBytes) * 100)
+            : 0;
+        
+        progressFill.style.width = `${percent}%`;
+        
+        const receivedMB = (progress.receivedBytes / (1024 * 1024)).toFixed(1);
+        const totalMB = progress.totalBytes 
+            ? (progress.totalBytes / (1024 * 1024)).toFixed(1)
+            : '?';
+        
+        statusEl.textContent = `Downloading: ${receivedMB}MB / ${totalMB}MB (${percent}%)`;
+    } else if (progress.stage === 'metadata') {
+        const percent = Math.round(progress.progress * 100);
+        progressFill.style.width = `${percent}%`;
+        progressFill.style.background = '#a855f7';
+        statusEl.textContent = `Embedding metadata: ${percent}%`;
+    }
+}
+
+function completeDownloadTask(trackId, success = true, message = null) {
+    const task = downloadTasks.get(trackId);
+    if (!task) return;
+    
+    const { taskEl } = task;
+    const progressFill = taskEl.querySelector('.download-progress-fill');
+    const statusEl = taskEl.querySelector('.download-status');
+    const cancelBtn = taskEl.querySelector('.download-cancel');
+    
+    if (success) {
+        progressFill.style.width = '100%';
+        progressFill.style.background = '#10b981';
+        statusEl.textContent = '✓ Downloaded';
+        statusEl.style.color = '#10b981';
+        cancelBtn.remove();
+        
+        setTimeout(() => removeDownloadTask(trackId), 3000);
+    } else {
+        progressFill.style.background = '#ef4444';
+        statusEl.textContent = message || '✗ Download failed';
+        statusEl.style.color = '#ef4444';
+        cancelBtn.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        `;
+        cancelBtn.onclick = () => removeDownloadTask(trackId);
+        
+        setTimeout(() => removeDownloadTask(trackId), 5000);
+    }
+}
+
+function removeDownloadTask(trackId) {
+    const task = downloadTasks.get(trackId);
+    if (!task) return;
+    
+    const { taskEl } = task;
+    taskEl.style.animation = 'slideOut 0.3s ease';
+    
+    setTimeout(() => {
+        taskEl.remove();
+        downloadTasks.delete(trackId);
+        
+        if (downloadNotificationContainer && downloadNotificationContainer.children.length === 0) {
+            downloadNotificationContainer.remove();
+            downloadNotificationContainer = null;
+        }
+    }, 300);
+}
+
+async function downloadTrackBlob(track, quality, api, coverUrl = null) {
+    console.log('[Download] Starting download for:', track.title, 'Quality:', quality);
+    console.log('[Download] Cover URL:', coverUrl);
+    
+    const lookup = await api.getTrack(track.id, quality);
+    let streamUrl;
+
+    if (lookup.originalTrackUrl) {
+        streamUrl = lookup.originalTrackUrl;
+    } else {
+        streamUrl = api.extractStreamUrlFromManifest(lookup.info.manifest);
+        if (!streamUrl) {
+            throw new Error('Could not resolve stream URL');
+        }
+    }
+
+    console.log('[Download] Fetching from:', streamUrl);
+    const response = await fetch(streamUrl);
+    if (!response.ok) {
+        throw new Error(`Failed to fetch track: ${response.status}`);
+    }
+    
+    let blob = await response.blob();
+    console.log('[Download] Downloaded blob size:', blob.size, 'type:', blob.type);
+    
+    if (quality === 'LOSSLESS' && coverUrl) {
+        console.log('[Download] Attempting to embed metadata...');
+        try {
+            const processedBlob = await api.metadataEmbedder.embedMetadata(blob, track, coverUrl, null);
+            console.log('[Download] Metadata embedded. New size:', processedBlob.size);
+            blob = processedBlob;
+        } catch (error) {
+            console.error('[Download] Metadata embedding failed:', error);
+        }
+    } else {
+        console.log('[Download] Skipping metadata - Quality:', quality, 'Has cover:', !!coverUrl);
+    }
+    
+    return blob;
+}
+
+async function downloadAlbumAsZip(album, tracks, api, quality) {
+    const JSZip = await loadJSZip();
+    const zip = new JSZip();
+    
+    const artistName = sanitizeForFilename(album.artist?.name || 'Unknown Artist');
+    const albumTitle = sanitizeForFilename(album.title || 'Unknown Album');
+    const folderName = `${albumTitle} - ${artistName} - monochrome.tf`;
+    
+    const coverUrl = album.cover ? api.getCoverUrl(album.cover, '1280') : null;
+    
+    const notification = createBulkDownloadNotification('album', album.title, tracks.length);
+    
+    try {
+        for (let i = 0; i < tracks.length; i++) {
+            const track = tracks[i];
+            const filename = buildTrackFilename(track, quality);
+            
+            updateBulkDownloadProgress(notification, i, tracks.length, track.title);
+            
+            const blob = await downloadTrackBlob(track, quality, api, coverUrl);
+            zip.file(`${folderName}/${filename}`, blob);
+        }
+        
+        updateBulkDownloadProgress(notification, tracks.length, tracks.length, 'Creating ZIP...');
+        
+        const zipBlob = await zip.generateAsync({ 
+            type: 'blob',
+            compression: 'DEFLATE',
+            compressionOptions: { level: 6 }
+        });
+        
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${folderName}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        completeBulkDownload(notification, true);
+    } catch (error) {
+        completeBulkDownload(notification, false, error.message);
+        throw error;
+    }
+}
+
+async function downloadDiscography(artist, api, quality) {
+    const JSZip = await loadJSZip();
+    const zip = new JSZip();
+    
+    const artistName = sanitizeForFilename(artist.name || 'Unknown Artist');
+    const rootFolder = `${artistName} discography - monochrome.tf`;
+    
+    const totalAlbums = artist.albums.length;
+    const notification = createBulkDownloadNotification('discography', artist.name, totalAlbums);
+    
+    try {
+        for (let albumIndex = 0; albumIndex < artist.albums.length; albumIndex++) {
+            const album = artist.albums[albumIndex];
+            
+            updateBulkDownloadProgress(notification, albumIndex, totalAlbums, album.title);
+            
+            try {
+                const { album: fullAlbum, tracks } = await api.getAlbum(album.id);
+                const albumTitle = sanitizeForFilename(fullAlbum.title || 'Unknown Album');
+                const albumFolder = `${rootFolder}/${albumTitle}`;
+                
+                const coverUrl = fullAlbum.cover ? api.getCoverUrl(fullAlbum.cover, '1280') : null;
+                
+                for (const track of tracks) {
+                    const filename = buildTrackFilename(track, quality);
+                    const blob = await downloadTrackBlob(track, quality, api, coverUrl);
+                    zip.file(`${albumFolder}/${filename}`, blob);
+                }
+            } catch (error) {
+                console.error(`Failed to download album ${album.title}:`, error);
+            }
+        }
+        
+        updateBulkDownloadProgress(notification, totalAlbums, totalAlbums, 'Creating ZIP...');
+        
+        const zipBlob = await zip.generateAsync({ 
+            type: 'blob',
+            compression: 'DEFLATE',
+            compressionOptions: { level: 6 }
+        });
+        
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${rootFolder}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        completeBulkDownload(notification, true);
+    } catch (error) {
+        completeBulkDownload(notification, false, error.message);
+        throw error;
+    }
+}
+
+function createBulkDownloadNotification(type, name, totalItems) {
+    const container = createDownloadNotification();
+    
+    const notifEl = document.createElement('div');
+    notifEl.className = 'download-task bulk-download';
+    notifEl.style.cssText = `
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        animation: slideIn 0.3s ease;
+    `;
+    
+    notifEl.innerHTML = `
+        <div style="display: flex; align-items: start; gap: 0.75rem;">
+            <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 600; font-size: 0.95rem; margin-bottom: 0.25rem;">
+                    Downloading ${type === 'album' ? 'Album' : 'Discography'}
+                </div>
+                <div style="font-size: 0.85rem; color: var(--muted-foreground); margin-bottom: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${name}</div>
+                <div class="download-progress-bar" style="height: 4px; background: var(--secondary); border-radius: 2px; overflow: hidden;">
+                    <div class="download-progress-fill" style="width: 0%; height: 100%; background: var(--highlight); transition: width 0.2s;"></div>
+                </div>
+                <div class="download-status" style="font-size: 0.75rem; color: var(--muted-foreground); margin-top: 0.25rem;">Starting...</div>
+            </div>
+        </div>
+    `;
+    
+    container.appendChild(notifEl);
+    return notifEl;
+}
+
+function updateBulkDownloadProgress(notifEl, current, total, currentItem) {
+    const progressFill = notifEl.querySelector('.download-progress-fill');
+    const statusEl = notifEl.querySelector('.download-status');
+    
+    const percent = total > 0 ? Math.round((current / total) * 100) : 0;
+    progressFill.style.width = `${percent}%`;
+    statusEl.textContent = `${current}/${total} - ${currentItem}`;
+}
+
+function completeBulkDownload(notifEl, success = true, message = null) {
+    const progressFill = notifEl.querySelector('.download-progress-fill');
+    const statusEl = notifEl.querySelector('.download-status');
+    
+    if (success) {
+        progressFill.style.width = '100%';
+        progressFill.style.background = '#10b981';
+        statusEl.textContent = '✓ Download complete';
+        statusEl.style.color = '#10b981';
+        
+        setTimeout(() => {
+            notifEl.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => notifEl.remove(), 300);
+        }, 3000);
+    } else {
+        progressFill.style.background = '#ef4444';
+        statusEl.textContent = message || '✗ Download failed';
+        statusEl.style.color = '#ef4444';
+        
+        setTimeout(() => {
+            notifEl.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => notifEl.remove(), 300);
+        }, 5000);
+    }
+}
+
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+    
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    
+    .animate-spin {
+        animation: spin 1s linear infinite;
+    }
+    
+    .download-cancel:hover {
+        background: var(--secondary) !important;
+        color: var(--foreground) !important;
+    }
+
+    .now-playing-bar .title,
+    .now-playing-bar .artist {
+        cursor: pointer;
+        transition: color 0.2s;
+    }
+
+    .now-playing-bar .title:hover,
+    .now-playing-bar .artist:hover {
+        color: var(--highlight);
+        text-decoration: underline;
+    }
+`;
+document.head.appendChild(style);
 
 document.addEventListener('DOMContentLoaded', () => {
     const api = new LosslessAPI(apiSettings);
     const ui = new UIRenderer(api);
     
     const audioPlayer = document.getElementById('audio-player');
-    const player = new Player(audioPlayer, api, QUALITY);
+    const currentQuality = localStorage.getItem('playback-quality') || 'LOSSLESS';
+    const player = new Player(audioPlayer, api, currentQuality);
     
     const mainContent = document.querySelector('.main-content');
     const playPauseBtn = document.querySelector('.play-pause-btn');
@@ -40,6 +468,81 @@ document.addEventListener('DOMContentLoaded', () => {
     const hamburgerBtn = document.getElementById('hamburger-btn');
 
     let contextTrack = null;
+
+    const qualitySetting = document.getElementById('quality-setting');
+    if (qualitySetting) {
+        const savedQuality = localStorage.getItem('playback-quality') || 'LOSSLESS';
+        qualitySetting.value = savedQuality;
+        player.setQuality(savedQuality);
+        
+        qualitySetting.addEventListener('change', (e) => {
+            const newQuality = e.target.value;
+            player.setQuality(newQuality);
+            localStorage.setItem('playback-quality', newQuality);
+        });
+    }
+
+    document.querySelector('.now-playing-bar .title').addEventListener('click', () => {
+        const track = player.currentTrack;
+        if (track?.album?.id) {
+            window.location.hash = `#album/${track.album.id}`;
+        }
+    });
+
+    document.querySelector('.now-playing-bar .artist').addEventListener('click', () => {
+        const track = player.currentTrack;
+        if (track?.artist?.id) {
+            window.location.hash = `#artist/${track.artist.id}`;
+        }
+    });
+
+    document.addEventListener('click', async (e) => {
+        if (e.target.closest('#download-album-btn')) {
+            const btn = e.target.closest('#download-album-btn');
+            if (btn.disabled) return;
+            
+            const albumId = window.location.hash.split('/')[1];
+            if (!albumId) return;
+            
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Downloading...</span>';
+            
+            try {
+                const { album, tracks } = await api.getAlbum(albumId);
+                await downloadAlbumAsZip(album, tracks, api, player.quality);
+            } catch (error) {
+                console.error('Album download failed:', error);
+                alert('Failed to download album: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        }
+        
+        if (e.target.closest('#download-discography-btn')) {
+            const btn = e.target.closest('#download-discography-btn');
+            if (btn.disabled) return;
+            
+            const artistId = window.location.hash.split('/')[1];
+            if (!artistId) return;
+            
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Downloading...</span>';
+            
+            try {
+                const artist = await api.getArtist(artistId);
+                await downloadDiscography(artist, api, player.quality);
+            } catch (error) {
+                console.error('Discography download failed:', error);
+                alert('Failed to download discography: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        }
+    });
 
     document.querySelectorAll('.search-tab').forEach(tab => {
         tab.addEventListener('click', () => {
@@ -91,7 +594,7 @@ document.addEventListener('DOMContentLoaded', () => {
                               track.id === (currentQueue[player.currentQueueIndex] || {}).id;
             
             return `
-                <div class="track-item ${isPlaying ? 'playing' : ''}" data-queue-index="${index}">
+                <div class="track-item ${isPlaying ? 'playing' : ''}" data-queue-index="${index}" data-track-id="${track.id}">
                     <div class="track-number">${index + 1}</div>
                     <div class="track-item-info">
                         <img src="${api.getCoverUrl(track.album?.cover, '80')}" 
@@ -107,12 +610,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join('');
         
         queueList.innerHTML = html;
+        
+        queueList.querySelectorAll('.track-item').forEach((item, index) => {
+            item.addEventListener('click', () => {
+                player.playAtIndex(index);
+                player.updatePlayingTrackIndicator();
+                renderQueue();
+            });
+        });
+        
         player.updatePlayingTrackIndicator();
     };
 
     mainContent.addEventListener('click', e => {
         const trackItem = e.target.closest('.track-item');
-        if (trackItem) {
+        if (trackItem && !trackItem.dataset.queueIndex) {
             const parentList = trackItem.closest('.track-list');
             const allTrackElements = Array.from(parentList.querySelectorAll('.track-item'));
             const trackList = allTrackElements.map(el => trackDataStore.get(el)).filter(Boolean);
@@ -154,23 +666,39 @@ document.addEventListener('DOMContentLoaded', () => {
             player.addToQueue(contextTrack);
             renderQueue();
         } else if (action === 'download' && contextTrack) {
-            const filename = buildTrackFilename(contextTrack, QUALITY);
+            const quality = player.quality;
+            const filename = buildTrackFilename(contextTrack, quality);
             
             try {
-                const tempEl = document.createElement('div');
-                tempEl.textContent = `Downloading: ${contextTrack.title}...`;
-                tempEl.style.cssText = 'position:fixed;bottom:100px;right:20px;background:var(--card);padding:1rem 1.5rem;border-radius:var(--radius);border:1px solid var(--border);z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.5);';
-                document.body.appendChild(tempEl);
+                const { taskEl, abortController } = addDownloadTask(
+                    contextTrack.id,
+                    contextTrack,
+                    filename,
+                    api
+                );
                 
-                await api.downloadTrack(contextTrack.id, QUALITY, filename);
+                const coverUrl = contextTrack.album?.cover 
+                    ? api.getCoverUrl(contextTrack.album.cover, '1280')
+                    : null;
                 
-                tempEl.textContent = `✓ Downloaded: ${contextTrack.title}`;
-                setTimeout(() => tempEl.remove(), 3000);
+                await api.downloadTrack(contextTrack.id, quality, filename, {
+                    signal: abortController.signal,
+                    track: contextTrack,
+                    coverUrl: coverUrl,
+                    embedMetadata: true,
+                    onProgress: (progress) => {
+                        updateDownloadProgress(contextTrack.id, progress);
+                    }
+                });
+                
+                completeDownloadTask(contextTrack.id, true);
             } catch (error) {
-                const errorMsg = error.message === RATE_LIMIT_ERROR_MESSAGE 
-                    ? error.message 
-                    : 'Download failed. Please try again.';
-                alert(errorMsg);
+                if (error.name !== 'AbortError') {
+                    const errorMsg = error.message === RATE_LIMIT_ERROR_MESSAGE 
+                        ? error.message 
+                        : 'Download failed. Please try again.';
+                    completeDownloadTask(contextTrack.id, false, errorMsg);
+                }
             }
         }
         
@@ -217,6 +745,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (duration) {
             progressFill.style.width = `${(currentTime / duration) * 100}%`;
             currentTimeEl.textContent = formatTime(currentTime);
+            player.updateMediaSessionPositionState();
         }
     });
 
@@ -251,6 +780,7 @@ document.addEventListener('DOMContentLoaded', () => {
             seek(progressBar, progressFill, e, position => {
                 if (!isNaN(audioPlayer.duration)) {
                     audioPlayer.currentTime = position * audioPlayer.duration;
+                    player.updateMediaSessionPositionState();
                     if (wasPlaying) audioPlayer.play();
                 }
             });
@@ -263,6 +793,7 @@ document.addEventListener('DOMContentLoaded', () => {
             seek(progressBar, progressFill, e, position => {
                 if (!isNaN(audioPlayer.duration)) {
                     audioPlayer.currentTime = position * audioPlayer.duration;
+                    player.updateMediaSessionPositionState();
                 }
             });
         }
@@ -417,48 +948,6 @@ document.addEventListener('DOMContentLoaded', () => {
     updateVolumeUI();
     router();
     window.addEventListener('hashchange', router);
-
-    if ('mediaSession' in navigator) {
-        navigator.mediaSession.setActionHandler('play', () => {
-            player.handlePlayPause();
-        });
-        
-        navigator.mediaSession.setActionHandler('pause', () => {
-            player.handlePlayPause();
-        });
-        
-        navigator.mediaSession.setActionHandler('previoustrack', () => {
-            player.playPrev();
-        });
-        
-        navigator.mediaSession.setActionHandler('nexttrack', () => {
-            player.playNext();
-        });
-        
-        navigator.mediaSession.setActionHandler('seekbackward', (details) => {
-            const skipTime = details.seekOffset || 10;
-            player.seekBackward(skipTime);
-        });
-        
-        navigator.mediaSession.setActionHandler('seekforward', (details) => {
-            const skipTime = details.seekOffset || 10;
-            player.seekForward(skipTime);
-        });
-        
-        navigator.mediaSession.setActionHandler('seekto', (details) => {
-            if (details.fastSeek && 'fastSeek' in audioPlayer) {
-                audioPlayer.fastSeek(details.seekTime);
-            } else {
-                audioPlayer.currentTime = details.seekTime;
-            }
-            player.updateMediaSessionPositionState();
-        });
-        
-        navigator.mediaSession.setActionHandler('stop', () => {
-            audioPlayer.pause();
-            audioPlayer.currentTime = 0;
-        });
-    }
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {

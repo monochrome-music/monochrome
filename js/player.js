@@ -1,4 +1,4 @@
-import { REPEAT_MODE, SVG_PLAY, SVG_PAUSE, formatTime } from './utils.js';
+import { REPEAT_MODE, formatTime } from './utils.js';
 
 export class Player {
     constructor(audioElement, api, quality = 'LOSSLESS') {
@@ -13,6 +13,52 @@ export class Player {
         this.repeatMode = REPEAT_MODE.OFF;
         this.preloadCache = new Map();
         this.preloadAbortController = null;
+        this.currentTrack = null;
+
+        this.setupMediaSession();
+    }
+
+    setupMediaSession() {
+        if (!('mediaSession' in navigator)) return;
+
+        navigator.mediaSession.setActionHandler('play', () => {
+            this.audio.play().catch(console.error);
+        });
+
+        navigator.mediaSession.setActionHandler('pause', () => {
+            this.audio.pause();
+        });
+
+        navigator.mediaSession.setActionHandler('previoustrack', () => {
+            this.playPrev();
+        });
+
+        navigator.mediaSession.setActionHandler('nexttrack', () => {
+            this.playNext();
+        });
+
+        navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+            const skipTime = details.seekOffset || 10;
+            this.seekBackward(skipTime);
+        });
+
+        navigator.mediaSession.setActionHandler('seekforward', (details) => {
+            const skipTime = details.seekOffset || 10;
+            this.seekForward(skipTime);
+        });
+
+        navigator.mediaSession.setActionHandler('seekto', (details) => {
+            if (details.seekTime !== undefined) {
+                this.audio.currentTime = Math.max(0, details.seekTime);
+                this.updateMediaSessionPositionState();
+            }
+        });
+
+        navigator.mediaSession.setActionHandler('stop', () => {
+            this.audio.pause();
+            this.audio.currentTime = 0;
+            this.updateMediaSessionPlaybackState();
+        });
     }
 
     setQuality(quality) {
@@ -35,7 +81,7 @@ export class Player {
             }
         }
         
-        for (const { track, index } of tracksToPreload) {
+        for (const { track } of tracksToPreload) {
             if (this.preloadCache.has(track.id)) continue;
             
             try {
@@ -45,13 +91,11 @@ export class Player {
                 
                 fetch(streamUrl, {
                     signal: this.preloadAbortController.signal,
-                    method: 'GET',
+                    method: 'HEAD',
                     mode: 'cors',
                     cache: 'default'
-                }).then(response => {
-                    if (response.ok) {
-                        this.preloadCache.set(track.id, streamUrl);
-                    }
+                }).then(() => {
+                    this.preloadCache.set(track.id, streamUrl);
                 }).catch(err => {
                     if (err.name !== 'AbortError') {
                         console.debug('Preload failed for:', track.title);
@@ -73,6 +117,7 @@ export class Player {
         }
 
         const track = currentQueue[this.currentQueueIndex];
+        this.currentTrack = track;
         
         document.querySelector('.now-playing-bar .cover').src = 
             this.api.getCoverUrl(track.album?.cover, '160');
@@ -95,13 +140,21 @@ export class Player {
             this.audio.src = streamUrl;
             await this.audio.play();
             
+            this.updateMediaSessionPlaybackState();
             this.preloadNextTracks();
             
         } catch (error) {
-            console.error(`Could not get track URL for: ${track.title}`, error);
+            console.error(`Could not play track: ${track.title}`, error);
             document.querySelector('.now-playing-bar .title').textContent = `Error: ${track.title}`;
             document.querySelector('.now-playing-bar .artist').textContent = error.message || 'Could not load track';
-            document.querySelector('.play-pause-btn').innerHTML = SVG_PLAY;
+        }
+    }
+
+    playAtIndex(index) {
+        const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
+        if (index >= 0 && index < currentQueue.length) {
+            this.currentQueueIndex = index;
+            this.playTrackFromQueue();
         }
     }
 
@@ -129,6 +182,7 @@ export class Player {
     playPrev() {
         if (this.audio.currentTime > 3) {
             this.audio.currentTime = 0;
+            this.updateMediaSessionPositionState();
         } else if (this.currentQueueIndex > 0) {
             this.currentQueueIndex--;
             this.playTrackFromQueue();
@@ -137,18 +191,25 @@ export class Player {
 
     handlePlayPause() {
         if (!this.audio.src) return;
-        this.audio.paused ? this.audio.play() : this.audio.pause();
+        
+        if (this.audio.paused) {
+            this.audio.play().catch(console.error);
+        } else {
+            this.audio.pause();
+        }
     }
 
     seekBackward(seconds = 10) {
         const newTime = Math.max(0, this.audio.currentTime - seconds);
         this.audio.currentTime = newTime;
+        this.updateMediaSessionPositionState();
     }
 
     seekForward(seconds = 10) {
         const duration = this.audio.duration || 0;
         const newTime = Math.min(duration, this.audio.currentTime + seconds);
         this.audio.currentTime = newTime;
+        this.updateMediaSessionPositionState();
     }
 
     toggleShuffle() {
@@ -188,6 +249,11 @@ export class Player {
 
     addToQueue(track) {
         this.queue.push(track);
+        
+        if (!this.currentTrack || this.currentQueueIndex === -1) {
+            this.currentQueueIndex = this.queue.length - 1;
+            this.playTrackFromQueue();
+        }
     }
 
     getCurrentQueue() {
@@ -208,14 +274,12 @@ export class Player {
         
         const artwork = [];
         const sizes = ['96', '128', '192', '256', '384', '512'];
-        
         const coverId = track.album?.cover;
         
         if (coverId) {
             sizes.forEach(size => {
-                const url = this.api.getCoverUrl(coverId, size);
                 artwork.push({
-                    src: url,
+                    src: this.api.getCoverUrl(coverId, size),
                     sizes: `${size}x${size}`,
                     type: 'image/jpeg'
                 });
@@ -229,28 +293,33 @@ export class Player {
             artwork: artwork.length > 0 ? artwork : undefined
         });
 
-        navigator.mediaSession.playbackState = this.audio.paused ? 'paused' : 'playing';
+        this.updateMediaSessionPlaybackState();
+        this.updateMediaSessionPositionState();
     }
 
     updateMediaSessionPlaybackState() {
-        if ('mediaSession' in navigator) {
-            navigator.mediaSession.playbackState = this.audio.paused ? 'paused' : 'playing';
-        }
+        if (!('mediaSession' in navigator)) return;
+        navigator.mediaSession.playbackState = this.audio.paused ? 'paused' : 'playing';
     }
 
     updateMediaSessionPositionState() {
-        if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
-            if (this.audio.duration && !isNaN(this.audio.duration)) {
-                try {
-                    navigator.mediaSession.setPositionState({
-                        duration: this.audio.duration,
-                        playbackRate: this.audio.playbackRate,
-                        position: this.audio.currentTime
-                    });
-                } catch (error) {
-                    console.debug('Failed to update position state:', error);
-                }
-            }
+        if (!('mediaSession' in navigator)) return;
+        if (!('setPositionState' in navigator.mediaSession)) return;
+        
+        const duration = this.audio.duration;
+        
+        if (!duration || isNaN(duration) || !isFinite(duration)) {
+            return;
+        }
+
+        try {
+            navigator.mediaSession.setPositionState({
+                duration: duration,
+                playbackRate: this.audio.playbackRate || 1,
+                position: Math.min(this.audio.currentTime, duration)
+            });
+        } catch (error) {
+            console.debug('Failed to update Media Session position:', error);
         }
     }
 }

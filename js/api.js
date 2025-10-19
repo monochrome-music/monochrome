@@ -1,6 +1,8 @@
-//js/api.js
 import { RATE_LIMIT_ERROR_MESSAGE, deriveTrackQuality, delay } from './utils.js';
 import { APICache } from './cache.js';
+import { MetadataEmbedder } from './metadata.js';
+
+export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 
 export class LosslessAPI {
     constructor(settings) {
@@ -9,78 +11,88 @@ export class LosslessAPI {
             maxSize: 200,
             ttl: 1000 * 60 * 30
         });
+        this.streamCache = new Map();
+        this.metadataEmbedder = new MetadataEmbedder();
         
         setInterval(() => {
             this.cache.clearExpired();
+            this.pruneStreamCache();
         }, 1000 * 60 * 5);
     }
 
-async fetchWithRetry(relativePath, options = {}) {
-    const instances = this.settings.getInstances();
-    if (instances.length === 0) {
-        throw new Error("No API instances configured.");
-    }
-
-    const maxRetries = 1;
-    let lastError = null;
-
-    for (const baseUrl of instances) {
-        const url = baseUrl.endsWith('/') 
-            ? `${baseUrl}${relativePath.substring(1)}` 
-            : `${baseUrl}${relativePath}`;
-
-        for (let attempt = 1; attempt <= maxRetries; attempt++) {
-            try {
-                const response = await fetch(url, { signal: options.signal });
-
-                if (response.status === 429) {
-                    throw new Error(RATE_LIMIT_ERROR_MESSAGE);
-                }
-
-                if (response.ok) {
-                    return response;
-                }
-
-                if (response.status === 401) {
-                    let errorData;
-                    try {
-                        errorData = await response.clone().json();
-                    } catch {}
-
-                    if (errorData?.subStatus === 11002) {
-                        lastError = new Error(errorData?.userMessage || 'Authentication failed');
-                        if (attempt < maxRetries) {
-                            await delay(200);
-                            continue;
-                        }
-                    }
-                }
-
-                if (response.status >= 500 && attempt < maxRetries) {
-                    await delay(200);
-                    continue;
-                }
-
-                lastError = new Error(`Request failed with status ${response.status}`);
-                break;
-
-            } catch (error) {
-                if (error.name === 'AbortError') {
-                    throw error;
-                }
-                
-                lastError = error;
-                console.log(`Failed for ${baseUrl}: ${error.message}`);
-                
-                if (attempt < maxRetries) {
-                    await delay(200);
-                }
-            }
+    pruneStreamCache() {
+        if (this.streamCache.size > 50) {
+            const entries = Array.from(this.streamCache.entries());
+            const toDelete = entries.slice(0, entries.length - 50);
+            toDelete.forEach(([key]) => this.streamCache.delete(key));
         }
     }
 
-    throw lastError || new Error(`All API instances failed for: ${relativePath}`);
-}
+    async fetchWithRetry(relativePath, options = {}) {
+        const instances = this.settings.getInstances();
+        if (instances.length === 0) {
+            throw new Error("No API instances configured.");
+        }
+
+        const maxRetries = 3;
+        let lastError = null;
+
+        for (const baseUrl of instances) {
+            const url = baseUrl.endsWith('/') 
+                ? `${baseUrl}${relativePath.substring(1)}` 
+                : `${baseUrl}${relativePath}`;
+
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    const response = await fetch(url, { signal: options.signal });
+
+                    if (response.status === 429) {
+                        throw new Error(RATE_LIMIT_ERROR_MESSAGE);
+                    }
+
+                    if (response.ok) {
+                        return response;
+                    }
+
+                    if (response.status === 401) {
+                        let errorData;
+                        try {
+                            errorData = await response.clone().json();
+                        } catch {}
+
+                        if (errorData?.subStatus === 11002) {
+                            lastError = new Error(errorData?.userMessage || 'Authentication failed');
+                            if (attempt < maxRetries) {
+                                await delay(200 * attempt);
+                                continue;
+                            }
+                        }
+                    }
+
+                    if (response.status >= 500 && attempt < maxRetries) {
+                        await delay(200 * attempt);
+                        continue;
+                    }
+
+                    lastError = new Error(`Request failed with status ${response.status}`);
+                    break;
+
+                } catch (error) {
+                    if (error.name === 'AbortError') {
+                        throw error;
+                    }
+                    
+                    lastError = error;
+                    
+                    if (attempt < maxRetries) {
+                        await delay(200 * attempt);
+                    }
+                }
+            }
+        }
+
+        throw lastError || new Error(`All API instances failed for: ${relativePath}`);
+    }
 
     findSearchSection(source, key, visited) {
         if (!source || typeof source !== 'object') return;
@@ -124,24 +136,20 @@ async fetchWithRetry(relativePath, options = {}) {
         return this.buildSearchResponse(section);
     }
 
-prepareTrack(track) {
-    let normalized = track;
-    
-    if (!track.artist && Array.isArray(track.artists) && track.artists.length > 0) {
-        normalized = { ...track, artist: track.artists[0] };
-    }
+    prepareTrack(track) {
+        let normalized = track;
+        
+        if (!track.artist && Array.isArray(track.artists) && track.artists.length > 0) {
+            normalized = { ...track, artist: track.artists[0] };
+        }
 
-    if (normalized.album && !normalized.album.cover && normalized.album.id) {
-        console.warn('Track missing album cover, attempting to use album ID');
-    }
+        const derivedQuality = deriveTrackQuality(normalized);
+        if (derivedQuality && normalized.audioQuality !== derivedQuality) {
+            normalized = { ...normalized, audioQuality: derivedQuality };
+        }
 
-    const derivedQuality = deriveTrackQuality(normalized);
-    if (derivedQuality && normalized.audioQuality !== derivedQuality) {
-        normalized = { ...normalized, audioQuality: derivedQuality };
+        return normalized;
     }
-
-    return normalized;
-}
 
     prepareAlbum(album) {
         if (!album.artist && Array.isArray(album.artists) && album.artists.length > 0) {
@@ -207,68 +215,69 @@ prepareTrack(track) {
             return null;
         }
     }
-async searchTracks(query) {
-    const cached = await this.cache.get('search_tracks', query);
-    if (cached) return cached;
 
-    try {
-        const response = await this.fetchWithRetry(`/search/?s=${encodeURIComponent(query)}`);
-        const data = await response.json();
-        const normalized = this.normalizeSearchResponse(data, 'tracks');
-        const result = {
-            ...normalized,
-            items: normalized.items.map(t => this.prepareTrack(t))
-        };
+    async searchTracks(query) {
+        const cached = await this.cache.get('search_tracks', query);
+        if (cached) return cached;
 
-        await this.cache.set('search_tracks', query, result);
-        return result;
-    } catch (error) {
-        console.error('Track search failed:', error);
-        return { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 };
+        try {
+            const response = await this.fetchWithRetry(`/search/?s=${encodeURIComponent(query)}`);
+            const data = await response.json();
+            const normalized = this.normalizeSearchResponse(data, 'tracks');
+            const result = {
+                ...normalized,
+                items: normalized.items.map(t => this.prepareTrack(t))
+            };
+
+            await this.cache.set('search_tracks', query, result);
+            return result;
+        } catch (error) {
+            console.error('Track search failed:', error);
+            return { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 };
+        }
     }
-}
 
-async searchArtists(query) {
-    const cached = await this.cache.get('search_artists', query);
-    if (cached) return cached;
+    async searchArtists(query) {
+        const cached = await this.cache.get('search_artists', query);
+        if (cached) return cached;
 
-    try {
-        const response = await this.fetchWithRetry(`/search/?a=${encodeURIComponent(query)}`);
-        const data = await response.json();
-        const normalized = this.normalizeSearchResponse(data, 'artists');
-        const result = {
-            ...normalized,
-            items: normalized.items.map(a => this.prepareArtist(a))
-        };
+        try {
+            const response = await this.fetchWithRetry(`/search/?a=${encodeURIComponent(query)}`);
+            const data = await response.json();
+            const normalized = this.normalizeSearchResponse(data, 'artists');
+            const result = {
+                ...normalized,
+                items: normalized.items.map(a => this.prepareArtist(a))
+            };
 
-        await this.cache.set('search_artists', query, result);
-        return result;
-    } catch (error) {
-        console.error('Artist search failed:', error);
-        return { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 };
+            await this.cache.set('search_artists', query, result);
+            return result;
+        } catch (error) {
+            console.error('Artist search failed:', error);
+            return { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 };
+        }
     }
-}
 
-async searchAlbums(query) {
-    const cached = await this.cache.get('search_albums', query);
-    if (cached) return cached;
+    async searchAlbums(query) {
+        const cached = await this.cache.get('search_albums', query);
+        if (cached) return cached;
 
-    try {
-        const response = await this.fetchWithRetry(`/search/?al=${encodeURIComponent(query)}`);
-        const data = await response.json();
-        const normalized = this.normalizeSearchResponse(data, 'albums');
-        const result = {
-            ...normalized,
-            items: normalized.items.map(a => this.prepareAlbum(a))
-        };
+        try {
+            const response = await this.fetchWithRetry(`/search/?al=${encodeURIComponent(query)}`);
+            const data = await response.json();
+            const normalized = this.normalizeSearchResponse(data, 'albums');
+            const result = {
+                ...normalized,
+                items: normalized.items.map(a => this.prepareAlbum(a))
+            };
 
-        await this.cache.set('search_albums', query, result);
-        return result;
-    } catch (error) {
-        console.error('Album search failed:', error);
-        return { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 };
+            await this.cache.set('search_albums', query, result);
+            return result;
+        } catch (error) {
+            console.error('Album search failed:', error);
+            return { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 };
+        }
     }
-}
 
     async getAlbum(id) {
         const cached = await this.cache.get('album', id);
@@ -369,19 +378,31 @@ async searchAlbums(query) {
     }
 
     async getStreamUrl(id, quality = 'LOSSLESS') {
-        const lookup = await this.getTrack(id, quality);
+        const cacheKey = `stream_${id}_${quality}`;
         
-        if (lookup.originalTrackUrl) {
-            return lookup.originalTrackUrl;
+        if (this.streamCache.has(cacheKey)) {
+            return this.streamCache.get(cacheKey);
         }
 
-        const url = this.extractStreamUrlFromManifest(lookup.info.manifest);
-        if (url) return url;
+        const lookup = await this.getTrack(id, quality);
+        
+        let streamUrl;
+        if (lookup.originalTrackUrl) {
+            streamUrl = lookup.originalTrackUrl;
+        } else {
+            streamUrl = this.extractStreamUrlFromManifest(lookup.info.manifest);
+            if (!streamUrl) {
+                throw new Error('Could not resolve stream URL');
+            }
+        }
 
-        throw new Error('Could not resolve stream URL');
+        this.streamCache.set(cacheKey, streamUrl);
+        return streamUrl;
     }
 
-    async downloadTrack(id, quality = 'LOSSLESS', filename) {
+    async downloadTrack(id, quality = 'LOSSLESS', filename, options = {}) {
+        const { onProgress, embedMetadata = true, track, coverUrl } = options;
+        
         try {
             const lookup = await this.getTrack(id, quality);
             let streamUrl;
@@ -395,29 +416,91 @@ async searchAlbums(query) {
                 }
             }
 
-            const response = await fetch(streamUrl, { cache: 'no-store' });
+            const response = await fetch(streamUrl, { 
+                cache: 'no-store',
+                signal: options.signal 
+            });
             
             if (!response.ok) {
                 throw new Error(`Fetch failed: ${response.status}`);
             }
 
-            const blob = await response.blob();
-            const url = URL.createObjectURL(blob);
+            const contentLength = response.headers.get('Content-Length');
+            const totalBytes = contentLength ? parseInt(contentLength, 10) : 0;
             
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
+            let receivedBytes = 0;
+
+            if (response.body && onProgress) {
+                const reader = response.body.getReader();
+                const chunks = [];
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    if (value) {
+                        chunks.push(value);
+                        receivedBytes += value.byteLength;
+                        
+                        onProgress({
+                            stage: 'downloading',
+                            receivedBytes,
+                            totalBytes: totalBytes || undefined
+                        });
+                    }
+                }
+
+                let blob = new Blob(chunks, { type: response.headers.get('Content-Type') || 'audio/flac' });
+
+                if (embedMetadata && track && quality === 'LOSSLESS' && coverUrl) {
+                    if (onProgress) {
+                        onProgress({ stage: 'metadata', progress: 0 });
+                    }
+
+                    try {
+                        blob = await this.metadataEmbedder.embedMetadata(blob, track, coverUrl, (progress) => {
+                            if (onProgress) {
+                                onProgress({ stage: 'metadata', progress });
+                            }
+                        });
+                    } catch (metaError) {
+                        console.warn('Metadata embedding failed, downloading without metadata:', metaError);
+                    }
+                }
+
+                this.triggerDownload(blob, filename);
+            } else {
+                const blob = await response.blob();
+                if (onProgress) {
+                    onProgress({
+                        stage: 'downloading',
+                        receivedBytes: blob.size,
+                        totalBytes: blob.size
+                    });
+                }
+                this.triggerDownload(blob, filename);
+            }
         } catch (error) {
+            if (error.name === 'AbortError') {
+                throw error;
+            }
             console.error("Download failed:", error);
             if (error.message === RATE_LIMIT_ERROR_MESSAGE) {
                 throw error;
             }
             throw new Error('Download failed. The stream may require a proxy.');
         }
+    }
+
+    triggerDownload(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 
     getCoverUrl(id, size = '1280') {
@@ -440,9 +523,13 @@ async searchAlbums(query) {
 
     async clearCache() {
         await this.cache.clear();
+        this.streamCache.clear();
     }
 
     getCacheStats() {
-        return this.cache.getCacheStats();
+        return {
+            ...this.cache.getCacheStats(),
+            streamUrls: this.streamCache.size
+        };
     }
 }
