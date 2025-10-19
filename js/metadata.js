@@ -16,20 +16,20 @@ export class MetadataEmbedder {
             }
 
             const { FFmpeg } = FFmpegWASM;
-            const { toBlobURL, fetchFile } = FFmpegUtil;
+            const { fetchFile } = FFmpegUtil;
 
             this.ffmpeg = new FFmpeg();
             this.fetchFile = fetchFile;
-            
-            const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd';
             
             this.ffmpeg.on('log', ({ message }) => {
                 console.log('[FFmpeg]', message);
             });
 
+            const baseURL = window.location.origin + '/ffmpeg';
+            
             await this.ffmpeg.load({
-                coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-                wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm')
+                coreURL: `${baseURL}/ffmpeg-core.js`,
+                wasmURL: `${baseURL}/ffmpeg-core.wasm`
             });
 
             this.ffmpegLoaded = true;
@@ -80,7 +80,7 @@ export class MetadataEmbedder {
             }
 
             const metadata = this.buildMetadataArgs(track);
-            console.log('[Metadata] Metadata tags:', metadata.length / 2, 'fields');
+            console.log('[Metadata] Building metadata with', metadata.length / 2, 'fields');
             
             let args;
             if (hasCover) {
@@ -106,7 +106,7 @@ export class MetadataEmbedder {
                 ];
             }
 
-            console.log('[Metadata] Executing FFmpeg with', args.length, 'arguments');
+            console.log('[Metadata] Executing FFmpeg...');
 
             if (onProgress) {
                 this.ffmpeg.on('progress', ({ progress }) => {
@@ -115,11 +115,11 @@ export class MetadataEmbedder {
             }
 
             await this.ffmpeg.exec(args);
-            console.log('[Metadata] FFmpeg exec completed');
+            console.log('[Metadata] FFmpeg exec completed successfully');
 
             const outputData = await this.ffmpeg.readFile(outputName);
             const outputBlob = new Blob([outputData], { type: 'audio/flac' });
-            console.log('[Metadata] Output blob created - Input:', arrayBuffer.byteLength, 'Output:', outputBlob.size);
+            console.log('[Metadata] ✓ Success! Input:', arrayBuffer.byteLength, 'bytes → Output:', outputBlob.size, 'bytes');
 
             await this.ffmpeg.deleteFile(inputName);
             await this.ffmpeg.deleteFile(outputName);
@@ -130,7 +130,7 @@ export class MetadataEmbedder {
 
             return outputBlob;
         } catch (error) {
-            console.error('[Metadata] Embedding failed:', error);
+            console.error('[Metadata] ✗ Embedding failed:', error);
             console.error('[Metadata] Error details:', {
                 name: error.name,
                 message: error.message,
