@@ -1,7 +1,8 @@
 import { LosslessAPI } from './api.js';
-import { apiSettings, themeManager } from './storage.js';
+import { apiSettings, themeManager, lastFMStorage } from './storage.js';
 import { UIRenderer } from './ui.js';
 import { Player } from './player.js';
+import { LastFMScrobbler } from './lastfm.js';
 import { 
     REPEAT_MODE, SVG_PLAY, SVG_PAUSE, 
     SVG_VOLUME, SVG_MUTE, formatTime, trackDataStore,
@@ -337,6 +338,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const currentQuality = localStorage.getItem('playback-quality') || 'LOSSLESS';
     const player = new Player(audioPlayer, api, currentQuality);
     
+    const scrobbler = new LastFMScrobbler();
+    
     const savedCrossfade = localStorage.getItem('crossfade-enabled') === 'true';
     const savedCrossfadeDuration = parseInt(localStorage.getItem('crossfade-duration') || '5');
     player.setCrossfade(savedCrossfade, savedCrossfadeDuration);
@@ -371,6 +374,90 @@ document.addEventListener('DOMContentLoaded', async () => {
     let contextTrack = null;
     let draggedQueueIndex = null;
 
+    const lastfmConnectBtn = document.getElementById('lastfm-connect-btn');
+    const lastfmStatus = document.getElementById('lastfm-status');
+    const lastfmToggle = document.getElementById('lastfm-toggle');
+    const lastfmToggleSetting = document.getElementById('lastfm-toggle-setting');
+
+    function updateLastFMUI() {
+        if (scrobbler.isAuthenticated()) {
+            lastfmStatus.textContent = `Connected as ${scrobbler.username}`;
+            lastfmConnectBtn.textContent = 'Disconnect';
+            lastfmConnectBtn.classList.add('danger');
+            lastfmToggleSetting.style.display = 'flex';
+            lastfmToggle.checked = lastFMStorage.isEnabled();
+        } else {
+            lastfmStatus.textContent = 'Connect your Last.fm account to scrobble tracks';
+            lastfmConnectBtn.textContent = 'Connect Last.fm';
+            lastfmConnectBtn.classList.remove('danger');
+            lastfmToggleSetting.style.display = 'none';
+        }
+    }
+
+    updateLastFMUI();
+
+    lastfmConnectBtn?.addEventListener('click', async () => {
+        if (scrobbler.isAuthenticated()) {
+            if (confirm('Disconnect from Last.fm?')) {
+                scrobbler.disconnect();
+                updateLastFMUI();
+            }
+        } else {
+            try {
+                lastfmConnectBtn.disabled = true;
+                lastfmConnectBtn.textContent = 'Opening Last.fm...';
+                
+                const { token, url } = await scrobbler.getAuthUrl();
+                
+                const authWindow = window.open(url, 'lastfm-auth', 'width=800,height=600');
+                
+                lastfmConnectBtn.textContent = 'Waiting for authorization...';
+                
+                let attempts = 0;
+                const maxAttempts = 30;
+                
+                const checkAuth = setInterval(async () => {
+                    attempts++;
+                    
+                    if (attempts > maxAttempts) {
+                        clearInterval(checkAuth);
+                        lastfmConnectBtn.textContent = 'Connect Last.fm';
+                        lastfmConnectBtn.disabled = false;
+                        alert('Authorization timed out. Please try again.');
+                        return;
+                    }
+                    
+                    try {
+                        const result = await scrobbler.completeAuthentication(token);
+                        
+                        if (result.success) {
+                            clearInterval(checkAuth);
+                            if (authWindow && !authWindow.closed) {
+                                authWindow.close();
+                            }
+                            updateLastFMUI();
+                            lastfmConnectBtn.disabled = false;
+                            lastFMStorage.setEnabled(true);
+                            lastfmToggle.checked = true;
+                            alert(`Successfully connected to Last.fm as ${result.username}!`);
+                        }
+                    } catch (e) {
+                    }
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Last.fm connection failed:', error);
+                alert('Failed to connect to Last.fm: ' + error.message);
+                lastfmConnectBtn.textContent = 'Connect Last.fm';
+                lastfmConnectBtn.disabled = false;
+            }
+        }
+    });
+
+    lastfmToggle?.addEventListener('change', (e) => {
+        lastFMStorage.setEnabled(e.target.checked);
+    });
+
     const themePicker = document.getElementById('theme-picker');
     themePicker.querySelectorAll('.theme-option').forEach(option => {
         if (option.dataset.theme === currentTheme) {
@@ -392,29 +479,31 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     });
+
     document.getElementById('refresh-speed-test-btn')?.addEventListener('click', async () => {
-    const btn = document.getElementById('refresh-speed-test-btn');
-    const originalText = btn.textContent;
-    btn.textContent = 'Testing...';
-    btn.disabled = true;
-    
-    try {
-        await apiSettings.refreshSpeedTests();
-        ui.renderApiSettings();
-        btn.textContent = 'Done!';
-        setTimeout(() => {
-            btn.textContent = originalText;
-            btn.disabled = false;
-        }, 1500);
-    } catch (error) {
-        console.error('Failed to refresh speed tests:', error);
-        btn.textContent = 'Error';
-        setTimeout(() => {
-            btn.textContent = originalText;
-            btn.disabled = false;
-        }, 1500);
-    }
-});
+        const btn = document.getElementById('refresh-speed-test-btn');
+        const originalText = btn.textContent;
+        btn.textContent = 'Testing...';
+        btn.disabled = true;
+        
+        try {
+            await apiSettings.refreshSpeedTests();
+            ui.renderApiSettings();
+            btn.textContent = 'Done!';
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }, 1500);
+        } catch (error) {
+            console.error('Failed to refresh speed tests:', error);
+            btn.textContent = 'Error';
+            setTimeout(() => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }, 1500);
+        }
+    });
+
     function renderCustomThemeEditor() {
         const grid = document.getElementById('theme-color-grid');
         const customTheme = themeManager.getCustomTheme() || {
@@ -809,6 +898,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     audioPlayer.addEventListener('play', () => {
+        if (scrobbler.isAuthenticated() && lastFMStorage.isEnabled() && player.currentTrack) {
+            scrobbler.updateNowPlaying(player.currentTrack);
+        }
         playPauseBtn.innerHTML = SVG_PAUSE;
         player.updateMediaSessionPlaybackState();
     });

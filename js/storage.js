@@ -277,3 +277,19 @@ export const themeManager = {
         }
     }
 };
+
+export const lastFMStorage = {
+    STORAGE_KEY: 'lastfm-enabled',
+    
+    isEnabled() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) === 'true';
+        } catch (e) {
+            return false;
+        }
+    },
+    
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    }
+};

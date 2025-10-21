@@ -1749,3 +1749,17 @@ input:checked + .slider:before {
         font-size: 0.9rem;
     }
 }
+.btn-secondary.danger {
+    background: #ef4444;
+    color: white;
+}
+
+.btn-secondary.danger:hover {
+    background: #dc2626;
+}
+
+#lastfm-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
