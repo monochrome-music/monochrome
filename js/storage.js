@@ -53,8 +53,8 @@ export const apiSettings = {
     
     async speedTestInstance(url) {
         const testUrl = url.endsWith('/') 
-            ? `${url}search/?s=kanye` 
-            : `${url}/search/?s=kanye`;
+            ? `${url}track/?id=204567804&quality=HIGH` 
+            : `${url}/track/?id=204567804&quality=HIGH`;
         
         const startTime = performance.now();
         
