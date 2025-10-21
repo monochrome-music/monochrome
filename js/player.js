@@ -128,7 +128,7 @@ export class Player {
         this.currentTrack = track;
         
         document.querySelector('.now-playing-bar .cover').src = 
-            this.api.getCoverUrl(track.album?.cover, '160');
+            this.api.getCoverUrl(track.album?.cover, '1280');
         document.querySelector('.now-playing-bar .title').textContent = track.title;
         document.querySelector('.now-playing-bar .artist').textContent = track.artist?.name || 'Unknown Artist';
         document.title = `${track.title} • ${track.artist?.name || 'Unknown'}`;
@@ -391,7 +391,7 @@ export class Player {
         if (!('mediaSession' in navigator)) return;
         
         const artwork = [];
-        const sizes = ['96', '128', '192', '256', '384', '512'];
+        const sizes = ['1280'];
         const coverId = track.album?.cover;
         
         if (coverId) {
