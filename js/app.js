@@ -397,63 +397,75 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     updateLastFMUI();
 
-    lastfmConnectBtn?.addEventListener('click', async () => {
-        if (scrobbler.isAuthenticated()) {
-            if (confirm('Disconnect from Last.fm?')) {
-                scrobbler.disconnect();
-                updateLastFMUI();
-            }
+lastfmConnectBtn?.addEventListener('click', async () => {
+    if (scrobbler.isAuthenticated()) {
+        if (confirm('Disconnect from Last.fm?')) {
+            scrobbler.disconnect();
+            updateLastFMUI();
+        }
+        return;
+    }
+
+
+    const authWindow = window.open('', '_blank');
+
+    lastfmConnectBtn.disabled = true;
+    lastfmConnectBtn.textContent = 'Opening Last.fm...';
+
+    try {
+        const { token, url } = await scrobbler.getAuthUrl();
+
+        if (authWindow) {
+            authWindow.location.href = url;
         } else {
-            try {
-                lastfmConnectBtn.disabled = true;
-                lastfmConnectBtn.textContent = 'Opening Last.fm...';
-                
-                const { token, url } = await scrobbler.getAuthUrl();
-                
-                const authWindow = window.open(url, '_blank');
-                
-                lastfmConnectBtn.textContent = 'Waiting for authorization...';
-                
-                let attempts = 0;
-                const maxAttempts = 30;
-                
-                const checkAuth = setInterval(async () => {
-                    attempts++;
-                    
-                    if (attempts > maxAttempts) {
-                        clearInterval(checkAuth);
-                        lastfmConnectBtn.textContent = 'Connect Last.fm';
-                        lastfmConnectBtn.disabled = false;
-                        alert('Authorization timed out. Please try again.');
-                        return;
-                    }
-                    
-                    try {
-                        const result = await scrobbler.completeAuthentication(token);
-                        
-                        if (result.success) {
-                            clearInterval(checkAuth);
-                            if (authWindow && !authWindow.closed) {
-                                authWindow.close();
-                            }
-                            updateLastFMUI();
-                            lastfmConnectBtn.disabled = false;
-                            lastFMStorage.setEnabled(true);
-                            lastfmToggle.checked = true;
-                            alert(`Successfully connected to Last.fm as ${result.username}!`);
-                        }
-                    } catch (e) {
-                    }
-                }, 2000);
-                
-            } catch (error) {
-                console.error('Last.fm connection failed:', error);
-                alert('Failed to connect to Last.fm: ' + error.message);
+            alert('Popup blocked! Please allow popups.');
+            lastfmConnectBtn.textContent = 'Connect Last.fm';
+            lastfmConnectBtn.disabled = false;
+            return;
+        }
+
+        lastfmConnectBtn.textContent = 'Waiting for authorization...';
+
+        let attempts = 0;
+        const maxAttempts = 30;
+
+        const checkAuth = setInterval(async () => {
+            attempts++;
+
+            if (attempts > maxAttempts) {
+                clearInterval(checkAuth);
                 lastfmConnectBtn.textContent = 'Connect Last.fm';
                 lastfmConnectBtn.disabled = false;
+                if (authWindow && !authWindow.closed) authWindow.close();
+                alert('Authorization timed out. Please try again.');
+                return;
             }
-        }
-    });
+
+            try {
+                const result = await scrobbler.completeAuthentication(token);
+
+                if (result.success) {
+                    clearInterval(checkAuth);
+                    if (authWindow && !authWindow.closed) authWindow.close();
+                    updateLastFMUI();
+                    lastfmConnectBtn.disabled = false;
+                    lastFMStorage.setEnabled(true);
+                    lastfmToggle.checked = true;
+                    alert(`Successfully connected to Last.fm as ${result.username}!`);
+                }
+            } catch (e) {
+            }
+        }, 2000);
+
+    } catch (error) {
+        console.error('Last.fm connection failed:', error);
+        alert('Failed to connect to Last.fm: ' + error.message);
+        lastfmConnectBtn.textContent = 'Connect Last.fm';
+        lastfmConnectBtn.disabled = false;
+        if (authWindow && !authWindow.closed) authWindow.close();
+    }
+});
+
 
     lastfmToggle?.addEventListener('change', (e) => {
         lastFMStorage.setEnabled(e.target.checked);
