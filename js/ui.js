@@ -1,3 +1,4 @@
+//ui.js
 import { formatTime, createPlaceholder, trackDataStore, hasExplicitContent } from './utils.js';
 import { recentActivityManager } from './storage.js';
 

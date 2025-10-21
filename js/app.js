@@ -1,3 +1,4 @@
+//app.js
 import { LosslessAPI } from './api.js';
 import { apiSettings, themeManager, lastFMStorage } from './storage.js';
 import { UIRenderer } from './ui.js';
@@ -409,7 +410,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 const { token, url } = await scrobbler.getAuthUrl();
                 
-                const authWindow = window.open(url, 'lastfm-auth', 'width=800,height=600');
+                const authWindow = window.open(url, '_blank');
                 
                 lastfmConnectBtn.textContent = 'Waiting for authorization...';
                 
