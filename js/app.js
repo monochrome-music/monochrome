@@ -1036,50 +1036,98 @@ document.addEventListener('DOMContentLoaded', async () => {
         playPauseBtn.innerHTML = SVG_PLAY;
     });
 
-    let isSeeking = false;
-    let wasPlaying = false;
+let isSeeking = false;
+let wasPlaying = false;
+let isAdjustingVolume = false;
 
-    const seek = (bar, fill, event, setter) => {
-        const rect = bar.getBoundingClientRect();
-        const position = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
-        setter(position);
-    };
+const seek = (bar, fill, event, setter) => {
+    const rect = bar.getBoundingClientRect();
+    const position = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    setter(position);
+};
 
-    progressBar.addEventListener('mousedown', () => {
-        isSeeking = true;
-        wasPlaying = !audioPlayer.paused;
-        if (wasPlaying) audioPlayer.pause();
-    });
-
-    document.addEventListener('mouseup', (e) => {
-        if (isSeeking) {
-            seek(progressBar, progressFill, e, position => {
-                if (!isNaN(audioPlayer.duration)) {
-                    audioPlayer.currentTime = position * audioPlayer.duration;
-                    player.updateMediaSessionPositionState();
-                    if (wasPlaying) audioPlayer.play();
-                }
-            });
-            isSeeking = false;
+progressBar.addEventListener('mousedown', (e) => {
+    isSeeking = true;
+    wasPlaying = !audioPlayer.paused;
+    if (wasPlaying) audioPlayer.pause();
+    
+    seek(progressBar, progressFill, e, position => {
+        if (!isNaN(audioPlayer.duration)) {
+            audioPlayer.currentTime = position * audioPlayer.duration;
+            progressFill.style.width = `${position * 100}%`;
         }
     });
+});
 
-    progressBar.addEventListener('click', e => {
-        if (!isSeeking) {
-            seek(progressBar, progressFill, e, position => {
-                if (!isNaN(audioPlayer.duration)) {
-                    audioPlayer.currentTime = position * audioPlayer.duration;
-                    player.updateMediaSessionPositionState();
-                }
-            });
-        }
-    });
-
-    volumeBar.addEventListener('click', e => {
+document.addEventListener('mousemove', (e) => {
+    if (isSeeking) {
+        seek(progressBar, progressFill, e, position => {
+            if (!isNaN(audioPlayer.duration)) {
+                audioPlayer.currentTime = position * audioPlayer.duration;
+                progressFill.style.width = `${position * 100}%`;
+            }
+        });
+    }
+    
+    if (isAdjustingVolume) {
         seek(volumeBar, volumeFill, e, position => {
             audioPlayer.volume = position;
+            volumeFill.style.width = `${position * 100}%`;
+            volumeBar.style.setProperty('--volume-level', `${position * 100}%`);
+            localStorage.setItem('volume', position);
         });
+    }
+});
+
+document.addEventListener('mouseup', (e) => {
+    if (isSeeking) {
+        seek(progressBar, progressFill, e, position => {
+            if (!isNaN(audioPlayer.duration)) {
+                audioPlayer.currentTime = position * audioPlayer.duration;
+                player.updateMediaSessionPositionState();
+                if (wasPlaying) audioPlayer.play();
+            }
+        });
+        isSeeking = false;
+    }
+    
+    if (isAdjustingVolume) {
+        isAdjustingVolume = false;
+    }
+});
+
+progressBar.addEventListener('click', e => {
+    if (!isSeeking) {
+        seek(progressBar, progressFill, e, position => {
+            if (!isNaN(audioPlayer.duration)) {
+                audioPlayer.currentTime = position * audioPlayer.duration;
+                player.updateMediaSessionPositionState();
+            }
+        });
+    }
+});
+
+volumeBar.addEventListener('mousedown', (e) => {
+    isAdjustingVolume = true;
+    
+    seek(volumeBar, volumeFill, e, position => {
+        audioPlayer.volume = position;
+        volumeFill.style.width = `${position * 100}%`;
+        volumeBar.style.setProperty('--volume-level', `${position * 100}%`);
+        localStorage.setItem('volume', position);
     });
+});
+
+volumeBar.addEventListener('click', e => {
+    if (!isAdjustingVolume) {
+        seek(volumeBar, volumeFill, e, position => {
+            audioPlayer.volume = position;
+            volumeFill.style.width = `${position * 100}%`;
+            volumeBar.style.setProperty('--volume-level', `${position * 100}%`);
+            localStorage.setItem('volume', position);
+        });
+    }
+});
 
     const updateVolumeUI = () => {
         const { volume, muted } = audioPlayer;
