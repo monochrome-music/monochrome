@@ -127,12 +127,14 @@ async playTrackFromQueue() {
 
     const track = currentQueue[this.currentQueueIndex];
     this.currentTrack = track;
+
+    const trackTitle = track?.version ? `${track.title} (${track.version})` : track?.title;
     
     document.querySelector('.now-playing-bar .cover').src = 
         this.api.getCoverUrl(track.album?.cover, '1280');
-    document.querySelector('.now-playing-bar .title').textContent = track.title;
+    document.querySelector('.now-playing-bar .title').textContent = trackTitle;
     document.querySelector('.now-playing-bar .artist').textContent = track.artist?.name || 'Unknown Artist';
-    document.title = `${track.title} • ${track.artist?.name || 'Unknown'}`;
+    document.title = `${trackTitle} • ${track.artist?.name || 'Unknown'}`;
     
     this.updatePlayingTrackIndicator();
     this.updateMediaSession(track);

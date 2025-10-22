@@ -735,6 +735,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         const html = currentQueue.map((track, index) => {
             const isPlaying = index === player.currentQueueIndex;
+            const trackTitle = track?.version ? `${track.title} (${track.version})` : track?.title;
             
             return `
                 <div class="queue-track-item ${isPlaying ? 'playing' : ''}" data-queue-index="${index}" data-track-id="${track.id}" draggable="true">
@@ -748,7 +749,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <img src="${api.getCoverUrl(track.album?.cover, '80')}" 
                              class="track-item-cover" loading="lazy">
                         <div class="track-item-details">
-                            <div class="title">${track.title}</div>
+                            <div class="title">${trackTitle}</div>
                             <div class="artist">${track.artist?.name || 'Unknown'}</div>
                         </div>
                     </div>

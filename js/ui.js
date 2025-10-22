@@ -25,7 +25,8 @@ export class UIRenderer {
     createTrackItemHTML(track, index, showCover = false) {
     const playIconSmall = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
     const trackNumberHTML = `<div class="track-number">${showCover ? playIconSmall : index + 1}</div>`;
-    const explicitBadge = hasExplicitContent(track) ? this.createExplicitBadge() : '';
+    const explicitBadge = !hasExplicitContent(track) ? this.createExplicitBadge() : '';
+    const trackTitle = track?.version ? `${track.title} (${track.version})` : track?.title;
     
     return `
         <div class="track-item" data-track-id="${track.id}">
@@ -34,7 +35,7 @@ export class UIRenderer {
                 ${showCover ? `<img src="${this.api.getCoverUrl(track.album?.cover, '80')}" alt="Track Cover" class="track-item-cover" loading="lazy">` : ''}
                 <div class="track-item-details">
                     <div class="title">
-                        ${track.title}
+                        ${trackTitle}
                         ${explicitBadge}
                     </div>
                     <div class="artist">${track.artist?.name ?? 'Unknown Artist'}</div>
@@ -114,7 +115,7 @@ export class UIRenderer {
     renderListWithTracks(container, tracks, showCover) {
         const fragment = document.createDocumentFragment();
         const tempDiv = document.createElement('div');
-        
+
         tempDiv.innerHTML = tracks.map((track, i) => 
             this.createTrackItemHTML(track, i, showCover)
         ).join('');
