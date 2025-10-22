@@ -222,7 +222,26 @@
                             <button class="btn-secondary" id="reset-custom-theme">Reset</button>
                         </div>
                     </div>
-                    
+                    <div class="setting-item">
+    <div class="info">
+        <span class="label">Last.fm Scrobbling</span>
+        <span class="description" id="lastfm-status">Connect your Last.fm account to scrobble tracks</span>
+    </div>
+    <div id="lastfm-controls">
+        <button id="lastfm-connect-btn" class="btn-secondary">Connect Last.fm</button>
+    </div>
+</div>
+
+<div class="setting-item" id="lastfm-toggle-setting" style="display: none;">
+    <div class="info">
+        <span class="label">Enable Scrobbling</span>
+        <span class="description">Automatically scrobble played tracks</span>
+    </div>
+    <label class="toggle-switch">
+        <input type="checkbox" id="lastfm-toggle">
+        <span class="slider"></span>
+    </label>
+</div>
                     <div class="setting-item">
                         <div class="info">
                             <span class="label">Audio Quality</span>
@@ -371,7 +390,9 @@
             </div>
         </footer>
     </div>
-    
+    <script defer data-domain="monochrome.tf" src="https://plausible.canine.tools/js/script.file-downloads.hash.outbound-links.pageview-props.revenue.tagged-events.js"></script>
+<script>window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }</script>
+
     <script type="module" src="js/app.js"></script>
 </body>
 </html>

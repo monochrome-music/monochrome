@@ -1,3 +1,4 @@
+//ui.js
 import { formatTime, createPlaceholder, trackDataStore, hasExplicitContent } from './utils.js';
 import { recentActivityManager } from './storage.js';
 
@@ -10,28 +11,46 @@ export class UIRenderer {
         return '<span class="explicit-badge" title="Explicit">E</span>';
     }
 
+    createTrackMenuButton() {
+    return `
+        <button class="track-menu-btn" onclick="event.stopPropagation();" title="More options">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="1"></circle>
+                <circle cx="12" cy="5" r="1"></circle>
+                <circle cx="12" cy="19" r="1"></circle>
+            </svg>
+        </button>
+    `;
+}
     createTrackItemHTML(track, index, showCover = false) {
-        const playIconSmall = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
-        const trackNumberHTML = `<div class="track-number">${showCover ? playIconSmall : index + 1}</div>`;
-        const explicitBadge = hasExplicitContent(track) ? this.createExplicitBadge() : '';
-        
-        return `
-            <div class="track-item" data-track-id="${track.id}">
-                ${trackNumberHTML}
-                <div class="track-item-info">
-                    ${showCover ? `<img src="${this.api.getCoverUrl(track.album?.cover, '80')}" alt="Track Cover" class="track-item-cover" loading="lazy">` : ''}
-                    <div class="track-item-details">
-                        <div class="title">
-                            ${track.title}
-                            ${explicitBadge}
-                        </div>
-                        <div class="artist">${track.artist?.name ?? 'Unknown Artist'}</div>
+    const playIconSmall = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
+    const trackNumberHTML = `<div class="track-number">${showCover ? playIconSmall : index + 1}</div>`;
+    const explicitBadge = hasExplicitContent(track) ? this.createExplicitBadge() : '';
+    
+    return `
+        <div class="track-item" data-track-id="${track.id}">
+            ${trackNumberHTML}
+            <div class="track-item-info">
+                ${showCover ? `<img src="${this.api.getCoverUrl(track.album?.cover, '80')}" alt="Track Cover" class="track-item-cover" loading="lazy">` : ''}
+                <div class="track-item-details">
+                    <div class="title">
+                        ${track.title}
+                        ${explicitBadge}
                     </div>
+                    <div class="artist">${track.artist?.name ?? 'Unknown Artist'}</div>
                 </div>
-                <div class="track-item-duration">${formatTime(track.duration)}</div>
             </div>
-        `;
-    }
+            <div class="track-item-duration">${formatTime(track.duration)}</div>
+            <button class="track-menu-btn" type="button" title="More options">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="1"></circle>
+                    <circle cx="12" cy="5" r="1"></circle>
+                    <circle cx="12" cy="19" r="1"></circle>
+                </svg>
+            </button>
+        </div>
+    `;
+}
 
     createAlbumCardHTML(album) {
         const explicitBadge = hasExplicitContent(album) ? this.createExplicitBadge() : '';
@@ -129,18 +148,71 @@ export class UIRenderer {
         }
     }
 
-    renderHomePage() {
-        this.showPage('home');
-        const recents = recentActivityManager.getRecents();
-        
-        document.getElementById('home-recent-albums').innerHTML = recents.albums.length
+async renderHomePage() {
+    this.showPage('home');
+    const recents = recentActivityManager.getRecents();
+    
+    const albumsContainer = document.getElementById('home-recent-albums');
+    const artistsContainer = document.getElementById('home-recent-artists');
+    
+    if (recents.albums.length > 0 || recents.artists.length > 0) {
+        albumsContainer.innerHTML = recents.albums.length
             ? recents.albums.map(album => this.createAlbumCardHTML(album)).join('')
             : createPlaceholder("You haven't viewed any albums yet.");
         
-        document.getElementById('home-recent-artists').innerHTML = recents.artists.length
+        artistsContainer.innerHTML = recents.artists.length
             ? recents.artists.map(artist => this.createArtistCardHTML(artist)).join('')
             : createPlaceholder("You haven't viewed any artists yet.");
+    } else {
+        // Load from API
+        albumsContainer.innerHTML = this.createSkeletonCards(6, false);
+        artistsContainer.innerHTML = this.createSkeletonCards(6, true);
+        
+        const homeData = await window.loadHomeFeed(this.api, this);
+        
+        if (homeData && homeData.rows) {
+            let albums = [];
+            let playlists = [];
+            
+            homeData.rows.forEach(row => {
+                row.modules?.forEach(module => {
+                    if (module.type === 'ALBUM_LIST' && module.pagedList?.items) {
+                        albums.push(...module.pagedList.items);
+                    } else if (module.type === 'PLAYLIST_LIST' && module.pagedList?.items) {
+                        playlists.push(...module.pagedList.items);
+                    }
+                });
+            });
+            
+            if (albums.length > 0) {
+                albumsContainer.innerHTML = albums.slice(0, 10).map(album => 
+                    this.createAlbumCardHTML(album)
+                ).join('');
+            } else {
+                albumsContainer.innerHTML = createPlaceholder("No albums available.");
+            }
+            
+            if (playlists.length > 0) {
+                document.querySelector('#home-recent-artists').parentElement.querySelector('.section-title').textContent = 'Featured Playlists';
+                artistsContainer.innerHTML = playlists.slice(0, 10).map(playlist => `
+                    <a href="#playlist/${playlist.uuid}" class="card">
+                        <div class="card-image-wrapper">
+                            <img src="${this.api.getCoverUrl(playlist.image || playlist.squareImage, '320')}" 
+                                 alt="${playlist.title}" class="card-image" loading="lazy">
+                        </div>
+                        <h3 class="card-title">${playlist.title}</h3>
+                        <p class="card-subtitle">${playlist.numberOfTracks} tracks</p>
+                    </a>
+                `).join('');
+            } else {
+                artistsContainer.innerHTML = createPlaceholder("No playlists available.");
+            }
+        } else {
+            albumsContainer.innerHTML = createPlaceholder("Unable to load content.");
+            artistsContainer.innerHTML = createPlaceholder("Unable to load content.");
+        }
     }
+}
 
     async renderSearchPage(query) {
         this.showPage('search');

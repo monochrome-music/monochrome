@@ -27,7 +27,10 @@
       "purpose": "maskable"
     }
   ],
-  "categories": ["music", "entertainment"],
+  "categories": [
+    "music",
+    "entertainment"
+  ],
   "shortcuts": [
     {
       "name": "Search",

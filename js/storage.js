@@ -1,3 +1,4 @@
+//storage.js
 export const apiSettings = {
     STORAGE_KEY: 'monochrome-api-instances',
     INSTANCES_URL: 'https://raw.githubusercontent.com/EduardPrigoana/hifi-instances/refs/heads/main/instances.json',
@@ -53,8 +54,8 @@ export const apiSettings = {
     
     async speedTestInstance(url) {
         const testUrl = url.endsWith('/') 
-            ? `${url}search/?s=kanye` 
-            : `${url}/search/?s=kanye`;
+            ? `${url}track/?id=204567804&quality=HIGH` 
+            : `${url}/track/?id=204567804&quality=HIGH`;
         
         const startTime = performance.now();
         
@@ -275,5 +276,21 @@ export const themeManager = {
         for (const [key, value] of Object.entries(colors)) {
             root.style.setProperty(`--${key}`, value);
         }
+    }
+};
+
+export const lastFMStorage = {
+    STORAGE_KEY: 'lastfm-enabled',
+    
+    isEnabled() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) === 'true';
+        } catch (e) {
+            return false;
+        }
+    },
+    
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
     }
 };
