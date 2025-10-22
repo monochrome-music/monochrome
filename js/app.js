@@ -1034,10 +1034,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const updateVolumeUI = () => {
         const { volume, muted } = audioPlayer;
         volumeBtn.innerHTML = (muted || volume === 0) ? SVG_MUTE : SVG_VOLUME;
-<<<<<<< Updated upstream
 
-=======
->>>>>>> Stashed changes
         const effectiveVolume = muted ? 0 : volume * 100;
 
         volumeFill.style.setProperty('--volume-level', `${effectiveVolume}%`);
