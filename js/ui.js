@@ -1,5 +1,5 @@
 //ui.js
-import { formatTime, createPlaceholder, trackDataStore, hasExplicitContent } from './utils.js';
+import { formatTime, createPlaceholder, trackDataStore, hasExplicitContent, getTrackTitle } from './utils.js';
 import { recentActivityManager } from './storage.js';
 
 export class UIRenderer {
@@ -26,7 +26,7 @@ export class UIRenderer {
     const playIconSmall = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
     const trackNumberHTML = `<div class="track-number">${showCover ? playIconSmall : index + 1}</div>`;
     const explicitBadge = !hasExplicitContent(track) ? this.createExplicitBadge() : '';
-    const trackTitle = track?.version ? `${track.title} (${track.version})` : track?.title;
+    const trackTitle = getTrackTitle(track);
     
     return `
         <div class="track-item" data-track-id="${track.id}">
