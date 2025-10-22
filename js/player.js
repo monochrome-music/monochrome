@@ -1,5 +1,5 @@
 //player.js
-import { REPEAT_MODE, formatTime } from './utils.js';
+import { REPEAT_MODE, formatTime, getTrackTitle } from './utils.js';
 
 export class Player {
     constructor(audioElement, api, quality = 'LOSSLESS') {
@@ -99,6 +99,7 @@ export class Player {
         
         for (const { track, index } of tracksToPreload) {
             if (this.preloadCache.has(track.id)) continue;
+            const trackTitle = getTrackTitle(track);
             
             try {
                 const streamUrl = await this.api.getStreamUrl(track.id, this.quality);
@@ -113,7 +114,7 @@ export class Player {
                 
             } catch (error) {
                 if (error.name !== 'AbortError') {
-                    console.debug('Failed to get stream URL for preload:', track.title);
+                    console.debug('Failed to get stream URL for preload:', trackTitle);
                 }
             }
         }
@@ -127,12 +128,14 @@ async playTrackFromQueue() {
 
     const track = currentQueue[this.currentQueueIndex];
     this.currentTrack = track;
+
+    const trackTitle = getTrackTitle(track);
     
     document.querySelector('.now-playing-bar .cover').src = 
         this.api.getCoverUrl(track.album?.cover, '1280');
-    document.querySelector('.now-playing-bar .title').textContent = track.title;
+    document.querySelector('.now-playing-bar .title').textContent = trackTitle;
     document.querySelector('.now-playing-bar .artist').textContent = track.artist?.name || 'Unknown Artist';
-    document.title = `${track.title} • ${track.artist?.name || 'Unknown'}`;
+    document.title = `${trackTitle} • ${track.artist?.name || 'Unknown'}`;
     
     this.updatePlayingTrackIndicator();
     this.updateMediaSession(track);
@@ -181,8 +184,8 @@ async playTrackFromQueue() {
         this.setupCrossfadeListener();
         
     } catch (error) {
-        console.error(`Could not play track: ${track.title}`, error);
-        document.querySelector('.now-playing-bar .title').textContent = `Error: ${track.title}`;
+        console.error(`Could not play track: ${trackTitle}`, error);
+        document.querySelector('.now-playing-bar .title').textContent = `Error: ${trackTitle}`;
         document.querySelector('.now-playing-bar .artist').textContent = error.message || 'Could not load track';
     }
 }
@@ -410,6 +413,7 @@ async playTrackFromQueue() {
         const artwork = [];
         const sizes = ['1280'];
         const coverId = track.album?.cover;
+        const trackTitle = getTrackTitle(track);
         
         if (coverId) {
             sizes.forEach(size => {
@@ -422,7 +426,7 @@ async playTrackFromQueue() {
         }
         
         navigator.mediaSession.metadata = new MediaMetadata({
-            title: track.title || 'Unknown Title',
+            title: trackTitle,
             artist: track.artist?.name || 'Unknown Artist',
             album: track.album?.title || 'Unknown Album',
             artwork: artwork.length > 0 ? artwork : undefined
