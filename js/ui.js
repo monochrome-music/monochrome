@@ -38,7 +38,7 @@ export class UIRenderer {
                         ${trackTitle}
                         ${explicitBadge}
                     </div>
-                    <div class="artist">${track.artist?.name ?? 'Unknown Artist'}</div>
+                    <div class="artist">${trackArtists}</div>
                 </div>
             </div>
             <div class="track-item-duration">${formatTime(track.duration)}</div>
