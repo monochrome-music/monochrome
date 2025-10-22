@@ -70,7 +70,7 @@ export const buildTrackFilename = (track, quality) => {
     
     const artistName = sanitizeForFilename(track.artist?.name);
     const albumTitle = sanitizeForFilename(track.album?.title);
-    const trackTitle = sanitizeForFilename(track.title);
+    const trackTitle = sanitizeForFilename(getTrackTitle(track));
     
     return `${artistName} - ${albumTitle} - ${padded} ${trackTitle}.${extension}`;
 };
@@ -157,10 +157,7 @@ export const debounce = (func, wait) => {
     };
 };
 
-export const getTrackArtists = (track = {}, { fallback = 'Unknown Artist' } = {}) => {
-  if (track?.artists?.length) {
-    return track.artists.map(artist => artist?.name).join(', ');
-  }
-
-  return fallback;
-}
+export const getTrackTitle = (track, { fallback = 'Unknown Title' } = {}) => {
+  if (!track?.title) return fallback;
+  return track?.version ? `${track.title} (${track.version})` : track.title;
+};

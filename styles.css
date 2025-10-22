@@ -117,6 +117,8 @@
 html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    height: 100%;
+    overflow: hidden;
 }
 
 body {
@@ -125,6 +127,9 @@ body {
     font-family: 'Inter', sans-serif;
     overflow: hidden;
     transition: background-color 0.3s ease, color 0.3s ease;
+    height: 100%;
+    position: fixed;
+    width: 100%;
 }
 
 img {
@@ -142,6 +147,7 @@ a {
 .app-container {
     display: grid;
     height: 100vh;
+    height: 100dvh;
     grid-template: 
         "sidebar main" 1fr
         "player player" auto / 280px 1fr;
@@ -589,7 +595,10 @@ a {
     z-index: 10;
 }
 
-.track-item:hover .track-menu-btn,
+.track-item:hover .track-menu-btn {
+    opacity: 1;
+}
+
 @media (hover: none) {
     .track-menu-btn {
         opacity: 1;
@@ -1005,7 +1014,7 @@ input:checked + .slider::before {
 #context-menu,
 .queue-track-menu {
     display: none;
-    position: absolute;
+    position: fixed;
     background-color: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -1554,6 +1563,8 @@ input:checked + .slider::before {
             "header" auto
             "main" 1fr
             "player" auto / 1fr;
+        height: 100vh;
+        height: 100dvh;
     }
     
     .main-content {
@@ -1637,6 +1648,7 @@ input:checked + .slider::before {
         padding: var(--spacing-md);
         height: auto;
     }
+
     
     .now-playing-bar .track-info {
         grid-area: track;
@@ -1685,7 +1697,7 @@ input:checked + .slider::before {
     }
 
     #download-notifications {
-        bottom: 160px;
+        bottom: 10px;
         right: 10px;
         left: 10px;
         max-width: none;
