@@ -589,7 +589,10 @@ a {
     z-index: 10;
 }
 
-.track-item:hover .track-menu-btn,
+.track-item:hover .track-menu-btn {
+    opacity: 1;
+}
+
 @media (hover: none) {
     .track-menu-btn {
         opacity: 1;

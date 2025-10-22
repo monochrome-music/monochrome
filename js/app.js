@@ -396,6 +396,49 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.loadHomeFeed = loadHomeFeed;
 
+    function positionContextMenu(menu, x, y, preferLeft = false) {
+        menu.style.display = 'block';
+        menu.style.visibility = 'hidden';
+        
+        const menuRect = menu.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        let finalX = x;
+        let finalY = y;
+        
+        if (preferLeft || (x + menuRect.width > viewportWidth)) {
+            finalX = x - menuRect.width;
+            if (finalX < 0) {
+                finalX = Math.min(x, viewportWidth - menuRect.width - 10);
+            }
+        }
+        
+        if (finalX < 10) {
+            finalX = 10;
+        }
+        
+        if (finalX + menuRect.width > viewportWidth - 10) {
+            finalX = viewportWidth - menuRect.width - 10;
+        }
+        
+        if (y + menuRect.height > viewportHeight) {
+            finalY = Math.max(10, y - menuRect.height);
+        }
+        
+        if (finalY + menuRect.height > viewportHeight - 10) {
+            finalY = viewportHeight - menuRect.height - 10;
+        }
+        
+        if (finalY < 10) {
+            finalY = 10;
+        }
+        
+        menu.style.left = `${finalX}px`;
+        menu.style.top = `${finalY}px`;
+        menu.style.visibility = 'visible';
+    }
+
     function updateLastFMUI() {
         if (scrobbler.isAuthenticated()) {
             lastfmStatus.textContent = `Connected as ${scrobbler.username}`;
@@ -808,10 +851,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function showQueueTrackMenu(e, trackIndex) {
         const menu = document.getElementById('queue-track-menu');
-        menu.style.top = `${e.pageY}px`;
-        menu.style.left = `${e.pageX}px`;
         menu.classList.add('show');
         menu.dataset.trackIndex = trackIndex;
+        
+        positionContextMenu(menu, e.pageX, e.pageY, true);
         
         document.addEventListener('click', hideQueueTrackMenu);
     }
@@ -845,9 +888,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 contextTrack = trackDataStore.get(trackItem);
                 if (contextTrack) {
                     const rect = menuBtn.getBoundingClientRect();
-                    contextMenu.style.top = `${rect.bottom + 5}px`;
-                    contextMenu.style.left = `${rect.left}px`;
-                    contextMenu.style.display = 'block';
+                    positionContextMenu(contextMenu, rect.left, rect.bottom + 5, true);
                 }
             }
             return;
@@ -877,9 +918,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             contextTrack = trackDataStore.get(trackItem);
             
             if (contextTrack) {
-                contextMenu.style.top = `${e.pageY}px`;
-                contextMenu.style.left = `${e.pageX}px`;
-                contextMenu.style.display = 'block';
+                positionContextMenu(contextMenu, e.pageX, e.pageY, true);
             }
         }
     });
