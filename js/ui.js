@@ -1,5 +1,5 @@
 //ui.js
-import { formatTime, createPlaceholder, trackDataStore, hasExplicitContent } from './utils.js';
+import { formatTime, createPlaceholder, trackDataStore, hasExplicitContent, getTrackArtists } from './utils.js';
 import { recentActivityManager } from './storage.js';
 
 export class UIRenderer {
@@ -26,6 +26,7 @@ export class UIRenderer {
     const playIconSmall = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
     const trackNumberHTML = `<div class="track-number">${showCover ? playIconSmall : index + 1}</div>`;
     const explicitBadge = hasExplicitContent(track) ? this.createExplicitBadge() : '';
+    const trackArtists = getTrackArtists(track);
     
     return `
         <div class="track-item" data-track-id="${track.id}">
@@ -37,7 +38,7 @@ export class UIRenderer {
                         ${track.title}
                         ${explicitBadge}
                     </div>
-                    <div class="artist">${track.artist?.name ?? 'Unknown Artist'}</div>
+                    <div class="artist">${trackArtists}</div>
                 </div>
             </div>
             <div class="track-item-duration">${formatTime(track.duration)}</div>
@@ -114,7 +115,7 @@ export class UIRenderer {
     renderListWithTracks(container, tracks, showCover) {
         const fragment = document.createDocumentFragment();
         const tempDiv = document.createElement('div');
-        
+
         tempDiv.innerHTML = tracks.map((track, i) => 
             this.createTrackItemHTML(track, i, showCover)
         ).join('');

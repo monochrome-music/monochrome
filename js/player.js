@@ -1,5 +1,5 @@
 //player.js
-import { REPEAT_MODE, formatTime } from './utils.js';
+import { REPEAT_MODE, formatTime, getTrackArtists } from './utils.js';
 
 export class Player {
     constructor(audioElement, api, quality = 'LOSSLESS') {
@@ -127,11 +127,13 @@ async playTrackFromQueue() {
 
     const track = currentQueue[this.currentQueueIndex];
     this.currentTrack = track;
+
+    const trackArtists = getTrackArtists(track);
     
     document.querySelector('.now-playing-bar .cover').src = 
         this.api.getCoverUrl(track.album?.cover, '1280');
     document.querySelector('.now-playing-bar .title').textContent = track.title;
-    document.querySelector('.now-playing-bar .artist').textContent = track.artist?.name || 'Unknown Artist';
+    document.querySelector('.now-playing-bar .artist').textContent = trackArtists;
     document.title = `${track.title} • ${track.artist?.name || 'Unknown'}`;
     
     this.updatePlayingTrackIndicator();

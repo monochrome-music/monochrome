@@ -156,3 +156,11 @@ export const debounce = (func, wait) => {
         timeout = setTimeout(later, wait);
     };
 };
+
+export const getTrackArtists = (track = {}, { fallback = 'Unknown Artist' } = {}) => {
+  if (track?.artists?.length) {
+    return track.artists.map(artist => artist?.name).join(', ');
+  }
+
+  return fallback;
+}

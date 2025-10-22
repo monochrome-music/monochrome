@@ -7,7 +7,8 @@ import {
     REPEAT_MODE, SVG_PLAY, SVG_PAUSE, 
     SVG_VOLUME, SVG_MUTE, formatTime, trackDataStore,
     buildTrackFilename, RATE_LIMIT_ERROR_MESSAGE, debounce,
-    sanitizeForFilename
+    sanitizeForFilename,
+    getTrackArtists
 } from './utils.js';
 
 const downloadTasks = new Map();
@@ -735,6 +736,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         const html = currentQueue.map((track, index) => {
             const isPlaying = index === player.currentQueueIndex;
+            const trackArtists = getTrackArtists(track, {
+                fallback: "Unknown"
+            });
             
             return `
                 <div class="queue-track-item ${isPlaying ? 'playing' : ''}" data-queue-index="${index}" data-track-id="${track.id}" draggable="true">
@@ -749,7 +753,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                              class="track-item-cover" loading="lazy">
                         <div class="track-item-details">
                             <div class="title">${track.title}</div>
-                            <div class="artist">${track.artist?.name || 'Unknown'}</div>
+                            <div class="artist">${trackArtists}</div>
                         </div>
                     </div>
                     <div class="track-item-duration">${formatTime(track.duration)}</div>
