@@ -395,7 +395,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const lastfmToggleSetting = document.getElementById('lastfm-toggle-setting');
 
     window.loadHomeFeed = loadHomeFeed;
-
     function positionContextMenu(menu, x, y, preferLeft = false) {
         menu.style.display = 'block';
         menu.style.visibility = 'hidden';
