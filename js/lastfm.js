@@ -1,3 +1,4 @@
+//lastfm.js
 import { delay } from './utils.js';
 
 export class LastFMScrobbler {

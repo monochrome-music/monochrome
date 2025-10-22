@@ -1,4 +1,3 @@
-//app.js
 import { LosslessAPI } from './api.js';
 import { apiSettings, themeManager, lastFMStorage } from './storage.js';
 import { UIRenderer } from './ui.js';
@@ -331,6 +330,21 @@ function completeBulkDownload(notifEl, success = true, message = null) {
     }
 }
 
+async function loadHomeFeed(api) {
+    try {
+        const response = await api.fetchWithRetry('/home/');
+        const data = await response.json();
+        
+        if (!Array.isArray(data) || data.length === 0) return null;
+        
+        const homeData = data[0];
+        return homeData;
+    } catch (error) {
+        console.error('Failed to load home feed:', error);
+        return null;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     const api = new LosslessAPI(apiSettings);
     const ui = new UIRenderer(api);
@@ -380,6 +394,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const lastfmToggle = document.getElementById('lastfm-toggle');
     const lastfmToggleSetting = document.getElementById('lastfm-toggle-setting');
 
+    window.loadHomeFeed = loadHomeFeed;
+
     function updateLastFMUI() {
         if (scrobbler.isAuthenticated()) {
             lastfmStatus.textContent = `Connected as ${scrobbler.username}`;
@@ -397,75 +413,73 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     updateLastFMUI();
 
-lastfmConnectBtn?.addEventListener('click', async () => {
-    if (scrobbler.isAuthenticated()) {
-        if (confirm('Disconnect from Last.fm?')) {
-            scrobbler.disconnect();
-            updateLastFMUI();
-        }
-        return;
-    }
-
-
-    const authWindow = window.open('', '_blank');
-
-    lastfmConnectBtn.disabled = true;
-    lastfmConnectBtn.textContent = 'Opening Last.fm...';
-
-    try {
-        const { token, url } = await scrobbler.getAuthUrl();
-
-        if (authWindow) {
-            authWindow.location.href = url;
-        } else {
-            alert('Popup blocked! Please allow popups.');
-            lastfmConnectBtn.textContent = 'Connect Last.fm';
-            lastfmConnectBtn.disabled = false;
+    lastfmConnectBtn?.addEventListener('click', async () => {
+        if (scrobbler.isAuthenticated()) {
+            if (confirm('Disconnect from Last.fm?')) {
+                scrobbler.disconnect();
+                updateLastFMUI();
+            }
             return;
         }
 
-        lastfmConnectBtn.textContent = 'Waiting for authorization...';
+        const authWindow = window.open('', '_blank');
 
-        let attempts = 0;
-        const maxAttempts = 30;
+        lastfmConnectBtn.disabled = true;
+        lastfmConnectBtn.textContent = 'Opening Last.fm...';
 
-        const checkAuth = setInterval(async () => {
-            attempts++;
+        try {
+            const { token, url } = await scrobbler.getAuthUrl();
 
-            if (attempts > maxAttempts) {
-                clearInterval(checkAuth);
+            if (authWindow) {
+                authWindow.location.href = url;
+            } else {
+                alert('Popup blocked! Please allow popups.');
                 lastfmConnectBtn.textContent = 'Connect Last.fm';
                 lastfmConnectBtn.disabled = false;
-                if (authWindow && !authWindow.closed) authWindow.close();
-                alert('Authorization timed out. Please try again.');
                 return;
             }
 
-            try {
-                const result = await scrobbler.completeAuthentication(token);
+            lastfmConnectBtn.textContent = 'Waiting for authorization...';
 
-                if (result.success) {
+            let attempts = 0;
+            const maxAttempts = 30;
+
+            const checkAuth = setInterval(async () => {
+                attempts++;
+
+                if (attempts > maxAttempts) {
                     clearInterval(checkAuth);
-                    if (authWindow && !authWindow.closed) authWindow.close();
-                    updateLastFMUI();
+                    lastfmConnectBtn.textContent = 'Connect Last.fm';
                     lastfmConnectBtn.disabled = false;
-                    lastFMStorage.setEnabled(true);
-                    lastfmToggle.checked = true;
-                    alert(`Successfully connected to Last.fm as ${result.username}!`);
+                    if (authWindow && !authWindow.closed) authWindow.close();
+                    alert('Authorization timed out. Please try again.');
+                    return;
                 }
-            } catch (e) {
-            }
-        }, 2000);
 
-    } catch (error) {
-        console.error('Last.fm connection failed:', error);
-        alert('Failed to connect to Last.fm: ' + error.message);
-        lastfmConnectBtn.textContent = 'Connect Last.fm';
-        lastfmConnectBtn.disabled = false;
-        if (authWindow && !authWindow.closed) authWindow.close();
-    }
-});
+                try {
+                    const result = await scrobbler.completeAuthentication(token);
 
+                    if (result.success) {
+                        clearInterval(checkAuth);
+                        if (authWindow && !authWindow.closed) authWindow.close();
+                        updateLastFMUI();
+                        lastfmConnectBtn.disabled = false;
+                        lastFMStorage.setEnabled(true);
+                        lastfmToggle.checked = true;
+                        alert(`Successfully connected to Last.fm as ${result.username}!`);
+                    }
+                } catch (e) {
+                }
+            }, 2000);
+
+        } catch (error) {
+            console.error('Last.fm connection failed:', error);
+            alert('Failed to connect to Last.fm: ' + error.message);
+            lastfmConnectBtn.textContent = 'Connect Last.fm';
+            lastfmConnectBtn.disabled = false;
+            if (authWindow && !authWindow.closed) authWindow.close();
+        }
+    });
 
     lastfmToggle?.addEventListener('change', (e) => {
         lastFMStorage.setEnabled(e.target.checked);
@@ -583,6 +597,19 @@ lastfmConnectBtn?.addEventListener('click', async () => {
         });
     }
 
+    const normalizeToggle = document.querySelectorAll('.setting-item').forEach(item => {
+        const label = item.querySelector('.label');
+        if (label && label.textContent.includes('Normalize Volume')) {
+            const toggle = item.querySelector('input[type="checkbox"]');
+            if (toggle) {
+                toggle.checked = localStorage.getItem('normalize-volume') === 'true';
+                toggle.addEventListener('change', (e) => {
+                    localStorage.setItem('normalize-volume', e.target.checked ? 'true' : 'false');
+                });
+            }
+        }
+    });
+
     document.querySelector('.now-playing-bar .title').addEventListener('click', () => {
         const track = player.currentTrack;
         if (track?.album?.id) {
@@ -699,10 +726,6 @@ lastfmConnectBtn?.addEventListener('click', async () => {
     };
 
     const renderQueue = () => {
-        if (!queueModalOverlay.style.display || queueModalOverlay.style.display === "none") {
-            return;
-        }
-        
         const currentQueue = player.getCurrentQueue();
         
         if (currentQueue.length === 0) {
@@ -814,6 +837,22 @@ lastfmConnectBtn?.addEventListener('click', async () => {
     });
 
     mainContent.addEventListener('click', e => {
+        const menuBtn = e.target.closest('.track-menu-btn');
+        if (menuBtn) {
+            e.stopPropagation();
+            const trackItem = menuBtn.closest('.track-item');
+            if (trackItem && !trackItem.dataset.queueIndex) {
+                contextTrack = trackDataStore.get(trackItem);
+                if (contextTrack) {
+                    const rect = menuBtn.getBoundingClientRect();
+                    contextMenu.style.top = `${rect.bottom + 5}px`;
+                    contextMenu.style.left = `${rect.left}px`;
+                    contextMenu.style.display = 'block';
+                }
+            }
+            return;
+        }
+        
         const trackItem = e.target.closest('.track-item');
         if (trackItem && !trackItem.dataset.queueIndex) {
             const parentList = trackItem.closest('.track-list');

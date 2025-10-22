@@ -119,57 +119,73 @@ export class Player {
         }
     }
 
-    async playTrackFromQueue() {
-        const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
-        if (this.currentQueueIndex < 0 || this.currentQueueIndex >= currentQueue.length) {
-            return;
-        }
-
-        const track = currentQueue[this.currentQueueIndex];
-        this.currentTrack = track;
-        
-        document.querySelector('.now-playing-bar .cover').src = 
-            this.api.getCoverUrl(track.album?.cover, '1280');
-        document.querySelector('.now-playing-bar .title').textContent = track.title;
-        document.querySelector('.now-playing-bar .artist').textContent = track.artist?.name || 'Unknown Artist';
-        document.title = `${track.title} • ${track.artist?.name || 'Unknown'}`;
-        
-        this.updatePlayingTrackIndicator();
-        this.updateMediaSession(track);
-
-        try {
-            let streamUrl;
-            
-            if (this.preloadCache.has(track.id)) {
-                streamUrl = this.preloadCache.get(track.id);
-            } else {
-                streamUrl = await this.api.getStreamUrl(track.id, this.quality);
-            }
-            
-            if (this.isCrossfading && this.nextAudioElement.src === streamUrl) {
-                const temp = this.audio;
-                this.audio = this.nextAudioElement;
-                this.nextAudioElement = temp;
-                
-                this.nextAudioElement.pause();
-                this.nextAudioElement.currentTime = 0;
-            } else {
-                this.audio.src = streamUrl;
-            }
-            
-            await this.audio.play();
-            this.isCrossfading = false;
-            
-            this.updateMediaSessionPlaybackState();
-            this.preloadNextTracks();
-            this.setupCrossfadeListener();
-            
-        } catch (error) {
-            console.error(`Could not play track: ${track.title}`, error);
-            document.querySelector('.now-playing-bar .title').textContent = `Error: ${track.title}`;
-            document.querySelector('.now-playing-bar .artist').textContent = error.message || 'Could not load track';
-        }
+async playTrackFromQueue() {
+    const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
+    if (this.currentQueueIndex < 0 || this.currentQueueIndex >= currentQueue.length) {
+        return;
     }
+
+    const track = currentQueue[this.currentQueueIndex];
+    this.currentTrack = track;
+    
+    document.querySelector('.now-playing-bar .cover').src = 
+        this.api.getCoverUrl(track.album?.cover, '1280');
+    document.querySelector('.now-playing-bar .title').textContent = track.title;
+    document.querySelector('.now-playing-bar .artist').textContent = track.artist?.name || 'Unknown Artist';
+    document.title = `${track.title} • ${track.artist?.name || 'Unknown'}`;
+    
+    this.updatePlayingTrackIndicator();
+    this.updateMediaSession(track);
+
+    try {
+        let streamUrl;
+        
+        if (this.preloadCache.has(track.id)) {
+            streamUrl = this.preloadCache.get(track.id);
+        } else {
+            const trackData = await this.api.getTrack(track.id, this.quality);
+            
+            // Store replayGain for normalization
+            if (trackData.track?.replayGain !== undefined) {
+                window.currentGain = trackData.track.replayGain;
+            } else {
+                window.currentGain = track.replayGain || null;
+            }
+            
+            if (trackData.originalTrackUrl) {
+                streamUrl = trackData.originalTrackUrl;
+            } else {
+                streamUrl = this.api.extractStreamUrlFromManifest(trackData.info.manifest);
+            }
+        }
+        
+        if (this.isCrossfading && this.nextAudioElement.src === streamUrl) {
+            const temp = this.audio;
+            this.audio = this.nextAudioElement;
+            this.nextAudioElement = temp;
+            
+            this.nextAudioElement.pause();
+            this.nextAudioElement.currentTime = 0;
+        } else {
+            this.audio.src = streamUrl;
+        }
+        
+        // Apply normalization if enabled
+        this.applyNormalization();
+        
+        await this.audio.play();
+        this.isCrossfading = false;
+        
+        this.updateMediaSessionPlaybackState();
+        this.preloadNextTracks();
+        this.setupCrossfadeListener();
+        
+    } catch (error) {
+        console.error(`Could not play track: ${track.title}`, error);
+        document.querySelector('.now-playing-bar .title').textContent = `Error: ${track.title}`;
+        document.querySelector('.now-playing-bar .artist').textContent = error.message || 'Could not load track';
+    }
+}
 
     setupCrossfadeListener() {
         if (!this.crossfadeEnabled) return;
@@ -415,6 +431,16 @@ export class Player {
         this.updateMediaSessionPlaybackState();
         this.updateMediaSessionPositionState();
     }
+applyNormalization() {
+    const normalizeEnabled = localStorage.getItem('normalize-volume') === 'true';
+    
+    if (normalizeEnabled && window.currentGain !== null && window.currentGain !== undefined) {
+        const baseVolume = parseFloat(localStorage.getItem('base-volume') || '0.7');
+        const replayGain = parseFloat(window.currentGain);
+        const adjustment = Math.pow(10, replayGain / 20);
+        this.audio.volume = Math.min(1, Math.max(0, baseVolume * adjustment));
+    }
+}
 
     updateMediaSessionPlaybackState() {
         if (!('mediaSession' in navigator)) return;

@@ -1763,3 +1763,93 @@ input:checked + .slider:before {
     align-items: center;
     gap: 0.5rem;
 }
+.track-item {
+    display: grid;
+    grid-template-columns: 40px 1fr auto auto;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.track-menu-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: var(--radius);
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+}
+
+.track-item:hover .track-menu-btn {
+    opacity: 1;
+}
+
+.track-menu-btn:hover {
+    background-color: var(--secondary);
+    color: var(--foreground);
+}
+
+@media (max-width: 768px) {
+    .track-menu-btn {
+        opacity: 1;
+    }
+}
+
+.track-item {
+    display: grid;
+    grid-template-columns: 40px 1fr auto auto;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-sm);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.track-menu-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: var(--radius);
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: all;
+    z-index: 10;
+}
+
+.track-item:hover .track-menu-btn {
+    opacity: 1;
+}
+
+.track-menu-btn:hover {
+    background-color: var(--secondary);
+    color: var(--foreground);
+}
+
+@media (max-width: 768px) {
+    .track-menu-btn {
+        opacity: 1;
+    }
+}
+
+@media (hover: none) {
+    .track-menu-btn {
+        opacity: 1;
+    }
+}
+

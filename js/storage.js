@@ -1,3 +1,4 @@
+//storage.js
 export const apiSettings = {
     STORAGE_KEY: 'monochrome-api-instances',
     INSTANCES_URL: 'https://raw.githubusercontent.com/EduardPrigoana/hifi-instances/refs/heads/main/instances.json',
