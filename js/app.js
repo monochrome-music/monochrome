@@ -1,3 +1,4 @@
+//app.js
 import { LosslessAPI } from './api.js';
 import { apiSettings, themeManager, lastFMStorage } from './storage.js';
 import { UIRenderer } from './ui.js';
@@ -8,7 +9,8 @@ import {
     SVG_VOLUME, SVG_MUTE, formatTime, trackDataStore,
     buildTrackFilename, RATE_LIMIT_ERROR_MESSAGE, debounce,
     sanitizeForFilename,
-    getTrackArtists
+    getTrackArtists,
+    getTrackTitle
 } from './utils.js';
 
 const downloadTasks = new Map();
@@ -39,13 +41,13 @@ function addDownloadTask(trackId, track, filename, api) {
     const taskEl = document.createElement('div');
     taskEl.className = 'download-task';
     taskEl.dataset.trackId = trackId;
-    
+    const trackTitle = getTrackTitle(track);
     taskEl.innerHTML = `
         <div style="display: flex; align-items: start; gap: 0.75rem;">
             <img src="${api.getCoverUrl(track.album?.cover, '80')}" 
                  style="width: 40px; height: 40px; border-radius: 4px; flex-shrink: 0;">
             <div style="flex: 1; min-width: 0;">
-                <div style="font-weight: 500; font-size: 0.9rem; margin-bottom: 0.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${track.title}</div>
+                <div style="font-weight: 500; font-size: 0.9rem; margin-bottom: 0.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${trackTitle}</div>
                 <div style="font-size: 0.8rem; color: var(--muted-foreground); margin-bottom: 0.5rem;">${track.artist?.name || 'Unknown'}</div>
                 <div class="download-progress-bar" style="height: 4px; background: var(--secondary); border-radius: 2px; overflow: hidden;">
                     <div class="download-progress-fill" style="width: 0%; height: 100%; background: var(--highlight); transition: width 0.2s;"></div>
@@ -186,7 +188,7 @@ async function downloadAlbumAsZip(album, tracks, api, quality) {
             const track = tracks[i];
             const filename = buildTrackFilename(track, quality);
             
-            updateBulkDownloadProgress(notification, i, tracks.length, track.title);
+            updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
             
             const blob = await downloadTrackBlob(track, quality, api);
             zip.file(`${folderName}/${filename}`, blob);
@@ -779,6 +781,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         const html = currentQueue.map((track, index) => {
             const isPlaying = index === player.currentQueueIndex;
+            const trackTitle = getTrackTitle(track);
             const trackArtists = getTrackArtists(track, {
                 fallback: "Unknown"
             });
@@ -795,7 +798,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <img src="${api.getCoverUrl(track.album?.cover, '80')}" 
                              class="track-item-cover" loading="lazy">
                         <div class="track-item-details">
-                            <div class="title">${track.title}</div>
+                            <div class="title">${trackTitle}</div>
                             <div class="artist">${trackArtists}</div>
                         </div>
                     </div>

@@ -1,5 +1,5 @@
 //ui.js
-import { formatTime, createPlaceholder, trackDataStore, hasExplicitContent, getTrackArtists } from './utils.js';
+import { formatTime, createPlaceholder, trackDataStore, hasExplicitContent, getTrackArtists, getTrackTitle } from './utils.js';
 import { recentActivityManager } from './storage.js';
 
 export class UIRenderer {
@@ -27,6 +27,7 @@ export class UIRenderer {
     const trackNumberHTML = `<div class="track-number">${showCover ? playIconSmall : index + 1}</div>`;
     const explicitBadge = hasExplicitContent(track) ? this.createExplicitBadge() : '';
     const trackArtists = getTrackArtists(track);
+    const trackTitle = getTrackTitle(track);
     
     return `
         <div class="track-item" data-track-id="${track.id}">
@@ -35,7 +36,7 @@ export class UIRenderer {
                 ${showCover ? `<img src="${this.api.getCoverUrl(track.album?.cover, '80')}" alt="Track Cover" class="track-item-cover" loading="lazy">` : ''}
                 <div class="track-item-details">
                     <div class="title">
-                        ${track.title}
+                        ${trackTitle}
                         ${explicitBadge}
                     </div>
                     <div class="artist">${trackArtists}</div>
