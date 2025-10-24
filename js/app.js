@@ -187,6 +187,7 @@ async function downloadAlbumAsZip(album, tracks, api, quality) {
         for (let i = 0; i < tracks.length; i++) {
             const track = tracks[i];
             const filename = buildTrackFilename(track, quality);
+            const trackTitle = getTrackTitle(track);
             
             updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
             
