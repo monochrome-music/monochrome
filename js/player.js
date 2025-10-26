@@ -1,4 +1,3 @@
-//player.js
 import { REPEAT_MODE, formatTime, getTrackArtists, getTrackTitle} from './utils.js';
 
 export class Player {
@@ -15,23 +14,8 @@ export class Player {
         this.preloadCache = new Map();
         this.preloadAbortController = null;
         this.currentTrack = null;
-        this.crossfadeEnabled = false;
-        this.crossfadeDuration = 5;
-        this.nextAudioElement = null;
-        this.isCrossfading = false;
 
         this.setupMediaSession();
-        this.setupCrossfade();
-    }
-
-    setupCrossfade() {
-        this.nextAudioElement = document.createElement('audio');
-        this.nextAudioElement.preload = 'auto';
-    }
-
-    setCrossfade(enabled, duration = 5) {
-        this.crossfadeEnabled = enabled;
-        this.crossfadeDuration = Math.max(1, Math.min(12, duration));
     }
 
     setupMediaSession() {
@@ -97,7 +81,7 @@ export class Player {
             }
         }
         
-        for (const { track, index } of tracksToPreload) {
+        for (const { track } of tracksToPreload) {
             if (this.preloadCache.has(track.id)) continue;
             const trackTitle = getTrackTitle(track);
             try {
@@ -106,11 +90,6 @@ export class Player {
                 if (this.preloadAbortController.signal.aborted) break;
                 
                 this.preloadCache.set(track.id, streamUrl);
-                
-                if (index === this.currentQueueIndex + 1 && this.crossfadeEnabled) {
-                    this.nextAudioElement.src = streamUrl;
-                }
-                
             } catch (error) {
                 if (error.name !== 'AbortError') {
                     console.debug('Failed to get stream URL for preload:', trackTitle);
@@ -119,134 +98,51 @@ export class Player {
         }
     }
 
-async playTrackFromQueue() {
-    const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
-    if (this.currentQueueIndex < 0 || this.currentQueueIndex >= currentQueue.length) {
-        return;
-    }
-
-    const track = currentQueue[this.currentQueueIndex];
-    this.currentTrack = track;
-
-    const trackTitle = getTrackTitle(track); 
-    const trackArtists = getTrackArtists(track);
-    
-    document.querySelector('.now-playing-bar .cover').src = 
-        this.api.getCoverUrl(track.album?.cover, '1280');
-    document.querySelector('.now-playing-bar .title').textContent = trackTitle;
-    document.querySelector('.now-playing-bar .artist').textContent = trackArtists;
-    document.title = `${trackTitle} • ${track.artist?.name || 'Unknown'}`;
-    
-    this.updatePlayingTrackIndicator();
-    this.updateMediaSession(track);
-
-    try {
-        let streamUrl;
-        
-        if (this.preloadCache.has(track.id)) {
-            streamUrl = this.preloadCache.get(track.id);
-        } else {
-            const trackData = await this.api.getTrack(track.id, this.quality);
-            
-            // Store replayGain for normalization
-            if (trackData.track?.replayGain !== undefined) {
-                window.currentGain = trackData.track.replayGain;
-            } else {
-                window.currentGain = track.replayGain || null;
-            }
-            
-            if (trackData.originalTrackUrl) {
-                streamUrl = trackData.originalTrackUrl;
-            } else {
-                streamUrl = this.api.extractStreamUrlFromManifest(trackData.info.manifest);
-            }
-        }
-        
-        if (this.isCrossfading && this.nextAudioElement.src === streamUrl) {
-            const temp = this.audio;
-            this.audio = this.nextAudioElement;
-            this.nextAudioElement = temp;
-            
-            this.nextAudioElement.pause();
-            this.nextAudioElement.currentTime = 0;
-        } else {
-            this.audio.src = streamUrl;
-        }
-        
-        // Apply normalization if enabled
-        this.applyNormalization();
-        
-        await this.audio.play();
-        this.isCrossfading = false;
-        
-        this.updateMediaSessionPlaybackState();
-        this.preloadNextTracks();
-        this.setupCrossfadeListener();
-        
-    } catch (error) {
-        console.error(`Could not play track: ${trackTitle}`, error);
-        document.querySelector('.now-playing-bar .title').textContent = `Error: ${trackTitle}`;
-        document.querySelector('.now-playing-bar .artist').textContent = error.message || 'Could not load track';
-    }
-}
-
-    setupCrossfadeListener() {
-        if (!this.crossfadeEnabled) return;
-        
-        const checkCrossfade = () => {
-            const timeRemaining = this.audio.duration - this.audio.currentTime;
-            
-            if (timeRemaining <= this.crossfadeDuration && timeRemaining > 0 && !this.isCrossfading) {
-                this.startCrossfade();
-            }
-        };
-        
-        this.audio.removeEventListener('timeupdate', this.crossfadeCheck);
-        this.crossfadeCheck = checkCrossfade;
-        this.audio.addEventListener('timeupdate', this.crossfadeCheck);
-    }
-
-    async startCrossfade() {
-        if (this.repeatMode === REPEAT_MODE.ONE) return;
-        
+    async playTrackFromQueue() {
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
-        const nextIndex = this.currentQueueIndex + 1;
+        if (this.currentQueueIndex < 0 || this.currentQueueIndex >= currentQueue.length) {
+            return;
+        }
+
+        const track = currentQueue[this.currentQueueIndex];
+        this.currentTrack = track;
+
+        const trackTitle = getTrackTitle(track); 
+        const trackArtists = getTrackArtists(track);
         
-        if (nextIndex >= currentQueue.length && this.repeatMode !== REPEAT_MODE.ALL) return;
+        document.querySelector('.now-playing-bar .cover').src = 
+            this.api.getCoverUrl(track.album?.cover, '1280');
+        document.querySelector('.now-playing-bar .title').textContent = trackTitle;
+        document.querySelector('.now-playing-bar .artist').textContent = trackArtists;
+        document.title = `${trackTitle} • ${track.artist?.name || 'Unknown'}`;
         
-        this.isCrossfading = true;
-        const targetIndex = nextIndex >= currentQueue.length ? 0 : nextIndex;
-        const nextTrack = currentQueue[targetIndex];
-        
-        if (this.nextAudioElement.src && this.preloadCache.has(nextTrack.id)) {
-            try {
-                await this.nextAudioElement.play();
-                this.nextAudioElement.volume = 0;
+        this.updatePlayingTrackIndicator();
+        this.updateMediaSession(track);
+
+        try {
+            let streamUrl;
+            
+            if (this.preloadCache.has(track.id)) {
+                streamUrl = this.preloadCache.get(track.id);
+            } else {
+                const trackData = await this.api.getTrack(track.id, this.quality);
                 
-                const fadeSteps = 20;
-                const fadeInterval = (this.crossfadeDuration * 1000) / fadeSteps;
-                
-                let step = 0;
-                const fadeTimer = setInterval(() => {
-                    step++;
-                    const progress = step / fadeSteps;
-                    
-                    this.audio.volume = Math.max(0, 1 - progress);
-                    this.nextAudioElement.volume = Math.min(1, progress);
-                    
-                    if (step >= fadeSteps) {
-                        clearInterval(fadeTimer);
-                        this.audio.pause();
-                        this.audio.volume = 1;
-                        this.currentQueueIndex = targetIndex;
-                        this.playTrackFromQueue();
-                    }
-                }, fadeInterval);
-                
-            } catch (error) {
-                console.error('Crossfade failed:', error);
-                this.isCrossfading = false;
+                if (trackData.originalTrackUrl) {
+                    streamUrl = trackData.originalTrackUrl;
+                } else {
+                    streamUrl = this.api.extractStreamUrlFromManifest(trackData.info.manifest);
+                }
             }
+            
+            this.audio.src = streamUrl;
+            await this.audio.play();
+            
+            this.updateMediaSessionPlaybackState();
+            this.preloadNextTracks();
+        } catch (error) {
+            console.error(`Could not play track: ${trackTitle}`, error);
+            document.querySelector('.now-playing-bar .title').textContent = `Error: ${trackTitle}`;
+            document.querySelector('.now-playing-bar .artist').textContent = error.message || 'Could not load track';
         }
     }
 
@@ -435,16 +331,6 @@ async playTrackFromQueue() {
         this.updateMediaSessionPlaybackState();
         this.updateMediaSessionPositionState();
     }
-applyNormalization() {
-    const normalizeEnabled = localStorage.getItem('normalize-volume') === 'true';
-    
-    if (normalizeEnabled && window.currentGain !== null && window.currentGain !== undefined) {
-        const baseVolume = parseFloat(localStorage.getItem('base-volume') || '0.7');
-        const replayGain = parseFloat(window.currentGain);
-        const adjustment = Math.pow(10, replayGain / 20);
-        this.audio.volume = Math.min(1, Math.max(0, baseVolume * adjustment));
-    }
-}
 
     updateMediaSessionPlaybackState() {
         if (!('mediaSession' in navigator)) return;

@@ -1,5 +1,4 @@
-//ui.js
-import { formatTime, createPlaceholder, trackDataStore, hasExplicitContent, getTrackArtists, getTrackTitle } from './utils.js';
+import { formatTime, createPlaceholder, trackDataStore, hasExplicitContent, getTrackArtists, getTrackTitle, calculateTotalDuration, formatDuration } from './utils.js';
 import { recentActivityManager } from './storage.js';
 
 export class UIRenderer {
@@ -12,47 +11,48 @@ export class UIRenderer {
     }
 
     createTrackMenuButton() {
-    return `
-        <button class="track-menu-btn" onclick="event.stopPropagation();" title="More options">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="1"></circle>
-                <circle cx="12" cy="5" r="1"></circle>
-                <circle cx="12" cy="19" r="1"></circle>
-            </svg>
-        </button>
-    `;
-}
-    createTrackItemHTML(track, index, showCover = false) {
-    const playIconSmall = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
-    const trackNumberHTML = `<div class="track-number">${showCover ? playIconSmall : index + 1}</div>`;
-    const explicitBadge = hasExplicitContent(track) ? this.createExplicitBadge() : '';
-    const trackArtists = getTrackArtists(track);
-    const trackTitle = getTrackTitle(track);
-    
-    return `
-        <div class="track-item" data-track-id="${track.id}">
-            ${trackNumberHTML}
-            <div class="track-item-info">
-                ${showCover ? `<img src="${this.api.getCoverUrl(track.album?.cover, '80')}" alt="Track Cover" class="track-item-cover" loading="lazy">` : ''}
-                <div class="track-item-details">
-                    <div class="title">
-                        ${trackTitle}
-                        ${explicitBadge}
-                    </div>
-                    <div class="artist">${trackArtists}</div>
-                </div>
-            </div>
-            <div class="track-item-duration">${formatTime(track.duration)}</div>
-            <button class="track-menu-btn" type="button" title="More options">
+        return `
+            <button class="track-menu-btn" onclick="event.stopPropagation();" title="More options">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="1"></circle>
                     <circle cx="12" cy="5" r="1"></circle>
                     <circle cx="12" cy="19" r="1"></circle>
                 </svg>
             </button>
-        </div>
-    `;
-}
+        `;
+    }
+
+    createTrackItemHTML(track, index, showCover = false) {
+        const playIconSmall = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
+        const trackNumberHTML = `<div class="track-number">${showCover ? playIconSmall : index + 1}</div>`;
+        const explicitBadge = hasExplicitContent(track) ? this.createExplicitBadge() : '';
+        const trackArtists = getTrackArtists(track);
+        const trackTitle = getTrackTitle(track);
+        
+        return `
+            <div class="track-item" data-track-id="${track.id}">
+                ${trackNumberHTML}
+                <div class="track-item-info">
+                    ${showCover ? `<img src="${this.api.getCoverUrl(track.album?.cover, '80')}" alt="Track Cover" class="track-item-cover" loading="lazy">` : ''}
+                    <div class="track-item-details">
+                        <div class="title">
+                            ${trackTitle}
+                            ${explicitBadge}
+                        </div>
+                        <div class="artist">${trackArtists}</div>
+                    </div>
+                </div>
+                <div class="track-item-duration">${formatTime(track.duration)}</div>
+                <button class="track-menu-btn" type="button" title="More options">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="1"></circle>
+                        <circle cx="12" cy="5" r="1"></circle>
+                        <circle cx="12" cy="19" r="1"></circle>
+                    </svg>
+                </button>
+            </div>
+        `;
+    }
 
     createAlbumCardHTML(album) {
         const explicitBadge = hasExplicitContent(album) ? this.createExplicitBadge() : '';
@@ -150,71 +150,21 @@ export class UIRenderer {
         }
     }
 
-async renderHomePage() {
-    this.showPage('home');
-    const recents = recentActivityManager.getRecents();
-    
-    const albumsContainer = document.getElementById('home-recent-albums');
-    const artistsContainer = document.getElementById('home-recent-artists');
-    
-    if (recents.albums.length > 0 || recents.artists.length > 0) {
+    async renderHomePage() {
+        this.showPage('home');
+        const recents = recentActivityManager.getRecents();
+        
+        const albumsContainer = document.getElementById('home-recent-albums');
+        const artistsContainer = document.getElementById('home-recent-artists');
+        
         albumsContainer.innerHTML = recents.albums.length
             ? recents.albums.map(album => this.createAlbumCardHTML(album)).join('')
-            : createPlaceholder("You haven't viewed any albums yet.");
+            : createPlaceholder("You haven't viewed any albums yet. Search for music to get started!");
         
         artistsContainer.innerHTML = recents.artists.length
             ? recents.artists.map(artist => this.createArtistCardHTML(artist)).join('')
-            : createPlaceholder("You haven't viewed any artists yet.");
-    } else {
-        // Load from API
-        albumsContainer.innerHTML = this.createSkeletonCards(6, false);
-        artistsContainer.innerHTML = this.createSkeletonCards(6, true);
-        
-        const homeData = await window.loadHomeFeed(this.api, this);
-        
-        if (homeData && homeData.rows) {
-            let albums = [];
-            let playlists = [];
-            
-            homeData.rows.forEach(row => {
-                row.modules?.forEach(module => {
-                    if (module.type === 'ALBUM_LIST' && module.pagedList?.items) {
-                        albums.push(...module.pagedList.items);
-                    } else if (module.type === 'PLAYLIST_LIST' && module.pagedList?.items) {
-                        playlists.push(...module.pagedList.items);
-                    }
-                });
-            });
-            
-            if (albums.length > 0) {
-                albumsContainer.innerHTML = albums.slice(0, 10).map(album => 
-                    this.createAlbumCardHTML(album)
-                ).join('');
-            } else {
-                albumsContainer.innerHTML = createPlaceholder("No albums available.");
-            }
-            
-            if (playlists.length > 0) {
-                document.querySelector('#home-recent-artists').parentElement.querySelector('.section-title').textContent = 'Featured Playlists';
-                artistsContainer.innerHTML = playlists.slice(0, 10).map(playlist => `
-                    <a href="#playlist/${playlist.uuid}" class="card">
-                        <div class="card-image-wrapper">
-                            <img src="${this.api.getCoverUrl(playlist.image || playlist.squareImage, '320')}" 
-                                 alt="${playlist.title}" class="card-image" loading="lazy">
-                        </div>
-                        <h3 class="card-title">${playlist.title}</h3>
-                        <p class="card-subtitle">${playlist.numberOfTracks} tracks</p>
-                    </a>
-                `).join('');
-            } else {
-                artistsContainer.innerHTML = createPlaceholder("No playlists available.");
-            }
-        } else {
-            albumsContainer.innerHTML = createPlaceholder("Unable to load content.");
-            artistsContainer.innerHTML = createPlaceholder("Unable to load content.");
-        }
+            : createPlaceholder("You haven't viewed any artists yet. Search for music to get started!");
     }
-}
 
     async renderSearchPage(query) {
         this.showPage('search');
@@ -319,8 +269,18 @@ async renderHomePage() {
             const explicitBadge = hasExplicitContent(album) ? this.createExplicitBadge() : '';
             titleEl.innerHTML = `${album.title} ${explicitBadge}`;
             
+            // Calculate total duration
+            const totalDuration = calculateTotalDuration(tracks);
+            const releaseDate = new Date(album.releaseDate);
+            const year = releaseDate.getFullYear();
+            
+            // Desktop: full date, Mobile: year only
+            const dateDisplay = window.innerWidth > 768 
+                ? releaseDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+                : year;
+            
             metaEl.innerHTML = 
-                `By <a href="#artist/${album.artist.id}">${album.artist.name}</a> • ${new Date(album.releaseDate).getFullYear()}`;
+                `By <a href="#artist/${album.artist.id}">${album.artist.name}</a> • ${dateDisplay} • ${tracks.length} tracks • ${formatDuration(totalDuration)}`;
             
             tracklistContainer.innerHTML = `
                 <div class="track-list-header">
@@ -334,6 +294,9 @@ async renderHomePage() {
             this.renderListWithTracks(tracklistContainer, tracks, false);
             
             recentActivityManager.addAlbum(album);
+            
+            // Update tab title when no song is playing
+            document.title = `${album.title} - ${album.artist.name} - Monochrome`;
         } catch (error) {
             console.error("Failed to load album:", error);
             tracklistContainer.innerHTML = createPlaceholder(`Could not load album details. ${error.message}`);
@@ -370,6 +333,9 @@ async renderHomePage() {
             ).join('');
             
             recentActivityManager.addArtist(artist);
+            
+            // Update tab title
+            document.title = `${artist.name} - Monochrome`;
         } catch (error) {
             console.error("Failed to load artist:", error);
             tracksContainer.innerHTML = albumsContainer.innerHTML = 
@@ -378,46 +344,46 @@ async renderHomePage() {
     }
 
     renderApiSettings() {
-    const container = document.getElementById('api-instance-list');
-    this.api.settings.getInstances().then(instances => {
-        const cachedData = this.api.settings.getCachedSpeedTests();
-        const speeds = cachedData?.speeds || {};
-        
-        container.innerHTML = instances.map((url, index) => {
-            const speedInfo = speeds[url];
-            const speedText = speedInfo 
-                ? (speedInfo.speed === Infinity 
-                    ? `<span style="color: var(--muted-foreground); font-size: 0.8rem;">Failed</span>` 
-                    : `<span style="color: var(--muted-foreground); font-size: 0.8rem;">${speedInfo.speed.toFixed(0)}ms</span>`)
-                : '';
+        const container = document.getElementById('api-instance-list');
+        this.api.settings.getInstances().then(instances => {
+            const cachedData = this.api.settings.getCachedSpeedTests();
+            const speeds = cachedData?.speeds || {};
             
-            return `
-                <li data-index="${index}">
-                    <div style="flex: 1; min-width: 0;">
-                        <div class="instance-url">${url}</div>
-                        ${speedText}
-                    </div>
-                    <div class="controls">
-                        <button class="move-up" title="Move Up" ${index === 0 ? 'disabled' : ''}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M12 19V5M5 12l7-7 7 7"/>
-                            </svg>
-                        </button>
-                        <button class="move-down" title="Move Down" ${index === instances.length - 1 ? 'disabled' : ''}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M12 5v14M19 12l-7 7-7-7"/>
-                            </svg>
-                        </button>
-                    </div>
-                </li>
-            `;
-        }).join('');
+            container.innerHTML = instances.map((url, index) => {
+                const speedInfo = speeds[url];
+                const speedText = speedInfo 
+                    ? (speedInfo.speed === Infinity 
+                        ? `<span style="color: var(--muted-foreground); font-size: 0.8rem;">Failed</span>` 
+                        : `<span style="color: var(--muted-foreground); font-size: 0.8rem;">${speedInfo.speed.toFixed(0)}ms</span>`)
+                    : '';
+                
+                return `
+                    <li data-index="${index}">
+                        <div style="flex: 1; min-width: 0;">
+                            <div class="instance-url">${url}</div>
+                            ${speedText}
+                        </div>
+                        <div class="controls">
+                            <button class="move-up" title="Move Up" ${index === 0 ? 'disabled' : ''}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 19V5M5 12l7-7 7 7"/>
+                                </svg>
+                            </button>
+                            <button class="move-down" title="Move Down" ${index === instances.length - 1 ? 'disabled' : ''}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 5v14M19 12l-7 7-7-7"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </li>
+                `;
+            }).join('');
 
-        const stats = this.api.getCacheStats();
-        const cacheInfo = document.getElementById('cache-info');
-        if (cacheInfo) {
-            cacheInfo.textContent = `Cache: ${stats.memoryEntries}/${stats.maxSize} entries`;
-        }
-    });
-}
+            const stats = this.api.getCacheStats();
+            const cacheInfo = document.getElementById('cache-info');
+            if (cacheInfo) {
+                cacheInfo.textContent = `Cache: ${stats.memoryEntries}/${stats.maxSize} entries`;
+            }
+        });
+    }
 }

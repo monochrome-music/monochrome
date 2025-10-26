@@ -229,25 +229,25 @@
                         </div>
                     </div>
                     <div class="setting-item">
-    <div class="info">
-        <span class="label">Last.fm Scrobbling</span>
-        <span class="description" id="lastfm-status">Connect your Last.fm account to scrobble tracks</span>
-    </div>
-    <div id="lastfm-controls">
-        <button id="lastfm-connect-btn" class="btn-secondary">Connect Last.fm</button>
-    </div>
-</div>
+                        <div class="info">
+                            <span class="label">Last.fm Scrobbling</span>
+                            <span class="description" id="lastfm-status">Connect your Last.fm account to scrobble tracks</span>
+                        </div>
+                        <div id="lastfm-controls">
+                            <button id="lastfm-connect-btn" class="btn-secondary">Connect Last.fm</button>
+                        </div>
+                    </div>
 
-<div class="setting-item" id="lastfm-toggle-setting" style="display: none;">
-    <div class="info">
-        <span class="label">Enable Scrobbling</span>
-        <span class="description">Automatically scrobble played tracks</span>
-    </div>
-    <label class="toggle-switch">
-        <input type="checkbox" id="lastfm-toggle">
-        <span class="slider"></span>
-    </label>
-</div>
+                    <div class="setting-item" id="lastfm-toggle-setting" style="display: none;">
+                        <div class="info">
+                            <span class="label">Enable Scrobbling</span>
+                            <span class="description">Automatically scrobble played tracks</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="lastfm-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
                     <div class="setting-item">
                         <div class="info">
                             <span class="label">Audio Quality</span>
@@ -261,20 +261,24 @@
                     </div>
                     <div class="setting-item">
                         <div class="info">
-                            <span class="label">Crossfade</span>
-                            <span class="description">Fade between tracks smoothly</span>
+                            <span class="label">Now Playing View Mode</span>
+                            <span class="description">Choose what shows when you click the album art</span>
+                        </div>
+                        <select id="now-playing-mode">
+                            <option value="cover">Album Cover</option>
+                            <option value="lyrics">Lyrics Panel</option>
+                            <option value="karaoke">Karaoke Mode</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <div class="info">
+                            <span class="label">Download Lyrics</span>
+                            <span class="description">Include .lrc files when downloading tracks/albums</span>
                         </div>
                         <label class="toggle-switch">
-                            <input type="checkbox" id="crossfade-toggle">
+                            <input type="checkbox" id="download-lyrics-toggle">
                             <span class="slider"></span>
                         </label>
-                    </div>
-                    <div class="setting-item" id="crossfade-duration-setting" style="display: none;">
-                        <div class="info">
-                            <span class="label">Crossfade Duration</span>
-                            <span class="description">Duration in seconds</span>
-                        </div>
-                        <input type="number" id="crossfade-duration" min="1" max="12" value="5">
                     </div>
                     <div class="setting-item">
                         <div class="info">
@@ -288,13 +292,17 @@
                     </div>
                     <div class="setting-item">
                         <div class="info">
-                            <span class="label">Normalize Volume</span>
-                            <span class="description">Set the same volume level for all tracks</span>
+                            <span class="label">Filename Template</span>
+                            <span class="description">Customize download filenames. Available: {trackNumber}, {artist}, {title}, {album}</span>
                         </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox">
-                            <span class="slider"></span>
-                        </label>
+                        <input type="text" id="filename-template" class="template-input" placeholder="{trackNumber} - {artist} - {title}">
+                    </div>
+                    <div class="setting-item">
+                        <div class="info">
+                            <span class="label">ZIP Folder Template</span>
+                            <span class="description">Customize album folder names. Available: {albumTitle}, {albumArtist}, {year}</span>
+                        </div>
+                        <input type="text" id="zip-folder-template" class="template-input" placeholder="{albumTitle} - {albumArtist} - monochrome.tf">
                     </div>
                     <div class="setting-item">
                         <div class="info">
@@ -304,15 +312,15 @@
                         <button id="clear-cache-btn" class="btn-secondary">Clear Cache</button>
                     </div>
                     <div id="api-instance-manager">
-    <div class="setting-item" style="padding-bottom: 1rem; border: none;">
-        <div class="info">
-            <span class="label">API Instances</span>
-            <span class="description">Manage and prioritize API instances. Automatically sorted by speed.</span>
-        </div>
-        <button id="refresh-speed-test-btn" class="btn-secondary">Refresh Speed Test</button>
-    </div>
-    <ul id="api-instance-list"></ul>
-</div>
+                        <div class="setting-item" style="padding-bottom: 1rem; border: none;">
+                            <div class="info">
+                                <span class="label">API Instances</span>
+                                <span class="description">Manage and prioritize API instances. Automatically sorted by speed.</span>
+                            </div>
+                            <button id="refresh-speed-test-btn" class="btn-secondary">Refresh Speed Test</button>
+                        </div>
+                        <ul id="api-instance-list"></ul>
+                    </div>
                 </div>
             </div>
 
@@ -327,6 +335,7 @@
                         <h4>Features</h4>
                         <ul>
                             <li>High-quality lossless audio streaming</li>
+                            <li>Lyrics support with karaoke mode</li>
                             <li>Intelligent API caching for improved performance</li>
                             <li>Offline-capable Progressive Web App (PWA)</li>
                             <li>Media Session API integration for system controls</li>
@@ -334,7 +343,8 @@
                             <li>Track downloads with automatic metadata embedding</li>
                             <li>Multiple API instance support with failover</li>
                             <li>Dark, minimalist interface optimized for focus</li>
-                            <li>Customizable themes and crossfade support</li>
+                            <li>Customizable themes</li>
+                            <li>Keyboard shortcuts for power users</li>
                         </ul>
                     </div>
                     <div class="about-tech">
@@ -348,7 +358,7 @@
                         </a>
                     </div>
                     <div class="about-footer">
-                        <p class="version">Version 1.1.0</p>
+                        <p class="version">Version 1.2.0</p>
                         <p class="disclaimer">This is an independent client and is not affiliated with or endorsed by TIDAL or any music streaming service.</p>
                     </div>
                 </div>
@@ -369,10 +379,12 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shuffle-icon lucide-shuffle"><path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22"/><path d="M2 6h1.972a4 4 0 0 1 3.6 2.2"/><path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45"/></svg>
                     </button>
                     <button id="prev-btn" title="Previous">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left-to-line-icon lucide-arrow-left-to-line"><path d="M3 19V5"/><path d="m13 6-6 6 6 6"/><path d="M7 12h14"/></svg>                    </button>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left-to-line-icon lucide-arrow-left-to-line"><path d="M3 19V5"/><path d="m13 6-6 6 6 6"/><path d="M7 12h14"/></svg>
+                    </button>
                     <button class="play-pause-btn" title="Play"></button>
                     <button id="next-btn" title="Next">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right-to-line-icon lucide-arrow-right-to-line"><path d="M17 12H3"/><path d="m11 18 6-6-6-6"/><path d="M21 5v14"/></svg>                    </button>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right-to-line-icon lucide-arrow-right-to-line"><path d="M17 12H3"/><path d="m11 18 6-6-6-6"/><path d="M21 5v14"/></svg>
+                    </button>
                     <button id="repeat-btn" title="Repeat">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-repeat-icon lucide-repeat"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
                     </button>
@@ -386,11 +398,26 @@
                 </div>
             </div>
             <div class="volume-controls">
+                <button id="download-current-btn" title="Download current track" class="desktop-only">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                </button>
+                <button id="cast-btn" title="Cast" class="desktop-only">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path>
+                        <path d="M2 12a9 9 0 0 1 9 9"></path>
+                        <path d="M2 17a5 5 0 0 1 5 5"></path>
+                        <path d="M2 22h.01"></path>
+                    </svg>
+                </button>
                 <button id="queue-btn" title="Queue">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-list-icon lucide-list"><path d="M3 5h.01"/><path d="M3 12h.01"/><path d="M3 19h.01"/><path d="M8 5h13"/><path d="M8 12h13"/><path d="M8 19h13"/></svg>
                 </button>
-                <button id="volume-btn" title="Mute"></button>
-                <div id="volume-bar" class="volume-bar">
+                <button id="volume-btn" title="Mute" class="desktop-only"></button>
+                <div id="volume-bar" class="volume-bar desktop-only">
                     <div id="volume-fill" class="volume-fill"></div>
                 </div>
             </div>

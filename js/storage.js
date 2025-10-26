@@ -1,4 +1,3 @@
-//storage.js
 export const apiSettings = {
     STORAGE_KEY: 'monochrome-api-instances',
     INSTANCES_URL: 'https://raw.githubusercontent.com/EduardPrigoana/hifi-instances/refs/heads/main/instances.json',
@@ -292,5 +291,37 @@ export const lastFMStorage = {
     
     setEnabled(enabled) {
         localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    }
+};
+
+export const nowPlayingSettings = {
+    STORAGE_KEY: 'now-playing-mode',
+    
+    getMode() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) || 'cover';
+        } catch (e) {
+            return 'cover';
+        }
+    },
+    
+    setMode(mode) {
+        localStorage.setItem(this.STORAGE_KEY, mode);
+    }
+};
+
+export const lyricsSettings = {
+    DOWNLOAD_WITH_TRACKS: 'lyrics-download-with-tracks',
+    
+    shouldDownloadLyrics() {
+        try {
+            return localStorage.getItem(this.DOWNLOAD_WITH_TRACKS) === 'true';
+        } catch (e) {
+            return false;
+        }
+    },
+    
+    setDownloadLyrics(enabled) {
+        localStorage.setItem(this.DOWNLOAD_WITH_TRACKS, enabled ? 'true' : 'false');
     }
 };

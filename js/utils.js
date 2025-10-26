@@ -1,4 +1,5 @@
-//utils.js
+// utils.js
+
 export const QUALITY = 'LOSSLESS';
 
 export const REPEAT_MODE = {
@@ -62,17 +63,17 @@ export const getExtensionForQuality = (quality) => {
 };
 
 export const buildTrackFilename = (track, quality) => {
+    const template = localStorage.getItem('filename-template') || '{trackNumber} - {artist} - {title}';
     const extension = getExtensionForQuality(quality);
-    const trackNumber = Number(track.trackNumber);
-    const padded = Number.isFinite(trackNumber) && trackNumber > 0 
-        ? `${trackNumber}`.padStart(2, '0') 
-        : '00';
     
-    const artistName = sanitizeForFilename(track.artist?.name);
-    const albumTitle = sanitizeForFilename(track.album?.title);
-    const trackTitle = sanitizeForFilename(getTrackTitle(track));
+    const data = {
+        trackNumber: track.trackNumber,
+        artist: track.artist?.name,
+        title: getTrackTitle(track),
+        album: track.album?.title
+    };
     
-    return `${artistName} - ${albumTitle} - ${padded} ${trackTitle}.${extension}`;
+    return formatTemplate(template, data) + '.' + extension;
 };
 
 const sanitizeToken = (value) => {
@@ -156,15 +157,45 @@ export const debounce = (func, wait) => {
         timeout = setTimeout(later, wait);
     };
 };
+
 export const getTrackTitle = (track, { fallback = 'Unknown Title' } = {}) => {
-  if (!track?.title) return fallback;
-  return track?.version ? `${track.title} (${track.version})` : track.title;
+    if (!track?.title) return fallback;
+    return track?.version ? `${track.title} (${track.version})` : track.title;
 };
 
 export const getTrackArtists = (track = {}, { fallback = 'Unknown Artist' } = {}) => {
-  if (track?.artists?.length) {
-    return track.artists.map(artist => artist?.name).join(', ');
-  }
+    if (track?.artists?.length) {
+        return track.artists.map(artist => artist?.name).join(', ');
+    }
 
-  return fallback;
-}
+    return fallback;
+};
+
+export const formatTemplate = (template, data) => {
+    let result = template;
+    result = result.replace(/\{trackNumber\}/g, data.trackNumber ? String(data.trackNumber).padStart(2, '0') : '00');
+    result = result.replace(/\{artist\}/g, sanitizeForFilename(data.artist || 'Unknown Artist'));
+    result = result.replace(/\{title\}/g, sanitizeForFilename(data.title || 'Unknown Title'));
+    result = result.replace(/\{album\}/g, sanitizeForFilename(data.album || 'Unknown Album'));
+    result = result.replace(/\{albumArtist\}/g, sanitizeForFilename(data.albumArtist || 'Unknown Artist'));
+    result = result.replace(/\{albumTitle\}/g, sanitizeForFilename(data.albumTitle || 'Unknown Album'));
+    result = result.replace(/\{year\}/g, data.year || 'Unknown');
+    return result;
+};
+
+export const calculateTotalDuration = (tracks) => {
+    if (!Array.isArray(tracks) || tracks.length === 0) return 0;
+    return tracks.reduce((total, track) => total + (track.duration || 0), 0);
+};
+
+export const formatDuration = (seconds) => {
+    if (!seconds || isNaN(seconds)) return '0 min';
+    
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    
+    if (hours > 0) {
+        return `${hours} hr ${minutes} min`;
+    }
+    return `${minutes} min`;
+};
