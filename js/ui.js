@@ -24,7 +24,9 @@ export class UIRenderer {
 
     createTrackItemHTML(track, index, showCover = false) {
         const playIconSmall = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
-        const trackNumberHTML = `<div class="track-number">${showCover ? playIconSmall : index + 1}</div>`;
+        // When showCover is true we put the album art into the leading column
+        const trackImageHTML = showCover ? `<img src="${this.api.getCoverUrl(track.album?.cover, '80')}" alt="Track Cover" class="track-item-cover" loading="lazy">` : '';
+        const trackNumberHTML = `<div class="track-number">${showCover ? trackImageHTML : index + 1}</div>`;
         const explicitBadge = hasExplicitContent(track) ? this.createExplicitBadge() : '';
         const trackArtists = getTrackArtists(track);
         const trackTitle = getTrackTitle(track);
@@ -33,7 +35,6 @@ export class UIRenderer {
             <div class="track-item" data-track-id="${track.id}">
                 ${trackNumberHTML}
                 <div class="track-item-info">
-                    ${showCover ? `<img src="${this.api.getCoverUrl(track.album?.cover, '80')}" alt="Track Cover" class="track-item-cover" loading="lazy">` : ''}
                     <div class="track-item-details">
                         <div class="title">
                             ${trackTitle}
@@ -82,9 +83,8 @@ export class UIRenderer {
     createSkeletonTrack(showCover = false) {
         return `
             <div class="skeleton-track">
-                <div class="skeleton skeleton-track-number"></div>
+                ${showCover ? '<div class="skeleton skeleton-track-cover"></div>' : '<div class="skeleton skeleton-track-number"></div>'}
                 <div class="skeleton-track-info">
-                    ${showCover ? '<div class="skeleton skeleton-track-cover"></div>' : ''}
                     <div class="skeleton-track-details">
                         <div class="skeleton skeleton-track-title"></div>
                         <div class="skeleton skeleton-track-artist"></div>
@@ -150,6 +150,8 @@ export class UIRenderer {
         }
     }
 
+    //cats have 9 lives.
+
     async renderHomePage() {
         this.showPage('home');
         const recents = recentActivityManager.getRecents();
@@ -174,7 +176,7 @@ export class UIRenderer {
         const artistsContainer = document.getElementById('search-artists-container');
         const albumsContainer = document.getElementById('search-albums-container');
         
-        tracksContainer.innerHTML = this.createSkeletonTracks(8, false);
+    tracksContainer.innerHTML = this.createSkeletonTracks(8, true);
         artistsContainer.innerHTML = this.createSkeletonCards(6, true);
         albumsContainer.innerHTML = this.createSkeletonCards(6, false);
         
@@ -217,7 +219,8 @@ export class UIRenderer {
             }
             
             if (finalTracks.length) {
-                this.renderListWithTracks(tracksContainer, finalTracks, false);
+                // Show album art next to each search result instead of a numeric index
+                this.renderListWithTracks(tracksContainer, finalTracks, true);
             } else {
                 tracksContainer.innerHTML = createPlaceholder('No tracks found.');
             }
