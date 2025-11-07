@@ -559,6 +559,15 @@ kbd {
     justify-content: center;
 }
 
+/* ensure that album cover fit*/
+.track-number .track-item-cover {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    object-fit: cover;
+    display: block;
+}
+
 .track-item-info {
     display: flex;
     align-items: center;
