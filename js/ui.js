@@ -24,7 +24,6 @@ export class UIRenderer {
 
     createTrackItemHTML(track, index, showCover = false) {
         const playIconSmall = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
-        // When showCover is true we put the album art into the leading column
         const trackImageHTML = showCover ? `<img src="${this.api.getCoverUrl(track.album?.cover, '80')}" alt="Track Cover" class="track-item-cover" loading="lazy">` : '';
         const trackNumberHTML = `<div class="track-number">${showCover ? trackImageHTML : index + 1}</div>`;
         const explicitBadge = hasExplicitContent(track) ? this.createExplicitBadge() : '';
@@ -150,8 +149,6 @@ export class UIRenderer {
         }
     }
 
-    //cats have 9 lives.
-
     async renderHomePage() {
         this.showPage('home');
         const recents = recentActivityManager.getRecents();
@@ -176,7 +173,7 @@ export class UIRenderer {
         const artistsContainer = document.getElementById('search-artists-container');
         const albumsContainer = document.getElementById('search-albums-container');
         
-    tracksContainer.innerHTML = this.createSkeletonTracks(8, true);
+        tracksContainer.innerHTML = this.createSkeletonTracks(8, true);
         artistsContainer.innerHTML = this.createSkeletonCards(6, true);
         albumsContainer.innerHTML = this.createSkeletonCards(6, false);
         
@@ -219,7 +216,6 @@ export class UIRenderer {
             }
             
             if (finalTracks.length) {
-                // Show album art next to each search result instead of a numeric index
                 this.renderListWithTracks(tracksContainer, finalTracks, true);
             } else {
                 tracksContainer.innerHTML = createPlaceholder('No tracks found.');
@@ -272,12 +268,10 @@ export class UIRenderer {
             const explicitBadge = hasExplicitContent(album) ? this.createExplicitBadge() : '';
             titleEl.innerHTML = `${album.title} ${explicitBadge}`;
             
-            // Calculate total duration
             const totalDuration = calculateTotalDuration(tracks);
             const releaseDate = new Date(album.releaseDate);
             const year = releaseDate.getFullYear();
             
-            // Desktop: full date, Mobile: year only
             const dateDisplay = window.innerWidth > 768 
                 ? releaseDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
                 : year;
@@ -298,11 +292,64 @@ export class UIRenderer {
             
             recentActivityManager.addAlbum(album);
             
-            // Update tab title when no song is playing
             document.title = `${album.title} - ${album.artist.name} - Monochrome`;
         } catch (error) {
             console.error("Failed to load album:", error);
             tracklistContainer.innerHTML = createPlaceholder(`Could not load album details. ${error.message}`);
+        }
+    }
+
+    async renderPlaylistPage(playlistId) {
+        this.showPage('playlist');
+        
+        const imageEl = document.getElementById('playlist-detail-image');
+        const titleEl = document.getElementById('playlist-detail-title');
+        const metaEl = document.getElementById('playlist-detail-meta');
+        const descEl = document.getElementById('playlist-detail-description');
+        const tracklistContainer = document.getElementById('playlist-detail-tracklist');
+        
+        imageEl.src = '';
+        imageEl.style.backgroundColor = 'var(--muted)';
+        titleEl.innerHTML = '<div class="skeleton" style="height: 48px; width: 300px; max-width: 90%;"></div>';
+        metaEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 200px; max-width: 80%;"></div>';
+        descEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 100%;"></div>';
+        tracklistContainer.innerHTML = `
+            <div class="track-list-header">
+                <span style="width: 40px; text-align: center;">#</span>
+                <span>Title</span>
+                <span class="duration-header">Duration</span>
+            </div>
+            ${this.createSkeletonTracks(10, true)}
+        `;
+        
+        try {
+            const { playlist, tracks } = await this.api.getPlaylist(playlistId);
+            
+            imageEl.src = this.api.getCoverUrl(playlist.image || playlist.squareImage, '1280');
+            imageEl.style.backgroundColor = '';
+            
+            titleEl.textContent = playlist.title;
+            
+            const totalDuration = calculateTotalDuration(tracks);
+            
+            metaEl.textContent = `${playlist.numberOfTracks} tracks • ${formatDuration(totalDuration)}`;
+            
+            descEl.textContent = playlist.description || '';
+            
+            tracklistContainer.innerHTML = `
+                <div class="track-list-header">
+                    <span style="width: 40px; text-align: center;">#</span>
+                    <span>Title</span>
+                    <span class="duration-header">Duration</span>
+                </div>
+            `;
+            
+            this.renderListWithTracks(tracklistContainer, tracks, true);
+            
+            document.title = `${playlist.title} - Monochrome`;
+        } catch (error) {
+            console.error("Failed to load playlist:", error);
+            tracklistContainer.innerHTML = createPlaceholder(`Could not load playlist details. ${error.message}`);
         }
     }
 
@@ -337,7 +384,6 @@ export class UIRenderer {
             
             recentActivityManager.addArtist(artist);
             
-            // Update tab title
             document.title = `${artist.name} - Monochrome`;
         } catch (error) {
             console.error("Failed to load artist:", error);

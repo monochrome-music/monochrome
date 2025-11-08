@@ -14,7 +14,6 @@ import { debounce, SVG_PLAY } from './utils.js';
 function initializeCasting(audioPlayer, castBtn) {
     if (!castBtn) return;
     
-    // Check for Remote Playback API (Chrome)
     if ('remote' in audioPlayer) {
         audioPlayer.remote.watchAvailability((available) => {
             if (available) {
@@ -23,7 +22,6 @@ function initializeCasting(audioPlayer, castBtn) {
             }
         }).catch(err => {
             console.log('Remote playback not available:', err);
-            // Still show button on desktop
             if (window.innerWidth > 768) {
                 castBtn.style.display = 'flex';
             }
@@ -35,7 +33,6 @@ function initializeCasting(audioPlayer, castBtn) {
             });
         });
         
-        // Listen for connection state changes
         audioPlayer.addEventListener('playing', () => {
             if (audioPlayer.remote && audioPlayer.remote.state === 'connected') {
                 castBtn.classList.add('connected');
@@ -48,7 +45,6 @@ function initializeCasting(audioPlayer, castBtn) {
             }
         });
     } 
-    // Check for AirPlay (Safari)
     else if (audioPlayer.webkitShowPlaybackTargetPicker) {
         castBtn.style.display = 'flex';
         castBtn.classList.add('available');
@@ -57,7 +53,6 @@ function initializeCasting(audioPlayer, castBtn) {
             audioPlayer.webkitShowPlaybackTargetPicker();
         });
         
-        // Listen for AirPlay connection state
         audioPlayer.addEventListener('webkitplaybacktargetavailabilitychanged', (e) => {
             if (e.availability === 'available') {
                 castBtn.classList.add('available');
@@ -72,7 +67,6 @@ function initializeCasting(audioPlayer, castBtn) {
             }
         });
     }
-    // Show on desktop anyway
     else if (window.innerWidth > 768) {
         castBtn.style.display = 'flex';
         castBtn.addEventListener('click', () => {
@@ -83,7 +77,6 @@ function initializeCasting(audioPlayer, castBtn) {
 
 function initializeKeyboardShortcuts(player, audioPlayer) {
     document.addEventListener('keydown', (e) => {
-        // Don't trigger shortcuts when typing in inputs
         if (e.target.matches('input, textarea')) return;
         
         switch(e.key.toLowerCase()) {
@@ -145,7 +138,6 @@ function initializeKeyboardShortcuts(player, audioPlayer) {
                 }
                 break;
             case 'l':
-                // Toggle lyrics
                 document.querySelector('.now-playing-bar .cover')?.click();
                 break;
         }
@@ -209,7 +201,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const currentTheme = themeManager.getTheme();
     themeManager.setTheme(currentTheme);
     
-    // Initialize all modules
     initializeSettings(scrobbler, player, api, ui);
     initializePlayerEvents(player, audioPlayer, scrobbler);
     initializeTrackInteractions(player, api, document.querySelector('.main-content'), document.getElementById('context-menu'));
@@ -217,11 +208,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeKeyboardShortcuts(player, audioPlayer);
     initializeMediaSessionHandlers(player);
     
-    // Initialize casting
     const castBtn = document.getElementById('cast-btn');
     initializeCasting(audioPlayer, castBtn);
     
-    // Album art click handler for lyrics
     document.querySelector('.now-playing-bar .cover').addEventListener('click', async () => {
         if (!player.currentTrack) {
             alert('No track is currently playing');
@@ -231,7 +220,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const mode = nowPlayingSettings.getMode();
         
         if (mode === 'karaoke') {
-            // Show karaoke view
             lyricsPanel.classList.add('hidden');
             const lyricsData = await lyricsManager.fetchLyrics(player.currentTrack.id);
             if (lyricsData) {
@@ -240,7 +228,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 alert('No lyrics available for this track');
             }
         } else if (mode === 'lyrics') {
-            // Toggle lyrics panel
             const isHidden = lyricsPanel.classList.contains('hidden');
             lyricsPanel.classList.toggle('hidden');
             
@@ -266,16 +253,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
         }
-        // If mode is 'cover', do nothing (default behavior)
     });
     
-    // Close lyrics panel
     document.getElementById('close-lyrics-btn')?.addEventListener('click', (e) => {
         e.stopPropagation();
         lyricsPanel.classList.add('hidden');
     });
     
-    // Download LRC button
     document.getElementById('download-lrc-btn')?.addEventListener('click', (e) => {
         e.stopPropagation();
         if (lyricsManager.currentLyrics && player.currentTrack) {
@@ -283,12 +267,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
     
-    // Download current track button
     document.getElementById('download-current-btn')?.addEventListener('click', () => {
         downloadCurrentTrack(player.currentTrack, player.quality, api, lyricsManager);
     });
     
-    // Album/Discography downloads
     document.addEventListener('click', async (e) => {
         if (e.target.closest('#play-album-btn')) {
             const btn = e.target.closest('#play-album-btn');
@@ -307,6 +289,26 @@ document.addEventListener('DOMContentLoaded', async () => {
             } catch (error) {
                 console.error('Failed to play album:', error);
                 alert('Failed to play album: ' + error.message);
+            }
+        }
+
+        if (e.target.closest('#play-playlist-btn')) {
+            const btn = e.target.closest('#play-playlist-btn');
+            if (btn.disabled) return;
+            
+            const playlistId = window.location.hash.split('/')[1];
+            if (!playlistId) return;
+            
+            try {
+                const { tracks } = await api.getPlaylist(playlistId);
+                if (tracks.length > 0) {
+                    player.setQueue(tracks, 0);
+                    document.getElementById('shuffle-btn').classList.remove('active');
+                    player.playTrackFromQueue();
+                }
+            } catch (error) {
+                console.error('Failed to play playlist:', error);
+                alert('Failed to play playlist: ' + error.message);
             }
         }
         
@@ -357,7 +359,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
     
-    // Search
     const searchForm = document.getElementById('search-form');
     const searchInput = document.getElementById('search-input');
     
@@ -382,7 +383,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
     
-    // Network status monitoring
     window.addEventListener('online', () => {
         hideOfflineNotification();
         console.log('Back online');
@@ -393,26 +393,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Gone offline');
     });
     
-    // Initialize UI
     document.querySelector('.play-pause-btn').innerHTML = SVG_PLAY;
     
     const router = createRouter(ui);
     router();
     window.addEventListener('hashchange', router);
     
-    // Update tab title on track change
     audioPlayer.addEventListener('play', () => {
         updateTabTitle(player);
     });
     
-    // Service Worker
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js')
                 .then(reg => {
                     console.log('Service worker registered');
                     
-                    // Check for updates
                     reg.addEventListener('updatefound', () => {
                         const newWorker = reg.installing;
                         newWorker.addEventListener('statechange', () => {
@@ -426,7 +422,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
     
-    // Install prompt
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
@@ -434,7 +429,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         showInstallPrompt(deferredPrompt);
     });
     
-    // Show keyboard shortcuts on first visit
     if (!localStorage.getItem('shortcuts-shown')) {
         setTimeout(() => {
             showKeyboardShortcuts();

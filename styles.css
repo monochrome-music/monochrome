@@ -2507,3 +2507,193 @@ input:checked + .slider::before {
 .now-playing-bar .cover:hover::after {
     opacity: 1;
 }
+#page-playlist .detail-header {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--spacing-xl);
+    margin-bottom: var(--spacing-2xl);
+    padding-bottom: var(--spacing-xl);
+}
+
+#playlist-detail-image {
+    width: 200px;
+    height: 200px;
+    flex-shrink: 0;
+    background-color: var(--muted);
+    border-radius: var(--radius);
+    object-fit: cover;
+    box-shadow: var(--shadow-lg);
+    transition: opacity 0.3s ease-in-out;
+}
+
+#playlist-detail-image.loading {
+    opacity: 0.3;
+}
+
+#page-playlist .detail-info {
+    flex: 1;
+    min-width: 0;
+}
+
+#page-playlist .detail-info .type {
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+    color: var(--muted-foreground);
+}
+
+#playlist-detail-title {
+    font-size: 3rem;
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+#playlist-detail-meta {
+    color: var(--muted-foreground);
+    font-size: 0.95rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+#playlist-detail-description {
+    color: var(--foreground);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    margin-top: 1rem;
+    max-width: 600px;
+}
+
+#page-playlist .detail-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+}
+
+#play-playlist-btn,
+#download-playlist-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.75rem;
+    border: none;
+    border-radius: 2rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all var(--transition);
+    box-shadow: var(--shadow-sm);
+}
+
+#play-playlist-btn {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+}
+
+#download-playlist-btn {
+    background-color: var(--secondary);
+    color: var(--foreground);
+}
+
+#play-playlist-btn:hover,
+#download-playlist-btn:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-md);
+}
+
+#play-playlist-btn:disabled,
+#download-playlist-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+#play-playlist-btn svg,
+#download-playlist-btn svg {
+    flex-shrink: 0;
+}
+
+#playlist-detail-tracklist {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+#playlist-detail-tracklist .track-list-header {
+    display: grid;
+    grid-template-columns: 40px 1fr auto;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-sm);
+    color: var(--muted-foreground);
+    font-size: 0.9rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: var(--spacing-xs);
+}
+
+#playlist-detail-tracklist .track-list-header .duration-header {
+    justify-self: flex-end;
+}
+
+@media (max-width: 768px) {
+    #page-playlist .detail-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-lg);
+        padding-bottom: var(--spacing-md);
+        margin-bottom: var(--spacing-lg);
+    }
+    
+    #playlist-detail-image {
+        width: 150px;
+        height: 150px;
+    }
+    
+    #playlist-detail-title {
+        font-size: 2rem;
+        line-height: 1.2;
+    }
+    
+    #playlist-detail-meta {
+        font-size: 0.85rem;
+        gap: 0.35rem;
+    }
+    
+    #playlist-detail-description {
+        font-size: 0.85rem;
+        max-width: none;
+    }
+    
+    #page-playlist .detail-actions {
+        width: 100%;
+        flex-direction: column;
+    }
+    
+    #play-playlist-btn,
+    #download-playlist-btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    #playlist-detail-title {
+        font-size: 1.75rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    #playlist-detail-title {
+        font-size: 4rem;
+    }
+}

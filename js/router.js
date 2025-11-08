@@ -13,6 +13,9 @@ export function createRouter(ui) {
             case 'artist':
                 ui.renderArtistPage(param);
                 break;
+            case 'playlist':
+                ui.renderPlaylistPage(param);
+                break;
             case 'home':
                 ui.renderHomePage();
                 break;
@@ -31,8 +34,7 @@ export function updateTabTitle(player) {
         document.title = `${track.title} • ${track.artist?.name || 'Unknown'} - Monochrome`;
     } else {
         const hash = window.location.hash;
-        if (hash.includes('#album/')) {
-            // Will be updated by album render
+        if (hash.includes('#album/') || hash.includes('#playlist/')) {
             return;
         }
         document.title = 'Monochrome Music';

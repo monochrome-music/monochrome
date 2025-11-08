@@ -1,4 +1,3 @@
-//api.js
 import { RATE_LIMIT_ERROR_MESSAGE, deriveTrackQuality, delay } from './utils.js';
 import { APICache } from './cache.js';
 
@@ -309,67 +308,97 @@ export class LosslessAPI {
         return result;
     }
 
-async getArtist(artistId) {
-    const cached = await this.cache.get('artist', artistId);
-    if (cached) return cached;
+    async getPlaylist(id) {
+        const cached = await this.cache.get('playlist', id);
+        if (cached) return cached;
 
-    const [primaryResponse, contentResponse] = await Promise.all([
-        this.fetchWithRetry(`/artist/?id=${artistId}`),
-        this.fetchWithRetry(`/artist/?f=${artistId}`)
-    ]);
-    
-    const primaryData = await primaryResponse.json();
-    const rawArtist = Array.isArray(primaryData) ? primaryData[0] : primaryData;
-    
-    if (!rawArtist) throw new Error('Primary artist details not found.');
-    
-    // Ensure artist has required fields
-    const artist = {
-        ...this.prepareArtist(rawArtist),
-        picture: rawArtist.picture || null,
-        name: rawArtist.name || 'Unknown Artist'
-    };
-    
-    const contentData = await contentResponse.json();
-    const entries = Array.isArray(contentData) ? contentData : [contentData];
-    
-    const albumMap = new Map();
-    const trackMap = new Map();
-    
-    const isTrack = v => v?.id && v.duration && v.album;
-    const isAlbum = v => v?.id && 'numberOfTracks' in v;
-    
-    const scan = (value, visited = new Set()) => {
-        if (!value || typeof value !== 'object' || visited.has(value)) return;
-        visited.add(value);
+        const response = await this.fetchWithRetry(`/playlist/?id=${id}`);
+        const data = await response.json();
+        const entries = Array.isArray(data) ? data : [data];
+
+        let playlist, tracksSection;
         
-        if (Array.isArray(value)) {
-            value.forEach(item => scan(item, visited));
-            return;
+        for (const entry of entries) {
+            if (!entry || typeof entry !== 'object') continue;
+            
+            if (!playlist && ('uuid' in entry || 'numberOfTracks' in entry)) {
+                playlist = entry;
+            }
+            
+            if (!tracksSection && 'items' in entry) {
+                tracksSection = entry;
+            }
         }
-        
-        const item = value.item || value;
-        if (isAlbum(item)) albumMap.set(item.id, this.prepareAlbum(item));
-        if (isTrack(item)) trackMap.set(item.id, this.prepareTrack(item));
-        
-        Object.values(value).forEach(nested => scan(nested, visited));
-    };
-    
-    entries.forEach(entry => scan(entry));
-    
-    const albums = Array.from(albumMap.values()).sort((a, b) => 
-        new Date(b.releaseDate || 0) - new Date(a.releaseDate || 0)
-    );
-    
-    const tracks = Array.from(trackMap.values())
-        .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
-        .slice(0, 10);
-    
-    const result = { ...artist, albums, tracks };
 
-    await this.cache.set('artist', artistId, result);
-    return result;
-}
+        if (!playlist) throw new Error('Playlist not found');
+
+        const tracks = (tracksSection?.items || []).map(i => this.prepareTrack(i.item || i));
+        const result = { playlist, tracks };
+
+        await this.cache.set('playlist', id, result);
+        return result;
+    }
+
+    async getArtist(artistId) {
+        const cached = await this.cache.get('artist', artistId);
+        if (cached) return cached;
+
+        const [primaryResponse, contentResponse] = await Promise.all([
+            this.fetchWithRetry(`/artist/?id=${artistId}`),
+            this.fetchWithRetry(`/artist/?f=${artistId}`)
+        ]);
+        
+        const primaryData = await primaryResponse.json();
+        const rawArtist = Array.isArray(primaryData) ? primaryData[0] : primaryData;
+        
+        if (!rawArtist) throw new Error('Primary artist details not found.');
+        
+        const artist = {
+            ...this.prepareArtist(rawArtist),
+            picture: rawArtist.picture || null,
+            name: rawArtist.name || 'Unknown Artist'
+        };
+        
+        const contentData = await contentResponse.json();
+        const entries = Array.isArray(contentData) ? contentData : [contentData];
+        
+        const albumMap = new Map();
+        const trackMap = new Map();
+        
+        const isTrack = v => v?.id && v.duration && v.album;
+        const isAlbum = v => v?.id && 'numberOfTracks' in v;
+        
+        const scan = (value, visited = new Set()) => {
+            if (!value || typeof value !== 'object' || visited.has(value)) return;
+            visited.add(value);
+            
+            if (Array.isArray(value)) {
+                value.forEach(item => scan(item, visited));
+                return;
+            }
+            
+            const item = value.item || value;
+            if (isAlbum(item)) albumMap.set(item.id, this.prepareAlbum(item));
+            if (isTrack(item)) trackMap.set(item.id, this.prepareTrack(item));
+            
+            Object.values(value).forEach(nested => scan(nested, visited));
+        };
+        
+        entries.forEach(entry => scan(entry));
+        
+        const albums = Array.from(albumMap.values()).sort((a, b) => 
+            new Date(b.releaseDate || 0) - new Date(a.releaseDate || 0)
+        );
+        
+        const tracks = Array.from(trackMap.values())
+            .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
+            .slice(0, 10);
+        
+        const result = { ...artist, albums, tracks };
+
+        await this.cache.set('artist', artistId, result);
+        return result;
+    }
 
     async getTrack(id, quality = 'LOSSLESS') {
         const cacheKey = `${id}_${quality}`;
