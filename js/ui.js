@@ -299,59 +299,60 @@ export class UIRenderer {
         }
     }
 
-    async renderPlaylistPage(playlistId) {
-        this.showPage('playlist');
+async renderPlaylistPage(playlistId) {
+    this.showPage('playlist');
+    
+    const imageEl = document.getElementById('playlist-detail-image');
+    const titleEl = document.getElementById('playlist-detail-title');
+    const metaEl = document.getElementById('playlist-detail-meta');
+    const descEl = document.getElementById('playlist-detail-description');
+    const tracklistContainer = document.getElementById('playlist-detail-tracklist');
+    
+    imageEl.src = '';
+    imageEl.style.backgroundColor = 'var(--muted)';
+    titleEl.innerHTML = '<div class="skeleton" style="height: 48px; width: 300px; max-width: 90%;"></div>';
+    metaEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 200px; max-width: 80%;"></div>';
+    descEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 100%;"></div>';
+    tracklistContainer.innerHTML = `
+        <div class="track-list-header">
+            <span style="width: 40px; text-align: center;">#</span>
+            <span>Title</span>
+            <span class="duration-header">Duration</span>
+        </div>
+        ${this.createSkeletonTracks(10, true)}
+    `;
+    
+    try {
+        const { playlist, tracks } = await this.api.getPlaylist(playlistId);
         
-        const imageEl = document.getElementById('playlist-detail-image');
-        const titleEl = document.getElementById('playlist-detail-title');
-        const metaEl = document.getElementById('playlist-detail-meta');
-        const descEl = document.getElementById('playlist-detail-description');
-        const tracklistContainer = document.getElementById('playlist-detail-tracklist');
+        const imageId = playlist.squareImage || playlist.image;
+        imageEl.src = this.api.getCoverUrl(imageId, '1080');
+        imageEl.style.backgroundColor = '';
         
-        imageEl.src = '';
-        imageEl.style.backgroundColor = 'var(--muted)';
-        titleEl.innerHTML = '<div class="skeleton" style="height: 48px; width: 300px; max-width: 90%;"></div>';
-        metaEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 200px; max-width: 80%;"></div>';
-        descEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 100%;"></div>';
+        titleEl.textContent = playlist.title;
+        
+        const totalDuration = calculateTotalDuration(tracks);
+        
+        metaEl.textContent = `${playlist.numberOfTracks} tracks • ${formatDuration(totalDuration)}`;
+        
+        descEl.textContent = playlist.description || '';
+        
         tracklistContainer.innerHTML = `
             <div class="track-list-header">
                 <span style="width: 40px; text-align: center;">#</span>
                 <span>Title</span>
                 <span class="duration-header">Duration</span>
             </div>
-            ${this.createSkeletonTracks(10, true)}
         `;
         
-        try {
-            const { playlist, tracks } = await this.api.getPlaylist(playlistId);
-            
-            imageEl.src = this.api.getCoverUrl(playlist.image || playlist.squareImage, '1280');
-            imageEl.style.backgroundColor = '';
-            
-            titleEl.textContent = playlist.title;
-            
-            const totalDuration = calculateTotalDuration(tracks);
-            
-            metaEl.textContent = `${playlist.numberOfTracks} tracks • ${formatDuration(totalDuration)}`;
-            
-            descEl.textContent = playlist.description || '';
-            
-            tracklistContainer.innerHTML = `
-                <div class="track-list-header">
-                    <span style="width: 40px; text-align: center;">#</span>
-                    <span>Title</span>
-                    <span class="duration-header">Duration</span>
-                </div>
-            `;
-            
-            this.renderListWithTracks(tracklistContainer, tracks, true);
-            
-            document.title = `${playlist.title} - Monochrome`;
-        } catch (error) {
-            console.error("Failed to load playlist:", error);
-            tracklistContainer.innerHTML = createPlaceholder(`Could not load playlist details. ${error.message}`);
-        }
+        this.renderListWithTracks(tracklistContainer, tracks, true);
+        
+        document.title = `${playlist.title} - Monochrome`;
+    } catch (error) {
+        console.error("Failed to load playlist:", error);
+        tracklistContainer.innerHTML = createPlaceholder(`Could not load playlist details. ${error.message}`);
     }
+}
 
     async renderArtistPage(artistId) {
         this.showPage('artist');

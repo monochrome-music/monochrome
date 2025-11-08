@@ -8,7 +8,7 @@ import { createRouter, updateTabTitle } from './router.js';
 import { initializeSettings } from './settings.js';
 import { initializePlayerEvents, initializeTrackInteractions } from './events.js';
 import { initializeUIInteractions } from './ui-interactions.js';
-import { downloadAlbumAsZip, downloadDiscography, downloadCurrentTrack } from './downloads.js';
+import { downloadAlbumAsZip, downloadDiscography, downloadCurrentTrack, downloadPlaylistAsZip } from './downloads.js';
 import { debounce, SVG_PLAY } from './utils.js';
 
 function initializeCasting(audioPlayer, castBtn) {
@@ -291,7 +291,28 @@ document.addEventListener('DOMContentLoaded', async () => {
                 alert('Failed to play album: ' + error.message);
             }
         }
-
+        if (e.target.closest('#download-playlist-btn')) {
+    const btn = e.target.closest('#download-playlist-btn');
+    if (btn.disabled) return;
+    
+    const playlistId = window.location.hash.split('/')[1];
+    if (!playlistId) return;
+    
+    btn.disabled = true;
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Downloading...</span>';
+    
+    try {
+        const { playlist, tracks } = await api.getPlaylist(playlistId);
+        await downloadPlaylistAsZip(playlist, tracks, api, player.quality, lyricsManager);
+    } catch (error) {
+        console.error('Playlist download failed:', error);
+        alert('Failed to download playlist: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+    }
+}
         if (e.target.closest('#play-playlist-btn')) {
             const btn = e.target.closest('#play-playlist-btn');
             if (btn.disabled) return;

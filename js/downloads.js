@@ -185,7 +185,70 @@ export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsMana
             const blob = await downloadTrackBlob(track, quality, api);
             zip.file(`${folderName}/${filename}`, blob);
             
-            // Add LRC to zip if enabled
+            if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
+                try {
+                    const lyricsData = await lyricsManager.fetchLyrics(track.id);
+                    if (lyricsData) {
+                        const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
+                        if (lrcContent) {
+                            const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
+                            zip.file(`${folderName}/${lrcFilename}`, lrcContent);
+                        }
+                    }
+                } catch (error) {
+                    console.log('Could not add lyrics for:', trackTitle);
+                }
+            }
+        }
+        
+        updateBulkDownloadProgress(notification, tracks.length, tracks.length, 'Creating ZIP...');
+        
+        const zipBlob = await zip.generateAsync({ 
+            type: 'blob',
+            compression: 'DEFLATE',
+            compressionOptions: { level: 6 }
+        });
+        
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${folderName}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        completeBulkDownload(notification, true);
+    } catch (error) {
+        completeBulkDownload(notification, false, error.message);
+        throw error;
+    }
+}
+
+export async function downloadPlaylistAsZip(playlist, tracks, api, quality, lyricsManager = null) {
+    const JSZip = await loadJSZip();
+    const zip = new JSZip();
+    
+    const template = localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist} - monochrome.tf';
+    const folderName = formatTemplate(template, {
+        albumTitle: playlist.title,
+        albumArtist: 'Playlist',
+        year: new Date().getFullYear()
+    });
+    
+    const notification = createBulkDownloadNotification('playlist', playlist.title, tracks.length);
+    
+    try {
+        for (let i = 0; i < tracks.length; i++) {
+            const track = tracks[i];
+            const filename = buildTrackFilename(track, quality);
+            const trackTitle = getTrackTitle(track);
+            
+            updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
+            
+            const blob = await downloadTrackBlob(track, quality, api);
+            zip.file(`${folderName}/${filename}`, blob);
+            
             if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
                 try {
                     const lyricsData = await lyricsManager.fetchLyrics(track.id);
@@ -255,7 +318,6 @@ export async function downloadDiscography(artist, api, quality, lyricsManager = 
                     const blob = await downloadTrackBlob(track, quality, api);
                     zip.file(`${rootFolder}/${albumFolder}/${filename}`, blob);
                     
-                    // Add LRC to zip if enabled
                     if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
                         try {
                             const lyricsData = await lyricsManager.fetchLyrics(track.id);
@@ -306,11 +368,13 @@ function createBulkDownloadNotification(type, name, totalItems) {
     const notifEl = document.createElement('div');
     notifEl.className = 'download-task bulk-download';
     
+    const typeLabel = type === 'album' ? 'Album' : type === 'playlist' ? 'Playlist' : 'Discography';
+    
     notifEl.innerHTML = `
         <div style="display: flex; align-items: start; gap: 0.75rem;">
             <div style="flex: 1; min-width: 0;">
                 <div style="font-weight: 600; font-size: 0.95rem; margin-bottom: 0.25rem;">
-                    Downloading ${type === 'album' ? 'Album' : 'Discography'}
+                    Downloading ${typeLabel}
                 </div>
                 <div style="font-size: 0.85rem; color: var(--muted-foreground); margin-bottom: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${name}</div>
                 <div class="download-progress-bar" style="height: 4px; background: var(--secondary); border-radius: 2px; overflow: hidden;">
@@ -385,7 +449,6 @@ export async function downloadCurrentTrack(track, quality, api, lyricsManager = 
         
         completeDownloadTask(track.id, true);
         
-        // Download LRC if enabled
         if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
             try {
                 const lyricsData = await lyricsManager.fetchLyrics(track.id);
