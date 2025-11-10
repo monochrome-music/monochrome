@@ -125,6 +125,74 @@ export function createLyricsPanel() {
     return panel;
 }
 
+export function showSyncedLyricsPanel(lyricsData, audioPlayer, panel) {
+    const content = panel.querySelector('.lyrics-content');
+    
+    const syncedLyrics = lyricsData.subtitles 
+        ? parseSyncedLyricsSimple(lyricsData.subtitles)
+        : null;
+    
+    if (syncedLyrics && syncedLyrics.length > 0) {
+        // Render synced lyrics
+        content.innerHTML = '';
+        syncedLyrics.forEach((line, index) => {
+            const lineEl = document.createElement('p');
+            lineEl.className = 'lyrics-line synced-line';
+            lineEl.textContent = line.text || '♪';
+            lineEl.dataset.index = index;
+            lineEl.dataset.time = line.time;
+            content.appendChild(lineEl);
+        });
+        
+        let currentLineIndex = -1;
+        
+        const updateLyrics = () => {
+            const currentTime = audioPlayer.currentTime;
+            const newIndex = getCurrentLineIndex(syncedLyrics, currentTime);
+            
+            if (newIndex !== currentLineIndex) {
+                currentLineIndex = newIndex;
+                
+                content.querySelectorAll('.synced-line').forEach((line, index) => {
+                    line.classList.remove('active', 'upcoming', 'past');
+                    
+                    if (index === currentLineIndex) {
+                        line.classList.add('active');
+                        // Smooth scroll to active line
+                        line.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    } else if (index === currentLineIndex + 1) {
+                        line.classList.add('upcoming');
+                    } else if (index < currentLineIndex) {
+                        line.classList.add('past');
+                    }
+                });
+            }
+        };
+        
+        // Store the update function so we can remove it later
+        panel.lyricsUpdateHandler = updateLyrics;
+        audioPlayer.addEventListener('timeupdate', updateLyrics);
+        
+        // Initial update
+        updateLyrics();
+    } else if (lyricsData.lyrics) {
+        // Fallback to static lyrics
+        const lines = lyricsData.lyrics.split('\n');
+        content.innerHTML = lines.map(line => 
+            `<p class="lyrics-line">${line || '&nbsp;'}</p>`
+        ).join('');
+    } else {
+        content.innerHTML = '<div class="lyrics-error">No lyrics available</div>';
+    }
+}
+
+export function clearLyricsPanelSync(audioPlayer, panel) {
+    if (panel.lyricsUpdateHandler) {
+        audioPlayer.removeEventListener('timeupdate', panel.lyricsUpdateHandler);
+        panel.lyricsUpdateHandler = null;
+    }
+}
+
 export function showKaraokeView(track, lyricsData, audioPlayer) {
     const view = document.createElement('div');
     view.id = 'karaoke-view';
@@ -162,25 +230,44 @@ export function showKaraokeView(track, lyricsData, audioPlayer) {
         lyricsContainer.appendChild(lineEl);
     });
     
-    let updateInterval = setInterval(() => {
+    let currentLineIndex = -1;
+    
+    const updateLyrics = () => {
         const currentTime = audioPlayer.currentTime;
-        const currentIndex = getCurrentLineIndex(syncedLyrics, currentTime);
+        const newIndex = getCurrentLineIndex(syncedLyrics, currentTime);
         
-        document.querySelectorAll('.karaoke-line').forEach((line, index) => {
-            line.classList.toggle('active', index === currentIndex);
-            line.classList.toggle('past', index < currentIndex);
-        });
-        
-        if (currentIndex >= 0) {
-            const activeLine = lyricsContainer.children[currentIndex];
-            if (activeLine) {
-                activeLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (newIndex !== currentLineIndex) {
+            currentLineIndex = newIndex;
+            
+            document.querySelectorAll('.karaoke-line').forEach((line, index) => {
+                line.classList.remove('active', 'upcoming', 'past');
+                
+                if (index === currentLineIndex) {
+                    line.classList.add('active');
+                } else if (index === currentLineIndex + 1) {
+                    line.classList.add('upcoming');
+                } else if (index < currentLineIndex) {
+                    line.classList.add('past');
+                }
+            });
+            
+            if (currentLineIndex >= 0) {
+                const activeLine = lyricsContainer.children[currentLineIndex];
+                if (activeLine) {
+                    activeLine.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
             }
         }
-    }, 100);
+    };
+    
+    // Use timeupdate event for better sync
+    audioPlayer.addEventListener('timeupdate', updateLyrics);
+    
+    // Initial update
+    updateLyrics();
     
     view.querySelector('#close-karaoke-btn').addEventListener('click', () => {
-        clearInterval(updateInterval);
+        audioPlayer.removeEventListener('timeupdate', updateLyrics);
         view.remove();
     });
     
