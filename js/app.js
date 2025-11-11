@@ -3,7 +3,7 @@ import { apiSettings, themeManager, nowPlayingSettings } from './storage.js';
 import { UIRenderer } from './ui.js';
 import { Player } from './player.js';
 import { LastFMScrobbler } from './lastfm.js';
-import { LyricsManager, createLyricsPanel, showKaraokeView } from './lyrics.js';
+import { LyricsManager, createLyricsPanel, showKaraokeView, showSyncedLyricsPanel, clearLyricsPanelSync } from './lyrics.js';
 import { createRouter, updateTabTitle } from './router.js';
 import { initializeSettings } from './settings.js';
 import { initializePlayerEvents, initializeTrackInteractions } from './events.js';
@@ -75,7 +75,7 @@ function initializeCasting(audioPlayer, castBtn) {
     }
 }
 
-function initializeKeyboardShortcuts(player, audioPlayer) {
+function initializeKeyboardShortcuts(player, audioPlayer, lyricsPanel) {
     document.addEventListener('keydown', (e) => {
         if (e.target.matches('input, textarea')) return;
         
@@ -128,9 +128,9 @@ function initializeKeyboardShortcuts(player, audioPlayer) {
             case 'escape':
                 document.getElementById('search-input')?.blur();
                 document.getElementById('queue-modal-overlay').style.display = 'none';
-                const lyricsPanel = document.getElementById('lyrics-panel');
                 if (lyricsPanel) {
                     lyricsPanel.classList.add('hidden');
+                    clearLyricsPanelSync(audioPlayer, lyricsPanel);
                 }
                 const karaokeView = document.getElementById('karaoke-view');
                 if (karaokeView) {
@@ -205,7 +205,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializePlayerEvents(player, audioPlayer, scrobbler);
     initializeTrackInteractions(player, api, document.querySelector('.main-content'), document.getElementById('context-menu'));
     initializeUIInteractions(player, api);
-    initializeKeyboardShortcuts(player, audioPlayer);
+    initializeKeyboardShortcuts(player, audioPlayer, lyricsPanel);
     initializeMediaSessionHandlers(player);
     
     const castBtn = document.getElementById('cast-btn');
@@ -221,6 +221,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         if (mode === 'karaoke') {
             lyricsPanel.classList.add('hidden');
+            clearLyricsPanelSync(audioPlayer, lyricsPanel);
+            
             const lyricsData = await lyricsManager.fetchLyrics(player.currentTrack.id);
             if (lyricsData) {
                 showKaraokeView(player.currentTrack, lyricsData, audioPlayer);
@@ -239,18 +241,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 if (lyricsData) {
                     lyricsManager.currentLyrics = lyricsData;
-                    
-                    if (lyricsData.lyrics) {
-                        const lines = lyricsData.lyrics.split('\n');
-                        content.innerHTML = lines.map(line => 
-                            `<p class="lyrics-line">${line || '&nbsp;'}</p>`
-                        ).join('');
-                    } else {
-                        content.innerHTML = '<div class="lyrics-error">No lyrics available</div>';
-                    }
+                    showSyncedLyricsPanel(lyricsData, audioPlayer, lyricsPanel);
                 } else {
                     content.innerHTML = '<div class="lyrics-error">Failed to load lyrics</div>';
                 }
+            } else {
+                // Clear sync when hiding
+                clearLyricsPanelSync(audioPlayer, lyricsPanel);
             }
         }
     });
@@ -258,6 +255,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('close-lyrics-btn')?.addEventListener('click', (e) => {
         e.stopPropagation();
         lyricsPanel.classList.add('hidden');
+        clearLyricsPanelSync(audioPlayer, lyricsPanel);
     });
     
     document.getElementById('download-lrc-btn')?.addEventListener('click', (e) => {
@@ -269,6 +267,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     document.getElementById('download-current-btn')?.addEventListener('click', () => {
         downloadCurrentTrack(player.currentTrack, player.quality, api, lyricsManager);
+    });
+    
+    // Auto-update lyrics when track changes
+    let previousTrackId = null;
+    audioPlayer.addEventListener('play', async () => {
+        if (!player.currentTrack) return;
+        
+        const currentTrackId = player.currentTrack.id;
+        if (currentTrackId === previousTrackId) return;
+        previousTrackId = currentTrackId;
+        
+        // Update lyrics panel if it's open
+        if (!lyricsPanel.classList.contains('hidden')) {
+            const mode = nowPlayingSettings.getMode();
+            if (mode === 'lyrics') {
+                const content = lyricsPanel.querySelector('.lyrics-content');
+                content.innerHTML = '<div class="lyrics-loading">Loading lyrics...</div>';
+                
+                const lyricsData = await lyricsManager.fetchLyrics(player.currentTrack.id);
+                
+                if (lyricsData) {
+                    lyricsManager.currentLyrics = lyricsData;
+                    // Clear old sync before showing new
+                    clearLyricsPanelSync(audioPlayer, lyricsPanel);
+                    showSyncedLyricsPanel(lyricsData, audioPlayer, lyricsPanel);
+                } else {
+                    content.innerHTML = '<div class="lyrics-error">No lyrics available for this track</div>';
+                }
+            }
+        }
     });
     
     document.addEventListener('click', async (e) => {
