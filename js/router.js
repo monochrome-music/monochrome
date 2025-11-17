@@ -1,8 +1,9 @@
+//router.js
 export function createRouter(ui) {
     const router = () => {
         const path = window.location.hash.substring(1) || "home";
         const [page, param] = path.split('/');
-        
+
         switch (page) {
             case 'search':
                 ui.renderSearchPage(decodeURIComponent(param));
@@ -24,7 +25,7 @@ export function createRouter(ui) {
                 break;
         }
     };
-    
+
     return router;
 }
 

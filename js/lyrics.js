@@ -1,3 +1,4 @@
+//js/lyrics.js
 import { getTrackTitle, getTrackArtists } from './utils.js';
 
 export class LyricsManager {
@@ -16,13 +17,13 @@ export class LyricsManager {
         try {
             const response = await this.api.fetchWithRetry(`/lyrics/?id=${trackId}`);
             const data = await response.json();
-            
+
             if (Array.isArray(data) && data.length > 0) {
                 const lyricsData = data[0];
                 this.lyricsCache.set(trackId, lyricsData);
                 return lyricsData;
             }
-            
+
             return null;
         } catch (error) {
             console.error('Failed to fetch lyrics:', error);
@@ -32,7 +33,7 @@ export class LyricsManager {
 
     parseSyncedLyrics(subtitles) {
         if (!subtitles) return [];
-        
+
         const lines = subtitles.split('\n').filter(line => line.trim());
         return lines.map(line => {
             const match = line.match(/\[(\d+):(\d+)\.(\d+)\]\s*(.+)/);
@@ -47,17 +48,17 @@ export class LyricsManager {
 
     generateLRCContent(lyricsData, track) {
         if (!lyricsData || !lyricsData.subtitles) return null;
-        
+
         const trackTitle = getTrackTitle(track);
         const trackArtist = getTrackArtists(track);
-        
+
         let lrc = `[ti:${trackTitle}]\n`;
         lrc += `[ar:${trackArtist}]\n`;
         lrc += `[al:${track.album?.title || 'Unknown Album'}]\n`;
         lrc += `[by:${lyricsData.lyricsProvider || 'Unknown'}]\n`;
         lrc += '\n';
         lrc += lyricsData.subtitles;
-        
+
         return lrc;
     }
 
@@ -67,7 +68,7 @@ export class LyricsManager {
             alert('No synced lyrics available for this track');
             return;
         }
-        
+
         const blob = new Blob([lrcContent], { type: 'text/plain' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -81,7 +82,7 @@ export class LyricsManager {
 
     getCurrentLine(currentTime) {
         if (!this.syncedLyrics || this.syncedLyrics.length === 0) return -1;
-        
+
         let currentIndex = -1;
         for (let i = 0; i < this.syncedLyrics.length; i++) {
             if (currentTime >= this.syncedLyrics[i].time) {
@@ -127,11 +128,11 @@ export function createLyricsPanel() {
 
 export function showSyncedLyricsPanel(lyricsData, audioPlayer, panel) {
     const content = panel.querySelector('.lyrics-content');
-    
-    const syncedLyrics = lyricsData.subtitles 
+
+    const syncedLyrics = lyricsData.subtitles
         ? parseSyncedLyricsSimple(lyricsData.subtitles)
         : null;
-    
+
     if (syncedLyrics && syncedLyrics.length > 0) {
         // Render synced lyrics
         content.innerHTML = '';
@@ -143,19 +144,19 @@ export function showSyncedLyricsPanel(lyricsData, audioPlayer, panel) {
             lineEl.dataset.time = line.time;
             content.appendChild(lineEl);
         });
-        
+
         let currentLineIndex = -1;
-        
+
         const updateLyrics = () => {
             const currentTime = audioPlayer.currentTime;
             const newIndex = getCurrentLineIndex(syncedLyrics, currentTime);
-            
+
             if (newIndex !== currentLineIndex) {
                 currentLineIndex = newIndex;
-                
+
                 content.querySelectorAll('.synced-line').forEach((line, index) => {
                     line.classList.remove('active', 'upcoming', 'past');
-                    
+
                     if (index === currentLineIndex) {
                         line.classList.add('active');
                         // Smooth scroll to active line
@@ -168,17 +169,17 @@ export function showSyncedLyricsPanel(lyricsData, audioPlayer, panel) {
                 });
             }
         };
-        
+
         // Store the update function so we can remove it later
         panel.lyricsUpdateHandler = updateLyrics;
         audioPlayer.addEventListener('timeupdate', updateLyrics);
-        
+
         // Initial update
         updateLyrics();
     } else if (lyricsData.lyrics) {
         // Fallback to static lyrics
         const lines = lyricsData.lyrics.split('\n');
-        content.innerHTML = lines.map(line => 
+        content.innerHTML = lines.map(line =>
             `<p class="lyrics-line">${line || '&nbsp;'}</p>`
         ).join('');
     } else {
@@ -197,11 +198,11 @@ export function showKaraokeView(track, lyricsData, audioPlayer) {
     const view = document.createElement('div');
     view.id = 'karaoke-view';
     view.className = 'karaoke-view';
-    
-    const syncedLyrics = lyricsData.subtitles 
+
+    const syncedLyrics = lyricsData.subtitles
         ? parseSyncedLyricsSimple(lyricsData.subtitles)
         : [];
-    
+
     view.innerHTML = `
         <div class="karaoke-header">
             <button id="close-karaoke-btn" class="btn-icon">
@@ -217,9 +218,9 @@ export function showKaraokeView(track, lyricsData, audioPlayer) {
         </div>
         <div class="karaoke-lyrics-container" id="karaoke-lyrics"></div>
     `;
-    
+
     document.body.appendChild(view);
-    
+
     const lyricsContainer = view.querySelector('#karaoke-lyrics');
     syncedLyrics.forEach((line, index) => {
         const lineEl = document.createElement('div');
@@ -229,19 +230,19 @@ export function showKaraokeView(track, lyricsData, audioPlayer) {
         lineEl.dataset.time = line.time;
         lyricsContainer.appendChild(lineEl);
     });
-    
+
     let currentLineIndex = -1;
-    
+
     const updateLyrics = () => {
         const currentTime = audioPlayer.currentTime;
         const newIndex = getCurrentLineIndex(syncedLyrics, currentTime);
-        
+
         if (newIndex !== currentLineIndex) {
             currentLineIndex = newIndex;
-            
+
             document.querySelectorAll('.karaoke-line').forEach((line, index) => {
                 line.classList.remove('active', 'upcoming', 'past');
-                
+
                 if (index === currentLineIndex) {
                     line.classList.add('active');
                 } else if (index === currentLineIndex + 1) {
@@ -250,7 +251,7 @@ export function showKaraokeView(track, lyricsData, audioPlayer) {
                     line.classList.add('past');
                 }
             });
-            
+
             if (currentLineIndex >= 0) {
                 const activeLine = lyricsContainer.children[currentLineIndex];
                 if (activeLine) {
@@ -259,18 +260,18 @@ export function showKaraokeView(track, lyricsData, audioPlayer) {
             }
         }
     };
-    
+
     // Use timeupdate event for better sync
     audioPlayer.addEventListener('timeupdate', updateLyrics);
-    
+
     // Initial update
     updateLyrics();
-    
+
     view.querySelector('#close-karaoke-btn').addEventListener('click', () => {
         audioPlayer.removeEventListener('timeupdate', updateLyrics);
         view.remove();
     });
-    
+
     return view;
 }
 

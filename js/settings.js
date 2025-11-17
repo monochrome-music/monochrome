@@ -1,3 +1,4 @@
+//js/settings
 import { themeManager, lastFMStorage, nowPlayingSettings, lyricsSettings } from './storage.js';
 
 export function initializeSettings(scrobbler, player, api, ui) {
@@ -5,7 +6,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
     const lastfmStatus = document.getElementById('lastfm-status');
     const lastfmToggle = document.getElementById('lastfm-toggle');
     const lastfmToggleSetting = document.getElementById('lastfm-toggle-setting');
-    
+
     function updateLastFMUI() {
         if (scrobbler.isAuthenticated()) {
             lastfmStatus.textContent = `Connected as ${scrobbler.username}`;
@@ -20,9 +21,9 @@ export function initializeSettings(scrobbler, player, api, ui) {
             lastfmToggleSetting.style.display = 'none';
         }
     }
-    
+
     updateLastFMUI();
-    
+
     lastfmConnectBtn?.addEventListener('click', async () => {
         if (scrobbler.isAuthenticated()) {
             if (confirm('Disconnect from Last.fm?')) {
@@ -31,14 +32,14 @@ export function initializeSettings(scrobbler, player, api, ui) {
             }
             return;
         }
-        
+
         const authWindow = window.open('', '_blank');
         lastfmConnectBtn.disabled = true;
         lastfmConnectBtn.textContent = 'Opening Last.fm...';
-        
+
         try {
             const { token, url } = await scrobbler.getAuthUrl();
-            
+
             if (authWindow) {
                 authWindow.location.href = url;
             } else {
@@ -47,15 +48,15 @@ export function initializeSettings(scrobbler, player, api, ui) {
                 lastfmConnectBtn.disabled = false;
                 return;
             }
-            
+
             lastfmConnectBtn.textContent = 'Waiting for authorization...';
-            
+
             let attempts = 0;
             const maxAttempts = 30;
-            
+
             const checkAuth = setInterval(async () => {
                 attempts++;
-                
+
                 if (attempts > maxAttempts) {
                     clearInterval(checkAuth);
                     lastfmConnectBtn.textContent = 'Connect Last.fm';
@@ -64,10 +65,10 @@ export function initializeSettings(scrobbler, player, api, ui) {
                     alert('Authorization timed out. Please try again.');
                     return;
                 }
-                
+
                 try {
                     const result = await scrobbler.completeAuthentication(token);
-                    
+
                     if (result.success) {
                         clearInterval(checkAuth);
                         if (authWindow && !authWindow.closed) authWindow.close();
@@ -81,7 +82,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
                     // Still waiting
                 }
             }, 2000);
-            
+
         } catch (error) {
             console.error('Last.fm connection failed:', error);
             alert('Failed to connect to Last.fm: ' + error.message);
@@ -90,26 +91,26 @@ export function initializeSettings(scrobbler, player, api, ui) {
             if (authWindow && !authWindow.closed) authWindow.close();
         }
     });
-    
+
     lastfmToggle?.addEventListener('change', (e) => {
         lastFMStorage.setEnabled(e.target.checked);
     });
-    
+
     // Theme picker
     const themePicker = document.getElementById('theme-picker');
     const currentTheme = themeManager.getTheme();
-    
+
     themePicker.querySelectorAll('.theme-option').forEach(option => {
         if (option.dataset.theme === currentTheme) {
             option.classList.add('active');
         }
-        
+
         option.addEventListener('click', () => {
             const theme = option.dataset.theme;
-            
+
             themePicker.querySelectorAll('.theme-option').forEach(opt => opt.classList.remove('active'));
             option.classList.add('active');
-            
+
             if (theme === 'custom') {
                 document.getElementById('custom-theme-editor').classList.add('show');
                 renderCustomThemeEditor();
@@ -119,7 +120,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
             }
         });
     });
-    
+
     function renderCustomThemeEditor() {
         const grid = document.getElementById('theme-color-grid');
         const customTheme = themeManager.getCustomTheme() || {
@@ -131,7 +132,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
             border: '#27272a',
             highlight: '#ffffff'
         };
-        
+
         grid.innerHTML = Object.entries(customTheme).map(([key, value]) => `
             <div class="theme-color-input">
                 <label>${key}</label>
@@ -139,7 +140,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
             </div>
         `).join('');
     }
-    
+
     document.getElementById('apply-custom-theme')?.addEventListener('click', () => {
         const colors = {};
         document.querySelectorAll('#theme-color-grid input[type="color"]').forEach(input => {
@@ -147,25 +148,25 @@ export function initializeSettings(scrobbler, player, api, ui) {
         });
         themeManager.setCustomTheme(colors);
     });
-    
+
     document.getElementById('reset-custom-theme')?.addEventListener('click', () => {
         renderCustomThemeEditor();
     });
-    
+
     // Quality setting
     const qualitySetting = document.getElementById('quality-setting');
     if (qualitySetting) {
         const savedQuality = localStorage.getItem('playback-quality') || 'LOSSLESS';
         qualitySetting.value = savedQuality;
         player.setQuality(savedQuality);
-        
+
         qualitySetting.addEventListener('change', (e) => {
             const newQuality = e.target.value;
             player.setQuality(newQuality);
             localStorage.setItem('playback-quality', newQuality);
         });
     }
-    
+
     // Now Playing Mode
     const nowPlayingMode = document.getElementById('now-playing-mode');
     if (nowPlayingMode) {
@@ -174,7 +175,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
             nowPlayingSettings.setMode(e.target.value);
         });
     }
-    
+
     // Download Lyrics Toggle
     const downloadLyricsToggle = document.getElementById('download-lyrics-toggle');
     if (downloadLyricsToggle) {
@@ -183,7 +184,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
             lyricsSettings.setDownloadLyrics(e.target.checked);
         });
     }
-    
+
     // Filename template setting
     const filenameTemplate = document.getElementById('filename-template');
     if (filenameTemplate) {
@@ -192,7 +193,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
             localStorage.setItem('filename-template', e.target.value);
         });
     }
-    
+
     // ZIP folder template
     const zipFolderTemplate = document.getElementById('zip-folder-template');
     if (zipFolderTemplate) {
@@ -201,14 +202,14 @@ export function initializeSettings(scrobbler, player, api, ui) {
             localStorage.setItem('zip-folder-template', e.target.value);
         });
     }
-    
+
     // API settings
     document.getElementById('refresh-speed-test-btn')?.addEventListener('click', async () => {
         const btn = document.getElementById('refresh-speed-test-btn');
         const originalText = btn.textContent;
         btn.textContent = 'Testing...';
         btn.disabled = true;
-        
+
         try {
             await api.settings.refreshSpeedTests();
             ui.renderApiSettings();
@@ -226,31 +227,31 @@ export function initializeSettings(scrobbler, player, api, ui) {
             }, 1500);
         }
     });
-    
+
     document.getElementById('api-instance-list')?.addEventListener('click', async (e) => {
         const button = e.target.closest('button');
         if (!button) return;
-        
+
         const li = button.closest('li');
         const index = parseInt(li.dataset.index, 10);
         const instances = await api.settings.getInstances();
-        
+
         if (button.classList.contains('move-up') && index > 0) {
             [instances[index], instances[index - 1]] = [instances[index - 1], instances[index]];
         } else if (button.classList.contains('move-down') && index < instances.length - 1) {
             [instances[index], instances[index + 1]] = [instances[index + 1], instances[index]];
         }
-        
+
         api.settings.saveInstances(instances);
         ui.renderApiSettings();
     });
-    
+
     document.getElementById('clear-cache-btn')?.addEventListener('click', async () => {
         const btn = document.getElementById('clear-cache-btn');
         const originalText = btn.textContent;
         btn.textContent = 'Clearing...';
         btn.disabled = true;
-        
+
         try {
             await api.clearCache();
             btn.textContent = 'Cleared!';

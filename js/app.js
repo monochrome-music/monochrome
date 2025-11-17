@@ -1,3 +1,5 @@
+
+//js/app.js
 import { LosslessAPI } from './api.js';
 import { apiSettings, themeManager, nowPlayingSettings } from './storage.js';
 import { UIRenderer } from './ui.js';
@@ -13,7 +15,7 @@ import { debounce, SVG_PLAY } from './utils.js';
 
 function initializeCasting(audioPlayer, castBtn) {
     if (!castBtn) return;
-    
+
     if ('remote' in audioPlayer) {
         audioPlayer.remote.watchAvailability((available) => {
             if (available) {
@@ -26,39 +28,39 @@ function initializeCasting(audioPlayer, castBtn) {
                 castBtn.style.display = 'flex';
             }
         });
-        
+
         castBtn.addEventListener('click', () => {
             audioPlayer.remote.prompt().catch(err => {
                 console.log('Cast prompt error:', err);
             });
         });
-        
+
         audioPlayer.addEventListener('playing', () => {
             if (audioPlayer.remote && audioPlayer.remote.state === 'connected') {
                 castBtn.classList.add('connected');
             }
         });
-        
+
         audioPlayer.addEventListener('pause', () => {
             if (audioPlayer.remote && audioPlayer.remote.state === 'disconnected') {
                 castBtn.classList.remove('connected');
             }
         });
-    } 
+    }
     else if (audioPlayer.webkitShowPlaybackTargetPicker) {
         castBtn.style.display = 'flex';
         castBtn.classList.add('available');
-        
+
         castBtn.addEventListener('click', () => {
             audioPlayer.webkitShowPlaybackTargetPicker();
         });
-        
+
         audioPlayer.addEventListener('webkitplaybacktargetavailabilitychanged', (e) => {
             if (e.availability === 'available') {
                 castBtn.classList.add('available');
             }
         });
-        
+
         audioPlayer.addEventListener('webkitcurrentplaybacktargetiswirelesschanged', () => {
             if (audioPlayer.webkitCurrentPlaybackTargetIsWireless) {
                 castBtn.classList.add('connected');
@@ -78,7 +80,7 @@ function initializeCasting(audioPlayer, castBtn) {
 function initializeKeyboardShortcuts(player, audioPlayer, lyricsPanel) {
     document.addEventListener('keydown', (e) => {
         if (e.target.matches('input, textarea')) return;
-        
+
         switch(e.key.toLowerCase()) {
             case ' ':
                 e.preventDefault();
@@ -89,7 +91,7 @@ function initializeKeyboardShortcuts(player, audioPlayer, lyricsPanel) {
                     player.playNext();
                 } else {
                     audioPlayer.currentTime = Math.min(
-                        audioPlayer.duration, 
+                        audioPlayer.duration,
                         audioPlayer.currentTime + 10
                     );
                 }
@@ -146,7 +148,7 @@ function initializeKeyboardShortcuts(player, audioPlayer, lyricsPanel) {
 
 function initializeMediaSessionHandlers(player) {
     if (!('mediaSession' in navigator)) return;
-    
+
     try {
         navigator.mediaSession.setActionHandler('seekto', (details) => {
             if (details.seekTime !== undefined && details.fastSeek !== undefined && details.fastSeek) {
@@ -171,7 +173,7 @@ function showOfflineNotification() {
         <span>You are offline. Some features may not work.</span>
     `;
     document.body.appendChild(notification);
-    
+
     setTimeout(() => {
         notification.style.animation = 'slideOut 0.3s ease forwards';
         setTimeout(() => notification.remove(), 300);
@@ -189,40 +191,40 @@ function hideOfflineNotification() {
 document.addEventListener('DOMContentLoaded', async () => {
     const api = new LosslessAPI(apiSettings);
     const ui = new UIRenderer(api);
-    
+
     const audioPlayer = document.getElementById('audio-player');
     const currentQuality = localStorage.getItem('playback-quality') || 'LOSSLESS';
     const player = new Player(audioPlayer, api, currentQuality);
-    
+
     const scrobbler = new LastFMScrobbler();
     const lyricsManager = new LyricsManager(api);
     const lyricsPanel = createLyricsPanel();
-    
+
     const currentTheme = themeManager.getTheme();
     themeManager.setTheme(currentTheme);
-    
+
     initializeSettings(scrobbler, player, api, ui);
     initializePlayerEvents(player, audioPlayer, scrobbler);
     initializeTrackInteractions(player, api, document.querySelector('.main-content'), document.getElementById('context-menu'));
     initializeUIInteractions(player, api);
     initializeKeyboardShortcuts(player, audioPlayer, lyricsPanel);
     initializeMediaSessionHandlers(player);
-    
+
     const castBtn = document.getElementById('cast-btn');
     initializeCasting(audioPlayer, castBtn);
-    
+
     document.querySelector('.now-playing-bar .cover').addEventListener('click', async () => {
         if (!player.currentTrack) {
             alert('No track is currently playing');
             return;
         }
-        
+
         const mode = nowPlayingSettings.getMode();
-        
+
         if (mode === 'karaoke') {
             lyricsPanel.classList.add('hidden');
             clearLyricsPanelSync(audioPlayer, lyricsPanel);
-            
+
             const lyricsData = await lyricsManager.fetchLyrics(player.currentTrack.id);
             if (lyricsData) {
                 showKaraokeView(player.currentTrack, lyricsData, audioPlayer);
@@ -232,13 +234,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (mode === 'lyrics') {
             const isHidden = lyricsPanel.classList.contains('hidden');
             lyricsPanel.classList.toggle('hidden');
-            
+
             if (isHidden) {
                 const content = lyricsPanel.querySelector('.lyrics-content');
                 content.innerHTML = '<div class="lyrics-loading">Loading lyrics...</div>';
-                
+
                 const lyricsData = await lyricsManager.fetchLyrics(player.currentTrack.id);
-                
+
                 if (lyricsData) {
                     lyricsManager.currentLyrics = lyricsData;
                     showSyncedLyricsPanel(lyricsData, audioPlayer, lyricsPanel);
@@ -251,42 +253,42 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     });
-    
+
     document.getElementById('close-lyrics-btn')?.addEventListener('click', (e) => {
         e.stopPropagation();
         lyricsPanel.classList.add('hidden');
         clearLyricsPanelSync(audioPlayer, lyricsPanel);
     });
-    
+
     document.getElementById('download-lrc-btn')?.addEventListener('click', (e) => {
         e.stopPropagation();
         if (lyricsManager.currentLyrics && player.currentTrack) {
             lyricsManager.downloadLRC(lyricsManager.currentLyrics, player.currentTrack);
         }
     });
-    
+
     document.getElementById('download-current-btn')?.addEventListener('click', () => {
         downloadCurrentTrack(player.currentTrack, player.quality, api, lyricsManager);
     });
-    
+
     // Auto-update lyrics when track changes
     let previousTrackId = null;
     audioPlayer.addEventListener('play', async () => {
         if (!player.currentTrack) return;
-        
+
         const currentTrackId = player.currentTrack.id;
         if (currentTrackId === previousTrackId) return;
         previousTrackId = currentTrackId;
-        
+
         // Update lyrics panel if it's open
         if (!lyricsPanel.classList.contains('hidden')) {
             const mode = nowPlayingSettings.getMode();
             if (mode === 'lyrics') {
                 const content = lyricsPanel.querySelector('.lyrics-content');
                 content.innerHTML = '<div class="lyrics-loading">Loading lyrics...</div>';
-                
+
                 const lyricsData = await lyricsManager.fetchLyrics(player.currentTrack.id);
-                
+
                 if (lyricsData) {
                     lyricsManager.currentLyrics = lyricsData;
                     // Clear old sync before showing new
@@ -298,15 +300,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     });
-    
+
     document.addEventListener('click', async (e) => {
         if (e.target.closest('#play-album-btn')) {
             const btn = e.target.closest('#play-album-btn');
             if (btn.disabled) return;
-            
+
             const albumId = window.location.hash.split('/')[1];
             if (!albumId) return;
-            
+
             try {
                 const { tracks } = await api.getAlbum(albumId);
                 if (tracks.length > 0) {
@@ -322,14 +324,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.target.closest('#download-playlist-btn')) {
     const btn = e.target.closest('#download-playlist-btn');
     if (btn.disabled) return;
-    
+
     const playlistId = window.location.hash.split('/')[1];
     if (!playlistId) return;
-    
+
     btn.disabled = true;
     const originalHTML = btn.innerHTML;
     btn.innerHTML = '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Downloading...</span>';
-    
+
     try {
         const { playlist, tracks } = await api.getPlaylist(playlistId);
         await downloadPlaylistAsZip(playlist, tracks, api, player.quality, lyricsManager);
@@ -344,10 +346,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.target.closest('#play-playlist-btn')) {
             const btn = e.target.closest('#play-playlist-btn');
             if (btn.disabled) return;
-            
+
             const playlistId = window.location.hash.split('/')[1];
             if (!playlistId) return;
-            
+
             try {
                 const { tracks } = await api.getPlaylist(playlistId);
                 if (tracks.length > 0) {
@@ -360,18 +362,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 alert('Failed to play playlist: ' + error.message);
             }
         }
-        
+
         if (e.target.closest('#download-album-btn')) {
             const btn = e.target.closest('#download-album-btn');
             if (btn.disabled) return;
-            
+
             const albumId = window.location.hash.split('/')[1];
             if (!albumId) return;
-            
+
             btn.disabled = true;
             const originalHTML = btn.innerHTML;
             btn.innerHTML = '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Downloading...</span>';
-            
+
             try {
                 const { album, tracks } = await api.getAlbum(albumId);
                 await downloadAlbumAsZip(album, tracks, api, player.quality, lyricsManager);
@@ -383,18 +385,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 btn.innerHTML = originalHTML;
             }
         }
-        
+
         if (e.target.closest('#download-discography-btn')) {
             const btn = e.target.closest('#download-discography-btn');
             if (btn.disabled) return;
-            
+
             const artistId = window.location.hash.split('/')[1];
             if (!artistId) return;
-            
+
             btn.disabled = true;
             const originalHTML = btn.innerHTML;
             btn.innerHTML = '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Downloading...</span>';
-            
+
             try {
                 const artist = await api.getArtist(artistId);
                 await downloadDiscography(artist, api, player.quality, lyricsManager);
@@ -407,23 +409,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
     });
-    
+
     const searchForm = document.getElementById('search-form');
     const searchInput = document.getElementById('search-input');
-    
+
     const performSearch = debounce((query) => {
         if (query) {
             window.location.hash = `#search/${encodeURIComponent(query)}`;
         }
     }, 300);
-    
+
     searchInput.addEventListener('input', (e) => {
         const query = e.target.value.trim();
         if (query.length > 2) {
             performSearch(query);
         }
     });
-    
+
     searchForm.addEventListener('submit', e => {
         e.preventDefault();
         const query = searchInput.value.trim();
@@ -431,33 +433,33 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.location.hash = `#search/${encodeURIComponent(query)}`;
         }
     });
-    
+
     window.addEventListener('online', () => {
         hideOfflineNotification();
         console.log('Back online');
     });
-    
+
     window.addEventListener('offline', () => {
         showOfflineNotification();
         console.log('Gone offline');
     });
-    
+
     document.querySelector('.play-pause-btn').innerHTML = SVG_PLAY;
-    
+
     const router = createRouter(ui);
     router();
     window.addEventListener('hashchange', router);
-    
+
     audioPlayer.addEventListener('play', () => {
         updateTabTitle(player);
     });
-    
+
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js')
                 .then(reg => {
                     console.log('Service worker registered');
-                    
+
                     reg.addEventListener('updatefound', () => {
                         const newWorker = reg.installing;
                         newWorker.addEventListener('statechange', () => {
@@ -470,14 +472,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 .catch(err => console.log('Service worker not registered', err));
         });
     }
-    
+
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
         showInstallPrompt(deferredPrompt);
     });
-    
+
     if (!localStorage.getItem('shortcuts-shown')) {
         setTimeout(() => {
             showKeyboardShortcuts();
@@ -501,7 +503,7 @@ function showUpdateNotification() {
 
 function showInstallPrompt(deferredPrompt) {
     if (!deferredPrompt) return;
-    
+
     const notification = document.createElement('div');
     notification.className = 'install-prompt';
     notification.innerHTML = `
@@ -515,7 +517,7 @@ function showInstallPrompt(deferredPrompt) {
         </div>
     `;
     document.body.appendChild(notification);
-    
+
     document.getElementById('install-btn').addEventListener('click', async () => {
         notification.remove();
         deferredPrompt.prompt();
@@ -523,7 +525,7 @@ function showInstallPrompt(deferredPrompt) {
         console.log(`User response to install prompt: ${outcome}`);
         deferredPrompt = null;
     });
-    
+
     document.getElementById('dismiss-install').addEventListener('click', () => {
         notification.remove();
     });
@@ -599,7 +601,7 @@ function showKeyboardShortcuts() {
         </div>
     `;
     document.body.appendChild(modal);
-    
+
     modal.addEventListener('click', (e) => {
         if (e.target === modal || e.target.classList.contains('close-shortcuts')) {
             modal.remove();

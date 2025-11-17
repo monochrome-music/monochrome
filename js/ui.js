@@ -1,3 +1,4 @@
+//js/ui.js
 import { formatTime, createPlaceholder, trackDataStore, hasExplicitContent, getTrackArtists, getTrackTitle, calculateTotalDuration, formatDuration } from './utils.js';
 import { recentActivityManager } from './storage.js';
 
@@ -29,7 +30,7 @@ export class UIRenderer {
         const explicitBadge = hasExplicitContent(track) ? this.createExplicitBadge() : '';
         const trackArtists = getTrackArtists(track);
         const trackTitle = getTrackTitle(track);
-        
+
         return `
             <div class="track-item" data-track-id="${track.id}">
                 ${trackNumberHTML}
@@ -116,17 +117,17 @@ export class UIRenderer {
         const fragment = document.createDocumentFragment();
         const tempDiv = document.createElement('div');
 
-        tempDiv.innerHTML = tracks.map((track, i) => 
+        tempDiv.innerHTML = tracks.map((track, i) =>
             this.createTrackItemHTML(track, i, showCover)
         ).join('');
-        
+
         while (tempDiv.firstChild) {
             fragment.appendChild(tempDiv.firstChild);
         }
-        
+
         container.innerHTML = '';
         container.appendChild(fragment);
-        
+
         tracks.forEach(track => {
             const element = container.querySelector(`[data-track-id="${track.id}"]`);
             if (element) trackDataStore.set(element, track);
@@ -137,13 +138,13 @@ export class UIRenderer {
         document.querySelectorAll('.page').forEach(page => {
             page.classList.toggle('active', page.id === `page-${pageId}`);
         });
-        
+
         document.querySelectorAll('.sidebar-nav a').forEach(link => {
             link.classList.toggle('active', link.hash === `#${pageId}`);
         });
-        
+
         document.querySelector('.main-content').scrollTop = 0;
-        
+
         if (pageId === 'settings') {
             this.renderApiSettings();
         }
@@ -152,14 +153,14 @@ export class UIRenderer {
     async renderHomePage() {
         this.showPage('home');
         const recents = recentActivityManager.getRecents();
-        
+
         const albumsContainer = document.getElementById('home-recent-albums');
         const artistsContainer = document.getElementById('home-recent-artists');
-        
+
         albumsContainer.innerHTML = recents.albums.length
             ? recents.albums.map(album => this.createAlbumCardHTML(album)).join('')
             : createPlaceholder("You haven't viewed any albums yet. Search for music to get started!");
-        
+
         artistsContainer.innerHTML = recents.artists.length
             ? recents.artists.map(artist => this.createArtistCardHTML(artist)).join('')
             : createPlaceholder("You haven't viewed any artists yet. Search for music to get started!");
@@ -168,26 +169,26 @@ export class UIRenderer {
     async renderSearchPage(query) {
         this.showPage('search');
         document.getElementById('search-results-title').textContent = `Search Results for "${query}"`;
-        
+
         const tracksContainer = document.getElementById('search-tracks-container');
         const artistsContainer = document.getElementById('search-artists-container');
         const albumsContainer = document.getElementById('search-albums-container');
-        
+
         tracksContainer.innerHTML = this.createSkeletonTracks(8, true);
         artistsContainer.innerHTML = this.createSkeletonCards(6, true);
         albumsContainer.innerHTML = this.createSkeletonCards(6, false);
-        
+
         try {
             const [tracksResult, artistsResult, albumsResult] = await Promise.all([
                 this.api.searchTracks(query),
                 this.api.searchArtists(query),
                 this.api.searchAlbums(query)
             ]);
-            
+
             let finalTracks = tracksResult.items;
             let finalArtists = artistsResult.items;
             let finalAlbums = albumsResult.items;
-            
+
             if (finalArtists.length === 0 && finalTracks.length > 0) {
                 const artistMap = new Map();
                 finalTracks.forEach(track => {
@@ -204,7 +205,7 @@ export class UIRenderer {
                 });
                 finalArtists = Array.from(artistMap.values());
             }
-            
+
             if (finalAlbums.length === 0 && finalTracks.length > 0) {
                 const albumMap = new Map();
                 finalTracks.forEach(track => {
@@ -214,21 +215,21 @@ export class UIRenderer {
                 });
                 finalAlbums = Array.from(albumMap.values());
             }
-            
+
             if (finalTracks.length) {
                 this.renderListWithTracks(tracksContainer, finalTracks, true);
             } else {
                 tracksContainer.innerHTML = createPlaceholder('No tracks found.');
             }
-            
+
             artistsContainer.innerHTML = finalArtists.length
                 ? finalArtists.map(artist => this.createArtistCardHTML(artist)).join('')
                 : createPlaceholder('No artists found.');
-            
+
             albumsContainer.innerHTML = finalAlbums.length
                 ? finalAlbums.map(album => this.createAlbumCardHTML(album)).join('')
                 : createPlaceholder('No albums found.');
-                
+
         } catch (error) {
             console.error("Search failed:", error);
             const errorMsg = createPlaceholder(`Error during search. ${error.message}`);
@@ -240,12 +241,12 @@ export class UIRenderer {
 
     async renderAlbumPage(albumId) {
         this.showPage('album');
-        
+
         const imageEl = document.getElementById('album-detail-image');
         const titleEl = document.getElementById('album-detail-title');
         const metaEl = document.getElementById('album-detail-meta');
         const tracklistContainer = document.getElementById('album-detail-tracklist');
-        
+
         imageEl.src = '';
         imageEl.style.backgroundColor = 'var(--muted)';
         titleEl.innerHTML = '<div class="skeleton" style="height: 48px; width: 300px; max-width: 90%;"></div>';
@@ -258,27 +259,27 @@ export class UIRenderer {
             </div>
             ${this.createSkeletonTracks(10, false)}
         `;
-        
+
         try {
             const { album, tracks } = await this.api.getAlbum(albumId);
-            
+
             imageEl.src = this.api.getCoverUrl(album.cover, '1280');
             imageEl.style.backgroundColor = '';
-            
+
             const explicitBadge = hasExplicitContent(album) ? this.createExplicitBadge() : '';
             titleEl.innerHTML = `${album.title} ${explicitBadge}`;
-            
+
             const totalDuration = calculateTotalDuration(tracks);
             const releaseDate = new Date(album.releaseDate);
             const year = releaseDate.getFullYear();
-            
-            const dateDisplay = window.innerWidth > 768 
+
+            const dateDisplay = window.innerWidth > 768
                 ? releaseDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
                 : year;
-            
-            metaEl.innerHTML = 
+
+            metaEl.innerHTML =
                 `By <a href="#artist/${album.artist.id}">${album.artist.name}</a> • ${dateDisplay} • ${tracks.length} tracks • ${formatDuration(totalDuration)}`;
-            
+
             tracklistContainer.innerHTML = `
                 <div class="track-list-header">
                     <span style="width: 40px; text-align: center;">#</span>
@@ -286,12 +287,12 @@ export class UIRenderer {
                     <span class="duration-header">Duration</span>
                 </div>
             `;
-            
+
             tracks.sort((a, b) => a.trackNumber - b.trackNumber);
             this.renderListWithTracks(tracklistContainer, tracks, false);
-            
+
             recentActivityManager.addAlbum(album);
-            
+
             document.title = `${album.title} - ${album.artist.name} - Monochrome`;
         } catch (error) {
             console.error("Failed to load album:", error);
@@ -301,13 +302,13 @@ export class UIRenderer {
 
 async renderPlaylistPage(playlistId) {
     this.showPage('playlist');
-    
+
     const imageEl = document.getElementById('playlist-detail-image');
     const titleEl = document.getElementById('playlist-detail-title');
     const metaEl = document.getElementById('playlist-detail-meta');
     const descEl = document.getElementById('playlist-detail-description');
     const tracklistContainer = document.getElementById('playlist-detail-tracklist');
-    
+
     imageEl.src = '';
     imageEl.style.backgroundColor = 'var(--muted)';
     titleEl.innerHTML = '<div class="skeleton" style="height: 48px; width: 300px; max-width: 90%;"></div>';
@@ -321,22 +322,22 @@ async renderPlaylistPage(playlistId) {
         </div>
         ${this.createSkeletonTracks(10, true)}
     `;
-    
+
     try {
         const { playlist, tracks } = await this.api.getPlaylist(playlistId);
-        
+
         const imageId = playlist.squareImage || playlist.image;
         imageEl.src = this.api.getCoverUrl(imageId, '1080');
         imageEl.style.backgroundColor = '';
-        
+
         titleEl.textContent = playlist.title;
-        
+
         const totalDuration = calculateTotalDuration(tracks);
-        
+
         metaEl.textContent = `${playlist.numberOfTracks} tracks • ${formatDuration(totalDuration)}`;
-        
+
         descEl.textContent = playlist.description || '';
-        
+
         tracklistContainer.innerHTML = `
             <div class="track-list-header">
                 <span style="width: 40px; text-align: center;">#</span>
@@ -344,9 +345,9 @@ async renderPlaylistPage(playlistId) {
                 <span class="duration-header">Duration</span>
             </div>
         `;
-        
+
         this.renderListWithTracks(tracklistContainer, tracks, true);
-        
+
         document.title = `${playlist.title} - Monochrome`;
     } catch (error) {
         console.error("Failed to load playlist:", error);
@@ -356,39 +357,39 @@ async renderPlaylistPage(playlistId) {
 
     async renderArtistPage(artistId) {
         this.showPage('artist');
-        
+
         const imageEl = document.getElementById('artist-detail-image');
         const nameEl = document.getElementById('artist-detail-name');
         const metaEl = document.getElementById('artist-detail-meta');
         const tracksContainer = document.getElementById('artist-detail-tracks');
         const albumsContainer = document.getElementById('artist-detail-albums');
-        
+
         imageEl.src = '';
         imageEl.style.backgroundColor = 'var(--muted)';
         nameEl.innerHTML = '<div class="skeleton" style="height: 48px; width: 300px; max-width: 90%;"></div>';
         metaEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 150px;"></div>';
         tracksContainer.innerHTML = this.createSkeletonTracks(5, true);
         albumsContainer.innerHTML = this.createSkeletonCards(6, false);
-        
+
         try {
             const artist = await this.api.getArtist(artistId);
-            
+
             imageEl.src = this.api.getArtistPictureUrl(artist.picture, '750');
             imageEl.style.backgroundColor = '';
             nameEl.textContent = artist.name;
             metaEl.textContent = `${artist.popularity} popularity`;
-            
+
             this.renderListWithTracks(tracksContainer, artist.tracks, true);
-            albumsContainer.innerHTML = artist.albums.map(album => 
+            albumsContainer.innerHTML = artist.albums.map(album =>
                 this.createAlbumCardHTML(album)
             ).join('');
-            
+
             recentActivityManager.addArtist(artist);
-            
+
             document.title = `${artist.name} - Monochrome`;
         } catch (error) {
             console.error("Failed to load artist:", error);
-            tracksContainer.innerHTML = albumsContainer.innerHTML = 
+            tracksContainer.innerHTML = albumsContainer.innerHTML =
                 createPlaceholder(`Could not load artist details. ${error.message}`);
         }
     }
@@ -398,15 +399,15 @@ async renderPlaylistPage(playlistId) {
         this.api.settings.getInstances().then(instances => {
             const cachedData = this.api.settings.getCachedSpeedTests();
             const speeds = cachedData?.speeds || {};
-            
+
             container.innerHTML = instances.map((url, index) => {
                 const speedInfo = speeds[url];
-                const speedText = speedInfo 
-                    ? (speedInfo.speed === Infinity 
-                        ? `<span style="color: var(--muted-foreground); font-size: 0.8rem;">Failed</span>` 
+                const speedText = speedInfo
+                    ? (speedInfo.speed === Infinity
+                        ? `<span style="color: var(--muted-foreground); font-size: 0.8rem;">Failed</span>`
                         : `<span style="color: var(--muted-foreground); font-size: 0.8rem;">${speedInfo.speed.toFixed(0)}ms</span>`)
                     : '';
-                
+
                 return `
                     <li data-index="${index}">
                         <div style="flex: 1; min-width: 0;">

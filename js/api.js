@@ -1,3 +1,4 @@
+//js/api.js
 import { RATE_LIMIT_ERROR_MESSAGE, deriveTrackQuality, delay } from './utils.js';
 import { APICache } from './cache.js';
 
@@ -11,7 +12,7 @@ export class LosslessAPI {
             ttl: 1000 * 60 * 30
         });
         this.streamCache = new Map();
-        
+
         setInterval(() => {
             this.cache.clearExpired();
             this.pruneStreamCache();
@@ -36,8 +37,8 @@ export class LosslessAPI {
         let lastError = null;
 
         for (const baseUrl of instances) {
-            const url = baseUrl.endsWith('/') 
-                ? `${baseUrl}${relativePath.substring(1)}` 
+            const url = baseUrl.endsWith('/')
+                ? `${baseUrl}${relativePath.substring(1)}`
                 : `${baseUrl}${relativePath}`;
 
             for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -79,9 +80,9 @@ export class LosslessAPI {
                     if (error.name === 'AbortError') {
                         throw error;
                     }
-                    
+
                     lastError = error;
-                    
+
                     if (attempt < maxRetries) {
                         await delay(200 * attempt);
                     }
@@ -94,7 +95,7 @@ export class LosslessAPI {
 
     findSearchSection(source, key, visited) {
         if (!source || typeof source !== 'object') return;
-        
+
         if (Array.isArray(source)) {
             for (const e of source) {
                 const f = this.findSearchSection(e, key, visited);
@@ -102,17 +103,17 @@ export class LosslessAPI {
             }
             return;
         }
-        
+
         if (visited.has(source)) return;
         visited.add(source);
-        
+
         if ('items' in source && Array.isArray(source.items)) return source;
-        
+
         if (key in source) {
             const f = this.findSearchSection(source[key], key, visited);
             if (f) return f;
         }
-        
+
         for (const v of Object.values(source)) {
             const f = this.findSearchSection(v, key, visited);
             if (f) return f;
@@ -136,7 +137,7 @@ export class LosslessAPI {
 
     prepareTrack(track) {
         let normalized = track;
-        
+
         if (!track.artist && Array.isArray(track.artists) && track.artists.length > 0) {
             normalized = { ...track, artist: track.artists[0] };
         }
@@ -169,17 +170,17 @@ export class LosslessAPI {
 
         for (const entry of entries) {
             if (!entry || typeof entry !== 'object') continue;
-            
+
             if (!track && 'duration' in entry) {
                 track = entry;
                 continue;
             }
-            
+
             if (!info && 'manifest' in entry) {
                 info = entry;
                 continue;
             }
-            
+
             if (!originalTrackUrl && 'OriginalTrackUrl' in entry) {
                 const candidate = entry.OriginalTrackUrl;
                 if (typeof candidate === 'string') {
@@ -198,7 +199,7 @@ export class LosslessAPI {
     extractStreamUrlFromManifest(manifest) {
         try {
             const decoded = atob(manifest);
-            
+
             try {
                 const parsed = JSON.parse(decoded);
                 if (parsed?.urls?.[0]) {
@@ -286,14 +287,14 @@ export class LosslessAPI {
         const entries = Array.isArray(data) ? data : [data];
 
         let album, tracksSection;
-        
+
         for (const entry of entries) {
             if (!entry || typeof entry !== 'object') continue;
-            
+
             if (!album && 'numberOfTracks' in entry) {
                 album = this.prepareAlbum(entry);
             }
-            
+
             if (!tracksSection && 'items' in entry) {
                 tracksSection = entry;
             }
@@ -317,14 +318,14 @@ export class LosslessAPI {
         const entries = Array.isArray(data) ? data : [data];
 
         let playlist, tracksSection;
-        
+
         for (const entry of entries) {
             if (!entry || typeof entry !== 'object') continue;
-            
+
             if (!playlist && ('uuid' in entry || 'numberOfTracks' in entry)) {
                 playlist = entry;
             }
-            
+
             if (!tracksSection && 'items' in entry) {
                 tracksSection = entry;
             }
@@ -347,53 +348,53 @@ export class LosslessAPI {
             this.fetchWithRetry(`/artist/?id=${artistId}`),
             this.fetchWithRetry(`/artist/?f=${artistId}`)
         ]);
-        
+
         const primaryData = await primaryResponse.json();
         const rawArtist = Array.isArray(primaryData) ? primaryData[0] : primaryData;
-        
+
         if (!rawArtist) throw new Error('Primary artist details not found.');
-        
+
         const artist = {
             ...this.prepareArtist(rawArtist),
             picture: rawArtist.picture || null,
             name: rawArtist.name || 'Unknown Artist'
         };
-        
+
         const contentData = await contentResponse.json();
         const entries = Array.isArray(contentData) ? contentData : [contentData];
-        
+
         const albumMap = new Map();
         const trackMap = new Map();
-        
+
         const isTrack = v => v?.id && v.duration && v.album;
         const isAlbum = v => v?.id && 'numberOfTracks' in v;
-        
+
         const scan = (value, visited = new Set()) => {
             if (!value || typeof value !== 'object' || visited.has(value)) return;
             visited.add(value);
-            
+
             if (Array.isArray(value)) {
                 value.forEach(item => scan(item, visited));
                 return;
             }
-            
+
             const item = value.item || value;
             if (isAlbum(item)) albumMap.set(item.id, this.prepareAlbum(item));
             if (isTrack(item)) trackMap.set(item.id, this.prepareTrack(item));
-            
+
             Object.values(value).forEach(nested => scan(nested, visited));
         };
-        
+
         entries.forEach(entry => scan(entry));
-        
-        const albums = Array.from(albumMap.values()).sort((a, b) => 
+
+        const albums = Array.from(albumMap.values()).sort((a, b) =>
             new Date(b.releaseDate || 0) - new Date(a.releaseDate || 0)
         );
-        
+
         const tracks = Array.from(trackMap.values())
             .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
             .slice(0, 10);
-        
+
         const result = { ...artist, albums, tracks };
 
         await this.cache.set('artist', artistId, result);
@@ -414,13 +415,13 @@ export class LosslessAPI {
 
     async getStreamUrl(id, quality = 'LOSSLESS') {
         const cacheKey = `stream_${id}_${quality}`;
-        
+
         if (this.streamCache.has(cacheKey)) {
             return this.streamCache.get(cacheKey);
         }
 
         const lookup = await this.getTrack(id, quality);
-        
+
         let streamUrl;
         if (lookup.originalTrackUrl) {
             streamUrl = lookup.originalTrackUrl;
@@ -437,7 +438,7 @@ export class LosslessAPI {
 
     async downloadTrack(id, quality = 'LOSSLESS', filename, options = {}) {
         const { onProgress } = options;
-        
+
         try {
             const lookup = await this.getTrack(id, quality);
             let streamUrl;
@@ -451,18 +452,18 @@ export class LosslessAPI {
                 }
             }
 
-            const response = await fetch(streamUrl, { 
+            const response = await fetch(streamUrl, {
                 cache: 'no-store',
-                signal: options.signal 
+                signal: options.signal
             });
-            
+
             if (!response.ok) {
                 throw new Error(`Fetch failed: ${response.status}`);
             }
 
             const contentLength = response.headers.get('Content-Length');
             const totalBytes = contentLength ? parseInt(contentLength, 10) : 0;
-            
+
             let receivedBytes = 0;
 
             if (response.body && onProgress) {
@@ -472,11 +473,11 @@ export class LosslessAPI {
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
-                    
+
                     if (value) {
                         chunks.push(value);
                         receivedBytes += value.byteLength;
-                        
+
                         onProgress({
                             stage: 'downloading',
                             receivedBytes,
@@ -525,7 +526,7 @@ export class LosslessAPI {
         if (!id) {
             return `https://picsum.photos/seed/${Math.random()}/${size}`;
         }
-        
+
         const formattedId = id.replace(/-/g, '/');
         return `https://resources.tidal.com/images/${formattedId}/${size}x${size}.jpg`;
     }
@@ -534,7 +535,7 @@ export class LosslessAPI {
         if (!id) {
             return `https://picsum.photos/seed/${Math.random()}/${size}`;
         }
-        
+
         const formattedId = id.replace(/-/g, '/');
         return `https://resources.tidal.com/images/${formattedId}/${size}x${size}.jpg`;
     }

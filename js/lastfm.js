@@ -1,4 +1,4 @@
-//lastfm.js
+//js/lastfm.js
 import { delay } from './utils.js';
 
 export class LastFMScrobbler {
@@ -6,14 +6,14 @@ export class LastFMScrobbler {
         this.API_KEY = '0fc32c426d943d34a662977b31b98b67';
         this.API_SECRET = '53acf2466be726db021e7fdfd0ad1084';
         this.API_URL = 'https://ws.audioscrobbler.com/2.0/';
-        
+
         this.sessionKey = null;
         this.username = null;
         this.currentTrack = null;
         this.scrobbleTimer = null;
         this.scrobbleThreshold = 0;
         this.hasScrobbled = false;
-        
+
         this.loadSession();
     }
 
@@ -53,15 +53,15 @@ export class LastFMScrobbler {
         const filteredParams = { ...params };
         delete filteredParams.format;
         delete filteredParams.callback;
-        
+
         const sortedKeys = Object.keys(filteredParams).sort();
-        
+
         const signatureString = sortedKeys
             .map(key => `${key}${filteredParams[key]}`)
             .join('') + this.API_SECRET;
-        
+
         console.log('Signature string:', signatureString);
-        
+
         try {
             const { default: md5 } = await import('https://cdn.jsdelivr.net/npm/md5@2.3.0/+esm');
             return md5(signatureString);
@@ -83,7 +83,7 @@ export class LastFMScrobbler {
         }
 
         const signature = await this.generateSignature(requestParams);
-        
+
         const formData = new URLSearchParams({
             ...requestParams,
             api_sig: signature,
@@ -116,7 +116,7 @@ export class LastFMScrobbler {
         try {
             const data = await this.makeRequest('auth.getToken');
             const token = data.token;
-            
+
             return {
                 token,
                 url: `https://www.last.fm/api/auth/?api_key=${this.API_KEY}&token=${token}`
@@ -130,7 +130,7 @@ export class LastFMScrobbler {
     async completeAuthentication(token) {
         try {
             const data = await this.makeRequest('auth.getSession', { token });
-            
+
             if (data.session) {
                 this.saveSession(data.session.key, data.session.name);
                 return {
@@ -138,7 +138,7 @@ export class LastFMScrobbler {
                     username: data.session.name
                 };
             }
-            
+
             throw new Error('No session returned');
         } catch (error) {
             console.error('Authentication failed:', error);
@@ -158,19 +158,19 @@ export class LastFMScrobbler {
                 artist: track.artist?.name || 'Unknown Artist',
                 track: track.title
             };
-            
+
             if (track.album?.title) {
                 params.album = track.album.title;
             }
-            
+
             if (track.duration) {
                 params.duration = Math.floor(track.duration);
             }
-            
+
             if (track.trackNumber) {
                 params.trackNumber = track.trackNumber;
             }
-            
+
             await this.makeRequest('track.updateNowPlaying', params, true);
 
             console.log('Now playing updated:', track.title);
@@ -185,7 +185,7 @@ export class LastFMScrobbler {
 
     scheduleScrobble(delay) {
         this.clearScrobbleTimer();
-        
+
         this.scrobbleTimer = setTimeout(() => {
             this.scrobbleCurrentTrack();
         }, delay);
@@ -203,25 +203,25 @@ export class LastFMScrobbler {
 
         try {
             const timestamp = Math.floor(Date.now() / 1000);
-            
+
             const params = {
                 artist: this.currentTrack.artist?.name || 'Unknown Artist',
                 track: this.currentTrack.title,
                 timestamp: timestamp
             };
-            
+
             if (this.currentTrack.album?.title) {
                 params.album = this.currentTrack.album.title;
             }
-            
+
             if (this.currentTrack.duration) {
                 params.duration = Math.floor(this.currentTrack.duration);
             }
-            
+
             if (this.currentTrack.trackNumber) {
                 params.trackNumber = this.currentTrack.trackNumber;
             }
-            
+
             await this.makeRequest('track.scrobble', params, true);
 
             this.hasScrobbled = true;

@@ -1,3 +1,4 @@
+//js/player.js
 import { REPEAT_MODE, formatTime, getTrackArtists, getTrackTitle} from './utils.js';
 
 export class Player {
@@ -69,26 +70,26 @@ export class Player {
         if (this.preloadAbortController) {
             this.preloadAbortController.abort();
         }
-        
+
         this.preloadAbortController = new AbortController();
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
         const tracksToPreload = [];
-        
+
         for (let i = 1; i <= 2; i++) {
             const nextIndex = this.currentQueueIndex + i;
             if (nextIndex < currentQueue.length) {
                 tracksToPreload.push({ track: currentQueue[nextIndex], index: nextIndex });
             }
         }
-        
+
         for (const { track } of tracksToPreload) {
             if (this.preloadCache.has(track.id)) continue;
             const trackTitle = getTrackTitle(track);
             try {
                 const streamUrl = await this.api.getStreamUrl(track.id, this.quality);
-                
+
                 if (this.preloadAbortController.signal.aborted) break;
-                
+
                 this.preloadCache.set(track.id, streamUrl);
             } catch (error) {
                 if (error.name !== 'AbortError') {
@@ -107,36 +108,36 @@ export class Player {
         const track = currentQueue[this.currentQueueIndex];
         this.currentTrack = track;
 
-        const trackTitle = getTrackTitle(track); 
+        const trackTitle = getTrackTitle(track);
         const trackArtists = getTrackArtists(track);
-        
-        document.querySelector('.now-playing-bar .cover').src = 
+
+        document.querySelector('.now-playing-bar .cover').src =
             this.api.getCoverUrl(track.album?.cover, '1280');
         document.querySelector('.now-playing-bar .title').textContent = trackTitle;
         document.querySelector('.now-playing-bar .artist').textContent = trackArtists;
         document.title = `${trackTitle} • ${track.artist?.name || 'Unknown'}`;
-        
+
         this.updatePlayingTrackIndicator();
         this.updateMediaSession(track);
 
         try {
             let streamUrl;
-            
+
             if (this.preloadCache.has(track.id)) {
                 streamUrl = this.preloadCache.get(track.id);
             } else {
                 const trackData = await this.api.getTrack(track.id, this.quality);
-                
+
                 if (trackData.originalTrackUrl) {
                     streamUrl = trackData.originalTrackUrl;
                 } else {
                     streamUrl = this.api.extractStreamUrlFromManifest(trackData.info.manifest);
                 }
             }
-            
+
             this.audio.src = streamUrl;
             await this.audio.play();
-            
+
             this.updateMediaSessionPlaybackState();
             this.preloadNextTracks();
         } catch (error) {
@@ -187,7 +188,7 @@ export class Player {
 
     handlePlayPause() {
         if (!this.audio.src) return;
-        
+
         if (this.audio.paused) {
             this.audio.play().catch(console.error);
         } else {
@@ -216,7 +217,7 @@ export class Player {
             const currentTrack = this.queue[this.currentQueueIndex];
             this.shuffledQueue = [...this.queue].sort(() => Math.random() - 0.5);
             this.currentQueueIndex = this.shuffledQueue.findIndex(t => t.id === currentTrack?.id);
-            
+
             if (this.currentQueueIndex === -1 && currentTrack) {
                 this.shuffledQueue.unshift(currentTrack);
                 this.currentQueueIndex = 0;
@@ -226,7 +227,7 @@ export class Player {
             this.queue = [...this.originalQueueBeforeShuffle];
             this.currentQueueIndex = this.queue.findIndex(t => t.id === currentTrack?.id);
         }
-        
+
         this.preloadCache.clear();
         this.preloadNextTracks();
     }
@@ -245,7 +246,7 @@ export class Player {
 
     addToQueue(track) {
         this.queue.push(track);
-        
+
         if (!this.currentTrack || this.currentQueueIndex === -1) {
             this.currentQueueIndex = this.queue.length - 1;
             this.playTrackFromQueue();
@@ -254,15 +255,15 @@ export class Player {
 
     removeFromQueue(index) {
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
-        
+
         if (index < 0 || index >= currentQueue.length) return;
-        
+
         if (this.shuffleActive) {
             this.shuffledQueue.splice(index, 1);
         } else {
             this.queue.splice(index, 1);
         }
-        
+
         if (index < this.currentQueueIndex) {
             this.currentQueueIndex--;
         } else if (index === this.currentQueueIndex) {
@@ -274,13 +275,13 @@ export class Player {
 
     moveInQueue(fromIndex, toIndex) {
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
-        
+
         if (fromIndex < 0 || fromIndex >= currentQueue.length) return;
         if (toIndex < 0 || toIndex >= currentQueue.length) return;
-        
+
         const [track] = currentQueue.splice(fromIndex, 1);
         currentQueue.splice(toIndex, 0, track);
-        
+
         if (this.currentQueueIndex === fromIndex) {
             this.currentQueueIndex = toIndex;
         } else if (fromIndex < this.currentQueueIndex && toIndex >= this.currentQueueIndex) {
@@ -297,7 +298,7 @@ export class Player {
     updatePlayingTrackIndicator() {
         const currentTrack = this.getCurrentQueue()[this.currentQueueIndex];
         document.querySelectorAll('.track-item').forEach(item => {
-            item.classList.toggle('playing', 
+            item.classList.toggle('playing',
                 currentTrack && item.dataset.trackId == currentTrack.id
             );
         });
@@ -305,12 +306,12 @@ export class Player {
 
     updateMediaSession(track) {
         if (!('mediaSession' in navigator)) return;
-        
+
         const artwork = [];
         const sizes = ['1280'];
         const coverId = track.album?.cover;
         const trackTitle = getTrackTitle(track);
-        
+
         if (coverId) {
             sizes.forEach(size => {
                 artwork.push({
@@ -320,7 +321,7 @@ export class Player {
                 });
             });
         }
-        
+
         navigator.mediaSession.metadata = new MediaMetadata({
             title: trackTitle || 'Unknown Title',
             artist: track.artist?.name || 'Unknown Artist',
@@ -340,9 +341,9 @@ export class Player {
     updateMediaSessionPositionState() {
         if (!('mediaSession' in navigator)) return;
         if (!('setPositionState' in navigator.mediaSession)) return;
-        
+
         const duration = this.audio.duration;
-        
+
         if (!duration || isNaN(duration) || !isFinite(duration)) {
             return;
         }

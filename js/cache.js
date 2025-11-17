@@ -1,4 +1,4 @@
-//cache.js
+//js/cache.js
 export class APICache {
     constructor(options = {}) {
         this.memoryCache = new Map();
@@ -24,7 +24,7 @@ export class APICache {
 
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
-                
+
                 if (!db.objectStoreNames.contains('responses')) {
                     const store = db.createObjectStore('responses', { keyPath: 'key' });
                     store.createIndex('timestamp', 'timestamp', { unique: false });
@@ -34,15 +34,15 @@ export class APICache {
     }
 
     generateKey(type, params) {
-        const paramString = typeof params === 'object' 
-            ? JSON.stringify(params) 
+        const paramString = typeof params === 'object'
+            ? JSON.stringify(params)
             : String(params);
         return `${type}:${paramString}`;
     }
 
     async get(type, params) {
         const key = this.generateKey(type, params);
-        
+
         if (this.memoryCache.has(key)) {
             const cached = this.memoryCache.get(key);
             if (Date.now() - cached.timestamp < this.ttl) {

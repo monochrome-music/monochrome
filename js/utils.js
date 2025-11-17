@@ -1,4 +1,4 @@
-// utils.js
+//js/utils.js
 
 export const QUALITY = 'LOSSLESS';
 
@@ -65,14 +65,14 @@ export const getExtensionForQuality = (quality) => {
 export const buildTrackFilename = (track, quality) => {
     const template = localStorage.getItem('filename-template') || '{trackNumber} - {artist} - {title}';
     const extension = getExtensionForQuality(quality);
-    
+
     const data = {
         trackNumber: track.trackNumber,
         artist: track.artist?.name,
         title: getTrackTitle(track),
         album: track.album?.title
     };
-    
+
     return formatTemplate(template, data) + '.' + extension;
 };
 
@@ -83,21 +83,21 @@ const sanitizeToken = (value) => {
 
 export const normalizeQualityToken = (value) => {
     if (!value) return null;
-    
+
     const token = sanitizeToken(value);
-    
+
     for (const [quality, aliases] of Object.entries(QUALITY_TOKENS)) {
         if (aliases.includes(token)) {
             return quality;
         }
     }
-    
+
     return null;
 };
 
 export const deriveQualityFromTags = (rawTags) => {
     if (!Array.isArray(rawTags)) return null;
-    
+
     const candidates = [];
     for (const tag of rawTags) {
         if (typeof tag !== 'string') continue;
@@ -106,37 +106,37 @@ export const deriveQualityFromTags = (rawTags) => {
             candidates.push(normalized);
         }
     }
-    
+
     return pickBestQuality(candidates);
 };
 
 export const pickBestQuality = (candidates) => {
     let best = null;
     let bestRank = Infinity;
-    
+
     for (const candidate of candidates) {
         if (!candidate) continue;
         const rank = QUALITY_PRIORITY.indexOf(candidate);
         const currentRank = rank === -1 ? Infinity : rank;
-        
+
         if (currentRank < bestRank) {
             best = candidate;
             bestRank = currentRank;
         }
     }
-    
+
     return best;
 };
 
 export const deriveTrackQuality = (track) => {
     if (!track) return null;
-    
+
     const candidates = [
         deriveQualityFromTags(track.mediaMetadata?.tags),
         deriveQualityFromTags(track.album?.mediaMetadata?.tags),
         normalizeQualityToken(track.audioQuality)
     ];
-    
+
     return pickBestQuality(candidates);
 };
 
@@ -190,10 +190,10 @@ export const calculateTotalDuration = (tracks) => {
 
 export const formatDuration = (seconds) => {
     if (!seconds || isNaN(seconds)) return '0 min';
-    
+
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-    
+
     if (hours > 0) {
         return `${hours} hr ${minutes} min`;
     }
