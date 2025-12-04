@@ -162,6 +162,46 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null) {
     return blob;
 }
 
+function buildTrackMetadata(track, api) {
+    const artists = [];
+    if (Array.isArray(track.artists) && track.artists.length) {
+        for (const a of track.artists) artists.push(a.name || a);
+    } else if (track.artist && track.artist.name) {
+        artists.push(track.artist.name);
+    }
+
+    return {
+        id: track.id,
+        title: track.title || null,
+        artists,
+        album: track.album?.title || null,
+        albumArtist: track.album?.artist?.name || track.artist?.name || null,
+        trackNumber: track.trackNumber ?? null,
+        discNumber: track.discNumber ?? null,
+        durationMs: track.duration ?? null,
+        releaseDate: track.album?.releaseDate || null,
+        bitrate: track.audioQuality || null
+    };
+}
+
+async function addCoverToZipIfMissing(zip, folderPath, coverId, api) {
+    if (!coverId) return;
+
+    const coverPath = folderPath ? `${folderPath}/cover.jpg` : 'cover.jpg';
+    if (zip.file(coverPath)) return; 
+
+    try {
+        const url = api.getCoverUrl(coverId, '1000');
+        const resp = await fetch(url);
+        if (!resp.ok) return;
+        const blob = await resp.blob();
+        zip.file(coverPath, blob);
+    } catch (e) {
+    
+        console.warn('Could not fetch cover for zip:', e);
+    }
+}
+
 export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsManager = null) {
     const JSZip = await loadJSZip();
     const zip = new JSZip();
@@ -176,6 +216,9 @@ export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsMana
     const notification = createBulkDownloadNotification('album', album.title, tracks.length);
 
     try {
+        
+        const albumCoverId = album.cover || album.album?.cover || album.coverId || null;
+
         for (let i = 0; i < tracks.length; i++) {
             const track = tracks[i];
             const filename = buildTrackFilename(track, quality);
@@ -185,6 +228,21 @@ export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsMana
 
             const blob = await downloadTrackBlob(track, quality, api);
             zip.file(`${folderName}/${filename}`, blob);
+
+            
+            try {
+                const meta = buildTrackMetadata(track, api);
+                const metaFilename = filename.replace(/\.[^.]+$/, '.json');
+                zip.file(`${folderName}/${metaFilename}`, JSON.stringify(meta, null, 2));
+            } catch (e) {
+                console.warn('Could not attach metadata for', trackTitle, e);
+            }
+
+            try {
+                await addCoverToZipIfMissing(zip, folderName, albumCoverId || track.album?.cover, api);
+            } catch (e) {
+                
+            }
 
             if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
                 try {
@@ -249,6 +307,20 @@ export async function downloadPlaylistAsZip(playlist, tracks, api, quality, lyri
 
             const blob = await downloadTrackBlob(track, quality, api);
             zip.file(`${folderName}/${filename}`, blob);
+
+            // add metadata JSON
+            try {
+                const meta = buildTrackMetadata(track, api);
+                const metaFilename = filename.replace(/\.[^.]+$/, '.json');
+                zip.file(`${folderName}/${metaFilename}`, JSON.stringify(meta, null, 2));
+            } catch (e) {
+                console.warn('Could not attach metadata for', trackTitle, e);
+            }
+
+            // add cover per track/playlist (attempt once per track)
+            try {
+                await addCoverToZipIfMissing(zip, folderName, track.album?.cover, api);
+            } catch (e) {}
 
             if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
                 try {
@@ -318,6 +390,18 @@ export async function downloadDiscography(artist, api, quality, lyricsManager = 
                     const filename = buildTrackFilename(track, quality);
                     const blob = await downloadTrackBlob(track, quality, api);
                     zip.file(`${rootFolder}/${albumFolder}/${filename}`, blob);
+
+                    try {
+                        const meta = buildTrackMetadata(track, api);
+                        const metaFilename = filename.replace(/\.[^.]+$/, '.json');
+                        zip.file(`${rootFolder}/${albumFolder}/${metaFilename}`, JSON.stringify(meta, null, 2));
+                    } catch (e) {
+                        console.warn('Could not attach metadata for', track.title, e);
+                    }
+
+                    try {
+                        await addCoverToZipIfMissing(zip, `${rootFolder}/${albumFolder}`, track.album?.cover || album.cover, api);
+                    } catch (e) {}
 
                     if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
                         try {
@@ -441,25 +525,101 @@ export async function downloadCurrentTrack(track, quality, api, lyricsManager = 
             api
         );
 
-        await api.downloadTrack(track.id, quality, filename, {
-            signal: abortController.signal,
-            onProgress: (progress) => {
-                updateDownloadProgress(track.id, progress);
-            }
-        });
+        // Manually fetch the stream so we can include metadata and cover in a ZIP
+        const lookup = await api.getTrack(track.id, quality);
+        let streamUrl;
 
-        completeDownloadTask(track.id, true);
+        if (lookup.originalTrackUrl) {
+            streamUrl = lookup.originalTrackUrl;
+        } else {
+            streamUrl = api.extractStreamUrlFromManifest(lookup.info.manifest);
+            if (!streamUrl) {
+                throw new Error('Could not resolve stream URL');
+            }
+        }
+
+        const resp = await fetch(streamUrl, { signal: abortController.signal, cache: 'no-store' });
+        if (!resp.ok) throw new Error(`Fetch failed: ${resp.status}`);
+
+        const contentLength = resp.headers.get('Content-Length');
+        const totalBytes = contentLength ? parseInt(contentLength, 10) : 0;
+        let receivedBytes = 0;
+
+        const reader = resp.body ? resp.body.getReader() : null;
+        const chunks = [];
+
+        if (reader) {
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                if (value) {
+                    chunks.push(value);
+                    receivedBytes += value.byteLength;
+                    updateDownloadProgress(track.id, {
+                        stage: 'downloading',
+                        receivedBytes,
+                        totalBytes: totalBytes || undefined
+                    });
+                }
+            }
+        } else {
+            const blob = await resp.blob();
+            chunks.push(new Uint8Array(await blob.arrayBuffer()));
+            receivedBytes = chunks.reduce((s, c) => s + c.length, 0);
+            updateDownloadProgress(track.id, { stage: 'downloading', receivedBytes, totalBytes: receivedBytes });
+        }
+
+        const audioBlob = new Blob(chunks, { type: resp.headers.get('Content-Type') || 'audio/flac' });
+
+        // Create ZIP with audio + metadata + cover + lyrics
+        const JSZip = await loadJSZip();
+        const zip = new JSZip();
+
+        zip.file(filename, audioBlob);
+
+        try {
+            const meta = buildTrackMetadata(track, api);
+            const metaFilename = filename.replace(/\.[^.]+$/, '.json');
+            zip.file(metaFilename, JSON.stringify(meta, null, 2));
+        } catch (e) {
+            console.warn('Could not create metadata for current track', e);
+        }
+
+        try {
+            await addCoverToZipIfMissing(zip, '', track.album?.cover, api);
+        } catch (e) {}
 
         if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
             try {
                 const lyricsData = await lyricsManager.fetchLyrics(track.id);
                 if (lyricsData) {
-                    lyricsManager.downloadLRC(lyricsData, track);
+                    const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
+                    if (lrcContent) {
+                        const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
+                        zip.file(lrcFilename, lrcContent);
+                    }
                 }
             } catch (error) {
                 console.log('Could not download lyrics for track');
             }
         }
+
+        updateDownloadProgress(track.id, { stage: 'downloading', receivedBytes: receivedBytes, totalBytes });
+
+        const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } }, (metadata) => {
+            // metadata.percent available but we already show streaming progress
+        });
+
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename.replace(/\.[^.]+$/, '') + '.zip';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        completeDownloadTask(track.id, true);
     } catch (error) {
         if (error.name !== 'AbortError') {
             const errorMsg = error.message === RATE_LIMIT_ERROR_MESSAGE
