@@ -401,13 +401,37 @@ export class LosslessAPI {
         return result;
     }
 
+
+
+    normalizeTrackResponse(apiResponse) {
+    if (!apiResponse || typeof apiResponse !== 'object') {
+        return apiResponse;
+    }
+
+    // unwrap { version, data } if present
+    const raw = apiResponse.data ?? apiResponse;
+
+    // fabricate the track object expected by parseTrackLookup
+    const trackStub = {
+        duration: raw.duration ?? 0,
+        id: raw.trackId ?? null
+    };
+
+    // return exactly what parseTrackLookup expects
+    return [trackStub, raw];
+}
+
+
+
+    
     async getTrack(id, quality = 'LOSSLESS') {
         const cacheKey = `${id}_${quality}`;
         const cached = await this.cache.get('track', cacheKey);
         if (cached) return cached;
 
         const response = await this.fetchWithRetry(`/track/?id=${id}&quality=${quality}`);
-        const result = this.parseTrackLookup(await response.json());
+        const jsonResponse = await response.json();
+        const result = this.parseTrackLookup(this.normalizeTrackResponse(jsonResponse));
 
         await this.cache.set('track', cacheKey, result);
         return result;
