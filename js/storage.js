@@ -1,7 +1,7 @@
 //storage.js
 export const apiSettings = {
     STORAGE_KEY: 'monochrome-api-instances',
-    INSTANCES_URL: 'https://raw.githubusercontent.com/EduardPrigoana/hifi-instances/refs/heads/main/instances.json',
+    INSTANCES_URL: "../instances.json",
     SPEED_TEST_CACHE_KEY: 'monochrome-instance-speeds',
     SPEED_TEST_CACHE_DURATION: 1000 * 60 * 60,
     defaultInstances: [],
@@ -32,14 +32,6 @@ export const apiSettings = {
         } catch (error) {
             console.error('Failed to load instances from GitHub:', error);
             this.defaultInstances = [
-                'https://ohio.monochrome.tf/',
-                'https://virginia.monochrome.tf/',
-                'https://oregon.monochrome.tf/',
-                'https://california.monochrome.tf/',
-                'https://frankfurt.monochrome.tf/',
-                'https://singapore.monochrome.tf/',
-                'https://tokyo.monochrome.tf/',
-                'https://jakarta.monochrome.tf/',
                 'https://wolf.qqdl.site',
                 'https://maus.qqdl.site',
                 'https://vogel.qqdl.site',
