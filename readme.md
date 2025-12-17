@@ -16,3 +16,4 @@ Check it out live at: [**monochrome.tf**](https://monochrome.tf)
 ## Warning
 This is not the official repository or instance. It is an actively maintained fork. The official one can be found here: https://github.com/eduardprigoana/monochrome
 . This fork was created because the original project was shut down (as you can see in the repository).
+**I am Not Affiliated with the original Owner!**
