@@ -283,24 +283,46 @@ export class LosslessAPI {
         if (cached) return cached;
 
         const response = await this.fetchWithRetry(`/album/?id=${id}`);
-        const data = await response.json();
-        const entries = Array.isArray(data) ? data : [data];
-
+        const jsonData = await response.json();
+        
+        // Unwrap the data property if it exists
+        const data = jsonData.data || jsonData;
+        
         let album, tracksSection;
-
-        for (const entry of entries) {
-            if (!entry || typeof entry !== 'object') continue;
-
-            if (!album && 'numberOfTracks' in entry) {
-                album = this.prepareAlbum(entry);
+        
+        if (data && typeof data === 'object' && !Array.isArray(data)) {
+            // Check for album metadata at root level
+            if ('numberOfTracks' in data || 'title' in data) {
+                album = this.prepareAlbum(data);
             }
-
-            if (!tracksSection && 'items' in entry) {
-                tracksSection = entry;
+            
+            // Set tracksSection if items exist
+            if ('items' in data) {
+                tracksSection = data;
+                
+                // If we still don't have album but have items with tracks, try to extract album from first track
+                if (!album && data.items && data.items.length > 0) {
+                    const firstItem = data.items[0];
+                    const track = firstItem.item || firstItem;
+                    
+                    // Check if track has album property
+                    if (track && track.album) {
+                        album = this.prepareAlbum(track.album);
+                    }
+                }
             }
         }
-
+        
         if (!album) throw new Error('Album not found');
+
+        // If album exists but has no artist, try to extract from tracks
+        if (album && !album.artist && tracksSection?.items && tracksSection.items.length > 0) {
+            const firstTrack = tracksSection.items[0];
+            const track = firstTrack.item || firstTrack;
+            if (track && track.artist) {
+                album = { ...album, artist: track.artist };
+            }
+        }
 
         const tracks = (tracksSection?.items || []).map(i => this.prepareTrack(i.item || i));
         const result = { album, tracks };
@@ -314,7 +336,10 @@ export class LosslessAPI {
         if (cached) return cached;
 
         const response = await this.fetchWithRetry(`/playlist/?id=${id}`);
-        const data = await response.json();
+        const jsonData = await response.json();
+        
+        // Unwrap the data property if it exists
+        const data = jsonData.data || jsonData;
         const entries = Array.isArray(data) ? data : [data];
 
         let playlist, tracksSection;
@@ -322,12 +347,22 @@ export class LosslessAPI {
         for (const entry of entries) {
             if (!entry || typeof entry !== 'object') continue;
 
-            if (!playlist && ('uuid' in entry || 'numberOfTracks' in entry)) {
+            if (!playlist && ('uuid' in entry || 'numberOfTracks' in entry || 'title' in entry && 'id' in entry)) {
                 playlist = entry;
             }
 
             if (!tracksSection && 'items' in entry) {
                 tracksSection = entry;
+            }
+        }
+
+        // If still no playlist found, try using the first valid entry
+        if (!playlist && entries.length > 0) {
+            for (const entry of entries) {
+                if (entry && typeof entry === 'object' && ('id' in entry || 'uuid' in entry)) {
+                    playlist = entry;
+                    break;
+                }
             }
         }
 
