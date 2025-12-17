@@ -384,18 +384,23 @@ export class LosslessAPI {
             this.fetchWithRetry(`/artist/?f=${artistId}`)
         ]);
 
-        const primaryData = await primaryResponse.json();
-        const rawArtist = Array.isArray(primaryData) ? primaryData[0] : primaryData;
+        const primaryJsonData = await primaryResponse.json();
+        
+        // Unwrap data property if it exists, then unwrap artist property if it exists
+        let primaryData = primaryJsonData.data || primaryJsonData;
+        const rawArtist = primaryData.artist || (Array.isArray(primaryData) ? primaryData[0] : primaryData);
 
         if (!rawArtist) throw new Error('Primary artist details not found.');
 
         const artist = {
             ...this.prepareArtist(rawArtist),
-            picture: rawArtist.picture || null,
+            picture: rawArtist.picture || primaryData.cover || null,
             name: rawArtist.name || 'Unknown Artist'
         };
 
-        const contentData = await contentResponse.json();
+        const contentJsonData = await contentResponse.json();
+        // Unwrap data property if it exists
+        const contentData = contentJsonData.data || contentJsonData;
         const entries = Array.isArray(contentData) ? contentData : [contentData];
 
         const albumMap = new Map();
