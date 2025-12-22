@@ -19,3 +19,44 @@ This is not the official repository or instance. It is an actively maintained fo
 
 
 ## **I am Not Affiliated with the original Owner!**
+
+## Development
+
+Monochrome is built with Vanilla JavaScript, HTML, and CSS. No build step is required (no Webpack, Vite, etc.), but because it uses ES Modules, you must run it over HTTP(S).
+
+### Prerequisites
+
+- A modern web browser
+- A way to serve static files (e.g., Python, VS Code Live Server, Node.js `http-server`)
+
+### Setup
+
+1.  **Clone the repository**
+    ```bash
+    git clone https://github.com/SamidyFR/monochrome.git
+    cd monochrome
+    ```
+
+2.  **Run locally**
+    You can use any static file server. For example:
+
+    **Using Python 3:**
+    ```bash
+    python3 -m http.server 8000
+    ```
+
+    **Using Node.js `http-server`:**
+    ```bash
+    npx http-server .
+    ```
+
+3.  **Open in Browser**
+    Navigate to `http://localhost:8000` (or whatever port your server uses).
+
+### Contributing
+
+1.  Fork the project
+2.  Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3.  Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4.  Push to the branch (`git push origin feature/AmazingFeature`)
+5.  Open a Pull Request
