@@ -324,6 +324,20 @@ export class LosslessAPI {
             }
         }
 
+        // If album exists but has no releaseDate, try to extract from tracks
+        if (album && !album.releaseDate && tracksSection?.items && tracksSection.items.length > 0) {
+            const firstTrack = tracksSection.items[0];
+            const track = firstTrack.item || firstTrack;
+
+            if (track) {
+                if (track.album && track.album.releaseDate) {
+                    album = { ...album, releaseDate: track.album.releaseDate };
+                } else if (track.streamStartDate) {
+                    album = { ...album, releaseDate: track.streamStartDate.split('T')[0] };
+                }
+            }
+        }
+
         const tracks = (tracksSection?.items || []).map(i => this.prepareTrack(i.item || i));
         const result = { album, tracks };
 
