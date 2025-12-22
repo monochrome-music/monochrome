@@ -386,6 +386,74 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
+        if (e.target.closest('#play-artist-radio-btn')) {
+            const btn = e.target.closest('#play-artist-radio-btn');
+            if (btn.disabled) return;
+
+            const artistId = window.location.hash.split('/')[1];
+            if (!artistId) return;
+
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Loading...</span>';
+
+            try {
+                const artist = await api.getArtist(artistId);
+                
+                if (!artist.albums || artist.albums.length === 0) {
+                    throw new Error("No albums found for this artist");
+                }
+
+                const trackSet = new Set(); 
+                const allTracks = [];
+                
+                const chunks = [];
+                const chunkSize = 3;
+                const albums = artist.albums;
+                
+                for (let i = 0; i < albums.length; i += chunkSize) {
+                    chunks.push(albums.slice(i, i + chunkSize));
+                }
+                
+                for (const chunk of chunks) {
+                    await Promise.all(chunk.map(async (album) => {
+                        try {
+                            const { tracks } = await api.getAlbum(album.id);
+                            tracks.forEach(track => {
+                                if (!trackSet.has(track.id)) {
+                                    trackSet.add(track.id);
+                                    allTracks.push(track);
+                                }
+                            });
+                        } catch (err) {
+                            console.warn(`Failed to fetch tracks for album ${album.title}:`, err);
+                        }
+                    }));
+                }
+
+                if (allTracks.length > 0) {
+                    for (let i = allTracks.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [allTracks[i], allTracks[j]] = [allTracks[j], allTracks[i]];
+                    }
+
+                    player.setQueue(allTracks, 0);
+                    player.playTrackFromQueue();
+                } else {
+                     throw new Error("No tracks found across all albums");
+                }
+
+            } catch (error) {
+                console.error('Artist radio failed:', error);
+                alert('Failed to start artist radio: ' + error.message);
+            } finally {
+                if (document.body.contains(btn)) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                }
+            }
+        }
+
         if (e.target.closest('#download-discography-btn')) {
             const btn = e.target.closest('#download-discography-btn');
             if (btn.disabled) return;
