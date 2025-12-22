@@ -23,10 +23,19 @@ export class UIRenderer {
         `;
     }
 
-    createTrackItemHTML(track, index, showCover = false) {
+    createTrackItemHTML(track, index, showCover = false, hasMultipleDiscs = false) {
         const playIconSmall = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
         const trackImageHTML = showCover ? `<img src="${this.api.getCoverUrl(track.album?.cover, '80')}" alt="Track Cover" class="track-item-cover" loading="lazy">` : '';
-        const trackNumberHTML = `<div class="track-number">${showCover ? trackImageHTML : index + 1}</div>`;
+
+        let displayIndex;
+        if (hasMultipleDiscs && !showCover) {
+            const discNum = track.volumeNumber ?? track.discNumber ?? 1;
+            displayIndex = `${discNum}-${track.trackNumber}`;
+        } else {
+            displayIndex = index + 1;
+        }
+
+        const trackNumberHTML = `<div class="track-number">${showCover ? trackImageHTML : displayIndex}</div>`;
         const explicitBadge = hasExplicitContent(track) ? this.createExplicitBadge() : '';
         const trackArtists = getTrackArtists(track);
         const trackTitle = getTrackTitle(track);
@@ -117,8 +126,11 @@ export class UIRenderer {
         const fragment = document.createDocumentFragment();
         const tempDiv = document.createElement('div');
 
+        // Check if there are multiple discs in the tracks array
+        const hasMultipleDiscs = tracks.some(t => (t.volumeNumber || t.discNumber || 1) > 1);
+
         tempDiv.innerHTML = tracks.map((track, i) =>
-            this.createTrackItemHTML(track, i, showCover)
+            this.createTrackItemHTML(track, i, showCover, hasMultipleDiscs)
         ).join('');
 
         while (tempDiv.firstChild) {
@@ -288,7 +300,12 @@ export class UIRenderer {
                 </div>
             `;
 
-            tracks.sort((a, b) => a.trackNumber - b.trackNumber);
+            tracks.sort((a, b) => {
+                const discA = a.volumeNumber ?? a.discNumber ?? 1;
+                const discB = b.volumeNumber ?? b.discNumber ?? 1;
+                if (discA !== discB) return discA - discB;
+                return a.trackNumber - b.trackNumber;
+            });
             this.renderListWithTracks(tracklistContainer, tracks, false);
 
             recentActivityManager.addAlbum(album);
