@@ -216,8 +216,10 @@ export class UIRenderer {
         if (backgroundSettings.isEnabled() && imageUrl) {
             bgElement.style.backgroundImage = `url('${imageUrl}')`;
             bgElement.classList.add('active');
+            document.body.classList.add('has-page-background');
         } else {
             bgElement.classList.remove('active');
+            document.body.classList.remove('has-page-background');
             // Delay clearing the image to allow transition
             setTimeout(() => {
                 if (!bgElement.classList.contains('active')) {
@@ -247,6 +249,18 @@ export class UIRenderer {
         root.style.setProperty('--highlight-rgb', `${r}, ${g}, ${b}`);
         root.style.setProperty('--active-highlight', color);
         root.style.setProperty('--ring', color);
+
+        // Calculate a safe hover color (darken if too light)
+        let hoverColor;
+        if (brightness > 200) {
+             const dr = Math.floor(r * 0.85);
+             const dg = Math.floor(g * 0.85);
+             const db = Math.floor(b * 0.85);
+             hoverColor = `rgba(${dr}, ${dg}, ${db}, 0.25)`;
+        } else {
+             hoverColor = `rgba(${r}, ${g}, ${b}, 0.15)`;
+        }
+        root.style.setProperty('--track-hover-bg', hoverColor);
     }
 
     resetVibrantColor() {
@@ -257,6 +271,7 @@ export class UIRenderer {
         root.style.removeProperty('--highlight-rgb');
         root.style.removeProperty('--active-highlight');
         root.style.removeProperty('--ring');
+        root.style.removeProperty('--track-hover-bg');
     }
 
     showFullscreenCover(track, nextTrack) {
