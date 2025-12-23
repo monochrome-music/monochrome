@@ -187,14 +187,14 @@ kbd {
     height: 100dvh;
     grid-template:
         "sidebar main" 1fr
-        "player player" auto / 280px 1fr;
+        "player player" auto / 190px 1fr;
 }
 
 .sidebar {
     grid-area: sidebar;
     background-color: var(--background);
     border-right: 1px solid var(--border);
-    padding: 1.5rem;
+    padding: 1.25rem;
     display: flex;
     flex-direction: column;
     gap: 2rem;
@@ -1834,7 +1834,7 @@ input:checked + .slider::before {
 /* Responsive Design */
 @media (max-width: 1024px) {
     .app-container {
-        grid-template-columns: 240px 1fr;
+        grid-template-columns: 160px 1fr;
     }
 
     .card-grid {
