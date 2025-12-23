@@ -1,10 +1,37 @@
 //js/ui.js
 import { formatTime, createPlaceholder, trackDataStore, hasExplicitContent, getTrackArtists, getTrackTitle, calculateTotalDuration, formatDuration } from './utils.js';
-import { recentActivityManager } from './storage.js';
+import { recentActivityManager, backgroundSettings } from './storage.js';
 
 export class UIRenderer {
     constructor(api) {
         this.api = api;
+        this.currentTrack = null;
+    }
+
+    setCurrentTrack(track) {
+        this.currentTrack = track;
+        this.updateGlobalTheme();
+    }
+
+    updateGlobalTheme() {
+        // If the album background setting is disabled, we don't do global coloring
+        // except possibly for the album page which handles its own check.
+        // But here we are handling the "not on album page" case or general updates.
+        
+        // Check if we are currently viewing an album page
+        const isAlbumPage = document.getElementById('page-album').classList.contains('active');
+
+        if (isAlbumPage) {
+            // The album page render logic handles its own coloring.
+            // We shouldn't override it here.
+            return;
+        }
+
+        if (backgroundSettings.isEnabled() && this.currentTrack?.album?.vibrantColor) {
+            this.setVibrantColor(this.currentTrack.album.vibrantColor);
+        } else {
+            this.resetVibrantColor();
+        }
     }
 
     createExplicitBadge() {
@@ -184,6 +211,54 @@ export class UIRenderer {
         });
     }
 
+    setPageBackground(imageUrl) {
+        const bgElement = document.getElementById('page-background');
+        if (backgroundSettings.isEnabled() && imageUrl) {
+            bgElement.style.backgroundImage = `url('${imageUrl}')`;
+            bgElement.classList.add('active');
+        } else {
+            bgElement.classList.remove('active');
+            // Delay clearing the image to allow transition
+            setTimeout(() => {
+                if (!bgElement.classList.contains('active')) {
+                    bgElement.style.backgroundImage = '';
+                }
+            }, 500);
+        }
+    }
+
+    setVibrantColor(color) {
+        if (!color) return;
+        
+        const root = document.documentElement;
+        
+        // Calculate contrast text color
+        const hex = color.replace('#', '');
+        const r = parseInt(hex.substr(0, 2), 16);
+        const g = parseInt(hex.substr(2, 2), 16);
+        const b = parseInt(hex.substr(4, 2), 16);
+        const brightness = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+        const foreground = brightness > 128 ? '#000000' : '#ffffff';
+
+        // Set global CSS variables
+        root.style.setProperty('--primary', color);
+        root.style.setProperty('--primary-foreground', foreground);
+        root.style.setProperty('--highlight', color);
+        root.style.setProperty('--highlight-rgb', `${r}, ${g}, ${b}`);
+        root.style.setProperty('--active-highlight', color);
+        root.style.setProperty('--ring', color);
+    }
+
+    resetVibrantColor() {
+        const root = document.documentElement;
+        root.style.removeProperty('--primary');
+        root.style.removeProperty('--primary-foreground');
+        root.style.removeProperty('--highlight');
+        root.style.removeProperty('--highlight-rgb');
+        root.style.removeProperty('--active-highlight');
+        root.style.removeProperty('--ring');
+    }
+
     showPage(pageId) {
         document.querySelectorAll('.page').forEach(page => {
             page.classList.toggle('active', page.id === `page-${pageId}`);
@@ -194,6 +269,12 @@ export class UIRenderer {
         });
 
         document.querySelector('.main-content').scrollTop = 0;
+
+        // Clear background and color if not on album page
+        if (pageId !== 'album') {
+             this.setPageBackground(null);
+             this.updateGlobalTheme();
+        }
 
         if (pageId === 'settings') {
             this.renderApiSettings();
@@ -331,8 +412,17 @@ export class UIRenderer {
         try {
             const { album, tracks } = await this.api.getAlbum(albumId);
 
-            imageEl.src = this.api.getCoverUrl(album.cover, '1280');
+            const coverUrl = this.api.getCoverUrl(album.cover, '1280');
+            imageEl.src = coverUrl;
             imageEl.style.backgroundColor = '';
+
+            // Set background and vibrant color
+            this.setPageBackground(coverUrl);
+            if (backgroundSettings.isEnabled() && album.vibrantColor) {
+                this.setVibrantColor(album.vibrantColor);
+            } else {
+                this.resetVibrantColor();
+            }
 
             const explicitBadge = hasExplicitContent(album) ? this.createExplicitBadge() : '';
             titleEl.innerHTML = `${album.title} ${explicitBadge}`;

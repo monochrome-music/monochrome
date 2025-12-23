@@ -332,6 +332,23 @@ export const lyricsSettings = {
     }
 };
 
+export const backgroundSettings = {
+    STORAGE_KEY: 'album-background-enabled',
+
+    isEnabled() {
+        try {
+            // Default to true if not set
+            return localStorage.getItem(this.STORAGE_KEY) !== 'false';
+        } catch (e) {
+            return true;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    }
+};
+
 export const queueManager = {
     STORAGE_KEY: 'monochrome-queue',
 

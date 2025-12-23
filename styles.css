@@ -206,6 +206,48 @@ kbd {
     overflow-y: auto;
     padding: var(--spacing-xl);
     scroll-behavior: smooth;
+    position: relative; /* Context for background */
+}
+
+/* Ensure content sits on top of background */
+.main-header,
+.page {
+    position: relative;
+    z-index: 1;
+}
+
+#page-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 60vh;
+    min-height: 400px;
+    z-index: 0;
+    background-size: cover;
+    background-position: center 20%;
+    background-repeat: no-repeat;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+    
+    /* Fade out at the bottom */
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0) 100%);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0) 100%);
+    
+    /* Blur effect */
+    filter: blur(50px) saturate(1.4) brightness(0.5);
+    pointer-events: none;
+}
+
+#page-background.active {
+    opacity: 1;
+}
+
+/* Light mode adjustments */
+:root[data-theme="light"] #page-background {
+    filter: blur(50px) saturate(1.5) brightness(1.1) opacity(0.5);
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
 }
 
 .now-playing-bar {

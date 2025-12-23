@@ -278,6 +278,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     audioPlayer.addEventListener('play', async () => {
         if (!player.currentTrack) return;
 
+        // Update UI with current track info for theme
+        ui.setCurrentTrack(player.currentTrack);
+
         const currentTrackId = player.currentTrack.id;
         if (currentTrackId === previousTrackId) return;
         previousTrackId = currentTrackId;
