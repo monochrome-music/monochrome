@@ -259,6 +259,30 @@ export class UIRenderer {
         root.style.removeProperty('--ring');
     }
 
+    showFullscreenCover(track) {
+        if (!track) return;
+
+        const overlay = document.getElementById('fullscreen-cover-overlay');
+        const image = document.getElementById('fullscreen-cover-image');
+        const title = document.getElementById('fullscreen-track-title');
+        const artist = document.getElementById('fullscreen-track-artist');
+        
+        const coverUrl = this.api.getCoverUrl(track.album?.cover, '1280');
+
+        image.src = coverUrl;
+        title.textContent = track.title;
+        artist.textContent = track.artist?.name || 'Unknown Artist';
+
+        // Set the background image via CSS variable for the pseudo-element to use
+        overlay.style.setProperty('--bg-image', `url('${coverUrl}')`);
+        
+        overlay.style.display = 'flex';
+    }
+
+    closeFullscreenCover() {
+        document.getElementById('fullscreen-cover-overlay').style.display = 'none';
+    }
+
     showPage(pageId) {
         document.querySelectorAll('.page').forEach(page => {
             page.classList.toggle('active', page.id === `page-${pageId}`);

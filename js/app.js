@@ -251,7 +251,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Clear sync when hiding
                 clearLyricsPanelSync(audioPlayer, lyricsPanel);
             }
+        } else if (mode === 'cover') {
+            ui.showFullscreenCover(player.currentTrack);
+        } else {
+            // Default to 'album' mode - navigate to album
+            if (player.currentTrack.album?.id) {
+                window.location.hash = `#album/${player.currentTrack.album.id}`;
+            }
         }
+    });
+
+    document.getElementById('close-fullscreen-cover-btn')?.addEventListener('click', () => {
+        ui.closeFullscreenCover();
     });
 
     document.getElementById('close-lyrics-btn')?.addEventListener('click', (e) => {
