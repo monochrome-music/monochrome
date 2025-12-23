@@ -23,13 +23,40 @@ export class UIRenderer {
         `;
     }
 
-    createTrackItemHTML(track, index, showCover = false) {
+    adjustTitleFontSize(element, text) {
+        element.classList.remove('long-title', 'very-long-title');
+        if (text.length > 40) {
+            element.classList.add('very-long-title');
+        } else if (text.length > 25) {
+            element.classList.add('long-title');
+        }
+    }
+
+    createTrackItemHTML(track, index, showCover = false, hasMultipleDiscs = false) {
         const playIconSmall = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
         const trackImageHTML = showCover ? `<img src="${this.api.getCoverUrl(track.album?.cover, '80')}" alt="Track Cover" class="track-item-cover" loading="lazy">` : '';
-        const trackNumberHTML = `<div class="track-number">${showCover ? trackImageHTML : index + 1}</div>`;
+
+        let displayIndex;
+        if (hasMultipleDiscs && !showCover) {
+            const discNum = track.volumeNumber ?? track.discNumber ?? 1;
+            displayIndex = `${discNum}-${track.trackNumber}`;
+        } else {
+            displayIndex = index + 1;
+        }
+
+        const trackNumberHTML = `<div class="track-number">${showCover ? trackImageHTML : displayIndex}</div>`;
         const explicitBadge = hasExplicitContent(track) ? this.createExplicitBadge() : '';
         const trackArtists = getTrackArtists(track);
         const trackTitle = getTrackTitle(track);
+
+        let yearDisplay = '';
+        const releaseDate = track.album?.releaseDate || track.streamStartDate;
+        if (releaseDate) {
+            const date = new Date(releaseDate);
+            if (!isNaN(date.getTime())) {
+                yearDisplay = ` • ${date.getFullYear()}`;
+            }
+        }
 
         return `
             <div class="track-item" data-track-id="${track.id}">
@@ -40,7 +67,7 @@ export class UIRenderer {
                             ${trackTitle}
                             ${explicitBadge}
                         </div>
-                        <div class="artist">${trackArtists}</div>
+                        <div class="artist">${trackArtists}${yearDisplay}</div>
                     </div>
                 </div>
                 <div class="track-item-duration">${formatTime(track.duration)}</div>
@@ -57,13 +84,21 @@ export class UIRenderer {
 
     createAlbumCardHTML(album) {
         const explicitBadge = hasExplicitContent(album) ? this.createExplicitBadge() : '';
+        let yearDisplay = '';
+        if (album.releaseDate) {
+            const date = new Date(album.releaseDate);
+            if (!isNaN(date.getTime())) {
+                yearDisplay = `${date.getFullYear()}`;
+            }
+        }
         return `
             <a href="#album/${album.id}" class="card">
                 <div class="card-image-wrapper">
                     <img src="${this.api.getCoverUrl(album.cover, '320')}" alt="${album.title}" class="card-image" loading="lazy">
                 </div>
                 <h3 class="card-title">${album.title} ${explicitBadge}</h3>
-                <p class="card-subtitle">Album • ${album.artist?.name ?? ''}</p>
+                <p class="card-subtitle">${album.artist?.name ?? ''}</p>
+                <p class="card-subtitle">${yearDisplay}</p>
             </a>
         `;
     }
@@ -75,7 +110,6 @@ export class UIRenderer {
                     <img src="${this.api.getArtistPictureUrl(artist.picture, '320')}" alt="${artist.name}" class="card-image" loading="lazy">
                 </div>
                 <h3 class="card-title">${artist.name}</h3>
-                <p class="card-subtitle">Artist</p>
             </a>
         `;
     }
@@ -100,7 +134,7 @@ export class UIRenderer {
             <div class="skeleton-card ${isArtist ? 'artist' : ''}">
                 <div class="skeleton skeleton-card-image"></div>
                 <div class="skeleton skeleton-card-title"></div>
-                <div class="skeleton skeleton-card-subtitle"></div>
+                ${!isArtist ? '<div class="skeleton skeleton-card-subtitle"></div>' : ''}
             </div>
         `;
     }
@@ -117,8 +151,11 @@ export class UIRenderer {
         const fragment = document.createDocumentFragment();
         const tempDiv = document.createElement('div');
 
+        // Check if there are multiple discs in the tracks array
+        const hasMultipleDiscs = tracks.some(t => (t.volumeNumber || t.discNumber || 1) > 1);
+
         tempDiv.innerHTML = tracks.map((track, i) =>
-            this.createTrackItemHTML(track, i, showCover)
+            this.createTrackItemHTML(track, i, showCover, hasMultipleDiscs)
         ).join('');
 
         while (tempDiv.firstChild) {
@@ -245,12 +282,14 @@ export class UIRenderer {
         const imageEl = document.getElementById('album-detail-image');
         const titleEl = document.getElementById('album-detail-title');
         const metaEl = document.getElementById('album-detail-meta');
+        const prodEl = document.getElementById('album-detail-producer');
         const tracklistContainer = document.getElementById('album-detail-tracklist');
 
         imageEl.src = '';
         imageEl.style.backgroundColor = 'var(--muted)';
         titleEl.innerHTML = '<div class="skeleton" style="height: 48px; width: 300px; max-width: 90%;"></div>';
         metaEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 200px; max-width: 80%;"></div>';
+        prodEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 200px; max-width: 80%;"></div>';
         tracklistContainer.innerHTML = `
             <div class="track-list-header">
                 <span style="width: 40px; text-align: center;">#</span>
@@ -269,16 +308,29 @@ export class UIRenderer {
             const explicitBadge = hasExplicitContent(album) ? this.createExplicitBadge() : '';
             titleEl.innerHTML = `${album.title} ${explicitBadge}`;
 
-            const totalDuration = calculateTotalDuration(tracks);
-            const releaseDate = new Date(album.releaseDate);
-            const year = releaseDate.getFullYear();
+            this.adjustTitleFontSize(titleEl, album.title);
 
-            const dateDisplay = window.innerWidth > 768
-                ? releaseDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
-                : year;
+            const totalDuration = calculateTotalDuration(tracks);
+            let dateDisplay = '';
+            if (album.releaseDate) {
+                const releaseDate = new Date(album.releaseDate);
+                if (!isNaN(releaseDate.getTime())) {
+                    const year = releaseDate.getFullYear();
+                    dateDisplay = window.innerWidth > 768
+                        ? releaseDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+                        : year;
+                }
+            }
+
+            const firstCopyright = tracks.find(track => track.copyright)?.copyright;
 
             metaEl.innerHTML =
-                `By <a href="#artist/${album.artist.id}">${album.artist.name}</a> • ${dateDisplay} • ${tracks.length} tracks • ${formatDuration(totalDuration)}`;
+                (dateDisplay ? `${dateDisplay} • ` : '') +
+                `${tracks.length} tracks • ${formatDuration(totalDuration)}`;
+
+            prodEl.innerHTML =
+                `By <a href="#artist/${album.artist.id}">${album.artist.name}</a>` +
+                (firstCopyright ? ` • ${firstCopyright}` : '');
 
             tracklistContainer.innerHTML = `
                 <div class="track-list-header">
@@ -288,7 +340,12 @@ export class UIRenderer {
                 </div>
             `;
 
-            tracks.sort((a, b) => a.trackNumber - b.trackNumber);
+            tracks.sort((a, b) => {
+                const discA = a.volumeNumber ?? a.discNumber ?? 1;
+                const discB = b.volumeNumber ?? b.discNumber ?? 1;
+                if (discA !== discB) return discA - discB;
+                return a.trackNumber - b.trackNumber;
+            });
             this.renderListWithTracks(tracklistContainer, tracks, false);
 
             recentActivityManager.addAlbum(album);
@@ -331,6 +388,8 @@ async renderPlaylistPage(playlistId) {
         imageEl.style.backgroundColor = '';
 
         titleEl.textContent = playlist.title;
+
+        this.adjustTitleFontSize(titleEl, playlist.title);
 
         const totalDuration = calculateTotalDuration(tracks);
 
@@ -377,6 +436,9 @@ async renderPlaylistPage(playlistId) {
             imageEl.src = this.api.getArtistPictureUrl(artist.picture, '750');
             imageEl.style.backgroundColor = '';
             nameEl.textContent = artist.name;
+
+            this.adjustTitleFontSize(nameEl, artist.name);
+
             metaEl.textContent = `${artist.popularity} popularity`;
 
             this.renderListWithTracks(tracksContainer, artist.tracks, true);

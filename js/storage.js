@@ -229,8 +229,9 @@ export const themeManager = {
     CUSTOM_THEME_KEY: 'monochrome-custom-theme',
 
     defaultThemes: {
-        monochrome: {},
+        light: {},
         dark: {},
+        monochrome: {},
         ocean: {},
         purple: {},
         forest: {}
@@ -238,15 +239,21 @@ export const themeManager = {
 
     getTheme() {
         try {
-            return localStorage.getItem(this.STORAGE_KEY) || 'monochrome';
+            return localStorage.getItem(this.STORAGE_KEY) || 'system';
         } catch (e) {
-            return 'monochrome';
+            return 'system';
         }
     },
 
     setTheme(theme) {
         localStorage.setItem(this.STORAGE_KEY, theme);
-        document.documentElement.setAttribute('data-theme', theme);
+        
+        if (theme === 'system') {
+            const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        } else {
+            document.documentElement.setAttribute('data-theme', theme);
+        }
     },
 
     getCustomTheme() {
@@ -318,3 +325,12 @@ export const lyricsSettings = {
         localStorage.setItem(this.DOWNLOAD_WITH_TRACKS, enabled ? 'true' : 'false');
     }
 };
+
+// System theme listener
+if (typeof window !== 'undefined' && window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+        if (themeManager.getTheme() === 'system') {
+            document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+        }
+    });
+}

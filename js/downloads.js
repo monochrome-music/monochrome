@@ -207,10 +207,13 @@ export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsMana
     const zip = new JSZip();
 
     const template = localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist} - monochrome.tf';
+    const releaseDate = album.releaseDate ? new Date(album.releaseDate) : null;
+    const year = (releaseDate && !isNaN(releaseDate.getTime())) ? releaseDate.getFullYear() : '';
+
     const folderName = formatTemplate(template, {
         albumTitle: album.title,
         albumArtist: album.artist?.name,
-        year: new Date(album.releaseDate).getFullYear()
+        year: year
     });
 
     const notification = createBulkDownloadNotification('album', album.title, tracks.length);
@@ -380,10 +383,13 @@ export async function downloadDiscography(artist, api, quality, lyricsManager = 
 
             try {
                 const { album: fullAlbum, tracks } = await api.getAlbum(album.id);
+                const releaseDate = fullAlbum.releaseDate ? new Date(fullAlbum.releaseDate) : null;
+                const year = (releaseDate && !isNaN(releaseDate.getTime())) ? releaseDate.getFullYear() : '';
+
                 const albumFolder = formatTemplate(template, {
                     albumTitle: fullAlbum.title,
                     albumArtist: fullAlbum.artist?.name,
-                    year: new Date(fullAlbum.releaseDate).getFullYear()
+                    year: year
                 });
 
                 for (const track of tracks) {
