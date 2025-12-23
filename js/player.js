@@ -366,6 +366,19 @@ export class Player {
         return this.shuffleActive ? this.shuffledQueue : this.queue;
     }
 
+    getNextTrack() {
+        const currentQueue = this.getCurrentQueue();
+        if (this.currentQueueIndex === -1 || currentQueue.length === 0) return null;
+
+        const nextIndex = this.currentQueueIndex + 1;
+        if (nextIndex < currentQueue.length) {
+            return currentQueue[nextIndex];
+        } else if (this.repeatMode === REPEAT_MODE.ALL) {
+            return currentQueue[0];
+        }
+        return null;
+    }
+
     updatePlayingTrackIndicator() {
         const currentTrack = this.getCurrentQueue()[this.currentQueueIndex];
         document.querySelectorAll('.track-item').forEach(item => {

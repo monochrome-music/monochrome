@@ -252,7 +252,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 clearLyricsPanelSync(audioPlayer, lyricsPanel);
             }
         } else if (mode === 'cover') {
-            ui.showFullscreenCover(player.currentTrack);
+            const nextTrack = player.getNextTrack();
+            ui.showFullscreenCover(player.currentTrack, nextTrack);
         } else {
             // Default to 'album' mode - navigate to album
             if (player.currentTrack.album?.id) {
@@ -314,6 +315,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     content.innerHTML = '<div class="lyrics-error">No lyrics available for this track</div>';
                 }
             }
+        }
+
+        // Update Fullscreen/Enlarged Cover if it's open
+        const fullscreenOverlay = document.getElementById('fullscreen-cover-overlay');
+        if (fullscreenOverlay && getComputedStyle(fullscreenOverlay).display !== 'none') {
+             const nextTrack = player.getNextTrack();
+             ui.showFullscreenCover(player.currentTrack, nextTrack);
         }
     });
 
