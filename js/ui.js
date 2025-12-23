@@ -206,6 +206,7 @@ export class UIRenderer {
 
         const albumsContainer = document.getElementById('home-recent-albums');
         const artistsContainer = document.getElementById('home-recent-artists');
+        const playlistsContainer = document.getElementById('home-recent-playlists');
 
         albumsContainer.innerHTML = recents.albums.length
             ? recents.albums.map(album => this.createAlbumCardHTML(album)).join('')
@@ -214,6 +215,12 @@ export class UIRenderer {
         artistsContainer.innerHTML = recents.artists.length
             ? recents.artists.map(artist => this.createArtistCardHTML(artist)).join('')
             : createPlaceholder("You haven't viewed any artists yet. Search for music to get started!");
+
+        if (playlistsContainer) {
+            playlistsContainer.innerHTML = recents.playlists && recents.playlists.length
+                ? recents.playlists.map(playlist => this.createPlaylistCardHTML(playlist)).join('')
+                : createPlaceholder("You haven't viewed any playlists yet. Search for music to get started!");
+        }
     }
 
     async renderSearchPage(query) {
@@ -427,10 +434,11 @@ async renderPlaylistPage(playlistId) {
             </div>
         `;
 
-        this.renderListWithTracks(tracklistContainer, tracks, true);
-
-        document.title = `${playlist.title} - Monochrome`;
-    } catch (error) {
+                    this.renderListWithTracks(tracklistContainer, tracks, true);
+        
+                    recentActivityManager.addPlaylist(playlist);
+        
+                    document.title = `${playlist.title || 'Artist Mix'} - Monochrome`;    } catch (error) {
         console.error("Failed to load playlist:", error);
         tracklistContainer.innerHTML = createPlaceholder(`Could not load playlist details. ${error.message}`);
     }
