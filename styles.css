@@ -2909,16 +2909,6 @@ input:checked + .slider::before {
     box-shadow: var(--shadow-sm);
 }
 
-#play-playlist-btn {
-    background-color: var(--primary);
-    color: var(--primary-foreground);
-}
-
-#download-playlist-btn {
-    background-color: var(--secondary);
-    color: var(--foreground);
-}
-
 #play-playlist-btn:hover,
 #download-playlist-btn:hover {
     transform: scale(1.05);
