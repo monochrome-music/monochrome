@@ -103,6 +103,19 @@ export class UIRenderer {
         `;
     }
 
+    createPlaylistCardHTML(playlist) {
+        const imageId = playlist.squareImage || playlist.image || playlist.uuid; // Fallback or use a specific cover getter if needed
+        return `
+            <a href="#playlist/${playlist.uuid}" class="card">
+                <div class="card-image-wrapper">
+                    <img src="${this.api.getCoverUrl(imageId, '320')}" alt="${playlist.title}" class="card-image" loading="lazy">
+                </div>
+                <h3 class="card-title">${playlist.title}</h3>
+                <p class="card-subtitle">${playlist.numberOfTracks || 0} tracks</p>
+            </a>
+        `;
+    }
+
     createArtistCardHTML(artist) {
         return `
             <a href="#artist/${artist.id}" class="card artist">
@@ -210,21 +223,25 @@ export class UIRenderer {
         const tracksContainer = document.getElementById('search-tracks-container');
         const artistsContainer = document.getElementById('search-artists-container');
         const albumsContainer = document.getElementById('search-albums-container');
+        const playlistsContainer = document.getElementById('search-playlists-container');
 
         tracksContainer.innerHTML = this.createSkeletonTracks(8, true);
         artistsContainer.innerHTML = this.createSkeletonCards(6, true);
         albumsContainer.innerHTML = this.createSkeletonCards(6, false);
+        playlistsContainer.innerHTML = this.createSkeletonCards(6, false);
 
         try {
-            const [tracksResult, artistsResult, albumsResult] = await Promise.all([
+            const [tracksResult, artistsResult, albumsResult, playlistsResult] = await Promise.all([
                 this.api.searchTracks(query),
                 this.api.searchArtists(query),
-                this.api.searchAlbums(query)
+                this.api.searchAlbums(query),
+                this.api.searchPlaylists(query)
             ]);
 
             let finalTracks = tracksResult.items;
             let finalArtists = artistsResult.items;
             let finalAlbums = albumsResult.items;
+            let finalPlaylists = playlistsResult.items;
 
             if (finalArtists.length === 0 && finalTracks.length > 0) {
                 const artistMap = new Map();
@@ -267,12 +284,17 @@ export class UIRenderer {
                 ? finalAlbums.map(album => this.createAlbumCardHTML(album)).join('')
                 : createPlaceholder('No albums found.');
 
+            playlistsContainer.innerHTML = finalPlaylists.length
+                ? finalPlaylists.map(playlist => this.createPlaylistCardHTML(playlist)).join('')
+                : createPlaceholder('No playlists found.');
+
         } catch (error) {
             console.error("Search failed:", error);
             const errorMsg = createPlaceholder(`Error during search. ${error.message}`);
             tracksContainer.innerHTML = errorMsg;
             artistsContainer.innerHTML = errorMsg;
             albumsContainer.innerHTML = errorMsg;
+            playlistsContainer.innerHTML = errorMsg;
         }
     }
 
