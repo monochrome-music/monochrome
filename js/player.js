@@ -322,6 +322,26 @@ export class Player {
         this.saveQueueState();
     }
 
+    addNextToQueue(track) {
+        const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
+        const insertIndex = this.currentQueueIndex + 1;
+        
+        // Insert after current track
+        currentQueue.splice(insertIndex, 0, track);
+        
+        // If we are shuffling, we might want to also add it to the original queue for consistency, 
+        // though syncing that is tricky. The standard logic often just appends to the active queue view.
+        if (this.shuffleActive) {
+             this.originalQueueBeforeShuffle.push(track); // Just append to end of main list? Or logic needed.
+             // Simplest is to just modify the active playing queue.
+        } else {
+             // In linear mode, `currentQueue` IS `this.queue`
+        }
+
+        this.saveQueueState();
+        this.preloadNextTracks(); // Update preload since next track changed
+    }
+
     removeFromQueue(index) {
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
 

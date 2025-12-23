@@ -1,5 +1,5 @@
 //js/settings
-import { themeManager, lastFMStorage, nowPlayingSettings, lyricsSettings, backgroundSettings } from './storage.js';
+import { themeManager, lastFMStorage, nowPlayingSettings, lyricsSettings, backgroundSettings, trackListSettings } from './storage.js';
 
 export function initializeSettings(scrobbler, player, api, ui) {
     const lastfmConnectBtn = document.getElementById('lastfm-connect-btn');
@@ -173,6 +173,15 @@ export function initializeSettings(scrobbler, player, api, ui) {
         nowPlayingMode.value = nowPlayingSettings.getMode();
         nowPlayingMode.addEventListener('change', (e) => {
             nowPlayingSettings.setMode(e.target.value);
+        });
+    }
+
+    // Track List Actions Mode
+    const trackListActionsMode = document.getElementById('track-list-actions-mode');
+    if (trackListActionsMode) {
+        trackListActionsMode.value = trackListSettings.getMode();
+        trackListActionsMode.addEventListener('change', (e) => {
+            trackListSettings.setMode(e.target.value);
         });
     }
 
