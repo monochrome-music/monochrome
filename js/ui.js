@@ -23,6 +23,15 @@ export class UIRenderer {
         `;
     }
 
+    adjustTitleFontSize(element, text) {
+        element.classList.remove('long-title', 'very-long-title');
+        if (text.length > 40) {
+            element.classList.add('very-long-title');
+        } else if (text.length > 25) {
+            element.classList.add('long-title');
+        }
+    }
+
     createTrackItemHTML(track, index, showCover = false, hasMultipleDiscs = false) {
         const playIconSmall = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
         const trackImageHTML = showCover ? `<img src="${this.api.getCoverUrl(track.album?.cover, '80')}" alt="Track Cover" class="track-item-cover" loading="lazy">` : '';
@@ -299,6 +308,8 @@ export class UIRenderer {
             const explicitBadge = hasExplicitContent(album) ? this.createExplicitBadge() : '';
             titleEl.innerHTML = `${album.title} ${explicitBadge}`;
 
+            this.adjustTitleFontSize(titleEl, album.title);
+
             const totalDuration = calculateTotalDuration(tracks);
             let dateDisplay = '';
             if (album.releaseDate) {
@@ -378,6 +389,8 @@ async renderPlaylistPage(playlistId) {
 
         titleEl.textContent = playlist.title;
 
+        this.adjustTitleFontSize(titleEl, playlist.title);
+
         const totalDuration = calculateTotalDuration(tracks);
 
         metaEl.textContent = `${playlist.numberOfTracks} tracks • ${formatDuration(totalDuration)}`;
@@ -423,6 +436,9 @@ async renderPlaylistPage(playlistId) {
             imageEl.src = this.api.getArtistPictureUrl(artist.picture, '750');
             imageEl.style.backgroundColor = '';
             nameEl.textContent = artist.name;
+
+            this.adjustTitleFontSize(nameEl, artist.name);
+
             metaEl.textContent = `${artist.popularity} popularity`;
 
             this.renderListWithTracks(tracksContainer, artist.tracks, true);
