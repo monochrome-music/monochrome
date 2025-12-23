@@ -275,9 +275,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                 contextTrack = trackDataStore.get(trackItem);
                 if (contextTrack) {
                     const rect = menuBtn.getBoundingClientRect();
-                    contextMenu.style.top = `${rect.bottom + 5}px`;
-                    contextMenu.style.left = `${rect.left}px`;
-                    contextMenu.style.display = 'block';
+                    positionMenu(contextMenu, rect.left, rect.bottom + 5, rect);
                 }
             }
             return;
@@ -307,9 +305,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             contextTrack = trackDataStore.get(trackItem);
 
             if (contextTrack) {
-                contextMenu.style.top = `${e.pageY}px`;
-                contextMenu.style.left = `${e.pageX}px`;
-                contextMenu.style.display = 'block';
+                positionMenu(contextMenu, e.pageX, e.pageY);
             }
         }
     });
@@ -386,4 +382,43 @@ function formatTime(seconds) {
     const m = Math.floor(seconds / 60);
     const s = Math.floor(seconds % 60);
     return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function positionMenu(menu, x, y, anchorRect = null) {
+    // Temporarily show to measure dimensions
+    menu.style.visibility = 'hidden';
+    menu.style.display = 'block';
+    
+    const menuWidth = menu.offsetWidth;
+    const menuHeight = menu.offsetHeight;
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    
+    let left = x;
+    let top = y;
+
+    if (anchorRect) {
+        // Adjust horizontal position if it overflows right
+        if (left + menuWidth > windowWidth - 10) { // 10px buffer
+            left = anchorRect.right - menuWidth;
+            if (left < 10) left = 10;
+        }
+        // Adjust vertical position if it overflows bottom
+        if (top + menuHeight > windowHeight - 10) {
+            top = anchorRect.top - menuHeight - 5;
+        }
+    } else {
+        // Adjust horizontal position if it overflows right
+        if (left + menuWidth > windowWidth - 10) {
+            left = windowWidth - menuWidth - 10;
+        }
+        // Adjust vertical position if it overflows bottom
+        if (top + menuHeight > windowHeight - 10) {
+            top = y - menuHeight;
+        }
+    }
+
+    menu.style.top = `${top}px`;
+    menu.style.left = `${left}px`;
+    menu.style.visibility = 'visible';
 }
