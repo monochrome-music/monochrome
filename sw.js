@@ -1,5 +1,5 @@
 //sw.js
-const CACHE_NAME = 'monochrome-v3';
+const CACHE_NAME = 'monochrome-v4';
 const IMAGE_CACHE_NAME = 'monochrome-images-v1';
 const urlsToCache = [
     '/',
