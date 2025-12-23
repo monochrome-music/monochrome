@@ -1,4 +1,4 @@
-[<img src="https://github.com/SamidyFR/monochrome/blob/main/assets/512.png?raw=true" alt="Monochrome Logo">](https://monochrome.samidy.com)
+[<p style="text-align: center;><img src="https://github.com/SamidyFR/monochrome/blob/main/assets/512.png?raw=true" alt="Monochrome Logo"></p>](https://monochrome.samidy.com)
 
 
 # Monochrome
