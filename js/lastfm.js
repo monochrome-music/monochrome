@@ -3,8 +3,8 @@ import { delay } from './utils.js';
 
 export class LastFMScrobbler {
     constructor() {
-        this.API_KEY = '0fc32c426d943d34a662977b31b98b67';
-        this.API_SECRET = '53acf2466be726db021e7fdfd0ad1084';
+        this.API_KEY = '0ecf01914957b40c17030db822845a76';
+        this.API_SECRET = 'bd37e61e0b16b8c7bf8de2862de5493c';
         this.API_URL = 'https://ws.audioscrobbler.com/2.0/';
 
         this.sessionKey = null;
