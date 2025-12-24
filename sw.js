@@ -1,5 +1,5 @@
 //sw.js
-const CACHE_NAME = 'monochrome-v1';
+const CACHE_NAME = 'monochrome-v2';
 const urlsToCache = [
     '/',
     '/index.html',
@@ -15,6 +15,7 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', event => {
+    self.skipWaiting(); // Force activation
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then(cache => cache.addAll(urlsToCache))
@@ -25,6 +26,11 @@ self.addEventListener('fetch', event => {
     event.respondWith(
         caches.match(event.request)
             .then(response => response || fetch(event.request))
+            .catch(() => {
+                // Return 404 or handle offline fallback here if needed
+                // For now, just ensuring the promise doesn't reject uncaught
+                return new Response('Network error', { status: 408 });
+            })
     );
 });
 
@@ -38,7 +44,7 @@ self.addEventListener('activate', event => {
                         return caches.delete(cacheName);
                     }
                 })
-            );
+            ).then(() => self.clients.claim()); // Take control immediately
         })
     );
 });

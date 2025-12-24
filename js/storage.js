@@ -326,6 +326,36 @@ export const lyricsSettings = {
     }
 };
 
+export const queueManager = {
+    STORAGE_KEY: 'monochrome-queue',
+
+    getQueue() {
+        try {
+            const data = localStorage.getItem(this.STORAGE_KEY);
+            return data ? JSON.parse(data) : null;
+        } catch (e) {
+            return null;
+        }
+    },
+
+    saveQueue(queueState) {
+        try {
+            // Only save essential data to avoid quota limits
+            const minimalState = {
+                queue: queueState.queue,
+                shuffledQueue: queueState.shuffledQueue,
+                originalQueueBeforeShuffle: queueState.originalQueueBeforeShuffle,
+                currentQueueIndex: queueState.currentQueueIndex,
+                shuffleActive: queueState.shuffleActive,
+                repeatMode: queueState.repeatMode
+            };
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(minimalState));
+        } catch (e) {
+            console.warn('Failed to save queue to localStorage:', e);
+        }
+    }
+};
+
 // System theme listener
 if (typeof window !== 'undefined' && window.matchMedia) {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {

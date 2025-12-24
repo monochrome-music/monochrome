@@ -1,5 +1,6 @@
 //js/player.js
 import { REPEAT_MODE, formatTime, getTrackArtists, getTrackTitle} from './utils.js';
+import { queueManager } from './storage.js';
 
 export class Player {
     constructor(audioElement, api, quality = 'LOSSLESS') {
@@ -16,7 +17,58 @@ export class Player {
         this.preloadAbortController = null;
         this.currentTrack = null;
 
+        this.loadQueueState();
         this.setupMediaSession();
+        
+        window.addEventListener('beforeunload', () => {
+            this.saveQueueState();
+        });
+    }
+
+    loadQueueState() {
+        const savedState = queueManager.getQueue();
+        if (savedState) {
+            this.queue = savedState.queue || [];
+            this.shuffledQueue = savedState.shuffledQueue || [];
+            this.originalQueueBeforeShuffle = savedState.originalQueueBeforeShuffle || [];
+            this.currentQueueIndex = savedState.currentQueueIndex ?? -1;
+            this.shuffleActive = savedState.shuffleActive || false;
+            this.repeatMode = savedState.repeatMode || REPEAT_MODE.OFF;
+            
+            // Restore current track if queue exists and index is valid
+            const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
+            if (this.currentQueueIndex >= 0 && this.currentQueueIndex < currentQueue.length) {
+                this.currentTrack = currentQueue[this.currentQueueIndex];
+                
+                // Restore UI
+                const track = this.currentTrack;
+                const trackTitle = getTrackTitle(track);
+                const trackArtists = getTrackArtists(track);
+
+                const coverEl = document.querySelector('.now-playing-bar .cover');
+                const titleEl = document.querySelector('.now-playing-bar .title');
+                const artistEl = document.querySelector('.now-playing-bar .artist');
+
+                if (coverEl) coverEl.src = this.api.getCoverUrl(track.album?.cover, '1280');
+                if (titleEl) titleEl.textContent = trackTitle;
+                if (artistEl) artistEl.textContent = trackArtists;
+                document.title = `${trackTitle} • ${track.artist?.name || 'Unknown'}`;
+
+                this.updatePlayingTrackIndicator();
+                this.updateMediaSession(track);
+            }
+        }
+    }
+
+    saveQueueState() {
+        queueManager.saveQueue({
+            queue: this.queue,
+            shuffledQueue: this.shuffledQueue,
+            originalQueueBeforeShuffle: this.originalQueueBeforeShuffle,
+            currentQueueIndex: this.currentQueueIndex,
+            shuffleActive: this.shuffleActive,
+            repeatMode: this.repeatMode
+        });
     }
 
     setupMediaSession() {
@@ -105,6 +157,8 @@ export class Player {
             return;
         }
 
+        this.saveQueueState();
+
         const track = currentQueue[this.currentQueueIndex];
         this.currentTrack = track;
 
@@ -187,12 +241,23 @@ export class Player {
     }
 
     handlePlayPause() {
-        if (!this.audio.src) return;
+        if (!this.audio.src || this.audio.error) {
+            if (this.currentTrack) {
+                this.playTrackFromQueue();
+            }
+            return;
+        }
 
         if (this.audio.paused) {
-            this.audio.play().catch(console.error);
+            this.audio.play().catch(e => {
+                console.error("Play failed, reloading track:", e);
+                if (this.currentTrack) {
+                    this.playTrackFromQueue();
+                }
+            });
         } else {
             this.audio.pause();
+            this.saveQueueState();
         }
     }
 
@@ -230,10 +295,12 @@ export class Player {
 
         this.preloadCache.clear();
         this.preloadNextTracks();
+        this.saveQueueState();
     }
 
     toggleRepeat() {
         this.repeatMode = (this.repeatMode + 1) % 3;
+        this.saveQueueState();
         return this.repeatMode;
     }
 
@@ -242,6 +309,7 @@ export class Player {
         this.currentQueueIndex = startIndex;
         this.shuffleActive = false;
         this.preloadCache.clear();
+        this.saveQueueState();
     }
 
     addToQueue(track) {
@@ -251,6 +319,7 @@ export class Player {
             this.currentQueueIndex = this.queue.length - 1;
             this.playTrackFromQueue();
         }
+        this.saveQueueState();
     }
 
     removeFromQueue(index) {
@@ -271,6 +340,7 @@ export class Player {
                 this.playTrackFromQueue();
             }
         }
+        this.saveQueueState();
     }
 
     moveInQueue(fromIndex, toIndex) {
@@ -289,6 +359,7 @@ export class Player {
         } else if (fromIndex > this.currentQueueIndex && toIndex <= this.currentQueueIndex) {
             this.currentQueueIndex++;
         }
+        this.saveQueueState();
     }
 
     getCurrentQueue() {
