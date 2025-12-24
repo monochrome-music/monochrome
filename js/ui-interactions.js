@@ -77,11 +77,10 @@ export function initializeUIInteractions(player, api) {
                         </div>
                     </div>
                     <div class="track-item-duration">${formatTime(track.duration)}</div>
-                    <button class="track-menu-btn" data-track-index="${index}">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="1"></circle>
-                            <circle cx="12" cy="5" r="1"></circle>
-                            <circle cx="12" cy="19" r="1"></circle>
+                    <button class="queue-remove-btn" data-track-index="${index}" title="Remove from queue">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
                         </svg>
                     </button>
                 </div>
@@ -94,7 +93,13 @@ export function initializeUIInteractions(player, api) {
             const index = parseInt(item.dataset.queueIndex);
 
             item.addEventListener('click', (e) => {
-                if (e.target.closest('.track-menu-btn')) return;
+                const removeBtn = e.target.closest('.queue-remove-btn');
+                if (removeBtn) {
+                    e.stopPropagation();
+                    player.removeFromQueue(index);
+                    renderQueue();
+                    return;
+                }
                 player.playAtIndex(index);
                 renderQueue();
             });

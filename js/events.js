@@ -54,7 +54,6 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler) {
             const currentTimeEl = document.getElementById('current-time');
             progressFill.style.width = `${(currentTime / duration) * 100}%`;
             currentTimeEl.textContent = formatTime(currentTime);
-            player.updateMediaSessionPositionState();
         }
     });
 
