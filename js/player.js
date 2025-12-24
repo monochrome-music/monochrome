@@ -143,6 +143,9 @@ export class Player {
                 if (this.preloadAbortController.signal.aborted) break;
 
                 this.preloadCache.set(track.id, streamUrl);
+                
+                // Warm connection/cache
+                fetch(streamUrl, { method: 'HEAD', signal: this.preloadAbortController.signal }).catch(() => {});
             } catch (error) {
                 if (error.name !== 'AbortError') {
                     console.debug('Failed to get stream URL for preload:', trackTitle);
@@ -250,6 +253,7 @@ export class Player {
 
         if (this.audio.paused) {
             this.audio.play().catch(e => {
+                if (e.name === 'NotAllowedError' || e.name === 'AbortError') return;
                 console.error("Play failed, reloading track:", e);
                 if (this.currentTrack) {
                     this.playTrackFromQueue();

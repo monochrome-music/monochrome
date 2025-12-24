@@ -6,6 +6,7 @@ export class UIRenderer {
     constructor(api) {
         this.api = api;
         this.currentTrack = null;
+        this.searchAbortController = null;
     }
 
     setCurrentTrack(track) {
@@ -404,12 +405,18 @@ export class UIRenderer {
         albumsContainer.innerHTML = this.createSkeletonCards(6, false);
         playlistsContainer.innerHTML = this.createSkeletonCards(6, false);
 
+        if (this.searchAbortController) {
+            this.searchAbortController.abort();
+        }
+        this.searchAbortController = new AbortController();
+        const signal = this.searchAbortController.signal;
+
         try {
             const [tracksResult, artistsResult, albumsResult, playlistsResult] = await Promise.all([
-                this.api.searchTracks(query),
-                this.api.searchArtists(query),
-                this.api.searchAlbums(query),
-                this.api.searchPlaylists(query)
+                this.api.searchTracks(query, { signal }),
+                this.api.searchArtists(query, { signal }),
+                this.api.searchAlbums(query, { signal }),
+                this.api.searchPlaylists(query, { signal })
             ]);
 
             let finalTracks = tracksResult.items;
@@ -463,6 +470,7 @@ export class UIRenderer {
                 : createPlaceholder('No playlists found.');
 
         } catch (error) {
+            if (error.name === 'AbortError') return;
             console.error("Search failed:", error);
             const errorMsg = createPlaceholder(`Error during search. ${error.message}`);
             tracksContainer.innerHTML = errorMsg;
