@@ -219,12 +219,12 @@ export class LosslessAPI {
         }
     }
 
-    async searchTracks(query) {
+    async searchTracks(query, options = {}) {
         const cached = await this.cache.get('search_tracks', query);
         if (cached) return cached;
 
         try {
-            const response = await this.fetchWithRetry(`/search/?s=${encodeURIComponent(query)}`);
+            const response = await this.fetchWithRetry(`/search/?s=${encodeURIComponent(query)}`, options);
             const data = await response.json();
             const normalized = this.normalizeSearchResponse(data, 'tracks');
             const result = {
@@ -235,17 +235,18 @@ export class LosslessAPI {
             await this.cache.set('search_tracks', query, result);
             return result;
         } catch (error) {
+            if (error.name === 'AbortError') throw error;
             console.error('Track search failed:', error);
             return { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 };
         }
     }
 
-    async searchArtists(query) {
+    async searchArtists(query, options = {}) {
         const cached = await this.cache.get('search_artists', query);
         if (cached) return cached;
 
         try {
-            const response = await this.fetchWithRetry(`/search/?a=${encodeURIComponent(query)}`);
+            const response = await this.fetchWithRetry(`/search/?a=${encodeURIComponent(query)}`, options);
             const data = await response.json();
             const normalized = this.normalizeSearchResponse(data, 'artists');
             const result = {
@@ -256,17 +257,18 @@ export class LosslessAPI {
             await this.cache.set('search_artists', query, result);
             return result;
         } catch (error) {
+            if (error.name === 'AbortError') throw error;
             console.error('Artist search failed:', error);
             return { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 };
         }
     }
 
-    async searchAlbums(query) {
+    async searchAlbums(query, options = {}) {
         const cached = await this.cache.get('search_albums', query);
         if (cached) return cached;
 
         try {
-            const response = await this.fetchWithRetry(`/search/?al=${encodeURIComponent(query)}`);
+            const response = await this.fetchWithRetry(`/search/?al=${encodeURIComponent(query)}`, options);
             const data = await response.json();
             const normalized = this.normalizeSearchResponse(data, 'albums');
             const result = {
@@ -277,17 +279,18 @@ export class LosslessAPI {
             await this.cache.set('search_albums', query, result);
             return result;
         } catch (error) {
+            if (error.name === 'AbortError') throw error;
             console.error('Album search failed:', error);
             return { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 };
         }
     }
 
-    async searchPlaylists(query) {
+    async searchPlaylists(query, options = {}) {
         const cached = await this.cache.get('search_playlists', query);
         if (cached) return cached;
 
         try {
-            const response = await this.fetchWithRetry(`/search/?p=${encodeURIComponent(query)}`);
+            const response = await this.fetchWithRetry(`/search/?p=${encodeURIComponent(query)}`, options);
             const data = await response.json();
             const normalized = this.normalizeSearchResponse(data, 'playlists');
             const result = {
@@ -298,6 +301,7 @@ export class LosslessAPI {
             await this.cache.set('search_playlists', query, result);
             return result;
         } catch (error) {
+            if (error.name === 'AbortError') throw error;
             console.error('Playlist search failed:', error);
             return { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 };
         }
