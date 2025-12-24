@@ -515,7 +515,8 @@ function completeBulkDownload(notifEl, success = true, message = null) {
     }
 }
 
-export async function downloadCurrentTrack(track, quality, api, lyricsManager = null) {
+export async function downloadTrackWithMetadata(track, quality, api, lyricsManager = null, abortController = null) {
+
     if (!track) {
         alert('No track is currently playing');
         return;
@@ -523,8 +524,10 @@ export async function downloadCurrentTrack(track, quality, api, lyricsManager = 
 
     const filename = buildTrackFilename(track, quality);
 
+    const controller = abortController || new AbortController();
+
     try {
-        const { taskEl, abortController } = addDownloadTask(
+        const { taskEl, taskAbortController } = addDownloadTask(
             track.id,
             track,
             filename,
@@ -544,7 +547,7 @@ export async function downloadCurrentTrack(track, quality, api, lyricsManager = 
             }
         }
 
-        const resp = await fetch(streamUrl, { signal: abortController.signal, cache: 'no-store' });
+        const resp = await fetch(streamUrl, { signal: controller.signal, cache: 'no-store' });
         if (!resp.ok) throw new Error(`Fetch failed: ${resp.status}`);
 
         const contentLength = resp.headers.get('Content-Length');
@@ -586,7 +589,8 @@ export async function downloadCurrentTrack(track, quality, api, lyricsManager = 
         try {
             const meta = buildTrackMetadata(track, api);
             const metaFilename = filename.replace(/\.[^.]+$/, '.json');
-            zip.file(metaFilename, JSON.stringify(meta, null, 2));
+            const jsonContent = JSON.stringify(meta, null, 2);
+            zip.file(metaFilename, jsonContent);
         } catch (e) {
             console.warn('Could not create metadata for current track', e);
         }

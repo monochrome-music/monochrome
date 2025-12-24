@@ -10,7 +10,7 @@ import { createRouter, updateTabTitle } from './router.js';
 import { initializeSettings } from './settings.js';
 import { initializePlayerEvents, initializeTrackInteractions } from './events.js';
 import { initializeUIInteractions } from './ui-interactions.js';
-import { downloadAlbumAsZip, downloadDiscography, downloadCurrentTrack, downloadPlaylistAsZip } from './downloads.js';
+import { downloadAlbumAsZip, downloadDiscography, downloadPlaylistAsZip } from './downloads.js';
 import { debounce, SVG_PLAY } from './utils.js';
 
 function initializeCasting(audioPlayer, castBtn) {
@@ -205,7 +205,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     initializeSettings(scrobbler, player, api, ui);
     initializePlayerEvents(player, audioPlayer, scrobbler);
-    initializeTrackInteractions(player, api, document.querySelector('.main-content'), document.getElementById('context-menu'));
+    initializeTrackInteractions(player, api, document.querySelector('.main-content'), document.getElementById('context-menu'), lyricsManager);
     initializeUIInteractions(player, api);
     initializeKeyboardShortcuts(player, audioPlayer, lyricsPanel);
     initializeMediaSessionHandlers(player);
@@ -268,7 +268,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.getElementById('download-current-btn')?.addEventListener('click', () => {
-        downloadCurrentTrack(player.currentTrack, player.quality, api, lyricsManager);
+        if (player.currentTrack) {
+            downloadTrackWithMetadata(player.currentTrack, player.quality, api, lyricsManager);
+        }
     });
 
     // Auto-update lyrics when track changes

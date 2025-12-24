@@ -1,7 +1,8 @@
 //js/events.js
 import { SVG_PLAY, SVG_PAUSE, SVG_VOLUME, SVG_MUTE, REPEAT_MODE, trackDataStore, RATE_LIMIT_ERROR_MESSAGE, buildTrackFilename } from './utils.js';
 import { lastFMStorage } from './storage.js';
-import { addDownloadTask, updateDownloadProgress, completeDownloadTask } from './downloads.js';
+import { addDownloadTask, updateDownloadProgress, completeDownloadTask, downloadTrackWithMetadata } from './downloads.js';
+import { lyricsSettings } from './storage.js';
 import { updateTabTitle } from './router.js';
 
 export function initializePlayerEvents(player, audioPlayer, scrobbler) {
@@ -278,7 +279,7 @@ function initializeSmoothSliders(audioPlayer, player) {
     });
 }
 
-export function initializeTrackInteractions(player, api, mainContent, contextMenu) {
+export function initializeTrackInteractions(player, api, mainContent, contextMenu, lyricsManager) {
     let contextTrack = null;
 
     mainContent.addEventListener('click', e => {
@@ -337,33 +338,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             player.addToQueue(contextTrack);
             renderQueue(player);
         } else if (action === 'download' && contextTrack) {
-            const quality = player.quality;
-            const filename = buildTrackFilename(contextTrack, quality);
-
-            try {
-                const { taskEl, abortController } = addDownloadTask(
-                    contextTrack.id,
-                    contextTrack,
-                    filename,
-                    api
-                );
-
-                await api.downloadTrack(contextTrack.id, quality, filename, {
-                    signal: abortController.signal,
-                    onProgress: (progress) => {
-                        updateDownloadProgress(contextTrack.id, progress);
-                    }
-                });
-
-                completeDownloadTask(contextTrack.id, true);
-            } catch (error) {
-                if (error.name !== 'AbortError') {
-                    const errorMsg = error.message === RATE_LIMIT_ERROR_MESSAGE
-                        ? error.message
-                        : 'Download failed. Please try again.';
-                    completeDownloadTask(contextTrack.id, false, errorMsg);
-                }
-            }
+            await downloadTrackWithMetadata(contextTrack, player.quality, api, lyricsManager);
         }
 
         contextMenu.style.display = 'none';
