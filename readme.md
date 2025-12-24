@@ -21,7 +21,7 @@ This is not the official repository or instance. It is an actively maintained fo
 . This fork was created because the original project was shut down (as you can see in the repository).
 
 
-## **I am Not Affiliated with the original Owner!**
+## **I am Not Affiliated with the original Owner.**
 
 ## Development
 
