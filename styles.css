@@ -2813,3 +2813,22 @@ input:checked + .slider::before {
         font-size: 4rem;
     }
 }
+
+/* Window Controls Overlay */
+@media (display-mode: window-controls-overlay) {
+    .app-container {
+        margin-top: env(titlebar-area-height, 0);
+    }
+
+    .main-header {
+        -webkit-app-region: drag;
+    }
+
+    .main-header * {
+        -webkit-app-region: no-drag;
+    }
+
+    .sidebar {
+        padding-top: max(1.5rem, env(titlebar-area-height, 0));
+    }
+}

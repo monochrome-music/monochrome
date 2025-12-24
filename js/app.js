@@ -545,7 +545,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        showInstallPrompt(deferredPrompt);
+        if (!localStorage.getItem('installPromptDismissed')) {
+            showInstallPrompt(deferredPrompt);
+        }
     });
 
     if (!localStorage.getItem('shortcuts-shown')) {
@@ -596,6 +598,7 @@ function showInstallPrompt(deferredPrompt) {
 
     document.getElementById('dismiss-install').addEventListener('click', () => {
         notification.remove();
+        localStorage.setItem('installPromptDismissed', 'true');
     });
 }
 
