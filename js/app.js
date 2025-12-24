@@ -252,8 +252,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 clearLyricsPanelSync(audioPlayer, lyricsPanel);
             }
         } else if (mode === 'cover') {
-            const nextTrack = player.getNextTrack();
-            ui.showFullscreenCover(player.currentTrack, nextTrack);
+            const overlay = document.getElementById('fullscreen-cover-overlay');
+            if (overlay && overlay.style.display === 'flex') {
+                ui.closeFullscreenCover();
+            } else {
+                const nextTrack = player.getNextTrack();
+                ui.showFullscreenCover(player.currentTrack, nextTrack);
+            }
         } else {
             // Default to 'album' mode - navigate to album
             if (player.currentTrack.album?.id) {
@@ -263,6 +268,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.getElementById('close-fullscreen-cover-btn')?.addEventListener('click', () => {
+        ui.closeFullscreenCover();
+    });
+
+    document.getElementById('fullscreen-cover-image')?.addEventListener('click', () => {
         ui.closeFullscreenCover();
     });
 

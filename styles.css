@@ -135,7 +135,7 @@
     --active-highlight: var(--highlight);
     --explicit-badge: #ef4444;
     --explicit-badge-foreground: #ffffff;
-    --cover-filter: blur(30px) brightness(1.1) opacity(0.8);
+    --cover-filter: blur(30px) brightness(1.6) opacity(0.85);
 }
 
 *, *::before, *::after {
@@ -1229,7 +1229,7 @@ input:checked + .slider::before {
     inset: 0;
     background-color: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(4px);
-    z-index: 1000;
+    z-index: 3000;
     justify-content: center;
     align-items: center;
     animation: fadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1313,6 +1313,12 @@ input:checked + .slider::before {
     text-align: center;
     z-index: 1;
     max-width: 90%;
+    background: color-mix(in srgb, var(--card), transparent 25%);
+    padding: 1.5rem 2rem;
+    border-radius: var(--radius);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid color-mix(in srgb, var(--border), transparent 50%);
 }
 
 #fullscreen-track-title {
@@ -1320,7 +1326,6 @@ input:checked + .slider::before {
     font-weight: 700;
     margin-bottom: 0.5rem;
     color: var(--foreground);
-    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
     word-break: break-word;
 }
 
@@ -1328,14 +1333,12 @@ input:checked + .slider::before {
     font-size: 1.25rem;
     color: var(--muted-foreground);
     font-weight: 500;
-    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
 }
 
 #fullscreen-next-track {
     margin-top: 1.5rem;
     font-size: 0.9rem;
     color: var(--muted-foreground);
-    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
