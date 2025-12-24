@@ -193,9 +193,11 @@ export const recentActivityManager = {
     _get() {
         try {
             const data = localStorage.getItem(this.STORAGE_KEY);
-            return data ? JSON.parse(data) : { artists: [], albums: [] };
+            const parsed = data ? JSON.parse(data) : { artists: [], albums: [], playlists: [] };
+            if (!parsed.playlists) parsed.playlists = [];
+            return parsed;
         } catch (e) {
-            return { artists: [], albums: [] };
+            return { artists: [], albums: [], playlists: [] };
         }
     },
 
@@ -221,6 +223,10 @@ export const recentActivityManager = {
 
     addAlbum(album) {
         this._add('albums', album);
+    },
+
+    addPlaylist(playlist) {
+        this._add('playlists', playlist);
     }
 };
 
@@ -323,6 +329,36 @@ export const lyricsSettings = {
 
     setDownloadLyrics(enabled) {
         localStorage.setItem(this.DOWNLOAD_WITH_TRACKS, enabled ? 'true' : 'false');
+    }
+};
+
+export const queueManager = {
+    STORAGE_KEY: 'monochrome-queue',
+
+    getQueue() {
+        try {
+            const data = localStorage.getItem(this.STORAGE_KEY);
+            return data ? JSON.parse(data) : null;
+        } catch (e) {
+            return null;
+        }
+    },
+
+    saveQueue(queueState) {
+        try {
+            // Only save essential data to avoid quota limits
+            const minimalState = {
+                queue: queueState.queue,
+                shuffledQueue: queueState.shuffledQueue,
+                originalQueueBeforeShuffle: queueState.originalQueueBeforeShuffle,
+                currentQueueIndex: queueState.currentQueueIndex,
+                shuffleActive: queueState.shuffleActive,
+                repeatMode: queueState.repeatMode
+            };
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(minimalState));
+        } catch (e) {
+            console.warn('Failed to save queue to localStorage:', e);
+        }
     }
 };
 

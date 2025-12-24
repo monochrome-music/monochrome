@@ -103,6 +103,19 @@ export class UIRenderer {
         `;
     }
 
+    createPlaylistCardHTML(playlist) {
+        const imageId = playlist.squareImage || playlist.image || playlist.uuid; // Fallback or use a specific cover getter if needed
+        return `
+            <a href="#playlist/${playlist.uuid}" class="card">
+                <div class="card-image-wrapper">
+                    <img src="${this.api.getCoverUrl(imageId, '320')}" alt="${playlist.title}" class="card-image" loading="lazy">
+                </div>
+                <h3 class="card-title">${playlist.title}</h3>
+                <p class="card-subtitle">${playlist.numberOfTracks || 0} tracks</p>
+            </a>
+        `;
+    }
+
     createArtistCardHTML(artist) {
         return `
             <a href="#artist/${artist.id}" class="card artist">
@@ -193,6 +206,7 @@ export class UIRenderer {
 
         const albumsContainer = document.getElementById('home-recent-albums');
         const artistsContainer = document.getElementById('home-recent-artists');
+        const playlistsContainer = document.getElementById('home-recent-playlists');
 
         albumsContainer.innerHTML = recents.albums.length
             ? recents.albums.map(album => this.createAlbumCardHTML(album)).join('')
@@ -201,6 +215,12 @@ export class UIRenderer {
         artistsContainer.innerHTML = recents.artists.length
             ? recents.artists.map(artist => this.createArtistCardHTML(artist)).join('')
             : createPlaceholder("You haven't viewed any artists yet. Search for music to get started!");
+
+        if (playlistsContainer) {
+            playlistsContainer.innerHTML = recents.playlists && recents.playlists.length
+                ? recents.playlists.map(playlist => this.createPlaylistCardHTML(playlist)).join('')
+                : createPlaceholder("You haven't viewed any playlists yet. Search for music to get started!");
+        }
     }
 
     async renderSearchPage(query) {
@@ -210,21 +230,25 @@ export class UIRenderer {
         const tracksContainer = document.getElementById('search-tracks-container');
         const artistsContainer = document.getElementById('search-artists-container');
         const albumsContainer = document.getElementById('search-albums-container');
+        const playlistsContainer = document.getElementById('search-playlists-container');
 
         tracksContainer.innerHTML = this.createSkeletonTracks(8, true);
         artistsContainer.innerHTML = this.createSkeletonCards(6, true);
         albumsContainer.innerHTML = this.createSkeletonCards(6, false);
+        playlistsContainer.innerHTML = this.createSkeletonCards(6, false);
 
         try {
-            const [tracksResult, artistsResult, albumsResult] = await Promise.all([
+            const [tracksResult, artistsResult, albumsResult, playlistsResult] = await Promise.all([
                 this.api.searchTracks(query),
                 this.api.searchArtists(query),
-                this.api.searchAlbums(query)
+                this.api.searchAlbums(query),
+                this.api.searchPlaylists(query)
             ]);
 
             let finalTracks = tracksResult.items;
             let finalArtists = artistsResult.items;
             let finalAlbums = albumsResult.items;
+            let finalPlaylists = playlistsResult.items;
 
             if (finalArtists.length === 0 && finalTracks.length > 0) {
                 const artistMap = new Map();
@@ -267,12 +291,17 @@ export class UIRenderer {
                 ? finalAlbums.map(album => this.createAlbumCardHTML(album)).join('')
                 : createPlaceholder('No albums found.');
 
+            playlistsContainer.innerHTML = finalPlaylists.length
+                ? finalPlaylists.map(playlist => this.createPlaylistCardHTML(playlist)).join('')
+                : createPlaceholder('No playlists found.');
+
         } catch (error) {
             console.error("Search failed:", error);
             const errorMsg = createPlaceholder(`Error during search. ${error.message}`);
             tracksContainer.innerHTML = errorMsg;
             artistsContainer.innerHTML = errorMsg;
             albumsContainer.innerHTML = errorMsg;
+            playlistsContainer.innerHTML = errorMsg;
         }
     }
 
@@ -351,6 +380,46 @@ export class UIRenderer {
             recentActivityManager.addAlbum(album);
 
             document.title = `${album.title} - ${album.artist.name} - Monochrome`;
+
+            // "More from Artist" Section
+            try {
+                // Remove any existing "More from" section if re-rendering
+                const existingMoreSection = document.getElementById('album-more-from-artist');
+                if (existingMoreSection) existingMoreSection.remove();
+
+                const moreSection = document.createElement('section');
+                moreSection.id = 'album-more-from-artist';
+                moreSection.className = 'content-section';
+                moreSection.style.marginTop = '3rem';
+                moreSection.innerHTML = `
+                    <h2 class="section-title">More from ${album.artist.name}</h2>
+                    <div class="card-grid" id="album-more-albums">
+                        ${this.createSkeletonCards(6, false)}
+                    </div>
+                `;
+                document.getElementById('page-album').appendChild(moreSection);
+
+                const artistData = await this.api.getArtist(album.artist.id);
+                // Filter out current album and duplicates
+                const otherAlbums = artistData.albums
+                    .filter(a => a.id != album.id)
+                    .filter((a, index, self) => 
+                        index === self.findIndex((t) => t.title === a.title) // Dedup by title
+                    )
+                    .slice(0, 12); // Limit to 12
+
+                const moreContainer = document.getElementById('album-more-albums');
+                
+                if (otherAlbums.length > 0) {
+                    moreContainer.innerHTML = otherAlbums.map(a => this.createAlbumCardHTML(a)).join('');
+                } else {
+                    moreSection.remove(); // Remove section if no other albums
+                }
+            } catch (err) {
+                console.warn('Failed to load "More from artist":', err);
+                document.getElementById('album-more-from-artist')?.remove();
+            }
+
         } catch (error) {
             console.error("Failed to load album:", error);
             tracklistContainer.innerHTML = createPlaceholder(`Could not load album details. ${error.message}`);
@@ -405,10 +474,11 @@ async renderPlaylistPage(playlistId) {
             </div>
         `;
 
-        this.renderListWithTracks(tracklistContainer, tracks, true);
-
-        document.title = `${playlist.title} - Monochrome`;
-    } catch (error) {
+                    this.renderListWithTracks(tracklistContainer, tracks, true);
+        
+                    recentActivityManager.addPlaylist(playlist);
+        
+                    document.title = `${playlist.title || 'Artist Mix'} - Monochrome`;    } catch (error) {
         console.error("Failed to load playlist:", error);
         tracklistContainer.innerHTML = createPlaceholder(`Could not load playlist details. ${error.message}`);
     }

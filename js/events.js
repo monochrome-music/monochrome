@@ -11,6 +11,21 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler) {
     const shuffleBtn = document.getElementById('shuffle-btn');
     const repeatBtn = document.getElementById('repeat-btn');
 
+    // Sync UI with player state on load
+    if (player.shuffleActive) {
+        shuffleBtn.classList.add('active');
+    }
+
+    if (player.repeatMode !== REPEAT_MODE.OFF) {
+        repeatBtn.classList.add('active');
+        if (player.repeatMode === REPEAT_MODE.ONE) {
+            repeatBtn.classList.add('repeat-one');
+        }
+        repeatBtn.title = player.repeatMode === REPEAT_MODE.ALL ? 'Repeat Queue' : 'Repeat One';
+    } else {
+        repeatBtn.title = 'Repeat';
+    }
+
     audioPlayer.addEventListener('play', () => {
         if (scrobbler.isAuthenticated() && lastFMStorage.isEnabled() && player.currentTrack) {
             scrobbler.updateNowPlaying(player.currentTrack);
