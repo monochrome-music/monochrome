@@ -666,8 +666,8 @@ kbd {
     display: flex;
     align-items: flex-end;
     gap: var(--spacing-xl);
-    margin-bottom: var(--spacing-2xl);
-    padding-bottom: var(--spacing-xl);
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
 }
 
 .detail-header-image {
@@ -2622,15 +2622,16 @@ input:checked + .slider::before {
 .now-playing-bar .cover:hover::after {
     opacity: 1;
 }
+
 #page-playlist .detail-header {
     display: flex;
     align-items: flex-end;
     gap: var(--spacing-xl);
-    margin-bottom: var(--spacing-2xl);
-    padding-bottom: var(--spacing-xl);
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
 }
 
-#playlist-detail-image {
+#page-playlist .detail-cover {
     width: 200px;
     height: 200px;
     flex-shrink: 0;

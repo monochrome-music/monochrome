@@ -380,6 +380,46 @@ export class UIRenderer {
             recentActivityManager.addAlbum(album);
 
             document.title = `${album.title} - ${album.artist.name} - Monochrome`;
+
+            // "More from Artist" Section
+            try {
+                // Remove any existing "More from" section if re-rendering
+                const existingMoreSection = document.getElementById('album-more-from-artist');
+                if (existingMoreSection) existingMoreSection.remove();
+
+                const moreSection = document.createElement('section');
+                moreSection.id = 'album-more-from-artist';
+                moreSection.className = 'content-section';
+                moreSection.style.marginTop = '3rem';
+                moreSection.innerHTML = `
+                    <h2 class="section-title">More from ${album.artist.name}</h2>
+                    <div class="card-grid" id="album-more-albums">
+                        ${this.createSkeletonCards(6, false)}
+                    </div>
+                `;
+                document.getElementById('page-album').appendChild(moreSection);
+
+                const artistData = await this.api.getArtist(album.artist.id);
+                // Filter out current album and duplicates
+                const otherAlbums = artistData.albums
+                    .filter(a => a.id != album.id)
+                    .filter((a, index, self) => 
+                        index === self.findIndex((t) => t.title === a.title) // Dedup by title
+                    )
+                    .slice(0, 12); // Limit to 12
+
+                const moreContainer = document.getElementById('album-more-albums');
+                
+                if (otherAlbums.length > 0) {
+                    moreContainer.innerHTML = otherAlbums.map(a => this.createAlbumCardHTML(a)).join('');
+                } else {
+                    moreSection.remove(); // Remove section if no other albums
+                }
+            } catch (err) {
+                console.warn('Failed to load "More from artist":', err);
+                document.getElementById('album-more-from-artist')?.remove();
+            }
+
         } catch (error) {
             console.error("Failed to load album:", error);
             tracklistContainer.innerHTML = createPlaceholder(`Could not load album details. ${error.message}`);
