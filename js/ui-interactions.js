@@ -128,14 +128,20 @@ export function initializeUIInteractions(player, api) {
     // Make renderQueue available globally for other modules
     window.renderQueueFunction = renderQueue;
 
-    // Search tabs
+    // Search and Library tabs
     document.querySelectorAll('.search-tab').forEach(tab => {
         tab.addEventListener('click', () => {
-            document.querySelectorAll('.search-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.search-tab-content').forEach(c => c.classList.remove('active'));
+            const page = tab.closest('.page');
+            if (!page) return;
+
+            page.querySelectorAll('.search-tab').forEach(t => t.classList.remove('active'));
+            page.querySelectorAll('.search-tab-content').forEach(c => c.classList.remove('active'));
 
             tab.classList.add('active');
-            document.getElementById(`search-tab-${tab.dataset.tab}`).classList.add('active');
+            
+            const prefix = page.id === 'page-library' ? 'library-tab-' : 'search-tab-';
+            const contentId = `${prefix}${tab.dataset.tab}`;
+            document.getElementById(contentId)?.classList.add('active');
         });
     });
 }

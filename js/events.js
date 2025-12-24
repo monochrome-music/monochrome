@@ -1,9 +1,10 @@
 //js/events.js
-import { SVG_PLAY, SVG_PAUSE, SVG_VOLUME, SVG_MUTE, REPEAT_MODE, trackDataStore } from './utils.js';
+import { SVG_PLAY, SVG_PAUSE, SVG_VOLUME, SVG_MUTE, REPEAT_MODE, trackDataStore, RATE_LIMIT_ERROR_MESSAGE, buildTrackFilename, getTrackTitle } from './utils.js';
 import { lastFMStorage } from './storage.js';
 import { showNotification, downloadTrackWithMetadata } from './downloads.js';
 import { lyricsSettings } from './storage.js';
 import { updateTabTitle } from './router.js';
+import { db } from './db.js';
 
 export function initializePlayerEvents(player, audioPlayer, scrobbler) {
     const playPauseBtn = document.querySelector('.play-pause-btn');
@@ -309,14 +310,67 @@ export async function handleTrackAction(action, track, player, api, lyricsManage
 export function initializeTrackInteractions(player, api, mainContent, contextMenu, lyricsManager) {
     let contextTrack = null;
 
-    mainContent.addEventListener('click', e => {
-        const actionBtn = e.target.closest('.track-action-btn');
-        if (actionBtn) {
+    mainContent.addEventListener('click', async e => {
+        const actionBtn = e.target.closest('.track-action-btn, .like-btn');
+        if (actionBtn && actionBtn.dataset.action) {
+            e.preventDefault(); // Prevent card navigation
             e.stopPropagation();
-            const trackItem = actionBtn.closest('.track-item');
-            if (trackItem) {
-                const track = trackDataStore.get(trackItem);
-                handleTrackAction(actionBtn.dataset.action, track, player, api, lyricsManager);
+            const itemElement = actionBtn.closest('.track-item, .card');
+            const action = actionBtn.dataset.action;
+            const type = actionBtn.dataset.type || 'track';
+            
+            let item = itemElement ? trackDataStore.get(itemElement) : null;
+
+            // If no item from element (e.g. header buttons), try to get from hash
+            if (!item && action === 'toggle-like') {
+                const id = window.location.hash.split('/')[1];
+                if (id) {
+                    try {
+                        if (type === 'album') {
+                            const data = await api.getAlbum(id);
+                            item = data.album;
+                        } else if (type === 'artist') {
+                            item = await api.getArtist(id);
+                        } else if (type === 'playlist') {
+                            const data = await api.getPlaylist(id);
+                            item = data.playlist;
+                        }
+                    } catch (err) { console.error(err); }
+                }
+            }
+
+            if (item) {
+                if (action === 'add-to-queue' && type === 'track') {
+                    player.addToQueue(item);
+                    renderQueue(player);
+                    showNotification(`Added to queue: ${item.title}`);
+                } else if (action === 'toggle-like') {
+                    db.toggleFavorite(type, item).then(added => {
+                        const heartIcon = actionBtn.querySelector('svg');
+                        if (heartIcon) {
+                            heartIcon.setAttribute('fill', added ? 'currentColor' : 'none');
+                            heartIcon.classList.toggle('filled', added);
+                        }
+                        actionBtn.classList.toggle('active', added);
+                        actionBtn.title = added ? 'Remove from Library' : 'Add to Library';
+                        
+                        if (!added && window.location.hash === '#library' && itemElement) {
+                            itemElement.remove();
+                            const containerId = `library-${type}s-container`;
+                            const container = document.getElementById(containerId);
+                            if (container && container.children.length === 0) {
+                                const msg = type === 'track' ? 'No liked songs yet.' : `No liked ${type}s yet.`;
+                                container.innerHTML = `<div class="placeholder-text">${msg}</div>`;
+                            }
+                        }
+                    });
+                } else if (action === 'play-next' && type === 'track') {
+                    player.addNextToQueue(item);
+                    renderQueue(player);
+                    showNotification(`Playing next: ${item.title}`);
+                } else if (action === 'download' && type === 'track') {
+                    handleDownload(item, player, api);
+                }
             }
             return;
         }

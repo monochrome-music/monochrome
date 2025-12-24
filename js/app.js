@@ -30,7 +30,16 @@ function initializeCasting(audioPlayer, castBtn) {
         });
 
         castBtn.addEventListener('click', () => {
+            if (!audioPlayer.src) {
+                alert('Please play a track first to enable casting.');
+                return;
+            }
             audioPlayer.remote.prompt().catch(err => {
+                if (err.name === 'NotAllowedError') return;
+                if (err.name === 'NotFoundError') {
+                    alert('No remote playback devices (Chromecast/AirPlay) were found on your network.');
+                    return;
+                }
                 console.log('Cast prompt error:', err);
             });
         });
