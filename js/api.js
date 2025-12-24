@@ -157,6 +157,10 @@ export class LosslessAPI {
         return album;
     }
 
+    preparePlaylist(playlist) {
+        return playlist;
+    }
+
     prepareArtist(artist) {
         if (!artist.type && Array.isArray(artist.artistTypes) && artist.artistTypes.length > 0) {
             return { ...artist, type: artist.artistTypes[0] };
@@ -278,6 +282,27 @@ export class LosslessAPI {
         }
     }
 
+    async searchPlaylists(query) {
+        const cached = await this.cache.get('search_playlists', query);
+        if (cached) return cached;
+
+        try {
+            const response = await this.fetchWithRetry(`/search/?p=${encodeURIComponent(query)}`);
+            const data = await response.json();
+            const normalized = this.normalizeSearchResponse(data, 'playlists');
+            const result = {
+                ...normalized,
+                items: normalized.items.map(p => this.preparePlaylist(p))
+            };
+
+            await this.cache.set('search_playlists', query, result);
+            return result;
+        } catch (error) {
+            console.error('Playlist search failed:', error);
+            return { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 };
+        }
+    }
+
     async getAlbum(id) {
         const cached = await this.cache.get('album', id);
         if (cached) return cached;
@@ -354,26 +379,40 @@ export class LosslessAPI {
         
         // Unwrap the data property if it exists
         const data = jsonData.data || jsonData;
-        const entries = Array.isArray(data) ? data : [data];
+        
+        let playlist = null;
+        let tracksSection = null;
 
-        let playlist, tracksSection;
-
-        for (const entry of entries) {
-            if (!entry || typeof entry !== 'object') continue;
-
-            if (!playlist && ('uuid' in entry || 'numberOfTracks' in entry || 'title' in entry && 'id' in entry)) {
-                playlist = entry;
-            }
-
-            if (!tracksSection && 'items' in entry) {
-                tracksSection = entry;
-            }
+        // Check for direct playlist property (common in v2 responses)
+        if (data.playlist) {
+            playlist = data.playlist;
         }
 
-        // If still no playlist found, try using the first valid entry
-        if (!playlist && entries.length > 0) {
+        // Check for direct items property
+        if (data.items) {
+            tracksSection = { items: data.items };
+        }
+
+        // Fallback: iterate if we still missed something or if structure is flat array
+        if (!playlist || !tracksSection) {
+            const entries = Array.isArray(data) ? data : [data];
             for (const entry of entries) {
-                if (entry && typeof entry === 'object' && ('id' in entry || 'uuid' in entry)) {
+                if (!entry || typeof entry !== 'object') continue;
+
+                if (!playlist && ('uuid' in entry || 'numberOfTracks' in entry || ('title' in entry && 'id' in entry))) {
+                    playlist = entry;
+                }
+
+                if (!tracksSection && 'items' in entry) {
+                    tracksSection = entry;
+                }
+            }
+        }
+        
+        // Fallback 2: If we have a list of entries but no explicit playlist object, try to find one that looks like a playlist
+        if (!playlist && Array.isArray(data)) {
+             for (const entry of data) {
+                if (entry && typeof entry === 'object' && ('uuid' in entry || 'numberOfTracks' in entry)) {
                     playlist = entry;
                     break;
                 }

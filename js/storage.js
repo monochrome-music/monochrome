@@ -193,9 +193,11 @@ export const recentActivityManager = {
     _get() {
         try {
             const data = localStorage.getItem(this.STORAGE_KEY);
-            return data ? JSON.parse(data) : { artists: [], albums: [] };
+            const parsed = data ? JSON.parse(data) : { artists: [], albums: [], playlists: [] };
+            if (!parsed.playlists) parsed.playlists = [];
+            return parsed;
         } catch (e) {
-            return { artists: [], albums: [] };
+            return { artists: [], albums: [], playlists: [] };
         }
     },
 
@@ -221,6 +223,10 @@ export const recentActivityManager = {
 
     addAlbum(album) {
         this._add('albums', album);
+    },
+
+    addPlaylist(playlist) {
+        this._add('playlists', playlist);
     }
 };
 
