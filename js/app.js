@@ -251,7 +251,28 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Clear sync when hiding
                 clearLyricsPanelSync(audioPlayer, lyricsPanel);
             }
+        } else if (mode === 'cover') {
+            const overlay = document.getElementById('fullscreen-cover-overlay');
+            if (overlay && overlay.style.display === 'flex') {
+                ui.closeFullscreenCover();
+            } else {
+                const nextTrack = player.getNextTrack();
+                ui.showFullscreenCover(player.currentTrack, nextTrack);
+            }
+        } else {
+            // Default to 'album' mode - navigate to album
+            if (player.currentTrack.album?.id) {
+                window.location.hash = `#album/${player.currentTrack.album.id}`;
+            }
         }
+    });
+
+    document.getElementById('close-fullscreen-cover-btn')?.addEventListener('click', () => {
+        ui.closeFullscreenCover();
+    });
+
+    document.getElementById('fullscreen-cover-image')?.addEventListener('click', () => {
+        ui.closeFullscreenCover();
     });
 
     document.getElementById('close-lyrics-btn')?.addEventListener('click', (e) => {
@@ -278,6 +299,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     audioPlayer.addEventListener('play', async () => {
         if (!player.currentTrack) return;
 
+        // Update UI with current track info for theme
+        ui.setCurrentTrack(player.currentTrack);
+
         const currentTrackId = player.currentTrack.id;
         if (currentTrackId === previousTrackId) return;
         previousTrackId = currentTrackId;
@@ -300,6 +324,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     content.innerHTML = '<div class="lyrics-error">No lyrics available for this track</div>';
                 }
             }
+        }
+
+        // Update Fullscreen/Enlarged Cover if it's open
+        const fullscreenOverlay = document.getElementById('fullscreen-cover-overlay');
+        if (fullscreenOverlay && getComputedStyle(fullscreenOverlay).display !== 'none') {
+             const nextTrack = player.getNextTrack();
+             ui.showFullscreenCover(player.currentTrack, nextTrack);
         }
     });
 

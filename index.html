@@ -35,6 +35,25 @@
             <div id="queue-list"></div>
         </div>
     </div>
+    
+    <div id="fullscreen-cover-overlay" style="display: none;">
+        <div class="fullscreen-cover-content">
+            <button id="close-fullscreen-cover-btn" title="Close">&times;</button>
+            <img id="fullscreen-cover-image" src="" alt="Album Cover">
+            <div class="fullscreen-track-info">
+                <h2 id="fullscreen-track-title"></h2>
+                <h3 id="fullscreen-track-artist"></h3>
+                <div id="fullscreen-next-track" style="display: none;">
+                    <span class="label">Up Next: </span>
+                    <span class="value"></span>
+                </div>
+            </div>
+            <div class="fullscreen-controls">
+                 <!-- Controls will be cloned or managed here if needed, or we just rely on main controls -->
+            </div>
+        </div>
+    </div>
+
     <div class="queue-track-menu" id="queue-track-menu">
         <ul>
             <li data-action="remove">Remove from Queue</li>
@@ -88,6 +107,7 @@
         </aside>
 
         <main class="main-content">
+            <div id="page-background"></div>
             <header class="main-header">
                 <button class="hamburger-menu" id="hamburger-btn" title="Open navigation">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -185,7 +205,7 @@
                     </svg>
                     <span>Play</span>
                 </button>
-                <button id="download-playlist-btn" class="btn-secondary">
+                <button id="download-playlist-btn" class="btn-primary">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                         <polyline points="7 10 12 15 17 10"></polyline>
@@ -298,7 +318,8 @@
                             <span class="description">Choose what shows when you click the album art</span>
                         </div>
                         <select id="now-playing-mode">
-                            <option value="cover">Album Cover</option>
+                            <option value="album">Show Album</option>
+                            <option value="cover">Enlarged Cover</option>
                             <option value="lyrics">Lyrics Panel</option>
                             <option value="karaoke">Karaoke Mode</option>
                         </select>
@@ -310,6 +331,16 @@
                         </div>
                         <label class="toggle-switch">
                             <input type="checkbox" id="download-lyrics-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <div class="info">
+                            <span class="label">Album Cover Background</span>
+                            <span class="description">Use the album cover as a blurred background on album pages</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="album-background-toggle">
                             <span class="slider"></span>
                         </label>
                     </div>

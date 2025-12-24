@@ -1,10 +1,37 @@
 //js/ui.js
 import { formatTime, createPlaceholder, trackDataStore, hasExplicitContent, getTrackArtists, getTrackTitle, calculateTotalDuration, formatDuration } from './utils.js';
-import { recentActivityManager } from './storage.js';
+import { recentActivityManager, backgroundSettings } from './storage.js';
 
 export class UIRenderer {
     constructor(api) {
         this.api = api;
+        this.currentTrack = null;
+    }
+
+    setCurrentTrack(track) {
+        this.currentTrack = track;
+        this.updateGlobalTheme();
+    }
+
+    updateGlobalTheme() {
+        // If the album background setting is disabled, we don't do global coloring
+        // except possibly for the album page which handles its own check.
+        // But here we are handling the "not on album page" case or general updates.
+        
+        // Check if we are currently viewing an album page
+        const isAlbumPage = document.getElementById('page-album').classList.contains('active');
+
+        if (isAlbumPage) {
+            // The album page render logic handles its own coloring.
+            // We shouldn't override it here.
+            return;
+        }
+
+        if (backgroundSettings.isEnabled() && this.currentTrack?.album?.vibrantColor) {
+            this.setVibrantColor(this.currentTrack.album.vibrantColor);
+        } else {
+            this.resetVibrantColor();
+        }
     }
 
     createExplicitBadge() {
@@ -184,6 +211,107 @@ export class UIRenderer {
         });
     }
 
+    setPageBackground(imageUrl) {
+        const bgElement = document.getElementById('page-background');
+        if (backgroundSettings.isEnabled() && imageUrl) {
+            bgElement.style.backgroundImage = `url('${imageUrl}')`;
+            bgElement.classList.add('active');
+            document.body.classList.add('has-page-background');
+        } else {
+            bgElement.classList.remove('active');
+            document.body.classList.remove('has-page-background');
+            // Delay clearing the image to allow transition
+            setTimeout(() => {
+                if (!bgElement.classList.contains('active')) {
+                    bgElement.style.backgroundImage = '';
+                }
+            }, 500);
+        }
+    }
+
+    setVibrantColor(color) {
+        if (!color) return;
+        
+        const root = document.documentElement;
+        
+        // Calculate contrast text color
+        const hex = color.replace('#', '');
+        const r = parseInt(hex.substr(0, 2), 16);
+        const g = parseInt(hex.substr(2, 2), 16);
+        const b = parseInt(hex.substr(4, 2), 16);
+        const brightness = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+        const foreground = brightness > 128 ? '#000000' : '#ffffff';
+
+        // Set global CSS variables
+        root.style.setProperty('--primary', color);
+        root.style.setProperty('--primary-foreground', foreground);
+        root.style.setProperty('--highlight', color);
+        root.style.setProperty('--highlight-rgb', `${r}, ${g}, ${b}`);
+        root.style.setProperty('--active-highlight', color);
+        root.style.setProperty('--ring', color);
+
+        // Calculate a safe hover color (darken if too light)
+        let hoverColor;
+        if (brightness > 200) {
+             const dr = Math.floor(r * 0.85);
+             const dg = Math.floor(g * 0.85);
+             const db = Math.floor(b * 0.85);
+             hoverColor = `rgba(${dr}, ${dg}, ${db}, 0.25)`;
+        } else {
+             hoverColor = `rgba(${r}, ${g}, ${b}, 0.15)`;
+        }
+        root.style.setProperty('--track-hover-bg', hoverColor);
+    }
+
+    resetVibrantColor() {
+        const root = document.documentElement;
+        root.style.removeProperty('--primary');
+        root.style.removeProperty('--primary-foreground');
+        root.style.removeProperty('--highlight');
+        root.style.removeProperty('--highlight-rgb');
+        root.style.removeProperty('--active-highlight');
+        root.style.removeProperty('--ring');
+        root.style.removeProperty('--track-hover-bg');
+    }
+
+    showFullscreenCover(track, nextTrack) {
+        if (!track) return;
+
+        const overlay = document.getElementById('fullscreen-cover-overlay');
+        const image = document.getElementById('fullscreen-cover-image');
+        const title = document.getElementById('fullscreen-track-title');
+        const artist = document.getElementById('fullscreen-track-artist');
+        const nextTrackEl = document.getElementById('fullscreen-next-track');
+        
+        const coverUrl = this.api.getCoverUrl(track.album?.cover, '1280');
+
+        image.src = coverUrl;
+        title.textContent = track.title;
+        artist.textContent = track.artist?.name || 'Unknown Artist';
+
+        if (nextTrack) {
+            nextTrackEl.style.display = 'flex';
+            nextTrackEl.querySelector('.value').textContent = `${nextTrack.title} • ${nextTrack.artist?.name || 'Unknown'}`;
+            
+            // Replay animation
+            nextTrackEl.classList.remove('animate-in');
+            void nextTrackEl.offsetWidth; // Trigger reflow
+            nextTrackEl.classList.add('animate-in');
+        } else {
+            nextTrackEl.style.display = 'none';
+            nextTrackEl.classList.remove('animate-in');
+        }
+
+        // Set the background image via CSS variable for the pseudo-element to use
+        overlay.style.setProperty('--bg-image', `url('${coverUrl}')`);
+        
+        overlay.style.display = 'flex';
+    }
+
+    closeFullscreenCover() {
+        document.getElementById('fullscreen-cover-overlay').style.display = 'none';
+    }
+
     showPage(pageId) {
         document.querySelectorAll('.page').forEach(page => {
             page.classList.toggle('active', page.id === `page-${pageId}`);
@@ -194,6 +322,12 @@ export class UIRenderer {
         });
 
         document.querySelector('.main-content').scrollTop = 0;
+
+        // Clear background and color if not on album page
+        if (pageId !== 'album') {
+             this.setPageBackground(null);
+             this.updateGlobalTheme();
+        }
 
         if (pageId === 'settings') {
             this.renderApiSettings();
@@ -331,8 +465,17 @@ export class UIRenderer {
         try {
             const { album, tracks } = await this.api.getAlbum(albumId);
 
-            imageEl.src = this.api.getCoverUrl(album.cover, '1280');
+            const coverUrl = this.api.getCoverUrl(album.cover, '1280');
+            imageEl.src = coverUrl;
             imageEl.style.backgroundColor = '';
+
+            // Set background and vibrant color
+            this.setPageBackground(coverUrl);
+            if (backgroundSettings.isEnabled() && album.vibrantColor) {
+                this.setVibrantColor(album.vibrantColor);
+            } else {
+                this.resetVibrantColor();
+            }
 
             const explicitBadge = hasExplicitContent(album) ? this.createExplicitBadge() : '';
             titleEl.innerHTML = `${album.title} ${explicitBadge}`;

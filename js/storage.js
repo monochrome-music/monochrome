@@ -305,9 +305,9 @@ export const nowPlayingSettings = {
 
     getMode() {
         try {
-            return localStorage.getItem(this.STORAGE_KEY) || 'cover';
+            return localStorage.getItem(this.STORAGE_KEY) || 'album';
         } catch (e) {
-            return 'cover';
+            return 'album';
         }
     },
 
@@ -329,6 +329,23 @@ export const lyricsSettings = {
 
     setDownloadLyrics(enabled) {
         localStorage.setItem(this.DOWNLOAD_WITH_TRACKS, enabled ? 'true' : 'false');
+    }
+};
+
+export const backgroundSettings = {
+    STORAGE_KEY: 'album-background-enabled',
+
+    isEnabled() {
+        try {
+            // Default to true if not set
+            return localStorage.getItem(this.STORAGE_KEY) !== 'false';
+        } catch (e) {
+            return true;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
     }
 };
 

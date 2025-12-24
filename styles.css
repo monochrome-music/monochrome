@@ -12,6 +12,7 @@
     --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.2);
     --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.5);
     --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.8);
+    --cover-filter: blur(30px) brightness(0.3);
 }
 
 :root[data-theme="monochrome"] {
@@ -32,6 +33,7 @@
     --highlight-rgb: 255, 255, 255;
     --active-highlight: var(--highlight);
     --explicit-badge: #fafafa;
+    --cover-filter: blur(30px) brightness(0.3);
 }
 
 :root[data-theme="dark"] {
@@ -133,6 +135,7 @@
     --active-highlight: var(--highlight);
     --explicit-badge: #ef4444;
     --explicit-badge-foreground: #ffffff;
+    --cover-filter: blur(30px) brightness(1.6) opacity(0.85);
 }
 
 *, *::before, *::after {
@@ -206,6 +209,48 @@ kbd {
     overflow-y: auto;
     padding: var(--spacing-xl);
     scroll-behavior: smooth;
+    position: relative; /* Context for background */
+}
+
+/* Ensure content sits on top of background */
+.main-header,
+.page {
+    position: relative;
+    z-index: 1;
+}
+
+#page-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 60vh;
+    min-height: 400px;
+    z-index: 0;
+    background-size: cover;
+    background-position: center 20%;
+    background-repeat: no-repeat;
+    opacity: 0;
+    transition: opacity 0.5s ease-in-out;
+    
+    /* Fade out at the bottom */
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0) 100%);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0) 100%);
+    
+    /* Blur effect */
+    filter: blur(50px) saturate(1.4) brightness(0.5);
+    pointer-events: none;
+}
+
+#page-background.active {
+    opacity: 1;
+}
+
+/* Light mode adjustments */
+:root[data-theme="light"] #page-background {
+    filter: blur(50px) saturate(1.5) brightness(1.1) opacity(0.5);
+    mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
 }
 
 .now-playing-bar {
@@ -217,6 +262,8 @@ kbd {
     grid-template-columns: 1fr 2fr 1fr;
     align-items: center;
     gap: var(--spacing-xl);
+    position: relative;
+    z-index: 2100;
 }
 
 .sidebar-logo {
@@ -327,6 +374,14 @@ kbd {
 .search-bar input:focus {
     outline: none;
     border-color: var(--ring);
+}
+
+body.has-page-background .search-bar input {
+    background-color: var(--background);
+}
+
+body.has-page-background .track-item:hover {
+    background-color: var(--track-hover-bg, var(--secondary));
 }
 
 .page {
@@ -1174,10 +1229,155 @@ input:checked + .slider::before {
     inset: 0;
     background-color: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(4px);
-    z-index: 1000;
+    z-index: 3000;
     justify-content: center;
     align-items: center;
     animation: fadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#fullscreen-cover-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+    overflow: hidden;
+    background-color: var(--background);
+    /* Use a CSS variable for the image so we can set it in JS */
+    --bg-image: none;
+    padding-bottom: 90px; /* Account for desktop player bar */
+}
+
+#fullscreen-cover-overlay::before {
+    content: "";
+    position: absolute;
+    inset: -20px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    filter: var(--cover-filter);
+    z-index: -1;
+    background-image: var(--bg-image);
+}
+
+.fullscreen-cover-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    /* Remove fixed padding to allow flex centering to work within the overlay's padded box */
+    padding: 1rem; 
+    position: relative;
+}
+
+#close-fullscreen-cover-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background-color: var(--background);
+    border: none;
+    color: var(--foreground);
+    font-size: 2rem;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.2s;
+    z-index: 10;
+    opacity: 0.5;
+}
+
+#close-fullscreen-cover-btn:hover {
+    opacity: 0.8;
+}
+
+#fullscreen-cover-image {
+    max-width: 80vw;
+    max-height: 60vh;
+    border-radius: var(--radius);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    object-fit: contain;
+    margin-bottom: 2rem;
+    z-index: 1;
+}
+
+.fullscreen-track-info {
+    text-align: center;
+    z-index: 1;
+    max-width: 90%;
+    background: color-mix(in srgb, var(--card), transparent 25%);
+    padding: 1.5rem 2rem;
+    border-radius: var(--radius);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid color-mix(in srgb, var(--border), transparent 50%);
+}
+
+#fullscreen-track-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--foreground);
+    word-break: break-word;
+}
+
+#fullscreen-track-artist {
+    font-size: 1.25rem;
+    color: var(--muted-foreground);
+    font-weight: 500;
+}
+
+#fullscreen-next-track {
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+    color: var(--muted-foreground);
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    opacity: 0; /* Initially hidden for animation */
+}
+
+#fullscreen-next-track.animate-in {
+    animation: fadeIn 0.5s ease 0.2s forwards; /* Added forwards to keep opacity 1 */
+}
+
+#fullscreen-next-track .label {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.75rem;
+    opacity: 0.8;
+}
+
+#fullscreen-next-track .value {
+    font-weight: 500;
+    color: var(--foreground);
+}
+
+@media (max-width: 768px) {
+    #fullscreen-cover-overlay {
+        padding-bottom: 160px; /* Account for taller mobile player bar */
+    }
+
+    #fullscreen-cover-image {
+        max-height: 45vh; /* Reduce height on mobile to fit text */
+        margin-bottom: 1.5rem;
+    }
+
+    #fullscreen-track-title {
+        font-size: 1.5rem;
+    }
+
+    #fullscreen-track-artist {
+        font-size: 1rem;
+    }
 }
 
 #queue-modal {
@@ -2385,12 +2585,13 @@ input:checked + .slider::before {
     display: flex;
     flex-direction: column;
     transform: translateX(100%);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: var(--shadow-xl);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+    box-shadow: none;
 }
 
 .lyrics-panel:not(.hidden) {
     transform: translateX(0);
+    box-shadow: var(--shadow-xl);
 }
 
 .lyrics-header {
@@ -2710,16 +2911,6 @@ input:checked + .slider::before {
     cursor: pointer;
     transition: all var(--transition);
     box-shadow: var(--shadow-sm);
-}
-
-#play-playlist-btn {
-    background-color: var(--primary);
-    color: var(--primary-foreground);
-}
-
-#download-playlist-btn {
-    background-color: var(--secondary);
-    color: var(--foreground);
 }
 
 #play-playlist-btn:hover,

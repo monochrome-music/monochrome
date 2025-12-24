@@ -1,5 +1,5 @@
 //js/settings
-import { themeManager, lastFMStorage, nowPlayingSettings, lyricsSettings } from './storage.js';
+import { themeManager, lastFMStorage, nowPlayingSettings, lyricsSettings, backgroundSettings } from './storage.js';
 
 export function initializeSettings(scrobbler, player, api, ui) {
     const lastfmConnectBtn = document.getElementById('lastfm-connect-btn');
@@ -182,6 +182,15 @@ export function initializeSettings(scrobbler, player, api, ui) {
         downloadLyricsToggle.checked = lyricsSettings.shouldDownloadLyrics();
         downloadLyricsToggle.addEventListener('change', (e) => {
             lyricsSettings.setDownloadLyrics(e.target.checked);
+        });
+    }
+
+    // Album Background Toggle
+    const albumBackgroundToggle = document.getElementById('album-background-toggle');
+    if (albumBackgroundToggle) {
+        albumBackgroundToggle.checked = backgroundSettings.isEnabled();
+        albumBackgroundToggle.addEventListener('change', (e) => {
+            backgroundSettings.setEnabled(e.target.checked);
         });
     }
 
