@@ -24,6 +24,27 @@ function createDownloadNotification() {
     return downloadNotificationContainer;
 }
 
+export function showNotification(message) {
+    const container = createDownloadNotification();
+
+    const notifEl = document.createElement('div');
+    notifEl.className = 'download-task';
+
+    notifEl.innerHTML = `
+        <div style="display: flex; align-items: start;">
+            ${message}
+        </div>
+    `;
+
+    container.appendChild(notifEl);
+
+    // Auto remove
+    setTimeout(() => {
+        notifEl.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => notifEl.remove(), 300);
+    }, 1500);
+}
+
 export function addDownloadTask(trackId, track, filename, api) {
     const container = createDownloadNotification();
 

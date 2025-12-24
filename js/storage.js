@@ -349,6 +349,25 @@ export const backgroundSettings = {
     }
 };
 
+export const trackListSettings = {
+    STORAGE_KEY: 'track-list-actions-mode',
+
+    getMode() {
+        try {
+            const mode = localStorage.getItem(this.STORAGE_KEY) || 'dropdown';
+            document.documentElement.setAttribute('data-track-actions-mode', mode);
+            return mode;
+        } catch (e) {
+            return 'dropdown';
+        }
+    },
+
+    setMode(mode) {
+        localStorage.setItem(this.STORAGE_KEY, mode);
+        document.documentElement.setAttribute('data-track-actions-mode', mode);
+    }
+};
+
 export const queueManager = {
     STORAGE_KEY: 'monochrome-queue',
 

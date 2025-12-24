@@ -22,6 +22,7 @@
     <audio id="audio-player"></audio>
     <div id="context-menu">
         <ul>
+            <li data-action="play-next">Play Next</li>
             <li data-action="add-to-queue">Add to Queue</li>
             <li data-action="download">Download</li>
         </ul>
@@ -322,6 +323,16 @@
                             <option value="cover">Enlarged Cover</option>
                             <option value="lyrics">Lyrics Panel</option>
                             <option value="karaoke">Karaoke Mode</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <div class="info">
+                            <span class="label">Track List Actions</span>
+                            <span class="description">Choose between a dropdown menu or inline buttons for track actions</span>
+                        </div>
+                        <select id="track-list-actions-mode">
+                            <option value="dropdown">Dropdown Menu</option>
+                            <option value="inline">Inline Buttons</option>
                         </select>
                     </div>
                     <div class="setting-item">

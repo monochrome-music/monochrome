@@ -1,6 +1,6 @@
 //js/ui.js
 import { formatTime, createPlaceholder, trackDataStore, hasExplicitContent, getTrackArtists, getTrackTitle, calculateTotalDuration, formatDuration } from './utils.js';
-import { recentActivityManager, backgroundSettings } from './storage.js';
+import { recentActivityManager, backgroundSettings, trackListSettings } from './storage.js';
 
 export class UIRenderer {
     constructor(api) {
@@ -85,6 +85,43 @@ export class UIRenderer {
             }
         }
 
+        const actionsHTML = `
+            <div class="track-actions-inline">
+                <button class="track-action-btn" data-action="play-next" title="Play Next">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M2 6h6" />
+                        <path d="M5 3v6" />
+                        <path d="M11 6h10" />
+                        <path d="M3 12h18" />
+                        <path d="M3 18h18" />
+                    </svg>
+                </button>
+                <button class="track-action-btn" data-action="add-to-queue" title="Add to Queue">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 6h18" />
+                        <path d="M3 12h18" />
+                        <path d="M3 18h10" />
+                        <path d="M16 18h6" />
+                        <path d="M19 15v6" />
+                    </svg>
+                </button>
+                <button class="track-action-btn" data-action="download" title="Download">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                </button>
+            </div>
+            <button class="track-menu-btn" type="button" title="More options">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="1"></circle>
+                    <circle cx="12" cy="5" r="1"></circle>
+                    <circle cx="12" cy="19" r="1"></circle>
+                </svg>
+            </button>
+        `;
+
         return `
             <div class="track-item" data-track-id="${track.id}">
                 ${trackNumberHTML}
@@ -98,13 +135,9 @@ export class UIRenderer {
                     </div>
                 </div>
                 <div class="track-item-duration">${formatTime(track.duration)}</div>
-                <button class="track-menu-btn" type="button" title="More options">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="1"></circle>
-                        <circle cx="12" cy="5" r="1"></circle>
-                        <circle cx="12" cy="19" r="1"></circle>
-                    </svg>
-                </button>
+                <div class="track-item-actions">
+                    ${actionsHTML}
+                </div>
             </div>
         `;
     }
