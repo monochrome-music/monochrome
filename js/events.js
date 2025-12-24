@@ -33,12 +33,14 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler) {
         }
         playPauseBtn.innerHTML = SVG_PAUSE;
         player.updateMediaSessionPlaybackState();
+        player.updateMediaSessionPositionState();
         updateTabTitle(player);
     });
 
     audioPlayer.addEventListener('pause', () => {
         playPauseBtn.innerHTML = SVG_PLAY;
         player.updateMediaSessionPlaybackState();
+        player.updateMediaSessionPositionState();
     });
 
     audioPlayer.addEventListener('ended', () => {
