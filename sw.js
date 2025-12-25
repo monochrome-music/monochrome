@@ -45,6 +45,9 @@ self.addEventListener('fetch', event => {
                             cache.put(event.request, networkResponse.clone());
                         }
                         return networkResponse;
+                    }).catch(() => {
+                        // If fetch fails (e.g. CORS), return null/error so client handles it
+                        return new Response(null, { status: 404, statusText: 'Image fetch failed' });
                     });
                 });
             })
