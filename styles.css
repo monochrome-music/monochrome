@@ -716,7 +716,7 @@ body.has-page-background .track-item:hover {
 }
 
 .track-menu-btn:hover {
-    background-color: var(--secondary);
+    background-color: rgba(var(--highlight-rgb), 0.2);
     color: var(--foreground);
 }
 
@@ -756,7 +756,7 @@ body.has-page-background .track-item:hover {
 }
 
 .track-action-btn:hover {
-    background-color: var(--secondary);
+    background-color: rgba(var(--highlight-rgb), 0.2);
     color: var(--foreground);
 }
 
@@ -1537,7 +1537,7 @@ input:checked + .slider::before {
 }
 
 .queue-track-item .queue-remove-btn:hover {
-    background-color: var(--secondary);
+    background-color: var(--background);
     color: var(--foreground);
 }
 
