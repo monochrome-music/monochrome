@@ -2152,12 +2152,13 @@ input:checked + .slider::before {
         left: 0;
         height: 100%;
         transform: translateX(-100%);
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
         z-index: 2000;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
     }
 
     .sidebar.is-open {
         transform: translateX(0);
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
     }
 
     .hamburger-menu {
