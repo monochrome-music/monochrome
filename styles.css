@@ -1131,6 +1131,16 @@ input:checked + .slider::before {
     color: var(--muted-foreground);
 }
 
+.player-controls .progress-container span {
+    min-width: 40px;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+}
+
+#current-time {
+    text-align: right;
+}
+
 .progress-bar,
 .volume-bar {
     position: relative;
