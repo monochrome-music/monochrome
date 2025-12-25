@@ -1243,8 +1243,7 @@ input:checked + .slider::before {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-#context-menu,
-.queue-track-menu {
+#context-menu {
     display: none;
     position: fixed;
     background-color: var(--card);
@@ -1256,19 +1255,11 @@ input:checked + .slider::before {
     min-width: 160px;
 }
 
-.queue-track-menu.show {
-    display: block;
-    z-index: 1001;
-    min-width: 120px;
-}
-
-#context-menu ul,
-.queue-track-menu ul {
+#context-menu ul {
     list-style: none;
 }
 
-#context-menu li,
-.queue-track-menu li {
+#context-menu li {
     padding: 0.5rem 0.75rem;
     cursor: pointer;
     border-radius: 4px;
@@ -1276,8 +1267,7 @@ input:checked + .slider::before {
     font-size: 0.9rem;
 }
 
-#context-menu li:hover,
-.queue-track-menu li:hover {
+#context-menu li:hover {
     background-color: var(--secondary);
 }
 
