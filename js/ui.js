@@ -1,5 +1,5 @@
 //js/ui.js
-import { formatTime, createPlaceholder, trackDataStore, hasExplicitContent, getTrackArtists, getTrackTitle, calculateTotalDuration, formatDuration } from './utils.js';
+import { SVG_PLAY, SVG_DOWNLOAD, SVG_MENU, formatTime, createPlaceholder, trackDataStore, hasExplicitContent, getTrackArtists, getTrackTitle, calculateTotalDuration, formatDuration } from './utils.js';
 import { recentActivityManager, backgroundSettings, trackListSettings } from './storage.js';
 
 export class UIRenderer {
@@ -42,11 +42,7 @@ export class UIRenderer {
     createTrackMenuButton() {
         return `
             <button class="track-menu-btn" onclick="event.stopPropagation();" title="More options">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="1"></circle>
-                    <circle cx="12" cy="5" r="1"></circle>
-                    <circle cx="12" cy="19" r="1"></circle>
-                </svg>
+                ${SVG_MENU}
             </button>
         `;
     }
@@ -61,7 +57,7 @@ export class UIRenderer {
     }
 
     createTrackItemHTML(track, index, showCover = false, hasMultipleDiscs = false) {
-        const playIconSmall = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
+        const playIconSmall = SVG_PLAY;
         const trackImageHTML = showCover ? `<img src="${this.api.getCoverUrl(track.album?.cover, '80')}" alt="Track Cover" class="track-item-cover" loading="lazy">` : '';
 
         let displayIndex;
@@ -107,19 +103,11 @@ export class UIRenderer {
                     </svg>
                 </button>
                 <button class="track-action-btn" data-action="download" title="Download">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
+                    ${SVG_DOWNLOAD}
                 </button>
             </div>
             <button class="track-menu-btn" type="button" title="More options">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="1"></circle>
-                    <circle cx="12" cy="5" r="1"></circle>
-                    <circle cx="12" cy="19" r="1"></circle>
-                </svg>
+                ${SVG_MENU}
             </button>
         `;
 
@@ -488,6 +476,10 @@ export class UIRenderer {
         const metaEl = document.getElementById('album-detail-meta');
         const prodEl = document.getElementById('album-detail-producer');
         const tracklistContainer = document.getElementById('album-detail-tracklist');
+        const playBtn = document.getElementById('play-album-btn');
+        if (playBtn) playBtn.innerHTML = `${SVG_PLAY}<span>Play Album</span>`;
+        const dlBtn = document.getElementById('download-album-btn');
+        if (dlBtn) dlBtn.innerHTML = `${SVG_DOWNLOAD}<span>Download Album</span>`;
 
         imageEl.src = '';
         imageEl.style.backgroundColor = 'var(--muted)';
@@ -616,10 +608,14 @@ async renderPlaylistPage(playlistId) {
     const imageEl = document.getElementById('playlist-detail-image');
     const titleEl = document.getElementById('playlist-detail-title');
     const metaEl = document.getElementById('playlist-detail-meta');
-    const descEl = document.getElementById('playlist-detail-description');
-    const tracklistContainer = document.getElementById('playlist-detail-tracklist');
+            const descEl = document.getElementById('playlist-detail-description');
+            const tracklistContainer = document.getElementById('playlist-detail-tracklist');
+        const playBtn = document.getElementById('play-playlist-btn');
+        if (playBtn) playBtn.innerHTML = `${SVG_PLAY}<span>Play</span>`;
+        const dlBtn = document.getElementById('download-playlist-btn');
+        if (dlBtn) dlBtn.innerHTML = `${SVG_DOWNLOAD}<span>Download</span>`;
 
-    imageEl.src = '';
+        imageEl.src = '';
     imageEl.style.backgroundColor = 'var(--muted)';
     titleEl.innerHTML = '<div class="skeleton" style="height: 48px; width: 300px; max-width: 90%;"></div>';
     metaEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 200px; max-width: 80%;"></div>';
@@ -676,6 +672,8 @@ async renderPlaylistPage(playlistId) {
         const metaEl = document.getElementById('artist-detail-meta');
         const tracksContainer = document.getElementById('artist-detail-tracks');
         const albumsContainer = document.getElementById('artist-detail-albums');
+        const dlBtn = document.getElementById('download-discography-btn');
+        if (dlBtn) dlBtn.innerHTML = `${SVG_DOWNLOAD}<span>Download Discography</span>`;
 
         imageEl.src = '';
         imageEl.style.backgroundColor = 'var(--muted)';
@@ -727,7 +725,7 @@ async renderPlaylistPage(playlistId) {
             container.innerHTML = instances.map((url, index) => {
                 const speedInfo = speeds[url];
                 const speedText = speedInfo
-                    ? (speedInfo.speed === Infinity
+                    ? (speedInfo.speed === Infinity || typeof speedInfo.speed !== 'number'
                         ? `<span style="color: var(--muted-foreground); font-size: 0.8rem;">Failed</span>`
                         : `<span style="color: var(--muted-foreground); font-size: 0.8rem;">${speedInfo.speed.toFixed(0)}ms</span>`)
                     : '';

@@ -1,5 +1,5 @@
 //js/downloads.js
-import { buildTrackFilename, sanitizeForFilename, RATE_LIMIT_ERROR_MESSAGE, getTrackArtists, getTrackTitle, formatTemplate } from './utils.js';
+import { buildTrackFilename, sanitizeForFilename, RATE_LIMIT_ERROR_MESSAGE, getTrackArtists, getTrackTitle, formatTemplate, SVG_CLOSE } from './utils.js';
 import { lyricsSettings } from './storage.js';
 
 const downloadTasks = new Map();
@@ -65,10 +65,7 @@ export function addDownloadTask(trackId, track, filename, api) {
                 <div class="download-status" style="font-size: 0.75rem; color: var(--muted-foreground); margin-top: 0.25rem;">Starting...</div>
             </div>
             <button class="download-cancel" style="background: transparent; border: none; color: var(--muted-foreground); cursor: pointer; padding: 4px; border-radius: 4px; transition: all 0.2s;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
+                ${SVG_CLOSE}
             </button>
         </div>
     `;
@@ -132,10 +129,7 @@ export function completeDownloadTask(trackId, success = true, message = null) {
         statusEl.textContent = message || '✗ Download failed';
         statusEl.style.color = '#ef4444';
         cancelBtn.innerHTML = `
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
+            ${SVG_CLOSE}
         `;
         cancelBtn.onclick = () => removeDownloadTask(trackId);
 

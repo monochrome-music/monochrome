@@ -142,6 +142,7 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    -webkit-tap-highlight-color: transparent;
 }
 
 html {
@@ -869,6 +870,7 @@ body.has-page-background .track-item:hover {
     cursor: pointer;
     transition: all var(--transition);
     box-shadow: var(--shadow-sm);
+    -webkit-tap-highlight-color: transparent;
 }
 
 .btn-primary:hover {
@@ -1088,6 +1090,7 @@ input:checked + .slider::before {
     height: 32px;
     border-radius: 50%;
     position: relative;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .player-controls .buttons button:hover {
@@ -1162,7 +1165,7 @@ input:checked + .slider::before {
 .progress-bar .progress-fill {
     width: 0;
     height: 100%;
-    background-color: var(--foreground);
+    background-color: var(--muted-foreground);
     border-radius: 3px;
     transition: background-color 0.2s ease;
     position: relative;
@@ -1226,7 +1229,7 @@ input:checked + .slider::before {
 .volume-controls .volume-bar .volume-fill {
     width: var(--volume-level, 70%);
     height: 100%;
-    background-color: var(--foreground);
+    background-color: var(--muted-foreground);
     border-radius: 2px;
     transition: background-color 0.2s ease;
     position: relative;
@@ -1662,12 +1665,6 @@ input:checked + .slider::before {
 
 .skeleton-container {
     width: 100%;
-}
-
-#api-instance-manager {
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--border);
 }
 
 #api-instance-list {
@@ -2196,25 +2193,32 @@ input:checked + .slider::before {
     }
 
     .detail-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: var(--spacing-lg);
-        padding-bottom: var(--spacing-md);
+        flex-direction: row;
+        gap: var(--spacing-md);
+        padding-bottom: var(--spacing-sm);
         margin-bottom: var(--spacing-lg);
     }
 
     .detail-header-image {
-        width: 150px;
-        height: 150px;
+        width: 120px;
+        height: 120px;
+    }
+
+    .detail-header-info {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
 
     .detail-header-info .title {
-        font-size: 2rem;
+        font-size: 1.5rem;
         line-height: 1.2;
     }
 
     .detail-header-info .title.long-title {
-        font-size: 1.5rem;
+        font-size: 1.35rem;
     }
 
     .detail-header-info .title.very-long-title {
@@ -2224,15 +2228,17 @@ input:checked + .slider::before {
     .detail-header-info .meta {
         font-size: 0.85rem;
         gap: 0.35rem;
+        margin-top: 0.25em;
     }
 
     .detail-header-actions {
         width: auto;
+        margin-top: 0.5em;
     }
 
     .detail-header-actions .btn-primary {
         width: auto;
-        padding: 0.875rem;
+        padding: 0.5rem;
         border-radius: 50%;
         aspect-ratio: 1/1;
     }
@@ -2454,15 +2460,15 @@ input:checked + .slider::before {
     }
 
     .detail-header-info .title {
-        font-size: 1.75rem;
+        font-size: 1.25rem;
     }
 
     .detail-header-info .title.long-title {
-        font-size: 1.35rem;
+        font-size: 1.10rem;
     }
 
     .detail-header-info .title.very-long-title {
-        font-size: 1.1rem;
+        font-size: 0.9rem;
     }
 
     .search-tab {

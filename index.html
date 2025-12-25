@@ -168,17 +168,9 @@
                         <div class="meta" id="album-detail-producer"></div>
                         <div class="detail-header-actions">
                             <button id="play-album-btn" class="btn-primary">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                                </svg>
                                 <span>Play Album</span>
                             </button>
                             <button id="download-album-btn" class="btn-primary">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                                </svg>
                                 <span>Download Album</span>
                             </button>
                         </div>
@@ -196,17 +188,9 @@
             <p id="playlist-detail-description" class="detail-description"></p>
             <div class="detail-actions">
                 <button id="play-playlist-btn" class="btn-primary">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                    </svg>
                     <span>Play</span>
                 </button>
                 <button id="download-playlist-btn" class="btn-primary">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
                     <span>Download</span>
                 </button>
             </div>
@@ -229,11 +213,6 @@
                                 <span>Artist Radio</span>
                             </button>
                             <button id="download-discography-btn" class="btn-primary">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                                </svg>
                                 <span>Download Discography</span>
                             </button>
                         </div>
@@ -275,6 +254,16 @@
                             <button class="btn-secondary" id="apply-custom-theme">Apply Theme</button>
                             <button class="btn-secondary" id="reset-custom-theme">Reset</button>
                         </div>
+                    </div>
+                    <div class="setting-item">
+                        <div class="info">
+                            <span class="label">Album Cover Background</span>
+                            <span class="description">Use the album cover as a blurred background on album pages</span>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="album-background-toggle">
+                            <span class="slider"></span>
+                        </label>
                     </div>
                     <div class="setting-item">
                         <div class="info">
@@ -341,16 +330,6 @@
                     </div>
                     <div class="setting-item">
                         <div class="info">
-                            <span class="label">Album Cover Background</span>
-                            <span class="description">Use the album cover as a blurred background on album pages</span>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="album-background-toggle">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    <div class="setting-item">
-                        <div class="info">
                             <span class="label">Gapless Playback</span>
                             <span class="description">Play audio without interruption between tracks</span>
                         </div>
@@ -372,6 +351,13 @@
                             <span class="description">Customize album folder names. Available: {albumTitle}, {albumArtist}, {year}</span>
                         </div>
                         <input type="text" id="zip-folder-template" class="template-input" placeholder="{albumTitle} - {albumArtist} - monochrome.tf">
+                    </div>
+                    <div class="setting-item">
+                        <div class="info">
+                            <span class="label">Keyboard Shortcuts</span>
+                            <span class="description">View available keyboard shortcuts</span>
+                        </div>
+                        <button id="show-shortcuts-btn" class="btn-secondary">Show Shortcuts</button>
                     </div>
                     <div class="setting-item">
                         <div class="info">
