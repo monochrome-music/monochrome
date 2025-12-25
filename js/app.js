@@ -8,7 +8,7 @@ import { LastFMScrobbler } from './lastfm.js';
 import { LyricsManager, createLyricsPanel, showKaraokeView, showSyncedLyricsPanel, clearLyricsPanelSync } from './lyrics.js';
 import { createRouter, updateTabTitle } from './router.js';
 import { initializeSettings } from './settings.js';
-import { initializePlayerEvents, initializeTrackInteractions } from './events.js';
+import { initializePlayerEvents, initializeTrackInteractions, handleTrackAction } from './events.js';
 import { initializeUIInteractions } from './ui-interactions.js';
 import { downloadAlbumAsZip, downloadDiscography, downloadPlaylistAsZip } from './downloads.js';
 import { debounce, SVG_PLAY } from './utils.js';
@@ -275,7 +275,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('download-current-btn')?.addEventListener('click', () => {
         if (player.currentTrack) {
-            downloadTrackWithMetadata(player.currentTrack, player.quality, api, lyricsManager);
+            handleTrackAction('download', player.currentTrack, player, api, lyricsManager);
         }
     });
 

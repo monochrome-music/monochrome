@@ -1,7 +1,7 @@
 //js/events.js
-import { SVG_PLAY, SVG_PAUSE, SVG_VOLUME, SVG_MUTE, REPEAT_MODE, trackDataStore, RATE_LIMIT_ERROR_MESSAGE, buildTrackFilename } from './utils.js';
+import { SVG_PLAY, SVG_PAUSE, SVG_VOLUME, SVG_MUTE, REPEAT_MODE, trackDataStore } from './utils.js';
 import { lastFMStorage } from './storage.js';
-import { addDownloadTask, updateDownloadProgress, completeDownloadTask, showNotification, downloadTrackWithMetadata } from './downloads.js';
+import { showNotification, downloadTrackWithMetadata } from './downloads.js';
 import { lyricsSettings } from './storage.js';
 import { updateTabTitle } from './router.js';
 
@@ -290,6 +290,22 @@ function initializeSmoothSliders(audioPlayer, player) {
     });
 }
 
+export async function handleTrackAction(action, track, player, api, lyricsManager) {
+    if (!track) return;
+
+    if (action === 'add-to-queue') {
+        player.addToQueue(track);
+        renderQueue(player);
+        showNotification(`Added to queue: ${track.title}`);
+    } else if (action === 'play-next') {
+        player.addNextToQueue(track);
+        renderQueue(player);
+        showNotification(`Playing next: ${track.title}`);
+    } else if (action === 'download') {
+        await downloadTrackWithMetadata(track, player.quality, api, lyricsManager);
+    }
+}
+
 export function initializeTrackInteractions(player, api, mainContent, contextMenu, lyricsManager) {
     let contextTrack = null;
 
@@ -300,19 +316,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             const trackItem = actionBtn.closest('.track-item');
             if (trackItem) {
                 const track = trackDataStore.get(trackItem);
-                const action = actionBtn.dataset.action;
-                
-                if (action === 'add-to-queue' && track) {
-                    player.addToQueue(track);
-                    renderQueue(player);
-                    showNotification(`Added to queue: ${track.title}`);
-                } else if (action === 'play-next' && track) {
-                    player.addNextToQueue(track);
-                    renderQueue(player);
-                    showNotification(`Playing next: ${track.title}`);
-                } else if (action === 'download' && track) {
-                    handleDownload(track, player, api);
-                }
+                handleTrackAction(actionBtn.dataset.action, track, player, api, lyricsManager);
             }
             return;
         }
@@ -367,19 +371,9 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
     contextMenu.addEventListener('click', async e => {
         e.stopPropagation();
         const action = e.target.dataset.action;
-
-        if (action === 'play-next' && contextTrack) {
-            player.addNextToQueue(contextTrack);
-            renderQueue(player);
-            showNotification(`Playing next: ${contextTrack.title}`);
-        } else if (action === 'add-to-queue' && contextTrack) {
-            player.addToQueue(contextTrack);
-            renderQueue(player);
-            showNotification(`Added to queue: ${contextTrack.title}`);
-        } else if (action === 'download' && contextTrack) {
-            await downloadTrackWithMetadata(contextTrack, player.quality, api, lyricsManager);
+        if (action && contextTrack) {
+            await handleTrackAction(action, contextTrack, player, api, lyricsManager);
         }
-
         contextMenu.style.display = 'none';
     });
 
@@ -450,34 +444,4 @@ function positionMenu(menu, x, y, anchorRect = null) {
     menu.style.top = `${top}px`;
     menu.style.left = `${left}px`;
     menu.style.visibility = 'visible';
-}
-
-async function handleDownload(track, player, api) {
-    const quality = player.quality;
-    const filename = buildTrackFilename(track, quality);
-
-    try {
-        const { taskEl, abortController } = addDownloadTask(
-            track.id,
-            track,
-            filename,
-            api
-        );
-
-        await api.downloadTrack(track.id, quality, filename, {
-            signal: abortController.signal,
-            onProgress: (progress) => {
-                updateDownloadProgress(track.id, progress);
-            }
-        });
-
-        completeDownloadTask(track.id, true);
-    } catch (error) {
-        if (error.name !== 'AbortError') {
-            const errorMsg = error.message === RATE_LIMIT_ERROR_MESSAGE
-                ? error.message
-                : 'Download failed. Please try again.';
-            completeDownloadTask(track.id, false, errorMsg);
-        }
-    }
 }

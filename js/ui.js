@@ -836,5 +836,4 @@ export class UIRenderer {
             }
         });
     }
-    
 }
