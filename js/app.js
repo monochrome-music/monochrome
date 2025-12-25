@@ -568,7 +568,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    if (!localStorage.getItem('shortcuts-shown')) {
+    document.getElementById('show-shortcuts-btn')?.addEventListener('click', () => {
+        showKeyboardShortcuts();
+    });
+
+    if (!localStorage.getItem('shortcuts-shown') && window.innerWidth > 768) {
         setTimeout(() => {
             showKeyboardShortcuts();
             localStorage.setItem('shortcuts-shown', 'true');

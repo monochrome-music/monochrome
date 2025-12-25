@@ -1162,7 +1162,7 @@ input:checked + .slider::before {
 .progress-bar .progress-fill {
     width: 0;
     height: 100%;
-    background-color: var(--foreground);
+    background-color: var(--muted-foreground);
     border-radius: 3px;
     transition: background-color 0.2s ease;
     position: relative;
@@ -1226,7 +1226,7 @@ input:checked + .slider::before {
 .volume-controls .volume-bar .volume-fill {
     width: var(--volume-level, 70%);
     height: 100%;
-    background-color: var(--foreground);
+    background-color: var(--muted-foreground);
     border-radius: 2px;
     transition: background-color 0.2s ease;
     position: relative;
@@ -1662,12 +1662,6 @@ input:checked + .slider::before {
 
 .skeleton-container {
     width: 100%;
-}
-
-#api-instance-manager {
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--border);
 }
 
 #api-instance-list {

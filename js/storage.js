@@ -305,9 +305,9 @@ export const nowPlayingSettings = {
 
     getMode() {
         try {
-            return localStorage.getItem(this.STORAGE_KEY) || 'album';
+            return localStorage.getItem(this.STORAGE_KEY) || 'cover';
         } catch (e) {
-            return 'album';
+            return 'cover';
         }
     },
 
