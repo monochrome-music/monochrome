@@ -484,15 +484,42 @@ export class LosslessAPI {
 
         entries.forEach(entry => scan(entry));
 
-        const albums = Array.from(albumMap.values()).sort((a, b) =>
+        // Attempt to find more albums/EPs via search since the direct feed might be limited
+        try {
+            const searchResults = await this.searchAlbums(artist.name);
+            if (searchResults && searchResults.items) {
+                const numericArtistId = Number(artistId);
+                
+                for (const item of searchResults.items) {
+                    const itemArtistId = item.artist?.id;
+                    const matchesArtist = itemArtistId === numericArtistId || 
+                                        (Array.isArray(item.artists) && item.artists.some(a => a.id === numericArtistId));
+
+                    if (matchesArtist && !albumMap.has(item.id)) {
+                        albumMap.set(item.id, item);
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to fetch additional albums via search:', e);
+        }
+
+        const allReleases = Array.from(albumMap.values()).sort((a, b) =>
             new Date(b.releaseDate || 0) - new Date(a.releaseDate || 0)
         );
 
+        const eps = allReleases.filter(a => 
+            a.type === 'EP' || 
+            a.type === 'SINGLE' || 
+            (a.numberOfTracks < 7 && !a.type)
+        );
+        const albums = allReleases.filter(a => !eps.includes(a));
+
         const tracks = Array.from(trackMap.values())
             .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
-            .slice(0, 10);
+            .slice(0, 15);
 
-        const result = { ...artist, albums, tracks };
+        const result = { ...artist, albums, eps, tracks };
 
         await this.cache.set('artist', artistId, result);
         return result;

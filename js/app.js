@@ -418,8 +418,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const artist = await api.getArtist(artistId);
                 
-                if (!artist.albums || artist.albums.length === 0) {
-                    throw new Error("No albums found for this artist");
+                const allReleases = [...(artist.albums || []), ...(artist.eps || [])];
+                if (allReleases.length === 0) {
+                    throw new Error("No albums or EPs found for this artist");
                 }
 
                 const trackSet = new Set(); 
@@ -427,7 +428,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 const chunks = [];
                 const chunkSize = 3;
-                const albums = artist.albums;
+                const albums = allReleases;
                 
                 for (let i = 0; i < albums.length; i += chunkSize) {
                     chunks.push(albums.slice(i, i + chunkSize));
