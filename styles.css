@@ -2893,7 +2893,7 @@ input:checked + .slider::before {
 
 #page-playlist .detail-header {
     display: flex;
-    align-items: flex-end;
+    align-items: flex-top;
     gap: var(--spacing-xl);
     margin-bottom: var(--spacing-lg);
     padding-bottom: var(--spacing-md);
