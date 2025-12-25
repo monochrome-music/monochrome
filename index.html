@@ -55,11 +55,7 @@
         </div>
     </div>
 
-    <div class="queue-track-menu" id="queue-track-menu">
-        <ul>
-            <li data-action="remove">Remove from Queue</li>
-        </ul>
-    </div>
+
     <div id="sidebar-overlay"></div>
 
     <div class="app-container">
@@ -194,10 +190,9 @@
 <section id="page-playlist" class="page">
     <div class="detail-header">
         <img id="playlist-detail-image" class="detail-cover" alt="Playlist Cover">
-        <div class="detail-info">
-            <div class="type">Playlist</div>
-            <h1 id="playlist-detail-title"></h1>
-            <p id="playlist-detail-meta" class="detail-meta"></p>
+        <div class="detail-header-info">
+            <h1 class="title" id="playlist-detail-title"></h1>
+            <p class="meta" id="playlist-detail-meta"></p>
             <p id="playlist-detail-description" class="detail-description"></p>
             <div class="detail-actions">
                 <button id="play-playlist-btn" class="btn-primary">
@@ -224,7 +219,6 @@
                 <header class="detail-header">
                     <img id="artist-detail-image" src="" alt="Artist" class="detail-header-image artist">
                     <div class="detail-header-info">
-                        <div class="type">Artist</div>
                         <h1 class="title" id="artist-detail-name"></h1>
                         <div class="meta" id="artist-detail-meta"></div>
                         <div class="detail-header-actions">

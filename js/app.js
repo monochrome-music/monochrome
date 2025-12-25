@@ -146,21 +146,6 @@ function initializeKeyboardShortcuts(player, audioPlayer, lyricsPanel) {
     });
 }
 
-function initializeMediaSessionHandlers(player) {
-    if (!('mediaSession' in navigator)) return;
-
-    try {
-        navigator.mediaSession.setActionHandler('seekto', (details) => {
-            if (details.seekTime !== undefined && details.fastSeek !== undefined && details.fastSeek) {
-                player.audio.currentTime = details.seekTime;
-                player.updateMediaSessionPositionState();
-            }
-        });
-    } catch (error) {
-        console.log('seekto action not supported');
-    }
-}
-
 function showOfflineNotification() {
     const notification = document.createElement('div');
     notification.className = 'offline-notification';
@@ -209,7 +194,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeTrackInteractions(player, api, document.querySelector('.main-content'), document.getElementById('context-menu'), lyricsManager);
     initializeUIInteractions(player, api);
     initializeKeyboardShortcuts(player, audioPlayer, lyricsPanel);
-    initializeMediaSessionHandlers(player);
 
     const castBtn = document.getElementById('cast-btn');
     initializeCasting(audioPlayer, castBtn);

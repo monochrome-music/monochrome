@@ -635,15 +635,6 @@ body.has-page-background .track-item:hover {
     justify-content: center;
 }
 
-/* ensure that album cover fit*/
-.track-number .track-item-cover {
-    width: 40px;
-    height: 40px;
-    border-radius: 4px;
-    object-fit: cover;
-    display: block;
-}
-
 .track-item-info {
     display: flex;
     align-items: center;
@@ -725,7 +716,7 @@ body.has-page-background .track-item:hover {
 }
 
 .track-menu-btn:hover {
-    background-color: var(--secondary);
+    background-color: rgba(var(--highlight-rgb), 0.2);
     color: var(--foreground);
 }
 
@@ -765,13 +756,13 @@ body.has-page-background .track-item:hover {
 }
 
 .track-action-btn:hover {
-    background-color: var(--secondary);
+    background-color: rgba(var(--highlight-rgb), 0.2);
     color: var(--foreground);
 }
 
 .detail-header {
     display: flex;
-    align-items: flex-end;
+    align-items: flex-start;
     gap: var(--spacing-xl);
     margin-bottom: var(--spacing-lg);
     padding-bottom: var(--spacing-md);
@@ -818,6 +809,23 @@ body.has-page-background .track-item:hover {
 
 .detail-header-info .title.very-long-title {
     font-size: 1.75rem;
+}
+
+.artist-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-left: 1rem;
+}
+
+.artist-tag {
+    background-color: var(--secondary);
+    color: var(--muted-foreground);
+    padding: 0.15rem 0.6rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: capitalize;
 }
 
 .detail-header-info .meta {
@@ -1096,8 +1104,6 @@ input:checked + .slider::before {
     position: absolute;
     font-size: 0.6rem;
     font-weight: bold;
-    bottom: 4px;
-    right: 6px;
 }
 
 .player-controls .buttons .play-pause-btn {
@@ -1123,6 +1129,16 @@ input:checked + .slider::before {
     color: var(--muted-foreground);
 }
 
+.player-controls .progress-container span {
+    min-width: 40px;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+}
+
+#current-time {
+    text-align: right;
+}
+
 .progress-bar,
 .volume-bar {
     position: relative;
@@ -1137,7 +1153,6 @@ input:checked + .slider::before {
     height: 6px;
     background-color: var(--secondary);
     border-radius: 3px;
-    transition: height 0.2s ease;
 }
 
 .progress-bar:hover {
@@ -1202,7 +1217,6 @@ input:checked + .slider::before {
     height: 4px;
     background-color: var(--secondary);
     border-radius: 2px;
-    transition: height 0.2s ease;
 }
 
 .volume-controls .volume-bar:hover {
@@ -1237,8 +1251,7 @@ input:checked + .slider::before {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-#context-menu,
-.queue-track-menu {
+#context-menu {
     display: none;
     position: fixed;
     background-color: var(--card);
@@ -1250,19 +1263,11 @@ input:checked + .slider::before {
     min-width: 160px;
 }
 
-.queue-track-menu.show {
-    display: block;
-    z-index: 1001;
-    min-width: 120px;
-}
-
-#context-menu ul,
-.queue-track-menu ul {
+#context-menu ul {
     list-style: none;
 }
 
-#context-menu li,
-.queue-track-menu li {
+#context-menu li {
     padding: 0.5rem 0.75rem;
     cursor: pointer;
     border-radius: 4px;
@@ -1270,8 +1275,7 @@ input:checked + .slider::before {
     font-size: 0.9rem;
 }
 
-#context-menu li:hover,
-.queue-track-menu li:hover {
+#context-menu li:hover {
     background-color: var(--secondary);
 }
 
@@ -1515,21 +1519,40 @@ input:checked + .slider::before {
     cursor: grab;
 }
 
-.queue-track-item .track-menu-btn {
+.queue-track-item .queue-remove-btn {
     background: transparent;
     border: none;
     color: var(--muted-foreground);
     cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
+    padding: 0.5rem;
+    border-radius: var(--radius);
     transition: all var(--transition);
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
+    opacity: 0.2;
 }
 
-.queue-track-item .track-menu-btn:hover {
-    background-color: var(--muted);
+.queue-track-item:hover .queue-remove-btn {
+    opacity: 1;
+}
+
+@media (hover: none) {
+    .queue-track-item .queue-remove-btn {
+        opacity: 1;
+    }
+}
+
+.queue-track-item .queue-remove-btn:hover {
+    background-color: var(--background);
+    color: var(--foreground);
+}
+
+.queue-track-item .queue-remove-btn svg {
+    width: 20px;
+    height: 20px;
+}
     color: var(--foreground);
 }
 
@@ -2128,7 +2151,6 @@ input:checked + .slider::before {
 
     .main-header {
         grid-area: header;
-        padding: var(--spacing-md) var(--spacing-md) 0;
         margin-bottom: var(--spacing-md);
     }
 
@@ -2138,12 +2160,13 @@ input:checked + .slider::before {
         left: 0;
         height: 100%;
         transform: translateX(-100%);
-        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
         z-index: 2000;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
     }
 
     .sidebar.is-open {
         transform: translateX(0);
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
     }
 
     .hamburger-menu {
@@ -2203,9 +2226,19 @@ input:checked + .slider::before {
         gap: 0.35rem;
     }
 
-    .detail-header-actions,
-    .btn-primary {
-        width: 100%;
+    .detail-header-actions {
+        width: auto;
+    }
+
+    .detail-header-actions .btn-primary {
+        width: auto;
+        padding: 0.875rem;
+        border-radius: 50%;
+        aspect-ratio: 1/1;
+    }
+
+    .detail-header-actions .btn-primary span {
+        display: none;
     }
 
     .now-playing-bar {
@@ -2332,7 +2365,7 @@ input:checked + .slider::before {
     }
 
     .track-item {
-        grid-template-columns: 28px 1fr auto auto;
+        grid-template-columns: 36px 1fr auto auto;
         gap: var(--spacing-sm);
         padding: var(--spacing-sm);
     }
@@ -2373,7 +2406,7 @@ input:checked + .slider::before {
     }
 
     .queue-track-item {
-        grid-template-columns: 24px 1fr 40px 28px;
+        grid-template-columns: 24px 1fr 40px 36px;
         gap: var(--spacing-sm);
         padding: var(--spacing-sm);
     }
@@ -2392,7 +2425,7 @@ input:checked + .slider::before {
         height: 36px;
     }
 
-    .queue-track-item .track-menu-btn {
+    .queue-track-item .queue-remove-btn {
         padding: 0.5rem;
     }
 
@@ -2473,13 +2506,13 @@ input:checked + .slider::before {
     }
 
     .track-item {
-        grid-template-columns: 24px 1fr 40px 28px;
+        grid-template-columns: 32px 1fr 40px 28px;
         gap: 0.375rem;
         padding: var(--spacing-xs);
     }
 
     .track-number {
-        width: 24px;
+        width: 32px;
     }
 
     .track-item-cover {
@@ -2509,7 +2542,7 @@ input:checked + .slider::before {
     }
 
     .queue-track-item {
-        grid-template-columns: 20px 1fr 36px 24px;
+        grid-template-columns: 20px 1fr 36px 32px;
         gap: 0.375rem;
         padding: 0.5rem;
     }
@@ -2604,14 +2637,11 @@ input:checked + .slider::before {
 }
 
 @supports (padding-top: env(safe-area-inset-top)) {
-    .main-header {
-        padding-top: max(var(--spacing-md), env(safe-area-inset-top));
-    }
-
     .now-playing-bar {
         padding-bottom: max(var(--spacing-md), env(safe-area-inset-bottom));
     }
 
+    .main-content,
     .sidebar {
         padding-top: max(1.5rem, env(safe-area-inset-top));
     }
@@ -2871,7 +2901,7 @@ input:checked + .slider::before {
 
 #page-playlist .detail-header {
     display: flex;
-    align-items: flex-end;
+    align-items: flex-top;
     gap: var(--spacing-xl);
     margin-bottom: var(--spacing-lg);
     padding-bottom: var(--spacing-md);
@@ -2892,19 +2922,6 @@ input:checked + .slider::before {
     opacity: 0.3;
 }
 
-#page-playlist .detail-info {
-    flex: 1;
-    min-width: 0;
-}
-
-#page-playlist .detail-info .type {
-    font-size: 0.875rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.5rem;
-    color: var(--muted-foreground);
-}
 
 #playlist-detail-title {
     font-size: 3rem;
@@ -3028,13 +3045,21 @@ input:checked + .slider::before {
     }
 
     #page-playlist .detail-actions {
-        width: 100%;
-        flex-direction: column;
+        width: auto;
+        flex-direction: row;
     }
 
     #play-playlist-btn,
     #download-playlist-btn {
-        width: 100%;
+        width: auto;
+        padding: 0.875rem;
+        border-radius: 50%;
+        aspect-ratio: 1/1;
+    }
+
+    #play-playlist-btn span,
+    #download-playlist-btn span {
+        display: none;
     }
 }
 
