@@ -1104,8 +1104,6 @@ input:checked + .slider::before {
     position: absolute;
     font-size: 0.6rem;
     font-weight: bold;
-    bottom: 4px;
-    right: 6px;
 }
 
 .player-controls .buttons .play-pause-btn {
