@@ -142,6 +142,7 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    -webkit-tap-highlight-color: transparent;
 }
 
 html {
@@ -869,6 +870,7 @@ body.has-page-background .track-item:hover {
     cursor: pointer;
     transition: all var(--transition);
     box-shadow: var(--shadow-sm);
+    -webkit-tap-highlight-color: transparent;
 }
 
 .btn-primary:hover {
@@ -1088,6 +1090,7 @@ input:checked + .slider::before {
     height: 32px;
     border-radius: 50%;
     position: relative;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .player-controls .buttons button:hover {

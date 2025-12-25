@@ -725,7 +725,7 @@ async renderPlaylistPage(playlistId) {
             container.innerHTML = instances.map((url, index) => {
                 const speedInfo = speeds[url];
                 const speedText = speedInfo
-                    ? (speedInfo.speed === Infinity
+                    ? (speedInfo.speed === Infinity || typeof speedInfo.speed !== 'number'
                         ? `<span style="color: var(--muted-foreground); font-size: 0.8rem;">Failed</span>`
                         : `<span style="color: var(--muted-foreground); font-size: 0.8rem;">${speedInfo.speed.toFixed(0)}ms</span>`)
                     : '';
