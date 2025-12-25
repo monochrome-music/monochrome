@@ -635,15 +635,6 @@ body.has-page-background .track-item:hover {
     justify-content: center;
 }
 
-/* ensure that album cover fit*/
-.track-number .track-item-cover {
-    width: 40px;
-    height: 40px;
-    border-radius: 4px;
-    object-fit: cover;
-    display: block;
-}
-
 .track-item-info {
     display: flex;
     align-items: center;
@@ -2375,7 +2366,7 @@ input:checked + .slider::before {
     }
 
     .track-item {
-        grid-template-columns: 28px 1fr auto auto;
+        grid-template-columns: 36px 1fr auto auto;
         gap: var(--spacing-sm);
         padding: var(--spacing-sm);
     }
@@ -2516,13 +2507,13 @@ input:checked + .slider::before {
     }
 
     .track-item {
-        grid-template-columns: 24px 1fr 40px 28px;
+        grid-template-columns: 32px 1fr 40px 28px;
         gap: 0.375rem;
         padding: var(--spacing-xs);
     }
 
     .track-number {
-        width: 24px;
+        width: 32px;
     }
 
     .track-item-cover {
