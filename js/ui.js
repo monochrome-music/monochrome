@@ -140,6 +140,17 @@ export class UIRenderer {
                 yearDisplay = `${date.getFullYear()}`;
             }
         }
+
+        let typeLabel = '';
+        if (album.type === 'EP') {
+            typeLabel = ' • EP';
+        } else if (album.type === 'SINGLE') {
+            typeLabel = ' • Single';
+        } else if (!album.type && album.numberOfTracks) {
+            if (album.numberOfTracks <= 3) typeLabel = ' • Single';
+            else if (album.numberOfTracks <= 6) typeLabel = ' • EP';
+        }
+
         return `
             <a href="#album/${album.id}" class="card">
                 <div class="card-image-wrapper">
@@ -147,7 +158,7 @@ export class UIRenderer {
                 </div>
                 <h3 class="card-title">${album.title} ${explicitBadge}</h3>
                 <p class="card-subtitle">${album.artist?.name ?? ''}</p>
-                <p class="card-subtitle">${yearDisplay}</p>
+                <p class="card-subtitle">${yearDisplay}${typeLabel}</p>
             </a>
         `;
     }
@@ -557,43 +568,57 @@ export class UIRenderer {
 
             document.title = `${album.title} - ${album.artist.name} - Monochrome`;
 
-            // "More from Artist" Section
+            // "More from Artist" Sections
             try {
-                // Remove any existing "More from" section if re-rendering
-                const existingMoreSection = document.getElementById('album-more-from-artist');
-                if (existingMoreSection) existingMoreSection.remove();
+                // Remove any existing "More from" sections if re-rendering
+                document.querySelectorAll('.album-more-section').forEach(el => el.remove());
+                document.getElementById('album-more-from-artist')?.remove(); // Legacy cleanup
 
-                const moreSection = document.createElement('section');
-                moreSection.id = 'album-more-from-artist';
-                moreSection.className = 'content-section';
-                moreSection.style.marginTop = '3rem';
-                moreSection.innerHTML = `
+                // Create placeholder section while loading
+                const placeholderSection = document.createElement('section');
+                placeholderSection.className = 'content-section album-more-section';
+                placeholderSection.style.marginTop = '3rem';
+                placeholderSection.innerHTML = `
                     <h2 class="section-title">More from ${album.artist.name}</h2>
-                    <div class="card-grid" id="album-more-albums">
+                    <div class="card-grid">
                         ${this.createSkeletonCards(6, false)}
                     </div>
                 `;
-                document.getElementById('page-album').appendChild(moreSection);
+                document.getElementById('page-album').appendChild(placeholderSection);
 
                 const artistData = await this.api.getArtist(album.artist.id);
-                // Filter out current album and duplicates
-                const otherAlbums = artistData.albums
-                    .filter(a => a.id != album.id)
-                    .filter((a, index, self) => 
-                        index === self.findIndex((t) => t.title === a.title) // Dedup by title
-                    )
-                    .slice(0, 12); // Limit to 12
-
-                const moreContainer = document.getElementById('album-more-albums');
                 
-                if (otherAlbums.length > 0) {
-                    moreContainer.innerHTML = otherAlbums.map(a => this.createAlbumCardHTML(a)).join('');
-                } else {
-                    moreSection.remove(); // Remove section if no other albums
-                }
+                // Remove placeholder
+                placeholderSection.remove();
+
+                const renderSection = (title, items) => {
+                    const filtered = (items || [])
+                        .filter(a => a.id != album.id)
+                        .filter((a, index, self) => 
+                            index === self.findIndex((t) => t.title === a.title) // Dedup by title
+                        )
+                        .slice(0, 12);
+                    
+                    if (filtered.length === 0) return;
+
+                    const section = document.createElement('section');
+                    section.className = 'content-section album-more-section';
+                    section.style.marginTop = '3rem';
+                    section.innerHTML = `
+                        <h2 class="section-title">${title}</h2>
+                        <div class="card-grid">
+                            ${filtered.map(a => this.createAlbumCardHTML(a)).join('')}
+                        </div>
+                    `;
+                    document.getElementById('page-album').appendChild(section);
+                };
+
+                renderSection(`More albums from ${album.artist.name}`, artistData.albums);
+                renderSection(`EPs and Singles from ${album.artist.name}`, artistData.eps);
+
             } catch (err) {
                 console.warn('Failed to load "More from artist":', err);
-                document.getElementById('album-more-from-artist')?.remove();
+                document.querySelectorAll('.album-more-section').forEach(el => el.remove());
             }
 
         } catch (error) {
@@ -672,6 +697,8 @@ async renderPlaylistPage(playlistId) {
         const metaEl = document.getElementById('artist-detail-meta');
         const tracksContainer = document.getElementById('artist-detail-tracks');
         const albumsContainer = document.getElementById('artist-detail-albums');
+        const epsContainer = document.getElementById('artist-detail-eps');
+        const epsSection = document.getElementById('artist-section-eps');
         const dlBtn = document.getElementById('download-discography-btn');
         if (dlBtn) dlBtn.innerHTML = `${SVG_DOWNLOAD}<span>Download Discography</span>`;
 
@@ -681,6 +708,8 @@ async renderPlaylistPage(playlistId) {
         metaEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 150px;"></div>';
         tracksContainer.innerHTML = this.createSkeletonTracks(5, true);
         albumsContainer.innerHTML = this.createSkeletonCards(6, false);
+        if (epsContainer) epsContainer.innerHTML = this.createSkeletonCards(6, false);
+        if (epsSection) epsSection.style.display = 'none';
 
         try {
             const artist = await this.api.getArtist(artistId);
@@ -702,9 +731,21 @@ async renderPlaylistPage(playlistId) {
             `;
 
             this.renderListWithTracks(tracksContainer, artist.tracks, true);
-            albumsContainer.innerHTML = artist.albums.map(album =>
-                this.createAlbumCardHTML(album)
-            ).join('');
+            
+            // Render Albums
+            albumsContainer.innerHTML = artist.albums.length 
+                ? artist.albums.map(album => this.createAlbumCardHTML(album)).join('')
+                : createPlaceholder('No albums found.');
+
+            // Render EPs and Singles
+            if (epsContainer && epsSection) {
+                if (artist.eps && artist.eps.length > 0) {
+                    epsContainer.innerHTML = artist.eps.map(album => this.createAlbumCardHTML(album)).join('');
+                    epsSection.style.display = 'block';
+                } else {
+                    epsSection.style.display = 'none';
+                }
+            }
 
             recentActivityManager.addArtist(artist);
 

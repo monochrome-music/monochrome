@@ -387,12 +387,13 @@ export async function downloadDiscography(artist, api, quality, lyricsManager = 
     const template = localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist} - monochrome.tf';
     const rootFolder = `${sanitizeForFilename(artist.name)} discography - monochrome.tf`;
 
-    const totalAlbums = artist.albums.length;
+    const allReleases = [...(artist.albums || []), ...(artist.eps || [])];
+    const totalAlbums = allReleases.length;
     const notification = createBulkDownloadNotification('discography', artist.name, totalAlbums);
 
     try {
-        for (let albumIndex = 0; albumIndex < artist.albums.length; albumIndex++) {
-            const album = artist.albums[albumIndex];
+        for (let albumIndex = 0; albumIndex < allReleases.length; albumIndex++) {
+            const album = allReleases[albumIndex];
 
             updateBulkDownloadProgress(notification, albumIndex, totalAlbums, album.title);
 

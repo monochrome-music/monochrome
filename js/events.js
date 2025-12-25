@@ -103,17 +103,23 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler) {
         volumeBtn.innerHTML = (muted || volume === 0) ? SVG_MUTE : SVG_VOLUME;
         const effectiveVolume = muted ? 0 : volume * 100;
         volumeFill.style.setProperty('--volume-level', `${effectiveVolume}%`);
+        volumeFill.style.width = `${effectiveVolume}%`;
     };
 
     volumeBtn.addEventListener('click', () => {
         audioPlayer.muted = !audioPlayer.muted;
+        localStorage.setItem('muted', audioPlayer.muted);
     });
 
     audioPlayer.addEventListener('volumechange', updateVolumeUI);
 
-    // Initialize volume from localStorage
+    // Initialize volume and mute from localStorage
     const savedVolume = parseFloat(localStorage.getItem('volume') || '0.7');
+    const savedMuted = localStorage.getItem('muted') === 'true';
+
     audioPlayer.volume = savedVolume;
+    audioPlayer.muted = savedMuted;
+
     volumeFill.style.width = `${savedVolume * 100}%`;
     volumeBar.style.setProperty('--volume-level', `${savedVolume * 100}%`);
     updateVolumeUI();
@@ -272,7 +278,6 @@ function initializeSmoothSliders(audioPlayer, player) {
         volumeBar.style.setProperty('--volume-level', `${position * 100}%`);
         localStorage.setItem('volume', position);
     });
-
     volumeBar.addEventListener('click', e => {
         if (!isAdjustingVolume) {
             seek(volumeBar, e, position => {
