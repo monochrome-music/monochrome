@@ -771,7 +771,7 @@ body.has-page-background .track-item:hover {
 
 .detail-header {
     display: flex;
-    align-items: flex-end;
+    align-items: flex-start;
     gap: var(--spacing-xl);
     margin-bottom: var(--spacing-lg);
     padding-bottom: var(--spacing-md);
@@ -818,6 +818,23 @@ body.has-page-background .track-item:hover {
 
 .detail-header-info .title.very-long-title {
     font-size: 1.75rem;
+}
+
+.artist-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-left: 1rem;
+}
+
+.artist-tag {
+    background-color: var(--secondary);
+    color: var(--muted-foreground);
+    padding: 0.15rem 0.6rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: capitalize;
 }
 
 .detail-header-info .meta {
@@ -2219,9 +2236,19 @@ input:checked + .slider::before {
         gap: 0.35rem;
     }
 
-    .detail-header-actions,
-    .btn-primary {
-        width: 100%;
+    .detail-header-actions {
+        width: auto;
+    }
+
+    .detail-header-actions .btn-primary {
+        width: auto;
+        padding: 0.875rem;
+        border-radius: 50%;
+        aspect-ratio: 1/1;
+    }
+
+    .detail-header-actions .btn-primary span {
+        display: none;
     }
 
     .now-playing-bar {
@@ -3028,13 +3055,21 @@ input:checked + .slider::before {
     }
 
     #page-playlist .detail-actions {
-        width: 100%;
-        flex-direction: column;
+        width: auto;
+        flex-direction: row;
     }
 
     #play-playlist-btn,
     #download-playlist-btn {
-        width: 100%;
+        width: auto;
+        padding: 0.875rem;
+        border-radius: 50%;
+        aspect-ratio: 1/1;
+    }
+
+    #play-playlist-btn span,
+    #download-playlist-btn span {
+        display: none;
     }
 }
 

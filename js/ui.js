@@ -693,7 +693,15 @@ async renderPlaylistPage(playlistId) {
 
             this.adjustTitleFontSize(nameEl, artist.name);
 
-            metaEl.textContent = `${artist.popularity} popularity`;
+            metaEl.innerHTML = `
+                <span>${artist.popularity} popularity</span>
+                <div class="artist-tags">
+                    ${(artist.artistRoles || [])
+                        .filter(role => role.category)
+                        .map(role => `<span class="artist-tag">${role.category}</span>`)
+                        .join('')}
+                </div>
+            `;
 
             this.renderListWithTracks(tracksContainer, artist.tracks, true);
             albumsContainer.innerHTML = artist.albums.map(album =>
