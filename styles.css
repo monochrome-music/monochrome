@@ -1164,7 +1164,7 @@ input:checked + .slider::before {
 .player-controls .buttons button#repeat-btn.repeat-one::after {
     content: '1';
     position: absolute;
-    font-size: 0.6rem;
+    font-size: 0.5rem;
     font-weight: bold;
 }
 
@@ -1431,12 +1431,10 @@ input:checked + .slider::before {
     text-align: center;
     z-index: 1;
     max-width: 90%;
-    background: color-mix(in srgb, var(--card), transparent 25%);
+    background: color-mix(in srgb, var(--card), transparent 80%);
     padding: 1.5rem 2rem;
     border-radius: var(--radius);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid color-mix(in srgb, var(--border), transparent 50%);
+    border: 1px solid color-mix(in srgb, var(--card), transparent 70%);
 }
 
 #fullscreen-track-title {
@@ -1449,14 +1447,14 @@ input:checked + .slider::before {
 
 #fullscreen-track-artist {
     font-size: 1.25rem;
-    color: var(--muted-foreground);
+    color: var(--primary);
     font-weight: 500;
 }
 
 #fullscreen-next-track {
     margin-top: 1.5rem;
     font-size: 0.9rem;
-    color: var(--muted-foreground);
+    color: var(--primary);
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
