@@ -1,6 +1,7 @@
 //js/api.js
 import { RATE_LIMIT_ERROR_MESSAGE, deriveTrackQuality, delay } from './utils.js';
 import { APICache } from './cache.js';
+import { addMetadataToAudio } from './metadata.js';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 
@@ -585,7 +586,7 @@ export class LosslessAPI {
     }
 
     async downloadTrack(id, quality = 'LOSSLESS', filename, options = {}) {
-        const { onProgress } = options;
+        const { onProgress, track } = options;
 
         try {
             const lookup = await this.getTrack(id, quality);
@@ -613,6 +614,7 @@ export class LosslessAPI {
             const totalBytes = contentLength ? parseInt(contentLength, 10) : 0;
 
             let receivedBytes = 0;
+            let blob;
 
             if (response.body && onProgress) {
                 const reader = response.body.getReader();
@@ -634,10 +636,9 @@ export class LosslessAPI {
                     }
                 }
 
-                const blob = new Blob(chunks, { type: response.headers.get('Content-Type') || 'audio/flac' });
-                this.triggerDownload(blob, filename);
+                blob = new Blob(chunks, { type: response.headers.get('Content-Type') || 'audio/flac' });
             } else {
-                const blob = await response.blob();
+                blob = await response.blob();
                 if (onProgress) {
                     onProgress({
                         stage: 'downloading',
@@ -645,8 +646,20 @@ export class LosslessAPI {
                         totalBytes: blob.size
                     });
                 }
-                this.triggerDownload(blob, filename);
             }
+
+            // Add metadata if track information is provided
+            if (track) {
+                if (onProgress) {
+                    onProgress({
+                        stage: 'processing',
+                        message: 'Adding metadata...'
+                    });
+                }
+                blob = await addMetadataToAudio(blob, track, this, quality);
+            }
+
+            this.triggerDownload(blob, filename);
         } catch (error) {
             if (error.name === 'AbortError') {
                 throw error;

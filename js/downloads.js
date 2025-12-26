@@ -1,6 +1,7 @@
 //js/downloads.js
 import { buildTrackFilename, sanitizeForFilename, RATE_LIMIT_ERROR_MESSAGE, getTrackArtists, getTrackTitle, formatTemplate, SVG_CLOSE } from './utils.js';
 import { lyricsSettings } from './storage.js';
+import { addMetadataToAudio } from './metadata.js';
 
 const downloadTasks = new Map();
 let downloadNotificationContainer = null;
@@ -230,8 +231,12 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null) {
     if (!response.ok) {
         throw new Error(`Failed to fetch track: ${response.status}`);
     }
-
-    const blob = await response.blob();
+    
+    let blob = await response.blob();
+    
+    // Add metadata to the blob
+    blob = await addMetadataToAudio(blob, track, api, quality);
+    
     return blob;
 }
 
@@ -265,20 +270,6 @@ export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsMana
             try {
                 const blob = await downloadTrackBlob(track, quality, api);
                 zip.file(`${folderName}/${filename}`, blob);
-                
-                try {
-                    const meta = buildTrackMetadata(track, api);
-                    const metaFilename = filename.replace(/\.[^.]+$/, '.json');
-                    zip.file(`${folderName}/${metaFilename}`, JSON.stringify(meta, null, 2));
-                } catch (e) {
-                    console.warn('Could not attach metadata for', trackTitle, e);
-                }
-
-                try {
-                    await addCoverToZipIfMissing(zip, folderName, albumCoverId || track.album?.cover, api);
-                } catch (e) {
-                    
-                }
 
                 if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
                     try {
@@ -349,18 +340,6 @@ export async function downloadPlaylistAsZip(playlist, tracks, api, quality, lyri
                 zip.file(`${folderName}/${filename}`, blob);
             
                 addCoverBlobToZip(zip, folderName, coverBlob);
-                try {
-                    const meta = buildTrackMetadata(track, api);
-                    const metaFilename = filename.replace(/\.[^.]+$/, '.json');
-                    zip.file(`${folderName}/${metaFilename}`, JSON.stringify(meta, null, 2));
-                } catch (e) {
-                    console.warn('Could not attach metadata for', trackTitle, e);
-                }
-
-                // add cover per track/playlist (attempt once per track)
-                try {
-                    await addCoverToZipIfMissing(zip, folderName, track.album?.cover, api);
-                } catch (e) {}
 
                 if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
                     try {
@@ -443,12 +422,6 @@ export async function downloadDiscography(artist, api, quality, lyricsManager = 
                     try {
                         const blob = await downloadTrackBlob(track, quality, api);
                         zip.file(`${rootFolder}/${albumFolder}/${filename}`, blob);
-
-                        
-
-                        try {
-                            await addCoverToZipIfMissing(zip, `${rootFolder}/${albumFolder}`, track.album?.cover || album.cover, api);
-                        } catch (e) {}
 
                         if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
                             try {
@@ -580,6 +553,7 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
 
         await api.downloadTrack(track.id, quality, filename, {
             signal: controller.signal,
+            track: track,
             onProgress: (progress) => {
                 updateDownloadProgress(track.id, progress);
             }
