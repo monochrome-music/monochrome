@@ -193,6 +193,26 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null) {
     return blob;
 }
 
+async function generateAndDownloadZip(zip, filename, notification, progressTotal) {
+    updateBulkDownloadProgress(notification, progressTotal, progressTotal, 'Creating ZIP...');
+
+    const zipBlob = await zip.generateAsync({
+        type: 'blob',
+        compression: 'STORE'
+    });
+
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${filename}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    completeBulkDownload(notification, true);
+}
+
 export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsManager = null) {
     const JSZip = await loadJSZip();
     const zip = new JSZip();
@@ -243,24 +263,7 @@ export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsMana
             }
         }
 
-        updateBulkDownloadProgress(notification, tracks.length, tracks.length, 'Creating ZIP...');        
-
-        const zipBlob = await zip.generateAsync({
-            type: 'blob',
-            compression: 'DEFLATE',
-            compressionOptions: { level: 6 }
-        });
-
-        const url = URL.createObjectURL(zipBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${folderName}.zip`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        completeBulkDownload(notification, true);
+        await generateAndDownloadZip(zip, folderName, notification, tracks.length);
     } catch (error) {
         completeBulkDownload(notification, false, error.message);
         throw error;
@@ -313,24 +316,7 @@ export async function downloadPlaylistAsZip(playlist, tracks, api, quality, lyri
             }
         }
 
-        updateBulkDownloadProgress(notification, tracks.length, tracks.length, 'Creating ZIP...');        
-
-        const zipBlob = await zip.generateAsync({
-            type: 'blob',
-            compression: 'DEFLATE',
-            compressionOptions: { level: 6 }
-        });
-
-        const url = URL.createObjectURL(zipBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${folderName}.zip`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        completeBulkDownload(notification, true);
+        await generateAndDownloadZip(zip, folderName, notification, tracks.length);
     } catch (error) {
         completeBulkDownload(notification, false, error.message);
         throw error;
@@ -399,24 +385,7 @@ export async function downloadDiscography(artist, api, quality, lyricsManager = 
             }
         }
 
-        updateBulkDownloadProgress(notification, totalAlbums, totalAlbums, 'Creating ZIP...');
-
-        const zipBlob = await zip.generateAsync({
-            type: 'blob',
-            compression: 'DEFLATE',
-            compressionOptions: { level: 6 }
-        });
-
-        const url = URL.createObjectURL(zipBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${rootFolder}.zip`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        completeBulkDownload(notification, true);
+        await generateAndDownloadZip(zip, rootFolder, notification, totalAlbums);
     } catch (error) {
         completeBulkDownload(notification, false, error.message);
         throw error;
