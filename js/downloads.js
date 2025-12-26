@@ -1,9 +1,21 @@
 //js/downloads.js
-import { buildTrackFilename, sanitizeForFilename, RATE_LIMIT_ERROR_MESSAGE, getTrackArtists, getTrackTitle, formatTemplate, SVG_CLOSE } from './utils.js';
+import { buildTrackFilename, sanitizeForFilename, RATE_LIMIT_ERROR_MESSAGE, getTrackArtists, getTrackTitle, formatTemplate, SVG_CLOSE, getCoverBlob } from './utils.js';
 import { lyricsSettings } from './storage.js';
+import { addMetadataToAudio } from './metadata.js';
 
 const downloadTasks = new Map();
 let downloadNotificationContainer = null;
+
+/**
+ * Adds a cover blob to a JSZip instance
+ */
+function addCoverBlobToZip(zip, folderPath, blob) {
+    if (!blob) return;
+    const path = folderPath ? `${folderPath}/cover.jpg` : 'cover.jpg';
+    if (!zip.file(path)) {
+        zip.file(path, blob);
+    }
+}
 
 async function loadJSZip() {
     try {
@@ -62,7 +74,7 @@ export function addDownloadTask(trackId, track, filename, api) {
                 <div class="download-progress-bar" style="height: 4px; background: var(--secondary); border-radius: 2px; overflow: hidden;">
                     <div class="download-progress-fill" style="width: 0%; height: 100%; background: var(--highlight); transition: width 0.2s;"></div>
                 </div>
-                <div class="download-status" style="font-size: 0.75rem; color: var(--muted-foreground); margin-top: 0.25rem;">Starting...</div>
+                <div class="download-status" style="font-size: 0.75rem; color: var(--muted-foreground); margin-top: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Starting...</div>
             </div>
             <button class="download-cancel" style="background: transparent; border: none; color: var(--muted-foreground); cursor: pointer; padding: 4px; border-radius: 4px; transition: all 0.2s;">
                 ${SVG_CLOSE}
@@ -148,7 +160,7 @@ function removeDownloadTask(trackId) {
         taskEl.remove();
         downloadTasks.delete(trackId);
 
-        if (downloadNotificationContainer && downloadNotificationContainer.children.length === 0) {
+        if (downloadNotificationContainer && downloadNotificationContainer.children.length === 0) {       
             downloadNotificationContainer.remove();
             downloadNotificationContainer = null;
         }
@@ -172,215 +184,173 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null) {
     if (!response.ok) {
         throw new Error(`Failed to fetch track: ${response.status}`);
     }
-
-    const blob = await response.blob();
+    
+    let blob = await response.blob();
+    
+    // Add metadata to the blob
+    blob = await addMetadataToAudio(blob, track, api, quality);
+    
     return blob;
 }
 
-function buildTrackMetadata(track, api) {
-    const artists = [];
-    if (Array.isArray(track.artists) && track.artists.length) {
-        for (const a of track.artists) artists.push(a.name || a);
-    } else if (track.artist && track.artist.name) {
-        artists.push(track.artist.name);
-    }
-
-    return {
-        id: track.id,
-        title: track.title || null,
-        artists,
-        album: track.album?.title || null,
-        albumArtist: track.album?.artist?.name || track.artist?.name || null,
-        trackNumber: track.trackNumber ?? null,
-        discNumber: track.discNumber ?? null,
-        durationMs: track.duration ?? null,
-        releaseDate: track.album?.releaseDate || null,
-        bitrate: track.audioQuality || null
-    };
-}
-
-async function addCoverToZipIfMissing(zip, folderPath, coverId, api) {
-    if (!coverId) return;
-
-    const coverPath = folderPath ? `${folderPath}/cover.jpg` : 'cover.jpg';
-    if (zip.file(coverPath)) return; 
+async function generateAndDownloadZip(zip, filename, notification, progressTotal, fileHandle = null) {
+    updateBulkDownloadProgress(notification, progressTotal, progressTotal, 'Creating ZIP...');
 
     try {
-        const url = api.getCoverUrl(coverId, '1000');
-        const resp = await fetch(url);
-        if (!resp.ok) return;
-        const blob = await resp.blob();
-        zip.file(coverPath, blob);
-    } catch (e) {
-    
-        console.warn('Could not fetch cover for zip:', e);
+        // Use the pre-acquired file handle for streaming (Chrome/Edge/Opera)
+        if (fileHandle) {
+            const writable = await fileHandle.createWritable();
+            
+            await new Promise((resolve, reject) => {
+                zip.generateInternalStream({
+                    type: 'uint8array',
+                    compression: 'STORE',
+                    streamFiles: true
+                })
+                .on('data', (chunk, metadata) => {
+                    writable.write(chunk);
+                })
+                .on('error', (err) => {
+                    writable.close();
+                    reject(err);
+                })
+                .on('end', () => {
+                    writable.close();
+                    resolve();
+                })
+                .resume();
+            });
+        } else {
+            // Fallback for Firefox/Safari or if user cancelled/API not available
+            const zipBlob = await zip.generateAsync({
+                type: 'blob',
+                compression: 'STORE',
+                streamFiles: true
+            });
+
+            const url = URL.createObjectURL(zipBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${filename}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        completeBulkDownload(notification, true);
+    } catch (error) {
+        console.error('ZIP generation failed:', error);
+        completeBulkDownload(notification, false, 'ZIP creation failed');
+    }
+}
+
+async function initializeZipDownload(defaultName, useFilePicker = false) {
+    const JSZip = await loadJSZip();
+    const zip = new JSZip();
+
+    let fileHandle = null;
+    if (useFilePicker && window.showSaveFilePicker) {
+        try {
+            fileHandle = await window.showSaveFilePicker({
+                suggestedName: `${defaultName}.zip`,
+                types: [{
+                    description: 'ZIP Archive',
+                    accept: { 'application/zip': ['.zip'] }
+                }]
+            });
+        } catch (err) {
+            if (err.name === 'AbortError') return null; // User cancelled
+            throw err;
+        }
+    }
+    return { zip, fileHandle };
+}
+
+async function downloadTracksToZip(zip, tracks, folderName, api, quality, lyricsManager, notification, startProgressIndex = 0, totalTracks = tracks.length) {
+    for (let i = 0; i < tracks.length; i++) {
+        const track = tracks[i];
+        const currentGlobalIndex = startProgressIndex + i;
+        const filename = buildTrackFilename(track, quality);
+        const trackTitle = getTrackTitle(track);
+
+        updateBulkDownloadProgress(notification, currentGlobalIndex, totalTracks, trackTitle);
+
+        try {
+            const blob = await downloadTrackBlob(track, quality, api);
+            zip.file(`${folderName}/${filename}`, blob);
+
+            if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
+                try {
+                    const lyricsData = await lyricsManager.fetchLyrics(track.id);
+                    if (lyricsData) {
+                        const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
+                        if (lrcContent) {
+                            const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
+                            zip.file(`${folderName}/${lrcFilename}`, lrcContent);
+                        }
+                    }
+                } catch (error) {
+                    console.log('Could not add lyrics for:', trackTitle);
+                }
+            }
+        } catch (err) {
+            console.error(`Failed to download track ${trackTitle}:`, err);
+        }
     }
 }
 
 export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsManager = null) {
-    const JSZip = await loadJSZip();
-    const zip = new JSZip();
-
-    const template = localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist} - monochrome.tf';
-    const releaseDate = album.releaseDate ? new Date(album.releaseDate) : null;
+    const releaseDateStr = album.releaseDate || (tracks[0]?.streamStartDate ? tracks[0].streamStartDate.split('T')[0] : '');
+    const releaseDate = releaseDateStr ? new Date(releaseDateStr) : null;
     const year = (releaseDate && !isNaN(releaseDate.getTime())) ? releaseDate.getFullYear() : '';
 
-    const folderName = formatTemplate(template, {
+    const folderName = formatTemplate(localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist}', {
         albumTitle: album.title,
         albumArtist: album.artist?.name,
         year: year
     });
 
+    // Only prompt for save location if we have >= 20 tracks (to capture user gesture early)
+    // Otherwise, we'll auto-download the blob at the end
+    const initResult = await initializeZipDownload(folderName, tracks.length >= 20);
+    if (!initResult) return; // User cancelled
+    const { zip, fileHandle } = initResult;
+
+    const coverBlob = await getCoverBlob(api, album.cover || album.album?.cover || album.coverId);
     const notification = createBulkDownloadNotification('album', album.title, tracks.length);
 
     try {
-        
-        const albumCoverId = album.cover || album.album?.cover || album.coverId || null;
-
-        for (let i = 0; i < tracks.length; i++) {
-            const track = tracks[i];
-            const filename = buildTrackFilename(track, quality);
-            const trackTitle = getTrackTitle(track);
-
-            updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
-
-            try {
-                const blob = await downloadTrackBlob(track, quality, api);
-                zip.file(`${folderName}/${filename}`, blob);
-                
-                try {
-                    const meta = buildTrackMetadata(track, api);
-                    const metaFilename = filename.replace(/\.[^.]+$/, '.json');
-                    zip.file(`${folderName}/${metaFilename}`, JSON.stringify(meta, null, 2));
-                } catch (e) {
-                    console.warn('Could not attach metadata for', trackTitle, e);
-                }
-
-                try {
-                    await addCoverToZipIfMissing(zip, folderName, albumCoverId || track.album?.cover, api);
-                } catch (e) {
-                    
-                }
-
-                if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
-                    try {
-                        const lyricsData = await lyricsManager.fetchLyrics(track.id);
-                        if (lyricsData) {
-                            const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
-                            if (lrcContent) {
-                                const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
-                                zip.file(`${folderName}/${lrcFilename}`, lrcContent);
-                            }
-                        }
-                    } catch (error) {
-                        console.log('Could not add lyrics for:', trackTitle);
-                    }
-                }
-            } catch (err) {
-                console.error(`Failed to download track ${trackTitle}:`, err);
-            }
-        }
-
-        updateBulkDownloadProgress(notification, tracks.length, tracks.length, 'Creating ZIP...');
-
-        const zipBlob = await zip.generateAsync({
-            type: 'blob',
-            compression: 'DEFLATE',
-            compressionOptions: { level: 6 }
-        });
-
-        const url = URL.createObjectURL(zipBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${folderName}.zip`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        completeBulkDownload(notification, true);
+        addCoverBlobToZip(zip, folderName, coverBlob);
+        await downloadTracksToZip(zip, tracks, folderName, api, quality, lyricsManager, notification);
+        await generateAndDownloadZip(zip, folderName, notification, tracks.length, fileHandle);
     } catch (error) {
         completeBulkDownload(notification, false, error.message);
         throw error;
     }
 }
 
-export async function downloadPlaylistAsZip(playlist, tracks, api, quality, lyricsManager = null) {
-    const JSZip = await loadJSZip();
-    const zip = new JSZip();
-
-    const template = localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist} - monochrome.tf';
-    const folderName = formatTemplate(template, {
+export async function downloadPlaylistAsZip(playlist, tracks, api, quality, lyricsManager = null) {       
+    const folderName = formatTemplate(localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist}', {
         albumTitle: playlist.title,
         albumArtist: 'Playlist',
         year: new Date().getFullYear()
     });
 
-    const notification = createBulkDownloadNotification('playlist', playlist.title, tracks.length);
+    const initResult = await initializeZipDownload(folderName, tracks.length >= 20);
+    if (!initResult) return; // User cancelled
+    const { zip, fileHandle } = initResult;
+
+    const notification = createBulkDownloadNotification('playlist', playlist.title, tracks.length);       
 
     try {
-        for (let i = 0; i < tracks.length; i++) {
-            const track = tracks[i];
-            const filename = buildTrackFilename(track, quality);
-            const trackTitle = getTrackTitle(track);
+        // Find a representative cover for the playlist (first track with cover)
+        const representativeTrack = tracks.find(t => t.album?.cover);
+        const coverBlob = await getCoverBlob(api, representativeTrack?.album?.cover);
+        addCoverBlobToZip(zip, folderName, coverBlob);
 
-            updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
-
-            try {
-                const blob = await downloadTrackBlob(track, quality, api);
-                zip.file(`${folderName}/${filename}`, blob);
-
-                // add metadata JSON
-                try {
-                    const meta = buildTrackMetadata(track, api);
-                    const metaFilename = filename.replace(/\.[^.]+$/, '.json');
-                    zip.file(`${folderName}/${metaFilename}`, JSON.stringify(meta, null, 2));
-                } catch (e) {
-                    console.warn('Could not attach metadata for', trackTitle, e);
-                }
-
-                // add cover per track/playlist (attempt once per track)
-                try {
-                    await addCoverToZipIfMissing(zip, folderName, track.album?.cover, api);
-                } catch (e) {}
-
-                if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
-                    try {
-                        const lyricsData = await lyricsManager.fetchLyrics(track.id);
-                        if (lyricsData) {
-                            const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
-                            if (lrcContent) {
-                                const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
-                                zip.file(`${folderName}/${lrcFilename}`, lrcContent);
-                            }
-                        }
-                    } catch (error) {
-                        console.log('Could not add lyrics for:', trackTitle);
-                    }
-                }
-            } catch (err) {
-                console.error(`Failed to download track ${trackTitle}:`, err);
-            }
-        }
-
-        updateBulkDownloadProgress(notification, tracks.length, tracks.length, 'Creating ZIP...');
-
-        const zipBlob = await zip.generateAsync({
-            type: 'blob',
-            compression: 'DEFLATE',
-            compressionOptions: { level: 6 }
-        });
-
-        const url = URL.createObjectURL(zipBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${folderName}.zip`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        completeBulkDownload(notification, true);
+        await downloadTracksToZip(zip, tracks, folderName, api, quality, lyricsManager, notification);
+        await generateAndDownloadZip(zip, folderName, notification, tracks.length, fileHandle);
     } catch (error) {
         completeBulkDownload(notification, false, error.message);
         throw error;
@@ -388,51 +358,44 @@ export async function downloadPlaylistAsZip(playlist, tracks, api, quality, lyri
 }
 
 export async function downloadDiscography(artist, api, quality, lyricsManager = null) {
-    const JSZip = await loadJSZip();
-    const zip = new JSZip();
+    const rootFolder = `${sanitizeForFilename(artist.name)} discography`;
 
-    const template = localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist} - monochrome.tf';
-    const rootFolder = `${sanitizeForFilename(artist.name)} discography - monochrome.tf`;
+    // Always use file picker for discography as it's likely large
+    const initResult = await initializeZipDownload(rootFolder, true);
+    if (!initResult) return; // User cancelled
+    const { zip, fileHandle } = initResult;
 
     const allReleases = [...(artist.albums || []), ...(artist.eps || [])];
-    const totalAlbums = allReleases.length;
-    const notification = createBulkDownloadNotification('discography', artist.name, totalAlbums);
+    const notification = createBulkDownloadNotification('discography', artist.name, allReleases.length);
 
     try {
         for (let albumIndex = 0; albumIndex < allReleases.length; albumIndex++) {
             const album = allReleases[albumIndex];
 
-            updateBulkDownloadProgress(notification, albumIndex, totalAlbums, album.title);
+            updateBulkDownloadProgress(notification, albumIndex, allReleases.length, album.title);
 
             try {
                 const { album: fullAlbum, tracks } = await api.getAlbum(album.id);
-                const releaseDate = fullAlbum.releaseDate ? new Date(fullAlbum.releaseDate) : null;
+                const coverBlob = await getCoverBlob(api, fullAlbum.cover || album.cover);
+                
+                const releaseDateStr = fullAlbum.releaseDate || (tracks[0]?.streamStartDate ? tracks[0].streamStartDate.split('T')[0] : '');
+                const releaseDate = releaseDateStr ? new Date(releaseDateStr) : null;
                 const year = (releaseDate && !isNaN(releaseDate.getTime())) ? releaseDate.getFullYear() : '';
 
-                const albumFolder = formatTemplate(template, {
+                const albumFolder = formatTemplate(localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist}', {
                     albumTitle: fullAlbum.title,
                     albumArtist: fullAlbum.artist?.name,
                     year: year
                 });
 
+                const fullFolderPath = `${rootFolder}/${albumFolder}`;
+                addCoverBlobToZip(zip, fullFolderPath, coverBlob);
+
                 for (const track of tracks) {
-                    const filename = buildTrackFilename(track, quality);
-                    
-                    try {
+                     const filename = buildTrackFilename(track, quality);
+                     try {
                         const blob = await downloadTrackBlob(track, quality, api);
-                        zip.file(`${rootFolder}/${albumFolder}/${filename}`, blob);
-
-                        try {
-                            const meta = buildTrackMetadata(track, api);
-                            const metaFilename = filename.replace(/\.[^.]+$/, '.json');
-                            zip.file(`${rootFolder}/${albumFolder}/${metaFilename}`, JSON.stringify(meta, null, 2));
-                        } catch (e) {
-                            console.warn('Could not attach metadata for', track.title, e);
-                        }
-
-                        try {
-                            await addCoverToZipIfMissing(zip, `${rootFolder}/${albumFolder}`, track.album?.cover || album.cover, api);
-                        } catch (e) {}
+                        zip.file(`${fullFolderPath}/${filename}`, blob);
 
                         if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
                             try {
@@ -441,40 +404,24 @@ export async function downloadDiscography(artist, api, quality, lyricsManager = 
                                     const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
                                     if (lrcContent) {
                                         const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
-                                        zip.file(`${rootFolder}/${albumFolder}/${lrcFilename}`, lrcContent);
+                                        zip.file(`${fullFolderPath}/${lrcFilename}`, lrcContent);
                                     }
                                 }
                             } catch (error) {
-                                console.log('Could not add lyrics for:', track.title);
+                                // Silent fail for lyrics in bulk
                             }
                         }
-                    } catch (err) {
-                        console.error(`Failed to download track ${track.title} in album ${album.title}:`, err);
-                    }
+                     } catch (err) {
+                         console.error(`Failed to download track ${track.title}:`, err);
+                     }
                 }
+
             } catch (error) {
                 console.error(`Failed to download album ${album.title}:`, error);
             }
         }
 
-        updateBulkDownloadProgress(notification, totalAlbums, totalAlbums, 'Creating ZIP...');
-
-        const zipBlob = await zip.generateAsync({
-            type: 'blob',
-            compression: 'DEFLATE',
-            compressionOptions: { level: 6 }
-        });
-
-        const url = URL.createObjectURL(zipBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${rootFolder}.zip`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        completeBulkDownload(notification, true);
+        await generateAndDownloadZip(zip, rootFolder, notification, allReleases.length, fileHandle);
     } catch (error) {
         completeBulkDownload(notification, false, error.message);
         throw error;
@@ -487,7 +434,7 @@ function createBulkDownloadNotification(type, name, totalItems) {
     const notifEl = document.createElement('div');
     notifEl.className = 'download-task bulk-download';
 
-    const typeLabel = type === 'album' ? 'Album' : type === 'playlist' ? 'Playlist' : 'Discography';
+    const typeLabel = type === 'album' ? 'Album' : type === 'playlist' ? 'Playlist' : 'Discography';      
 
     notifEl.innerHTML = `
         <div style="display: flex; align-items: start; gap: 0.75rem;">
@@ -499,7 +446,7 @@ function createBulkDownloadNotification(type, name, totalItems) {
                 <div class="download-progress-bar" style="height: 4px; background: var(--secondary); border-radius: 2px; overflow: hidden;">
                     <div class="download-progress-fill" style="width: 0%; height: 100%; background: var(--highlight); transition: width 0.2s;"></div>
                 </div>
-                <div class="download-status" style="font-size: 0.75rem; color: var(--muted-foreground); margin-top: 0.25rem;">Starting...</div>
+                <div class="download-status" style="font-size: 0.75rem; color: var(--muted-foreground); margin-top: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Starting...</div>
             </div>
         </div>
     `;
@@ -562,102 +509,26 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
             api
         );
 
-        // Manually fetch the stream so we can include metadata and cover in a ZIP
-        const lookup = await api.getTrack(track.id, quality);
-        let streamUrl;
-
-        if (lookup.originalTrackUrl) {
-            streamUrl = lookup.originalTrackUrl;
-        } else {
-            streamUrl = api.extractStreamUrlFromManifest(lookup.info.manifest);
-            if (!streamUrl) {
-                throw new Error('Could not resolve stream URL');
+        await api.downloadTrack(track.id, quality, filename, {
+            signal: controller.signal,
+            track: track,
+            onProgress: (progress) => {
+                updateDownloadProgress(track.id, progress);
             }
-        }
+        });
 
-        const resp = await fetch(streamUrl, { signal: controller.signal, cache: 'no-store' });
-        if (!resp.ok) throw new Error(`Fetch failed: ${resp.status}`);
-
-        const contentLength = resp.headers.get('Content-Length');
-        const totalBytes = contentLength ? parseInt(contentLength, 10) : 0;
-        let receivedBytes = 0;
-
-        const reader = resp.body ? resp.body.getReader() : null;
-        const chunks = [];
-
-        if (reader) {
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                if (value) {
-                    chunks.push(value);
-                    receivedBytes += value.byteLength;
-                    updateDownloadProgress(track.id, {
-                        stage: 'downloading',
-                        receivedBytes,
-                        totalBytes: totalBytes || undefined
-                    });
-                }
-            }
-        } else {
-            const blob = await resp.blob();
-            chunks.push(new Uint8Array(await blob.arrayBuffer()));
-            receivedBytes = chunks.reduce((s, c) => s + c.length, 0);
-            updateDownloadProgress(track.id, { stage: 'downloading', receivedBytes, totalBytes: receivedBytes });
-        }
-
-        const audioBlob = new Blob(chunks, { type: resp.headers.get('Content-Type') || 'audio/flac' });
-
-        // Create ZIP with audio + metadata + cover + lyrics
-        const JSZip = await loadJSZip();
-        const zip = new JSZip();
-
-        zip.file(filename, audioBlob);
-
-        try {
-            const meta = buildTrackMetadata(track, api);
-            const metaFilename = filename.replace(/\.[^.]+$/, '.json');
-            const jsonContent = JSON.stringify(meta, null, 2);
-            zip.file(metaFilename, jsonContent);
-        } catch (e) {
-            console.warn('Could not create metadata for current track', e);
-        }
-
-        try {
-            await addCoverToZipIfMissing(zip, '', track.album?.cover, api);
-        } catch (e) {}
+        completeDownloadTask(track.id, true);
 
         if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
             try {
                 const lyricsData = await lyricsManager.fetchLyrics(track.id);
                 if (lyricsData) {
-                    const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
-                    if (lrcContent) {
-                        const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
-                        zip.file(lrcFilename, lrcContent);
-                    }
+                    lyricsManager.downloadLRC(lyricsData, track);
                 }
             } catch (error) {
                 console.log('Could not download lyrics for track');
             }
         }
-
-        updateDownloadProgress(track.id, { stage: 'downloading', receivedBytes: receivedBytes, totalBytes });
-
-        const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } }, (metadata) => {
-            // metadata.percent available but we already show streaming progress
-        });
-
-        const url = URL.createObjectURL(zipBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename.replace(/\.[^.]+$/, '') + '.zip';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        completeDownloadTask(track.id, true);
     } catch (error) {
         if (error.name !== 'AbortError') {
             const errorMsg = error.message === RATE_LIMIT_ERROR_MESSAGE

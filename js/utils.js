@@ -202,3 +202,52 @@ export const formatDuration = (seconds) => {
     }
     return `${minutes} min`;
 };
+
+const coverCache = new Map();
+
+/**
+ * Fetches and caches cover art as a Blob
+ */
+export async function getCoverBlob(api, coverId) {
+    if (!coverId) return null;
+    if (coverCache.has(coverId)) return coverCache.get(coverId);
+
+    const fetchWithProxy = async (url) => {
+        try {
+            const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+            const response = await fetch(proxyUrl);
+            if (response.ok) return await response.blob();
+        } catch (e) {
+            console.warn('Proxy fetch failed:', e);
+        }
+        return null;
+    };
+
+    try {
+        const url = api.getCoverUrl(coverId, '1280');
+        // Try direct fetch first
+        const response = await fetch(url);
+        if (response.ok) {
+            const blob = await response.blob();
+            coverCache.set(coverId, blob);
+            return blob;
+        } else {
+            // If direct fetch fails (e.g. 404 from SW due to CORS), try proxy
+            const blob = await fetchWithProxy(url);
+            if (blob) {
+                coverCache.set(coverId, blob);
+                return blob;
+            }
+        }
+    } catch (e) {
+        // Network error (CORS rejection not handled by SW), try proxy
+        const url = api.getCoverUrl(coverId, '1280');
+        const blob = await fetchWithProxy(url);
+        if (blob) {
+            coverCache.set(coverId, blob);
+            return blob;
+        }
+    }
+    return null;
+}
+

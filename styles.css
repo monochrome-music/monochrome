@@ -1918,6 +1918,7 @@ input:checked + .slider::before {
     padding: 1rem;
     box-shadow: var(--shadow-lg);
     animation: slideIn 0.3s ease;
+    min-width: 300px;
 }
 
 .download-cancel:hover {
