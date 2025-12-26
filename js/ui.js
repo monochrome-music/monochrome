@@ -3,8 +3,9 @@ import { SVG_PLAY, SVG_DOWNLOAD, SVG_MENU, formatTime, createPlaceholder, trackD
 import { recentActivityManager, backgroundSettings, trackListSettings } from './storage.js';
 
 export class UIRenderer {
-    constructor(api) {
+    constructor(api, player) {
         this.api = api;
+        this.player = player;
         this.currentTrack = null;
         this.searchAbortController = null;
     }
@@ -72,6 +73,7 @@ export class UIRenderer {
         const explicitBadge = hasExplicitContent(track) ? this.createExplicitBadge() : '';
         const trackArtists = getTrackArtists(track);
         const trackTitle = getTrackTitle(track);
+        const isCurrentTrack = this.player?.currentTrack?.id === track.id;
 
         let yearDisplay = '';
         const releaseDate = track.album?.releaseDate || track.streamStartDate;
@@ -112,7 +114,7 @@ export class UIRenderer {
         `;
 
         return `
-            <div class="track-item" data-track-id="${track.id}">
+            <div class="track-item ${isCurrentTrack ? 'playing' : ''}" data-track-id="${track.id}">
                 ${trackNumberHTML}
                 <div class="track-item-info">
                     <div class="track-item-details">
@@ -266,24 +268,60 @@ export class UIRenderer {
         if (!color) return;
         
         const root = document.documentElement;
+        const theme = root.getAttribute('data-theme');
+        const isLightMode = theme === 'light';
+
+        let hex = color.replace('#', '');
+        // Handle shorthand hex
+        if (hex.length === 3) {
+            hex = hex.split('').map(char => char + char).join('');
+        }
+
+        let r = parseInt(hex.substr(0, 2), 16);
+        let g = parseInt(hex.substr(2, 2), 16);
+        let b = parseInt(hex.substr(4, 2), 16);
+
+        // Calculate perceived brightness
+        let brightness = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+
+        if (isLightMode) {
+            // In light mode, the background is white.
+            // We need the color (used for text/highlights) to be dark enough.
+            // If brightness is too high (> 150), darken it.
+            while (brightness > 150) {
+                r = Math.floor(r * 0.9);
+                g = Math.floor(g * 0.9);
+                b = Math.floor(b * 0.9);
+                brightness = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+            }
+        } else {
+            // In dark mode, the background is dark.
+            // We need the color to be light enough.
+            // If brightness is too low (< 80), lighten it.
+            while (brightness < 80) {
+                r = Math.min(255, Math.floor(r * 1.15));
+                g = Math.min(255, Math.floor(g * 1.15));
+                b = Math.min(255, Math.floor(b * 1.15));
+                brightness = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+                // Break if we hit white or can't get brighter to avoid infinite loop
+                if (r >= 255 && g >= 255 && b >= 255) break;
+            }
+        }
+
+        const adjustedColor = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
         
-        // Calculate contrast text color
-        const hex = color.replace('#', '');
-        const r = parseInt(hex.substr(0, 2), 16);
-        const g = parseInt(hex.substr(2, 2), 16);
-        const b = parseInt(hex.substr(4, 2), 16);
-        const brightness = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+        // Calculate contrast text color for buttons (text on top of the vibrant color)
         const foreground = brightness > 128 ? '#000000' : '#ffffff';
 
         // Set global CSS variables
-        root.style.setProperty('--primary', color);
+        root.style.setProperty('--primary', adjustedColor);
         root.style.setProperty('--primary-foreground', foreground);
-        root.style.setProperty('--highlight', color);
+        root.style.setProperty('--highlight', adjustedColor);
         root.style.setProperty('--highlight-rgb', `${r}, ${g}, ${b}`);
-        root.style.setProperty('--active-highlight', color);
-        root.style.setProperty('--ring', color);
+        root.style.setProperty('--active-highlight', adjustedColor);
+        root.style.setProperty('--ring', adjustedColor);
 
-        // Calculate a safe hover color (darken if too light)
+        // Calculate a safe hover color
         let hoverColor;
         if (brightness > 200) {
              const dr = Math.floor(r * 0.85);
@@ -627,67 +665,65 @@ export class UIRenderer {
         }
     }
 
-async renderPlaylistPage(playlistId) {
-    this.showPage('playlist');
+    async renderPlaylistPage(playlistId) {
+        this.showPage('playlist');
 
-    const imageEl = document.getElementById('playlist-detail-image');
-    const titleEl = document.getElementById('playlist-detail-title');
-    const metaEl = document.getElementById('playlist-detail-meta');
-            const descEl = document.getElementById('playlist-detail-description');
-            const tracklistContainer = document.getElementById('playlist-detail-tracklist');
+        const imageEl = document.getElementById('playlist-detail-image');
+        const titleEl = document.getElementById('playlist-detail-title');
+        const metaEl = document.getElementById('playlist-detail-meta');
+        const descEl = document.getElementById('playlist-detail-description');
+        const tracklistContainer = document.getElementById('playlist-detail-tracklist');
         const playBtn = document.getElementById('play-playlist-btn');
         if (playBtn) playBtn.innerHTML = `${SVG_PLAY}<span>Play</span>`;
         const dlBtn = document.getElementById('download-playlist-btn');
         if (dlBtn) dlBtn.innerHTML = `${SVG_DOWNLOAD}<span>Download</span>`;
 
         imageEl.src = '';
-    imageEl.style.backgroundColor = 'var(--muted)';
-    titleEl.innerHTML = '<div class="skeleton" style="height: 48px; width: 300px; max-width: 90%;"></div>';
-    metaEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 200px; max-width: 80%;"></div>';
-    descEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 100%;"></div>';
-    tracklistContainer.innerHTML = `
-        <div class="track-list-header">
-            <span style="width: 40px; text-align: center;">#</span>
-            <span>Title</span>
-            <span class="duration-header">Duration</span>
-        </div>
-        ${this.createSkeletonTracks(10, true)}
-    `;
-
-    try {
-        const { playlist, tracks } = await this.api.getPlaylist(playlistId);
-
-        const imageId = playlist.squareImage || playlist.image;
-        imageEl.src = this.api.getCoverUrl(imageId, '1080');
-        imageEl.style.backgroundColor = '';
-
-        titleEl.textContent = playlist.title;
-
-        this.adjustTitleFontSize(titleEl, playlist.title);
-
-        const totalDuration = calculateTotalDuration(tracks);
-
-        metaEl.textContent = `${playlist.numberOfTracks} tracks • ${formatDuration(totalDuration)}`;
-
-        descEl.textContent = playlist.description || '';
-
+        imageEl.style.backgroundColor = 'var(--muted)';
+        titleEl.innerHTML = '<div class="skeleton" style="height: 48px; width: 300px; max-width: 90%;"></div>';
+        metaEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 200px; max-width: 80%;"></div>';
+        descEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 100%;"></div>';
         tracklistContainer.innerHTML = `
             <div class="track-list-header">
                 <span style="width: 40px; text-align: center;">#</span>
                 <span>Title</span>
                 <span class="duration-header">Duration</span>
             </div>
+            ${this.createSkeletonTracks(10, true)}
         `;
 
-                    this.renderListWithTracks(tracklistContainer, tracks, true);
-        
-                    recentActivityManager.addPlaylist(playlist);
-        
-                    document.title = `${playlist.title || 'Artist Mix'} - Monochrome`;    } catch (error) {
-        console.error("Failed to load playlist:", error);
-        tracklistContainer.innerHTML = createPlaceholder(`Could not load playlist details. ${error.message}`);
+        try {
+            const { playlist, tracks } = await this.api.getPlaylist(playlistId);
+
+            const imageId = playlist.squareImage || playlist.image;
+            imageEl.src = this.api.getCoverUrl(imageId, '1080');
+            imageEl.style.backgroundColor = '';
+
+            titleEl.textContent = playlist.title;
+            this.adjustTitleFontSize(titleEl, playlist.title);
+
+            const totalDuration = calculateTotalDuration(tracks);
+
+            metaEl.textContent = `${playlist.numberOfTracks} tracks • ${formatDuration(totalDuration)}`;
+            descEl.textContent = playlist.description || '';
+
+            tracklistContainer.innerHTML = `
+                <div class="track-list-header">
+                    <span style="width: 40px; text-align: center;">#</span>
+                    <span>Title</span>
+                    <span class="duration-header">Duration</span>
+                </div>
+            `;
+
+            this.renderListWithTracks(tracklistContainer, tracks, true);
+            recentActivityManager.addPlaylist(playlist);
+
+            document.title = `${playlist.title || 'Artist Mix'} - Monochrome`;
+        } catch (error) {
+            console.error("Failed to load playlist:", error);
+            tracklistContainer.innerHTML = createPlaceholder(`Could not load playlist details. ${error.message}`);
+        }
     }
-}
 
     async renderArtistPage(artistId) {
         this.showPage('artist');

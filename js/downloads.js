@@ -244,37 +244,40 @@ export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsMana
 
             updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
 
-            const blob = await downloadTrackBlob(track, quality, api);
-            zip.file(`${folderName}/${filename}`, blob);
-
-            
             try {
-                const meta = buildTrackMetadata(track, api);
-                const metaFilename = filename.replace(/\.[^.]+$/, '.json');
-                zip.file(`${folderName}/${metaFilename}`, JSON.stringify(meta, null, 2));
-            } catch (e) {
-                console.warn('Could not attach metadata for', trackTitle, e);
-            }
-
-            try {
-                await addCoverToZipIfMissing(zip, folderName, albumCoverId || track.album?.cover, api);
-            } catch (e) {
+                const blob = await downloadTrackBlob(track, quality, api);
+                zip.file(`${folderName}/${filename}`, blob);
                 
-            }
-
-            if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
                 try {
-                    const lyricsData = await lyricsManager.fetchLyrics(track.id);
-                    if (lyricsData) {
-                        const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
-                        if (lrcContent) {
-                            const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
-                            zip.file(`${folderName}/${lrcFilename}`, lrcContent);
-                        }
-                    }
-                } catch (error) {
-                    console.log('Could not add lyrics for:', trackTitle);
+                    const meta = buildTrackMetadata(track, api);
+                    const metaFilename = filename.replace(/\.[^.]+$/, '.json');
+                    zip.file(`${folderName}/${metaFilename}`, JSON.stringify(meta, null, 2));
+                } catch (e) {
+                    console.warn('Could not attach metadata for', trackTitle, e);
                 }
+
+                try {
+                    await addCoverToZipIfMissing(zip, folderName, albumCoverId || track.album?.cover, api);
+                } catch (e) {
+                    
+                }
+
+                if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
+                    try {
+                        const lyricsData = await lyricsManager.fetchLyrics(track.id);
+                        if (lyricsData) {
+                            const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
+                            if (lrcContent) {
+                                const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
+                                zip.file(`${folderName}/${lrcFilename}`, lrcContent);
+                            }
+                        }
+                    } catch (error) {
+                        console.log('Could not add lyrics for:', trackTitle);
+                    }
+                }
+            } catch (err) {
+                console.error(`Failed to download track ${trackTitle}:`, err);
             }
         }
 
@@ -323,36 +326,40 @@ export async function downloadPlaylistAsZip(playlist, tracks, api, quality, lyri
 
             updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
 
-            const blob = await downloadTrackBlob(track, quality, api);
-            zip.file(`${folderName}/${filename}`, blob);
-
-            // add metadata JSON
             try {
-                const meta = buildTrackMetadata(track, api);
-                const metaFilename = filename.replace(/\.[^.]+$/, '.json');
-                zip.file(`${folderName}/${metaFilename}`, JSON.stringify(meta, null, 2));
-            } catch (e) {
-                console.warn('Could not attach metadata for', trackTitle, e);
-            }
+                const blob = await downloadTrackBlob(track, quality, api);
+                zip.file(`${folderName}/${filename}`, blob);
 
-            // add cover per track/playlist (attempt once per track)
-            try {
-                await addCoverToZipIfMissing(zip, folderName, track.album?.cover, api);
-            } catch (e) {}
-
-            if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
+                // add metadata JSON
                 try {
-                    const lyricsData = await lyricsManager.fetchLyrics(track.id);
-                    if (lyricsData) {
-                        const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
-                        if (lrcContent) {
-                            const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
-                            zip.file(`${folderName}/${lrcFilename}`, lrcContent);
-                        }
-                    }
-                } catch (error) {
-                    console.log('Could not add lyrics for:', trackTitle);
+                    const meta = buildTrackMetadata(track, api);
+                    const metaFilename = filename.replace(/\.[^.]+$/, '.json');
+                    zip.file(`${folderName}/${metaFilename}`, JSON.stringify(meta, null, 2));
+                } catch (e) {
+                    console.warn('Could not attach metadata for', trackTitle, e);
                 }
+
+                // add cover per track/playlist (attempt once per track)
+                try {
+                    await addCoverToZipIfMissing(zip, folderName, track.album?.cover, api);
+                } catch (e) {}
+
+                if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
+                    try {
+                        const lyricsData = await lyricsManager.fetchLyrics(track.id);
+                        if (lyricsData) {
+                            const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
+                            if (lrcContent) {
+                                const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
+                                zip.file(`${folderName}/${lrcFilename}`, lrcContent);
+                            }
+                        }
+                    } catch (error) {
+                        console.log('Could not add lyrics for:', trackTitle);
+                    }
+                }
+            } catch (err) {
+                console.error(`Failed to download track ${trackTitle}:`, err);
             }
         }
 
@@ -410,34 +417,39 @@ export async function downloadDiscography(artist, api, quality, lyricsManager = 
 
                 for (const track of tracks) {
                     const filename = buildTrackFilename(track, quality);
-                    const blob = await downloadTrackBlob(track, quality, api);
-                    zip.file(`${rootFolder}/${albumFolder}/${filename}`, blob);
-
+                    
                     try {
-                        const meta = buildTrackMetadata(track, api);
-                        const metaFilename = filename.replace(/\.[^.]+$/, '.json');
-                        zip.file(`${rootFolder}/${albumFolder}/${metaFilename}`, JSON.stringify(meta, null, 2));
-                    } catch (e) {
-                        console.warn('Could not attach metadata for', track.title, e);
-                    }
+                        const blob = await downloadTrackBlob(track, quality, api);
+                        zip.file(`${rootFolder}/${albumFolder}/${filename}`, blob);
 
-                    try {
-                        await addCoverToZipIfMissing(zip, `${rootFolder}/${albumFolder}`, track.album?.cover || album.cover, api);
-                    } catch (e) {}
-
-                    if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
                         try {
-                            const lyricsData = await lyricsManager.fetchLyrics(track.id);
-                            if (lyricsData) {
-                                const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
-                                if (lrcContent) {
-                                    const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
-                                    zip.file(`${rootFolder}/${albumFolder}/${lrcFilename}`, lrcContent);
-                                }
-                            }
-                        } catch (error) {
-                            console.log('Could not add lyrics for:', track.title);
+                            const meta = buildTrackMetadata(track, api);
+                            const metaFilename = filename.replace(/\.[^.]+$/, '.json');
+                            zip.file(`${rootFolder}/${albumFolder}/${metaFilename}`, JSON.stringify(meta, null, 2));
+                        } catch (e) {
+                            console.warn('Could not attach metadata for', track.title, e);
                         }
+
+                        try {
+                            await addCoverToZipIfMissing(zip, `${rootFolder}/${albumFolder}`, track.album?.cover || album.cover, api);
+                        } catch (e) {}
+
+                        if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
+                            try {
+                                const lyricsData = await lyricsManager.fetchLyrics(track.id);
+                                if (lyricsData) {
+                                    const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
+                                    if (lrcContent) {
+                                        const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
+                                        zip.file(`${rootFolder}/${albumFolder}/${lrcFilename}`, lrcContent);
+                                    }
+                                }
+                            } catch (error) {
+                                console.log('Could not add lyrics for:', track.title);
+                            }
+                        }
+                    } catch (err) {
+                        console.error(`Failed to download track ${track.title} in album ${album.title}:`, err);
                     }
                 }
             } catch (error) {
