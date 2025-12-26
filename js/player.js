@@ -52,6 +52,8 @@ export class Player {
                 if (coverEl) coverEl.src = this.api.getCoverUrl(track.album?.cover, '1280');
                 if (titleEl) titleEl.textContent = trackTitle;
                 if (artistEl) artistEl.textContent = trackArtists;
+                const totalDurationEl = document.getElementById('total-duration');
+                if (totalDurationEl) totalDurationEl.textContent = formatTime(track.duration);
                 document.title = `${trackTitle} • ${track.artist?.name || 'Unknown'}`;
 
                 this.updatePlayingTrackIndicator();
@@ -154,7 +156,7 @@ export class Player {
         }
     }
 
-    async playTrackFromQueue() {
+    async playTrackFromQueue(startTime = 0) {
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
         if (this.currentQueueIndex < 0 || this.currentQueueIndex >= currentQueue.length) {
             return;
@@ -193,6 +195,9 @@ export class Player {
             }
 
             this.audio.src = streamUrl;
+            if (startTime > 0) {
+                this.audio.currentTime = startTime;
+            }
             await this.audio.play();
 
             this.updateMediaSessionPlaybackState();
@@ -348,22 +353,37 @@ export class Player {
 
     removeFromQueue(index) {
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
-
-        if (index < 0 || index >= currentQueue.length) return;
-
-        if (this.shuffleActive) {
-            this.shuffledQueue.splice(index, 1);
-        } else {
-            this.queue.splice(index, 1);
+        
+        // If removing current track
+        if (index === this.currentQueueIndex) {
+            // If playing, we might want to stop or just let it finish?
+            // For now, let's just remove it. 
+            // If it's the last track, playback will stop naturally or we handle it?
         }
-
+        
         if (index < this.currentQueueIndex) {
             this.currentQueueIndex--;
-        } else if (index === this.currentQueueIndex) {
-            if (currentQueue.length > 0) {
-                this.playTrackFromQueue();
-            }
         }
+
+        const removedTrack = currentQueue.splice(index, 1)[0];
+
+        if (this.shuffleActive) {
+            // Also remove from original queue
+             const originalIndex = this.originalQueueBeforeShuffle.findIndex(t => t.id === removedTrack.id); // Simple ID check
+             if (originalIndex !== -1) {
+                 this.originalQueueBeforeShuffle.splice(originalIndex, 1);
+             }
+        }
+        
+        this.saveQueueState();
+        this.preloadNextTracks();
+    }
+
+    clearQueue() {
+        this.queue = [];
+        this.shuffledQueue = [];
+        this.originalQueueBeforeShuffle = [];
+        this.currentQueueIndex = -1;
         this.saveQueueState();
     }
 

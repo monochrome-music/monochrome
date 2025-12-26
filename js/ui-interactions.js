@@ -1,5 +1,5 @@
 //js/ui-interactions.js
-import { SVG_CLOSE, formatTime, trackDataStore, getTrackTitle, getTrackArtists } from './utils.js';
+import { SVG_CLOSE, SVG_BIN, formatTime, trackDataStore, getTrackTitle, getTrackArtists } from './utils.js';
 
 export function initializeUIInteractions(player, api) {
     const sidebar = document.querySelector('.sidebar');
@@ -8,6 +8,7 @@ export function initializeUIInteractions(player, api) {
     const queueBtn = document.getElementById('queue-btn');
     const queueModalOverlay = document.getElementById('queue-modal-overlay');
     const closeQueueBtn = document.getElementById('close-queue-btn');
+    const clearQueueBtn = document.getElementById('clear-queue-btn');
     const queueList = document.getElementById('queue-list');
 
     let draggedQueueIndex = null;
@@ -40,6 +41,13 @@ export function initializeUIInteractions(player, api) {
     closeQueueBtn.addEventListener('click', () => {
         queueModalOverlay.style.display = 'none';
     });
+    
+    if (clearQueueBtn) {
+        clearQueueBtn.addEventListener('click', () => {
+            player.clearQueue();
+            renderQueue();
+        });
+    }
 
     queueModalOverlay.addEventListener('click', e => {
         if (e.target === queueModalOverlay) {
@@ -49,6 +57,10 @@ export function initializeUIInteractions(player, api) {
 
     function renderQueue() {
         const currentQueue = player.getCurrentQueue();
+
+        if (clearQueueBtn) {
+            clearQueueBtn.style.display = currentQueue.length > 0 ? 'block' : 'none';
+        }
 
         if (currentQueue.length === 0) {
             queueList.innerHTML = '<div class="placeholder-text">Queue is empty.</div>';
@@ -78,7 +90,7 @@ export function initializeUIInteractions(player, api) {
                     </div>
                     <div class="track-item-duration">${formatTime(track.duration)}</div>
                     <button class="queue-remove-btn" data-track-index="${index}" title="Remove from queue">
-                        ${SVG_CLOSE}
+                        ${SVG_BIN}
                     </button>
                 </div>
             `;
@@ -128,14 +140,20 @@ export function initializeUIInteractions(player, api) {
     // Make renderQueue available globally for other modules
     window.renderQueueFunction = renderQueue;
 
-    // Search tabs
+    // Search and Library tabs
     document.querySelectorAll('.search-tab').forEach(tab => {
         tab.addEventListener('click', () => {
-            document.querySelectorAll('.search-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.search-tab-content').forEach(c => c.classList.remove('active'));
+            const page = tab.closest('.page');
+            if (!page) return;
+
+            page.querySelectorAll('.search-tab').forEach(t => t.classList.remove('active'));
+            page.querySelectorAll('.search-tab-content').forEach(c => c.classList.remove('active'));
 
             tab.classList.add('active');
-            document.getElementById(`search-tab-${tab.dataset.tab}`).classList.add('active');
+            
+            const prefix = page.id === 'page-library' ? 'library-tab-' : 'search-tab-';
+            const contentId = `${prefix}${tab.dataset.tab}`;
+            document.getElementById(contentId)?.classList.add('active');
         });
     });
 }

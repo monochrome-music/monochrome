@@ -30,7 +30,16 @@ function initializeCasting(audioPlayer, castBtn) {
         });
 
         castBtn.addEventListener('click', () => {
+            if (!audioPlayer.src) {
+                alert('Please play a track first to enable casting.');
+                return;
+            }
             audioPlayer.remote.prompt().catch(err => {
+                if (err.name === 'NotAllowedError') return;
+                if (err.name === 'NotFoundError') {
+                    alert('No remote playback devices (Chromecast/AirPlay) were found on your network.');
+                    return;
+                }
                 console.log('Cast prompt error:', err);
             });
         });
@@ -191,12 +200,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     initializeSettings(scrobbler, player, api, ui);
     initializePlayerEvents(player, audioPlayer, scrobbler);
-    initializeTrackInteractions(player, api, document.querySelector('.main-content'), document.getElementById('context-menu'), lyricsManager);
+    initializeTrackInteractions(player, api, document.querySelector('.main-content'), document.getElementById('context-menu'), lyricsManager, ui);
     initializeUIInteractions(player, api);
     initializeKeyboardShortcuts(player, audioPlayer, lyricsPanel);
 
     const castBtn = document.getElementById('cast-btn');
     initializeCasting(audioPlayer, castBtn);
+
+    // Restore UI state for the current track (like button, theme)
+    if (player.currentTrack) {
+        ui.setCurrentTrack(player.currentTrack);
+    }
 
     document.querySelector('.now-playing-bar .cover').addEventListener('click', async () => {
         if (!player.currentTrack) {
@@ -275,7 +289,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('download-current-btn')?.addEventListener('click', () => {
         if (player.currentTrack) {
-            handleTrackAction('download', player.currentTrack, player, api, lyricsManager);
+            handleTrackAction('download', player.currentTrack, player, api, lyricsManager, 'track', ui);
         }
     });
 

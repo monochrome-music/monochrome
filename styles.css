@@ -528,6 +528,43 @@ body.has-page-background .track-item:hover {
     margin-bottom: 1rem;
 }
 
+.card-like-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: rgba(0, 0, 0, 0.25) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 50% !important;
+    width: 32px !important;
+    height: 32px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.2s ease !important;
+    z-index: 10;
+    color: white !important;
+    border: none !important;
+}
+
+.card:hover .card-like-btn,
+.card-like-btn.active {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.card-like-btn:hover {
+    background: rgba(0, 0, 0, 0.7) !important;
+    transform: scale(1.1) !important;
+}
+
+.card-like-btn.active {
+    color: #ef4444 !important;
+}
+
 .card-image {
     width: 100%;
     aspect-ratio: 1/1;
@@ -560,6 +597,24 @@ body.has-page-background .track-item:hover {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.heart-icon {
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.heart-icon.filled {
+    color: #ef4444;
+    fill: #ef4444;
+}
+
+.track-item:hover .like-btn {
+    opacity: 1;
+}
+
+.like-btn.active .heart-icon {
+    color: #ef4444;
+    fill: #ef4444;
 }
 
 .explicit-badge {
@@ -724,8 +779,12 @@ body.has-page-background .track-item:hover {
 .track-actions-inline {
     display: none; /* Controlled by data-track-actions-mode */
     gap: 0.25rem;
-    opacity: 0.2; /* Barely visible instead of invisible */
+    opacity: 0.2;
     transition: opacity var(--transition);
+}
+
+.track-action-btn.active {
+    opacity: 1;
 }
 
 [data-track-actions-mode="inline"] .track-actions-inline {
@@ -1105,7 +1164,7 @@ input:checked + .slider::before {
 .player-controls .buttons button#repeat-btn.repeat-one::after {
     content: '1';
     position: absolute;
-    font-size: 0.6rem;
+    font-size: 0.5rem;
     font-weight: bold;
 }
 
@@ -1372,12 +1431,10 @@ input:checked + .slider::before {
     text-align: center;
     z-index: 1;
     max-width: 90%;
-    background: color-mix(in srgb, var(--card), transparent 25%);
+    background: color-mix(in srgb, var(--card), transparent 80%);
     padding: 1.5rem 2rem;
     border-radius: var(--radius);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid color-mix(in srgb, var(--border), transparent 50%);
+    border: 1px solid color-mix(in srgb, var(--card), transparent 70%);
 }
 
 #fullscreen-track-title {
@@ -1390,14 +1447,14 @@ input:checked + .slider::before {
 
 #fullscreen-track-artist {
     font-size: 1.25rem;
-    color: var(--muted-foreground);
+    color: var(--primary);
     font-weight: 500;
 }
 
 #fullscreen-next-track {
     margin-top: 1.5rem;
     font-size: 0.9rem;
-    color: var(--muted-foreground);
+    color: var(--primary);
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
@@ -1463,7 +1520,7 @@ input:checked + .slider::before {
     margin: 0;
 }
 
-#queue-modal-header button {
+#queue-modal-header #close-queue-btn {
     background: transparent;
     border: none;
     color: var(--muted-foreground);
@@ -1478,7 +1535,12 @@ input:checked + .slider::before {
     transition: all var(--transition);
 }
 
-#queue-modal-header button:hover {
+#queue-modal-header #clear-queue-btn {
+    background-color: transparent;
+}
+
+#queue-modal-header #clear-queue-btn:hover,
+#queue-modal-header #close-queue-btn:hover {
     background-color: var(--secondary);
     color: var(--foreground);
 }
@@ -1562,7 +1624,6 @@ input:checked + .slider::before {
 .placeholder-text {
     padding: 2rem 1rem;
     color: var(--muted-foreground);
-    text-align: center;
 }
 
 .placeholder-text.loading {

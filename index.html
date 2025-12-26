@@ -22,6 +22,7 @@
     <audio id="audio-player"></audio>
     <div id="context-menu">
         <ul>
+            <li data-action="toggle-like">Like</li>
             <li data-action="play-next">Play Next</li>
             <li data-action="add-to-queue">Add to Queue</li>
             <li data-action="download">Download</li>
@@ -31,7 +32,10 @@
         <div id="queue-modal">
             <div id="queue-modal-header">
                 <h3>Queue</h3>
-                <button id="close-queue-btn">&times;</button>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button id="clear-queue-btn" class="btn-secondary">Clear All</button>
+                    <button id="close-queue-btn">&times;</button>
+                </div>
             </div>
             <div id="queue-list"></div>
         </div>
@@ -75,6 +79,12 @@
                             <a href="#home">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-house-icon lucide-house"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
                                 <span>Home</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#library">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg>
+                                <span>Library</span>
                             </a>
                         </li>
                         <li class="nav-item">
@@ -159,6 +169,28 @@
                 </div>
             </div>
 
+            <div id="page-library" class="page">
+                <h2 class="section-title">Your Library</h2>
+                <div class="search-tabs">
+                    <button class="search-tab active" data-tab="tracks">Liked Songs</button>
+                    <button class="search-tab" data-tab="albums">Albums</button>
+                    <button class="search-tab" data-tab="artists">Artists</button>
+                    <button class="search-tab" data-tab="playlists">Playlists</button>
+                </div>
+                <div class="search-tab-content active" id="library-tab-tracks">
+                    <div class="track-list" id="library-tracks-container"></div>
+                </div>
+                <div class="search-tab-content" id="library-tab-albums">
+                    <div class="card-grid" id="library-albums-container"></div>
+                </div>
+                <div class="search-tab-content" id="library-tab-artists">
+                    <div class="card-grid" id="library-artists-container"></div>
+                </div>
+                <div class="search-tab-content" id="library-tab-playlists">
+                    <div class="card-grid" id="library-playlists-container"></div>
+                </div>
+            </div>
+
             <div id="page-album" class="page">
                 <header class="detail-header">
                     <img id="album-detail-image" src="" alt="" class="detail-header-image">
@@ -172,6 +204,9 @@
                             </button>
                             <button id="download-album-btn" class="btn-primary">
                                 <span>Download Album</span>
+                            </button>
+                            <button id="like-album-btn" class="btn-secondary like-btn" data-action="toggle-like" data-type="album" title="Save to Library">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
                             </button>
                         </div>
                     </div>
@@ -190,8 +225,12 @@
                 <button id="play-playlist-btn" class="btn-primary">
                     <span>Play</span>
                 </button>
+                <!-- Like button not typically for own playlists, but good for "followed" ones if we support that. For now, maybe skip or add "Edit" if it's user playlist -->
                 <button id="download-playlist-btn" class="btn-primary">
                     <span>Download</span>
+                </button>
+                <button id="like-playlist-btn" class="btn-secondary like-btn" data-action="toggle-like" data-type="playlist" title="Save to Library">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
                 </button>
             </div>
         </div>
@@ -214,6 +253,9 @@
                             </button>
                             <button id="download-discography-btn" class="btn-primary">
                                 <span>Download Discography</span>
+                            </button>
+                            <button id="like-artist-btn" class="btn-secondary like-btn" data-action="toggle-like" data-type="artist" title="Save to Library">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
                             </button>
                         </div>
                     </div>
@@ -370,6 +412,17 @@
                         </div>
                         <button id="clear-cache-btn" class="btn-secondary">Clear Cache</button>
                     </div>
+                    <div class="setting-item">
+                        <div class="info">
+                            <span class="label">Backup & Restore</span>
+                            <span class="description">Export or import your library and playlists as JSON</span>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button id="export-library-btn" class="btn-secondary">Export</button>
+                            <button id="import-library-btn" class="btn-secondary">Import</button>
+                            <input type="file" id="import-library-input" style="display: none;" accept=".json">
+                        </div>
+                    </div>
                     <div id="api-instance-manager">
                         <div class="setting-item" style="padding-bottom: 1rem; border: none;">
                             <div class="info">
@@ -466,6 +519,8 @@
                 </div>
             </div>
             <div class="volume-controls">
+                <button id="now-playing-like-btn" class="like-btn" data-action="toggle-like" title="Save to Library" style="display: none;">
+                </button>
                 <button id="download-current-btn" title="Download current track" class="desktop-only">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>

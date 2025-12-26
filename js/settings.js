@@ -1,5 +1,6 @@
 //js/settings
 import { themeManager, lastFMStorage, nowPlayingSettings, lyricsSettings, backgroundSettings, trackListSettings } from './storage.js';
+import { db } from './db.js';
 
 export function initializeSettings(scrobbler, player, api, ui) {
     const lastfmConnectBtn = document.getElementById('lastfm-connect-btn');
@@ -288,5 +289,41 @@ export function initializeSettings(scrobbler, player, api, ui) {
                 btn.disabled = false;
             }, 1500);
         }
+    });
+
+    // Backup & Restore
+    document.getElementById('export-library-btn')?.addEventListener('click', async () => {
+        const data = await db.exportData();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `monochrome-library-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    const importInput = document.getElementById('import-library-input');
+    document.getElementById('import-library-btn')?.addEventListener('click', () => {
+        importInput.click();
+    });
+
+    importInput?.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const data = JSON.parse(event.target.result);
+                await db.importData(data);
+                alert('Library imported successfully!');
+                window.location.reload(); // Simple way to refresh all state
+            } catch (err) {
+                console.error('Import failed:', err);
+                alert('Failed to import library. Please check the file format.');
+            }
+        };
+        reader.readAsText(file);
     });
 }

@@ -1,6 +1,7 @@
 //js/ui.js
-import { SVG_PLAY, SVG_DOWNLOAD, SVG_MENU, formatTime, createPlaceholder, trackDataStore, hasExplicitContent, getTrackArtists, getTrackTitle, calculateTotalDuration, formatDuration } from './utils.js';
+import { SVG_PLAY, SVG_DOWNLOAD, SVG_MENU, SVG_HEART, formatTime, createPlaceholder, trackDataStore, hasExplicitContent, getTrackArtists, getTrackTitle, calculateTotalDuration, formatDuration } from './utils.js';
 import { recentActivityManager, backgroundSettings, trackListSettings } from './storage.js';
+import { db } from './db.js';
 
 export class UIRenderer {
     constructor(api, player) {
@@ -10,9 +11,38 @@ export class UIRenderer {
         this.searchAbortController = null;
     }
 
+    // Helper for Heart Icon
+    createHeartIcon(filled = false) {
+        if (filled) {
+            return SVG_HEART.replace('class="heart-icon"', 'class="heart-icon filled"');
+        }
+        return SVG_HEART;
+    }
+
+    async updateLikeState(element, type, id) {
+        const isLiked = await db.isFavorite(type, id);
+        const btn = element.querySelector('.like-btn');
+        if (btn) {
+            btn.innerHTML = this.createHeartIcon(isLiked);
+            btn.classList.toggle('active', isLiked);
+            btn.title = isLiked ? 'Remove from Library' : 'Add to Library';
+        }
+    }
+
     setCurrentTrack(track) {
         this.currentTrack = track;
         this.updateGlobalTheme();
+        
+        const likeBtn = document.getElementById('now-playing-like-btn');
+        if (likeBtn) {
+            if (track) {
+                likeBtn.style.display = 'flex';
+                // Use the centralized update logic if possible, or manual here
+                this.updateLikeState(likeBtn.parentElement, 'track', track.id);
+            } else {
+                likeBtn.style.display = 'none';
+            }
+        }
     }
 
     updateGlobalTheme() {
@@ -86,6 +116,9 @@ export class UIRenderer {
 
         const actionsHTML = `
             <div class="track-actions-inline">
+                <button class="track-action-btn like-btn" data-action="toggle-like" title="Add to Library">
+                    ${this.createHeartIcon(false)}
+                </button>
                 <button class="track-action-btn" data-action="play-next" title="Play Next">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M2 6h6" />
@@ -154,38 +187,47 @@ export class UIRenderer {
         }
 
         return `
-            <a href="#album/${album.id}" class="card">
+            <div class="card" data-album-id="${album.id}" data-href="#album/${album.id}" style="cursor: pointer;">
                 <div class="card-image-wrapper">
                     <img src="${this.api.getCoverUrl(album.cover, '320')}" alt="${album.title}" class="card-image" loading="lazy">
+                    <button class="like-btn card-like-btn" data-action="toggle-like" data-type="album" title="Add to Library">
+                        ${this.createHeartIcon(false)}
+                    </button>
                 </div>
                 <h3 class="card-title">${album.title} ${explicitBadge}</h3>
                 <p class="card-subtitle">${album.artist?.name ?? ''}</p>
                 <p class="card-subtitle">${yearDisplay}${typeLabel}</p>
-            </a>
+            </div>
         `;
     }
 
     createPlaylistCardHTML(playlist) {
         const imageId = playlist.squareImage || playlist.image || playlist.uuid; // Fallback or use a specific cover getter if needed
         return `
-            <a href="#playlist/${playlist.uuid}" class="card">
+            <div class="card" data-playlist-id="${playlist.uuid}" data-href="#playlist/${playlist.uuid}" style="cursor: pointer;">
                 <div class="card-image-wrapper">
                     <img src="${this.api.getCoverUrl(imageId, '320')}" alt="${playlist.title}" class="card-image" loading="lazy">
+                    <button class="like-btn card-like-btn" data-action="toggle-like" data-type="playlist" title="Add to Library">
+                        ${this.createHeartIcon(false)}
+                    </button>
                 </div>
                 <h3 class="card-title">${playlist.title}</h3>
                 <p class="card-subtitle">${playlist.numberOfTracks || 0} tracks</p>
-            </a>
+            </div>
         `;
     }
 
     createArtistCardHTML(artist) {
         return `
-            <a href="#artist/${artist.id}" class="card artist">
+            <div class="card artist" data-artist-id="${artist.id}" data-href="#artist/${artist.id}" style="cursor: pointer;">
                 <div class="card-image-wrapper">
                     <img src="${this.api.getArtistPictureUrl(artist.picture, '320')}" alt="${artist.name}" class="card-image" loading="lazy">
+                    <button class="like-btn card-like-btn" data-action="toggle-like" data-type="artist" title="Add to Library">
+                        ${this.createHeartIcon(false)}
+                    </button>
                 </div>
                 <h3 class="card-title">${artist.name}</h3>
-            </a>
+            </div>
         `;
     }
 
@@ -242,7 +284,11 @@ export class UIRenderer {
 
         tracks.forEach(track => {
             const element = container.querySelector(`[data-track-id="${track.id}"]`);
-            if (element) trackDataStore.set(element, track);
+            if (element) {
+                trackDataStore.set(element, track);
+                // Async update for like button
+                this.updateLikeState(element, 'track', track.id);
+            }
         });
     }
 
@@ -405,6 +451,65 @@ export class UIRenderer {
         }
     }
 
+    async renderLibraryPage() {
+        this.showPage('library');
+        
+        const playlistsContainer = document.getElementById('library-playlists-container');
+        const tracksContainer = document.getElementById('library-tracks-container');
+        const albumsContainer = document.getElementById('library-albums-container');
+        const artistsContainer = document.getElementById('library-artists-container');
+
+        // Render Favorites
+        const likedPlaylists = await db.getFavorites('playlist');
+        if (likedPlaylists.length) {
+            playlistsContainer.innerHTML = likedPlaylists.map(p => this.createPlaylistCardHTML(p)).join('');
+            likedPlaylists.forEach(playlist => {
+                const el = playlistsContainer.querySelector(`[data-playlist-id="${playlist.uuid}"]`);
+                if (el) {
+                    trackDataStore.set(el, playlist);
+                    this.updateLikeState(el, 'playlist', playlist.uuid);
+                }
+            });
+        } else {
+            playlistsContainer.innerHTML = createPlaceholder('No liked playlists yet.');
+        }
+
+        const likedTracks = await db.getFavorites('track');
+        if (likedTracks.length) {
+            this.renderListWithTracks(tracksContainer, likedTracks, true);
+        } else {
+            tracksContainer.innerHTML = createPlaceholder('No liked songs yet.');
+        }
+
+        const likedAlbums = await db.getFavorites('album');
+        if (likedAlbums.length) {
+            albumsContainer.innerHTML = likedAlbums.map(a => this.createAlbumCardHTML(a)).join('');
+            likedAlbums.forEach(album => {
+                const el = albumsContainer.querySelector(`[data-album-id="${album.id}"]`);
+                if (el) {
+                    trackDataStore.set(el, album);
+                    this.updateLikeState(el, 'album', album.id);
+                }
+            });
+        } else {
+            albumsContainer.innerHTML = createPlaceholder('No liked albums yet.');
+        }
+
+        const likedArtists = await db.getFavorites('artist');
+        if (likedArtists.length) {
+            artistsContainer.innerHTML = likedArtists.map(a => this.createArtistCardHTML(a)).join('');
+            likedArtists.forEach(artist => {
+                const el = artistsContainer.querySelector(`[data-artist-id="${artist.id}"]`);
+                if (el) {
+                    trackDataStore.set(el, artist);
+                    this.updateLikeState(el, 'artist', artist.id);
+                }
+            });
+        } else {
+            artistsContainer.innerHTML = createPlaceholder('No liked artists yet.');
+        }
+    }
+
     async renderHomePage() {
         this.showPage('home');
         const recents = recentActivityManager.getRecents();
@@ -413,18 +518,45 @@ export class UIRenderer {
         const artistsContainer = document.getElementById('home-recent-artists');
         const playlistsContainer = document.getElementById('home-recent-playlists');
 
-        albumsContainer.innerHTML = recents.albums.length
-            ? recents.albums.map(album => this.createAlbumCardHTML(album)).join('')
-            : createPlaceholder("You haven't viewed any albums yet. Search for music to get started!");
+        if (recents.albums.length) {
+            albumsContainer.innerHTML = recents.albums.map(album => this.createAlbumCardHTML(album)).join('');
+            recents.albums.forEach(album => {
+                const el = albumsContainer.querySelector(`[data-album-id="${album.id}"]`);
+                if (el) {
+                    trackDataStore.set(el, album);
+                    this.updateLikeState(el, 'album', album.id);
+                }
+            });
+        } else {
+            albumsContainer.innerHTML = createPlaceholder("You haven't viewed any albums yet. Search for music to get started!");
+        }
 
-        artistsContainer.innerHTML = recents.artists.length
-            ? recents.artists.map(artist => this.createArtistCardHTML(artist)).join('')
-            : createPlaceholder("You haven't viewed any artists yet. Search for music to get started!");
+        if (recents.artists.length) {
+            artistsContainer.innerHTML = recents.artists.map(artist => this.createArtistCardHTML(artist)).join('');
+            recents.artists.forEach(artist => {
+                const el = artistsContainer.querySelector(`[data-artist-id="${artist.id}"]`);
+                if (el) {
+                    trackDataStore.set(el, artist);
+                    this.updateLikeState(el, 'artist', artist.id);
+                }
+            });
+        } else {
+            artistsContainer.innerHTML = createPlaceholder("You haven't viewed any artists yet. Search for music to get started!");
+        }
 
         if (playlistsContainer) {
-            playlistsContainer.innerHTML = recents.playlists && recents.playlists.length
-                ? recents.playlists.map(playlist => this.createPlaylistCardHTML(playlist)).join('')
-                : createPlaceholder("You haven't viewed any playlists yet. Search for music to get started!");
+            if (recents.playlists && recents.playlists.length) {
+                playlistsContainer.innerHTML = recents.playlists.map(playlist => this.createPlaylistCardHTML(playlist)).join('');
+                recents.playlists.forEach(playlist => {
+                    const el = playlistsContainer.querySelector(`[data-playlist-id="${playlist.uuid}"]`);
+                    if (el) {
+                        trackDataStore.set(el, playlist);
+                        this.updateLikeState(el, 'playlist', playlist.uuid);
+                    }
+                });
+            } else {
+                playlistsContainer.innerHTML = createPlaceholder("You haven't viewed any playlists yet. Search for music to get started!");
+            }
         }
     }
 
@@ -498,13 +630,37 @@ export class UIRenderer {
                 ? finalArtists.map(artist => this.createArtistCardHTML(artist)).join('')
                 : createPlaceholder('No artists found.');
 
+            finalArtists.forEach(artist => {
+                const el = artistsContainer.querySelector(`[data-artist-id="${artist.id}"]`);
+                if (el) {
+                    trackDataStore.set(el, artist);
+                    this.updateLikeState(el, 'artist', artist.id);
+                }
+            });
+
             albumsContainer.innerHTML = finalAlbums.length
                 ? finalAlbums.map(album => this.createAlbumCardHTML(album)).join('')
                 : createPlaceholder('No albums found.');
 
+            finalAlbums.forEach(album => {
+                const el = albumsContainer.querySelector(`[data-album-id="${album.id}"]`);
+                if (el) {
+                    trackDataStore.set(el, album);
+                    this.updateLikeState(el, 'album', album.id);
+                }
+            });
+
             playlistsContainer.innerHTML = finalPlaylists.length
                 ? finalPlaylists.map(playlist => this.createPlaylistCardHTML(playlist)).join('')
                 : createPlaceholder('No playlists found.');
+
+            finalPlaylists.forEach(playlist => {
+                const el = playlistsContainer.querySelector(`[data-playlist-id="${playlist.uuid}"]`);
+                if (el) {
+                    trackDataStore.set(el, playlist);
+                    this.updateLikeState(el, 'playlist', playlist.uuid);
+                }
+            });
 
         } catch (error) {
             if (error.name === 'AbortError') return;
@@ -603,6 +759,14 @@ export class UIRenderer {
             this.renderListWithTracks(tracklistContainer, tracks, false);
 
             recentActivityManager.addAlbum(album);
+            
+            // Update header like button
+            const albumLikeBtn = document.getElementById('like-album-btn');
+            if (albumLikeBtn) {
+                const isLiked = await db.isFavorite('album', album.id);
+                albumLikeBtn.innerHTML = this.createHeartIcon(isLiked);
+                albumLikeBtn.classList.toggle('active', isLiked);
+            }
 
             document.title = `${album.title} - ${album.artist.name} - Monochrome`;
 
@@ -649,6 +813,14 @@ export class UIRenderer {
                         </div>
                     `;
                     document.getElementById('page-album').appendChild(section);
+
+                    filtered.forEach(a => {
+                        const el = section.querySelector(`[data-album-id="${a.id}"]`);
+                        if (el) {
+                            trackDataStore.set(el, a);
+                            this.updateLikeState(el, 'album', a.id);
+                        }
+                    });
                 };
 
                 renderSection(`More albums from ${album.artist.name}`, artistData.albums);
@@ -667,7 +839,6 @@ export class UIRenderer {
 
     async renderPlaylistPage(playlistId) {
         this.showPage('playlist');
-
         const imageEl = document.getElementById('playlist-detail-image');
         const titleEl = document.getElementById('playlist-detail-title');
         const metaEl = document.getElementById('playlist-detail-meta');
@@ -696,7 +867,11 @@ export class UIRenderer {
             const { playlist, tracks } = await this.api.getPlaylist(playlistId);
 
             const imageId = playlist.squareImage || playlist.image;
-            imageEl.src = this.api.getCoverUrl(imageId, '1080');
+            if (imageId) {
+                imageEl.src = this.api.getCoverUrl(imageId, '1080');
+            } else {
+                imageEl.src = 'assets/appicon.png';
+            }
             imageEl.style.backgroundColor = '';
 
             titleEl.textContent = playlist.title;
@@ -716,8 +891,22 @@ export class UIRenderer {
             `;
 
             this.renderListWithTracks(tracklistContainer, tracks, true);
-            recentActivityManager.addPlaylist(playlist);
 
+            // Update header like button
+            const playlistLikeBtn = document.getElementById('like-playlist-btn');
+            if (playlistLikeBtn) {
+                const isLiked = await db.isFavorite('playlist', playlist.uuid);
+                playlistLikeBtn.innerHTML = this.createHeartIcon(isLiked);
+                playlistLikeBtn.classList.toggle('active', isLiked);
+            }
+
+            // Show/hide Delete button
+            const deleteBtn = document.getElementById('delete-playlist-btn');
+            if (deleteBtn) {
+                deleteBtn.style.display = 'none';
+            }
+
+            recentActivityManager.addPlaylist(playlist);
             document.title = `${playlist.title || 'Artist Mix'} - Monochrome`;
         } catch (error) {
             console.error("Failed to load playlist:", error);
@@ -768,6 +957,17 @@ export class UIRenderer {
 
             this.renderListWithTracks(tracksContainer, artist.tracks, true);
             
+            // Update header like button
+            const artistLikeBtn = document.getElementById('like-artist-btn');
+            if (artistLikeBtn) {
+                const isLiked = await db.isFavorite('artist', artist.id);
+                artistLikeBtn.innerHTML = this.createHeartIcon(isLiked);
+                artistLikeBtn.classList.toggle('active', isLiked);
+            }
+
+            albumsContainer.innerHTML = artist.albums.map(album =>
+                this.createAlbumCardHTML(album)
+            ).join('');
             // Render Albums
             albumsContainer.innerHTML = artist.albums.length 
                 ? artist.albums.map(album => this.createAlbumCardHTML(album)).join('')
@@ -782,6 +982,14 @@ export class UIRenderer {
                     epsSection.style.display = 'none';
                 }
             }
+
+            artist.albums.forEach(album => {
+                const el = albumsContainer.querySelector(`[data-album-id="${album.id}"]`);
+                if (el) {
+                    trackDataStore.set(el, album);
+                    this.updateLikeState(el, 'album', album.id);
+                }
+            });
 
             recentActivityManager.addArtist(artist);
 
