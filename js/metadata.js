@@ -1,4 +1,4 @@
-import { getExtensionForQuality } from './utils.js';
+import { getExtensionForQuality, getCoverBlob } from './utils.js';
 
 const VENDOR_STRING = 'Monochrome';
 const DEFAULT_TITLE = 'Unknown Title';
@@ -203,13 +203,11 @@ function createVorbisCommentBlock(track) {
 async function createFlacPictureBlock(coverId, api) {
     try {
         // Fetch album art
-        const coverUrl = api.getCoverUrl(coverId, '1280');
-        const response = await fetch(coverUrl);
-        if (!response.ok) {
+        const imageBlob = await getCoverBlob(api, coverId);
+        if (!imageBlob) {
             throw new Error('Failed to fetch album art');
         }
         
-        const imageBlob = await response.blob();
         const imageBytes = new Uint8Array(await imageBlob.arrayBuffer());
         
         // Detect MIME type from blob or use default
@@ -497,13 +495,11 @@ function createMp4MetadataAtoms(track) {
 
 async function fetchAlbumArtForMp4(coverId, api) {
     try {
-        const coverUrl = api.getCoverUrl(coverId, '1280');
-        const response = await fetch(coverUrl);
-        if (!response.ok) {
+        const imageBlob = await getCoverBlob(api, coverId);
+        if (!imageBlob) {
             return null;
         }
         
-        const imageBlob = await response.blob();
         const imageBytes = new Uint8Array(await imageBlob.arrayBuffer());
         
         return {
