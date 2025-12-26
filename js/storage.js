@@ -1,7 +1,7 @@
 //storage.js
 export const apiSettings = {
     STORAGE_KEY: 'monochrome-api-instances',
-    INSTANCES_URL: "../instances.json",
+    INSTANCES_URL: "https://raw.githubusercontent.com/SamidyFR/monochrome/refs/heads/main/instances.json",
     SPEED_TEST_CACHE_KEY: 'monochrome-instance-speeds',
     SPEED_TEST_CACHE_DURATION: 1000 * 60 * 60,
     defaultInstances: [],
@@ -32,12 +32,14 @@ export const apiSettings = {
         } catch (error) {
             console.error('Failed to load instances from GitHub:', error);
             this.defaultInstances = [
+                'https://triton.squid.wtf',
                 'https://wolf.qqdl.site',
                 'https://maus.qqdl.site',
                 'https://vogel.qqdl.site',
                 'https://katze.qqdl.site',
                 'https://hund.qqdl.site',
-                'https://tidal.401658.xyz'
+                'https://tidal-api.binimum.org',
+                'https://tidal.kinoplus.online',
             ];
             this.instancesLoaded = true;
             return this.defaultInstances;
