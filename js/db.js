@@ -105,12 +105,85 @@ export class MusicDatabase {
         });
     }
 
+    _minifyItem(type, item) {
+        if (!item) return item;
+        
+        // Base properties to keep
+        const base = {
+            id: item.id,
+            addedAt: item.addedAt
+        };
+
+        if (type === 'track') {
+            return {
+                ...base,
+                title: item.title,
+                duration: item.duration,
+                explicit: item.explicit,
+                // Keep minimal artist info
+                artists: item.artists?.map(a => ({ id: a.id, name: a.name })) || [],
+                // Keep minimal album info
+                album: item.album ? {
+                    id: item.album.id,
+                    cover: item.album.cover,
+                    releaseDate: item.album.releaseDate
+                } : null,
+                // Fallback date
+                streamStartDate: item.streamStartDate,
+                // Keep version if exists
+                version: item.version
+            };
+        }
+
+        if (type === 'album') {
+            return {
+                ...base,
+                title: item.title,
+                cover: item.cover,
+                releaseDate: item.releaseDate,
+                explicit: item.explicit,
+                // UI uses singular 'artist'
+                artist: item.artist ? { name: item.artist.name, id: item.artist.id } : (item.artists?.[0] ? { name: item.artists[0].name, id: item.artists[0].id } : null),
+                // Keep type and track count for UI labels
+                type: item.type,
+                numberOfTracks: item.numberOfTracks
+            };
+        }
+
+        if (type === 'artist') {
+            return {
+                ...base,
+                name: item.name,
+                picture: item.picture || item.image // Handle both just in case
+            };
+        }
+
+        if (type === 'playlist') {
+            return {
+                uuid: item.uuid,
+                addedAt: item.addedAt,
+                title: item.title,
+                // UI checks squareImage || image || uuid
+                image: item.image || item.squareImage,
+                numberOfTracks: item.numberOfTracks,
+                user: item.user ? { name: item.user.name } : null
+            };
+        }
+
+        return item;
+    }
+
     async exportData() {
+        const tracks = await this.getFavorites('track');
+        const albums = await this.getFavorites('album');
+        const artists = await this.getFavorites('artist');
+        const playlists = await this.getFavorites('playlist');
+
         const data = {
-            favorites_tracks: await this.getFavorites('track'),
-            favorites_albums: await this.getFavorites('album'),
-            favorites_artists: await this.getFavorites('artist'),
-            favorites_playlists: await this.getFavorites('playlist')
+            favorites_tracks: tracks.map(t => this._minifyItem('track', t)),
+            favorites_albums: albums.map(a => this._minifyItem('album', a)),
+            favorites_artists: artists.map(a => this._minifyItem('artist', a)),
+            favorites_playlists: playlists.map(p => this._minifyItem('playlist', p))
         };
         return data;
     }
