@@ -1520,7 +1520,7 @@ input:checked + .slider::before {
     margin: 0;
 }
 
-#queue-modal-header button {
+#queue-modal-header #close-queue-btn {
     background: transparent;
     border: none;
     color: var(--muted-foreground);
@@ -1535,7 +1535,12 @@ input:checked + .slider::before {
     transition: all var(--transition);
 }
 
-#queue-modal-header button:hover {
+#queue-modal-header #clear-queue-btn {
+    background-color: transparent;
+}
+
+#queue-modal-header #clear-queue-btn:hover,
+#queue-modal-header #close-queue-btn:hover {
     background-color: var(--secondary);
     color: var(--foreground);
 }

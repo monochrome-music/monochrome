@@ -250,9 +250,14 @@ function initializeSmoothSliders(audioPlayer, player) {
     progressBar.addEventListener('click', e => {
         if (!isSeeking) {
             seek(progressBar, e, position => {
-                if (!isNaN(audioPlayer.duration)) {
+                if (!isNaN(audioPlayer.duration) && audioPlayer.duration > 0 && audioPlayer.duration !== Infinity) {
                     audioPlayer.currentTime = position * audioPlayer.duration;
                     player.updateMediaSessionPositionState();
+                } else if (player.currentTrack && player.currentTrack.duration) {
+                    const targetTime = position * player.currentTrack.duration;
+                    const progressFill = document.querySelector('.progress-fill');
+                    if (progressFill) progressFill.style.width = `${position * 100}%`;
+                    player.playTrackFromQueue(targetTime);
                 }
             });
         }
@@ -310,7 +315,7 @@ export async function handleTrackAction(action, item, player, api, lyricsManager
         // Update all instances of this item's like button on the page
         const id = type === 'playlist' ? item.uuid : item.id;
         const selector = type === 'track' 
-            ? `.track-item[data-track-id="${id}"] .like-btn` 
+            ? `[data-track-id="${id}"] .like-btn` 
             : `.card[data-${type}-id="${id}"] .like-btn, .card[data-playlist-id="${id}"] .like-btn`;
         
         // Also check header buttons

@@ -1,5 +1,5 @@
 //js/ui-interactions.js
-import { SVG_CLOSE, formatTime, trackDataStore, getTrackTitle, getTrackArtists } from './utils.js';
+import { SVG_CLOSE, SVG_BIN, formatTime, trackDataStore, getTrackTitle, getTrackArtists } from './utils.js';
 
 export function initializeUIInteractions(player, api) {
     const sidebar = document.querySelector('.sidebar');
@@ -8,6 +8,7 @@ export function initializeUIInteractions(player, api) {
     const queueBtn = document.getElementById('queue-btn');
     const queueModalOverlay = document.getElementById('queue-modal-overlay');
     const closeQueueBtn = document.getElementById('close-queue-btn');
+    const clearQueueBtn = document.getElementById('clear-queue-btn');
     const queueList = document.getElementById('queue-list');
 
     let draggedQueueIndex = null;
@@ -40,6 +41,13 @@ export function initializeUIInteractions(player, api) {
     closeQueueBtn.addEventListener('click', () => {
         queueModalOverlay.style.display = 'none';
     });
+    
+    if (clearQueueBtn) {
+        clearQueueBtn.addEventListener('click', () => {
+            player.clearQueue();
+            renderQueue();
+        });
+    }
 
     queueModalOverlay.addEventListener('click', e => {
         if (e.target === queueModalOverlay) {
@@ -49,6 +57,10 @@ export function initializeUIInteractions(player, api) {
 
     function renderQueue() {
         const currentQueue = player.getCurrentQueue();
+
+        if (clearQueueBtn) {
+            clearQueueBtn.style.display = currentQueue.length > 0 ? 'block' : 'none';
+        }
 
         if (currentQueue.length === 0) {
             queueList.innerHTML = '<div class="placeholder-text">Queue is empty.</div>';
@@ -78,7 +90,7 @@ export function initializeUIInteractions(player, api) {
                     </div>
                     <div class="track-item-duration">${formatTime(track.duration)}</div>
                     <button class="queue-remove-btn" data-track-index="${index}" title="Remove from queue">
-                        ${SVG_CLOSE}
+                        ${SVG_BIN}
                     </button>
                 </div>
             `;

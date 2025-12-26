@@ -52,6 +52,8 @@ export class Player {
                 if (coverEl) coverEl.src = this.api.getCoverUrl(track.album?.cover, '1280');
                 if (titleEl) titleEl.textContent = trackTitle;
                 if (artistEl) artistEl.textContent = trackArtists;
+                const totalDurationEl = document.getElementById('total-duration');
+                if (totalDurationEl) totalDurationEl.textContent = formatTime(track.duration);
                 document.title = `${trackTitle} • ${track.artist?.name || 'Unknown'}`;
 
                 this.updatePlayingTrackIndicator();
@@ -154,7 +156,7 @@ export class Player {
         }
     }
 
-    async playTrackFromQueue() {
+    async playTrackFromQueue(startTime = 0) {
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
         if (this.currentQueueIndex < 0 || this.currentQueueIndex >= currentQueue.length) {
             return;
@@ -193,6 +195,9 @@ export class Player {
             }
 
             this.audio.src = streamUrl;
+            if (startTime > 0) {
+                this.audio.currentTime = startTime;
+            }
             await this.audio.play();
 
             this.updateMediaSessionPlaybackState();
