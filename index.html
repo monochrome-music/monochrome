@@ -22,6 +22,7 @@
     <audio id="audio-player"></audio>
     <div id="context-menu">
         <ul>
+            <li data-action="toggle-like">Like</li>
             <li data-action="play-next">Play Next</li>
             <li data-action="add-to-queue">Add to Queue</li>
             <li data-action="download">Download</li>
@@ -168,15 +169,12 @@
             <div id="page-library" class="page">
                 <h2 class="section-title">Your Library</h2>
                 <div class="search-tabs">
-                    <button class="search-tab active" data-tab="playlists">Playlists</button>
-                    <button class="search-tab" data-tab="tracks">Liked Songs</button>
+                    <button class="search-tab active" data-tab="tracks">Liked Songs</button>
                     <button class="search-tab" data-tab="albums">Albums</button>
                     <button class="search-tab" data-tab="artists">Artists</button>
+                    <button class="search-tab" data-tab="playlists">Playlists</button>
                 </div>
-                <div class="search-tab-content active" id="library-tab-playlists">
-                    <div class="card-grid" id="library-playlists-container"></div>
-                </div>
-                <div class="search-tab-content" id="library-tab-tracks">
+                <div class="search-tab-content active" id="library-tab-tracks">
                     <div class="track-list" id="library-tracks-container"></div>
                 </div>
                 <div class="search-tab-content" id="library-tab-albums">
@@ -184,6 +182,9 @@
                 </div>
                 <div class="search-tab-content" id="library-tab-artists">
                     <div class="card-grid" id="library-artists-container"></div>
+                </div>
+                <div class="search-tab-content" id="library-tab-playlists">
+                    <div class="card-grid" id="library-playlists-container"></div>
                 </div>
             </div>
 
@@ -515,6 +516,8 @@
                 </div>
             </div>
             <div class="volume-controls">
+                <button id="now-playing-like-btn" class="like-btn" data-action="toggle-like" title="Save to Library" style="display: none;">
+                </button>
                 <button id="download-current-btn" title="Download current track" class="desktop-only">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>

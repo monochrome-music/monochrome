@@ -1,5 +1,5 @@
 //js/ui.js
-import { SVG_PLAY, SVG_DOWNLOAD, SVG_MENU, formatTime, createPlaceholder, trackDataStore, hasExplicitContent, getTrackArtists, getTrackTitle, calculateTotalDuration, formatDuration } from './utils.js';
+import { SVG_PLAY, SVG_DOWNLOAD, SVG_MENU, SVG_HEART, formatTime, createPlaceholder, trackDataStore, hasExplicitContent, getTrackArtists, getTrackTitle, calculateTotalDuration, formatDuration } from './utils.js';
 import { recentActivityManager, backgroundSettings, trackListSettings } from './storage.js';
 import { db } from './db.js';
 
@@ -13,11 +13,10 @@ export class UIRenderer {
 
     // Helper for Heart Icon
     createHeartIcon(filled = false) {
-        return `
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="${filled ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon ${filled ? 'filled' : ''}">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-            </svg>
-        `;
+        if (filled) {
+            return SVG_HEART.replace('class="heart-icon"', 'class="heart-icon filled"');
+        }
+        return SVG_HEART;
     }
 
     async updateLikeState(element, type, id) {
@@ -33,6 +32,17 @@ export class UIRenderer {
     setCurrentTrack(track) {
         this.currentTrack = track;
         this.updateGlobalTheme();
+        
+        const likeBtn = document.getElementById('now-playing-like-btn');
+        if (likeBtn) {
+            if (track) {
+                likeBtn.style.display = 'flex';
+                // Use the centralized update logic if possible, or manual here
+                this.updateLikeState(likeBtn.parentElement, 'track', track.id);
+            } else {
+                likeBtn.style.display = 'none';
+            }
+        }
     }
 
     updateGlobalTheme() {
@@ -177,7 +187,7 @@ export class UIRenderer {
         }
 
         return `
-            <a href="#album/${album.id}" class="card" data-album-id="${album.id}">
+            <div class="card" data-album-id="${album.id}" data-href="#album/${album.id}" style="cursor: pointer;">
                 <div class="card-image-wrapper">
                     <img src="${this.api.getCoverUrl(album.cover, '320')}" alt="${album.title}" class="card-image" loading="lazy">
                     <button class="like-btn card-like-btn" data-action="toggle-like" data-type="album" title="Add to Library">
@@ -187,14 +197,14 @@ export class UIRenderer {
                 <h3 class="card-title">${album.title} ${explicitBadge}</h3>
                 <p class="card-subtitle">${album.artist?.name ?? ''}</p>
                 <p class="card-subtitle">${yearDisplay}${typeLabel}</p>
-            </a>
+            </div>
         `;
     }
 
     createPlaylistCardHTML(playlist) {
         const imageId = playlist.squareImage || playlist.image || playlist.uuid; // Fallback or use a specific cover getter if needed
         return `
-            <a href="#playlist/${playlist.uuid}" class="card" data-playlist-id="${playlist.uuid}">
+            <div class="card" data-playlist-id="${playlist.uuid}" data-href="#playlist/${playlist.uuid}" style="cursor: pointer;">
                 <div class="card-image-wrapper">
                     <img src="${this.api.getCoverUrl(imageId, '320')}" alt="${playlist.title}" class="card-image" loading="lazy">
                     <button class="like-btn card-like-btn" data-action="toggle-like" data-type="playlist" title="Add to Library">
@@ -203,13 +213,13 @@ export class UIRenderer {
                 </div>
                 <h3 class="card-title">${playlist.title}</h3>
                 <p class="card-subtitle">${playlist.numberOfTracks || 0} tracks</p>
-            </a>
+            </div>
         `;
     }
 
     createArtistCardHTML(artist) {
         return `
-            <a href="#artist/${artist.id}" class="card artist" data-artist-id="${artist.id}">
+            <div class="card artist" data-artist-id="${artist.id}" data-href="#artist/${artist.id}" style="cursor: pointer;">
                 <div class="card-image-wrapper">
                     <img src="${this.api.getArtistPictureUrl(artist.picture, '320')}" alt="${artist.name}" class="card-image" loading="lazy">
                     <button class="like-btn card-like-btn" data-action="toggle-like" data-type="artist" title="Add to Library">
@@ -217,7 +227,7 @@ export class UIRenderer {
                     </button>
                 </div>
                 <h3 class="card-title">${artist.name}</h3>
-            </a>
+            </div>
         `;
     }
 
@@ -508,18 +518,45 @@ export class UIRenderer {
         const artistsContainer = document.getElementById('home-recent-artists');
         const playlistsContainer = document.getElementById('home-recent-playlists');
 
-        albumsContainer.innerHTML = recents.albums.length
-            ? recents.albums.map(album => this.createAlbumCardHTML(album)).join('')
-            : createPlaceholder("You haven't viewed any albums yet. Search for music to get started!");
+        if (recents.albums.length) {
+            albumsContainer.innerHTML = recents.albums.map(album => this.createAlbumCardHTML(album)).join('');
+            recents.albums.forEach(album => {
+                const el = albumsContainer.querySelector(`[data-album-id="${album.id}"]`);
+                if (el) {
+                    trackDataStore.set(el, album);
+                    this.updateLikeState(el, 'album', album.id);
+                }
+            });
+        } else {
+            albumsContainer.innerHTML = createPlaceholder("You haven't viewed any albums yet. Search for music to get started!");
+        }
 
-        artistsContainer.innerHTML = recents.artists.length
-            ? recents.artists.map(artist => this.createArtistCardHTML(artist)).join('')
-            : createPlaceholder("You haven't viewed any artists yet. Search for music to get started!");
+        if (recents.artists.length) {
+            artistsContainer.innerHTML = recents.artists.map(artist => this.createArtistCardHTML(artist)).join('');
+            recents.artists.forEach(artist => {
+                const el = artistsContainer.querySelector(`[data-artist-id="${artist.id}"]`);
+                if (el) {
+                    trackDataStore.set(el, artist);
+                    this.updateLikeState(el, 'artist', artist.id);
+                }
+            });
+        } else {
+            artistsContainer.innerHTML = createPlaceholder("You haven't viewed any artists yet. Search for music to get started!");
+        }
 
         if (playlistsContainer) {
-            playlistsContainer.innerHTML = recents.playlists && recents.playlists.length
-                ? recents.playlists.map(playlist => this.createPlaylistCardHTML(playlist)).join('')
-                : createPlaceholder("You haven't viewed any playlists yet. Search for music to get started!");
+            if (recents.playlists && recents.playlists.length) {
+                playlistsContainer.innerHTML = recents.playlists.map(playlist => this.createPlaylistCardHTML(playlist)).join('');
+                recents.playlists.forEach(playlist => {
+                    const el = playlistsContainer.querySelector(`[data-playlist-id="${playlist.uuid}"]`);
+                    if (el) {
+                        trackDataStore.set(el, playlist);
+                        this.updateLikeState(el, 'playlist', playlist.uuid);
+                    }
+                });
+            } else {
+                playlistsContainer.innerHTML = createPlaceholder("You haven't viewed any playlists yet. Search for music to get started!");
+            }
         }
     }
 
@@ -776,6 +813,14 @@ export class UIRenderer {
                         </div>
                     `;
                     document.getElementById('page-album').appendChild(section);
+
+                    filtered.forEach(a => {
+                        const el = section.querySelector(`[data-album-id="${a.id}"]`);
+                        if (el) {
+                            trackDataStore.set(el, a);
+                            this.updateLikeState(el, 'album', a.id);
+                        }
+                    });
                 };
 
                 renderSection(`More albums from ${album.artist.name}`, artistData.albums);
@@ -937,6 +982,14 @@ export class UIRenderer {
                     epsSection.style.display = 'none';
                 }
             }
+
+            artist.albums.forEach(album => {
+                const el = albumsContainer.querySelector(`[data-album-id="${album.id}"]`);
+                if (el) {
+                    trackDataStore.set(el, album);
+                    this.updateLikeState(el, 'album', album.id);
+                }
+            });
 
             recentActivityManager.addArtist(artist);
 

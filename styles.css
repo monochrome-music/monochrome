@@ -532,7 +532,7 @@ body.has-page-background .track-item:hover {
     position: absolute;
     top: 0.5rem;
     right: 0.5rem;
-    background: rgba(0, 0, 0, 0.5) !important;
+    background: rgba(0, 0, 0, 0.25) !important;
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border-radius: 50% !important;
@@ -547,7 +547,7 @@ body.has-page-background .track-item:hover {
     transition: all 0.2s ease !important;
     z-index: 10;
     color: white !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border: none !important;
 }
 
 .card:hover .card-like-btn,
@@ -779,7 +779,7 @@ body.has-page-background .track-item:hover {
 .track-actions-inline {
     display: none; /* Controlled by data-track-actions-mode */
     gap: 0.25rem;
-    opacity: 0.5;
+    opacity: 0.2;
     transition: opacity var(--transition);
 }
 
