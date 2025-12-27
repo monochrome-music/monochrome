@@ -354,7 +354,7 @@ export async function handleTrackAction(action, item, player, api, lyricsManager
                 const container = itemEl.parentElement;
                 itemEl.remove();
                 if (container && container.children.length === 0) {
-                    const msg = type === 'track' ? 'No liked songs yet.' : `No liked ${type}s yet.`;
+                    const msg = type === 'track' ? 'No liked tracks yet.' : `No liked ${type}s yet.`;
                     container.innerHTML = `<div class="placeholder-text">${msg}</div>`;
                 }
             } else if (added && !itemEl && ui && type === 'track') {
@@ -427,7 +427,14 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             e.stopPropagation();
             const trackItem = menuBtn.closest('.track-item');
             if (trackItem && !trackItem.dataset.queueIndex) {
-                contextTrack = trackDataStore.get(trackItem);
+                const clickedTrack = trackDataStore.get(trackItem);
+
+                if (contextMenu.style.display === 'block' && contextTrack && clickedTrack && contextTrack.id === clickedTrack.id) {
+                    contextMenu.style.display = 'none';
+                    return;
+                }
+
+                contextTrack = clickedTrack;
                 if (contextTrack) {
                     await updateContextMenuLikeState(contextMenu, contextTrack);
                     const rect = menuBtn.getBoundingClientRect();

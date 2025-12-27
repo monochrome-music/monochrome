@@ -530,8 +530,8 @@ body.has-page-background .track-item:hover {
 
 .card-like-btn {
     position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
+    top: 2%;
+    right: 2%;
     background: rgba(0, 0, 0, 0.25) !important;
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
@@ -945,6 +945,20 @@ body.has-page-background .track-item:hover {
 
 .btn-primary svg {
     flex-shrink: 0;
+}
+
+#like-album-btn,
+#like-playlist-btn,
+#like-artist-btn {
+    width: auto;
+    height: auto;
+    padding: 0.875rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+    aspect-ratio: 1/1;
 }
 
 .btn-secondary {
@@ -1379,6 +1393,7 @@ input:checked + .slider::before {
     filter: var(--cover-filter);
     z-index: -1;
     background-image: var(--bg-image);
+    transition: background-image var(--transition);
 }
 
 .fullscreen-cover-content {
@@ -2296,13 +2311,33 @@ input:checked + .slider::before {
     .detail-header-actions {
         width: auto;
         margin-top: 0.5em;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
 
     .detail-header-actions .btn-primary {
-        width: auto;
-        padding: 0.5rem;
+        width: 40px;
+        height: 40px;
+        padding: 0;
         border-radius: 50%;
-        aspect-ratio: 1/1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    #like-album-btn,
+    #like-playlist-btn,
+    #like-artist-btn {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
     }
 
     .detail-header-actions .btn-primary span {
@@ -2669,6 +2704,11 @@ input:checked + .slider::before {
 }
 
 @media (hover: none) and (pointer: coarse) {
+    .main-content {
+        padding: var(--spacing-sm);
+        grid-area: main;
+    }
+
     .progress-bar,
     .volume-bar {
         height: 8px;
@@ -2688,19 +2728,22 @@ input:checked + .slider::before {
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
     }
 
-    .track-item,
-    .queue-track-item {
-        padding: var(--spacing-md) var(--spacing-sm);
+    button {
+        min-height: 36px;
+        min-width: 36px;
     }
 
-    button {
-        min-height: 44px;
-        min-width: 44px;
+    .track-item {
+        grid-template-columns: 32px 1fr 40px 36px;
     }
 
     .player-controls .buttons button {
         min-height: 36px;
         min-width: 36px;
+    }
+
+    .card-like-btn {
+        opacity: 1;
     }
 }
 
@@ -3161,3 +3204,4 @@ input:checked + .slider::before {
         padding-top: max(1.5rem, env(titlebar-area-height, 0));
     }
 }
+
