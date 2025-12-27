@@ -88,6 +88,12 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a href="#recent">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+                                <span>Recent</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a href="#settings">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/>
@@ -189,6 +195,11 @@
                 <div class="search-tab-content" id="library-tab-playlists">
                     <div class="card-grid" id="library-playlists-container"></div>
                 </div>
+            </div>
+
+            <div id="page-recent" class="page">
+                <h2 class="section-title">Recently played</h2>
+                <div class="track-list" id="recent-tracks-container"></div>
             </div>
 
             <div id="page-album" class="page">
@@ -304,7 +315,7 @@
                     <div class="setting-item">
                         <div class="info">
                             <span class="label">Album Cover Background</span>
-                            <span class="description">Use the album cover as a blurred background on album pages</span>
+                            <span class="description">Use the album cover as a blurred background on album pages and as primary color</span>
                         </div>
                         <label class="toggle-switch">
                             <input type="checkbox" id="album-background-toggle">
@@ -415,7 +426,7 @@
                     <div class="setting-item">
                         <div class="info">
                             <span class="label">Backup & Restore</span>
-                            <span class="description">Export or import your library and playlists as JSON</span>
+                            <span class="description">Export or import your library and history as JSON</span>
                         </div>
                         <div style="display: flex; gap: 0.5rem;">
                             <button id="export-library-btn" class="btn-secondary">Export</button>

@@ -1,17 +1,20 @@
 //js/events.js
-import { SVG_PLAY, SVG_PAUSE, SVG_VOLUME, SVG_MUTE, REPEAT_MODE, trackDataStore, RATE_LIMIT_ERROR_MESSAGE, buildTrackFilename, getTrackTitle } from './utils.js';
+import { SVG_PLAY, SVG_PAUSE, SVG_VOLUME, SVG_MUTE, REPEAT_MODE, trackDataStore, RATE_LIMIT_ERROR_MESSAGE, buildTrackFilename, getTrackTitle, formatTime } from './utils.js';
 import { lastFMStorage } from './storage.js';
 import { showNotification, downloadTrackWithMetadata } from './downloads.js';
 import { lyricsSettings } from './storage.js';
 import { updateTabTitle } from './router.js';
 import { db } from './db.js';
 
-export function initializePlayerEvents(player, audioPlayer, scrobbler) {
+export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
     const playPauseBtn = document.querySelector('.play-pause-btn');
     const nextBtn = document.getElementById('next-btn');
     const prevBtn = document.getElementById('prev-btn');
     const shuffleBtn = document.getElementById('shuffle-btn');
     const repeatBtn = document.getElementById('repeat-btn');
+
+    // History tracking
+    let historyLoggedTrackId = null;
 
     // Sync UI with player state on load
     if (player.shuffleActive) {
@@ -20,7 +23,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler) {
 
     if (player.repeatMode !== REPEAT_MODE.OFF) {
         repeatBtn.classList.add('active');
-        if (player.repeatMode === REPEAT_MODE.ONE) {
+    if (player.repeatMode === REPEAT_MODE.ONE) {
             repeatBtn.classList.add('repeat-one');
         }
         repeatBtn.title = player.repeatMode === REPEAT_MODE.ALL ? 'Repeat Queue' : 'Repeat One';
@@ -29,9 +32,13 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler) {
     }
 
     audioPlayer.addEventListener('play', () => {
-        if (scrobbler.isAuthenticated() && lastFMStorage.isEnabled() && player.currentTrack) {
-            scrobbler.updateNowPlaying(player.currentTrack);
+        if (player.currentTrack) {
+            // Scrobble
+            if (scrobbler.isAuthenticated() && lastFMStorage.isEnabled()) {
+                scrobbler.updateNowPlaying(player.currentTrack);
+            }
         }
+
         playPauseBtn.innerHTML = SVG_PAUSE;
         player.updateMediaSessionPlaybackState();
         player.updateMediaSessionPositionState();
@@ -53,13 +60,23 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler) {
         player.playNext();
     });
 
-    audioPlayer.addEventListener('timeupdate', () => {
+    audioPlayer.addEventListener('timeupdate', async () => {
         const { currentTime, duration } = audioPlayer;
         if (duration) {
             const progressFill = document.getElementById('progress-fill');
             const currentTimeEl = document.getElementById('current-time');
             progressFill.style.width = `${(currentTime / duration) * 100}%`;
             currentTimeEl.textContent = formatTime(currentTime);
+
+            // Log to history after 10 seconds of playback
+            if (currentTime >= 10 && player.currentTrack && player.currentTrack.id !== historyLoggedTrackId) {
+                historyLoggedTrackId = player.currentTrack.id;
+                await db.addToHistory(player.currentTrack);
+                
+                if (window.location.hash === '#recent') {
+                    ui.renderRecentPage();
+                }
+            }
         }
     });
 
@@ -507,7 +524,18 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
         }
     });
 
-    document.querySelector('.now-playing-bar .artist').addEventListener('click', () => {
+    document.querySelector('.now-playing-bar .artist').addEventListener('click', (e) => {
+        const link = e.target.closest('.artist-link');
+        if (link) {
+            e.stopPropagation();
+            const artistId = link.dataset.artistId;
+            if (artistId) {
+                window.location.hash = `#artist/${artistId}`;
+            }
+            return;
+        }
+
+        // Fallback for non-link clicks (e.g. separators) or single artist legacy
         const track = player.currentTrack;
         if (track?.artist?.id) {
             window.location.hash = `#artist/${track.artist.id}`;
@@ -532,12 +560,7 @@ function renderQueue(player) {
     }
 }
 
-function formatTime(seconds) {
-    if (isNaN(seconds)) return '0:00';
-    const m = Math.floor(seconds / 60);
-    const s = Math.floor(seconds % 60);
-    return `${m}:${String(s).padStart(2, '0')}`;
-}
+
 
 async function updateContextMenuLikeState(menu, track) {
     const likeItem = menu.querySelector('[data-action="toggle-like"]');

@@ -1,7 +1,7 @@
 export class MusicDatabase {
     constructor() {
         this.dbName = 'MonochromeDB';
-        this.version = 2;
+        this.version = 3;
         this.db = null;
     }
 
@@ -41,6 +41,12 @@ export class MusicDatabase {
                     const store = db.createObjectStore('favorites_playlists', { keyPath: 'uuid' });
                     store.createIndex('addedAt', 'addedAt', { unique: false });
                 }
+                
+                // History store
+                if (!db.objectStoreNames.contains('history_tracks')) {
+                    const store = db.createObjectStore('history_tracks', { keyPath: 'timestamp' });
+                    store.createIndex('timestamp', 'timestamp', { unique: true });
+                }
             };
         });
     }
@@ -59,6 +65,61 @@ export class MusicDatabase {
             transaction.onerror = (event) => {
                 reject(event.target.error);
             };
+        });
+    }
+
+    // History API
+    async addToHistory(track) {
+        const storeName = 'history_tracks';
+        const minified = this._minifyItem('track', track);
+        // Use a unique timestamp even if called rapidly
+        // (though unlikely to be <1ms for playback start)
+        const entry = { ...minified, timestamp: Date.now() };
+
+        const db = await this.open();
+        const transaction = db.transaction(storeName, 'readwrite');
+        const store = transaction.objectStore(storeName);
+
+        // Add new entry
+        store.put(entry);
+
+        // Trim to 100
+        const index = store.index('timestamp');
+        const countRequest = index.count();
+
+        countRequest.onsuccess = () => {
+            if (countRequest.result > 100) {
+                // Get oldest keys
+                const cursorRequest = index.openCursor();
+                let deleted = 0;
+                const toDelete = countRequest.result - 100;
+
+                cursorRequest.onsuccess = (e) => {
+                    const cursor = e.target.result;
+                    if (cursor && deleted < toDelete) {
+                        cursor.delete();
+                        deleted++;
+                        cursor.continue();
+                    }
+                };
+            }
+        };
+    }
+
+    async getHistory() {
+        const storeName = 'history_tracks';
+        const db = await this.open();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(storeName, 'readonly');
+            const store = transaction.objectStore(storeName);
+            const index = store.index('timestamp');
+            const request = index.getAll(); 
+
+            request.onsuccess = () => {
+                // Return reversed (newest first)
+                resolve(request.result.reverse());
+            };
+            request.onerror = () => reject(request.error);
         });
     }
 
@@ -178,12 +239,14 @@ export class MusicDatabase {
         const albums = await this.getFavorites('album');
         const artists = await this.getFavorites('artist');
         const playlists = await this.getFavorites('playlist');
+        const history = await this.getHistory();
 
         const data = {
             favorites_tracks: tracks.map(t => this._minifyItem('track', t)),
             favorites_albums: albums.map(a => this._minifyItem('album', a)),
             favorites_artists: artists.map(a => this._minifyItem('artist', a)),
-            favorites_playlists: playlists.map(p => this._minifyItem('playlist', p))
+            favorites_playlists: playlists.map(p => this._minifyItem('playlist', p)),
+            history_tracks: history.map(t => this._minifyItem('track', t))
         };
         return data;
     }
@@ -206,6 +269,7 @@ export class MusicDatabase {
         await importStore('favorites_albums', data.favorites_albums);
         await importStore('favorites_artists', data.favorites_artists);
         await importStore('favorites_playlists', data.favorites_playlists);
+        await importStore('history_tracks', data.history_tracks);
     }
 }
 

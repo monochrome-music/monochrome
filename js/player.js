@@ -1,5 +1,5 @@
 //js/player.js
-import { REPEAT_MODE, formatTime, getTrackArtists, getTrackTitle} from './utils.js';
+import { REPEAT_MODE, formatTime, getTrackArtists, getTrackTitle, getTrackArtistsHTML } from './utils.js';
 import { queueManager } from './storage.js';
 
 export class Player {
@@ -43,7 +43,7 @@ export class Player {
                 // Restore UI
                 const track = this.currentTrack;
                 const trackTitle = getTrackTitle(track);
-                const trackArtists = getTrackArtists(track);
+                const trackArtistsHTML = getTrackArtistsHTML(track);
 
                 const coverEl = document.querySelector('.now-playing-bar .cover');
                 const titleEl = document.querySelector('.now-playing-bar .title');
@@ -51,7 +51,7 @@ export class Player {
 
                 if (coverEl) coverEl.src = this.api.getCoverUrl(track.album?.cover, '1280');
                 if (titleEl) titleEl.textContent = trackTitle;
-                if (artistEl) artistEl.textContent = trackArtists;
+                if (artistEl) artistEl.innerHTML = trackArtistsHTML;
                 const totalDurationEl = document.getElementById('total-duration');
                 if (totalDurationEl) totalDurationEl.textContent = formatTime(track.duration);
                 document.title = `${trackTitle} • ${track.artist?.name || 'Unknown'}`;
@@ -168,12 +168,12 @@ export class Player {
         this.currentTrack = track;
 
         const trackTitle = getTrackTitle(track);
-        const trackArtists = getTrackArtists(track);
+        const trackArtistsHTML = getTrackArtistsHTML(track);
 
         document.querySelector('.now-playing-bar .cover').src =
             this.api.getCoverUrl(track.album?.cover, '1280');
         document.querySelector('.now-playing-bar .title').textContent = trackTitle;
-        document.querySelector('.now-playing-bar .artist').textContent = trackArtists;
+        document.querySelector('.now-playing-bar .artist').innerHTML = trackArtistsHTML;
         document.title = `${trackTitle} • ${track.artist?.name || 'Unknown'}`;
 
         this.updatePlayingTrackIndicator();

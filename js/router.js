@@ -20,6 +20,9 @@ export function createRouter(ui) {
             case 'library':
                 ui.renderLibraryPage();
                 break;
+            case 'recent':
+                ui.renderRecentPage();
+                break;
             case 'home':
                 ui.renderHomePage();
                 break;
