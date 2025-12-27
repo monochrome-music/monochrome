@@ -70,13 +70,7 @@ export class UIRenderer {
         return '<span class="explicit-badge" title="Explicit">E</span>';
     }
 
-    createTrackMenuButton() {
-        return `
-            <button class="track-menu-btn" onclick="event.stopPropagation();" title="More options">
-                ${SVG_MENU}
-            </button>
-        `;
-    }
+
 
     adjustTitleFontSize(element, text) {
         element.classList.remove('long-title', 'very-long-title');
@@ -997,6 +991,67 @@ export class UIRenderer {
             console.error("Failed to load artist:", error);
             tracksContainer.innerHTML = albumsContainer.innerHTML =
                 createPlaceholder(`Could not load artist details. ${error.message}`);
+        }
+    }
+
+    async renderRecentPage() {
+        this.showPage('recent');
+        const container = document.getElementById('recent-tracks-container');
+        container.innerHTML = this.createSkeletonTracks(10, true);
+
+        try {
+            const history = await db.getHistory();
+            
+            if (history.length === 0) {
+                container.innerHTML = createPlaceholder("You haven't played any tracks yet.");
+                return;
+            }
+
+            // Group by date
+            const groups = {};
+            const today = new Date().setHours(0, 0, 0, 0);
+            const yesterday = new Date(today - 86400000).setHours(0, 0, 0, 0);
+
+            history.forEach(item => {
+                const date = new Date(item.timestamp);
+                const dayStart = new Date(date).setHours(0, 0, 0, 0);
+                
+                let label;
+                if (dayStart === today) label = 'Today';
+                else if (dayStart === yesterday) label = 'Yesterday';
+                else label = date.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+                if (!groups[label]) groups[label] = [];
+                groups[label].push(item);
+            });
+
+            container.innerHTML = '';
+
+            for (const [label, tracks] of Object.entries(groups)) {
+                const header = document.createElement('h3');
+                header.className = 'track-list-header-group';
+                header.textContent = label;
+                header.style.margin = '1.5rem 0 0.5rem 0';
+                header.style.fontSize = '1.1rem';
+                header.style.fontWeight = '600';
+                header.style.color = 'var(--foreground)';
+                header.style.paddingLeft = '0.5rem';
+                
+                container.appendChild(header);
+
+                // Use a temporary container to render tracks and then move them
+                const tempContainer = document.createElement('div');
+                this.renderListWithTracks(tempContainer, tracks, true);
+                
+                // Move children to main container
+                while (tempContainer.firstChild) {
+                    container.appendChild(tempContainer.firstChild);
+                }
+            }
+
+        } catch (error) {
+            console.error('Failed to load history:', error);
+            container.innerHTML = createPlaceholder('Failed to load history.');
         }
     }
 

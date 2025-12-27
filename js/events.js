@@ -1,17 +1,20 @@
 //js/events.js
-import { SVG_PLAY, SVG_PAUSE, SVG_VOLUME, SVG_MUTE, REPEAT_MODE, trackDataStore, RATE_LIMIT_ERROR_MESSAGE, buildTrackFilename, getTrackTitle } from './utils.js';
+import { SVG_PLAY, SVG_PAUSE, SVG_VOLUME, SVG_MUTE, REPEAT_MODE, trackDataStore, RATE_LIMIT_ERROR_MESSAGE, buildTrackFilename, getTrackTitle, formatTime } from './utils.js';
 import { lastFMStorage } from './storage.js';
 import { showNotification, downloadTrackWithMetadata } from './downloads.js';
 import { lyricsSettings } from './storage.js';
 import { updateTabTitle } from './router.js';
 import { db } from './db.js';
 
-export function initializePlayerEvents(player, audioPlayer, scrobbler) {
+export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
     const playPauseBtn = document.querySelector('.play-pause-btn');
     const nextBtn = document.getElementById('next-btn');
     const prevBtn = document.getElementById('prev-btn');
     const shuffleBtn = document.getElementById('shuffle-btn');
     const repeatBtn = document.getElementById('repeat-btn');
+
+    // History tracking
+    let lastLoggedTrackId = null;
 
     // Sync UI with player state on load
     if (player.shuffleActive) {
@@ -20,7 +23,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler) {
 
     if (player.repeatMode !== REPEAT_MODE.OFF) {
         repeatBtn.classList.add('active');
-        if (player.repeatMode === REPEAT_MODE.ONE) {
+    if (player.repeatMode === REPEAT_MODE.ONE) {
             repeatBtn.classList.add('repeat-one');
         }
         repeatBtn.title = player.repeatMode === REPEAT_MODE.ALL ? 'Repeat Queue' : 'Repeat One';
@@ -28,10 +31,25 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler) {
         repeatBtn.title = 'Repeat';
     }
 
-    audioPlayer.addEventListener('play', () => {
-        if (scrobbler.isAuthenticated() && lastFMStorage.isEnabled() && player.currentTrack) {
-            scrobbler.updateNowPlaying(player.currentTrack);
+    audioPlayer.addEventListener('play', async () => {
+        if (player.currentTrack) {
+            // Scrobble
+            if (scrobbler.isAuthenticated() && lastFMStorage.isEnabled()) {
+                scrobbler.updateNowPlaying(player.currentTrack);
+            }
+            
+            // Log to local history if it's a new track session
+            if (player.currentTrack.id !== lastLoggedTrackId) {
+                await db.addToHistory(player.currentTrack);
+                lastLoggedTrackId = player.currentTrack.id;
+
+                // Update Recent Page if active
+                if (window.location.hash === '#recent') {
+                    ui.renderRecentPage();
+                }
+            }
         }
+
         playPauseBtn.innerHTML = SVG_PAUSE;
         player.updateMediaSessionPlaybackState();
         player.updateMediaSessionPositionState();
@@ -532,12 +550,7 @@ function renderQueue(player) {
     }
 }
 
-function formatTime(seconds) {
-    if (isNaN(seconds)) return '0:00';
-    const m = Math.floor(seconds / 60);
-    const s = Math.floor(seconds % 60);
-    return `${m}:${String(s).padStart(2, '0')}`;
-}
+
 
 async function updateContextMenuLikeState(menu, track) {
     const likeItem = menu.querySelector('[data-action="toggle-like"]');

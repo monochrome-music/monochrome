@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     trackListSettings.getMode();
 
     initializeSettings(scrobbler, player, api, ui);
-    initializePlayerEvents(player, audioPlayer, scrobbler);
+    initializePlayerEvents(player, audioPlayer, scrobbler, ui);
     initializeTrackInteractions(player, api, document.querySelector('.main-content'), document.getElementById('context-menu'), lyricsManager, ui);
     initializeUIInteractions(player, api);
     initializeKeyboardShortcuts(player, audioPlayer, lyricsPanel);
