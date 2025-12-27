@@ -14,7 +14,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
     const repeatBtn = document.getElementById('repeat-btn');
 
     // History tracking
-    let lastLoggedTrackId = null;
+    let historyLoggedTrackId = null;
 
     // Sync UI with player state on load
     if (player.shuffleActive) {
@@ -31,22 +31,11 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
         repeatBtn.title = 'Repeat';
     }
 
-    audioPlayer.addEventListener('play', async () => {
+    audioPlayer.addEventListener('play', () => {
         if (player.currentTrack) {
             // Scrobble
             if (scrobbler.isAuthenticated() && lastFMStorage.isEnabled()) {
                 scrobbler.updateNowPlaying(player.currentTrack);
-            }
-            
-            // Log to local history if it's a new track session
-            if (player.currentTrack.id !== lastLoggedTrackId) {
-                await db.addToHistory(player.currentTrack);
-                lastLoggedTrackId = player.currentTrack.id;
-
-                // Update Recent Page if active
-                if (window.location.hash === '#recent') {
-                    ui.renderRecentPage();
-                }
             }
         }
 
@@ -71,13 +60,23 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
         player.playNext();
     });
 
-    audioPlayer.addEventListener('timeupdate', () => {
+    audioPlayer.addEventListener('timeupdate', async () => {
         const { currentTime, duration } = audioPlayer;
         if (duration) {
             const progressFill = document.getElementById('progress-fill');
             const currentTimeEl = document.getElementById('current-time');
             progressFill.style.width = `${(currentTime / duration) * 100}%`;
             currentTimeEl.textContent = formatTime(currentTime);
+
+            // Log to history after 10 seconds of playback
+            if (currentTime >= 10 && player.currentTrack && player.currentTrack.id !== historyLoggedTrackId) {
+                historyLoggedTrackId = player.currentTrack.id;
+                await db.addToHistory(player.currentTrack);
+                
+                if (window.location.hash === '#recent') {
+                    ui.renderRecentPage();
+                }
+            }
         }
     });
 
