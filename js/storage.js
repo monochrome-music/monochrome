@@ -1,7 +1,7 @@
 //storage.js
 export const apiSettings = {
     STORAGE_KEY: 'monochrome-api-instances',
-    INSTANCES_URL: "https://raw.githubusercontent.com/SamidyFR/monochrome/refs/heads/main/instances.json",
+    INSTANCES_URL: "../instances.json",
     SPEED_TEST_CACHE_KEY: 'monochrome-instance-speeds',
     SPEED_TEST_CACHE_DURATION: 1000 * 60 * 60,
     defaultInstances: [],
@@ -19,9 +19,14 @@ export const apiSettings = {
             const data = await response.json();
             const allInstances = [];
 
-            for (const [provider, config] of Object.entries(data.api)) {
-                if (config.cors === false && Array.isArray(config.urls)) {
-                    allInstances.push(...config.urls);
+            if (Array.isArray(data)) {
+                allInstances.push(...data);
+            } else if (data.api) {
+                // Legacy support or if structure changes back
+                for (const [provider, config] of Object.entries(data.api)) {
+                    if (config.cors === false && Array.isArray(config.urls)) {
+                        allInstances.push(...config.urls);
+                    }
                 }
             }
 
