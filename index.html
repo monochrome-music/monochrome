@@ -519,29 +519,36 @@
                 </div>
             </div>
             <div class="volume-controls">
-                <button id="now-playing-like-btn" class="like-btn" data-action="toggle-like" title="Save to Library" style="display: none;">
-                </button>
-                <button id="download-current-btn" title="Download current track" class="desktop-only">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                    </svg>
-                </button>
-                <button id="cast-btn" title="Cast" class="desktop-only">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path>
-                        <path d="M2 12a9 9 0 0 1 9 9"></path>
-                        <path d="M2 17a5 5 0 0 1 5 5"></path>
-                        <path d="M2 22h.01"></path>
-                    </svg>
-                </button>
-                <button id="queue-btn" title="Queue">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-list-icon lucide-list"><path d="M3 5h.01"/><path d="M3 12h.01"/><path d="M3 19h.01"/><path d="M8 5h13"/><path d="M8 12h13"/><path d="M8 19h13"/></svg>
-                </button>
-                <button id="volume-btn" title="Mute" class="desktop-only"></button>
-                <div id="volume-bar" class="volume-bar desktop-only">
-                    <div id="volume-fill" class="volume-fill"></div>
+                <div class="player-actions-row">
+                    <button id="now-playing-like-btn" class="like-btn" data-action="toggle-like" title="Save to Library" style="display: none;">
+                    </button>
+                    <button id="toggle-lyrics-btn" title="Lyrics">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mic"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+                    </button>
+                    <button id="download-current-btn" title="Download current track" class="desktop-only">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </button>
+                    <button id="cast-btn" title="Cast" class="desktop-only">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path>
+                            <path d="M2 12a9 9 0 0 1 9 9"></path>
+                            <path d="M2 17a5 5 0 0 1 5 5"></path>
+                            <path d="M2 22h.01"></path>
+                        </svg>
+                    </button>
+                    <button id="queue-btn" title="Queue">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-list-icon lucide-list"><path d="M3 5h.01"/><path d="M3 12h.01"/><path d="M3 19h.01"/><path d="M8 5h13"/><path d="M8 12h13"/><path d="M8 19h13"/></svg>
+                    </button>
+                </div>
+                <div class="volume-slider-row desktop-only">
+                    <button id="volume-btn" title="Mute"></button>
+                    <div id="volume-bar" class="volume-bar">
+                        <div id="volume-fill" class="volume-fill"></div>
+                    </div>
                 </div>
             </div>
         </footer>

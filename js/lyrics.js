@@ -180,14 +180,24 @@ export function createLyricsPanel() {
     return panel;
 }
 
-export async function showSyncedLyricsPanel(track, audioPlayer, panel) {
+export async function showSyncedLyricsPanel(track, audioPlayer, panel, lyricsManager = null) {
     const content = panel.querySelector('.lyrics-content');
+    
+    // If no manager provided, create a temp one (though caching won't persist across calls if this happens)
+    const manager = lyricsManager || new LyricsManager();
+
+    // Check if we are already displaying this track
+    if (panel.dataset.lastTrackId === String(track.id) && content.querySelector('am-lyrics')) {
+        // Just re-attach listeners
+        setupLyricsSync(track, audioPlayer, panel, manager, content.querySelector('am-lyrics'));
+        return;
+    }
+
+    panel.dataset.lastTrackId = String(track.id);
     content.innerHTML = '<div class="lyrics-loading">Loading lyrics...</div>';
     
-    const lyricsManager = new LyricsManager();
-    
     try {
-        await lyricsManager.ensureComponentLoaded();
+        await manager.ensureComponentLoaded();
         
         const title = track.title;
         const artist = getTrackArtists(track);
@@ -203,6 +213,7 @@ export async function showSyncedLyricsPanel(track, audioPlayer, panel) {
         if (durationMs) amLyrics.setAttribute('song-duration', durationMs);
         amLyrics.setAttribute('query', `${title} ${artist}`.trim());
         if (isrc) amLyrics.setAttribute('isrc', isrc);
+        
         amLyrics.setAttribute('highlight-color', '#93c5fd');
         amLyrics.setAttribute('hover-background-color', 'rgba(59, 130, 246, 0.14)');
         amLyrics.setAttribute('autoscroll', '');
@@ -211,63 +222,91 @@ export async function showSyncedLyricsPanel(track, audioPlayer, panel) {
         amLyrics.style.width = '100%';
         
         content.appendChild(amLyrics);
-        lyricsManager.amLyricsElement = amLyrics;
+        manager.amLyricsElement = amLyrics;
         
-        let baseTimeMs = 0;
-        let lastTimestamp = performance.now();
-        
-        const updateTime = () => {
-            const currentMs = audioPlayer.currentTime * 1000;
-            baseTimeMs = currentMs;
-            lastTimestamp = performance.now();
-            amLyrics.currentTime = currentMs;
-        };
-        
-        const tick = () => {
-            if (!audioPlayer.paused) {
-                const now = performance.now();
-                const elapsed = now - lastTimestamp;
-                const nextMs = baseTimeMs + elapsed;
-                amLyrics.currentTime = nextMs;
-                lyricsManager.animationFrameId = requestAnimationFrame(tick);
-            }
-        };
-        
-        audioPlayer.addEventListener('timeupdate', updateTime);
-        audioPlayer.addEventListener('play', () => {
-            baseTimeMs = audioPlayer.currentTime * 1000;
-            lastTimestamp = performance.now();
-            tick();
-        });
-        audioPlayer.addEventListener('pause', () => {
-            if (lyricsManager.animationFrameId) {
-                cancelAnimationFrame(lyricsManager.animationFrameId);
-            }
-        });
-        audioPlayer.addEventListener('seeked', updateTime);
-        
-        amLyrics.addEventListener('line-click', (e) => {
-            if (e.detail && e.detail.timestamp) {
-                audioPlayer.currentTime = e.detail.timestamp / 1000;
-                audioPlayer.play();
-            }
-        });
-        
-        if (!audioPlayer.paused) {
-            tick();
-        }
-        
-        panel.lyricsCleanup = () => {
-            if (lyricsManager.animationFrameId) {
-                cancelAnimationFrame(lyricsManager.animationFrameId);
-            }
-        };
+        setupLyricsSync(track, audioPlayer, panel, manager, amLyrics);
         
     } catch (error) {
         console.error('Failed to load lyrics:', error);
         content.innerHTML = '<div class="lyrics-error">Failed to load lyrics! :(</div>';
     }
 }
+
+function setupLyricsSync(track, audioPlayer, panel, lyricsManager, amLyrics) {
+    let baseTimeMs = 0;
+    let lastTimestamp = performance.now();
+    
+    const updateTime = () => {
+        const currentMs = audioPlayer.currentTime * 1000;
+        baseTimeMs = currentMs;
+        lastTimestamp = performance.now();
+        amLyrics.currentTime = currentMs;
+    };
+    
+    const tick = () => {
+        if (!audioPlayer.paused) {
+            const now = performance.now();
+            const elapsed = now - lastTimestamp;
+            const nextMs = baseTimeMs + elapsed;
+            amLyrics.currentTime = nextMs;
+            lyricsManager.animationFrameId = requestAnimationFrame(tick);
+        }
+    };
+    
+    const onPlay = () => {
+        baseTimeMs = audioPlayer.currentTime * 1000;
+        lastTimestamp = performance.now();
+        tick();
+    };
+
+    const onPause = () => {
+        if (lyricsManager.animationFrameId) {
+            cancelAnimationFrame(lyricsManager.animationFrameId);
+        }
+    };
+
+    // Remove old listeners if any (though clearLyricsPanelSync handles this, 
+    // we might be calling this from the "same track" branch where clear wasn't called? 
+    // No, clearLyricsPanelSync IS called when hiding. 
+    // But when SHOWING, we need to add them.
+    
+    audioPlayer.addEventListener('timeupdate', updateTime);
+    audioPlayer.addEventListener('play', onPlay);
+    audioPlayer.addEventListener('pause', onPause);
+    audioPlayer.addEventListener('seeked', updateTime);
+    
+    // Store handlers for removal
+    panel.lyricsUpdateHandler = updateTime;
+    panel.lyricsPlayHandler = onPlay;
+    panel.lyricsPauseHandler = onPause;
+    panel.lyricsSeekHandler = updateTime;
+
+    // We also need to remove these in clearLyricsPanelSync!
+    // The current clearLyricsPanelSync only removes 'timeupdate'.
+    
+    amLyrics.addEventListener('line-click', (e) => {
+        if (e.detail && e.detail.timestamp) {
+            audioPlayer.currentTime = e.detail.timestamp / 1000;
+            audioPlayer.play();
+        }
+    });
+    
+    if (!audioPlayer.paused) {
+        tick();
+    }
+    
+    panel.lyricsCleanup = () => {
+        if (lyricsManager.animationFrameId) {
+            cancelAnimationFrame(lyricsManager.animationFrameId);
+        }
+        // Also remove listeners
+        audioPlayer.removeEventListener('timeupdate', updateTime);
+        audioPlayer.removeEventListener('play', onPlay);
+        audioPlayer.removeEventListener('pause', onPause);
+        audioPlayer.removeEventListener('seeked', updateTime);
+    };
+}
+
 
 export function clearLyricsPanelSync(audioPlayer, panel) {
     if (panel.lyricsUpdateHandler) {

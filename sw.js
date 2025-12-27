@@ -19,9 +19,12 @@ const urlsToCache = [
     '/js/lastfm.js',
     '/js/lyrics.js',
     '/js/downloads.js',
+    '/js/db.js',
+    '/js/metadata.js',
     '/manifest.json',
     '/assets/logo.svg',
-    '/assets/appicon.png'
+    '/assets/appicon.png',
+    '/assets/96.png'
 ];
 
 self.addEventListener('install', event => {

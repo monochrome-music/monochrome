@@ -228,7 +228,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             lyricsPanel.classList.toggle('hidden');
 
             if (isHidden) {
-                await showSyncedLyricsPanel(player.currentTrack, audioPlayer, lyricsPanel);
+                await showSyncedLyricsPanel(player.currentTrack, audioPlayer, lyricsPanel, lyricsManager);
             } else {
                 clearLyricsPanelSync(audioPlayer, lyricsPanel);
             }
@@ -255,6 +255,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('fullscreen-cover-image')?.addEventListener('click', () => {
         ui.closeFullscreenCover();
+    });
+
+    document.getElementById('toggle-lyrics-btn')?.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (!player.currentTrack) {
+            alert('No track is currently playing');
+            return;
+        }
+
+        const isHidden = lyricsPanel.classList.contains('hidden');
+        lyricsPanel.classList.toggle('hidden');
+
+        if (isHidden) {
+            await showSyncedLyricsPanel(player.currentTrack, audioPlayer, lyricsPanel, lyricsManager);
+        } else {
+            clearLyricsPanelSync(audioPlayer, lyricsPanel);
+        }
     });
 
     document.getElementById('close-lyrics-btn')?.addEventListener('click', (e) => {
@@ -308,12 +325,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Update lyrics panel if it's open
         if (!lyricsPanel.classList.contains('hidden')) {
-            const mode = nowPlayingSettings.getMode();
-            if (mode === 'lyrics') {
-                clearLyricsPanelSync(audioPlayer, lyricsPanel);
-                await showSyncedLyricsPanel(player.currentTrack, audioPlayer, lyricsPanel);
-
-            }
+            clearLyricsPanelSync(audioPlayer, lyricsPanel);
+            await showSyncedLyricsPanel(player.currentTrack, audioPlayer, lyricsPanel, lyricsManager);
         }
 
         // Update Fullscreen/Enlarged Cover if it's open

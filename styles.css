@@ -1276,7 +1276,9 @@ input:checked + .slider::before {
     color: var(--muted-foreground);
     cursor: pointer;
     transition: all var(--transition);
-    padding: 0.5rem;
+    padding: 0.25rem;
+    width: 28px;
+    height: 28px;
     border-radius: var(--radius);
     display: flex;
     align-items: center;
@@ -3205,3 +3207,31 @@ input:checked + .slider::before {
     }
 }
 
+
+/* Updated Volume Controls Layout */
+.volume-controls {
+    flex-direction: column !important;
+    align-items: flex-end !important;
+    gap: 0.5rem !important;
+    justify-content: center !important;
+}
+
+.player-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.volume-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* Ensure buttons in rows behave correctly */
+.player-actions-row button,
+.volume-slider-row button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
