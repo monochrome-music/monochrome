@@ -454,31 +454,16 @@ export class UIRenderer {
     async renderLibraryPage() {
         this.showPage('library');
         
-        const playlistsContainer = document.getElementById('library-playlists-container');
         const tracksContainer = document.getElementById('library-tracks-container');
         const albumsContainer = document.getElementById('library-albums-container');
         const artistsContainer = document.getElementById('library-artists-container');
-
-        // Render Favorites
-        const likedPlaylists = await db.getFavorites('playlist');
-        if (likedPlaylists.length) {
-            playlistsContainer.innerHTML = likedPlaylists.map(p => this.createPlaylistCardHTML(p)).join('');
-            likedPlaylists.forEach(playlist => {
-                const el = playlistsContainer.querySelector(`[data-playlist-id="${playlist.uuid}"]`);
-                if (el) {
-                    trackDataStore.set(el, playlist);
-                    this.updateLikeState(el, 'playlist', playlist.uuid);
-                }
-            });
-        } else {
-            playlistsContainer.innerHTML = createPlaceholder('No liked playlists yet.');
-        }
+        const playlistsContainer = document.getElementById('library-playlists-container');
 
         const likedTracks = await db.getFavorites('track');
         if (likedTracks.length) {
             this.renderListWithTracks(tracksContainer, likedTracks, true);
         } else {
-            tracksContainer.innerHTML = createPlaceholder('No liked songs yet.');
+            tracksContainer.innerHTML = createPlaceholder('No liked tracks yet.');
         }
 
         const likedAlbums = await db.getFavorites('album');
@@ -508,6 +493,20 @@ export class UIRenderer {
         } else {
             artistsContainer.innerHTML = createPlaceholder('No liked artists yet.');
         }
+
+        const likedPlaylists = await db.getFavorites('playlist');
+        if (likedPlaylists.length) {
+            playlistsContainer.innerHTML = likedPlaylists.map(p => this.createPlaylistCardHTML(p)).join('');
+            likedPlaylists.forEach(playlist => {
+                const el = playlistsContainer.querySelector(`[data-playlist-id="${playlist.uuid}"]`);
+                if (el) {
+                    trackDataStore.set(el, playlist);
+                    this.updateLikeState(el, 'playlist', playlist.uuid);
+                }
+            });
+        } else {
+            playlistsContainer.innerHTML = createPlaceholder('No liked playlists yet.');
+        }
     }
 
     async renderHomePage() {
@@ -528,7 +527,7 @@ export class UIRenderer {
                 }
             });
         } else {
-            albumsContainer.innerHTML = createPlaceholder("You haven't viewed any albums yet. Search for music to get started!");
+            albumsContainer.innerHTML = createPlaceholder("You haven't viewed any albums yet.");
         }
 
         if (recents.artists.length) {
@@ -541,7 +540,7 @@ export class UIRenderer {
                 }
             });
         } else {
-            artistsContainer.innerHTML = createPlaceholder("You haven't viewed any artists yet. Search for music to get started!");
+            artistsContainer.innerHTML = createPlaceholder("You haven't viewed any artists yet.");
         }
 
         if (playlistsContainer) {
@@ -555,7 +554,7 @@ export class UIRenderer {
                     }
                 });
             } else {
-                playlistsContainer.innerHTML = createPlaceholder("You haven't viewed any playlists yet. Search for music to get started!");
+                playlistsContainer.innerHTML = createPlaceholder("You haven't viewed any playlists yet.");
             }
         }
     }
