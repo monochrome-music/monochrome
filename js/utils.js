@@ -176,6 +176,16 @@ export const getTrackArtists = (track = {}, { fallback = 'Unknown Artist' } = {}
     return fallback;
 };
 
+export const getTrackArtistsHTML = (track = {}, { fallback = 'Unknown Artist' } = {}) => {
+    if (track?.artists?.length) {
+        return track.artists.map(artist => 
+            `<span class="artist-link" data-artist-id="${artist.id}">${artist.name}</span>`
+        ).join(', ');
+    }
+
+    return fallback;
+};
+
 export const formatTemplate = (template, data) => {
     let result = template;
     result = result.replace(/\{trackNumber\}/g, data.trackNumber ? String(data.trackNumber).padStart(2, '0') : '00');

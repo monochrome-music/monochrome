@@ -53,7 +53,7 @@
     --highlight: #3b82f6;
     --highlight-rgb: 59, 130, 246;
     --active-highlight: #3b82f6;
-    --explicit-badge: #ef4444;
+    --explicit-badge: #750a0a;
 }
 
 :root[data-theme="ocean"] {
@@ -133,8 +133,7 @@
     --highlight: #2563eb;
     --highlight-rgb: 37, 99, 235;
     --active-highlight: var(--highlight);
-    --explicit-badge: #ef4444;
-    --explicit-badge-foreground: #ffffff;
+    --explicit-badge: #f58a8a;
     --cover-filter: blur(30px) brightness(1.6) opacity(0.85);
 }
 
@@ -622,7 +621,7 @@ body.has-page-background .track-item:hover {
     align-items: center;
     justify-content: center;
     background-color: var(--explicit-badge);
-    color: var(--explicit-badge-foreground, #000);
+    color: var(--background);
     font-size: 0.65rem;
     font-weight: 700;
     padding: 0.15rem 0.35rem;
@@ -1464,14 +1463,14 @@ input:checked + .slider::before {
 
 #fullscreen-track-artist {
     font-size: 1.25rem;
-    color: var(--primary);
+    color: var(--muted-foreground);
     font-weight: 500;
 }
 
 #fullscreen-next-track {
     margin-top: 1.5rem;
     font-size: 0.9rem;
-    color: var(--primary);
+    color: var(--muted-foreground);
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
@@ -3207,6 +3206,14 @@ input:checked + .slider::before {
     }
 }
 
+.now-playing-bar .artist .artist-link {
+    cursor: pointer;
+    transition: color var(--transition);
+}
+.now-playing-bar .artist .artist-link:hover {
+    color: var(--highlight);
+    text-decoration: underline;
+}
 
 /* Updated Volume Controls Layout */
 .volume-controls {

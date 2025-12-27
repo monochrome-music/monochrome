@@ -525,7 +525,18 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
         }
     });
 
-    document.querySelector('.now-playing-bar .artist').addEventListener('click', () => {
+    document.querySelector('.now-playing-bar .artist').addEventListener('click', (e) => {
+        const link = e.target.closest('.artist-link');
+        if (link) {
+            e.stopPropagation();
+            const artistId = link.dataset.artistId;
+            if (artistId) {
+                window.location.hash = `#artist/${artistId}`;
+            }
+            return;
+        }
+
+        // Fallback for non-link clicks (e.g. separators) or single artist legacy
         const track = player.currentTrack;
         if (track?.artist?.id) {
             window.location.hash = `#artist/${track.artist.id}`;
