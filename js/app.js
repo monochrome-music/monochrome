@@ -221,35 +221,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         const mode = nowPlayingSettings.getMode();
 
         if (mode === 'karaoke') {
-            lyricsPanel.classList.add('hidden');
-            clearLyricsPanelSync(audioPlayer, lyricsPanel);
+            alert('We have updated how lyrics work, with this, we have unfortunately disabled karaoke for the time being.')
 
-            const lyricsData = await lyricsManager.fetchLyrics(player.currentTrack.id);
-            if (lyricsData) {
-                showKaraokeView(player.currentTrack, lyricsData, audioPlayer);
-            } else {
-                alert('No lyrics available for this track');
-            }
         } else if (mode === 'lyrics') {
             const isHidden = lyricsPanel.classList.contains('hidden');
             lyricsPanel.classList.toggle('hidden');
 
             if (isHidden) {
-                const content = lyricsPanel.querySelector('.lyrics-content');
-                content.innerHTML = '<div class="lyrics-loading">Loading lyrics...</div>';
-
-                const lyricsData = await lyricsManager.fetchLyrics(player.currentTrack.id);
-
-                if (lyricsData) {
-                    lyricsManager.currentLyrics = lyricsData;
-                    showSyncedLyricsPanel(lyricsData, audioPlayer, lyricsPanel);
-                } else {
-                    content.innerHTML = '<div class="lyrics-error">Failed to load lyrics</div>';
-                }
+                await showSyncedLyricsPanel(player.currentTrack, audioPlayer, lyricsPanel);
             } else {
-                // Clear sync when hiding
                 clearLyricsPanelSync(audioPlayer, lyricsPanel);
             }
+
         } else if (mode === 'cover') {
             const overlay = document.getElementById('fullscreen-cover-overlay');
             if (overlay && overlay.style.display === 'flex') {
@@ -280,13 +263,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         clearLyricsPanelSync(audioPlayer, lyricsPanel);
     });
 
-    document.getElementById('download-lrc-btn')?.addEventListener('click', (e) => {
+    document.getElementById('download-lrc-btn')?.addEventListener('click', async (e) => {
         e.stopPropagation();
-        if (lyricsManager.currentLyrics && player.currentTrack) {
-            lyricsManager.downloadLRC(lyricsManager.currentLyrics, player.currentTrack);
+        if (!player.currentTrack) {
+            alert('No track is currently playing');
+            return;
+        }
+
+        const btn = e.target.closest('#download-lrc-btn');
+        btn.disabled = true;
+
+        try {
+            const lyricsData = await lyricsManager.fetchLyrics(player.currentTrack.id, player.currentTrack);
+
+            if (lyricsData) {
+                lyricsManager.downloadLRC(lyricsData, player.currentTrack);
+            } else {
+                alert('No synced lyrics available for download');
+            }
+        } catch (error) {
+            console.error('Failed to download lyrics!', error);
+            alert('Failed to Download Lyrics! check the console for more information.')
+        } finally {
+            btn.disabled = false;
         }
     });
-
     document.getElementById('download-current-btn')?.addEventListener('click', () => {
         if (player.currentTrack) {
             handleTrackAction('download', player.currentTrack, player, api, lyricsManager, 'track', ui);
@@ -309,19 +310,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!lyricsPanel.classList.contains('hidden')) {
             const mode = nowPlayingSettings.getMode();
             if (mode === 'lyrics') {
-                const content = lyricsPanel.querySelector('.lyrics-content');
-                content.innerHTML = '<div class="lyrics-loading">Loading lyrics...</div>';
+                clearLyricsPanelSync(audioPlayer, lyricsPanel);
+                await showSyncedLyricsPanel(player.currentTrack, audioPlayer, lyricsPanel);
 
-                const lyricsData = await lyricsManager.fetchLyrics(player.currentTrack.id);
-
-                if (lyricsData) {
-                    lyricsManager.currentLyrics = lyricsData;
-                    // Clear old sync before showing new
-                    clearLyricsPanelSync(audioPlayer, lyricsPanel);
-                    showSyncedLyricsPanel(lyricsData, audioPlayer, lyricsPanel);
-                } else {
-                    content.innerHTML = '<div class="lyrics-error">No lyrics available for this track</div>';
-                }
             }
         }
 

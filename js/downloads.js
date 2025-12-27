@@ -282,7 +282,7 @@ async function downloadTracksToZip(zip, tracks, folderName, api, quality, lyrics
 
             if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
                 try {
-                    const lyricsData = await lyricsManager.fetchLyrics(track.id);
+                    const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
                     if (lyricsData) {
                         const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
                         if (lrcContent) {
@@ -399,7 +399,7 @@ export async function downloadDiscography(artist, api, quality, lyricsManager = 
 
                         if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
                             try {
-                                const lyricsData = await lyricsManager.fetchLyrics(track.id);
+                                const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
                                 if (lyricsData) {
                                     const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
                                     if (lrcContent) {
@@ -521,7 +521,7 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
 
         if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
             try {
-                const lyricsData = await lyricsManager.fetchLyrics(track.id);
+                const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
                 if (lyricsData) {
                     lyricsManager.downloadLRC(lyricsData, track);
                 }
