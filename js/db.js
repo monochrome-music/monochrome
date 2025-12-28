@@ -41,8 +41,6 @@ export class MusicDatabase {
                     const store = db.createObjectStore('favorites_playlists', { keyPath: 'uuid' });
                     store.createIndex('addedAt', 'addedAt', { unique: false });
                 }
-                
-                // History store
                 if (!db.objectStoreNames.contains('history_tracks')) {
                     const store = db.createObjectStore('history_tracks', { keyPath: 'timestamp' });
                     store.createIndex('timestamp', 'timestamp', { unique: true });
@@ -83,27 +81,7 @@ export class MusicDatabase {
         // Add new entry
         store.put(entry);
 
-        // Trim to 1000
-        const index = store.index('timestamp');
-        const countRequest = index.count();
-
-        countRequest.onsuccess = () => {
-            if (countRequest.result > 1000) {
-                // Get oldest keys
-                const cursorRequest = index.openCursor();
-                let deleted = 0;
-                const toDelete = countRequest.result - 1000;
-
-                cursorRequest.onsuccess = (e) => {
-                    const cursor = e.target.result;
-                    if (cursor && deleted < toDelete) {
-                        cursor.delete();
-                        deleted++;
-                        cursor.continue();
-                    }
-                };
-            }
-        };
+        return entry;
     }
 
     async getHistory() {
@@ -133,7 +111,8 @@ export class MusicDatabase {
             await this.performTransaction(storeName, 'readwrite', (store) => store.delete(key));
             return false; // Removed
         } else {
-            const entry = { ...item, addedAt: Date.now() };
+            const minified = this._minifyItem(type, item);
+            const entry = { ...minified, addedAt: Date.now() };
             await this.performTransaction(storeName, 'readwrite', (store) => store.put(entry));
             return true; // Added
         }
@@ -168,11 +147,11 @@ export class MusicDatabase {
 
     _minifyItem(type, item) {
         if (!item) return item;
-        
+
         // Base properties to keep
         const base = {
             id: item.id,
-            addedAt: item.addedAt
+            addedAt: item.addedAt || null
         };
 
         if (type === 'track') {
@@ -187,12 +166,12 @@ export class MusicDatabase {
                 album: item.album ? {
                     id: item.album.id,
                     cover: item.album.cover,
-                    releaseDate: item.album.releaseDate
+                    releaseDate: item.album.releaseDate || null
                 } : null,
                 // Fallback date
                 streamStartDate: item.streamStartDate,
                 // Keep version if exists
-                version: item.version
+                version: item.version || null
             };
         }
 
@@ -251,15 +230,21 @@ export class MusicDatabase {
         return data;
     }
 
-    async importData(data) {
-        // Clear existing? Or merge? Prompt says "Sync" or "Export/Import".
+    async importData(data, clear = false) {
         // Let's merge by put (replaces if ID exists).
         const db = await this.open();
-        
+
         const importStore = async (storeName, items) => {
-            if (!items || !Array.isArray(items)) return;
+            // If items is undefined, we skip this store (don't clear, don't update)
+            // This allows partial updates (e.g. library only)
+            if (items === undefined) return;
+
             const transaction = db.transaction(storeName, 'readwrite');
             const store = transaction.objectStore(storeName);
+            if (clear) {
+                store.clear();
+            }
+
             for (const item of items) {
                 store.put(item);
             }

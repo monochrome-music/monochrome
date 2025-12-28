@@ -1,8 +1,15 @@
 //js/settings
 import { themeManager, lastFMStorage, nowPlayingSettings, lyricsSettings, backgroundSettings, trackListSettings } from './storage.js';
 import { db } from './db.js';
+import { authManager } from './firebase/auth.js';
+import { syncManager } from './firebase/sync.js';
+import { initializeFirebaseSettingsUI } from './firebase/config.js';
 
 export function initializeSettings(scrobbler, player, api, ui) {
+    // Initialize Firebase UI & Settings
+    authManager.updateUI(authManager.user);
+    initializeFirebaseSettingsUI();
+
     const lastfmConnectBtn = document.getElementById('lastfm-connect-btn');
     const lastfmStatus = document.getElementById('lastfm-status');
     const lastfmToggle = document.getElementById('lastfm-toggle');
