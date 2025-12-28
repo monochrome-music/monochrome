@@ -1,7 +1,7 @@
 API:
 | Provider       | Instance URL                    |
 |----------------|---------------------------------|
-| squid.wtf      | https://triton.squid.wtf        |
+| squid.wtf      | https://triton.squid.wtf ([WARNING](https://rentry.co/tritonsquid))       |
 | lucida (QQDL)  | https://wolf.qqdl.site          |
 |                | https://maus.qqdl.site          |
 |                | https://vogel.qqdl.site         |
@@ -17,3 +17,4 @@ UI:
 | tidal-ui (bini)   | https://music.binimum.org          |
 | squid.wtf         | https://tidal.squid.wtf            |
 | spofree           | https://spo.free.nf                |
+
