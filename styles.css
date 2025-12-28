@@ -602,6 +602,10 @@ body.has-page-background .track-item:hover {
     transition: transform 0.2s ease, color 0.2s ease;
 }
 
+.like-btn:hover .heart-icon {
+    color: #ef4444;
+}
+
 .heart-icon.filled {
     color: #ef4444;
     fill: #ef4444;
@@ -3242,3 +3246,10 @@ input:checked + .slider::before {
     align-items: center;
     justify-content: center;
 }
+
+/* Show a grey box for images with no source, hiding the broken icon */
+img:not([src]), img[src=''] {
+    content: url("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7");
+    background-color: var(--muted);
+}
+

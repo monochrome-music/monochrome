@@ -1,6 +1,5 @@
 //sw.js
 const CACHE_NAME = 'monochrome-v4';
-const IMAGE_CACHE_NAME = 'monochrome-images-v1';
 const urlsToCache = [
     '/',
     '/index.html',
@@ -38,26 +37,6 @@ self.addEventListener('install', event => {
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url);
 
-    // Cache Images (Cache-First)
-    if (url.hostname === 'resources.tidal.com' || url.hostname === 'picsum.photos') {
-        event.respondWith(
-            caches.open(IMAGE_CACHE_NAME).then(cache => {
-                return cache.match(event.request).then(response => {
-                    return response || fetch(event.request).then(networkResponse => {
-                        if (networkResponse.ok) {
-                            cache.put(event.request, networkResponse.clone());
-                        }
-                        return networkResponse;
-                    }).catch(() => {
-                        // If fetch fails (e.g. CORS), return null/error so client handles it
-                        return new Response(null, { status: 404, statusText: 'Image fetch failed' });
-                    });
-                });
-            })
-        );
-        return;
-    }
-
     // Static Assets & App Shell (Cache-First)
     event.respondWith(
         caches.match(event.request)
@@ -72,7 +51,7 @@ self.addEventListener('fetch', event => {
 });
 
 self.addEventListener('activate', event => {
-    const cacheWhitelist = [CACHE_NAME, IMAGE_CACHE_NAME];
+    const cacheWhitelist = [CACHE_NAME];
     event.waitUntil(
         caches.keys().then(cacheNames => {
             return Promise.all(
