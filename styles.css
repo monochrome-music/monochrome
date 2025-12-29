@@ -2827,12 +2827,7 @@ input:checked + .slider::before {
     scroll-behavior: smooth;
 }
 
-.lyrics-line {
-    margin: 0.75rem 0;
-    line-height: 1.6;
-    color: var(--foreground);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
+
 
 /* Synced lyrics styling with Apple Music animations */
 .synced-line {
@@ -2873,87 +2868,6 @@ input:checked + .slider::before {
     text-align: center;
     padding: 2rem;
     color: var(--muted-foreground);
-}
-
-/* Karaoke View */
-.karaoke-view {
-    position: fixed;
-    inset: 0;
-    background: var(--background);
-    z-index: 4000;
-    display: flex;
-    flex-direction: column;
-    animation: fadeIn 0.3s ease;
-}
-
-.karaoke-header {
-    padding: 1rem;
-    display: flex;
-    justify-content: flex-end;
-}
-
-.karaoke-track-info {
-    text-align: center;
-    padding: 2rem 1rem;
-}
-
-.karaoke-title {
-    font-size: 2rem;
-    font-weight: 700;
-    margin-bottom: 0.5rem;
-}
-
-.karaoke-artist {
-    font-size: 1.25rem;
-    color: var(--muted-foreground);
-}
-
-.karaoke-lyrics-container {
-    flex: 1;
-    overflow-y: auto;
-    padding: 2rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
-    scroll-behavior: smooth;
-}
-
-.karaoke-line {
-    font-size: 1.5rem;
-    line-height: 1.8;
-    color: var(--muted-foreground);
-    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    text-align: center;
-    max-width: 800px;
-    opacity: 0.35;
-    transform: scale(0.92);
-    filter: blur(1px);
-    padding: 0.5rem 1rem;
-}
-
-.karaoke-line.active {
-    color: var(--highlight);
-    font-size: 2.25rem;
-    font-weight: 700;
-    opacity: 1;
-    transform: scale(1.05);
-    filter: blur(0);
-    text-shadow: 0 0 30px rgba(var(--highlight-rgb), 0.4),
-                 0 0 60px rgba(var(--highlight-rgb), 0.2);
-    letter-spacing: 0.02em;
-}
-
-.karaoke-line.upcoming {
-    opacity: 0.55;
-    transform: scale(0.96);
-    filter: blur(0.5px);
-}
-
-.karaoke-line.past {
-    opacity: 0.25;
-    transform: scale(0.88);
-    filter: blur(1.5px);
 }
 
 /* Mobile adjustments */

@@ -5,7 +5,7 @@ import { apiSettings, themeManager, nowPlayingSettings, trackListSettings } from
 import { UIRenderer } from './ui.js';
 import { Player } from './player.js';
 import { LastFMScrobbler } from './lastfm.js';
-import { LyricsManager, createLyricsPanel, showKaraokeView, showSyncedLyricsPanel, clearLyricsPanelSync } from './lyrics.js';
+import { LyricsManager, createLyricsPanel, showSyncedLyricsPanel, clearLyricsPanelSync } from './lyrics.js';
 import { createRouter, updateTabTitle } from './router.js';
 import { initializeSettings } from './settings.js';
 import { initializePlayerEvents, initializeTrackInteractions, handleTrackAction } from './events.js';
@@ -143,10 +143,6 @@ function initializeKeyboardShortcuts(player, audioPlayer, lyricsPanel) {
                     lyricsPanel.classList.add('hidden');
                     clearLyricsPanelSync(audioPlayer, lyricsPanel);
                 }
-                const karaokeView = document.getElementById('karaoke-view');
-                if (karaokeView) {
-                    karaokeView.remove();
-                }
                 break;
             case 'l':
                 document.querySelector('.now-playing-bar .cover')?.click();
@@ -220,10 +216,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const mode = nowPlayingSettings.getMode();
 
-        if (mode === 'karaoke') {
-            alert('We have updated how lyrics work, with this, we have unfortunately disabled karaoke for the time being.')
-
-        } else if (mode === 'lyrics') {
+        if (mode === 'lyrics') {
             const isHidden = lyricsPanel.classList.contains('hidden');
             lyricsPanel.classList.toggle('hidden');
 
