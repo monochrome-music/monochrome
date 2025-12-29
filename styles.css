@@ -2769,8 +2769,22 @@ input:checked + .slider::before {
         min-width: 36px;
     }
 
+    .card:hover {
+        transform: none !important;
+    }
+
     .card-like-btn {
-        opacity: 1;
+        opacity: 1 !important;
+        top: -0.25em !important;
+        right: -0.25em !important;
+        transform: none !important;
+    }
+
+    .card-play-btn {
+        opacity: 1 !important;
+        bottom: -0.25em !important;
+        right: -0.25em !important;
+        transform: none !important;
     }
 }
 
@@ -2781,7 +2795,7 @@ input:checked + .slider::before {
 
     .main-content,
     .sidebar {
-        padding-top: max(1.5rem, env(safe-area-inset-top));
+        padding-top: max(var(--spacing-md), env(safe-area-inset-top));
     }
 }
 /* Lyrics Panel */
@@ -3229,7 +3243,6 @@ img:not([src]), img[src=''] {
     gap: 0.5rem;
     width: 100%;
     max-width: 400px;
-    align-items: flex-end;
 }
 
 .custom-firebase-config {
@@ -3250,9 +3263,6 @@ img:not([src]), img[src=''] {
     margin-bottom: 0.25rem;
 }
 
-#firebase-controls {
-    text-align: end;
-}
 .firebase-controls-container {
     display: flex;
     gap: 0.5rem;

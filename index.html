@@ -358,15 +358,17 @@
                                 <span class="label">Firebase Configuration</span>
                                 <span class="description">Manage your database connection.</span>
                             </div>
-                            <div class="firebase-settings-wrapper">
+                            <div>
                                 <button id="toggle-firebase-config-btn" class="btn-secondary">Advanced: Custom Configuration</button>
-                                <div id="custom-firebase-config-container" class="custom-firebase-config">
-                                    <p class="config-help-text">Default shared instance is active. <a href="firebase-setup.md" target="_blank" class="text-link">Override below only if needed.</a></p>
-                                    <textarea id="firebase-config-input" class="template-input" rows="5" placeholder='{ "apiKey": "...", "authDomain": "...", ... }'></textarea>
-                                    <div class="firebase-controls-container">
-                                        <button id="save-firebase-config-btn" class="btn-secondary">Save & Reload</button>
-                                        <button id="share-firebase-config-btn" class="btn-secondary">Share</button>
-                                        <button id="clear-firebase-config-btn" class="btn-secondary danger">Clear Config</button>
+                                <div class="firebase-settings-wrapper">
+                                    <div id="custom-firebase-config-container" class="custom-firebase-config">
+                                        <p class="config-help-text">Default shared instance is active. <a href="firebase-setup.md" target="_blank" class="text-link">Override below only if needed.</a></p>
+                                        <textarea id="firebase-config-input" class="template-input" rows="5" placeholder='{ "apiKey": "...", "authDomain": "...", ... }'></textarea>
+                                        <div class="firebase-controls-container">
+                                            <button id="save-firebase-config-btn" class="btn-secondary">Save & Reload</button>
+                                            <button id="share-firebase-config-btn" class="btn-secondary">Share</button>
+                                            <button id="clear-firebase-config-btn" class="btn-secondary danger">Clear Config</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -376,14 +378,10 @@
                             <div class="info">
                                 <span class="label">Sync & Backup (Beta)</span>
                                 <span class="description" id="firebase-status">Sync your library across devices</span>
-                                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; align-items: center;">
-                                    <img id="firebase-user-avatar" src="" style="width: 24px; height: 24px; border-radius: 50%; display: none;" onerror="this.style.display='none'" onload="this.style.display='block'">
-                                    <span id="firebase-user-name" style="font-size: 0.85rem; color: var(--foreground);"></span>
-                                </div>
                             </div>
-                            <div id="firebase-controls">
+                            <div style="display: flex; gap: 0.5rem;">
                                 <button id="firebase-connect-btn" class="btn-secondary">Connect with Google</button>
-                                <button id="firebase-clear-cloud-btn" class="btn-secondary danger" style="display: none; margin-top: 0.5rem;">Clear Cloud Data</button>
+                                <button id="firebase-clear-cloud-btn" class="btn-secondary danger">Clear Cloud Data</button>
                             </div>
                         </div>
                     </div>

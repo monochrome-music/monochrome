@@ -60,8 +60,6 @@ export class AuthManager {
         const connectBtn = document.getElementById('firebase-connect-btn');
         const clearDataBtn = document.getElementById('firebase-clear-cloud-btn');
         const statusText = document.getElementById('firebase-status');
-        const userAvatar = document.getElementById('firebase-user-avatar');
-        const userName = document.getElementById('firebase-user-name');
         const container = document.getElementById('firebase-controls');
 
         if (!connectBtn) return; // UI might not be rendered yet
@@ -74,10 +72,6 @@ export class AuthManager {
             if (clearDataBtn) clearDataBtn.style.display = 'block';
 
             if (statusText) statusText.textContent = `Signed in as ${user.email}`;
-            
-            // Optional: Show user info if elements exist
-            if (userAvatar && user.photoURL) userAvatar.src = user.photoURL;
-            if (userName) userName.textContent = user.displayName;
 
         } else {
             connectBtn.textContent = 'Connect with Google';
@@ -87,9 +81,6 @@ export class AuthManager {
             if (clearDataBtn) clearDataBtn.style.display = 'none';
 
             if (statusText) statusText.textContent = 'Sync your library across devices';
-            
-            if (userAvatar) userAvatar.src = ''; // Placeholder or clear
-            if (userName) userName.textContent = '';
         }
     }
 }
