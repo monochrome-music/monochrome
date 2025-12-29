@@ -83,16 +83,16 @@ export class MusicDatabase {
         // Add new entry
         store.put(entry);
 
-        // Trim to 100
+        // Trim to 1000
         const index = store.index('timestamp');
         const countRequest = index.count();
 
         countRequest.onsuccess = () => {
-            if (countRequest.result > 100) {
+            if (countRequest.result > 1000) {
                 // Get oldest keys
                 const cursorRequest = index.openCursor();
                 let deleted = 0;
-                const toDelete = countRequest.result - 100;
+                const toDelete = countRequest.result - 1000;
 
                 cursorRequest.onsuccess = (e) => {
                     const cursor = e.target.result;
