@@ -282,160 +282,212 @@
             <div id="page-settings" class="page">
                 <h2 class="section-title">Settings</h2>
                 <div class="settings-list">
-                    <div class="setting-item">
-                        <div class="info">
-                            <span class="label">Theme</span>
-                            <span class="description">Choose your preferred color scheme</span>
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <div class="info">
+                                <span class="label">Theme</span>
+                                <span class="description">Choose your preferred color scheme</span>
+                            </div>
+                        </div>
+                        <div class="theme-picker" id="theme-picker">
+                            <div class="theme-option" data-theme="system">System</div>
+                            <div class="theme-option" data-theme="light">Light</div>
+                            <div class="theme-option" data-theme="dark">Dark</div>
+                            <div class="theme-option" data-theme="monochrome">Black</div>
+                            <div class="theme-option" data-theme="ocean">Ocean</div>
+                            <div class="theme-option" data-theme="purple">Purple</div>
+                            <div class="theme-option" data-theme="forest">Forest</div>
+                            <div class="theme-option" data-theme="custom">Custom</div>
+                        </div>
+                        <div class="custom-theme-editor" id="custom-theme-editor">
+                            <h4>Custom Theme</h4>
+                            <div class="theme-color-grid" id="theme-color-grid"></div>
+                            <div class="theme-actions">
+                                <button class="btn-secondary" id="apply-custom-theme">Apply Theme</button>
+                                <button class="btn-secondary" id="reset-custom-theme">Reset</button>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <div class="info">
+                                <span class="label">Album Cover Background</span>
+                                <span class="description">Use the album cover as a blurred background on album pages and as primary color</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="album-background-toggle">
+                                <span class="slider"></span>
+                            </label>
                         </div>
                     </div>
-                    <div class="theme-picker" id="theme-picker">
-                        <div class="theme-option" data-theme="system">System</div>
-                        <div class="theme-option" data-theme="light">Light</div>
-                        <div class="theme-option" data-theme="dark">Dark</div>
-                        <div class="theme-option" data-theme="monochrome">Black</div>
-                        <div class="theme-option" data-theme="ocean">Ocean</div>
-                        <div class="theme-option" data-theme="purple">Purple</div>
-                        <div class="theme-option" data-theme="forest">Forest</div>
-                        <div class="theme-option" data-theme="custom">Custom</div>
-                    </div>
-                    <div class="custom-theme-editor" id="custom-theme-editor">
-                        <h4>Custom Theme</h4>
-                        <div class="theme-color-grid" id="theme-color-grid"></div>
-                        <div class="theme-actions">
-                            <button class="btn-secondary" id="apply-custom-theme">Apply Theme</button>
-                            <button class="btn-secondary" id="reset-custom-theme">Reset</button>
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <div class="info">
+                                <span class="label">Last.fm Scrobbling</span>
+                                <span class="description" id="lastfm-status">Connect your Last.fm account to scrobble tracks</span>
+                            </div>
+                            <div id="lastfm-controls">
+                                <button id="lastfm-connect-btn" class="btn-secondary">Connect Last.fm</button>
+                            </div>
                         </div>
-                    </div>
-                    <div class="setting-item">
-                        <div class="info">
-                            <span class="label">Album Cover Background</span>
-                            <span class="description">Use the album cover as a blurred background on album pages and as primary color</span>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="album-background-toggle">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    <div class="setting-item">
-                        <div class="info">
-                            <span class="label">Last.fm Scrobbling</span>
-                            <span class="description" id="lastfm-status">Connect your Last.fm account to scrobble tracks</span>
-                        </div>
-                        <div id="lastfm-controls">
-                            <button id="lastfm-connect-btn" class="btn-secondary">Connect Last.fm</button>
+
+                        <div class="setting-item" id="lastfm-toggle-setting" style="display: none;">
+                            <div class="info">
+                                <span class="label">Enable Scrobbling</span>
+                                <span class="description">Automatically scrobble played tracks</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="lastfm-toggle">
+                                <span class="slider"></span>
+                            </label>
                         </div>
                     </div>
 
-                    <div class="setting-item" id="lastfm-toggle-setting" style="display: none;">
-                        <div class="info">
-                            <span class="label">Enable Scrobbling</span>
-                            <span class="description">Automatically scrobble played tracks</span>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="lastfm-toggle">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    <div class="setting-item">
-                        <div class="info">
-                            <span class="label">Audio Quality</span>
-                            <span class="description">Quality for streaming and downloads</span>
-                        </div>
-                        <select id="quality-setting">
-                            <option value="LOSSLESS">FLAC (Lossless)</option>
-                            <option value="HIGH">AAC 320kbps</option>
-                            <option value="LOW">AAC 96kbps</option>
-                        </select>
-                    </div>
-                    <div class="setting-item">
-                        <div class="info">
-                            <span class="label">Now Playing View Mode</span>
-                            <span class="description">Choose what shows when you click the album art</span>
-                        </div>
-                        <select id="now-playing-mode">
-                            <option value="album">Show Album</option>
-                            <option value="cover">Enlarged Cover</option>
-                            <option value="lyrics">Lyrics Panel</option>
-                        </select>
-                    </div>
-                    <div class="setting-item">
-                        <div class="info">
-                            <span class="label">Track List Actions</span>
-                            <span class="description">Choose between a dropdown menu or inline buttons for track actions</span>
-                        </div>
-                        <select id="track-list-actions-mode">
-                            <option value="dropdown">Dropdown Menu</option>
-                            <option value="inline">Inline Buttons</option>
-                        </select>
-                    </div>
-                    <div class="setting-item">
-                        <div class="info">
-                            <span class="label">Download Lyrics</span>
-                            <span class="description">Include .lrc files when downloading tracks/albums</span>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="download-lyrics-toggle">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    <div class="setting-item">
-                        <div class="info">
-                            <span class="label">Gapless Playback</span>
-                            <span class="description">Play audio without interruption between tracks</span>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                    <div class="setting-item">
-                        <div class="info">
-                            <span class="label">Filename Template</span>
-                            <span class="description">Customize download filenames. Available: {trackNumber}, {artist}, {title}, {album}</span>
-                        </div>
-                        <input type="text" id="filename-template" class="template-input" placeholder="{trackNumber} - {artist} - {title}">
-                    </div>
-                    <div class="setting-item">
-                        <div class="info">
-                            <span class="label">ZIP Folder Template</span>
-                            <span class="description">Customize album folder names. Available: {albumTitle}, {albumArtist}, {year}</span>
-                        </div>
-                        <input type="text" id="zip-folder-template" class="template-input" placeholder="{albumTitle} - {albumArtist} - monochrome.tf">
-                    </div>
-                    <div class="setting-item">
-                        <div class="info">
-                            <span class="label">Keyboard Shortcuts</span>
-                            <span class="description">View available keyboard shortcuts</span>
-                        </div>
-                        <button id="show-shortcuts-btn" class="btn-secondary">Show Shortcuts</button>
-                    </div>
-                    <div class="setting-item">
-                        <div class="info">
-                            <span class="label">Cache</span>
-                            <span class="description" id="cache-info">Stores API responses to reduce requests</span>
-                        </div>
-                        <button id="clear-cache-btn" class="btn-secondary">Clear Cache</button>
-                    </div>
-                    <div class="setting-item">
-                        <div class="info">
-                            <span class="label">Backup & Restore</span>
-                            <span class="description">Export or import your library and history as JSON</span>
-                        </div>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <button id="export-library-btn" class="btn-secondary">Export</button>
-                            <button id="import-library-btn" class="btn-secondary">Import</button>
-                            <input type="file" id="import-library-input" style="display: none;" accept=".json">
-                        </div>
-                    </div>
-                    <div id="api-instance-manager">
-                        <div class="setting-item" style="padding-bottom: 1rem; border: none;">
+                    <div class="settings-group">
+                        <div class="setting-item">
                             <div class="info">
-                                <span class="label">API Instances</span>
-                                <span class="description">Manage and prioritize API instances. Automatically sorted by speed.</span>
+                                <span class="label">Firebase Configuration</span>
+                                <span class="description">Manage your database connection.</span>
                             </div>
-                            <button id="refresh-speed-test-btn" class="btn-secondary">Refresh Speed Test</button>
+                            <div class="firebase-settings-wrapper">
+                                <button id="toggle-firebase-config-btn" class="btn-secondary">Advanced: Custom Configuration</button>
+                                <div id="custom-firebase-config-container" class="custom-firebase-config">
+                                    <p class="config-help-text">Default shared instance is active. <a href="firebase-setup.md" target="_blank" class="text-link">Override below only if needed.</a></p>
+                                    <textarea id="firebase-config-input" class="template-input" rows="5" placeholder='{ "apiKey": "...", "authDomain": "...", ... }'></textarea>
+                                    <div class="firebase-controls-container">
+                                        <button id="save-firebase-config-btn" class="btn-secondary">Save & Reload</button>
+                                        <button id="share-firebase-config-btn" class="btn-secondary">Share</button>
+                                        <button id="clear-firebase-config-btn" class="btn-secondary danger">Clear Config</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <ul id="api-instance-list"></ul>
+
+                        <div class="setting-item">
+                            <div class="info">
+                                <span class="label">Sync & Backup (Beta)</span>
+                                <span class="description" id="firebase-status">Sync your library across devices</span>
+                                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; align-items: center;">
+                                    <img id="firebase-user-avatar" src="" style="width: 24px; height: 24px; border-radius: 50%; display: none;" onerror="this.style.display='none'" onload="this.style.display='block'">
+                                    <span id="firebase-user-name" style="font-size: 0.85rem; color: var(--foreground);"></span>
+                                </div>
+                            </div>
+                            <div id="firebase-controls">
+                                <button id="firebase-connect-btn" class="btn-secondary">Connect with Google</button>
+                                <button id="firebase-clear-cloud-btn" class="btn-secondary danger" style="display: none; margin-top: 0.5rem;">Clear Cloud Data</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <div class="info">
+                                <span class="label">Audio Quality</span>
+                                <span class="description">Quality for streaming and downloads</span>
+                            </div>
+                            <select id="quality-setting">
+                                <option value="LOSSLESS">FLAC (Lossless)</option>
+                                <option value="HIGH">AAC 320kbps</option>
+                                <option value="LOW">AAC 96kbps</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <div class="info">
+                                <span class="label">Gapless Playback</span>
+                                <span class="description">Play audio without interruption between tracks</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <div class="info">
+                                <span class="label">Now Playing View Mode</span>
+                                <span class="description">Choose what shows when you click the album art</span>
+                            </div>
+                            <select id="now-playing-mode">
+                                <option value="album">Show Album</option>
+                                <option value="cover">Enlarged Cover</option>
+                                <option value="lyrics">Lyrics Panel</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <div class="info">
+                                <span class="label">Track List Actions</span>
+                                <span class="description">Choose between a dropdown menu or inline buttons for track actions</span>
+                            </div>
+                            <select id="track-list-actions-mode">
+                                <option value="dropdown">Dropdown Menu</option>
+                                <option value="inline">Inline Buttons</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <div class="info">
+                                <span class="label">Download Lyrics</span>
+                                <span class="description">Include .lrc files when downloading tracks/albums</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="download-lyrics-toggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="info">
+                                <span class="label">Filename Template</span>
+                                <span class="description">Customize download filenames. Available: {trackNumber}, {artist}, {title}, {album}</span>
+                            </div>
+                            <input type="text" id="filename-template" class="template-input" placeholder="{trackNumber} - {artist} - {title}">
+                        </div>
+                        <div class="setting-item">
+                            <div class="info">
+                                <span class="label">ZIP Folder Template</span>
+                                <span class="description">Customize album folder names. Available: {albumTitle}, {albumArtist}, {year}</span>
+                            </div>
+                            <input type="text" id="zip-folder-template" class="template-input" placeholder="{albumTitle} - {albumArtist} - monochrome.tf">
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <div class="info">
+                                <span class="label">Keyboard Shortcuts</span>
+                                <span class="description">View available keyboard shortcuts</span>
+                            </div>
+                            <button id="show-shortcuts-btn" class="btn-secondary">Show Shortcuts</button>
+                        </div>
+                        <div class="setting-item">
+                            <div class="info">
+                                <span class="label">Cache</span>
+                                <span class="description" id="cache-info">Stores API responses to reduce requests</span>
+                            </div>
+                            <button id="clear-cache-btn" class="btn-secondary">Clear Cache</button>
+                        </div>
+                        <div class="setting-item">
+                            <div class="info">
+                                <span class="label">Backup & Restore</span>
+                                <span class="description">Export or import your library and history as JSON</span>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button id="export-library-btn" class="btn-secondary">Export</button>
+                                <button id="import-library-btn" class="btn-secondary">Import</button>
+                                <input type="file" id="import-library-input" style="display: none;" accept=".json">
+                            </div>
+                        </div>
+                        <div id="api-instance-manager">
+                            <div class="setting-item" style="padding-bottom: 1rem; border: none;">
+                                <div class="info">
+                                    <span class="label">API Instances</span>
+                                    <span class="description">Manage and prioritize API instances. Automatically sorted by speed.</span>
+                                </div>
+                                <button id="refresh-speed-test-btn" class="btn-secondary">Refresh Speed Test</button>
+                            </div>
+                            <ul id="api-instance-list"></ul>
+                        </div>
                     </div>
                 </div>
             </div>

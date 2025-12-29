@@ -590,6 +590,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             localStorage.setItem('shortcuts-shown', 'true');
         }, 3000);
     }
+
+    // Listener for Firebase Sync updates
+    window.addEventListener('library-changed', () => {
+        const hash = window.location.hash;
+        if (hash === '#library') {
+            ui.renderLibraryPage();
+        } else if (hash === '#home' || hash === '') {
+            ui.renderHomePage();
+        }
+    });
+    window.addEventListener('history-changed', () => {
+        const hash = window.location.hash;
+        if (hash === '#recent') {
+            ui.renderRecentPage();
+        }
+    });
 });
 
 function showUpdateNotification() {

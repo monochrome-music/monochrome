@@ -1,8 +1,15 @@
 //js/settings
 import { themeManager, lastFMStorage, nowPlayingSettings, lyricsSettings, backgroundSettings, trackListSettings } from './storage.js';
 import { db } from './db.js';
+import { authManager } from './firebase/auth.js';
+import { syncManager } from './firebase/sync.js';
+import { initializeFirebaseSettingsUI } from './firebase/config.js';
 
 export function initializeSettings(scrobbler, player, api, ui) {
+    // Initialize Firebase UI & Settings
+    authManager.updateUI(authManager.user);
+    initializeFirebaseSettingsUI();
+
     const lastfmConnectBtn = document.getElementById('lastfm-connect-btn');
     const lastfmStatus = document.getElementById('lastfm-status');
     const lastfmToggle = document.getElementById('lastfm-toggle');
@@ -288,6 +295,19 @@ export function initializeSettings(scrobbler, player, api, ui) {
                 btn.textContent = originalText;
                 btn.disabled = false;
             }, 1500);
+        }
+    });
+
+    document.getElementById('firebase-clear-cloud-btn')?.addEventListener('click', async () => {
+        if (confirm('Are you sure you want to delete ALL your data from the cloud? This cannot be undone.')) {
+            try {
+                await syncManager.clearCloudData();
+                alert('Cloud data cleared successfully.');
+                authManager.signOut();
+            } catch (error) {
+                console.error('Failed to clear cloud data:', error);
+                alert('Failed to clear cloud data: ' + error.message);
+            }
         }
     });
 
