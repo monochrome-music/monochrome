@@ -1452,7 +1452,7 @@ input:checked + .slider::before {
     z-index: 1;
     max-width: 90%;
     background: color-mix(in srgb, var(--card), transparent 80%);
-    padding: 1.5rem 2rem;
+    padding: 1rem 1.5rem;
     border-radius: var(--radius);
     border: 1px solid color-mix(in srgb, var(--card), transparent 70%);
 }
@@ -1467,14 +1467,14 @@ input:checked + .slider::before {
 
 #fullscreen-track-artist {
     font-size: 1.25rem;
-    color: var(--muted-foreground);
+    color: color-mix(in srgb, var(--foreground), transparent 40%);
     font-weight: 500;
 }
 
 #fullscreen-next-track {
     margin-top: 1.5rem;
     font-size: 0.9rem;
-    color: var(--muted-foreground);
+    color: color-mix(in srgb, var(--foreground), transparent 40%);
     display: flex;
     flex-direction: column;
     gap: 0.2rem;
