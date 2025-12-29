@@ -196,7 +196,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     initializeSettings(scrobbler, player, api, ui);
     initializePlayerEvents(player, audioPlayer, scrobbler, ui);
-    initializeTrackInteractions(player, api, document.querySelector('.main-content'), document.getElementById('context-menu'), lyricsManager, ui);
+    initializeTrackInteractions(player, api, document.querySelector('.main-content'), document.getElementById('context-menu'), lyricsManager, ui, scrobbler);
     initializeUIInteractions(player, api);
     initializeKeyboardShortcuts(player, audioPlayer, lyricsPanel);
 

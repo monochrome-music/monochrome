@@ -293,6 +293,7 @@ export const themeManager = {
 
 export const lastFMStorage = {
     STORAGE_KEY: 'lastfm-enabled',
+    LOVE_ON_LIKE_KEY: 'lastfm-love-on-like',
 
     isEnabled() {
         try {
@@ -304,6 +305,18 @@ export const lastFMStorage = {
 
     setEnabled(enabled) {
         localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldLoveOnLike() {
+        try {
+            return localStorage.getItem(this.LOVE_ON_LIKE_KEY) === 'true';
+        } catch (e) {
+            return false;
+        }
+    },
+
+    setLoveOnLike(enabled) {
+        localStorage.setItem(this.LOVE_ON_LIKE_KEY, enabled ? 'true' : 'false');
     }
 };
 

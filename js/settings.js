@@ -14,6 +14,8 @@ export function initializeSettings(scrobbler, player, api, ui) {
     const lastfmStatus = document.getElementById('lastfm-status');
     const lastfmToggle = document.getElementById('lastfm-toggle');
     const lastfmToggleSetting = document.getElementById('lastfm-toggle-setting');
+    const lastfmLoveToggle = document.getElementById('lastfm-love-toggle');
+    const lastfmLoveSetting = document.getElementById('lastfm-love-setting');
 
     function updateLastFMUI() {
         if (scrobbler.isAuthenticated()) {
@@ -21,12 +23,15 @@ export function initializeSettings(scrobbler, player, api, ui) {
             lastfmConnectBtn.textContent = 'Disconnect';
             lastfmConnectBtn.classList.add('danger');
             lastfmToggleSetting.style.display = 'flex';
+            lastfmLoveSetting.style.display = 'flex';
             lastfmToggle.checked = lastFMStorage.isEnabled();
+            lastfmLoveToggle.checked = lastFMStorage.shouldLoveOnLike();
         } else {
             lastfmStatus.textContent = 'Connect your Last.fm account to scrobble tracks';
             lastfmConnectBtn.textContent = 'Connect Last.fm';
             lastfmConnectBtn.classList.remove('danger');
             lastfmToggleSetting.style.display = 'none';
+            lastfmLoveSetting.style.display = 'none';
         }
     }
 
@@ -102,6 +107,10 @@ export function initializeSettings(scrobbler, player, api, ui) {
 
     lastfmToggle?.addEventListener('change', (e) => {
         lastFMStorage.setEnabled(e.target.checked);
+    });
+
+    lastfmLoveToggle?.addEventListener('change', (e) => {
+        lastFMStorage.setLoveOnLike(e.target.checked);
     });
 
     // Theme picker

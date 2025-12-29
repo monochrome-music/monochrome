@@ -316,7 +316,7 @@ function initializeSmoothSliders(audioPlayer, player) {
     });
 }
 
-export async function handleTrackAction(action, item, player, api, lyricsManager, type = 'track', ui = null) {
+export async function handleTrackAction(action, item, player, api, lyricsManager, type = 'track', ui = null, scrobbler = null) {
     if (!item) return;
 
     if (action === 'add-to-queue') {
@@ -356,6 +356,10 @@ export async function handleTrackAction(action, item, player, api, lyricsManager
     } else if (action === 'toggle-like') {
         const added = await db.toggleFavorite(type, item);
         syncManager.syncLibraryItem(type, item, added);
+
+        if (added && type === 'track' && scrobbler && lastFMStorage.isEnabled() && lastFMStorage.shouldLoveOnLike()) {
+            scrobbler.loveTrack(item);
+        }
 
         // Update all instances of this item's like button on the page
         const id = type === 'playlist' ? item.uuid : item.id;
@@ -429,7 +433,7 @@ export async function handleTrackAction(action, item, player, api, lyricsManager
     }
 }
 
-export function initializeTrackInteractions(player, api, mainContent, contextMenu, lyricsManager, ui) {
+export function initializeTrackInteractions(player, api, mainContent, contextMenu, lyricsManager, ui, scrobbler) {
     let contextTrack = null;
 
     mainContent.addEventListener('click', async e => {
@@ -462,7 +466,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             }
 
             if (item) {
-                await handleTrackAction(action, item, player, api, lyricsManager, type, ui);
+                await handleTrackAction(action, item, player, api, lyricsManager, type, ui, scrobbler);
             }
             return;
         }
@@ -539,7 +543,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
         e.stopPropagation();
         const action = e.target.dataset.action;
         if (action && contextTrack) {
-            await handleTrackAction(action, contextTrack, player, api, lyricsManager, 'track', ui);
+            await handleTrackAction(action, contextTrack, player, api, lyricsManager, 'track', ui, scrobbler);
         }
         contextMenu.style.display = 'none';
     });
@@ -575,7 +579,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
         nowPlayingLikeBtn.addEventListener('click', async (e) => {
             e.stopPropagation();
             if (player.currentTrack) {
-                await handleTrackAction('toggle-like', player.currentTrack, player, api, lyricsManager, 'track', ui);
+                await handleTrackAction('toggle-like', player.currentTrack, player, api, lyricsManager, 'track', ui, scrobbler);
             }
         });
     }

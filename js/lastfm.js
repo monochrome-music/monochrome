@@ -232,6 +232,22 @@ export class LastFMScrobbler {
         }
     }
 
+    async loveTrack(track) {
+        if (!this.isAuthenticated()) return;
+
+        try {
+            const params = {
+                artist: track.artist?.name || 'Unknown Artist',
+                track: track.title
+            };
+
+            await this.makeRequest('track.love', params, true);
+            console.log('Loved track on Last.fm:', track.title);
+        } catch (error) {
+            console.error('Failed to love track on Last.fm:', error);
+        }
+    }
+
     onTrackChange(track) {
         if (!this.isAuthenticated()) return;
         this.updateNowPlaying(track);
