@@ -3167,3 +3167,37 @@ img:not([src]), img[src=''] {
     background-color: var(--muted);
 }
 
+/* Card Play Button */
+.card-play-btn {
+    position: absolute;
+    bottom: 2%;
+    right: 2%;
+    background: var(--highlight) !important;
+    border-radius: 50% !important;
+    width: 42px !important;
+    height: 42px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    z-index: 20;
+    color: var(--background) !important;
+    border: none !important;
+    box-shadow: var(--shadow-md);
+}
+
+.card:hover .card-play-btn {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.card-play-btn:hover {
+    transform: scale(1.1) translateY(0) !important;
+    box-shadow: var(--shadow-lg);
+    filter: brightness(1.1);
+}
+
+

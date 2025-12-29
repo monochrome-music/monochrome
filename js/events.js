@@ -324,6 +324,30 @@ export async function handleTrackAction(action, item, player, api, lyricsManager
         player.addNextToQueue(item);
         renderQueue(player);
         showNotification(`Playing next: ${item.title}`);
+    } else if (action === 'play-card') {
+        try {
+            let tracks = [];
+            if (type === 'album') {
+                const data = await api.getAlbum(item.id);
+                tracks = data.tracks;
+            } else if (type === 'playlist') {
+                const data = await api.getPlaylist(item.uuid);
+                tracks = data.tracks;
+            }
+
+            if (tracks.length > 0) {
+                player.setQueue(tracks, 0);
+                const shuffleBtn = document.getElementById('shuffle-btn');
+                if (shuffleBtn) shuffleBtn.classList.remove('active');
+                player.playAtIndex(0);
+                showNotification(`Playing ${type}: ${item.title}`);
+            } else {
+                 showNotification(`No tracks found in this ${type}`);
+            }
+        } catch (error) {
+            console.error('Failed to play card:', error);
+            showNotification(`Failed to play ${type}`);
+        }
     } else if (action === 'download') {
         await downloadTrackWithMetadata(item, player.quality, api, lyricsManager);
     } else if (action === 'toggle-like') {
@@ -405,7 +429,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
     let contextTrack = null;
 
     mainContent.addEventListener('click', async e => {
-        const actionBtn = e.target.closest('.track-action-btn, .like-btn');
+        const actionBtn = e.target.closest('.track-action-btn, .like-btn, .play-btn');
         if (actionBtn && actionBtn.dataset.action) {
             e.preventDefault(); // Prevent card navigation
             e.stopPropagation();

@@ -187,6 +187,9 @@ export class UIRenderer {
                     <button class="like-btn card-like-btn" data-action="toggle-like" data-type="album" title="Add to Library">
                         ${this.createHeartIcon(false)}
                     </button>
+                    <button class="play-btn card-play-btn" data-action="play-card" data-type="album" data-id="${album.id}" title="Play">
+                        ${SVG_PLAY}
+                    </button>
                 </div>
                 <h3 class="card-title">${album.title} ${explicitBadge}</h3>
                 <p class="card-subtitle">${album.artist?.name ?? ''}</p>
@@ -203,6 +206,9 @@ export class UIRenderer {
                     <img src="${this.api.getCoverUrl(imageId, '320')}" alt="${playlist.title}" class="card-image" loading="lazy">
                     <button class="like-btn card-like-btn" data-action="toggle-like" data-type="playlist" title="Add to Library">
                         ${this.createHeartIcon(false)}
+                    </button>
+                    <button class="play-btn card-play-btn" data-action="play-card" data-type="playlist" data-id="${playlist.uuid}" title="Play">
+                        ${SVG_PLAY}
                     </button>
                 </div>
                 <h3 class="card-title">${playlist.title}</h3>
