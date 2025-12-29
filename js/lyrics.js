@@ -131,7 +131,7 @@ export class LyricsManager {
             return;
         }
 
-        const blob = new Blob([lrcContent], { type: 'text/plain' });
+        const blob = new Blob([lrcContent], { type: 'application/octet-stream' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
