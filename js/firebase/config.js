@@ -10,6 +10,15 @@ let provider = null;
 
 const STORAGE_KEY = 'monochrome-firebase-config';
 
+const DEFAULT_CONFIG = {
+   apiKey: "AIzaSyDPU-unAjuLtQJt4IkGS5faG50UCF7lYyA",
+   authDomain: "monochrome-database.firebaseapp.com",
+   projectId: "monochrome-database",
+   storageBucket: "monochrome-database.firebasestorage.app",
+   messagingSenderId: "895657412760",
+   appId: "1:895657412760:web:e81c5044c7f4e9b799e8ed"
+};
+
 function getStoredConfig() {
     try {
         const stored = localStorage.getItem(STORAGE_KEY);
@@ -21,19 +30,21 @@ function getStoredConfig() {
 }
 
 // Attempt to initialize on load
-const config = getStoredConfig();
+const storedConfig = getStoredConfig();
+const config = storedConfig || DEFAULT_CONFIG;
+
 if (config) {
     try {
         app = initializeApp(config);
         auth = getAuth(app);
         database = getDatabase(app);
         provider = new GoogleAuthProvider();
-        console.log("Firebase initialized from saved config");
+        console.log("Firebase initialized from " + (storedConfig ? "saved" : "default") + " config");
     } catch (error) {
-        console.error("Error initializing Firebase from saved config:", error);
+        console.error("Error initializing Firebase:", error);
     }
 } else {
-    console.log("No Firebase config found in local storage.");
+    console.log("No Firebase config found.");
 }
 
 export function saveFirebaseConfig(configObj) {
@@ -113,6 +124,22 @@ export function initializeFirebaseSettingsUI() {
     const saveFirebaseConfigBtn = document.getElementById('save-firebase-config-btn');
     const clearFirebaseConfigBtn = document.getElementById('clear-firebase-config-btn');
     const shareFirebaseConfigBtn = document.getElementById('share-firebase-config-btn');
+    const toggleFirebaseConfigBtn = document.getElementById('toggle-firebase-config-btn');
+    const customFirebaseConfigContainer = document.getElementById('custom-firebase-config-container');
+
+    // Toggle Button Logic
+    if (toggleFirebaseConfigBtn && customFirebaseConfigContainer) {
+        toggleFirebaseConfigBtn.addEventListener('click', () => {
+            const isVisible = customFirebaseConfigContainer.classList.contains('visible');
+            if (isVisible) {
+                customFirebaseConfigContainer.classList.remove('visible');
+                toggleFirebaseConfigBtn.textContent = 'Advanced: Custom Configuration';
+            } else {
+                customFirebaseConfigContainer.classList.add('visible');
+                toggleFirebaseConfigBtn.textContent = 'Hide Custom Configuration';
+            }
+        });
+    }
 
     // Populate current config
     if (firebaseConfigInput) {
@@ -120,6 +147,11 @@ export function initializeFirebaseSettingsUI() {
         if (currentConfig) {
             try {
                 firebaseConfigInput.value = JSON.stringify(JSON.parse(currentConfig), null, 2);
+                // If custom config exists, show the container
+                if (customFirebaseConfigContainer && toggleFirebaseConfigBtn) {
+                    customFirebaseConfigContainer.classList.add('visible');
+                    toggleFirebaseConfigBtn.textContent = 'Hide Custom Configuration';
+                }
             } catch (e) {
                 firebaseConfigInput.value = currentConfig;
             }
@@ -192,7 +224,7 @@ export function initializeFirebaseSettingsUI() {
     // Clear Button
     if (clearFirebaseConfigBtn) {
         clearFirebaseConfigBtn.addEventListener('click', () => {
-            if (confirm('Are you sure you want to clear the Firebase configuration? Sync will stop.')) {
+            if (confirm('Are you sure you want to remove the custom configuration? The app will revert to the shared default database.')) {
                 clearFirebaseConfig();
                 window.location.reload();
             }

@@ -174,6 +174,16 @@ a {
     text-decoration: none;
 }
 
+.text-link {
+    color: var(--primary);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.text-link:hover {
+    color: var(--highlight);
+}
+
 kbd {
     background-color: var(--secondary);
     border: 1px solid var(--border);
@@ -997,10 +1007,22 @@ body.has-page-background .track-item:hover {
     max-width: 800px;
 }
 
+.settings-group {
+    border-bottom: 1px solid var(--border);
+    padding: var(--spacing-lg) 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.settings-group .setting-item {
+    border-bottom: none;
+    padding: 0;
+}
+
 .setting-item {
     display: flex;
     justify-content: space-between;
-    align-items: center;
     padding: var(--spacing-lg) 0;
     border-bottom: 1px solid var(--border);
     gap: var(--spacing-lg);
@@ -3200,4 +3222,44 @@ img:not([src]), img[src=''] {
     filter: brightness(1.1);
 }
 
+/* Firebase Settings Styling */
+.firebase-settings-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 400px;
+    align-items: flex-end;
+}
+
+.custom-firebase-config {
+    display: none;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    width: 100%;
+}
+
+.custom-firebase-config.visible {
+    display: flex;
+}
+
+.config-help-text {
+    font-size: 0.8rem;
+    opacity: 0.7;
+    margin-bottom: 0.25rem;
+}
+
+#firebase-controls {
+    text-align: end;
+}
+.firebase-controls-container {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+#toggle-firebase-config-btn {
+    width: fit-content;
+}
 

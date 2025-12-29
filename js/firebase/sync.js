@@ -206,7 +206,16 @@ export class SyncManager {
         const itemRef = child(this.userRef, path);
 
         if (isAdded) {
-            await set(itemRef, item);
+            // Minify to ensure consistency and reduce bandwidth
+            // We use the db helper to ensure consistent structure
+            const minified = db._minifyItem(type, item);
+            // Ensure addedAt is present. If the passed item didn't have it (e.g. from player),
+            // we add it now. Ideally this matches local DB time, but a small diff is negligible.
+            const entry = {
+                ...minified,
+                addedAt: item.addedAt || minified.addedAt || Date.now()
+            };
+            await set(itemRef, entry);
         } else {
             await remove(itemRef);
         }
@@ -221,6 +230,13 @@ export class SyncManager {
         } catch (error) {
             console.error("Failed to sync history item:", error);
         }
+    }
+
+    async clearCloudData() {
+        if (!this.user || !this.userRef) {
+            throw new Error("Not authenticated");
+        }
+        await remove(this.userRef);
     }
 }
 

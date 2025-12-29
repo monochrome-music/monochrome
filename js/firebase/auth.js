@@ -58,6 +58,7 @@ export class AuthManager {
 
     updateUI(user) {
         const connectBtn = document.getElementById('firebase-connect-btn');
+        const clearDataBtn = document.getElementById('firebase-clear-cloud-btn');
         const statusText = document.getElementById('firebase-status');
         const userAvatar = document.getElementById('firebase-user-avatar');
         const userName = document.getElementById('firebase-user-name');
@@ -70,6 +71,8 @@ export class AuthManager {
             connectBtn.classList.add('danger');
             connectBtn.onclick = () => this.signOut();
             
+            if (clearDataBtn) clearDataBtn.style.display = 'block';
+
             if (statusText) statusText.textContent = `Signed in as ${user.email}`;
             
             // Optional: Show user info if elements exist
@@ -81,6 +84,8 @@ export class AuthManager {
             connectBtn.classList.remove('danger');
             connectBtn.onclick = () => this.signInWithGoogle();
             
+            if (clearDataBtn) clearDataBtn.style.display = 'none';
+
             if (statusText) statusText.textContent = 'Sync your library across devices';
             
             if (userAvatar) userAvatar.src = ''; // Placeholder or clear

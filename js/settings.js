@@ -298,6 +298,19 @@ export function initializeSettings(scrobbler, player, api, ui) {
         }
     });
 
+    document.getElementById('firebase-clear-cloud-btn')?.addEventListener('click', async () => {
+        if (confirm('Are you sure you want to delete ALL your data from the cloud? This cannot be undone.')) {
+            try {
+                await syncManager.clearCloudData();
+                alert('Cloud data cleared successfully.');
+                authManager.signOut();
+            } catch (error) {
+                console.error('Failed to clear cloud data:', error);
+                alert('Failed to clear cloud data: ' + error.message);
+            }
+        }
+    });
+
     // Backup & Restore
     document.getElementById('export-library-btn')?.addEventListener('click', async () => {
         const data = await db.exportData();
