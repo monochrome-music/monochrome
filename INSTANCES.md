@@ -17,4 +17,5 @@ UI:
 | tidal-ui (bini)   | https://music.binimum.org          |
 | squid.wtf         | https://tidal.squid.wtf            |
 | spofree           | https://spo.free.nf                |
+| arjix             | https://music.arjix.dev/ |
 
