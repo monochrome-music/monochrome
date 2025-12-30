@@ -108,6 +108,12 @@
                                 <span>About</span>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="#account">
+                                <svg viewBox="0 0 24 24" id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" fill="#000000"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><defs><style>.cls-1{fill:none;stroke:#8B8B93;stroke-miterlimit:10;stroke-width:1.9200000000000004;}</style></defs><circle class="cls-1" cx="12" cy="7.25" r="5.73"></circle><path class="cls-1" d="M1.5,23.48l.37-2.05A10.3,10.3,0,0,1,12,13h0a10.3,10.3,0,0,1,10.13,8.45l.37,2.05"></path></g></svg>
+                                <span>Account</span>
+                            </a>
+                        </li>
                     </ul>
                 </nav>
             </div>
@@ -355,14 +361,14 @@
                     <div class="settings-group">
                         <div class="setting-item">
                             <div class="info">
-                                <span class="label">Firebase Configuration</span>
-                                <span class="description">Manage your database connection.</span>
+                                <a class="label" id="firebase-config" href="#toggle-firebase-config-btn">ADVANCED: Firebase Configuration</a>
+                                <span class="description">Manage Which Database You would like to connect to. <br> Monochrome-Owned Database Is Default.</span>
                             </div>
                             <div>
-                                <button id="toggle-firebase-config-btn" class="btn-secondary">Advanced: Custom Configuration</button>
+                                <button id="toggle-firebase-config-btn" class="btn-secondary">Custom Configuration</button>
                                 <div class="firebase-settings-wrapper">
                                     <div id="custom-firebase-config-container" class="custom-firebase-config">
-                                        <p class="config-help-text">Default shared instance is active. <a href="firebase-setup.md" target="_blank" class="text-link">Override below only if needed.</a></p>
+                                        <p class="config-help-text">Default shared instance is active. <a href="https://github.com/SamidyFR/monochrome/blob/main/firebase-setup.md" target="_blank" class="text-link">Override below only if needed.</a></p>
                                         <textarea id="firebase-config-input" class="template-input" rows="5" placeholder='{ "apiKey": "...", "authDomain": "...", ... }'></textarea>
                                         <div class="firebase-controls-container">
                                             <button id="save-firebase-config-btn" class="btn-secondary">Save & Reload</button>
@@ -374,16 +380,6 @@
                             </div>
                         </div>
 
-                        <div class="setting-item">
-                            <div class="info">
-                                <span class="label">Sync & Backup (Beta)</span>
-                                <span class="description" id="firebase-status">Sync your library across devices</span>
-                            </div>
-                            <div style="display: flex; gap: 0.5rem;">
-                                <button id="firebase-connect-btn" class="btn-secondary">Connect with Google</button>
-                                <button id="firebase-clear-cloud-btn" class="btn-secondary danger">Clear Cloud Data</button>
-                            </div>
-                        </div>
                     </div>
 
                     <div class="settings-group">
@@ -510,8 +506,8 @@
                         <br>
                         <h3><strong>NOTE:</strong> The instance you are currently on (monochrome.samidy.com) is a community instance due to the project being shut down.</h3>
                         <strong>I Am Not Affiliated With The Original owner.</strong>
-                        <br>
                     </p>
+                    <br>
                     <div class="about-features">
                         <h4>Features</h4>
                         <ul>
@@ -550,6 +546,27 @@
                         <p class="disclaimer">This is an independent client and is not affiliated with or endorsed by TIDAL or any music streaming service.</p>
                     </div>
                 </div>
+            </div>
+            <div id="page-account" class="page">
+                <h2 class="section-title" style="text-align: center;">Sign Up / Sign In</h2>
+                <div class="account-content">
+                <p style="text-align: center;" class="account-description">Make An Account to Allow Syncing Your Library Between Devices.</p>
+                    <div style="display: flex; gap: 50px; align-items: center; justify-content: center; margin-top: 50px;" class="account-buttons">
+                        <button id="firebase-connect-btn" class="btn-secondary">Connect with Google</button>
+                        <button id="firebase-clear-cloud-btn" class="btn-secondary danger">Clear Cloud Data</button>
+                    </div>
+                    <p id="firebase-status" style="text-align: center; padding-top: 15px; color: #8B8B93;">Sync your library across devices</p>
+                    <script>
+                        if (window.authManager && window.authManager.user) {
+                            const statusText = document.getElementById('firebase-status');
+                            if (statusText) statusText.textContent = `Signed in as ${window.authManager.user.email}`;
+                        }
+                    </script>
+                    <p style="padding-top: 50px; text-align: center; color: #8B8B93;">we only store music data and a randomized ID to find out which google account is which. <br> all data is anonymous, we do not store anything like Emails, Names, Or anything sensitive. <br> <br> However, if you want complete control over your data, we allow you to use your own firebase configuration.</p>
+                    <div style="display: flex; gap: 50px; align-items: center; justify-content: center; padding-top: 25px;">
+                    <a id="toggle-firebase-config-btn" class="btn-secondary" href="#settings">Advanced: Custom Configuration</a>
+                    </div>
+            </div>
             </div>
         </main>
         

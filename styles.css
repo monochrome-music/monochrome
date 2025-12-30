@@ -332,10 +332,11 @@ kbd {
 
 .main-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     margin-bottom: var(--spacing-xl);
     gap: var(--spacing-md);
+    position: relative;
 }
 
 .hamburger-menu {
@@ -1636,6 +1637,7 @@ input:checked + .slider::before {
     transition: all var(--transition);
     display: flex;
     align-items: center;
+    color: var(--foreground);
     justify-content: center;
     flex-shrink: 0;
     opacity: 0.2;
@@ -1659,8 +1661,6 @@ input:checked + .slider::before {
 .queue-track-item .queue-remove-btn svg {
     width: 20px;
     height: 20px;
-}
-    color: var(--foreground);
 }
 
 .placeholder-text {
@@ -3273,3 +3273,13 @@ img:not([src]), img[src=''] {
     width: fit-content;
 }
 
+.account-content {
+    padding: 1rem 0;
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  width: 80%;
+  max-width: 100%;
+}

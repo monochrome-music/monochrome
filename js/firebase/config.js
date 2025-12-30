@@ -133,7 +133,7 @@ export function initializeFirebaseSettingsUI() {
             const isVisible = customFirebaseConfigContainer.classList.contains('visible');
             if (isVisible) {
                 customFirebaseConfigContainer.classList.remove('visible');
-                toggleFirebaseConfigBtn.textContent = 'Advanced: Custom Configuration';
+                toggleFirebaseConfigBtn.textContent = 'Custom Configuration';
             } else {
                 customFirebaseConfigContainer.classList.add('visible');
                 toggleFirebaseConfigBtn.textContent = 'Hide Custom Configuration';
