@@ -185,8 +185,14 @@
                 var manifestStr = base64Decode(data.data.manifest);
                 var manifest = JSON.parse(manifestStr);
                 if (manifest.urls && manifest.urls.length > 0) {
-                    audioPlayer.src = manifest.urls[0];
-                    audioPlayer.play();
+                    var streamUrl = manifest.urls[0];
+                    if (audioPlayer.play) {
+                        audioPlayer.src = streamUrl;
+                        audioPlayer.play();
+                    } else {
+                        // Fallback for IE/Older browsers
+                        playWithEmbed(streamUrl);
+                    }
                     
                     if (currentTrackInfo) {
                        // We don't get full track info in playback response easily without another call or passing it, 
@@ -300,5 +306,35 @@
           buffer = chars.indexOf(buffer);
       }
       return output;
+  }
+
+  function playWithEmbed(url) {
+      var container = document.getElementById("audio-container");
+      if (!container) {
+          // If no container, try to find parent of audio player
+          if (audioPlayer && audioPlayer.parentNode) {
+              container = audioPlayer.parentNode;
+              // Give it an ID for future reference
+              container.id = "audio-container";
+          }
+      }
+      
+      if (container) {
+          // Clear previous embeds
+          // Removing innerHTML is the brute force way but effective for legacy
+          // However, we want to keep the text status if it's in there (it's not, status is sibling in .controls)
+          // The audio player is in .controls. 
+          
+          // Let's create a specific div for embed if it doesn't exist, appended to container
+          var embedDiv = document.getElementById("embed-container");
+          if (!embedDiv) {
+              embedDiv = document.createElement("div");
+              embedDiv.id = "embed-container";
+              container.appendChild(embedDiv);
+          }
+          
+          var html = '<embed type="application/x-mplayer2" src="' + url + '" autostart="true" width="0" height="0" enablejavascript="true"></embed>';
+          embedDiv.innerHTML = html;
+      }
   }
 })();
