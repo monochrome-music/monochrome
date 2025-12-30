@@ -99,6 +99,25 @@ $(document).ready(function () {
         
         // Basic check for audio support
         if (domPlayer && typeof domPlayer.play === 'function') {
+            
+            // Explicitly check for Codec support
+            if (quality === "LOSSLESS") {
+                // FLAC check
+                var canPlay = "";
+                try {
+                    canPlay = domPlayer.canPlayType("audio/flac");
+                } catch(e) {}
+                
+                if (canPlay === "" || canPlay === "no") {
+                     console.log("Browser reports no FLAC support. Fallback to AAC.");
+                     // Directly fallback to AAC
+                     if (!attemptFallback) {
+                         window.playTrack(id, true);
+                         return;
+                     }
+                }
+            }
+
             updateStatus("Starting Native Playback" + qLabel + "...");
             
             // Set error handler for THIS attempt
@@ -121,7 +140,7 @@ $(document).ready(function () {
                         .catch(function(e) {
                             console.log("Native Play Promise Rejected: " + e.name);
                             // Auto-play policy or format issue? 
-                            // Try SounJS as fallback
+                            // Try SoundJS as fallback
                             playLegacySoundJS(url, id, quality);
                         });
                 } else {
