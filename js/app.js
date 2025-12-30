@@ -5,13 +5,14 @@ import { apiSettings, themeManager, nowPlayingSettings, trackListSettings } from
 import { UIRenderer } from './ui.js';
 import { Player } from './player.js';
 import { LastFMScrobbler } from './lastfm.js';
-import { LyricsManager, createLyricsPanel, showSyncedLyricsPanel, clearLyricsPanelSync } from './lyrics.js';
+import { LyricsManager, openLyricsPanel, clearLyricsPanelSync } from './lyrics.js';
 import { createRouter, updateTabTitle } from './router.js';
 import { initializeSettings } from './settings.js';
 import { initializePlayerEvents, initializeTrackInteractions, handleTrackAction } from './events.js';
 import { initializeUIInteractions } from './ui-interactions.js';
 import { downloadAlbumAsZip, downloadDiscography, downloadPlaylistAsZip } from './downloads.js';
 import { debounce, SVG_PLAY } from './utils.js';
+import { sidePanelManager } from './side-panel.js';
 
 function initializeCasting(audioPlayer, castBtn) {
     if (!castBtn) return;
@@ -86,7 +87,7 @@ function initializeCasting(audioPlayer, castBtn) {
     }
 }
 
-function initializeKeyboardShortcuts(player, audioPlayer, lyricsPanel) {
+function initializeKeyboardShortcuts(player, audioPlayer) {
     document.addEventListener('keydown', (e) => {
         if (e.target.matches('input, textarea')) return;
 
@@ -138,11 +139,8 @@ function initializeKeyboardShortcuts(player, audioPlayer, lyricsPanel) {
                 break;
             case 'escape':
                 document.getElementById('search-input')?.blur();
-                document.getElementById('queue-modal-overlay').style.display = 'none';
-                if (lyricsPanel) {
-                    lyricsPanel.classList.add('hidden');
-                    clearLyricsPanelSync(audioPlayer, lyricsPanel);
-                }
+                sidePanelManager.close();
+                clearLyricsPanelSync(audioPlayer, sidePanelManager.panel);
                 break;
             case 'l':
                 document.querySelector('.now-playing-bar .cover')?.click();
@@ -188,7 +186,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const ui = new UIRenderer(api, player);
     const scrobbler = new LastFMScrobbler();
     const lyricsManager = new LyricsManager(api);
-    const lyricsPanel = createLyricsPanel();
 
     const currentTheme = themeManager.getTheme();
     themeManager.setTheme(currentTheme);
@@ -198,7 +195,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializePlayerEvents(player, audioPlayer, scrobbler, ui);
     initializeTrackInteractions(player, api, document.querySelector('.main-content'), document.getElementById('context-menu'), lyricsManager, ui, scrobbler);
     initializeUIInteractions(player, api);
-    initializeKeyboardShortcuts(player, audioPlayer, lyricsPanel);
+    initializeKeyboardShortcuts(player, audioPlayer);
 
     const castBtn = document.getElementById('cast-btn');
     initializeCasting(audioPlayer, castBtn);
@@ -217,13 +214,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const mode = nowPlayingSettings.getMode();
 
         if (mode === 'lyrics') {
-            const isHidden = lyricsPanel.classList.contains('hidden');
-            lyricsPanel.classList.toggle('hidden');
-
-            if (isHidden) {
-                await showSyncedLyricsPanel(player.currentTrack, audioPlayer, lyricsPanel, lyricsManager);
+            const isActive = sidePanelManager.isActive('lyrics');
+            
+            if (isActive) {
+                sidePanelManager.close();
+                clearLyricsPanelSync(audioPlayer, sidePanelManager.panel);
             } else {
-                clearLyricsPanelSync(audioPlayer, lyricsPanel);
+                openLyricsPanel(player.currentTrack, audioPlayer, lyricsManager);
             }
 
         } else if (mode === 'cover') {
@@ -257,47 +254,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        const isHidden = lyricsPanel.classList.contains('hidden');
-        lyricsPanel.classList.toggle('hidden');
-
-        if (isHidden) {
-            await showSyncedLyricsPanel(player.currentTrack, audioPlayer, lyricsPanel, lyricsManager);
+        const isActive = sidePanelManager.isActive('lyrics');
+        
+        if (isActive) {
+            sidePanelManager.close();
+            clearLyricsPanelSync(audioPlayer, sidePanelManager.panel);
         } else {
-            clearLyricsPanelSync(audioPlayer, lyricsPanel);
+            openLyricsPanel(player.currentTrack, audioPlayer, lyricsManager);
         }
     });
 
-    document.getElementById('close-lyrics-btn')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        lyricsPanel.classList.add('hidden');
-        clearLyricsPanelSync(audioPlayer, lyricsPanel);
-    });
-
-    document.getElementById('download-lrc-btn')?.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        if (!player.currentTrack) {
-            alert('No track is currently playing');
-            return;
-        }
-
-        const btn = e.target.closest('#download-lrc-btn');
-        btn.disabled = true;
-
-        try {
-            const lyricsData = await lyricsManager.fetchLyrics(player.currentTrack.id, player.currentTrack);
-
-            if (lyricsData) {
-                lyricsManager.downloadLRC(lyricsData, player.currentTrack);
-            } else {
-                alert('No synced lyrics available for download');
-            }
-        } catch (error) {
-            console.error('Failed to download lyrics!', error);
-            alert('Failed to Download Lyrics! check the console for more information.')
-        } finally {
-            btn.disabled = false;
-        }
-    });
     document.getElementById('download-current-btn')?.addEventListener('click', () => {
         if (player.currentTrack) {
             handleTrackAction('download', player.currentTrack, player, api, lyricsManager, 'track', ui);
@@ -317,9 +283,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         previousTrackId = currentTrackId;
 
         // Update lyrics panel if it's open
-        if (!lyricsPanel.classList.contains('hidden')) {
-            clearLyricsPanelSync(audioPlayer, lyricsPanel);
-            await showSyncedLyricsPanel(player.currentTrack, audioPlayer, lyricsPanel, lyricsManager);
+        if (sidePanelManager.isActive('lyrics')) {
+            // Re-open forces update/refresh of content and sync
+            openLyricsPanel(player.currentTrack, audioPlayer, lyricsManager);
         }
 
         // Update Fullscreen/Enlarged Cover if it's open

@@ -1,15 +1,12 @@
 //js/ui-interactions.js
 import { SVG_CLOSE, SVG_BIN, formatTime, trackDataStore, getTrackTitle, getTrackArtists } from './utils.js';
+import { sidePanelManager } from './side-panel.js';
 
 export function initializeUIInteractions(player, api) {
     const sidebar = document.querySelector('.sidebar');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
     const hamburgerBtn = document.getElementById('hamburger-btn');
     const queueBtn = document.getElementById('queue-btn');
-    const queueModalOverlay = document.getElementById('queue-modal-overlay');
-    const closeQueueBtn = document.getElementById('close-queue-btn');
-    const clearQueueBtn = document.getElementById('clear-queue-btn');
-    const queueList = document.getElementById('queue-list');
 
     let draggedQueueIndex = null;
 
@@ -32,113 +29,122 @@ export function initializeUIInteractions(player, api) {
         }
     });
 
-    // Queue modal
-    queueBtn.addEventListener('click', () => {
-        renderQueue();
-        queueModalOverlay.style.display = 'flex';
-    });
+    // Queue panel
+    const openQueuePanel = () => {
+        const renderControls = (container) => {
+            const currentQueue = player.getCurrentQueue();
+            const showClearBtn = currentQueue.length > 0;
 
-    closeQueueBtn.addEventListener('click', () => {
-        queueModalOverlay.style.display = 'none';
-    });
-    
-    if (clearQueueBtn) {
-        clearQueueBtn.addEventListener('click', () => {
-            player.clearQueue();
-            renderQueue();
-        });
-    }
-
-    queueModalOverlay.addEventListener('click', e => {
-        if (e.target === queueModalOverlay) {
-            queueModalOverlay.style.display = 'none';
-        }
-    });
-
-    function renderQueue() {
-        const currentQueue = player.getCurrentQueue();
-
-        if (clearQueueBtn) {
-            clearQueueBtn.style.display = currentQueue.length > 0 ? 'block' : 'none';
-        }
-
-        if (currentQueue.length === 0) {
-            queueList.innerHTML = '<div class="placeholder-text">Queue is empty.</div>';
-            return;
-        }
-
-        const html = currentQueue.map((track, index) => {
-            const isPlaying = index === player.currentQueueIndex;
-            const trackTitle = getTrackTitle(track);
-            const trackArtists = getTrackArtists(track, { fallback: "Unknown" });
-
-            return `
-                <div class="queue-track-item ${isPlaying ? 'playing' : ''}" data-queue-index="${index}" data-track-id="${track.id}" draggable="true">
-                    <div class="drag-handle">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="5" y1="8" x2="19" y2="8"></line>
-                            <line x1="5" y1="16" x2="19" y2="16"></line>
-                        </svg>
-                    </div>
-                    <div class="track-item-info">
-                        <img src="${api.getCoverUrl(track.album?.cover, '80')}"
-                             class="track-item-cover" loading="lazy">
-                        <div class="track-item-details">
-                            <div class="title">${trackTitle}</div>
-                            <div class="artist">${trackArtists}</div>
-                        </div>
-                    </div>
-                    <div class="track-item-duration">${formatTime(track.duration)}</div>
-                    <button class="queue-remove-btn" data-track-index="${index}" title="Remove from queue">
-                        ${SVG_BIN}
-                    </button>
-                </div>
+            container.innerHTML = `
+                <button id="clear-queue-btn" class="btn-icon" title="Clear Queue" style="display: ${showClearBtn ? 'flex' : 'none'}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                </button>
+                <button id="close-side-panel-btn" class="btn-icon" title="Close">
+                    ${SVG_CLOSE}
+                </button>
             `;
-        }).join('');
 
-        queueList.innerHTML = html;
-
-        queueList.querySelectorAll('.queue-track-item').forEach((item) => {
-            const index = parseInt(item.dataset.queueIndex);
-
-            item.addEventListener('click', (e) => {
-                const removeBtn = e.target.closest('.queue-remove-btn');
-                if (removeBtn) {
-                    e.stopPropagation();
-                    player.removeFromQueue(index);
-                    renderQueue();
-                    return;
-                }
-                player.playAtIndex(index);
-                renderQueue();
+            container.querySelector('#close-side-panel-btn').addEventListener('click', () => {
+                sidePanelManager.close();
             });
 
-            item.addEventListener('dragstart', (e) => {
-                draggedQueueIndex = index;
-                item.style.opacity = '0.5';
+            const clearBtn = container.querySelector('#clear-queue-btn');
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => {
+                    player.clearQueue();
+                    openQueuePanel(); // Re-render to update state
+                });
+            }
+        };
+
+        const renderContent = (container) => {
+            const currentQueue = player.getCurrentQueue();
+
+            if (currentQueue.length === 0) {
+                container.innerHTML = '<div class="placeholder-text">Queue is empty.</div>';
+                return;
+            }
+
+            const html = currentQueue.map((track, index) => {
+                const isPlaying = index === player.currentQueueIndex;
+                const trackTitle = getTrackTitle(track);
+                const trackArtists = getTrackArtists(track, { fallback: "Unknown" });
+
+                return `
+                    <div class="queue-track-item ${isPlaying ? 'playing' : ''}" data-queue-index="${index}" data-track-id="${track.id}" draggable="true">
+                        <div class="drag-handle">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="5" y1="8" x2="19" y2="8"></line>
+                                <line x1="5" y1="16" x2="19" y2="16"></line>
+                            </svg>
+                        </div>
+                        <div class="track-item-info">
+                            <img src="${api.getCoverUrl(track.album?.cover, '80')}"
+                                 class="track-item-cover" loading="lazy">
+                            <div class="track-item-details">
+                                <div class="title">${trackTitle}</div>
+                                <div class="artist">${trackArtists}</div>
+                            </div>
+                        </div>
+                        <div class="track-item-duration">${formatTime(track.duration)}</div>
+                        <button class="queue-remove-btn" data-track-index="${index}" title="Remove from queue">
+                            ${SVG_BIN}
+                        </button>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = html;
+
+            container.querySelectorAll('.queue-track-item').forEach((item) => {
+                const index = parseInt(item.dataset.queueIndex);
+
+                item.addEventListener('click', (e) => {
+                    const removeBtn = e.target.closest('.queue-remove-btn');
+                    if (removeBtn) {
+                        e.stopPropagation();
+                        player.removeFromQueue(index);
+                        openQueuePanel(); // Re-render
+                        return;
+                    }
+                    player.playAtIndex(index);
+                    openQueuePanel(); // Re-render to update playing state
+                });
+
+                item.addEventListener('dragstart', (e) => {
+                    draggedQueueIndex = index;
+                    item.style.opacity = '0.5';
+                });
+
+                item.addEventListener('dragend', () => {
+                    item.style.opacity = '1';
+                });
+
+                item.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                });
+
+                item.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (draggedQueueIndex !== null && draggedQueueIndex !== index) {
+                        player.moveInQueue(draggedQueueIndex, index);
+                        openQueuePanel(); // Re-render
+                    }
+                });
             });
+        };
 
-            item.addEventListener('dragend', () => {
-                item.style.opacity = '1';
-            });
+        sidePanelManager.open('queue', 'Queue', renderControls, renderContent);
+    };
 
-            item.addEventListener('dragover', (e) => {
-                e.preventDefault();
-            });
+    queueBtn.addEventListener('click', openQueuePanel);
 
-            item.addEventListener('drop', (e) => {
-                e.preventDefault();
-                if (draggedQueueIndex !== null && draggedQueueIndex !== index) {
-                    player.moveInQueue(draggedQueueIndex, index);
-                    renderQueue();
-                }
-            });
-        });
-
-    }
-
-    // Make renderQueue available globally for other modules
-    window.renderQueueFunction = renderQueue;
+    // Expose renderQueue for external updates (e.g. shuffle, add to queue)
+    window.renderQueueFunction = () => {
+        if (sidePanelManager.isActive('queue')) {
+            openQueuePanel(); // Re-open acts as update if active
+        }
+    };
 
     // Search and Library tabs
     document.querySelectorAll('.search-tab').forEach(tab => {

@@ -28,16 +28,16 @@
             <li data-action="download">Download</li>
         </ul>
     </div>
-    <div id="queue-modal-overlay" style="display: none;">
-        <div id="queue-modal">
-            <div id="queue-modal-header">
-                <h3>Queue</h3>
-                <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <button id="clear-queue-btn" class="btn-secondary">Clear All</button>
-                    <button id="close-queue-btn">&times;</button>
-                </div>
+    
+    <div id="side-panel" class="side-panel">
+        <div class="panel-header">
+            <h3 id="side-panel-title">Panel</h3>
+            <div class="panel-controls" id="side-panel-controls">
+                <!-- Controls injected dynamically -->
             </div>
-            <div id="queue-list"></div>
+        </div>
+        <div id="side-panel-content" class="panel-content">
+            <!-- Content injected dynamically -->
         </div>
     </div>
     

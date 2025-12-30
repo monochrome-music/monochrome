@@ -169,7 +169,7 @@ export class MusicDatabase {
                     releaseDate: item.album.releaseDate || null
                 } : null,
                 // Fallback date
-                streamStartDate: item.streamStartDate,
+                streamStartDate: item.streamStartDate || null,
                 // Keep version if exists
                 version: item.version || null
             };
@@ -180,12 +180,12 @@ export class MusicDatabase {
                 ...base,
                 title: item.title,
                 cover: item.cover,
-                releaseDate: item.releaseDate,
+                releaseDate: item.releaseDate || null,
                 explicit: item.explicit,
                 // UI uses singular 'artist'
                 artist: item.artist ? { name: item.artist.name, id: item.artist.id } : (item.artists?.[0] ? { name: item.artists[0].name, id: item.artists[0].id } : null),
                 // Keep type and track count for UI labels
-                type: item.type,
+                type: item.type || null,
                 numberOfTracks: item.numberOfTracks
             };
         }
@@ -194,7 +194,7 @@ export class MusicDatabase {
             return {
                 ...base,
                 name: item.name,
-                picture: item.picture || item.image // Handle both just in case
+                picture: item.picture || item.image || null // Handle both just in case
             };
         }
 

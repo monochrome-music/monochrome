@@ -105,7 +105,7 @@ export class SyncManager {
                     });
                 }
             }
-            
+
             return Array.from(map.values());
         };
 
