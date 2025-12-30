@@ -2798,17 +2798,22 @@ input:checked + .slider::before {
         padding-top: max(var(--spacing-md), env(safe-area-inset-top));
     }
 }
-/* Lyrics Panel */
-.lyrics-panel {
+/* Side Panels (Lyrics & Queue) */
+:root {
+    --player-bar-height-desktop: 90px;
+    --player-bar-height-mobile: 130px;
+}
+
+.side-panel {
     position: fixed;
     right: 0;
     top: 0;
-    bottom: 0;
+    bottom: var(--player-bar-height-desktop);
     width: 400px;
-    max-width: 90vw;
+    max-width: 100vw;
     background: var(--card);
     border-left: 1px solid var(--border);
-    z-index: 3000;
+    z-index: 2000;
     display: flex;
     flex-direction: column;
     transform: translateX(100%);
@@ -2816,12 +2821,12 @@ input:checked + .slider::before {
     box-shadow: none;
 }
 
-.lyrics-panel:not(.hidden) {
+.side-panel.active {
     transform: translateX(0);
     box-shadow: var(--shadow-xl);
 }
 
-.lyrics-header {
+.panel-header {
     padding: 1rem;
     border-bottom: 1px solid var(--border);
     display: flex;
@@ -2829,13 +2834,22 @@ input:checked + .slider::before {
     align-items: center;
 }
 
-.lyrics-header h3 {
+.panel-header h3 {
     margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
 }
 
-.lyrics-controls {
+.panel-controls {
     display: flex;
     gap: 0.5rem;
+}
+
+.panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    scroll-behavior: smooth;
 }
 
 .btn-icon {
@@ -2856,13 +2870,14 @@ input:checked + .slider::before {
     color: var(--foreground);
 }
 
-.lyrics-content {
-    flex: 1;
-    overflow-y: auto;
-    padding: 1rem;
-    scroll-behavior: smooth;
+/* Specific Panel Overrides if needed */
+.lyrics-panel {
+    /* Inherits side-panel */
 }
 
+.queue-panel {
+    /* Inherits side-panel */
+}
 
 
 /* Synced lyrics styling with Apple Music animations */
@@ -2908,8 +2923,9 @@ input:checked + .slider::before {
 
 /* Mobile adjustments */
 @media (max-width: 768px) {
-    .lyrics-panel {
+    .side-panel {
         width: 100vw;
+        bottom: var(--player-bar-height-mobile);
     }
 
     .synced-line {

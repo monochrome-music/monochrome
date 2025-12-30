@@ -1,5 +1,6 @@
 //js/lyrics.js
 import { getTrackTitle, getTrackArtists, SVG_DOWNLOAD, SVG_CLOSE } from './utils.js';
+import { sidePanelManager } from './side-panel.js';
 
 export class LyricsManager {
     constructor(api) {
@@ -156,80 +157,86 @@ export class LyricsManager {
     }
 }
 
-export function createLyricsPanel() {
-    const panel = document.createElement('div');
-    panel.id = 'lyrics-panel';
-    panel.className = 'lyrics-panel hidden';
-    panel.innerHTML = `
-        <div class="lyrics-header">
-            <h3>Lyrics</h3>
-            <div class="lyrics-controls">
-                <button id="download-lrc-btn" class="btn-icon" title="Download LRC">
-                    ${SVG_DOWNLOAD}
-                </button>
-                <button id="close-lyrics-btn" class="btn-icon" title="Close">
-                    ${SVG_CLOSE}
-                </button>
-            </div>
-        </div>
-        <div class="lyrics-content">
-            <div class="lyrics-loading">Loading lyrics...</div>
-        </div>
-    `;
-    document.body.appendChild(panel);
-    return panel;
-}
-
-export async function showSyncedLyricsPanel(track, audioPlayer, panel, lyricsManager = null) {
-    const content = panel.querySelector('.lyrics-content');
-    
-    // If no manager provided, create a temp one (though caching won't persist across calls if this happens)
+export async function openLyricsPanel(track, audioPlayer, lyricsManager) {
+    // If no manager provided, create a temp one
     const manager = lyricsManager || new LyricsManager();
 
-    // Check if we are already displaying this track
-    if (panel.dataset.lastTrackId === String(track.id) && content.querySelector('am-lyrics')) {
-        // Just re-attach listeners
-        setupLyricsSync(track, audioPlayer, panel, manager, content.querySelector('am-lyrics'));
-        return;
-    }
+    const renderControls = (container) => {
+        container.innerHTML = `
+            <button id="download-lrc-btn" class="btn-icon" title="Download LRC">
+                ${SVG_DOWNLOAD}
+            </button>
+            <button id="close-side-panel-btn" class="btn-icon" title="Close">
+                ${SVG_CLOSE}
+            </button>
+        `;
 
-    panel.dataset.lastTrackId = String(track.id);
-    content.innerHTML = '<div class="lyrics-loading">Loading lyrics...</div>';
-    
-    try {
-        await manager.ensureComponentLoaded();
+        container.querySelector('#close-side-panel-btn').addEventListener('click', () => {
+            sidePanelManager.close();
+            clearLyricsPanelSync(audioPlayer, sidePanelManager.panel);
+        });
+
+        container.querySelector('#download-lrc-btn').addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            btn.disabled = true;
+            try {
+                const lyricsData = await manager.fetchLyrics(track.id, track);
+                if (lyricsData) {
+                    manager.downloadLRC(lyricsData, track);
+                } else {
+                    alert('No synced lyrics available for download');
+                }
+            } catch (error) {
+                console.error('Failed to download lyrics!', error);
+                alert('Failed to Download Lyrics! check the console for more information.')
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    };
+
+    const renderContent = async (container) => {
+        container.innerHTML = '<div class="lyrics-loading">Loading lyrics...</div>';
         
-        const title = track.title;
-        const artist = getTrackArtists(track);
-        const album = track.album?.title;
-        const durationMs = track.duration ? Math.round(track.duration * 1000) : undefined;
-        const isrc = track.isrc || '';
-        
-        content.innerHTML = '';
-        const amLyrics = document.createElement('am-lyrics');
-        amLyrics.setAttribute('song-title', title);
-        amLyrics.setAttribute('song-artist', artist);
-        if (album) amLyrics.setAttribute('song-album', album);
-        if (durationMs) amLyrics.setAttribute('song-duration', durationMs);
-        amLyrics.setAttribute('query', `${title} ${artist}`.trim());
-        if (isrc) amLyrics.setAttribute('isrc', isrc);
-        
-        amLyrics.setAttribute('highlight-color', '#93c5fd');
-        amLyrics.setAttribute('hover-background-color', 'rgba(59, 130, 246, 0.14)');
-        amLyrics.setAttribute('autoscroll', '');
-        amLyrics.setAttribute('interpolate', '');
-        amLyrics.style.height = '100%';
-        amLyrics.style.width = '100%';
-        
-        content.appendChild(amLyrics);
-        manager.amLyricsElement = amLyrics;
-        
-        setupLyricsSync(track, audioPlayer, panel, manager, amLyrics);
-        
-    } catch (error) {
-        console.error('Failed to load lyrics:', error);
-        content.innerHTML = '<div class="lyrics-error">Failed to load lyrics! :(</div>';
-    }
+        try {
+            await manager.ensureComponentLoaded();
+            
+            const title = track.title;
+            const artist = getTrackArtists(track);
+            const album = track.album?.title;
+            const durationMs = track.duration ? Math.round(track.duration * 1000) : undefined;
+            const isrc = track.isrc || '';
+            
+            container.innerHTML = '';
+            const amLyrics = document.createElement('am-lyrics');
+            amLyrics.setAttribute('song-title', title);
+            amLyrics.setAttribute('song-artist', artist);
+            if (album) amLyrics.setAttribute('song-album', album);
+            if (durationMs) amLyrics.setAttribute('song-duration', durationMs);
+            amLyrics.setAttribute('query', `${title} ${artist}`.trim());
+            if (isrc) amLyrics.setAttribute('isrc', isrc);
+            
+            amLyrics.setAttribute('highlight-color', '#93c5fd');
+            amLyrics.setAttribute('hover-background-color', 'rgba(59, 130, 246, 0.14)');
+            amLyrics.setAttribute('autoscroll', '');
+            amLyrics.setAttribute('interpolate', '');
+            amLyrics.style.height = '100%';
+            amLyrics.style.width = '100%';
+            
+            container.appendChild(amLyrics);
+            manager.amLyricsElement = amLyrics;
+            
+            // Clean up any previous sync
+            clearLyricsPanelSync(audioPlayer, sidePanelManager.panel);
+            setupLyricsSync(track, audioPlayer, sidePanelManager.panel, manager, amLyrics);
+            
+        } catch (error) {
+            console.error('Failed to load lyrics:', error);
+            container.innerHTML = '<div class="lyrics-error">Failed to load lyrics! :(</div>';
+        }
+    };
+
+    sidePanelManager.open('lyrics', 'Lyrics', renderControls, renderContent);
 }
 
 function setupLyricsSync(track, audioPlayer, panel, lyricsManager, amLyrics) {
@@ -265,11 +272,6 @@ function setupLyricsSync(track, audioPlayer, panel, lyricsManager, amLyrics) {
         }
     };
 
-    // Remove old listeners if any (though clearLyricsPanelSync handles this, 
-    // we might be calling this from the "same track" branch where clear wasn't called? 
-    // No, clearLyricsPanelSync IS called when hiding. 
-    // But when SHOWING, we need to add them.
-    
     audioPlayer.addEventListener('timeupdate', updateTime);
     audioPlayer.addEventListener('play', onPlay);
     audioPlayer.addEventListener('pause', onPause);
@@ -281,9 +283,6 @@ function setupLyricsSync(track, audioPlayer, panel, lyricsManager, amLyrics) {
     panel.lyricsPauseHandler = onPause;
     panel.lyricsSeekHandler = updateTime;
 
-    // We also need to remove these in clearLyricsPanelSync!
-    // The current clearLyricsPanelSync only removes 'timeupdate'.
-    
     amLyrics.addEventListener('line-click', (e) => {
         if (e.detail && e.detail.timestamp) {
             audioPlayer.currentTime = e.detail.timestamp / 1000;
@@ -299,7 +298,6 @@ function setupLyricsSync(track, audioPlayer, panel, lyricsManager, amLyrics) {
         if (lyricsManager.animationFrameId) {
             cancelAnimationFrame(lyricsManager.animationFrameId);
         }
-        // Also remove listeners
         audioPlayer.removeEventListener('timeupdate', updateTime);
         audioPlayer.removeEventListener('play', onPlay);
         audioPlayer.removeEventListener('pause', onPause);
@@ -309,11 +307,7 @@ function setupLyricsSync(track, audioPlayer, panel, lyricsManager, amLyrics) {
 
 
 export function clearLyricsPanelSync(audioPlayer, panel) {
-    if (panel.lyricsUpdateHandler) {
-        audioPlayer.removeEventListener('timeupdate', panel.lyricsUpdateHandler);
-        panel.lyricsUpdateHandler = null;
-    }
-    if (panel.lyricsCleanup) {
+    if (panel && panel.lyricsCleanup) {
         panel.lyricsCleanup();
         panel.lyricsCleanup = null;
     }
