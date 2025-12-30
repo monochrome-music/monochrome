@@ -551,9 +551,21 @@
                 <h2 class="section-title" style="text-align: center;">Sign Up / Sign In</h2>
                 <div class="account-content">
                 <p style="text-align: center;" class="account-description">Make An Account to Allow Syncing Your Library Between Devices.</p>
-                    <div style="display: flex; gap: 50px; align-items: center; justify-content: center; margin-top: 50px;" class="account-buttons">
+                    <div class="account-buttons" id="auth-buttons-container" style="display: flex; gap: 20px; align-items: center; justify-content: center; margin-top: 50px; flex-wrap: wrap;">
                         <button id="firebase-connect-btn" class="btn-secondary">Connect with Google</button>
+                        <button id="toggle-email-auth-btn" class="btn-secondary">Connect with Email</button>
                         <button id="firebase-clear-cloud-btn" class="btn-secondary danger">Clear Cloud Data</button>
+                    </div>
+
+                    <div id="email-auth-container" style="display: none; flex-direction: column; gap: 15px; width: 100%; max-width: 320px; margin: 20px auto; padding: 20px; background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);">
+                        <h3 style="text-align: center; margin-bottom: 10px;">Email Authentication</h3>
+                        <input type="email" id="auth-email" class="template-input" placeholder="Email Address">
+                        <input type="password" id="auth-password" class="template-input" placeholder="Password">
+                        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
+                            <button id="email-signin-btn" class="btn-primary" style="flex: 1;">Sign In</button>
+                            <button id="email-signup-btn" class="btn-secondary" style="flex: 1;">Sign Up</button>
+                        </div>
+                        <button id="cancel-email-auth-btn" class="btn-secondary" style="width: 100%; margin-top: 10px;">Cancel</button>
                     </div>
                     <p id="firebase-status" style="text-align: center; padding-top: 15px; color: #8B8B93;">Sync your library across devices</p>
                     <script>

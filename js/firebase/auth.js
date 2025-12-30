@@ -1,6 +1,6 @@
 // js/firebase/auth.js
 import { auth, provider } from './config.js';
-import { signInWithPopup, signOut as firebaseSignOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { signInWithPopup, signOut as firebaseSignOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { syncManager } from './sync.js';
 
 export class AuthManager {
@@ -44,6 +44,36 @@ export class AuthManager {
         }
     }
 
+    async signInWithEmail(email, password) {
+        if (!auth) {
+            alert("Firebase is not configured.");
+            return;
+        }
+        try {
+            const result = await signInWithEmailAndPassword(auth, email, password);
+            return result.user;
+        } catch (error) {
+            console.error("Email Login failed:", error);
+            alert(`Login failed: ${error.message}`);
+            throw error;
+        }
+    }
+
+    async signUpWithEmail(email, password) {
+        if (!auth) {
+            alert("Firebase is not configured.");
+            return;
+        }
+        try {
+            const result = await createUserWithEmailAndPassword(auth, email, password);
+            return result.user;
+        } catch (error) {
+            console.error("Sign Up failed:", error);
+            alert(`Sign Up failed: ${error.message}`);
+            throw error;
+        }
+    }
+
     async signOut() {
         if (!auth) return;
 
@@ -60,7 +90,8 @@ export class AuthManager {
         const connectBtn = document.getElementById('firebase-connect-btn');
         const clearDataBtn = document.getElementById('firebase-clear-cloud-btn');
         const statusText = document.getElementById('firebase-status');
-        const container = document.getElementById('firebase-controls');
+        const emailContainer = document.getElementById('email-auth-container');
+        const emailToggleBtn = document.getElementById('toggle-email-auth-btn');
 
         if (!connectBtn) return; // UI might not be rendered yet
 
@@ -70,6 +101,8 @@ export class AuthManager {
             connectBtn.onclick = () => this.signOut();
             
             if (clearDataBtn) clearDataBtn.style.display = 'block';
+            if (emailContainer) emailContainer.style.display = 'none';
+            if (emailToggleBtn) emailToggleBtn.style.display = 'none';
 
             if (statusText) statusText.textContent = `Signed in as ${user.email}`;
 
@@ -79,6 +112,7 @@ export class AuthManager {
             connectBtn.onclick = () => this.signInWithGoogle();
             
             if (clearDataBtn) clearDataBtn.style.display = 'none';
+            if (emailToggleBtn) emailToggleBtn.style.display = 'inline-block';
 
             if (statusText) statusText.textContent = 'Sync your library across devices';
         }
