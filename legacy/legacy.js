@@ -34,10 +34,13 @@ $(document).ready(function () {
   });
 
   // Global functions exposed for inline onclicks
-  window.playTrack = function (id) {
+  // Global functions exposed for inline onclicks
+  window.playTrack = function (id, attemptFallback) {
+    var quality = attemptFallback ? "HIGH" : "LOSSLESS";
     apiRequest(
-      "/track/?id=" + id + "&quality=HIGH",
+      "/track/?id=" + id + "&quality=" + quality,
       function (data) {
+        var success = false;
         if (data && data.data && data.data.manifest) {
           try {
             var manifestStr = base64Decode(data.data.manifest);
@@ -53,20 +56,32 @@ $(document).ready(function () {
               }
 
               if (currentTrackInfo.length) {
-                currentTrackInfo.html("Now Playing...");
+                var qualityLabel = attemptFallback ? " (AAC)" : " (FLAC)";
+                currentTrackInfo.html("Now Playing..." + qualityLabel);
               }
-            } else {
-              alert("No stream URLs found.");
+              success = true;
             }
           } catch (e) {
-            alert("Error parsing playback manifest: " + e.message);
+             // Fall through to fallback
           }
-        } else {
-          alert("Invalid track data received.");
+        }
+        
+        if (!success) {
+            if (!attemptFallback) {
+                // Try fallback to HIGH (AAC)
+                window.playTrack(id, true);
+            } else {
+                alert("No stream URLs found or invalid manifest.");
+            }
         }
       },
       function (err) {
-        alert("Error playing track: " + err);
+        if (!attemptFallback) {
+             // Try fallback to HIGH (AAC) on request error too
+             window.playTrack(id, true);
+        } else {
+             alert("Error playing track: " + err);
+        }
       }
     );
   };
@@ -201,23 +216,32 @@ $(document).ready(function () {
       finalUrl = "http://" + finalUrl.substring(8);
     }
 
-    $.ajax({
-      url: finalUrl + endpoint,
-      method: "GET",
-      dataType: "json",
-      success: function (data) {
-        success(data);
-      },
-      error: function (xhr, status, err) {
-        if (!isHttpFallback) {
-          isHttpFallback = true;
-          // Retry with fallback logic (recursive call will pick up isHttpFallback)
-          apiRequest(endpoint, success, error);
+    try {
+        $.ajax({
+          url: finalUrl + endpoint,
+          method: "GET",
+          dataType: "json",
+          success: function (data) {
+            success(data);
+          },
+          error: function (xhr, status, errorThrown) {
+            if (!isHttpFallback && window.location.protocol !== "https:") {
+              isHttpFallback = true;
+              // Retry with fallback logic (recursive call will pick up isHttpFallback)
+              apiRequest(endpoint, success, error);
+            } else {
+               error("Request Failed: " + status + " (" + errorThrown + ")");
+            }
+          }
+        });
+    } catch (e) {
+        if (!isHttpFallback && window.location.protocol !== "https:") {
+             isHttpFallback = true;
+             apiRequest(endpoint, success, error);
         } else {
-           error("Request Failed: " + status);
+             error("Exception: " + e.message);
         }
-      }
-    });
+    }
   }
 
   function playWithEmbed(url) {
