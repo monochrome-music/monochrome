@@ -26,7 +26,7 @@ export class UIRenderer {
         if (btn) {
             btn.innerHTML = this.createHeartIcon(isLiked);
             btn.classList.toggle('active', isLiked);
-            btn.title = isLiked ? 'Remove from Library' : 'Add to Library';
+            btn.title = isLiked ? 'Remove from Liked' : 'Add to Liked';
         }
     }
 
@@ -111,7 +111,7 @@ export class UIRenderer {
 
         const actionsHTML = `
             <div class="track-actions-inline">
-                <button class="track-action-btn like-btn" data-action="toggle-like" title="Add to Library">
+                <button class="track-action-btn like-btn" data-action="toggle-like" title="Add to Liked">
                     ${this.createHeartIcon(false)}
                 </button>
                 <button class="track-action-btn" data-action="play-next" title="Play Next">
@@ -185,7 +185,7 @@ export class UIRenderer {
             <div class="card" data-album-id="${album.id}" data-href="#album/${album.id}" style="cursor: pointer;">
                 <div class="card-image-wrapper">
                     <img src="${this.api.getCoverUrl(album.cover, '320')}" alt="${album.title}" class="card-image" loading="lazy">
-                    <button class="like-btn card-like-btn" data-action="toggle-like" data-type="album" title="Add to Library">
+                    <button class="like-btn card-like-btn" data-action="toggle-like" data-type="album" title="Add to Liked">
                         ${this.createHeartIcon(false)}
                     </button>
                     <button class="play-btn card-play-btn" data-action="play-card" data-type="album" data-id="${album.id}" title="Play">
@@ -205,7 +205,7 @@ export class UIRenderer {
             <div class="card" data-playlist-id="${playlist.uuid}" data-href="#playlist/${playlist.uuid}" style="cursor: pointer;">
                 <div class="card-image-wrapper">
                     <img src="${this.api.getCoverUrl(imageId, '320')}" alt="${playlist.title}" class="card-image" loading="lazy">
-                    <button class="like-btn card-like-btn" data-action="toggle-like" data-type="playlist" title="Add to Library">
+                    <button class="like-btn card-like-btn" data-action="toggle-like" data-type="playlist" title="Add to Liked">
                         ${this.createHeartIcon(false)}
                     </button>
                     <button class="play-btn card-play-btn" data-action="play-card" data-type="playlist" data-id="${playlist.uuid}" title="Play">
@@ -272,7 +272,7 @@ export class UIRenderer {
             <div class="card" data-album-id="${album.id}" data-href="#album/${album.id}" style="cursor: pointer;">
                 <div class="card-image-wrapper">
                     <img src="${this.api.getCoverUrl(album.cover, '320')}" alt="${album.title}" class="card-image" loading="lazy">
-                    <button class="like-btn card-like-btn" data-action="toggle-like" data-type="album" title="Add to Library">
+                    <button class="like-btn card-like-btn" data-action="toggle-like" data-type="album" title="Add to Liked">
                         ${this.createHeartIcon(false)}
                     </button>
                     <button class="play-btn card-play-btn" data-action="play-card" data-type="album" data-id="${album.id}" title="Play">
@@ -291,7 +291,7 @@ export class UIRenderer {
             <div class="card artist" data-artist-id="${artist.id}" data-href="#artist/${artist.id}" style="cursor: pointer;">
                 <div class="card-image-wrapper">
                     <img src="${this.api.getArtistPictureUrl(artist.picture, '320')}" alt="${artist.name}" class="card-image" loading="lazy">
-                    <button class="like-btn card-like-btn" data-action="toggle-like" data-type="artist" title="Add to Library">
+                    <button class="like-btn card-like-btn" data-action="toggle-like" data-type="artist" title="Add to Liked">
                         ${this.createHeartIcon(false)}
                     </button>
                 </div>
