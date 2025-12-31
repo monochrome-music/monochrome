@@ -1,5 +1,6 @@
 //js/ui.js
 import { SVG_PLAY, SVG_DOWNLOAD, SVG_MENU, SVG_HEART, formatTime, createPlaceholder, trackDataStore, hasExplicitContent, getTrackArtists, getTrackTitle, calculateTotalDuration, formatDuration } from './utils.js';
+import { renderLyricsInFullscreen, clearFullscreenLyricsSync } from './lyrics.js';
 import { recentActivityManager, backgroundSettings, trackListSettings } from './storage.js';
 import { db } from './db.js';
 
@@ -217,6 +218,74 @@ export class UIRenderer {
         `;
     }
 
+    createUserPlaylistCardHTML(playlist) {
+        return `
+            <div class="card user-playlist" data-playlist-id="${playlist.id}" data-href="#userplaylist/${playlist.id}" style="cursor: pointer;">
+                <div class="card-image-wrapper">
+                    <img src="${playlist.cover || 'assets/appicon.png'}" alt="${playlist.name}" class="card-image" loading="lazy">
+                    <button class="edit-playlist-btn" data-action="edit-playlist" title="Edit Playlist">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                    </button>
+                    <button class="delete-playlist-btn" data-action="delete-playlist" title="Delete Playlist">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 6h18"/>
+                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                            <line x1="10" y1="11" x2="10" y2="17"/>
+                            <line x1="14" y1="11" x2="14" y2="17"/>
+                        </svg>
+                    </button>
+                    <button class="play-btn card-play-btn" data-action="play-card" data-type="user-playlist" data-id="${playlist.id}" title="Play">
+                        ${SVG_PLAY}
+                    </button>
+                </div>
+                <h3 class="card-title">${playlist.name}</h3>
+                <p class="card-subtitle">${playlist.tracks ? playlist.tracks.length : 0} tracks</p>
+            </div>
+        `;
+    }
+
+    createAlbumCardHTML(album) {
+        const explicitBadge = hasExplicitContent(album) ? this.createExplicitBadge() : '';
+        let yearDisplay = '';
+        if (album.releaseDate) {
+            const date = new Date(album.releaseDate);
+            if (!isNaN(date.getTime())) {
+                yearDisplay = `${date.getFullYear()}`;
+            }
+        }
+
+        let typeLabel = '';
+        if (album.type === 'EP') {
+            typeLabel = ' • EP';
+        } else if (album.type === 'SINGLE') {
+            typeLabel = ' • Single';
+        } else if (!album.type && album.numberOfTracks) {
+            if (album.numberOfTracks <= 3) typeLabel = ' • Single';
+            else if (album.numberOfTracks <= 6) typeLabel = ' • EP';
+        }
+
+        return `
+            <div class="card" data-album-id="${album.id}" data-href="#album/${album.id}" style="cursor: pointer;">
+                <div class="card-image-wrapper">
+                    <img src="${this.api.getCoverUrl(album.cover, '320')}" alt="${album.title}" class="card-image" loading="lazy">
+                    <button class="like-btn card-like-btn" data-action="toggle-like" data-type="album" title="Add to Library">
+                        ${this.createHeartIcon(false)}
+                    </button>
+                    <button class="play-btn card-play-btn" data-action="play-card" data-type="album" data-id="${album.id}" title="Play">
+                        ${SVG_PLAY}
+                    </button>
+                </div>
+                <h3 class="card-title">${album.title} ${explicitBadge}</h3>
+                <p class="card-subtitle">${album.artist?.name ?? ''}</p>
+                <p class="card-subtitle">${yearDisplay}${typeLabel}</p>
+            </div>
+        `;
+    }
+
     createArtistCardHTML(artist) {
         return `
             <div class="card artist" data-artist-id="${artist.id}" data-href="#artist/${artist.id}" style="cursor: pointer;">
@@ -391,42 +460,78 @@ export class UIRenderer {
         root.style.removeProperty('--track-hover-bg');
     }
 
-    showFullscreenCover(track, nextTrack) {
-        if (!track) return;
-
-        const overlay = document.getElementById('fullscreen-cover-overlay');
-        const image = document.getElementById('fullscreen-cover-image');
-        const title = document.getElementById('fullscreen-track-title');
-        const artist = document.getElementById('fullscreen-track-artist');
-        const nextTrackEl = document.getElementById('fullscreen-next-track');
+async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
+    if (!track) return;
+    const overlay = document.getElementById('fullscreen-cover-overlay');
+    const image = document.getElementById('fullscreen-cover-image');
+    const title = document.getElementById('fullscreen-track-title');
+    const artist = document.getElementById('fullscreen-track-artist');
+    const nextTrackEl = document.getElementById('fullscreen-next-track');
+    const lyricsContainer = document.getElementById('fullscreen-lyrics-container');
+    const lyricsToggleBtn = document.getElementById('toggle-fullscreen-lyrics-btn');
+    
+    const coverUrl = this.api.getCoverUrl(track.album?.cover, '1280');
+    image.src = coverUrl;
+    title.textContent = track.title;
+    artist.textContent = track.artist?.name || 'Unknown Artist';
+    
+    if (nextTrack) {
+        nextTrackEl.style.display = 'flex';
+        nextTrackEl.querySelector('.value').textContent = `${nextTrack.title} • ${nextTrack.artist?.name || 'Unknown'}`;
         
-        const coverUrl = this.api.getCoverUrl(track.album?.cover, '1280');
-
-        image.src = coverUrl;
-        title.textContent = track.title;
-        artist.textContent = track.artist?.name || 'Unknown Artist';
-
-        if (nextTrack) {
-            nextTrackEl.style.display = 'flex';
-            nextTrackEl.querySelector('.value').textContent = `${nextTrack.title} • ${nextTrack.artist?.name || 'Unknown'}`;
-            
-            // Replay animation
-            nextTrackEl.classList.remove('animate-in');
-            void nextTrackEl.offsetWidth; // Trigger reflow
-            nextTrackEl.classList.add('animate-in');
-        } else {
-            nextTrackEl.style.display = 'none';
-            nextTrackEl.classList.remove('animate-in');
-        }
-
-        // Set the background image via CSS variable for the pseudo-element to use
-        overlay.style.setProperty('--bg-image', `url('${coverUrl}')`);
-        
-        overlay.style.display = 'flex';
+        nextTrackEl.classList.remove('animate-in');
+        void nextTrackEl.offsetWidth;
+        nextTrackEl.classList.add('animate-in');
+    } else {
+        nextTrackEl.style.display = 'none';
+        nextTrackEl.classList.remove('animate-in');
     }
+    
+    overlay.style.setProperty('--bg-image', `url('${coverUrl}')`);
+    
+    if (lyricsManager && audioPlayer) {
+        lyricsToggleBtn.style.display = 'flex';
+        lyricsContainer.style.display = 'none';
+        lyricsContainer.classList.remove('active');
+        lyricsToggleBtn.classList.remove('active');
+        
+        const toggleLyrics = async () => {
+            const isActive = lyricsContainer.classList.contains('active');
+            if (isActive) {
+                lyricsContainer.classList.remove('active');
+                lyricsToggleBtn.classList.remove('active');
+                setTimeout(() => {
+                    lyricsContainer.style.display = 'none';
+                    clearFullscreenLyricsSync(lyricsContainer);
+                }, 300);
+            } else {
+                lyricsContainer.style.display = 'block';
+                setTimeout(() => lyricsContainer.classList.add('active'), 10);
+                lyricsToggleBtn.classList.add('active');
+                await renderLyricsInFullscreen(track, audioPlayer, lyricsManager, lyricsContainer);
+            }
+        };
+        
+        const newToggleBtn = lyricsToggleBtn.cloneNode(true);
+        lyricsToggleBtn.parentNode.replaceChild(newToggleBtn, lyricsToggleBtn);
+        newToggleBtn.addEventListener('click', toggleLyrics);
+    } else {
+        lyricsToggleBtn.style.display = 'none';
+    }
+    
+    overlay.style.display = 'flex';
+}
 
     closeFullscreenCover() {
-        document.getElementById('fullscreen-cover-overlay').style.display = 'none';
+        const overlay = document.getElementById('fullscreen-cover-overlay');
+        const lyricsContainer = document.getElementById('fullscreen-lyrics-container');
+        clearFullscreenLyricsSync(lyricsContainer);
+
+        lyricsContainer.style.display = 'none';
+        lyricsContainer.classList.remove('active');
+        lyricsContainer.innderHTML = '';
+
+        overlay.style.display = 'none';
     }
 
     showPage(pageId) {
@@ -506,6 +611,14 @@ export class UIRenderer {
             });
         } else {
             playlistsContainer.innerHTML = createPlaceholder('No liked playlists yet.');
+        }
+
+        const myPlaylistsContainer = document.getElementById('my-playlists-container');
+        const myPlaylists = await db.getPlaylists();
+        if (myPlaylists.length) {
+            myPlaylistsContainer.innerHTML = myPlaylists.map(p => this.createUserPlaylistCardHTML(p)).join('');
+        } else {
+            myPlaylistsContainer.innerHTML = createPlaceholder('No playlists yet. Create your first playlist!');
         }
     }
 
@@ -863,50 +976,113 @@ export class UIRenderer {
         `;
 
         try {
-            const { playlist, tracks } = await this.api.getPlaylist(playlistId);
+            // Check if it's a user playlist
+            const userPlaylist = await db.getPlaylist(playlistId);
+            if (userPlaylist) {
+                // Render user playlist
+                imageEl.src = userPlaylist.cover || 'assets/appicon.png';
+                imageEl.style.backgroundColor = '';
 
-            const imageId = playlist.squareImage || playlist.image;
-            if (imageId) {
-                imageEl.src = this.api.getCoverUrl(imageId, '1080');
+                titleEl.textContent = userPlaylist.name;
+                this.adjustTitleFontSize(titleEl, userPlaylist.name);
+
+                const tracks = userPlaylist.tracks || [];
+                const totalDuration = calculateTotalDuration(tracks);
+
+                metaEl.textContent = `${tracks.length} tracks • ${formatDuration(totalDuration)}`;
+                descEl.textContent = '';
+
+                tracklistContainer.innerHTML = `
+                    <div class="track-list-header">
+                        <span style="width: 40px; text-align: center;">#</span>
+                        <span>Title</span>
+                        <span class="duration-header">Duration</span>
+                    </div>
+                `;
+
+                this.renderListWithTracks(tracklistContainer, tracks, true);
+
+                // Add remove buttons to tracks
+                const trackItems = tracklistContainer.querySelectorAll('.track-item');
+                trackItems.forEach((item, index) => {
+                    const actionsDiv = item.querySelector('.track-item-actions');
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'track-action-btn remove-from-playlist-btn';
+                    removeBtn.title = 'Remove from playlist';
+                    removeBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+                    removeBtn.dataset.trackIndex = index;
+                    actionsDiv.appendChild(removeBtn);
+                });
+
+                // Update header like button - hide for user playlists
+                const playlistLikeBtn = document.getElementById('like-playlist-btn');
+                if (playlistLikeBtn) {
+                    playlistLikeBtn.style.display = 'none';
+                }
+
+                // Add edit and delete buttons
+                const actionsDiv = document.querySelector('.detail-header-actions');
+                const editBtn = document.createElement('button');
+                editBtn.id = 'edit-playlist-btn';
+                editBtn.className = 'btn-secondary';
+                editBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span>Edit</span>';
+                const deleteBtn = document.createElement('button');
+                deleteBtn.id = 'delete-playlist-btn';
+                deleteBtn.className = 'btn-secondary danger';
+                deleteBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg><span>Delete</span>';
+                actionsDiv.appendChild(editBtn);
+                actionsDiv.appendChild(deleteBtn);
+
+                recentActivityManager.addPlaylist({ title: userPlaylist.name, uuid: userPlaylist.id });
+                document.title = `${userPlaylist.name} - Monochrome`;
             } else {
-                imageEl.src = 'assets/appicon.png';
+                // Render API playlist
+                const { playlist, tracks } = await this.api.getPlaylist(playlistId);
+
+                const imageId = playlist.squareImage || playlist.image;
+                if (imageId) {
+                    imageEl.src = this.api.getCoverUrl(imageId, '1080');
+                } else {
+                    imageEl.src = 'assets/appicon.png';
+                }
+                imageEl.style.backgroundColor = '';
+
+                titleEl.textContent = playlist.title;
+                this.adjustTitleFontSize(titleEl, playlist.title);
+
+                const totalDuration = calculateTotalDuration(tracks);
+
+                metaEl.textContent = `${playlist.numberOfTracks} tracks • ${formatDuration(totalDuration)}`;
+                descEl.textContent = playlist.description || '';
+
+                tracklistContainer.innerHTML = `
+                    <div class="track-list-header">
+                        <span style="width: 40px; text-align: center;">#</span>
+                        <span>Title</span>
+                        <span class="duration-header">Duration</span>
+                    </div>
+                `;
+
+                this.renderListWithTracks(tracklistContainer, tracks, true);
+
+                // Update header like button
+                const playlistLikeBtn = document.getElementById('like-playlist-btn');
+                if (playlistLikeBtn) {
+                    const isLiked = await db.isFavorite('playlist', playlist.uuid);
+                    playlistLikeBtn.innerHTML = this.createHeartIcon(isLiked);
+                    playlistLikeBtn.classList.toggle('active', isLiked);
+                    playlistLikeBtn.style.display = 'flex';
+                }
+
+                // Show/hide Delete button
+                const deleteBtn = document.getElementById('delete-playlist-btn');
+                if (deleteBtn) {
+                    deleteBtn.style.display = 'none';
+                }
+
+                recentActivityManager.addPlaylist(playlist);
+                document.title = `${playlist.title || 'Artist Mix'} - Monochrome`;
             }
-            imageEl.style.backgroundColor = '';
-
-            titleEl.textContent = playlist.title;
-            this.adjustTitleFontSize(titleEl, playlist.title);
-
-            const totalDuration = calculateTotalDuration(tracks);
-
-            metaEl.textContent = `${playlist.numberOfTracks} tracks • ${formatDuration(totalDuration)}`;
-            descEl.textContent = playlist.description || '';
-
-            tracklistContainer.innerHTML = `
-                <div class="track-list-header">
-                    <span style="width: 40px; text-align: center;">#</span>
-                    <span>Title</span>
-                    <span class="duration-header">Duration</span>
-                </div>
-            `;
-
-            this.renderListWithTracks(tracklistContainer, tracks, true);
-
-            // Update header like button
-            const playlistLikeBtn = document.getElementById('like-playlist-btn');
-            if (playlistLikeBtn) {
-                const isLiked = await db.isFavorite('playlist', playlist.uuid);
-                playlistLikeBtn.innerHTML = this.createHeartIcon(isLiked);
-                playlistLikeBtn.classList.toggle('active', isLiked);
-            }
-
-            // Show/hide Delete button
-            const deleteBtn = document.getElementById('delete-playlist-btn');
-            if (deleteBtn) {
-                deleteBtn.style.display = 'none';
-            }
-
-            recentActivityManager.addPlaylist(playlist);
-            document.title = `${playlist.title || 'Artist Mix'} - Monochrome`;
         } catch (error) {
             console.error("Failed to load playlist:", error);
             tracklistContainer.innerHTML = createPlaceholder(`Could not load playlist details. ${error.message}`);

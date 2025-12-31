@@ -1,7 +1,7 @@
 export class MusicDatabase {
     constructor() {
         this.dbName = 'MonochromeDB';
-        this.version = 3;
+        this.version = 4;
         this.db = null;
     }
 
@@ -44,6 +44,10 @@ export class MusicDatabase {
                 if (!db.objectStoreNames.contains('history_tracks')) {
                     const store = db.createObjectStore('history_tracks', { keyPath: 'timestamp' });
                     store.createIndex('timestamp', 'timestamp', { unique: true });
+                }
+                if (!db.objectStoreNames.contains('user_playlists')) {
+                    const store = db.createObjectStore('user_playlists', { keyPath: 'id' });
+                    store.createIndex('createdAt', 'createdAt', { unique: false });
                 }
             };
         });
@@ -220,12 +224,14 @@ export class MusicDatabase {
         const playlists = await this.getFavorites('playlist');
         const history = await this.getHistory();
 
+        const userPlaylists = await this.getPlaylists();
         const data = {
             favorites_tracks: tracks.map(t => this._minifyItem('track', t)),
             favorites_albums: albums.map(a => this._minifyItem('album', a)),
             favorites_artists: artists.map(a => this._minifyItem('artist', a)),
             favorites_playlists: playlists.map(p => this._minifyItem('playlist', p)),
-            history_tracks: history.map(t => this._minifyItem('track', t))
+            history_tracks: history.map(t => this._minifyItem('track', t)),
+            user_playlists: userPlaylists
         };
         return data;
     }
@@ -255,6 +261,73 @@ export class MusicDatabase {
         await importStore('favorites_artists', data.favorites_artists);
         await importStore('favorites_playlists', data.favorites_playlists);
         await importStore('history_tracks', data.history_tracks);
+        if (data.user_playlists) {
+            await importStore('user_playlists', data.user_playlists);
+        }
+    }
+
+    // User Playlists API
+    async createPlaylist(name, tracks = [], cover = '') {
+        const id = crypto.randomUUID();
+        const playlist = {
+            id: id,
+            name: name,
+            tracks: tracks.map(t => this._minifyItem('track', t)),
+            cover: cover,
+            createdAt: Date.now()
+        };
+        await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
+        return playlist;
+    }
+
+    async addTrackToPlaylist(playlistId, track) {
+        const playlist = await this.performTransaction('user_playlists', 'readonly', (store) => store.get(playlistId));
+        if (!playlist) throw new Error('Playlist not found');
+        playlist.tracks = playlist.tracks || [];
+        const minifiedTrack = this._minifyItem('track', track);
+        if (playlist.tracks.some(t => t.id === track.id)) return;
+        playlist.tracks.push(minifiedTrack);
+        await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
+        return playlist;
+    }
+
+    async removeTrackFromPlaylist(playlistId, trackId) {
+        const playlist = await this.performTransaction('user_playlists', 'readonly', (store) => store.get(playlistId));
+        if (!playlist) throw new Error('Playlist not found');
+        playlist.tracks = playlist.tracks || [];
+        playlist.tracks = playlist.tracks.filter(t => t.id !== trackId);
+        await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
+        return playlist;
+    }
+
+    async deletePlaylist(playlistId) {
+        await this.performTransaction('user_playlists', 'readwrite', (store) => store.delete(playlistId));
+    }
+
+    async getPlaylist(playlistId) {
+        return await this.performTransaction('user_playlists', 'readonly', (store) => store.get(playlistId));
+    }
+
+    async getPlaylists() {
+        const db = await this.open();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction('user_playlists', 'readonly');
+            const store = transaction.objectStore('user_playlists');
+            const index = store.index('createdAt');
+            const request = index.getAll();
+            request.onsuccess = () => {
+                resolve(request.result.reverse()); // Newest first
+            };
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async updatePlaylistName(playlistId, newName) {
+        const playlist = await this.performTransaction('user_playlists', 'readonly', (store) => store.get(playlistId));
+        if (!playlist) throw new Error('Playlist not found');
+        playlist.name = newName;
+        await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
+        return playlist;
     }
 }
 

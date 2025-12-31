@@ -336,6 +336,9 @@ export async function handleTrackAction(action, item, player, api, lyricsManager
             } else if (type === 'playlist') {
                 const data = await api.getPlaylist(item.uuid);
                 tracks = data.tracks;
+            } else if (type === 'user-playlist') {
+                const playlist = await db.getPlaylist(item.id);
+                tracks = playlist ? playlist.tracks : [];
             }
 
             if (tracks.length > 0) {
@@ -343,7 +346,8 @@ export async function handleTrackAction(action, item, player, api, lyricsManager
                 const shuffleBtn = document.getElementById('shuffle-btn');
                 if (shuffleBtn) shuffleBtn.classList.remove('active');
                 player.playAtIndex(0);
-                showNotification(`Playing ${type}: ${item.title}`);
+                const name = type === 'user-playlist' ? item.name : item.title;
+                showNotification(`Playing ${type.replace('user-', '')}: ${name}`);
             } else {
                  showNotification(`No tracks found in this ${type}`);
             }
@@ -430,6 +434,46 @@ export async function handleTrackAction(action, item, player, api, lyricsManager
                 }
             }
         }
+    } else if (action === 'add-to-playlist') {
+        const playlists = await db.getPlaylists();
+        if (playlists.length === 0) {
+            showNotification('No playlists yet. Create one first.');
+            return;
+        }
+
+        const modal = document.createElement('div');
+        modal.className = 'playlist-select-modal';
+        modal.innerHTML = `
+            <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+                <div class="modal-content" style="background: var(--card); padding: 2rem; border-radius: var(--radius); max-width: 400px; width: 90%;">
+                    <h3>Add to Playlist</h3>
+                    <div id="playlist-list" style="margin: 1rem 0; max-height: 200px; overflow-y: auto;">
+                        ${playlists.map(p => `<div class="playlist-option" data-id="${p.id}" style="padding: 0.5rem; cursor: pointer; border-bottom: 1px solid var(--border);">${p.name}</div>`).join('')}
+                    </div>
+                    <div class="modal-actions" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                        <button id="cancel-add-playlist" class="btn-secondary">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        modal.addEventListener('click', async (e) => {
+            if (e.target.id === 'cancel-add-playlist') {
+                modal.remove();
+                return;
+            }
+
+            const option = e.target.closest('.playlist-option');
+            if (option) {
+                const playlistId = option.dataset.id;
+                await db.addTrackToPlaylist(playlistId, item);
+                const updatedPlaylist = await db.getPlaylist(playlistId);
+                syncManager.syncUserPlaylist(updatedPlaylist, 'update');
+                showNotification(`Added to playlist: ${option.textContent}`);
+                modal.remove();
+            }
+        });
     }
 }
 

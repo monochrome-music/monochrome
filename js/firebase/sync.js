@@ -60,7 +60,8 @@ export class SyncManager {
                 favorites_albums: mergedData.library?.albums ? Object.values(mergedData.library.albums) : [],
                 favorites_artists: mergedData.library?.artists ? Object.values(mergedData.library.artists) : [],
                 favorites_playlists: mergedData.library?.playlists ? Object.values(mergedData.library.playlists) : [],
-                history_tracks: mergedData.history?.recentTracks ? Object.values(mergedData.history.recentTracks) : []
+                history_tracks: mergedData.history?.recentTracks ? Object.values(mergedData.history.recentTracks) : [],
+                user_playlists: mergedData.user_playlists ? Object.values(mergedData.user_playlists) : []
             };
 
             await db.importData(importData, true);
@@ -119,6 +120,7 @@ export class SyncManager {
             history: {
                 recentTracks: this.arrayToObject(mergeStores(local.history_tracks, cloud.history?.recentTracks, 'timestamp'), 'timestamp')
             },
+            user_playlists: this.arrayToObject(mergeStores(local.user_playlists, cloud.user_playlists), 'id'),
             // Settings are NOT synced (device specific)
             lastUpdated: Date.now()
         };
@@ -181,6 +183,26 @@ export class SyncManager {
         });
 
         this.unsubscribeFunctions.push(() => off(historyRef, 'value', unsubHistory));
+
+        // Listen for changes in user playlists
+        const userPlaylistsRef = child(this.userRef, 'user_playlists');
+
+        const unsubUserPlaylists = onValue(userPlaylistsRef, (snapshot) => {
+            if (this.isSyncing) return;
+
+            const val = snapshot.val();
+            if (val) {
+                const importData = {
+                    user_playlists: Object.values(val)
+                };
+                db.importData(importData, true).then(() => {
+                    // Notify UI to refresh library
+                    window.dispatchEvent(new Event('library-changed'));
+                });
+            }
+        });
+
+        this.unsubscribeFunctions.push(() => off(userPlaylistsRef, 'value', unsubUserPlaylists));
     }
 
     // --- Public API for Broadcasters ---
@@ -229,6 +251,20 @@ export class SyncManager {
             await set(itemRef, track);
         } catch (error) {
             console.error("Failed to sync history item:", error);
+        }
+    }
+
+    async syncUserPlaylist(playlist, action) {
+        if (!this.user || !this.userRef) return;
+
+        const id = playlist.id;
+        const path = `user_playlists/${id}`;
+        const itemRef = child(this.userRef, path);
+
+        if (action === 'create' || action === 'update') {
+            await set(itemRef, playlist);
+        } else if (action === 'delete') {
+            await remove(itemRef);
         }
     }
 

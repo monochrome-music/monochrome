@@ -5,7 +5,7 @@ import { apiSettings, themeManager, nowPlayingSettings, trackListSettings } from
 import { UIRenderer } from './ui.js';
 import { Player } from './player.js';
 import { LastFMScrobbler } from './lastfm.js';
-import { LyricsManager, openLyricsPanel, clearLyricsPanelSync } from './lyrics.js';
+import { LyricsManager, openLyricsPanel, clearLyricsPanelSync, renderLyricsInFullscreen, clearFullscreenLyricsSync } from './lyrics.js';
 import { createRouter, updateTabTitle } from './router.js';
 import { initializeSettings } from './settings.js';
 import { initializePlayerEvents, initializeTrackInteractions, handleTrackAction } from './events.js';
@@ -13,6 +13,8 @@ import { initializeUIInteractions } from './ui-interactions.js';
 import { downloadAlbumAsZip, downloadDiscography, downloadPlaylistAsZip } from './downloads.js';
 import { debounce, SVG_PLAY } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
+import { db } from './db.js';
+import { syncManager } from './firebase/sync.js';
 
 function initializeCasting(audioPlayer, castBtn) {
     if (!castBtn) return;
@@ -229,7 +231,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ui.closeFullscreenCover();
             } else {
                 const nextTrack = player.getNextTrack();
-                ui.showFullscreenCover(player.currentTrack, nextTrack);
+                ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, audioPlayer);
             }
         } else {
             // Default to 'album' mode - navigate to album
@@ -292,7 +294,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const fullscreenOverlay = document.getElementById('fullscreen-cover-overlay');
         if (fullscreenOverlay && getComputedStyle(fullscreenOverlay).display !== 'none') {
              const nextTrack = player.getNextTrack();
-             ui.showFullscreenCover(player.currentTrack, nextTrack);
+             ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, audioPlayer);
         }
     });
 
@@ -338,6 +340,111 @@ document.addEventListener('DOMContentLoaded', async () => {
         btn.innerHTML = originalHTML;
     }
 }
+        if (e.target.closest('#create-playlist-btn')) {
+    const modal = document.getElementById('playlist-modal');
+    document.getElementById('playlist-modal-title').textContent = 'Create Playlist';
+    document.getElementById('playlist-name-input').value = '';
+    modal.style.display = 'flex';
+    document.getElementById('playlist-name-input').focus();
+}
+
+if (e.target.closest('#playlist-modal-save')) {
+    const name = document.getElementById('playlist-name-input').value.trim();
+    if (name) {
+        const modal = document.getElementById('playlist-modal');
+        const editingId = modal.dataset.editingId;
+        if (editingId) {
+            // Edit
+            db.getPlaylist(editingId).then(async (playlist) => {
+                if (playlist) {
+                    playlist.name = name;
+                    await db.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
+                    syncManager.syncUserPlaylist(playlist, 'update');
+                    ui.renderLibraryPage();
+                    modal.style.display = 'none';
+                    delete modal.dataset.editingId;
+                }
+            });
+        } else {
+            // Create
+            db.createPlaylist(name, [], '').then(playlist => {
+                syncManager.syncUserPlaylist(playlist, 'create');
+                ui.renderLibraryPage();
+                modal.style.display = 'none';
+            });
+        }
+    }
+}
+
+
+if (e.target.closest('#playlist-modal-cancel')) {
+    document.getElementById('playlist-modal').style.display = 'none';
+}
+
+if (e.target.closest('.edit-playlist-btn')) {
+    const card = e.target.closest('.user-playlist');
+    const playlistId = card.dataset.playlistId;
+    db.getPlaylist(playlistId).then(playlist => {
+        if (playlist) {
+            const modal = document.getElementById('playlist-modal');
+            document.getElementById('playlist-modal-title').textContent = 'Edit Playlist';
+            document.getElementById('playlist-name-input').value = playlist.name;
+            modal.dataset.editingId = playlistId;
+            modal.style.display = 'flex';
+            document.getElementById('playlist-name-input').focus();
+        }
+    });
+}
+if (e.target.closest('.delete-playlist-btn')) {
+    const card = e.target.closest('.user-playlist');
+    const playlistId = card.dataset.playlistId;
+    if (confirm('Are you sure you want to delete this playlist?')) {
+        db.deletePlaylist(playlistId).then(() => {
+            syncManager.syncUserPlaylist({ id: playlistId }, 'delete');
+            ui.renderLibraryPage();
+        });
+    }
+}
+
+if (e.target.closest('#edit-playlist-btn')) {
+    const playlistId = window.location.hash.split('/')[1];
+    db.getPlaylist(playlistId).then(playlist => {
+        if (playlist) {
+            const modal = document.getElementById('playlist-modal');
+            document.getElementById('playlist-modal-title').textContent = 'Edit Playlist';
+            document.getElementById('playlist-name-input').value = playlist.name;
+            modal.dataset.editingId = playlistId;
+            modal.style.display = 'flex';
+            document.getElementById('playlist-name-input').focus();
+        }
+    });
+}
+
+if (e.target.closest('#delete-playlist-btn')) {
+    const playlistId = window.location.hash.split('/')[1];
+    if (confirm('Are you sure you want to delete this playlist?')) {
+        db.deletePlaylist(playlistId).then(() => {
+            window.location.hash = '#library';
+        });
+    }
+}
+
+
+
+        if (e.target.closest('.remove-from-playlist-btn')) {
+    const btn = e.target.closest('.remove-from-playlist-btn');
+    const index = parseInt(btn.dataset.trackIndex);
+    const playlistId = window.location.hash.split('/')[1];
+    db.getPlaylist(playlistId).then(async (playlist) => {
+        if (playlist && playlist.tracks[index]) {
+            const trackId = playlist.tracks[index].id;
+            await db.removeTrackFromPlaylist(playlistId, trackId);
+            ui.renderPlaylistPage(playlistId);
+        }
+    });
+}
+
+
         if (e.target.closest('#play-playlist-btn')) {
             const btn = e.target.closest('#play-playlist-btn');
             if (btn.disabled) return;
@@ -346,7 +453,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!playlistId) return;
 
             try {
-                const { tracks } = await api.getPlaylist(playlistId);
+                let tracks;
+                const userPlaylist = await db.getPlaylist(playlistId);
+                if (userPlaylist) {
+                    tracks = userPlaylist.tracks;
+                } else {
+                    const { tracks: apiTracks } = await api.getPlaylist(playlistId);
+                    tracks = apiTracks;
+                }
                 if (tracks.length > 0) {
                     player.setQueue(tracks, 0);
                     document.getElementById('shuffle-btn').classList.remove('active');

@@ -23,6 +23,7 @@
     <div id="context-menu">
         <ul>
             <li data-action="toggle-like">Like</li>
+            <li data-action="add-to-playlist">Add to Playlist</li>
             <li data-action="play-next">Play Next</li>
             <li data-action="add-to-queue">Add to Queue</li>
             <li data-action="download">Download</li>
@@ -41,9 +42,18 @@
         </div>
     </div>
     
-    <div id="fullscreen-cover-overlay" style="display: none;">
-        <div class="fullscreen-cover-content">
-            <button id="close-fullscreen-cover-btn" title="Close">&times;</button>
+<div id="fullscreen-cover-overlay" style="display: none;">
+    <div class="fullscreen-cover-content">
+        <button id="close-fullscreen-cover-btn" title="Close">&times;</button>
+        <button id="toggle-fullscreen-lyrics-btn" class="fullscreen-lyrics-toggle" title="Toggle Lyrics">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="22"/>
+                <line x1="8" y1="22" x2="16" y2="22"/>
+            </svg>
+        </button>
+        <div class="fullscreen-main-view">
             <img id="fullscreen-cover-image" src="" alt="Album Cover">
             <div class="fullscreen-track-info">
                 <h2 id="fullscreen-track-title"></h2>
@@ -53,12 +63,25 @@
                     <span class="value"></span>
                 </div>
             </div>
-            <div class="fullscreen-controls">
-                 <!-- Controls will be cloned or managed here if needed, or we just rely on main controls -->
+        </div>
+        <div class="fullscreen-lyrics-container" id="fullscreen-lyrics-container" style="display: none;">
+        </div>
+    </div>
+</div>
+
+
+    <div id="playlist-modal" class="modal" style="display: none;">
+        <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
+            <div class="modal-content" style="background: var(--card); padding: 2rem; border-radius: var(--radius); max-width: 400px; width: 90%;">
+                <h3 id="playlist-modal-title">Create Playlist</h3>
+                <input type="text" id="playlist-name-input" placeholder="Playlist name" style="width: 100%; margin: 1rem 0; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--background); color: var(--foreground);">
+                <div class="modal-actions" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                    <button id="playlist-modal-cancel" class="btn-secondary">Cancel</button>
+                    <button id="playlist-modal-save" class="btn-primary">Save</button>
+                </div>
             </div>
         </div>
     </div>
-
 
     <div id="sidebar-overlay"></div>
 
@@ -177,6 +200,10 @@
 
             <div id="page-library" class="page">
                 <h2 class="section-title">Your Library</h2>
+                <section class="content-section">
+                    <h2 class="section-title">My Playlists <button id="create-playlist-btn" class="btn-secondary">Create Playlist</button></h2>
+                    <div class="card-grid" id="my-playlists-container"></div>
+                </section>
                 <div class="search-tabs">
                     <button class="search-tab active" data-tab="tracks">Liked Tracks</button>
                     <button class="search-tab" data-tab="albums">Albums</button>

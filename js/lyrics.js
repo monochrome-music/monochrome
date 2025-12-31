@@ -312,3 +312,118 @@ export function clearLyricsPanelSync(audioPlayer, panel) {
         panel.lyricsCleanup = null;
     }
 }
+
+
+export async function renderLyricsInFullscreen(track, audioPlayer, lyricsManager, container) {
+    container.innerHTML = '<div class="lyrics-loading">Loading lyrics...</div>';
+
+    try {
+        await lyricsManager.ensureComponentLoaded();
+
+        const title = track.title;
+        const artist = getTrackArtists(track);
+        const album = track.album?.title;
+        const durationMs = track.duration ? Math.round(track.duration * 1000) : undefined;
+        const isrc = track.isrc || '';
+
+        container.innerHTML = '';
+        const amLyrics = document.createElement('am-lyrics');
+        amLyrics.setAttribute('song-title', title);
+        amLyrics.setAttribute('song-artist', artist);
+        if (album) amLyrics.setAttribute('song-album', album);
+        if (durationMs) amLyrics.setAttribute('song-duration', durationMs);
+        amLyrics.setAttribute('query', `${title} ${artist}`.trim());
+        if (isrc) amLyrics.setAttribute('isrc', isrc);
+
+        amLyrics.setAttribute('highlight-color', '#93c5fd');
+        amLyrics.setAttribute('hover-background-color', 'rgba(59, 130, 246, 0.14)');
+        amLyrics.setAttribute('autoscroll', '');
+        amLyrics.setAttribute('interpolate', '');
+        amLyrics.style.height = '100%';
+        amLyrics.style.width = '100%';
+
+        container.appendChild(amLyrics);
+
+        setupFullscreenLyricsSync(track, audioPlayer, container, lyricsManager, amLyrics);
+
+        return amLyrics;
+    } catch (error) {
+        console.error('Failed to load lyrics in fullscreen:', error);
+        container.innerHTML = '<div class="lyrics-error">Failed to load lyrics</div>';
+        return null;
+    }
+}
+
+function setupFullscreenLyricsSync(track, audioPlayer, container, lyricsManager, amLyrics) {
+    let baseTimeMs = 0;
+    let lastTimestamp = performance.now();
+
+    const updateTime = () => {
+        const currentMs = audioPlayer.currentTime * 1000;
+        baseTimeMs = currentMs;
+        lastTimestamp = performance.now();
+        amLyrics.currentTime = currentMs;
+    };
+
+    const tick = () => {
+        if (!audioPlayer.paused) {
+            const now = performance.now();
+            const elapsed = now - lastTimestamp;
+            const nextMs = baseTimeMs + elapsed;
+            amLyrics.currentTime = nextMs;
+            lyricsManager.fullscreenAnimationFrameId = requestAnimationFrame(tick);
+        }
+    };
+
+    const onPlay = () => {
+        baseTimeMs = audioPlayer.currentTime * 1000;
+        lastTimestamp = performance.now();
+        tick();
+    };
+
+    const onPause = () => {
+        if (lyricsManager.fullscreenAnimationFrameId) {
+            cancelAnimationFrame(lyricsManager.fullscreenAnimationFrameId);
+            lyricsManager.fullscreenAnimationFrameId = null;
+        }
+    };
+
+    audioPlayer.addEventListener('timeupdate', updateTime);
+    audioPlayer.addEventListener('play', onPlay);
+    audioPlayer.addEventListener('pause', onPause);
+    audioPlayer.addEventListener('seeked', updateTime);
+
+    container.lyricsUpdateHandler = updateTime;
+    container.lyricsPlayHandler = onPlay;
+    container.lyricsPauseHandler = onPause;
+    container.lyricsSeekHandler = updateTime;
+
+    container.lyricsCleanup = () => {
+        if (lyricsManager.fullscreenAnimationFrameId) {
+            cancelAnimationFrame(lyricsManager.fullscreenAnimationFrameId);
+            lyricsManager.fullscreenAnimationFrameId = null;
+        }
+        audioPlayer.removeEventListener('timeupdate', updateTime);
+        audioPlayer.removeEventListener('play', onPlay);
+        audioPlayer.removeEventListener('pause', onPause);
+        audioPlayer.removeEventListener('seeked', updateTime);
+    };
+
+    amLyrics.addEventListener('line-click', (e) => {
+        if (e.detail && e.detail.timestamp) {
+            audioPlayer.currentTime = e.detail.timestamp / 1000;
+            audioPlayer.play();
+        }
+    });
+
+    if (!audioPlayer.paused) {
+        tick();
+    }
+}
+
+export function clearFullscreenLyricsSync(container) {
+    if (container && container.lyricsCleanup) {
+        container.lyricsCleanup();
+        container.lyricsCleanup = null;
+    }
+}
