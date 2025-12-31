@@ -23,9 +23,66 @@ $(document).ready(function () {
   createjs.Sound.registerPlugins([createjs.HTMLAudioPlugin, createjs.WebAudioPlugin, createjs.FlashPlugin]);
   
   // Initial Load
-  fetchInstances(function () {
-    loadRecentTracks();
+  // Run HTTPS probe first
+  checkHttpsSupport(function() {
+      fetchInstances(function () {
+        loadRecentTracks();
+      });
   });
+
+  function checkHttpsSupport(callback) {
+      if (window.location.protocol === "http:") {
+          // If we are already on HTTP, we might want to check if HTTPS is possible?
+          // Or just assume if user loaded via HTTP, we might need HTTP for APIs too.
+          // But user might be on HTTP because they typed it, but API supports HTTPS.
+          // Let's Probe.
+          // However, if we are on HTTPS, mixed content blocking might prevent HTTP fallback checking?
+          // Actually, we want to know if Client supports HTTPS.
+      }
+      
+      // Probe a known HTTPS endpoint (one of our instances)
+      // Use a known stable one, or just try the first instance later?
+      // Better to fail fast now.
+      var probeUrl = "https://tidal.kinoplus.online/";
+      
+      console.log("Probing HTTPS support...");
+      
+      var probeSuccess = false;
+      var probeFinished = false;
+      
+      function finishProbe(success) {
+          if (probeFinished) return;
+          probeFinished = true;
+          if (success) {
+              console.log("HTTPS Probe Successful.");
+              isHttpFallback = false;
+          } else {
+              console.log("HTTPS Probe Failed. Defaulting to HTTP fallback.");
+              isHttpFallback = true;
+          }
+          callback();
+      }
+      
+      var timeout = setTimeout(function() {
+          finishProbe(false);
+      }, 5000); // 3s timeout for HTTPS check
+      
+      try {
+          $.ajax({
+              url: probeUrl,
+              dataType: "json",
+              timeout: 2500, // jQuery timeout
+              success: function() {
+                  finishProbe(true);
+              },
+              error: function() {
+                  finishProbe(false); // XHR Error or Timeout
+              }
+          });
+      } catch(e) {
+          finishProbe(false);
+      }
+  }
 
   // Event Bindings
   $("#btn-home").click(function (e) {
@@ -92,6 +149,7 @@ $(document).ready(function () {
     
     function playNativeFirst(url, id, quality, isRetry) {
         var domPlayer = $("#audio-player")[0];
+        var playbackTimer = null;
         
         // Quality Label
         var qLabel = (quality === "LOSSLESS") ? " (FLAC)" : " (AAC)";
@@ -110,7 +168,6 @@ $(document).ready(function () {
                 
                 if (canPlay === "" || canPlay === "no") {
                      console.log("Browser reports no FLAC support. Fallback to AAC.");
-                     // Directly fallback to AAC
                      if (!attemptFallback) {
                          window.playTrack(id, true);
                          return;
@@ -120,69 +177,73 @@ $(document).ready(function () {
 
             updateStatus("Starting Native Playback" + qLabel + ((isRetry) ? " (HTTP)..." : "..."));
             
-            // Set error handler for THIS attempt
-            domPlayer.onerror = function() {
-                var errCode = domPlayer.error ? domPlayer.error.code : 0;
-                console.log("Native Error Code: " + errCode);
+            // Helper to handle retry vs legacy fallback
+            function triggerRetryOrLegacy(msg) {
+                if (playbackTimer) {
+                    clearTimeout(playbackTimer);
+                    playbackTimer = null;
+                }
                 
                 // Try HTTP fallback if SSL failed
                 if (!isRetry && url.indexOf("https://") === 0) {
-                     console.log("HTTPS failed, retrying with HTTP...");
+                     console.log("HTTPS failed/timeout (" + msg + "), retrying with HTTP...");
                      var httpUrl = "http://" + url.substring(8);
                      playNativeFirst(httpUrl, id, quality, true);
                      return;
                 }
                 
-                // Fallback to legacy
-                // We pass the ORIGINAL url (let SoundJS try HTTPS first too)
-                // Or maybe we pass the current one? 
-                // Let's pass the Original HTTPS one to start the cycle fresh.
-                // Assuming 'streamUrl' from closure is the original.
-                // But we don't have access to it easily if we are deep in recursion?
-                // Actually 'url' arg might be HTTP now.
-                // Let's just pass 'url' - if it worked for HTTP, SoundJS might like HTTP.
-                // But better to reset protocol for SoundJS? 
-                // Let's use the valid streamUrl from outer scope? 
-                // Variable 'streamUrl' is available in closure!
                 playLegacySoundJS(streamUrl, id, quality);
+            }
+            
+            // Set error handler for THIS attempt
+            domPlayer.onerror = function() {
+                var errCode = domPlayer.error ? domPlayer.error.code : 0;
+                console.log("Native Error Code: " + errCode);
+                triggerRetryOrLegacy("onerror: " + errCode);
             };
             
             try {
                 domPlayer.src = url;
                 var playPromise = domPlayer.play();
                 
+                // Set a safety timeout for "forever pending" requests (common in Chrome 15 with SSL issues)
+                playbackTimer = setTimeout(function() {
+                    console.log("Playback timeout - stalling detected.");
+                    triggerRetryOrLegacy("timeout");
+                }, 5000); // 5 seconds to start playing
+                
+                // If playback starts, clear timeout
+                domPlayer.onplaying = function() {
+                    if (playbackTimer) {
+                        clearTimeout(playbackTimer);
+                        playbackTimer = null;
+                    }
+                    updateStatus("Now Playing..." + qLabel);
+                };
+
                 if (playPromise !== undefined) {
                     playPromise
                         .then(function() {
-                            updateStatus("Now Playing..." + qLabel);
+                            // Promise resolved doesn't always mean playing started (buffering)
+                            // But usually it means intent is accepted.
+                            // We keep timer running until 'onplaying' checks in? 
+                            // Actually promise resolve just means "accepted". 
+                            // Chrome 15 won't have promise.
+                            // Modern browsers: resolve -> wait for data -> playing.
+                            // If data hangs, promise resolved but playing never fires.
+                            // So we keep timer.
                         })
                         .catch(function(e) {
                             console.log("Native Play Promise Rejected: " + e.name);
-                            // Retry HTTP logic here too?
-                            // Promise rejection is usually Autoplay or Format, not Network (Network is onerror).
-                            // But maybe SSL error causes rejection?
-                            // Let's allow retry here too just in case.
-                            if (!isRetry && url.indexOf("https://") === 0) {
-                                 console.log("HTTPS promise rejected, retrying HTTP...");
-                                 var httpUrl = "http://" + url.substring(8);
-                                 playNativeFirst(httpUrl, id, quality, true);
-                                 return;
-                            }
-                            
-                            playLegacySoundJS(streamUrl, id, quality);
+                            triggerRetryOrLegacy("promise rejection: " + e.name);
                         });
                 } else {
-                    // Legacy browser (no promise), assume success unless onError fires
-                    updateStatus("Now Playing..." + qLabel);
+                    // Legacy browser (no promise)
+                    // Wait for onplaying or timeout
                 }
             } catch (e) {
                 console.log("Native Exception: " + e.message);
-                if (!isRetry && url.indexOf("https://") === 0) {
-                     var httpUrl = "http://" + url.substring(8);
-                     playNativeFirst(httpUrl, id, quality, true);
-                     return;
-                }
-                playLegacySoundJS(streamUrl, id, quality);
+                triggerRetryOrLegacy("exception: " + e.message);
             }
             
         } else {
