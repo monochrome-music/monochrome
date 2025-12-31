@@ -18,9 +18,11 @@ $(document).ready(function () {
   // Initialize SoundJS
   // Note: Class is FlashPlugin in 0.5.2, but SWF is FlashAudioPlugin.swf
   createjs.FlashPlugin.swfPath = "./"; 
-  // Prioritize HTMLAudio -> WebAudio -> Flash
-  // HTMLAudio is better for streaming music (avoids XHR/CORS issues of WebAudio)
-  createjs.Sound.registerPlugins([createjs.HTMLAudioPlugin, createjs.WebAudioPlugin, createjs.FlashPlugin]);
+  // Custom Architecture:
+  // We handle HTML5 Audio manually via playNativeFirst() for full control (UI, timeouts, hacks).
+  // SoundJS is reserved STRICTLY for Flash fallback on legacy browsers (IE, old Chrome).
+  // Therefore, we ONLY register the FlashPlugin.
+  createjs.Sound.registerPlugins([createjs.FlashPlugin]);
   
   // Initial Load
   // Run HTTPS probe first
@@ -204,6 +206,9 @@ $(document).ready(function () {
             
             try {
                 domPlayer.src = url;
+                domPlayer.preload = "auto";
+                domPlayer.load(); // Force reload/buffering
+                
                 var playPromise = domPlayer.play();
                 
                 // Set a safety timeout for "forever pending" requests (common in Chrome 15 with SSL issues)
