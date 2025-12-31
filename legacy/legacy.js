@@ -46,10 +46,9 @@ $(document).ready(function () {
           }
       });
   }
-  // Enable CORS logic in jQuery generally (if supported by this jQuery version)
-  if ($.support) {
-      $.support.cors = true;
-  }
+  // REMOVED: $.support.cors = true; 
+  // We MUST NOT set this for IE9. If we do, jQuery tries to use standard XHR for cross-domain, 
+  // which fails ("Access is denied"). Leaving it false forces jQuery to use our custom XDR transport.
 
   var apiInstances = [];
   var currentInstanceIndex = 0;
