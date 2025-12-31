@@ -90,7 +90,7 @@ $(document).ready(function () {
       }
     );
     
-    function playNativeFirst(url, id, quality) {
+    function playNativeFirst(url, id, quality, isRetry) {
         var domPlayer = $("#audio-player")[0];
         
         // Quality Label
@@ -118,14 +118,33 @@ $(document).ready(function () {
                 }
             }
 
-            updateStatus("Starting Native Playback" + qLabel + "...");
+            updateStatus("Starting Native Playback" + qLabel + ((isRetry) ? " (HTTP)..." : "..."));
             
             // Set error handler for THIS attempt
             domPlayer.onerror = function() {
                 var errCode = domPlayer.error ? domPlayer.error.code : 0;
                 console.log("Native Error Code: " + errCode);
+                
+                // Try HTTP fallback if SSL failed
+                if (!isRetry && url.indexOf("https://") === 0) {
+                     console.log("HTTPS failed, retrying with HTTP...");
+                     var httpUrl = "http://" + url.substring(8);
+                     playNativeFirst(httpUrl, id, quality, true);
+                     return;
+                }
+                
                 // Fallback to legacy
-                playLegacySoundJS(url, id, quality);
+                // We pass the ORIGINAL url (let SoundJS try HTTPS first too)
+                // Or maybe we pass the current one? 
+                // Let's pass the Original HTTPS one to start the cycle fresh.
+                // Assuming 'streamUrl' from closure is the original.
+                // But we don't have access to it easily if we are deep in recursion?
+                // Actually 'url' arg might be HTTP now.
+                // Let's just pass 'url' - if it worked for HTTP, SoundJS might like HTTP.
+                // But better to reset protocol for SoundJS? 
+                // Let's use the valid streamUrl from outer scope? 
+                // Variable 'streamUrl' is available in closure!
+                playLegacySoundJS(streamUrl, id, quality);
             };
             
             try {
@@ -139,9 +158,18 @@ $(document).ready(function () {
                         })
                         .catch(function(e) {
                             console.log("Native Play Promise Rejected: " + e.name);
-                            // Auto-play policy or format issue? 
-                            // Try SoundJS as fallback
-                            playLegacySoundJS(url, id, quality);
+                            // Retry HTTP logic here too?
+                            // Promise rejection is usually Autoplay or Format, not Network (Network is onerror).
+                            // But maybe SSL error causes rejection?
+                            // Let's allow retry here too just in case.
+                            if (!isRetry && url.indexOf("https://") === 0) {
+                                 console.log("HTTPS promise rejected, retrying HTTP...");
+                                 var httpUrl = "http://" + url.substring(8);
+                                 playNativeFirst(httpUrl, id, quality, true);
+                                 return;
+                            }
+                            
+                            playLegacySoundJS(streamUrl, id, quality);
                         });
                 } else {
                     // Legacy browser (no promise), assume success unless onError fires
@@ -149,17 +177,22 @@ $(document).ready(function () {
                 }
             } catch (e) {
                 console.log("Native Exception: " + e.message);
-                playLegacySoundJS(url, id, quality);
+                if (!isRetry && url.indexOf("https://") === 0) {
+                     var httpUrl = "http://" + url.substring(8);
+                     playNativeFirst(httpUrl, id, quality, true);
+                     return;
+                }
+                playLegacySoundJS(streamUrl, id, quality);
             }
             
         } else {
             // No native audio support (IE < 9)
-            playLegacySoundJS(url, id, quality);
+            playLegacySoundJS(streamUrl, id, quality);
         }
     }
     
-    function playLegacySoundJS(url, id, quality) {
-        updateStatus("Activating Legacy Player (Flash)...");
+    function playLegacySoundJS(url, id, quality, isRetry) {
+        updateStatus("Activating Legacy Player (Flash)" + ((isRetry) ? " (HTTP)..." : "..."));
         
         // SoundJS Logic
         var soundJsUrl = url;
@@ -179,13 +212,13 @@ $(document).ready(function () {
             }
         }
 
-        var soundId = "track_" + id + "_" + quality;
+        var soundId = "track_" + id + "_" + quality + (isRetry ? "_http" : "");
         createjs.Sound.removeAllEventListeners("fileload");
         
         var playSound = function() {
              var instance = createjs.Sound.play(soundId);
              if (!instance || instance.playState === createjs.Sound.PLAY_FAILED) {
-                 handleError("Legacy Playback Failed");
+                 handleLegacyError("Legacy Playback Failed");
              } else {
                  updateStatus("Now Playing via Flash/Legacy...");
              }
@@ -200,7 +233,17 @@ $(document).ready(function () {
         try {
             createjs.Sound.registerSound(soundJsUrl, soundId);
         } catch(e) {
-            handleError("Legacy Setup Failed: " + e.message);
+            handleLegacyError("Legacy Setup Failed: " + e.message);
+        }
+        
+        function handleLegacyError(msg) {
+             if (!isRetry && url.indexOf("https://") === 0) {
+                 console.log("Legacy HTTPS failed ("+msg+"), retrying HTTP...");
+                 var httpUrl = "http://" + url.substring(8);
+                 playLegacySoundJS(httpUrl, id, quality, true);
+                 return;
+             }
+             handleError(msg);
         }
     }
 
