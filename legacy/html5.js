@@ -66,14 +66,7 @@ $(document).ready(function () {
   var audioPlayer = $("#audio-player")[0];
   var currentTrackInfo = $("#now-playing-info");
 
-  // Initialize SoundJS
-  // Note: Class is FlashPlugin in 0.5.2, but SWF is FlashAudioPlugin.swf
-  createjs.FlashPlugin.swfPath = "./"; 
-  // Custom Architecture:
-  // We handle HTML5 Audio manually via playNativeFirst() for full control (UI, timeouts, hacks).
-  // SoundJS is reserved STRICTLY for Flash fallback on legacy browsers (IE, old Chrome).
-  // Therefore, we ONLY register the FlashPlugin.
-  createjs.Sound.registerPlugins([createjs.FlashPlugin]);
+  // HTML5 Version - No Flash/SoundJS (Cleared)
   
   // Initial Load
   // Run HTTPS probe first
@@ -153,10 +146,7 @@ $(document).ready(function () {
   // Global functions exposed for inline onclicks
   // Global Stop function to prevent overlap
   function stopAllAudio() {
-      // 1. Stop SoundJS
-      if (typeof createjs !== "undefined" && createjs.Sound) {
-          createjs.Sound.stop();
-      }
+      // 1. Stop SoundJS (Removed in HTML5 ver)
       
       // 2. Stop DOM Player
       if (audioPlayer) {
@@ -245,7 +235,8 @@ $(document).ready(function () {
                      return;
                 }
                 
-                playLegacySoundJS(streamUrl, id, quality);
+                // If native fails on HTML5 site, we have no Flash fallback.
+                handleError("Playback Failed - No Flash Fallback Available (" + msg + ")");
             }
             
             // Set error handler for THIS attempt
