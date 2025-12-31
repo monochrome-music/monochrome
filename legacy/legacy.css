@@ -1,11 +1,10 @@
 /* Retro 90s Styling */
 body {
   background-color: #c0c0c0;
-  font-family: "Times New Roman", Times, serif;
+  font-family: "Verdana", "Arial", "Helvetica", sans-serif, "Times New Roman", Times, serif;
   color: #000000;
   margin: 0;
   padding: 0;
-  background-image: url("assets/bg_texture.gif"); /* Fallback if not found is just grey */
 }
 
 a {
