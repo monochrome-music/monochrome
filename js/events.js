@@ -152,6 +152,7 @@ function initializeSmoothSliders(audioPlayer, player) {
     const progressFill = document.getElementById('progress-fill');
     const volumeBar = document.getElementById('volume-bar');
     const volumeFill = document.getElementById('volume-fill');
+    const volumeBtn = document.getElementById('volume-btn');
 
     let isSeeking = false;
     let wasPlaying = false;
@@ -314,6 +315,37 @@ function initializeSmoothSliders(audioPlayer, player) {
             });
         }
     });
+    volumeBar.addEventListener('wheel', e => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.05 : 0.05;
+        const newVolume = Math.max(0, Math.min(1, audioPlayer.volume + delta));
+
+        if (delta > 0 && audioPlayer.muted) {
+            audioPlayer.muted = false;
+            localStorage.setItem('muted', false);
+        }
+
+        audioPlayer.volume = newVolume;
+        volumeFill.style.width = `${newVolume * 100}%`;
+        volumeBar.style.setProperty('--volume-level', `${newVolume * 100}%`);
+        localStorage.setItem('volume', newVolume);
+    }, { passive: false });
+
+    volumeBtn?.addEventListener('wheel', e => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.05 : 0.05;
+        const newVolume = Math.max(0, Math.min(1, audioPlayer.volume + delta));
+
+        if (delta > 0 && audioPlayer.muted) {
+            audioPlayer.muted = false;
+            localStorage.setItem('muted', false);
+        }
+
+        audioPlayer.volume = newVolume;
+        volumeFill.style.width = `${newVolume * 100}%`;
+        volumeBar.style.setProperty('--volume-level', `${newVolume * 100}%`);
+        localStorage.setItem('volume', newVolume);
+    }, { passive: false });
 }
 
 export async function handleTrackAction(action, item, player, api, lyricsManager, type = 'track', ui = null, scrobbler = null) {
