@@ -247,7 +247,11 @@ export const themeManager = {
         monochrome: {},
         ocean: {},
         purple: {},
-        forest: {}
+        forest: {},
+        mocha: {},
+        machiatto: {},
+        frappe: {},
+        latte: {}
     },
 
     getTheme() {

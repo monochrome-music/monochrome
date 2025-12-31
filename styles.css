@@ -116,6 +116,86 @@
     --explicit-badge: #f59e0b;
 }
 
+:root[data-theme="mocha"] {
+    --background: #1e1e2e;
+    --foreground: #cdd6f4;
+    --card: #313244;
+    --card-foreground: #9399b2;
+    --primary: #89b4fa;
+    --primary-foreground: #313244;
+    --secondary: #45475a;
+    --secondary-foreground: #9399b2;
+    --muted: #313244;
+    --muted-foreground: #a6adc8;
+    --border: #313244; 
+    --input: #45475a;
+    --ring: #89b4fa;
+    --highlight: #89b4fa; 
+    --highlight-rgb: #b4befe; 
+    --active-highlight: #b4befe;
+    --explicit-badge: #f9e2af;
+}
+
+:root[data-theme="machiatto"] {
+    --background: #24273a;
+    --foreground: #cad3f5;
+    --card: #363a4f;
+    --card-foreground: #939ab7;
+    --primary: #8aadf4;
+    --primary-foreground: #363a4f;
+    --secondary: #494d64;
+    --secondary-foreground: #6e738d;
+    --muted: #363a4f;
+    --muted-foreground: #a5adcb;
+    --border: #363a4f; 
+    --input: #494d64;
+    --ring: #8aadf4;
+    --highlight: #8aadf4; 
+    --highlight-rgb: #b7bdf8; 
+    --active-highlight: #b7bdf8;
+    --explicit-badge: #eed49f;
+}
+
+:root[data-theme="frappe"] {
+    --background: #303446;
+    --foreground:#c6d0f5;
+    --card: #414559;
+    --card-foreground: #949cbb;
+    --primary: #8caaee;
+    --primary-foreground: #313244;
+    --secondary: #51576d;
+    --secondary-foreground: #a5adce;
+    --muted: #414559;
+    --muted-foreground: #a5adce;
+    --border: #414559; 
+    --input: #45475a;
+    --ring: #8caaee;
+    --highlight: #8caaee; 
+    --highlight-rgb: #babbf1; 
+    --active-highlight: #babbf1;
+    --explicit-badge: #e5c890;
+}
+
+:root[data-theme="latte"] {
+    --background: #eff1f5;
+    --foreground: #4c4f69;
+    --card: #ccd0da;
+    --card-foreground: #7c7f93;
+    --primary: #1e66f5;
+    --primary-foreground: #ccd0da;
+    --secondary: #bcc0cc;
+    --secondary-foreground: #9ca0b0;
+    --muted: #ccd0da;
+    --muted-foreground: #6c6f85;
+    --border: #ccd0da;
+    --input: #bcc0cc;
+    --ring: #1e66f5;
+    --highlight: #1e66f5;
+    --highlight-rgb: #7287fd;
+    --active-highlight: #7287fd;
+    --explicit-badge: #df8e1d;
+}
+
 :root[data-theme="light"] {
     --background: #ffffff;
     --foreground: #000000;
