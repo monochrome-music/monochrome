@@ -1,0 +1,133 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+  <head>
+    <title>Monochrome Legacy</title>
+
+    <script>
+      // HTML5 Redirection Logic
+      // If browser supports Canvas and Audio, redirect to the HTML5 version.
+      // This targets Chrome 10+, Safari 3+, IE9+, Firefox 3.5+
+      (function () {
+        var hasCanvas = !!document.createElement("canvas").getContext;
+        var hasAudio = !!(window.Audio && new window.Audio().canPlayType);
+
+        // Prevent redirect loop if already there (check filename not needed if files differ, but safe)
+        if (hasCanvas && hasAudio) {
+          // Check if user manually opted out? (Optional, skipping for now)
+          if (window.location.href.indexOf("html5.html") === -1) {
+            window.location.href = "html5.html";
+          }
+        }
+      })();
+    </script>
+
+    <link rel="stylesheet" type="text/css" href="legacy.css" />
+    <script type="text/javascript" src="jquery.min.js"></script>
+    <script type="text/javascript" src="swfobject.js"></script>
+    <script type="text/javascript" src="soundjs-0.5.2.min.js"></script>
+    <script type="text/javascript" src="flashplugin.js"></script>
+    <script type="text/javascript" src="legacy.js"></script>
+  </head>
+  <body>
+    <table
+      width="100%"
+      height="100%"
+      border="0"
+      cellpadding="0"
+      cellspacing="0"
+    >
+      <!-- Header -->
+      <tr height="80">
+        <td colspan="2" bgcolor="#000000" align="center">
+          <font color="#FFFFFF" size="6" face="Comic Sans MS, Arial"
+            ><b>Monochrome Music</b></font
+          ><br />
+          <font color="#cccccc" size="2">music</font>
+        </td>
+      </tr>
+
+      <!-- Marquee -->
+      <tr height="20">
+        <td colspan="2" class="marquee-container">
+          <marquee scrollamount="5" scrolldelay="100"
+            >Welcome to Monochrome Music Legacy Edition check out the latest
+            hits new songs added daily under construction sign
+            guestbook</marquee
+          >
+        </td>
+      </tr>
+
+      <!-- Main Body -->
+      <tr valign="top">
+        <!-- Sidebar -->
+        <td width="150" bgcolor="#dddddd" class="beveled-box">
+          <br />
+          <center><b>Menu</b></center>
+          <hr />
+          <ul style="list-style-type: square; padding-left: 20px">
+            <li class="sidebar-link"><a href="#" id="btn-home">Home</a></li>
+            <li class="sidebar-link">
+              <a href="compatibility.html">Compatibility</a>
+            </li>
+            <!-- Search is now inline below -->
+            <li class="sidebar-link"><a href="/">Go to Modern Site</a></li>
+          </ul>
+          <br />
+          <!-- Search Form moved to main content -->
+          <br />
+          <center>
+            <img
+              src="getie3.gif"
+              alt="IE Logo"
+              width="88"
+              height="31"
+            /><br /><br />
+            <font size="1">Free and open software</font><br /><br />
+            <font size="1">made by binimum</font><br /><br />
+          </center>
+        </td>
+
+        <!-- Content -->
+        <td bgcolor="#ffffff">
+          <div style="padding: 10px">
+            <!-- Now Playing / Player Control -->
+            <div class="controls" style="margin-bottom: 20px">
+              <font face="Verdana" size="2">
+                <span id="now-playing-info">Status: Ready to play.</span>
+              </font>
+              <br /><br />
+              <audio
+                id="audio-player"
+                controls
+                preload="none"
+                style="width: 300px; height: 45px"
+              >
+                Your browser does not support the audio element.
+              </audio>
+            </div>
+
+            <!-- Moved Search Form -->
+            <div
+              class="beveled-box"
+              style="margin-bottom: 20px; text-align: center"
+            >
+              <b>Search Music: </b>
+              <form
+                id="search-form"
+                onsubmit="return false;"
+                style="display: inline"
+              >
+                <input type="text" id="search-input" size="40" />
+                <input type="submit" id="btn-search" value="Search" />
+              </form>
+            </div>
+
+            <div id="main-content">
+              <center><h3>Loading...</h3></center>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

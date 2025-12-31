@@ -1,0 +1,97 @@
+/* Retro 90s Styling */
+body {
+  background-color: #c0c0c0;
+  font-family: "Verdana", "Arial", "Helvetica", sans-serif, "Times New Roman", Times, serif;
+  color: #000000;
+  margin: 0;
+  padding: 0;
+}
+
+a {
+  color: #000000;
+  text-decoration: underline;
+}
+
+a:visited {
+  color: #444444;
+}
+
+a:active {
+  color: #666666;
+}
+
+h1,
+h2,
+h3 {
+  font-family: Arial, Helvetica, sans-serif;
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+table {
+  border-collapse: collapse; /* Not strictly 90s but makes it cleaner */
+}
+
+.beveled-box {
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #808080;
+  border-bottom: 2px solid #808080;
+  background-color: #c0c0c0;
+  padding: 5px;
+}
+
+.inset-box {
+  border-top: 2px solid #808080;
+  border-left: 2px solid #808080;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  background-color: #ffffff;
+  padding: 2px;
+}
+
+.marquee-container {
+  background-color: #000000;
+  color: #ffffff;
+  font-weight: bold;
+  font-family: "Courier New", Courier, monospace;
+  padding: 2px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.sidebar-link {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.track-row td {
+  padding: 2px 5px;
+  border: 1px solid #808080;
+}
+
+.controls {
+  text-align: center;
+  padding: 10px;
+  background-color: #a0a0a0;
+  border: 2px outset #ffffff;
+}
+
+button {
+  background-color: #c0c0c0;
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #000000;
+  border-bottom: 2px solid #000000;
+  padding: 2px 10px;
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+button:active {
+  border-top: 2px solid #000000;
+  border-left: 2px solid #000000;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+}

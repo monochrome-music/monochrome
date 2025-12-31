@@ -1,0 +1,186 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+  <head>
+    <title>Monochrome Legacy - Compatibility</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <link rel="stylesheet" type="text/css" href="legacy.css" />
+    <script type="text/javascript" src="jquery-1.6.4.min.js"></script>
+    <script type="text/javascript">
+      $(document).ready(function () {
+        // Simple visual effect or just logging
+        console.log("Compatibility chart loaded.");
+      });
+    </script>
+  </head>
+  <body>
+    <table
+      width="100%"
+      height="100%"
+      border="0"
+      cellpadding="0"
+      cellspacing="0"
+    >
+      <!-- Header -->
+      <tr height="80">
+        <td colspan="2" bgcolor="#000000" align="center">
+          <font color="#FFFFFF" size="6" face="Comic Sans MS, Arial"
+            ><b>Monochrome Music</b></font
+          ><br />
+          <font color="#cccccc" size="2">music</font>
+        </td>
+      </tr>
+
+      <!-- Marquee -->
+      <tr height="20">
+        <td colspan="2" class="marquee-container">
+          <marquee scrollamount="5" scrolldelay="100"
+            >compatibility information</marquee
+          >
+        </td>
+      </tr>
+
+      <!-- Main Body -->
+      <tr valign="top">
+        <!-- Sidebar -->
+        <td width="150" bgcolor="#dddddd" class="beveled-box">
+          <br />
+          <center><b>Menu</b></center>
+          <hr />
+          <ul style="list-style-type: square; padding-left: 20px">
+            <li class="sidebar-link">
+              <a href="html5.html" id="btn-home">Home</a>
+            </li>
+            <li class="sidebar-link">
+              <a href="compatibility.html">Compatibility</a>
+            </li>
+            <li class="sidebar-link"><a href="/">Modern Site</a></li>
+          </ul>
+          <br />
+          <center>
+            <img
+              src="getie3.gif"
+              alt="IE Logo"
+              width="88"
+              height="31"
+            /><br /><br />
+            <font size="1">free and open software</font><br /><br />
+            <font size="1">made by binimum</font>
+          </center>
+        </td>
+
+        <!-- Content -->
+        <td bgcolor="#ffffff">
+          <div style="padding: 20px">
+            <center><h3>System Requirements</h3></center>
+            <hr />
+
+            <font face="Verdana" size="2">
+              <p>
+                Welcome to the Monochrome Music Legacy Edition connectivity test
+                center.
+              </p>
+
+              <p>
+                <b>Requirement:</b> Any browser that supports
+                <a href="https://caniuse.com/aac">AAC Audio</a> or
+                <a href="https://caniuse.com/flac">FLAC Audio</a>.
+              </p>
+
+              <div
+                class="beveled-box"
+                style="padding: 10px; background-color: #eeeeee"
+              >
+                <h4>Officially supported: (HTML5)</h4>
+                <ul>
+                  <li><b>Internet Explorer</b> 9+</li>
+                  <li><b>Google Chrome</b> 12+</li>
+                  <li><b>Safari</b> 5+</li>
+                  <li>
+                    <b>Firefox</b> 22+ (must have AAC codecs installed - so not
+                    WinXP/Win7 by default until Firefox 51+!)
+                  </li>
+                </ul>
+                <p>
+                  <i
+                    >Note: Older browsers (IE 5.5-8) may work if you have Adobe
+                    Flash Player installed.</i
+                  >
+                </p>
+                <p>
+                  <i
+                    >Note 2: On many older browsers you will need to visit the
+                    site <b>using HTTP and NOT HTTPS</b> due to outdated SSL.</i
+                  >
+                </p>
+              </div>
+
+              <br />
+
+              <table width="100%" border="1" cellpadding="5" cellspacing="0">
+                <tr bgcolor="#cccccc">
+                  <th>Browser</th>
+                  <th>Min version</th>
+                  <th>Status</th>
+                </tr>
+                <tr>
+                  <td>Internet Explorer</td>
+                  <td>9</td>
+                  <td>
+                    <font color="green"><b>Tested (AAC)</b></font>
+                  </td>
+                </tr>
+                <tr>
+                  <td rowspan="2">Google Chrome</td>
+                  <td>15</td>
+                  <td>
+                    <font color="green"><b>Tested (AAC)</b></font>
+                  </td>
+                </tr>
+                <tr>
+                  <td>56</td>
+                  <td>
+                    <font color="green"><b>Tested (FLAC)</b></font>
+                  </td>
+                </tr>
+                <tr>
+                  <td rowspan="2">Safari</td>
+                  <td>5</td>
+                  <td>
+                    <font color="green"><b>Tested on 5.1 (AAC)</b></font>
+                  </td>
+                </tr>
+                <tr>
+                  <td>13</td>
+                  <td>
+                    <font color="green"><b>Tested on 13.1 (FLAC)</b></font>
+                  </td>
+                </tr>
+                <tr>
+                  <td rowspan="2">Firefox</td>
+                  <td>22</td>
+                  <td>
+                    <font color="orange"
+                      ><b>Partial (AAC requires codecs)</b></font
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <td>52</td>
+                  <td>
+                    <font color="green"><b>Tested (FLAC)</b></font>
+                  </td>
+                </tr>
+              </table>
+
+              <br />
+              <p align="center">
+                <a href="html5.html"><b>&lt;&lt; Return to Player</b></a>
+              </p>
+            </font>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
