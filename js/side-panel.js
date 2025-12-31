@@ -44,6 +44,19 @@ export class SidePanelManager {
         return this.currentView === view && this.panel.classList.contains('active');
     }
 
+    refresh(view, renderControlsCallback, renderContentCallback) {
+        if (this.isActive(view)) {
+            if (renderControlsCallback) {
+                this.controlsElement.innerHTML = '';
+                renderControlsCallback(this.controlsElement);
+            }
+            if (renderContentCallback) {
+                this.contentElement.innerHTML = '';
+                renderContentCallback(this.contentElement);
+            }
+        }
+    }
+
     updateContent(view, renderContentCallback) {
         if (this.isActive(view)) {
             this.contentElement.innerHTML = '';
