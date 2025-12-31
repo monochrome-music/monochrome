@@ -295,72 +295,10 @@ $(document).ready(function () {
             
         } else {
             // No native audio support (IE < 9)
-            playLegacySoundJS(streamUrl, id, quality);
+            handleError("No Native Audio Support");
         }
     }
     
-    function playLegacySoundJS(url, id, quality, isRetry) {
-        updateStatus("Activating Legacy Player (Flash)" + ((isRetry) ? " (HTTP)..." : "..."));
-        
-        // SoundJS Logic
-        var soundJsUrl = url;
-        // Hint extension for SoundJS
-        if (soundJsUrl.indexOf(".mp3") === -1 && soundJsUrl.indexOf(".m4a") === -1) {
-             soundJsUrl += "#.m4a"; // Default to AAC hint
-        }
-        
-        // If FLAC and we are here, SoundJS will likely fail, but we'll try or alert.
-        if (quality === "LOSSLESS") {
-            // SoundJS can't do FLAC. And if native failed, we are out of luck for FLAC.
-            // Try falling back to AAC quality for the whole track?
-            if (!attemptFallback) {
-                console.log("FLAC failed native, switching to HIGH quality fallback...");
-                window.playTrack(id, true);
-                return;
-            }
-        }
-
-        var soundId = "track_" + id + "_" + quality + (isRetry ? "_http" : "");
-        createjs.Sound.removeAllEventListeners("fileload");
-        
-        var playSound = function() {
-             var instance = createjs.Sound.play(soundId);
-             if (!instance || instance.playState === createjs.Sound.PLAY_FAILED) {
-                 handleLegacyError("Legacy Playback Failed");
-             } else {
-                 updateStatus("Now Playing via Flash/Legacy...");
-             }
-        };
-
-        createjs.Sound.addEventListener("fileload", function(event) {
-            if (event.id === soundId) {
-                playSound();
-            }
-        });
-
-        try {
-            createjs.Sound.registerSound(soundJsUrl, soundId);
-        } catch(e) {
-            handleLegacyError("Legacy Setup Failed: " + e.message);
-        }
-        
-        function handleLegacyError(msg) {
-             if (!isRetry && url.indexOf("https://") === 0) {
-                 console.log("Legacy HTTPS failed ("+msg+"), retrying HTTP...");
-                 var httpUrl = "http://" + url.substring(8);
-                 playLegacySoundJS(httpUrl, id, quality, true);
-                 return;
-             }
-             handleError(msg);
-        }
-    }
-
-    function updateStatus(msg) {
-         if (currentTrackInfo.length) {
-            currentTrackInfo.html(msg);
-         }
-    }
-
     function handleError(msg) {
         if (!attemptFallback) {
              window.playTrack(id, true);
