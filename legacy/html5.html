@@ -1,32 +1,12 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!DOCTYPE html>
 <html>
   <head>
-    <title>Monochrome Legacy</title>
-
-    <script>
-      // HTML5 Redirection Logic
-      // If browser supports Canvas and Audio, redirect to the HTML5 version.
-      // This targets Chrome 10+, Safari 3+, IE9+, Firefox 3.5+
-      (function () {
-        var hasCanvas = !!document.createElement("canvas").getContext;
-        var hasAudio = !!(window.Audio && new window.Audio().canPlayType);
-
-        // Prevent redirect loop if already there (check filename not needed if files differ, but safe)
-        if (hasCanvas && hasAudio) {
-          // Check if user manually opted out? (Optional, skipping for now)
-          if (window.location.href.indexOf("html5.html") === -1) {
-            window.location.href = "html5.html";
-          }
-        }
-      })();
-    </script>
-
+    <title>Monochrome Legacy (HTML5)</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
     <link rel="stylesheet" type="text/css" href="legacy.css" />
-    <script type="text/javascript" src="jquery.min.js"></script>
-    <script type="text/javascript" src="swfobject.js"></script>
-    <script type="text/javascript" src="soundjs-0.5.2.min.js"></script>
-    <script type="text/javascript" src="flashplugin.js"></script>
-    <script type="text/javascript" src="legacy.js"></script>
+    <script type="text/javascript" src="jquery-1.6.4.min.js"></script>
+    <script type="text/javascript" src="html5.js"></script>
   </head>
   <body>
     <table
@@ -83,7 +63,7 @@
               height="31"
             /><br /><br />
             <font size="1">Free and open software</font><br /><br />
-            <font size="1">made by binimum</font><br /><br />
+            <font size="1">made by binimum</font>
           </center>
         </td>
 

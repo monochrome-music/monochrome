@@ -2,7 +2,8 @@
 $(document).ready(function () {
   // CORS Support for IE8/9 (XDomainRequest)
   // Required because IE8/9 do not support CORS via standard XMLHttpRequest
-  if (window.XDomainRequest) {
+  // Note: $.ajaxTransport was added in jQuery 1.5. If using 1.2.6, this will be skipped.
+  if (window.XDomainRequest && $.ajaxTransport) {
       $.ajaxTransport(function(s) {
           if (s.crossDomain && s.async) {
               if (s.timeout) {
@@ -65,14 +66,7 @@ $(document).ready(function () {
   var audioPlayer = $("#audio-player")[0];
   var currentTrackInfo = $("#now-playing-info");
 
-  // Initialize SoundJS
-  // Note: Class is FlashPlugin in 0.5.2, but SWF is FlashAudioPlugin.swf
-  createjs.FlashPlugin.swfPath = "./"; 
-  // Custom Architecture:
-  // We handle HTML5 Audio manually via playNativeFirst() for full control (UI, timeouts, hacks).
-  // SoundJS is reserved STRICTLY for Flash fallback on legacy browsers (IE, old Chrome).
-  // Therefore, we ONLY register the FlashPlugin.
-  createjs.Sound.registerPlugins([createjs.FlashPlugin]);
+  // HTML5 Version - No Flash/SoundJS (Cleared)
   
   // Initial Load
   // Run HTTPS probe first
@@ -152,10 +146,7 @@ $(document).ready(function () {
   // Global functions exposed for inline onclicks
   // Global Stop function to prevent overlap
   function stopAllAudio() {
-      // 1. Stop SoundJS
-      if (typeof createjs !== "undefined" && createjs.Sound) {
-          createjs.Sound.stop();
-      }
+      // 1. Stop SoundJS (Removed in HTML5 ver)
       
       // 2. Stop DOM Player
       if (audioPlayer) {
@@ -244,7 +235,8 @@ $(document).ready(function () {
                      return;
                 }
                 
-                playLegacySoundJS(streamUrl, id, quality);
+                // If native fails on HTML5 site, we have no Flash fallback.
+                handleError("Playback Failed - No Flash Fallback Available (" + msg + ")");
             }
             
             // Set error handler for THIS attempt
@@ -303,66 +295,10 @@ $(document).ready(function () {
             
         } else {
             // No native audio support (IE < 9)
-            playLegacySoundJS(streamUrl, id, quality);
+            handleError("No Native Audio Support");
         }
     }
     
-    function playLegacySoundJS(url, id, quality, isRetry) {
-        updateStatus("Activating Legacy Player (Flash)" + ((isRetry) ? " (HTTP)..." : "..."));
-        
-        // SoundJS Logic
-        var soundJsUrl = url;
-        // Hint extension for SoundJS
-        if (soundJsUrl.indexOf(".mp3") === -1 && soundJsUrl.indexOf(".m4a") === -1) {
-             soundJsUrl += "#.m4a"; // Default to AAC hint
-        }
-        
-        // If FLAC and we are here, SoundJS will likely fail, but we'll try or alert.
-        if (quality === "LOSSLESS") {
-            // SoundJS can't do FLAC. And if native failed, we are out of luck for FLAC.
-            // Try falling back to AAC quality for the whole track?
-            if (!attemptFallback) {
-                console.log("FLAC failed native, switching to HIGH quality fallback...");
-                window.playTrack(id, true);
-                return;
-            }
-        }
-
-        var soundId = "track_" + id + "_" + quality + (isRetry ? "_http" : "");
-        createjs.Sound.removeAllEventListeners("fileload");
-        
-        var playSound = function() {
-             var instance = createjs.Sound.play(soundId);
-             if (!instance || instance.playState === createjs.Sound.PLAY_FAILED) {
-                 handleLegacyError("Legacy Playback Failed");
-             } else {
-                 updateStatus("Now Playing via Flash/Legacy...");
-             }
-        };
-
-        createjs.Sound.addEventListener("fileload", function(event) {
-            if (event.id === soundId) {
-                playSound();
-            }
-        });
-
-        try {
-            createjs.Sound.registerSound(soundJsUrl, soundId);
-        } catch(e) {
-            handleLegacyError("Legacy Setup Failed: " + e.message);
-        }
-        
-        function handleLegacyError(msg) {
-             if (!isRetry && url.indexOf("https://") === 0) {
-                 console.log("Legacy HTTPS failed ("+msg+"), retrying HTTP...");
-                 var httpUrl = "http://" + url.substring(8);
-                 playLegacySoundJS(httpUrl, id, quality, true);
-                 return;
-             }
-             handleError(msg);
-        }
-    }
-
     function updateStatus(msg) {
          if (currentTrackInfo.length) {
             currentTrackInfo.html(msg);
