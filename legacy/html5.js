@@ -2,7 +2,8 @@
 $(document).ready(function () {
   // CORS Support for IE8/9 (XDomainRequest)
   // Required because IE8/9 do not support CORS via standard XMLHttpRequest
-  if (window.XDomainRequest) {
+  // Note: $.ajaxTransport was added in jQuery 1.5. If using 1.2.6, this will be skipped.
+  if (window.XDomainRequest && $.ajaxTransport) {
       $.ajaxTransport(function(s) {
           if (s.crossDomain && s.async) {
               if (s.timeout) {
