@@ -1,5 +1,5 @@
 // sw.js
-const SW_VERSION = 'monochrome-v5'; // Note To Self: Change Every Deploy
+const SW_VERSION = 'monochrome-v6'; // Note To Self: Change Every Deploy
 const CACHE_NAME = `monochrome-${SW_VERSION}`;
 
 const ASSETS = [
