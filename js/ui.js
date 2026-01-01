@@ -1239,39 +1239,56 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
 
     renderApiSettings() {
         const container = document.getElementById('api-instance-list');
-        this.api.settings.getInstances().then(instances => {
+        Promise.all([
+            this.api.settings.getInstances('api'),
+            this.api.settings.getInstances('streaming')
+        ]).then(([apiInstances, streamingInstances]) => {
             const cachedData = this.api.settings.getCachedSpeedTests();
             const speeds = cachedData?.speeds || {};
 
-            container.innerHTML = instances.map((url, index) => {
-                const speedInfo = speeds[url];
-                const speedText = speedInfo
-                    ? (speedInfo.speed === Infinity || typeof speedInfo.speed !== 'number'
-                        ? `<span style="color: var(--muted-foreground); font-size: 0.8rem;">Failed</span>`
-                        : `<span style="color: var(--muted-foreground); font-size: 0.8rem;">${speedInfo.speed.toFixed(0)}ms</span>`)
-                    : '';
+            const renderGroup = (instances, type) => {
+                if (!instances || instances.length === 0) return '';
+
+                const listHtml = instances.map((url, index) => {
+                    const cacheKey = type === 'streaming' ? `${url}#streaming` : url;
+                    const speedInfo = speeds[cacheKey];
+                    const speedText = speedInfo
+                        ? (speedInfo.speed === Infinity || typeof speedInfo.speed !== 'number'
+                            ? `<span style="color: var(--muted-foreground); font-size: 0.8rem;">Failed</span>`
+                            : `<span style="color: var(--muted-foreground); font-size: 0.8rem;">${speedInfo.speed.toFixed(0)}ms</span>`)
+                        : '';
+
+                    return `
+                        <li data-index="${index}" data-type="${type}">
+                            <div style="flex: 1; min-width: 0;">
+                                <div class="instance-url">${url}</div>
+                                ${speedText}
+                            </div>
+                            <div class="controls">
+                                <button class="move-up" title="Move Up" ${index === 0 ? 'disabled' : ''}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 19V5M5 12l7-7 7 7"/>
+                                    </svg>
+                                </button>
+                                <button class="move-down" title="Move Down" ${index === instances.length - 1 ? 'disabled' : ''}>
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 5v14M19 12l-7 7-7-7"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </li>
+                    `;
+                }).join('');
 
                 return `
-                    <li data-index="${index}">
-                        <div style="flex: 1; min-width: 0;">
-                            <div class="instance-url">${url}</div>
-                            ${speedText}
-                        </div>
-                        <div class="controls">
-                            <button class="move-up" title="Move Up" ${index === 0 ? 'disabled' : ''}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M12 19V5M5 12l7-7 7 7"/>
-                                </svg>
-                            </button>
-                            <button class="move-down" title="Move Down" ${index === instances.length - 1 ? 'disabled' : ''}>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M12 5v14M19 12l-7 7-7-7"/>
-                                </svg>
-                            </button>
-                        </div>
+                    <li class="group-header" style="font-weight: bold; padding: 1rem 0 0.5rem; background: transparent; border: none; pointer-events: none;">
+                        ${type === 'api' ? 'API Instances' : 'Streaming Instances'}
                     </li>
+                    ${listHtml}
                 `;
-            }).join('');
+            };
+
+            container.innerHTML = renderGroup(apiInstances, 'api') + renderGroup(streamingInstances, 'streaming');
 
             const stats = this.api.getCacheStats();
             const cacheInfo = document.getElementById('cache-info');

@@ -333,7 +333,9 @@ export function initializeSettings(scrobbler, player, api, ui) {
 
         const li = button.closest('li');
         const index = parseInt(li.dataset.index, 10);
-        const instances = await api.settings.getInstances();
+        const type = li.dataset.type || 'api'; // Default to api if not present
+        
+        const instances = await api.settings.getInstances(type);
 
         if (button.classList.contains('move-up') && index > 0) {
             [instances[index], instances[index - 1]] = [instances[index - 1], instances[index]];
@@ -341,7 +343,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
             [instances[index], instances[index + 1]] = [instances[index + 1], instances[index]];
         }
 
-        api.settings.saveInstances(instances);
+        api.settings.saveInstances(instances, type);
         ui.renderApiSettings();
     });
 

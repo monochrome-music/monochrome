@@ -29,9 +29,10 @@ export class LosslessAPI {
     }
 
     async fetchWithRetry(relativePath, options = {}) {
-        const instances = await this.settings.getInstances();
+        const type = options.type || 'api';
+        const instances = await this.settings.getInstances(type);
         if (instances.length === 0) {
-            throw new Error("No API instances configured.");
+            throw new Error(`No API instances configured for type: ${type}`);
         }
 
         const maxRetries = 3;
@@ -592,15 +593,12 @@ export class LosslessAPI {
     return [trackStub, raw];
 }
 
-
-
-    
     async getTrack(id, quality = 'LOSSLESS') {
         const cacheKey = `${id}_${quality}`;
         const cached = await this.cache.get('track', cacheKey);
         if (cached) return cached;
 
-        const response = await this.fetchWithRetry(`/track/?id=${id}&quality=${quality}`);
+        const response = await this.fetchWithRetry(`/track/?id=${id}&quality=${quality}`, { type: 'streaming' });
         const jsonResponse = await response.json();
         const result = this.parseTrackLookup(this.normalizeTrackResponse(jsonResponse));
 
