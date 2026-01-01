@@ -721,6 +721,32 @@ body.has-page-background .track-item:hover {
     object-fit: cover;
 }
 
+.card-collage {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    overflow: hidden;
+    padding: 0;
+}
+
+.card-collage img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 0;
+    margin: 0;
+}
+
+.card-collage.items-3 img:first-child {
+    grid-row: span 2;
+    height: 100%;
+}
+
+.card-collage.items-2 {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+}
+
 .card.artist .card-image {
     border-radius: 50%;
 }

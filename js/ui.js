@@ -219,10 +219,43 @@ export class UIRenderer {
     }
 
     createUserPlaylistCardHTML(playlist) {
+        let imageHTML = '';
+        
+        if (playlist.cover) {
+             imageHTML = `<img src="${playlist.cover}" alt="${playlist.name}" class="card-image" loading="lazy">`;
+        } else {
+            const tracks = playlist.tracks || [];
+            const uniqueCovers = [];
+            const seenCovers = new Set();
+
+            for (const track of tracks) {
+                const cover = track.album?.cover;
+                if (cover && !seenCovers.has(cover)) {
+                    seenCovers.add(cover);
+                    uniqueCovers.push(cover);
+                    if (uniqueCovers.length >= 4) break;
+                }
+            }
+
+            if (uniqueCovers.length >= 2) {
+                const count = uniqueCovers.length;
+                const itemsClass = count < 4 ? `items-${count}` : '';
+                imageHTML = `
+                    <div class="card-image card-collage ${itemsClass}">
+                        ${uniqueCovers.map(cover => `<img src="${this.api.getCoverUrl(cover, '320')}" alt="" loading="lazy">`).join('')}
+                    </div>
+                `;
+            } else if (uniqueCovers.length > 0) {
+                imageHTML = `<img src="${this.api.getCoverUrl(uniqueCovers[0], '320')}" alt="${playlist.name}" class="card-image" loading="lazy">`;
+            } else {
+                imageHTML = `<img src="assets/appicon.png" alt="${playlist.name}" class="card-image" loading="lazy">`;
+            }
+        }
+
         return `
             <div class="card user-playlist" data-playlist-id="${playlist.id}" data-href="#userplaylist/${playlist.id}" style="cursor: pointer;">
                 <div class="card-image-wrapper">
-                    <img src="${playlist.cover || 'assets/appicon.png'}" alt="${playlist.name}" class="card-image" loading="lazy">
+                    ${imageHTML}
                     <button class="edit-playlist-btn" data-action="edit-playlist" title="Edit Playlist">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
