@@ -282,17 +282,16 @@
             </div>
 
             <section id="page-playlist" class="page">
-                <div class="detail-header">
-                    <img id="playlist-detail-image" class="detail-cover" alt="Playlist Cover">
+                <header class="detail-header">
+                    <img id="playlist-detail-image" class="detail-header-image" alt="Playlist Cover">
                     <div class="detail-header-info">
                         <h1 class="title" id="playlist-detail-title"></h1>
-                        <p class="meta" id="playlist-detail-meta"></p>
+                        <div class="meta" id="playlist-detail-meta"></div>
                         <p id="playlist-detail-description" class="detail-description"></p>
-                        <div class="detail-actions">
+                        <div class="detail-header-actions">
                             <button id="play-playlist-btn" class="btn-primary">
                                 <span>Play</span>
                             </button>
-                            <!-- Like button not typically for own playlists, but good for "followed" ones if we support that. For now, maybe skip or add "Edit" if it's user playlist -->
                             <button id="download-playlist-btn" class="btn-primary">
                                 <span>Download</span>
                             </button>
@@ -301,24 +300,24 @@
                             </button>
                         </div>
                     </div>
-                </div>
+                </header>
                 <div id="playlist-detail-tracklist" class="track-list"></div>
             </section>
 
             <section id="page-mix" class="page">
-                <div class="detail-header">
-                    <img id="mix-detail-image" class="detail-cover" alt="Mix Cover">
+                <header class="detail-header">
+                    <img id="mix-detail-image" class="detail-header-image" alt="Mix Cover">
                     <div class="detail-header-info">
                         <h1 class="title" id="mix-detail-title"></h1>
-                        <p class="meta" id="mix-detail-meta"></p>
+                        <div class="meta" id="mix-detail-meta"></div>
                         <p id="mix-detail-description" class="detail-description"></p>
-                        <div class="detail-actions">
+                        <div class="detail-header-actions">
                             <button id="play-mix-btn" class="btn-primary">
                                 <span>Play</span>
                             </button>
                         </div>
                     </div>
-                </div>
+                </header>
                 <div id="mix-detail-tracklist" class="track-list"></div>
             </section>
 
