@@ -884,24 +884,27 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
 
             document.title = `${album.title} - ${album.artist.name} - Monochrome`;
 
-            // "More from Artist" Sections
+            // "More from Artist" and Related Sections
+            const moreAlbumsSection = document.getElementById('album-section-more-albums');
+            const moreAlbumsContainer = document.getElementById('album-detail-more-albums');
+            const moreAlbumsTitle = document.getElementById('album-title-more-albums');
+            
+            const epsSection = document.getElementById('album-section-eps');
+            const epsContainer = document.getElementById('album-detail-eps');
+            const epsTitle = document.getElementById('album-title-eps');
+            
+            const similarArtistsSection = document.getElementById('album-section-similar-artists');
+            const similarArtistsContainer = document.getElementById('album-detail-similar-artists');
+            
+            const similarAlbumsSection = document.getElementById('album-section-similar-albums');
+            const similarAlbumsContainer = document.getElementById('album-detail-similar-albums');
+
+            // Hide all initially
+            [moreAlbumsSection, epsSection, similarArtistsSection, similarAlbumsSection].forEach(el => {
+                if (el) el.style.display = 'none';
+            });
+
             try {
-                // Remove any existing "More from" sections if re-rendering
-                document.querySelectorAll('.album-more-section').forEach(el => el.remove());
-                document.getElementById('album-more-from-artist')?.remove(); // Legacy cleanup
-
-                // Create placeholder section while loading
-                const placeholderSection = document.createElement('section');
-                placeholderSection.className = 'content-section album-more-section';
-                placeholderSection.style.marginTop = '3rem';
-                placeholderSection.innerHTML = `
-                    <h2 class="section-title">More from ${album.artist.name}</h2>
-                    <div class="card-grid">
-                        ${this.createSkeletonCards(6, false)}
-                    </div>
-                `;
-                document.getElementById('page-album').appendChild(placeholderSection);
-
                 const artistData = await this.api.getArtist(album.artist.id);
                 
                 // Add Mix/Radio Button to header
@@ -910,11 +913,10 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                     mixBtn.style.display = 'flex';
                     mixBtn.onclick = () => window.location.hash = `#mix/${artistData.mixes.ARTIST_MIX}?type=artist&name=${encodeURIComponent(artistData.name)}`;
                 }
-                
-                // Remove placeholder
-                placeholderSection.remove();
 
-                const renderSection = (title, items) => {
+                const renderSection = (items, container, section, titleEl, titleText) => {
+                    if (!container || !section) return;
+                    
                     const filtered = (items || [])
                         .filter(a => a.id != album.id)
                         .filter((a, index, self) => 
@@ -924,19 +926,12 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                     
                     if (filtered.length === 0) return;
 
-                    const section = document.createElement('section');
-                    section.className = 'content-section album-more-section';
-                    section.style.marginTop = '3rem';
-                    section.innerHTML = `
-                        <h2 class="section-title">${title}</h2>
-                        <div class="card-grid">
-                            ${filtered.map(a => this.createAlbumCardHTML(a)).join('')}
-                        </div>
-                    `;
-                    document.getElementById('page-album').appendChild(section);
+                    container.innerHTML = filtered.map(a => this.createAlbumCardHTML(a)).join('');
+                    if (titleEl && titleText) titleEl.textContent = titleText;
+                    section.style.display = 'block';
 
                     filtered.forEach(a => {
-                        const el = section.querySelector(`[data-album-id="${a.id}"]`);
+                        const el = container.querySelector(`[data-album-id="${a.id}"]`);
                         if (el) {
                             trackDataStore.set(el, a);
                             this.updateLikeState(el, 'album', a.id);
@@ -944,41 +939,25 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                     });
                 };
 
-                renderSection(`More albums from ${album.artist.name}`, artistData.albums);
-                renderSection(`EPs and Singles from ${album.artist.name}`, artistData.eps);
+                renderSection(artistData.albums, moreAlbumsContainer, moreAlbumsSection, moreAlbumsTitle, `More albums from ${album.artist.name}`);
+                renderSection(artistData.eps, epsContainer, epsSection, epsTitle, `EPs and Singles from ${album.artist.name}`);
 
                 // Similar Artists
                 this.api.getSimilarArtists(album.artist.id).then(similar => {
-                    if (similar && similar.length > 0) {
-                        const section = document.createElement('section');
-                        section.className = 'content-section album-more-section';
-                        section.style.marginTop = '3rem';
-                        section.innerHTML = `
-                            <h2 class="section-title">Similar Artists</h2>
-                            <div class="card-grid">
-                                ${similar.map(a => this.createArtistCardHTML(a)).join('')}
-                            </div>
-                        `;
-                        document.getElementById('page-album').appendChild(section);
+                    if (similar && similar.length > 0 && similarArtistsContainer && similarArtistsSection) {
+                        similarArtistsContainer.innerHTML = similar.map(a => this.createArtistCardHTML(a)).join('');
+                        similarArtistsSection.style.display = 'block';
                     }
                 }).catch(e => console.warn('Failed to load similar artists:', e));
 
                 // Similar Albums
                 this.api.getSimilarAlbums(albumId).then(similar => {
-                    if (similar && similar.length > 0) {
-                        const section = document.createElement('section');
-                        section.className = 'content-section album-more-section';
-                        section.style.marginTop = '3rem';
-                        section.innerHTML = `
-                            <h2 class="section-title">Similar Albums</h2>
-                            <div class="card-grid">
-                                ${similar.map(a => this.createAlbumCardHTML(a)).join('')}
-                            </div>
-                        `;
-                        document.getElementById('page-album').appendChild(section);
+                    if (similar && similar.length > 0 && similarAlbumsContainer && similarAlbumsSection) {
+                        similarAlbumsContainer.innerHTML = similar.map(a => this.createAlbumCardHTML(a)).join('');
+                        similarAlbumsSection.style.display = 'block';
                         
                         similar.forEach(a => {
-                            const el = section.querySelector(`[data-album-id="${a.id}"]`);
+                            const el = similarAlbumsContainer.querySelector(`[data-album-id="${a.id}"]`);
                             if (el) {
                                 trackDataStore.set(el, a);
                                 this.updateLikeState(el, 'album', a.id);
@@ -989,7 +968,6 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
 
             } catch (err) {
                 console.warn('Failed to load "More from artist":', err);
-                document.querySelectorAll('.album-more-section').forEach(el => el.remove());
             }
 
         } catch (error) {
