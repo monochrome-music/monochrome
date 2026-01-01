@@ -225,24 +225,28 @@ export class UIRenderer {
              imageHTML = `<img src="${playlist.cover}" alt="${playlist.name}" class="card-image" loading="lazy">`;
         } else {
             const tracks = playlist.tracks || [];
-            const uniqueCovers = [];
-            const seenCovers = new Set();
+            let uniqueCovers = playlist.images || [];
+            const seenCovers = new Set(uniqueCovers);
 
-            for (const track of tracks) {
-                const cover = track.album?.cover;
-                if (cover && !seenCovers.has(cover)) {
-                    seenCovers.add(cover);
-                    uniqueCovers.push(cover);
-                    if (uniqueCovers.length >= 4) break;
+            if (uniqueCovers.length === 0) {
+                for (const track of tracks) {
+                    const cover = track.album?.cover;
+                    if (cover && !seenCovers.has(cover)) {
+                        seenCovers.add(cover);
+                        uniqueCovers.push(cover);
+                        if (uniqueCovers.length >= 4) break;
+                    }
                 }
             }
 
             if (uniqueCovers.length >= 2) {
-                const count = uniqueCovers.length;
+                const count = Math.min(uniqueCovers.length, 4);
                 const itemsClass = count < 4 ? `items-${count}` : '';
+                const covers = uniqueCovers.slice(0, 4);
+                
                 imageHTML = `
                     <div class="card-image card-collage ${itemsClass}">
-                        ${uniqueCovers.map(cover => `<img src="${this.api.getCoverUrl(cover, '320')}" alt="" loading="lazy">`).join('')}
+                        ${covers.map(cover => `<img src="${this.api.getCoverUrl(cover, '320')}" alt="" loading="lazy">`).join('')}
                     </div>
                 `;
             } else if (uniqueCovers.length > 0) {
@@ -276,7 +280,7 @@ export class UIRenderer {
                     </button>
                 </div>
                 <h3 class="card-title">${playlist.name}</h3>
-                <p class="card-subtitle">${playlist.tracks ? playlist.tracks.length : 0} tracks</p>
+                <p class="card-subtitle">${playlist.tracks ? playlist.tracks.length : (playlist.numberOfTracks || 0)} tracks</p>
             </div>
         `;
     }
@@ -1087,12 +1091,25 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                 actionsDiv.appendChild(editBtn);
                 actionsDiv.appendChild(deleteBtn);
 
+                const uniqueCovers = [];
+                const seenCovers = new Set();
+                const trackList = userPlaylist.tracks || [];
+                for (const track of trackList) {
+                    const cover = track.album?.cover;
+                    if (cover && !seenCovers.has(cover)) {
+                        seenCovers.add(cover);
+                        uniqueCovers.push(cover);
+                        if (uniqueCovers.length >= 4) break;
+                    }
+                }
+
                 recentActivityManager.addPlaylist({ 
                     id: userPlaylist.id,
                     name: userPlaylist.name,
                     title: userPlaylist.name,
                     uuid: userPlaylist.id,
                     cover: userPlaylist.cover,
+                    images: uniqueCovers,
                     numberOfTracks: userPlaylist.tracks ? userPlaylist.tracks.length : 0,
                     isUserPlaylist: true
                 });
