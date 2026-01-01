@@ -3061,7 +3061,8 @@ input:checked + .slider::before {
     opacity: 1;
 }
 
-#page-playlist .detail-header {
+#page-playlist .detail-header,
+#page-mix .detail-header {
     display: flex;
     align-items: flex-top;
     gap: var(--spacing-xl);
@@ -3069,7 +3070,8 @@ input:checked + .slider::before {
     padding-bottom: var(--spacing-md);
 }
 
-#page-playlist .detail-cover {
+#page-playlist .detail-cover,
+#page-mix .detail-cover {
     width: 200px;
     height: 200px;
     flex-shrink: 0;
@@ -3080,12 +3082,14 @@ input:checked + .slider::before {
     transition: opacity 0.3s ease-in-out;
 }
 
-#playlist-detail-image.loading {
+#playlist-detail-image.loading,
+#mix-detail-image.loading {
     opacity: 0.3;
 }
 
 
-#playlist-detail-title {
+#playlist-detail-title,
+#mix-detail-title {
     font-size: 3rem;
     font-weight: 800;
     line-height: 1.1;
@@ -3096,7 +3100,8 @@ input:checked + .slider::before {
     flex-wrap: wrap;
 }
 
-#playlist-detail-meta {
+#playlist-detail-meta,
+#mix-detail-meta {
     color: var(--muted-foreground);
     font-size: 0.95rem;
     margin-bottom: 0.75rem;
@@ -3106,7 +3111,8 @@ input:checked + .slider::before {
     flex-wrap: wrap;
 }
 
-#playlist-detail-description {
+#playlist-detail-description,
+#mix-detail-description {
     color: var(--foreground);
     font-size: 0.9rem;
     line-height: 1.6;
@@ -3114,7 +3120,8 @@ input:checked + .slider::before {
     max-width: 600px;
 }
 
-#page-playlist .detail-actions {
+#page-playlist .detail-actions,
+#page-mix .detail-actions {
     display: flex;
     gap: 1rem;
     margin-top: 1.5rem;
@@ -3178,7 +3185,8 @@ input:checked + .slider::before {
 }
 
 @media (max-width: 768px) {
-    #page-playlist .detail-header {
+    #page-playlist .detail-header,
+    #page-mix .detail-header {
         flex-direction: column;
         align-items: flex-start;
         gap: var(--spacing-lg);
@@ -3186,42 +3194,21 @@ input:checked + .slider::before {
         margin-bottom: var(--spacing-lg);
     }
 
-    #playlist-detail-image {
+    #playlist-detail-image,
+    #mix-detail-image {
         width: 150px;
         height: 150px;
     }
 
-    #playlist-detail-title {
+    #playlist-detail-title,
+    #mix-detail-title {
         font-size: 2rem;
         line-height: 1.2;
     }
 
-    #playlist-detail-meta {
+    #playlist-detail-meta,
+    #mix-detail-meta {
         font-size: 0.85rem;
-        gap: 0.35rem;
-    }
-
-    #playlist-detail-description {
-        font-size: 0.85rem;
-        max-width: none;
-    }
-
-    #page-playlist .detail-actions {
-        width: auto;
-        flex-direction: row;
-    }
-
-    #play-playlist-btn,
-    #download-playlist-btn {
-        width: auto;
-        padding: 0.875rem;
-        border-radius: 50%;
-        aspect-ratio: 1/1;
-    }
-
-    #play-playlist-btn span,
-    #download-playlist-btn span {
-        display: none;
     }
 }
 

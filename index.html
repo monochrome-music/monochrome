@@ -41,34 +41,33 @@
             <!-- Content injected dynamically -->
         </div>
     </div>
-    
-<div id="fullscreen-cover-overlay" style="display: none;">
-    <div class="fullscreen-cover-content">
-        <button id="close-fullscreen-cover-btn" title="Close">&times;</button>
-        <button id="toggle-fullscreen-lyrics-btn" class="fullscreen-lyrics-toggle" title="Toggle Lyrics">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                <line x1="12" y1="19" x2="12" y2="22"/>
-                <line x1="8" y1="22" x2="16" y2="22"/>
-            </svg>
-        </button>
-        <div class="fullscreen-main-view">
-            <img id="fullscreen-cover-image" src="" alt="Album Cover">
-            <div class="fullscreen-track-info">
-                <h2 id="fullscreen-track-title"></h2>
-                <h3 id="fullscreen-track-artist"></h3>
-                <div id="fullscreen-next-track" style="display: none;">
-                    <span class="label">Up Next: </span>
-                    <span class="value"></span>
+
+    <div id="fullscreen-cover-overlay" style="display: none;">
+        <div class="fullscreen-cover-content">
+            <button id="close-fullscreen-cover-btn" title="Close">&times;</button>
+            <button id="toggle-fullscreen-lyrics-btn" class="fullscreen-lyrics-toggle" title="Toggle Lyrics">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="22"/>
+                    <line x1="8" y1="22" x2="16" y2="22"/>
+                </svg>
+            </button>
+            <div class="fullscreen-main-view">
+                <img id="fullscreen-cover-image" src="" alt="Album Cover">
+                <div class="fullscreen-track-info">
+                    <h2 id="fullscreen-track-title"></h2>
+                    <h3 id="fullscreen-track-artist"></h3>
+                    <div id="fullscreen-next-track" style="display: none;">
+                        <span class="label">Up Next: </span>
+                        <span class="value"></span>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="fullscreen-lyrics-container" id="fullscreen-lyrics-container" style="display: none;">
+            <div class="fullscreen-lyrics-container" id="fullscreen-lyrics-container" style="display: none;">
+            </div>
         </div>
     </div>
-</div>
-
 
     <div id="playlist-modal" class="modal" style="display: none;">
         <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
@@ -89,11 +88,11 @@
         <aside class="sidebar">
             <div>
                 <div class="sidebar-logo">
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="14.75 14.75 70.5 70.5" >
-  <g fill="currentColor" >
-    <path d="M38.25 14.75H85.25V61.75H61.75V38.25H38.25ZM14.75 38.25H38.25V61.75H61.75V85.25H14.75Z"  />
-  </g>
-</svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="14.75 14.75 70.5 70.5" >
+                      <g fill="currentColor" >
+                        <path d="M38.25 14.75H85.25V61.75H61.75V38.25H38.25ZM14.75 38.25H38.25V61.75H61.75V85.25H14.75Z"  />
+                      </g>
+                    </svg>
                     <span>Monochrome</span>
                 </div>
                 <nav class="sidebar-nav">
@@ -199,29 +198,32 @@
             </div>
 
             <div id="page-library" class="page">
-                <h2 class="section-title">Your Library</h2>
                 <section class="content-section">
                     <h2 class="section-title">My Playlists <button id="create-playlist-btn" class="btn-secondary">Create Playlist</button></h2>
                     <div class="card-grid" id="my-playlists-container"></div>
                 </section>
-                <div class="search-tabs">
-                    <button class="search-tab active" data-tab="tracks">Liked Tracks</button>
-                    <button class="search-tab" data-tab="albums">Albums</button>
-                    <button class="search-tab" data-tab="artists">Artists</button>
-                    <button class="search-tab" data-tab="playlists">Playlists</button>
-                </div>
-                <div class="search-tab-content active" id="library-tab-tracks">
-                    <div class="track-list" id="library-tracks-container"></div>
-                </div>
-                <div class="search-tab-content" id="library-tab-albums">
-                    <div class="card-grid" id="library-albums-container"></div>
-                </div>
-                <div class="search-tab-content" id="library-tab-artists">
-                    <div class="card-grid" id="library-artists-container"></div>
-                </div>
-                <div class="search-tab-content" id="library-tab-playlists">
-                    <div class="card-grid" id="library-playlists-container"></div>
-                </div>
+
+                <section class="content-section">
+                    <h2 class="section-title">Your Favorites</h2>
+                    <div class="search-tabs">
+                        <button class="search-tab active" data-tab="tracks">Liked Tracks</button>
+                        <button class="search-tab" data-tab="albums">Albums</button>
+                        <button class="search-tab" data-tab="artists">Artists</button>
+                        <button class="search-tab" data-tab="playlists">Playlists</button>
+                    </div>
+                    <div class="search-tab-content active" id="library-tab-tracks">
+                        <div class="track-list" id="library-tracks-container"></div>
+                    </div>
+                    <div class="search-tab-content" id="library-tab-albums">
+                        <div class="card-grid" id="library-albums-container"></div>
+                    </div>
+                    <div class="search-tab-content" id="library-tab-artists">
+                        <div class="card-grid" id="library-artists-container"></div>
+                    </div>
+                    <div class="search-tab-content" id="library-tab-playlists">
+                        <div class="card-grid" id="library-playlists-container"></div>
+                    </div>
+                </section>
             </div>
 
             <div id="page-recent" class="page">
@@ -240,10 +242,16 @@
                             <button id="play-album-btn" class="btn-primary">
                                 <span>Play Album</span>
                             </button>
-                            <button id="download-album-btn" class="btn-primary">
-                                <span>Download Album</span>
-                            </button>
-                            <button id="like-album-btn" class="btn-secondary like-btn" data-action="toggle-like" data-type="album" title="Save to Library">
+                <button id="album-mix-btn" class="btn-primary" style="display: none;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                    </svg>
+                    <span>Mix</span>
+                </button>
+                <button id="download-album-btn" class="btn-primary">
+                    <span>Download</span>
+                </button>
+                <button id="like-album-btn" class="btn-secondary like-btn" data-action="toggle-like" data-type="album" title="Save to Favorites">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
                             </button>
                         </div>
@@ -252,29 +260,46 @@
                 <div class="track-list" id="album-detail-tracklist"></div>
             </div>
 
-<section id="page-playlist" class="page">
-    <div class="detail-header">
-        <img id="playlist-detail-image" class="detail-cover" alt="Playlist Cover">
-        <div class="detail-header-info">
-            <h1 class="title" id="playlist-detail-title"></h1>
-            <p class="meta" id="playlist-detail-meta"></p>
-            <p id="playlist-detail-description" class="detail-description"></p>
-            <div class="detail-actions">
-                <button id="play-playlist-btn" class="btn-primary">
-                    <span>Play</span>
-                </button>
-                <!-- Like button not typically for own playlists, but good for "followed" ones if we support that. For now, maybe skip or add "Edit" if it's user playlist -->
-                <button id="download-playlist-btn" class="btn-primary">
-                    <span>Download</span>
-                </button>
-                <button id="like-playlist-btn" class="btn-secondary like-btn" data-action="toggle-like" data-type="playlist" title="Save to Library">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                </button>
-            </div>
-        </div>
-    </div>
-    <div id="playlist-detail-tracklist" class="track-list"></div>
-</section>
+            <section id="page-playlist" class="page">
+                <div class="detail-header">
+                    <img id="playlist-detail-image" class="detail-cover" alt="Playlist Cover">
+                    <div class="detail-header-info">
+                        <h1 class="title" id="playlist-detail-title"></h1>
+                        <p class="meta" id="playlist-detail-meta"></p>
+                        <p id="playlist-detail-description" class="detail-description"></p>
+                        <div class="detail-actions">
+                            <button id="play-playlist-btn" class="btn-primary">
+                                <span>Play</span>
+                            </button>
+                            <!-- Like button not typically for own playlists, but good for "followed" ones if we support that. For now, maybe skip or add "Edit" if it's user playlist -->
+                            <button id="download-playlist-btn" class="btn-primary">
+                                <span>Download</span>
+                            </button>
+                            <button id="like-playlist-btn" class="btn-secondary like-btn" data-action="toggle-like" data-type="playlist" title="Save to Favorites">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="playlist-detail-tracklist" class="track-list"></div>
+            </section>
+
+            <section id="page-mix" class="page">
+                <div class="detail-header">
+                    <img id="mix-detail-image" class="detail-cover" alt="Mix Cover">
+                    <div class="detail-header-info">
+                        <h1 class="title" id="mix-detail-title"></h1>
+                        <p class="meta" id="mix-detail-meta"></p>
+                        <p id="mix-detail-description" class="detail-description"></p>
+                        <div class="detail-actions">
+                            <button id="play-mix-btn" class="btn-primary">
+                                <span>Play</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="mix-detail-tracklist" class="track-list"></div>
+            </section>
 
             <div id="page-artist" class="page">
                 <header class="detail-header">
@@ -289,10 +314,16 @@
                                 </svg>
                                 <span>Artist Radio</span>
                             </button>
+                            <button id="artist-mix-btn" class="btn-primary" style="display: none;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                                </svg>
+                                <span>Mix</span>
+                            </button>
                             <button id="download-discography-btn" class="btn-primary">
                                 <span>Download Discography</span>
                             </button>
-                            <button id="like-artist-btn" class="btn-secondary like-btn" data-action="toggle-like" data-type="artist" title="Save to Library">
+                            <button id="like-artist-btn" class="btn-secondary like-btn" data-action="toggle-like" data-type="artist" title="Save to Favorites">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
                             </button>
                         </div>
@@ -652,7 +683,7 @@
             </div>
             <div class="volume-controls">
                 <div class="player-actions-row">
-                    <button id="now-playing-like-btn" class="like-btn" data-action="toggle-like" title="Save to Library" style="display: none;">
+                    <button id="now-playing-like-btn" class="like-btn" data-action="toggle-like" title="Save to Favorites" style="display: none;">
                     </button>
                     <button id="toggle-lyrics-btn" title="Lyrics">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mic"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
@@ -696,7 +727,6 @@ if ('serviceWorker' in navigator) {
     location.reload();
   });
 }
-
 </script>
 </body>
 </html>

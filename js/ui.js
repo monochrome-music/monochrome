@@ -797,6 +797,8 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
         if (playBtn) playBtn.innerHTML = `${SVG_PLAY}<span>Play Album</span>`;
         const dlBtn = document.getElementById('download-album-btn');
         if (dlBtn) dlBtn.innerHTML = `${SVG_DOWNLOAD}<span>Download Album</span>`;
+        const mixBtn = document.getElementById('album-mix-btn');
+        if (mixBtn) mixBtn.style.display = 'none';
 
         imageEl.src = '';
         imageEl.style.backgroundColor = 'var(--muted)';
@@ -901,6 +903,13 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                 document.getElementById('page-album').appendChild(placeholderSection);
 
                 const artistData = await this.api.getArtist(album.artist.id);
+                
+                // Add Mix/Radio Button to header
+                const mixBtn = document.getElementById('album-mix-btn');
+                if (mixBtn && artistData.mixes && artistData.mixes.ARTIST_MIX) {
+                    mixBtn.style.display = 'flex';
+                    mixBtn.onclick = () => window.location.hash = `#mix/${artistData.mixes.ARTIST_MIX}`;
+                }
                 
                 // Remove placeholder
                 placeholderSection.remove();
@@ -1105,6 +1114,86 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
         }
     }
 
+    async renderMixPage(mixId) {
+        this.showPage('mix');
+        const imageEl = document.getElementById('mix-detail-image');
+        const titleEl = document.getElementById('mix-detail-title');
+        const metaEl = document.getElementById('mix-detail-meta');
+        const descEl = document.getElementById('mix-detail-description');
+        const tracklistContainer = document.getElementById('mix-detail-tracklist');
+        const playBtn = document.getElementById('play-mix-btn');
+        if (playBtn) playBtn.innerHTML = `${SVG_PLAY}<span>Play</span>`;
+
+        // Skeleton loading
+        imageEl.src = '';
+        imageEl.style.backgroundColor = 'var(--muted)';
+        titleEl.innerHTML = '<div class="skeleton" style="height: 48px; width: 300px; max-width: 90%;"></div>';
+        metaEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 200px; max-width: 80%;"></div>';
+        descEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 100%;"></div>';
+        tracklistContainer.innerHTML = `
+            <div class="track-list-header">
+                <span style="width: 40px; text-align: center;">#</span>
+                <span>Title</span>
+                <span class="duration-header">Duration</span>
+            </div>
+            ${this.createSkeletonTracks(10, true)}
+        `;
+
+        try {
+            const { mix, tracks } = await this.api.getMix(mixId);
+
+            // Mixes usually have covers from Tidal resources, similar to playlists
+            const imageId = mix.images?.medium?.source || mix.image || mix.id; 
+            // Fallback for cover: if mix.id matches a pattern or we can just try generic mix cover
+            // Often mix ID isn't directly an image ID. 
+            // If API returns explicit image URL/ID use it. 
+            // For now assume standard playlist-like cover or placeholder.
+            if (imageId && imageId !== mix.id) {
+                 imageEl.src = this.api.getCoverUrl(imageId, '1080');
+            } else {
+                 // Try to get cover from first track album
+                 if (tracks.length > 0 && tracks[0].album?.cover) {
+                     imageEl.src = this.api.getCoverUrl(tracks[0].album.cover, '1080');
+                 } else {
+                     imageEl.src = 'assets/appicon.png';
+                 }
+            }
+            
+            imageEl.style.backgroundColor = '';
+
+            const firstTrackArtist = tracks.length > 0 ? tracks[0].artist?.name : '';
+            const displayTitle = firstTrackArtist ? `${firstTrackArtist} Mix` : 'Mix';
+
+            titleEl.textContent = displayTitle;
+            this.adjustTitleFontSize(titleEl, displayTitle);
+
+            const totalDuration = calculateTotalDuration(tracks);
+
+            metaEl.textContent = `${tracks.length} tracks • ${formatDuration(totalDuration)}`;
+            descEl.textContent = mix.subTitle || mix.description || '';
+
+            tracklistContainer.innerHTML = `
+                <div class="track-list-header">
+                    <span style="width: 40px; text-align: center;">#</span>
+                    <span>Title</span>
+                    <span class="duration-header">Duration</span>
+                </div>
+            `;
+
+            this.renderListWithTracks(tracklistContainer, tracks, true);
+            
+            // Set play button action
+            playBtn.onclick = () => {
+                player.playTracks(tracks, 0);
+            };
+
+            document.title = `${displayTitle} - Monochrome`;
+        } catch (error) {
+            console.error("Failed to load mix:", error);
+            tracklistContainer.innerHTML = createPlaceholder(`Could not load mix details. ${error.message}`);
+        }
+    }
+
     async renderArtistPage(artistId) {
         this.showPage('artist');
 
@@ -1133,6 +1222,17 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
 
         try {
             const artist = await this.api.getArtist(artistId);
+
+            // Handle Artist Mix Button
+            const mixBtn = document.getElementById('artist-mix-btn');
+            if (mixBtn) {
+                if (artist.mixes && artist.mixes.ARTIST_MIX) {
+                    mixBtn.style.display = 'flex';
+                    mixBtn.onclick = () => window.location.hash = `#mix/${artist.mixes.ARTIST_MIX}`;
+                } else {
+                    mixBtn.style.display = 'none';
+                }
+            }
 
             // Similar Artists
             if (similarContainer && similarSection) {

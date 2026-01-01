@@ -423,7 +423,7 @@ export async function handleTrackAction(action, item, player, api, lyricsManager
                  }
              }
              btn.classList.toggle('active', added);
-             btn.title = added ? 'Remove from Library' : 'Add to Library';
+             btn.title = added ? 'Remove from Favorites' : 'Add to Favorites';
         });
 
         // Handle Library Page Update
@@ -674,7 +674,7 @@ async function updateContextMenuLikeState(menu, track) {
     const likeItem = menu.querySelector('[data-action="toggle-like"]');
     if (likeItem) {
         const isLiked = await db.isFavorite('track', track.id);
-        likeItem.textContent = isLiked ? 'Remove from Library' : 'Add to Library';
+        likeItem.textContent = isLiked ? 'Remove from Favorites' : 'Add to Favorites';
     }
 }
 

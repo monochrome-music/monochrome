@@ -20,6 +20,9 @@ export function createRouter(ui) {
             case 'userplaylist':
                 ui.renderPlaylistPage(param);
                 break;
+            case 'mix':
+                ui.renderMixPage(param);
+                break;
             case 'library':
                 ui.renderLibraryPage();
                 break;
