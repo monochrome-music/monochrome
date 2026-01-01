@@ -1,6 +1,6 @@
 //js/ui.js
 import { SVG_PLAY, SVG_DOWNLOAD, SVG_MENU, SVG_HEART, formatTime, createPlaceholder, trackDataStore, hasExplicitContent, getTrackArtists, getTrackTitle, calculateTotalDuration, formatDuration } from './utils.js';
-import { renderLyricsInFullscreen, clearFullscreenLyricsSync } from './lyrics.js';
+import { openLyricsPanel } from './lyrics.js';
 import { recentActivityManager, backgroundSettings, trackListSettings } from './storage.js';
 import { db } from './db.js';
 
@@ -491,25 +491,11 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
     
     if (lyricsManager && audioPlayer) {
         lyricsToggleBtn.style.display = 'flex';
-        lyricsContainer.style.display = 'none';
-        lyricsContainer.classList.remove('active');
         lyricsToggleBtn.classList.remove('active');
         
-        const toggleLyrics = async () => {
-            const isActive = lyricsContainer.classList.contains('active');
-            if (isActive) {
-                lyricsContainer.classList.remove('active');
-                lyricsToggleBtn.classList.remove('active');
-                setTimeout(() => {
-                    lyricsContainer.style.display = 'none';
-                    clearFullscreenLyricsSync(lyricsContainer);
-                }, 300);
-            } else {
-                lyricsContainer.style.display = 'block';
-                setTimeout(() => lyricsContainer.classList.add('active'), 10);
-                lyricsToggleBtn.classList.add('active');
-                await renderLyricsInFullscreen(track, audioPlayer, lyricsManager, lyricsContainer);
-            }
+        const toggleLyrics = () => {
+            openLyricsPanel(track, audioPlayer, lyricsManager);
+            lyricsToggleBtn.classList.toggle('active');
         };
         
         const newToggleBtn = lyricsToggleBtn.cloneNode(true);
@@ -524,13 +510,6 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
 
     closeFullscreenCover() {
         const overlay = document.getElementById('fullscreen-cover-overlay');
-        const lyricsContainer = document.getElementById('fullscreen-lyrics-container');
-        clearFullscreenLyricsSync(lyricsContainer);
-
-        lyricsContainer.style.display = 'none';
-        lyricsContainer.classList.remove('active');
-        lyricsContainer.innderHTML = '';
-
         overlay.style.display = 'none';
     }
 
@@ -1198,7 +1177,8 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
             
             // Set play button action
             playBtn.onclick = () => {
-                player.playTracks(tracks, 0);
+                this.player.setQueue(tracks, 0);
+                this.player.playTrackFromQueue();
             };
 
             document.title = `${displayTitle} - Monochrome`;
