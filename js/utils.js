@@ -71,9 +71,11 @@ export const buildTrackFilename = (track, quality) => {
     const template = localStorage.getItem('filename-template') || '{trackNumber} - {artist} - {title}';
     const extension = getExtensionForQuality(quality);
 
+    const artistName = track.artist?.name || track.artists?.[0]?.name || 'Unknown Artist';
+
     const data = {
         trackNumber: track.trackNumber,
-        artist: track.artist?.name,
+        artist: artistName,
         title: getTrackTitle(track),
         album: track.album?.title
     };

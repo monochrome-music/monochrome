@@ -330,7 +330,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     btn.innerHTML = '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Downloading...</span>';
 
     try {
-        const { playlist, tracks } = await api.getPlaylist(playlistId);
+        let playlist, tracks;
+        const userPlaylist = await db.getPlaylist(playlistId);
+        
+        if (userPlaylist) {
+            playlist = { ...userPlaylist, title: userPlaylist.name };
+            tracks = userPlaylist.tracks || [];
+        } else {
+            const data = await api.getPlaylist(playlistId);
+            playlist = data.playlist;
+            tracks = data.tracks;
+        }
+        
         await downloadPlaylistAsZip(playlist, tracks, api, player.quality, lyricsManager);
     } catch (error) {
         console.error('Playlist download failed:', error);

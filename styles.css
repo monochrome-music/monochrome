@@ -3092,9 +3092,6 @@ input:checked + .slider::before {
     justify-self: flex-end;
 }
 
-@media (max-width: 768px) {
-    /* ... existing generic rules ... */
-
 @media (max-width: 480px) {
     #playlist-detail-title {
         font-size: 1.75rem;
