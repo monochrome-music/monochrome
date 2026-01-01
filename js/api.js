@@ -426,7 +426,53 @@ export class LosslessAPI {
 
         if (!playlist) throw new Error('Playlist not found');
 
-        const tracks = (tracksSection?.items || []).map(i => this.prepareTrack(i.item || i));
+        let tracks = (tracksSection?.items || []).map(i => this.prepareTrack(i.item || i));
+
+        // Handle pagination if there are more tracks
+        if (playlist.numberOfTracks > tracks.length) {
+            let offset = tracks.length;
+            const SAFE_MAX_TRACKS = 10000; 
+
+            while (tracks.length < playlist.numberOfTracks && tracks.length < SAFE_MAX_TRACKS) {
+                try {
+                    const nextResponse = await this.fetchWithRetry(`/playlist/?id=${id}&offset=${offset}`);
+                    const nextJson = await nextResponse.json();
+                    const nextData = nextJson.data || nextJson;
+                    
+                    let nextItems = [];
+
+                    if (nextData.items) {
+                        nextItems = nextData.items;
+                    } else if (Array.isArray(nextData)) {
+                         for (const entry of nextData) {
+                            if (entry && typeof entry === 'object' && 'items' in entry && Array.isArray(entry.items)) {
+                                nextItems = entry.items;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!nextItems || nextItems.length === 0) break;
+
+                    const preparedItems = nextItems.map(i => this.prepareTrack(i.item || i));
+                    if (preparedItems.length === 0) break;
+
+                    // Safeguard: If API ignores offset, it returns the first page again.
+                    // Check if the first new item matches the very first track we have.
+                    if (tracks.length > 0 && preparedItems[0].id === tracks[0].id) {
+                        break;
+                    }
+
+                    tracks = tracks.concat(preparedItems);
+                    offset += preparedItems.length;
+
+                } catch (error) {
+                    console.error(`Error fetching playlist tracks at offset ${offset}:`, error);
+                    break;
+                }
+            }
+        }
+
         const result = { playlist, tracks };
 
         await this.cache.set('playlist', id, result);
