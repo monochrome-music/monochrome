@@ -591,6 +591,10 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
 
         const card = e.target.closest('.card');
         if (card) {
+            if (e.target.closest('.edit-playlist-btn') || e.target.closest('.delete-playlist-btn')) {
+                return;
+            }
+
             const href = card.dataset.href;
             if (href) {
                 // Allow native links inside card to work if any exist

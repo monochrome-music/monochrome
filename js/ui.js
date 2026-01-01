@@ -596,6 +596,12 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
         const myPlaylists = await db.getPlaylists();
         if (myPlaylists.length) {
             myPlaylistsContainer.innerHTML = myPlaylists.map(p => this.createUserPlaylistCardHTML(p)).join('');
+            myPlaylists.forEach(playlist => {
+                const el = myPlaylistsContainer.querySelector(`[data-playlist-id="${playlist.id}"]`);
+                if (el) {
+                    trackDataStore.set(el, playlist);
+                }
+            });
         } else {
             myPlaylistsContainer.innerHTML = createPlaceholder('No playlists yet. Create your first playlist!');
         }

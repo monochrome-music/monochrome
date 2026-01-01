@@ -666,6 +666,53 @@ body.has-page-background .track-item:hover {
     color: #ef4444 !important;
 }
 
+.edit-playlist-btn,
+.delete-playlist-btn {
+    position: absolute;
+    top: 2%;
+    background: rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 50% !important;
+    width: 32px !important;
+    height: 32px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.2s ease !important;
+    z-index: 10;
+    color: white !important;
+    border: none !important;
+    cursor: pointer;
+}
+
+.edit-playlist-btn {
+    right: 2%;
+}
+
+.delete-playlist-btn {
+    left: 2%;
+}
+
+.card:hover .edit-playlist-btn,
+.card:hover .delete-playlist-btn {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.edit-playlist-btn:hover,
+.delete-playlist-btn:hover {
+    background: rgba(0, 0, 0, 0.8) !important;
+    transform: scale(1.1) !important;
+}
+
+.delete-playlist-btn:hover {
+    color: #ef4444 !important;
+}
+
 .card-image {
     width: 100%;
     aspect-ratio: 1/1;
