@@ -163,9 +163,6 @@ export async function openLyricsPanel(track, audioPlayer, lyricsManager) {
 
     const renderControls = (container) => {
         container.innerHTML = `
-            <button id="download-lrc-btn" class="btn-icon" title="Download LRC">
-                ${SVG_DOWNLOAD}
-            </button>
             <button id="close-side-panel-btn" class="btn-icon" title="Close">
                 ${SVG_CLOSE}
             </button>
