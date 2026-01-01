@@ -908,7 +908,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                 const mixBtn = document.getElementById('album-mix-btn');
                 if (mixBtn && artistData.mixes && artistData.mixes.ARTIST_MIX) {
                     mixBtn.style.display = 'flex';
-                    mixBtn.onclick = () => window.location.hash = `#mix/${artistData.mixes.ARTIST_MIX}`;
+                    mixBtn.onclick = () => window.location.hash = `#mix/${artistData.mixes.ARTIST_MIX}?type=artist&name=${encodeURIComponent(artistData.name)}`;
                 }
                 
                 // Remove placeholder
@@ -954,7 +954,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                         section.className = 'content-section album-more-section';
                         section.style.marginTop = '3rem';
                         section.innerHTML = `
-                            <h2 class="section-title">Fans Also Like</h2>
+                            <h2 class="section-title">Similar Artists</h2>
                             <div class="card-grid">
                                 ${similar.map(a => this.createArtistCardHTML(a)).join('')}
                             </div>
@@ -962,6 +962,30 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                         document.getElementById('page-album').appendChild(section);
                     }
                 }).catch(e => console.warn('Failed to load similar artists:', e));
+
+                // Similar Albums
+                this.api.getSimilarAlbums(albumId).then(similar => {
+                    if (similar && similar.length > 0) {
+                        const section = document.createElement('section');
+                        section.className = 'content-section album-more-section';
+                        section.style.marginTop = '3rem';
+                        section.innerHTML = `
+                            <h2 class="section-title">Similar Albums</h2>
+                            <div class="card-grid">
+                                ${similar.map(a => this.createAlbumCardHTML(a)).join('')}
+                            </div>
+                        `;
+                        document.getElementById('page-album').appendChild(section);
+                        
+                        similar.forEach(a => {
+                            const el = section.querySelector(`[data-album-id="${a.id}"]`);
+                            if (el) {
+                                trackDataStore.set(el, a);
+                                this.updateLikeState(el, 'album', a.id);
+                            }
+                        });
+                    }
+                }).catch(e => console.warn('Failed to load similar albums:', e));
 
             } catch (err) {
                 console.warn('Failed to load "More from artist":', err);
@@ -1114,8 +1138,13 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
         }
     }
 
-    async renderMixPage(mixId) {
+    async renderMixPage(param) {
         this.showPage('mix');
+        const [mixId, query] = param.split('?');
+        const urlParams = new URLSearchParams(query);
+        const type = urlParams.get('type');
+        const name = urlParams.get('name');
+
         const imageEl = document.getElementById('mix-detail-image');
         const titleEl = document.getElementById('mix-detail-title');
         const metaEl = document.getElementById('mix-detail-meta');
@@ -1161,8 +1190,15 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
             
             imageEl.style.backgroundColor = '';
 
-            const firstTrackArtist = tracks.length > 0 ? tracks[0].artist?.name : '';
-            const displayTitle = firstTrackArtist ? `${firstTrackArtist} Mix` : 'Mix';
+            let displayTitle;
+            if (type === 'artist' && name) {
+                displayTitle = `Mix for artist ${decodeURIComponent(name)}`;
+            } else if (type === 'track' && name) {
+                displayTitle = `Mix for track ${decodeURIComponent(name)}`;
+            } else {
+                const firstTrackArtist = tracks.length > 0 ? tracks[0].artist?.name : '';
+                displayTitle = mix.title || (firstTrackArtist ? `${firstTrackArtist} Mix` : 'Mix');
+            }
 
             titleEl.textContent = displayTitle;
             this.adjustTitleFontSize(titleEl, displayTitle);
@@ -1228,7 +1264,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
             if (mixBtn) {
                 if (artist.mixes && artist.mixes.ARTIST_MIX) {
                     mixBtn.style.display = 'flex';
-                    mixBtn.onclick = () => window.location.hash = `#mix/${artist.mixes.ARTIST_MIX}`;
+                    mixBtn.onclick = () => window.location.hash = `#mix/${artist.mixes.ARTIST_MIX}?type=artist&name=${encodeURIComponent(artist.name)}`;
                 } else {
                     mixBtn.style.display = 'none';
                 }

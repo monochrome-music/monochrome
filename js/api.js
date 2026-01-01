@@ -630,6 +630,26 @@ export class LosslessAPI {
         }
     }
 
+    async getSimilarAlbums(albumId) {
+        const cached = await this.cache.get('similar_albums', albumId);
+        if (cached) return cached;
+
+        try {
+            const response = await this.fetchWithRetry(`/album/similar/?id=${albumId}`, { type: 'api' });
+            const data = await response.json();
+            
+            const items = data.items || data.albums || data.data || (Array.isArray(data) ? data : []);
+            
+            const result = items.map(album => this.prepareAlbum(album));
+            
+            await this.cache.set('similar_albums', albumId, result);
+            return result;
+        } catch (e) {
+            console.warn('Failed to fetch similar albums:', e);
+            return [];
+        }
+    }
+
     normalizeTrackResponse(apiResponse) {
     if (!apiResponse || typeof apiResponse !== 'object') {
         return apiResponse;

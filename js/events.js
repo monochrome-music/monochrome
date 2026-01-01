@@ -359,6 +359,10 @@ export async function handleTrackAction(action, item, player, api, lyricsManager
         player.addNextToQueue(item);
         renderQueue(player);
         showNotification(`Playing next: ${item.title}`);
+    } else if (action === 'track-mix') {
+        if (item.mixes && item.mixes.TRACK_MIX) {
+            window.location.hash = `#mix/${item.mixes.TRACK_MIX}?type=track&name=${encodeURIComponent(item.title)}`;
+        }
     } else if (action === 'play-card') {
         try {
             let tracks = [];
@@ -675,6 +679,15 @@ async function updateContextMenuLikeState(menu, track) {
     if (likeItem) {
         const isLiked = await db.isFavorite('track', track.id);
         likeItem.textContent = isLiked ? 'Remove from Favorites' : 'Add to Favorites';
+    }
+
+    const mixItem = menu.querySelector('[data-action="track-mix"]');
+    if (mixItem) {
+        if (track.mixes && track.mixes.TRACK_MIX) {
+            mixItem.style.display = 'block';
+        } else {
+            mixItem.style.display = 'none';
+        }
     }
 }
 
