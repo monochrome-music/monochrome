@@ -575,6 +575,27 @@ export class LosslessAPI {
 
 
 
+    async getSimilarArtists(artistId) {
+        const cached = await this.cache.get('similar_artists', artistId);
+        if (cached) return cached;
+
+        try {
+            const response = await this.fetchWithRetry(`/artist/similar/?id=${artistId}`, { type: 'api' });
+            const data = await response.json();
+            
+            // Handle various response structures
+            const items = data.artists || data.items || data.data || (Array.isArray(data) ? data : []);
+            
+            const result = items.map(artist => this.prepareArtist(artist));
+            
+            await this.cache.set('similar_artists', artistId, result);
+            return result;
+        } catch (e) {
+            console.warn('Failed to fetch similar artists:', e);
+            return [];
+        }
+    }
+
     normalizeTrackResponse(apiResponse) {
     if (!apiResponse || typeof apiResponse !== 'object') {
         return apiResponse;

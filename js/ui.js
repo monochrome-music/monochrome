@@ -938,6 +938,22 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                 renderSection(`More albums from ${album.artist.name}`, artistData.albums);
                 renderSection(`EPs and Singles from ${album.artist.name}`, artistData.eps);
 
+                // Similar Artists
+                this.api.getSimilarArtists(album.artist.id).then(similar => {
+                    if (similar && similar.length > 0) {
+                        const section = document.createElement('section');
+                        section.className = 'content-section album-more-section';
+                        section.style.marginTop = '3rem';
+                        section.innerHTML = `
+                            <h2 class="section-title">Fans Also Like</h2>
+                            <div class="card-grid">
+                                ${similar.map(a => this.createArtistCardHTML(a)).join('')}
+                            </div>
+                        `;
+                        document.getElementById('page-album').appendChild(section);
+                    }
+                }).catch(e => console.warn('Failed to load similar artists:', e));
+
             } catch (err) {
                 console.warn('Failed to load "More from artist":', err);
                 document.querySelectorAll('.album-more-section').forEach(el => el.remove());
@@ -1099,6 +1115,8 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
         const albumsContainer = document.getElementById('artist-detail-albums');
         const epsContainer = document.getElementById('artist-detail-eps');
         const epsSection = document.getElementById('artist-section-eps');
+        const similarContainer = document.getElementById('artist-detail-similar');
+        const similarSection = document.getElementById('artist-section-similar');
         const dlBtn = document.getElementById('download-discography-btn');
         if (dlBtn) dlBtn.innerHTML = `${SVG_DOWNLOAD}<span>Download Discography</span>`;
 
@@ -1110,9 +1128,25 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
         albumsContainer.innerHTML = this.createSkeletonCards(6, false);
         if (epsContainer) epsContainer.innerHTML = this.createSkeletonCards(6, false);
         if (epsSection) epsSection.style.display = 'none';
+        if (similarContainer) similarContainer.innerHTML = this.createSkeletonCards(6, true);
+        if (similarSection) similarSection.style.display = 'block';
 
         try {
             const artist = await this.api.getArtist(artistId);
+
+            // Similar Artists
+            if (similarContainer && similarSection) {
+                this.api.getSimilarArtists(artistId).then(similar => {
+                    if (similar && similar.length > 0) {
+                        similarContainer.innerHTML = similar.map(a => this.createArtistCardHTML(a)).join('');
+                        similarSection.style.display = 'block';
+                    } else {
+                        similarSection.style.display = 'none';
+                    }
+                }).catch(() => {
+                    similarSection.style.display = 'none';
+                });
+            }
 
             imageEl.src = this.api.getArtistPictureUrl(artist.picture, '750');
             imageEl.style.backgroundColor = '';
