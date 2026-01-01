@@ -430,6 +430,11 @@ export class Player {
                 currentTrack && item.dataset.trackId == currentTrack.id
             );
         });
+
+        document.querySelectorAll('.queue-track-item').forEach(item => {
+            const index = parseInt(item.dataset.queueIndex);
+            item.classList.toggle('playing', index === this.currentQueueIndex);
+        });
     }
 
     updateMediaSession(track) {
