@@ -676,12 +676,21 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
 
         if (playlistsContainer) {
             if (recents.playlists && recents.playlists.length) {
-                playlistsContainer.innerHTML = recents.playlists.map(playlist => this.createPlaylistCardHTML(playlist)).join('');
+                playlistsContainer.innerHTML = recents.playlists.map(playlist => {
+                    if (playlist.isUserPlaylist) {
+                        return this.createUserPlaylistCardHTML(playlist);
+                    }
+                    return this.createPlaylistCardHTML(playlist);
+                }).join('');
+                
                 recents.playlists.forEach(playlist => {
-                    const el = playlistsContainer.querySelector(`[data-playlist-id="${playlist.uuid}"]`);
+                    const id = playlist.isUserPlaylist ? playlist.id : playlist.uuid;
+                    const el = playlistsContainer.querySelector(`[data-playlist-id="${id}"]`);
                     if (el) {
                         trackDataStore.set(el, playlist);
-                        this.updateLikeState(el, 'playlist', playlist.uuid);
+                        if (!playlist.isUserPlaylist) {
+                            this.updateLikeState(el, 'playlist', playlist.uuid);
+                        }
                     }
                 });
             } else {
@@ -1078,7 +1087,15 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                 actionsDiv.appendChild(editBtn);
                 actionsDiv.appendChild(deleteBtn);
 
-                recentActivityManager.addPlaylist({ title: userPlaylist.name, uuid: userPlaylist.id });
+                recentActivityManager.addPlaylist({ 
+                    id: userPlaylist.id,
+                    name: userPlaylist.name,
+                    title: userPlaylist.name,
+                    uuid: userPlaylist.id,
+                    cover: userPlaylist.cover,
+                    numberOfTracks: userPlaylist.tracks ? userPlaylist.tracks.length : 0,
+                    isUserPlaylist: true
+                });
                 document.title = `${userPlaylist.name} - Monochrome`;
             } else {
                 // Render API playlist
