@@ -592,8 +592,7 @@ export class LosslessAPI {
 
         const eps = allReleases.filter(a => 
             a.type === 'EP' || 
-            a.type === 'SINGLE' || 
-            (a.numberOfTracks < 7 && !a.type)
+            a.type === 'SINGLE'
         );
         const albums = allReleases.filter(a => !eps.includes(a));
 

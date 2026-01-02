@@ -161,44 +161,6 @@ export class UIRenderer {
         `;
     }
 
-    createAlbumCardHTML(album) {
-        const explicitBadge = hasExplicitContent(album) ? this.createExplicitBadge() : '';
-        let yearDisplay = '';
-        if (album.releaseDate) {
-            const date = new Date(album.releaseDate);
-            if (!isNaN(date.getTime())) {
-                yearDisplay = `${date.getFullYear()}`;
-            }
-        }
-
-        let typeLabel = '';
-        if (album.type === 'EP') {
-            typeLabel = ' • EP';
-        } else if (album.type === 'SINGLE') {
-            typeLabel = ' • Single';
-        } else if (!album.type && album.numberOfTracks) {
-            if (album.numberOfTracks <= 3) typeLabel = ' • Single';
-            else if (album.numberOfTracks <= 6) typeLabel = ' • EP';
-        }
-
-        return `
-            <div class="card" data-album-id="${album.id}" data-href="#album/${album.id}" style="cursor: pointer;">
-                <div class="card-image-wrapper">
-                    <img src="${this.api.getCoverUrl(album.cover, '320')}" alt="${album.title}" class="card-image" loading="lazy">
-                    <button class="like-btn card-like-btn" data-action="toggle-like" data-type="album" title="Add to Liked">
-                        ${this.createHeartIcon(false)}
-                    </button>
-                    <button class="play-btn card-play-btn" data-action="play-card" data-type="album" data-id="${album.id}" title="Play">
-                        ${SVG_PLAY}
-                    </button>
-                </div>
-                <h3 class="card-title">${album.title} ${explicitBadge}</h3>
-                <p class="card-subtitle">${album.artist?.name ?? ''}</p>
-                <p class="card-subtitle">${yearDisplay}${typeLabel}</p>
-            </div>
-        `;
-    }
-
     createPlaylistCardHTML(playlist) {
         const imageId = playlist.squareImage || playlist.image || playlist.uuid; // Fallback or use a specific cover getter if needed
         return `
@@ -300,9 +262,6 @@ export class UIRenderer {
             typeLabel = ' • EP';
         } else if (album.type === 'SINGLE') {
             typeLabel = ' • Single';
-        } else if (!album.type && album.numberOfTracks) {
-            if (album.numberOfTracks <= 3) typeLabel = ' • Single';
-            else if (album.numberOfTracks <= 6) typeLabel = ' • EP';
         }
 
         return `
