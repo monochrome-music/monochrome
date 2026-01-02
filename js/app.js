@@ -248,6 +248,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         ui.closeFullscreenCover();
     });
 
+    document.getElementById('nav-back')?.addEventListener('click', () => {
+        window.history.back();
+    });
+
+    document.getElementById('nav-forward')?.addEventListener('click', () => {
+        window.history.forward();
+    });
+
     document.getElementById('toggle-lyrics-btn')?.addEventListener('click', async (e) => {
         e.stopPropagation();
         if (!player.currentTrack) {
@@ -635,6 +643,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     const router = createRouter(ui);
     router();
     window.addEventListener('hashchange', router);
+
+    // Simple Navigation History
+    const navStack = [window.location.hash];
+    let navIndex = 0;
+
+    const updateNavButtons = () => {
+        const backBtn = document.getElementById('nav-back');
+        const fwdBtn = document.getElementById('nav-forward');
+        if (backBtn) backBtn.disabled = navIndex <= 0;
+        if (fwdBtn) fwdBtn.disabled = navIndex >= navStack.length - 1;
+    };
+
+    window.addEventListener('hashchange', () => {
+        const hash = window.location.hash;
+        if (hash === navStack[navIndex]) return;
+
+        if (navIndex > 0 && hash === navStack[navIndex - 1]) {
+            navIndex--; // User went back
+        } else if (navIndex < navStack.length - 1 && hash === navStack[navIndex + 1]) {
+            navIndex++; // User went forward
+        } else {
+            navIndex++;
+            navStack.splice(navIndex); // Truncate forward history
+            navStack.push(hash);
+        }
+        updateNavButtons();
+    });
+    updateNavButtons();
 
     audioPlayer.addEventListener('play', () => {
         updateTabTitle(player);

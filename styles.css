@@ -430,6 +430,37 @@ kbd {
     position: relative;
 }
 
+.navigation-controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.nav-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: var(--card);
+    border: none;
+    color: var(--foreground);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nav-btn:hover {
+    background-color: var(--secondary);
+    transform: scale(1.05);
+}
+
+.nav-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
 .hamburger-menu {
     display: none;
     background: transparent;
