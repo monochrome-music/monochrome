@@ -1079,7 +1079,14 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                 }
 
                 // Add edit and delete buttons
-                const actionsDiv = document.querySelector('.detail-header-actions');
+                const actionsDiv = document.getElementById('page-playlist').querySelector('.detail-header-actions');
+                
+                // Cleanup existing buttons
+                const existingEdit = actionsDiv.querySelector('#edit-playlist-btn');
+                if (existingEdit) existingEdit.remove();
+                const existingDelete = actionsDiv.querySelector('#delete-playlist-btn');
+                if (existingDelete) existingDelete.remove();
+
                 const editBtn = document.createElement('button');
                 editBtn.id = 'edit-playlist-btn';
                 editBtn.className = 'btn-secondary';
