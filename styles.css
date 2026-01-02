@@ -2522,7 +2522,8 @@ input:checked + .slider::before {
         gap: 0.5rem;
     }
 
-    .detail-header-actions button {
+    .detail-header-actions .btn-primary,
+    .detail-header-actions .btn-secondary {
         width: 40px;
         height: 40px;
         padding: 0;
@@ -2533,7 +2534,8 @@ input:checked + .slider::before {
         flex-shrink: 0;
     }
 
-    .detail-header-actions button span {
+    .detail-header-actions .btn-primary span,
+    .detail-header-actions .btn-secondary span {
         display: none;
     }
 
