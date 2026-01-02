@@ -172,24 +172,6 @@ export async function openLyricsPanel(track, audioPlayer, lyricsManager) {
             sidePanelManager.close();
             clearLyricsPanelSync(audioPlayer, sidePanelManager.panel);
         });
-
-        container.querySelector('#download-lrc-btn').addEventListener('click', async (e) => {
-            const btn = e.currentTarget;
-            btn.disabled = true;
-            try {
-                const lyricsData = await manager.fetchLyrics(track.id, track);
-                if (lyricsData) {
-                    manager.downloadLRC(lyricsData, track);
-                } else {
-                    alert('No synced lyrics available for download');
-                }
-            } catch (error) {
-                console.error('Failed to download lyrics!', error);
-                alert('Failed to Download Lyrics! check the console for more information.')
-            } finally {
-                btn.disabled = false;
-            }
-        });
     };
 
     const renderContent = async (container) => {
