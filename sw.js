@@ -1,5 +1,5 @@
 // sw.js
-const SW_VERSION = 'monochrome-v6'; // Note To Self: Change Every Deploy
+const SW_VERSION = 'monochrome-v7'; // Note To Self: Change Every Deploy
 const CACHE_NAME = `monochrome-${SW_VERSION}`;
 
 const ASSETS = [
@@ -31,10 +31,15 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', event => {
-  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.action === 'skipWaiting') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('activate', event => {

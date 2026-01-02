@@ -649,16 +649,24 @@ if (e.target.closest('#delete-playlist-btn')) {
                 .then(reg => {
                     console.log('Service worker registered');
 
+                    if (reg.waiting) {
+                        showUpdateNotification(reg.waiting);
+                    }
+
                     reg.addEventListener('updatefound', () => {
                         const newWorker = reg.installing;
                         newWorker.addEventListener('statechange', () => {
                             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                showUpdateNotification();
+                                showUpdateNotification(newWorker);
                             }
                         });
                     });
                 })
                 .catch(err => console.log('Service worker not registered', err));
+        });
+
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            window.location.reload();
         });
     }
 
@@ -699,7 +707,7 @@ if (e.target.closest('#delete-playlist-btn')) {
     });
 });
 
-function showUpdateNotification() {
+function showUpdateNotification(worker) {
     const notification = document.createElement('div');
     notification.className = 'update-notification';
     notification.innerHTML = `
@@ -707,9 +715,17 @@ function showUpdateNotification() {
             <strong>Update Available</strong>
             <p>A new version of Monochrome is available.</p>
         </div>
-        <button class="btn-secondary" onclick="window.location.reload()">Update Now</button>
+        <button class="btn-secondary" id="update-now-btn">Update Now</button>
     `;
     document.body.appendChild(notification);
+
+    document.getElementById('update-now-btn').addEventListener('click', () => {
+        if (worker) {
+            worker.postMessage({ action: 'skipWaiting' });
+        } else {
+            window.location.reload();
+        }
+    });
 }
 
 function showInstallPrompt(deferredPrompt) {
