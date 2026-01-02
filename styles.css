@@ -1125,20 +1125,6 @@ body.has-page-background .track-item:hover {
     flex-shrink: 0;
 }
 
-#like-album-btn,
-#like-playlist-btn,
-#like-artist-btn {
-    width: auto;
-    height: auto;
-    padding: 0.875rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    flex-shrink: 0;
-    aspect-ratio: 1/1;
-}
-
 .btn-secondary {
     padding: 0.5rem 1rem;
     background-color: var(--secondary);
@@ -2804,7 +2790,7 @@ input:checked + .slider::before {
     }
 
     .track-item {
-        grid-template-columns: 32px 1fr 40px 28px;
+        grid-template-columns: 32px 1fr 40px auto;
         gap: 0.375rem;
         padding: var(--spacing-xs);
     }
@@ -2929,7 +2915,7 @@ input:checked + .slider::before {
     }
 
     .track-item {
-        grid-template-columns: 32px 1fr 40px 36px;
+        grid-template-columns: 32px 1fr 32px auto;
     }
 
     .player-controls .buttons button {
