@@ -1168,6 +1168,21 @@ body.has-page-background .track-item:hover {
     background: #dc2626;
 }
 
+.detail-header-actions .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 1.75rem;
+    border-radius: 2rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.detail-header-actions .btn-secondary:hover {
+    transform: scale(1.05);
+}
+
 .settings-list {
     max-width: 800px;
 }
@@ -2507,7 +2522,7 @@ input:checked + .slider::before {
         gap: 0.5rem;
     }
 
-    .detail-header-actions .btn-primary {
+    .detail-header-actions button {
         width: 40px;
         height: 40px;
         padding: 0;
@@ -2518,20 +2533,7 @@ input:checked + .slider::before {
         flex-shrink: 0;
     }
 
-    #like-album-btn,
-    #like-playlist-btn,
-    #like-artist-btn {
-        width: 40px;
-        height: 40px;
-        padding: 0;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-    }
-
-    .detail-header-actions .btn-primary span {
+    .detail-header-actions button span {
         display: none;
     }
 
