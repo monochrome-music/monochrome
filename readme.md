@@ -14,7 +14,7 @@ Check it out live at: [**monochrome.samidy.com**](https://monochrome.samidy.com)
 [![GitHub forks](https://img.shields.io/github/forks/SamidyFR/monochrome?style=for-the-badge&color=ffffff&labelColor=000000)](https://github.com/SamidyFR/monochrome/forks)
 [![GitHub issues](https://img.shields.io/github/issues/SamidyFR/monochrome?style=for-the-badge&color=ffffff&labelColor=000000)](https://github.com/SamidyFR/monochrome/issues)
 
-[<img src="https://github.com/monochrome-music/monochrome/blob/main/assets/asseenonfmhy880x310.png?raw=true" alt="As seen on FMHY" height="50">](https://fmhy.net)
+[<img src="https://github.com/monochrome-music/monochrome/blob/main/assets/asseenonfmhy880x310.png?raw=true" alt="As seen on FMHY" height="50">](https://fmhy.net/audio#streaming-sites)
 
 ## Warning
 This is not the official repository or instance. It is an actively maintained fork. The official one can be found here: https://github.com/eduardprigoana/monochrome
