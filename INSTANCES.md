@@ -1,7 +1,7 @@
 API:
 | Provider       | Instance URL                    |
 |----------------|---------------------------------|
-| Monochrome     | https://monochrome-api.samidy.com (NOTE) |
+| Monochrome     | https://monochrome-api.samidy.com ([NOTE](https://rentry.co/monochromeapi)) |
 | squid.wtf      | https://triton.squid.wtf        |
 | Lucida (QQDL)  | https://wolf.qqdl.site          |
 |                | https://maus.qqdl.site          |
