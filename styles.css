@@ -2994,8 +2994,8 @@ input:checked + .slider::before {
     right: 0;
     top: 0;
     bottom: var(--player-bar-height-desktop);
-    width: 400px;
-    max-width: 100vw;
+    width: 600px;
+    max-width: 50vw;
     background: var(--card);
     border-left: 1px solid var(--border);
     z-index: 2050;
@@ -3110,6 +3110,7 @@ input:checked + .slider::before {
 @media (max-width: 768px) {
     .side-panel {
         width: 100vw;
+        max-width: 100vw;
         bottom: var(--player-bar-height-mobile);
     }
 

@@ -47,10 +47,6 @@ export class UIRenderer {
     }
 
     updateGlobalTheme() {
-        // If the album background setting is disabled, we don't do global coloring
-        // except possibly for the album page which handles its own check.
-        // But here we are handling the "not on album page" case or general updates.
-        
         // Check if we are currently viewing an album page
         const isAlbumPage = document.getElementById('page-album').classList.contains('active');
 
@@ -446,6 +442,11 @@ export class UIRenderer {
     }
 
     resetVibrantColor() {
+        if (backgroundSettings.isEnabled() && this.currentTrack?.album?.vibrantColor) {
+            this.setVibrantColor(this.currentTrack.album.vibrantColor);
+            return;
+        }
+
         const root = document.documentElement;
         root.style.removeProperty('--primary');
         root.style.removeProperty('--primary-foreground');
@@ -520,8 +521,8 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
 
         document.querySelector('.main-content').scrollTop = 0;
 
-        // Clear background and color if not on album page
-        if (pageId !== 'album') {
+        // Clear background and color if not on album, artist, playlist, or mix page
+        if (!['album', 'artist', 'playlist', 'mix'].includes(pageId)) {
              this.setPageBackground(null);
              this.updateGlobalTheme();
         }
@@ -1088,9 +1089,12 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                 const imageId = playlist.squareImage || playlist.image;
                 if (imageId) {
                     imageEl.src = this.api.getCoverUrl(imageId, '1080');
+                    this.setPageBackground(imageEl.src);
                 } else {
                     imageEl.src = 'assets/appicon.png';
+                    this.setPageBackground(null);
                 }
+                this.resetVibrantColor();
                 imageEl.style.backgroundColor = '';
 
                 titleEl.textContent = playlist.title;
@@ -1176,14 +1180,18 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
             // For now assume standard playlist-like cover or placeholder.
             if (imageId && imageId !== mix.id) {
                  imageEl.src = this.api.getCoverUrl(imageId, '1080');
+                 this.setPageBackground(imageEl.src);
             } else {
                  // Try to get cover from first track album
                  if (tracks.length > 0 && tracks[0].album?.cover) {
                      imageEl.src = this.api.getCoverUrl(tracks[0].album.cover, '1080');
+                     this.setPageBackground(imageEl.src);
                  } else {
                      imageEl.src = 'assets/appicon.png';
+                     this.setPageBackground(null);
                  }
             }
+            this.resetVibrantColor();
             
             imageEl.style.backgroundColor = '';
 
@@ -1288,6 +1296,10 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
             imageEl.src = this.api.getArtistPictureUrl(artist.picture, '750');
             imageEl.style.backgroundColor = '';
             nameEl.textContent = artist.name;
+
+            // Set background
+            this.setPageBackground(imageEl.src);
+            this.resetVibrantColor(); // Ensure we don't carry over color from previous page
 
             this.adjustTitleFontSize(nameEl, artist.name);
 
