@@ -520,7 +520,7 @@ export class LosslessAPI {
 
         const [primaryResponse, contentResponse] = await Promise.all([
             this.fetchWithRetry(`/artist/?id=${artistId}`),
-            this.fetchWithRetry(`/artist/?f=${artistId}`)
+            this.fetchWithRetry(`/artist/?f=${artistId}&skip_tracks=true`)
         ]);
 
         const primaryJsonData = await primaryResponse.json();
