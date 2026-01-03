@@ -78,7 +78,7 @@ export function initializeUIInteractions(player, api) {
                         </svg>
                     </div>
                     <div class="track-item-info">
-                        <img src="${api.getCoverUrl(track.album?.cover, '80')}"
+                        <img src="${api.getCoverUrl(track.album?.cover)}"
                              class="track-item-cover" loading="lazy">
                         <div class="track-item-details">
                             <div class="title">${trackTitle}</div>

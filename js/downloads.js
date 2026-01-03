@@ -66,7 +66,7 @@ export function addDownloadTask(trackId, track, filename, api) {
     const trackTitle = getTrackTitle(track);
     taskEl.innerHTML = `
         <div style="display: flex; align-items: start; gap: 0.75rem;">
-            <img src="${api.getCoverUrl(track.album?.cover, '80')}"
+            <img src="${api.getCoverUrl(track.album?.cover)}"
                  style="width: 40px; height: 40px; border-radius: 4px; flex-shrink: 0;">
             <div style="flex: 1; min-width: 0;">
                 <div style="font-weight: 500; font-size: 0.9rem; margin-bottom: 0.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${trackTitle}</div>

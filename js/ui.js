@@ -80,7 +80,7 @@ export class UIRenderer {
 
     createTrackItemHTML(track, index, showCover = false, hasMultipleDiscs = false) {
         const playIconSmall = SVG_PLAY;
-        const trackImageHTML = showCover ? `<img src="${this.api.getCoverUrl(track.album?.cover, '80')}" alt="Track Cover" class="track-item-cover" loading="lazy">` : '';
+        const trackImageHTML = showCover ? `<img src="${this.api.getCoverUrl(track.album?.cover)}" alt="Track Cover" class="track-item-cover" loading="lazy">` : '';
 
         let displayIndex;
         if (hasMultipleDiscs && !showCover) {
@@ -162,7 +162,7 @@ export class UIRenderer {
         return `
             <div class="card" data-playlist-id="${playlist.uuid}" data-href="#playlist/${playlist.uuid}" style="cursor: pointer;">
                 <div class="card-image-wrapper">
-                    <img src="${this.api.getCoverUrl(imageId, '320')}" alt="${playlist.title}" class="card-image" loading="lazy">
+                    <img src="${this.api.getCoverUrl(imageId)}" alt="${playlist.title}" class="card-image" loading="lazy">
                     <button class="like-btn card-like-btn" data-action="toggle-like" data-type="playlist" title="Add to Liked">
                         ${this.createHeartIcon(false)}
                     </button>
@@ -204,11 +204,11 @@ export class UIRenderer {
                 
                 imageHTML = `
                     <div class="card-image card-collage ${itemsClass}">
-                        ${covers.map(cover => `<img src="${this.api.getCoverUrl(cover, '320')}" alt="" loading="lazy">`).join('')}
+                        ${covers.map(cover => `<img src="${this.api.getCoverUrl(cover)}" alt="" loading="lazy">`).join('')}
                     </div>
                 `;
             } else if (uniqueCovers.length > 0) {
-                imageHTML = `<img src="${this.api.getCoverUrl(uniqueCovers[0], '320')}" alt="${playlist.name}" class="card-image" loading="lazy">`;
+                imageHTML = `<img src="${this.api.getCoverUrl(uniqueCovers[0])}" alt="${playlist.name}" class="card-image" loading="lazy">`;
             } else {
                 imageHTML = `<img src="assets/appicon.png" alt="${playlist.name}" class="card-image" loading="lazy">`;
             }
@@ -263,7 +263,7 @@ export class UIRenderer {
         return `
             <div class="card" data-album-id="${album.id}" data-href="#album/${album.id}" style="cursor: pointer;">
                 <div class="card-image-wrapper">
-                    <img src="${this.api.getCoverUrl(album.cover, '320')}" alt="${album.title}" class="card-image" loading="lazy">
+                    <img src="${this.api.getCoverUrl(album.cover)}" alt="${album.title}" class="card-image" loading="lazy">
                     <button class="like-btn card-like-btn" data-action="toggle-like" data-type="album" title="Add to Liked">
                         ${this.createHeartIcon(false)}
                     </button>
@@ -282,7 +282,7 @@ export class UIRenderer {
         return `
             <div class="card artist" data-artist-id="${artist.id}" data-href="#artist/${artist.id}" style="cursor: pointer;">
                 <div class="card-image-wrapper">
-                    <img src="${this.api.getArtistPictureUrl(artist.picture, '320')}" alt="${artist.name}" class="card-image" loading="lazy">
+                    <img src="${this.api.getArtistPictureUrl(artist.picture)}" alt="${artist.name}" class="card-image" loading="lazy">
                     <button class="like-btn card-like-btn" data-action="toggle-like" data-type="artist" title="Add to Liked">
                         ${this.createHeartIcon(false)}
                     </button>
@@ -808,7 +808,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
         try {
             const { album, tracks } = await this.api.getAlbum(albumId);
 
-            const coverUrl = this.api.getCoverUrl(album.cover, '1280');
+            const coverUrl = this.api.getCoverUrl(album.cover);
             imageEl.src = coverUrl;
             imageEl.style.backgroundColor = '';
 
@@ -1179,12 +1179,12 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
             // If API returns explicit image URL/ID use it. 
             // For now assume standard playlist-like cover or placeholder.
             if (imageId && imageId !== mix.id) {
-                 imageEl.src = this.api.getCoverUrl(imageId, '1080');
+                 imageEl.src = this.api.getCoverUrl(imageId);
                  this.setPageBackground(imageEl.src);
             } else {
                  // Try to get cover from first track album
                  if (tracks.length > 0 && tracks[0].album?.cover) {
-                     imageEl.src = this.api.getCoverUrl(tracks[0].album.cover, '1080');
+                     imageEl.src = this.api.getCoverUrl(tracks[0].album.cover);
                      this.setPageBackground(imageEl.src);
                  } else {
                      imageEl.src = 'assets/appicon.png';
@@ -1293,7 +1293,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                 });
             }
 
-            imageEl.src = this.api.getArtistPictureUrl(artist.picture, '750');
+            imageEl.src = this.api.getArtistPictureUrl(artist.picture);
             imageEl.style.backgroundColor = '';
             nameEl.textContent = artist.name;
 

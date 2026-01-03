@@ -58,7 +58,7 @@ export class Player {
                 const titleEl = document.querySelector('.now-playing-bar .title');
                 const artistEl = document.querySelector('.now-playing-bar .artist');
 
-                if (coverEl) coverEl.src = this.api.getCoverUrl(track.album?.cover, '1280');
+                if (coverEl) coverEl.src = this.api.getCoverUrl(track.album?.cover);
                 if (titleEl) titleEl.textContent = trackTitle;
                 if (artistEl) artistEl.innerHTML = trackArtistsHTML + yearDisplay;
 
@@ -194,7 +194,7 @@ export class Player {
         }
 
         document.querySelector('.now-playing-bar .cover').src =
-            this.api.getCoverUrl(track.album?.cover, '1280');
+            this.api.getCoverUrl(track.album?.cover);
         document.querySelector('.now-playing-bar .title').textContent = trackTitle;
         document.querySelector('.now-playing-bar .artist').innerHTML = trackArtistsHTML + yearDisplay;
         
@@ -469,7 +469,7 @@ export class Player {
         if (!('mediaSession' in navigator)) return;
 
         const artwork = [];
-        const sizes = ['1280'];
+        const sizes = ['320'];
         const coverId = track.album?.cover;
         const trackTitle = getTrackTitle(track);
 

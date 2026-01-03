@@ -801,7 +801,7 @@ export class LosslessAPI {
         URL.revokeObjectURL(url);
     }
 
-    getCoverUrl(id, size = '1280') {
+    getCoverUrl(id, size = '320') {
         if (!id) {
             return `https://picsum.photos/seed/${Math.random()}/${size}`;
         }
@@ -810,7 +810,7 @@ export class LosslessAPI {
         return `https://resources.tidal.com/images/${formattedId}/${size}x${size}.jpg`;
     }
 
-    getArtistPictureUrl(id, size = '750') {
+    getArtistPictureUrl(id, size = '320') {
         if (!id) {
             return `https://picsum.photos/seed/${Math.random()}/${size}`;
         }
