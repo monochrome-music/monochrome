@@ -667,6 +667,16 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             }
         });
     }
+
+    const nowPlayingMixBtn = document.getElementById('now-playing-mix-btn');
+    if (nowPlayingMixBtn) {
+        nowPlayingMixBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (player.currentTrack) {
+                await handleTrackAction('track-mix', player.currentTrack, player, api, lyricsManager, 'track', ui, scrobbler);
+            }
+        });
+    }
 }
 
 function renderQueue(player) {

@@ -1189,16 +1189,19 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
 
             let displayTitle;
             if (type === 'artist' && name) {
-                displayTitle = `Mix for artist ${decodeURIComponent(name)}`;
+                const decodedName = decodeURIComponent(name);
+                titleEl.innerHTML = `<span style="color: var(--muted-foreground)">Mix for artist</span> ${decodedName}`;
+                this.adjustTitleFontSize(titleEl, `Mix for artist ${decodedName}`);
             } else if (type === 'track' && name) {
-                displayTitle = `Mix for track ${decodeURIComponent(name)}`;
+                const decodedName = decodeURIComponent(name);
+                titleEl.innerHTML = `<span style="color: var(--muted-foreground)">Mix for track</span> ${decodedName}`;
+                this.adjustTitleFontSize(titleEl, `Mix for track ${decodedName}`);
             } else {
                 const firstTrackArtist = tracks.length > 0 ? tracks[0].artist?.name : '';
                 displayTitle = mix.title || (firstTrackArtist ? `${firstTrackArtist} Mix` : 'Mix');
+                titleEl.textContent = displayTitle;
+                this.adjustTitleFontSize(titleEl, displayTitle);
             }
-
-            titleEl.textContent = displayTitle;
-            this.adjustTitleFontSize(titleEl, displayTitle);
 
             const totalDuration = calculateTotalDuration(tracks);
 

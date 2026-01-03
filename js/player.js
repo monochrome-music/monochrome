@@ -44,6 +44,15 @@ export class Player {
                 const track = this.currentTrack;
                 const trackTitle = getTrackTitle(track);
                 const trackArtistsHTML = getTrackArtistsHTML(track);
+                
+                let yearDisplay = '';
+                const releaseDate = track.album?.releaseDate || track.streamStartDate;
+                if (releaseDate) {
+                    const date = new Date(releaseDate);
+                    if (!isNaN(date.getTime())) {
+                        yearDisplay = ` • ${date.getFullYear()}`;
+                    }
+                }
 
                 const coverEl = document.querySelector('.now-playing-bar .cover');
                 const titleEl = document.querySelector('.now-playing-bar .title');
@@ -51,7 +60,12 @@ export class Player {
 
                 if (coverEl) coverEl.src = this.api.getCoverUrl(track.album?.cover, '1280');
                 if (titleEl) titleEl.textContent = trackTitle;
-                if (artistEl) artistEl.innerHTML = trackArtistsHTML;
+                if (artistEl) artistEl.innerHTML = trackArtistsHTML + yearDisplay;
+
+                const mixBtn = document.getElementById('now-playing-mix-btn');
+                if (mixBtn) {
+                    mixBtn.style.display = (track.mixes && track.mixes.TRACK_MIX) ? 'flex' : 'none';
+                }
                 const totalDurationEl = document.getElementById('total-duration');
                 if (totalDurationEl) totalDurationEl.textContent = formatTime(track.duration);
                 document.title = `${trackTitle} • ${track.artist?.name || 'Unknown'}`;
@@ -169,11 +183,25 @@ export class Player {
 
         const trackTitle = getTrackTitle(track);
         const trackArtistsHTML = getTrackArtistsHTML(track);
+        
+        let yearDisplay = '';
+        const releaseDate = track.album?.releaseDate || track.streamStartDate;
+        if (releaseDate) {
+            const date = new Date(releaseDate);
+            if (!isNaN(date.getTime())) {
+                yearDisplay = ` • ${date.getFullYear()}`;
+            }
+        }
 
         document.querySelector('.now-playing-bar .cover').src =
             this.api.getCoverUrl(track.album?.cover, '1280');
         document.querySelector('.now-playing-bar .title').textContent = trackTitle;
-        document.querySelector('.now-playing-bar .artist').innerHTML = trackArtistsHTML;
+        document.querySelector('.now-playing-bar .artist').innerHTML = trackArtistsHTML + yearDisplay;
+        
+        const mixBtn = document.getElementById('now-playing-mix-btn');
+        if (mixBtn) {
+            mixBtn.style.display = (track.mixes && track.mixes.TRACK_MIX) ? 'flex' : 'none';
+        }
         document.title = `${trackTitle} • ${track.artist?.name || 'Unknown'}`;
 
         this.updatePlayingTrackIndicator();
