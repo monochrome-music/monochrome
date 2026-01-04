@@ -13,7 +13,7 @@
     --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.2);
     --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.5);
     --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.8);
-    --cover-filter: blur(30px) brightness(0.3);
+    --cover-filter: blur(50px) brightness(0.4);
 }
 
 :root[data-theme="monochrome"] {
@@ -35,7 +35,6 @@
     --highlight-rgb: 255, 255, 255;
     --active-highlight: var(--highlight);
     --explicit-badge: #fafafa;
-    --cover-filter: blur(30px) brightness(0.3);
 }
 
 :root[data-theme="dark"] {
@@ -225,7 +224,7 @@
     --highlight-rgb: 37, 99, 235;
     --active-highlight: var(--highlight);
     --explicit-badge: #f58a8a;
-    --cover-filter: blur(30px) brightness(1.6) opacity(0.85);
+    --cover-filter: blur(50px) brightness(1.6) opacity(0.35);
 }
 
 *, *::before, *::after {
@@ -339,7 +338,7 @@ kbd {
     -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0) 100%);
     
     /* Blur effect */
-    filter: blur(50px) saturate(1.4) brightness(0.5);
+    filter: var(--cover-filter);
     pointer-events: none;
 }
 
@@ -349,7 +348,6 @@ kbd {
 
 /* Light mode adjustments */
 :root[data-theme="light"] #page-background {
-    filter: blur(50px) saturate(1.5) brightness(1.1) opacity(0.5);
     mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
     -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
 }

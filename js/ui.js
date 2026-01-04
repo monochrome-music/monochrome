@@ -3,6 +3,7 @@ import { SVG_PLAY, SVG_DOWNLOAD, SVG_MENU, SVG_HEART, formatTime, createPlacehol
 import { openLyricsPanel } from './lyrics.js';
 import { recentActivityManager, backgroundSettings, trackListSettings } from './storage.js';
 import { db } from './db.js';
+import { getVibrantColorFromImage } from './vibrant-color.js';
 
 export class UIRenderer {
     constructor(api, player) {
@@ -18,6 +19,36 @@ export class UIRenderer {
             return SVG_HEART.replace('class="heart-icon"', 'class="heart-icon filled"');
         }
         return SVG_HEART;
+    }
+
+    async extractAndApplyColor(url) {
+        if (!backgroundSettings.isEnabled() || !url) {
+            this.resetVibrantColor();
+            return;
+        }
+
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        // Add cache buster to bypass opaque response in cache
+        const separator = url.includes('?') ? '&' : '?';
+        img.src = `${url}${separator}not-from-cache-please`;
+
+        img.onload = () => {
+            try {
+                const color = getVibrantColorFromImage(img);
+                if (color) {
+                    this.setVibrantColor(color);
+                } else {
+                    this.resetVibrantColor();
+                }
+            } catch (e) {
+                this.resetVibrantColor();
+            }
+        };
+
+        img.onerror = () => {
+            this.resetVibrantColor();
+        };
     }
 
     async updateLikeState(element, type, id) {
@@ -406,9 +437,9 @@ export class UIRenderer {
             // We need the color to be light enough.
             // If brightness is too low (< 80), lighten it.
             while (brightness < 80) {
-                r = Math.min(255, Math.floor(r * 1.15));
-                g = Math.min(255, Math.floor(g * 1.15));
-                b = Math.min(255, Math.floor(b * 1.15));
+                r = Math.min(255, Math.max(r + 1, Math.floor(r * 1.15)));
+                g = Math.min(255, Math.max(g + 1, Math.floor(g * 1.15)));
+                b = Math.min(255, Math.max(b + 1, Math.floor(b * 1.15)));
                 brightness = ((r * 299) + (g * 587) + (b * 114)) / 1000;
                 // Break if we hit white or can't get brighter to avoid infinite loop
                 if (r >= 255 && g >= 255 && b >= 255) break;
@@ -817,7 +848,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
             if (backgroundSettings.isEnabled() && album.vibrantColor) {
                 this.setVibrantColor(album.vibrantColor);
             } else {
-                this.resetVibrantColor();
+                this.extractAndApplyColor(this.api.getCoverUrl(album.cover, '80'));
             }
 
             const explicitBadge = hasExplicitContent(album) ? this.createExplicitBadge() : '';
@@ -1090,12 +1121,13 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                 if (imageId) {
                     imageEl.src = this.api.getCoverUrl(imageId, '1080');
                     this.setPageBackground(imageEl.src);
+                    
+                    this.extractAndApplyColor(this.api.getCoverUrl(imageId, '160'));
                 } else {
                     imageEl.src = 'assets/appicon.png';
                     this.setPageBackground(null);
+                    this.resetVibrantColor();
                 }
-                this.resetVibrantColor();
-                imageEl.style.backgroundColor = '';
 
                 titleEl.textContent = playlist.title;
                 this.adjustTitleFontSize(titleEl, playlist.title);
@@ -1181,11 +1213,13 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
             if (imageId && imageId !== mix.id) {
                  imageEl.src = this.api.getCoverUrl(imageId);
                  this.setPageBackground(imageEl.src);
+                 this.extractAndApplyColor(this.api.getCoverUrl(imageId, '160'));
             } else {
                  // Try to get cover from first track album
                  if (tracks.length > 0 && tracks[0].album?.cover) {
                      imageEl.src = this.api.getCoverUrl(tracks[0].album.cover);
                      this.setPageBackground(imageEl.src);
+                     this.extractAndApplyColor(this.api.getCoverUrl(tracks[0].album.cover, '160'));
                  } else {
                      imageEl.src = 'assets/appicon.png';
                      this.setPageBackground(null);
@@ -1299,7 +1333,10 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
 
             // Set background
             this.setPageBackground(imageEl.src);
-            this.resetVibrantColor(); // Ensure we don't carry over color from previous page
+            
+            // Extract vibrant color using robust image extraction (160x160 for speed/accuracy balance)
+            const artistPic160 = this.api.getArtistPictureUrl(artist.picture, '160');
+            this.extractAndApplyColor(artistPic160);
 
             this.adjustTitleFontSize(nameEl, artist.name);
 
