@@ -1396,7 +1396,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
             this.adjustTitleFontSize(nameEl, artist.name);
 
             metaEl.innerHTML = `
-                <span>${artist.popularity} popularity</span>
+                <span>${artist.popularity}% popularity</span>
                 <div class="artist-tags">
                     ${(artist.artistRoles || [])
                         .filter(role => role.category)

@@ -825,15 +825,12 @@ body.has-page-background .track-item:hover {
 }
 
 .explicit-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--explicit-badge);
-    color: var(--background);
-    font-size: 0.65rem;
+    background-color: var(--secondary);
+    color: var(--muted-foreground);
+    font-size: 0.6rem;
     font-weight: 700;
-    padding: 0.15rem 0.35rem;
-    border-radius: 2px;
+    padding: 0.15rem 0.3rem;
+    border-radius: 3px;
     margin-left: 0.5rem;
     vertical-align: middle;
     line-height: 1;
