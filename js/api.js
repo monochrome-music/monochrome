@@ -487,27 +487,23 @@ export class LosslessAPI {
         const response = await this.fetchWithRetry(`/mix/?id=${id}`, { type: 'api' });
         const data = await response.json();
         
-        let mix = null;
-        let tracks = [];
-
-        // Mix response structure might vary, handle likely cases
-        const items = data.items || data.tracks || (Array.isArray(data) ? data : []);
+        const mixData = data.mix;
+        const items = data.items || [];
         
-        // If data has mix info, use it. Otherwise, fabricate one or look for it.
-        if (data.mix) {
-            mix = data.mix;
-        } else if (!Array.isArray(data) && data.id) {
-            mix = data;
+        if (!mixData) {
+            throw new Error('Mix metadata not found');
         }
 
-        if (!mix) {
-             // Basic placeholder if mix metadata isn't explicitly separated
-             mix = { id, title: 'Mix', description: 'Generated Mix' };
-        }
-
-        if (items.length > 0) {
-            tracks = items.map(i => this.prepareTrack(i.item || i));
-        }
+        const tracks = items.map(i => this.prepareTrack(i.item || i));
+        
+        const mix = {
+            id: mixData.id,
+            title: mixData.title,
+            subTitle: mixData.subTitle,
+            description: mixData.description,
+            mixType: mixData.mixType,
+            cover: mixData.images?.LARGE?.url || mixData.images?.MEDIUM?.url || mixData.images?.SMALL?.url || null
+        };
 
         const result = { mix, tracks };
         await this.cache.set('mix', id, result);

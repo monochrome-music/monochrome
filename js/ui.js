@@ -933,7 +933,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                 const mixBtn = document.getElementById('album-mix-btn');
                 if (mixBtn && artistData.mixes && artistData.mixes.ARTIST_MIX) {
                     mixBtn.style.display = 'flex';
-                    mixBtn.onclick = () => window.location.hash = `#mix/${artistData.mixes.ARTIST_MIX}?type=artist&name=${encodeURIComponent(artistData.name)}`;
+                    mixBtn.onclick = () => window.location.hash = `#mix/${artistData.mixes.ARTIST_MIX}`;
                 }
 
                 const renderSection = (items, container, section, titleEl, titleText) => {
@@ -1171,12 +1171,8 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
         }
     }
 
-    async renderMixPage(param) {
+    async renderMixPage(mixId) {
         this.showPage('mix');
-        const [mixId, query] = param.split('?');
-        const urlParams = new URLSearchParams(query);
-        const type = urlParams.get('type');
-        const name = urlParams.get('name');
 
         const imageEl = document.getElementById('mix-detail-image');
         const titleEl = document.getElementById('mix-detail-title');
@@ -1206,16 +1202,10 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
         try {
             const { mix, tracks } = await this.api.getMix(mixId);
 
-            // Mixes usually have covers from Tidal resources, similar to playlists
-            const imageId = mix.images?.medium?.source || mix.image || mix.id; 
-            // Fallback for cover: if mix.id matches a pattern or we can just try generic mix cover
-            // Often mix ID isn't directly an image ID. 
-            // If API returns explicit image URL/ID use it. 
-            // For now assume standard playlist-like cover or placeholder.
-            if (imageId && imageId !== mix.id) {
-                 imageEl.src = this.api.getCoverUrl(imageId);
-                 this.setPageBackground(imageEl.src);
-                 this.extractAndApplyColor(this.api.getCoverUrl(imageId, '160'));
+            if (mix.cover) {
+                imageEl.src = mix.cover;
+                this.setPageBackground(mix.cover);
+                this.extractAndApplyColor(mix.cover);
             } else {
                  // Try to get cover from first track album
                  if (tracks.length > 0 && tracks[0].album?.cover) {
@@ -1231,26 +1221,14 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
             
             imageEl.style.backgroundColor = '';
 
-            let displayTitle;
-            if (type === 'artist' && name) {
-                const decodedName = decodeURIComponent(name);
-                titleEl.innerHTML = `<span style="color: var(--muted-foreground)">Mix for artist</span> ${decodedName}`;
-                this.adjustTitleFontSize(titleEl, `Mix for artist ${decodedName}`);
-            } else if (type === 'track' && name) {
-                const decodedName = decodeURIComponent(name);
-                titleEl.innerHTML = `<span style="color: var(--muted-foreground)">Mix for track</span> ${decodedName}`;
-                this.adjustTitleFontSize(titleEl, `Mix for track ${decodedName}`);
-            } else {
-                const firstTrackArtist = tracks.length > 0 ? tracks[0].artist?.name : '';
-                displayTitle = mix.title || (firstTrackArtist ? `${firstTrackArtist} Mix` : 'Mix');
-                titleEl.textContent = displayTitle;
-                this.adjustTitleFontSize(titleEl, displayTitle);
-            }
+            // Use title and subtitle from API directly
+            const displayTitle = mix.title || 'Mix';
+            titleEl.textContent = displayTitle;
+            this.adjustTitleFontSize(titleEl, displayTitle);
 
             const totalDuration = calculateTotalDuration(tracks);
-
             metaEl.textContent = `${tracks.length} tracks • ${formatDuration(totalDuration)}`;
-            descEl.textContent = mix.subTitle || mix.description || '';
+            descEl.innerHTML = `${mix.subTitle}`;
 
             tracklistContainer.innerHTML = `
                 <div class="track-list-header">
@@ -1309,7 +1287,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
             if (mixBtn) {
                 if (artist.mixes && artist.mixes.ARTIST_MIX) {
                     mixBtn.style.display = 'flex';
-                    mixBtn.onclick = () => window.location.hash = `#mix/${artist.mixes.ARTIST_MIX}?type=artist&name=${encodeURIComponent(artist.name)}`;
+                    mixBtn.onclick = () => window.location.hash = `#mix/${artist.mixes.ARTIST_MIX}`;
                 } else {
                     mixBtn.style.display = 'none';
                 }

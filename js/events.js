@@ -361,7 +361,7 @@ export async function handleTrackAction(action, item, player, api, lyricsManager
         showNotification(`Playing next: ${item.title}`);
     } else if (action === 'track-mix') {
         if (item.mixes && item.mixes.TRACK_MIX) {
-            window.location.hash = `#mix/${item.mixes.TRACK_MIX}?type=track&name=${encodeURIComponent(item.title)}`;
+            window.location.hash = `#mix/${item.mixes.TRACK_MIX}`;
         }
     } else if (action === 'play-card') {
         try {

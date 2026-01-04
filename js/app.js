@@ -329,9 +329,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const btn = e.target.closest('#download-mix-btn');
             if (btn.disabled) return;
 
-            const param = window.location.hash.split('#mix/')[1];
-            if (!param) return;
-            const [mixId] = param.split('?');
+            const mixId = window.location.hash.split('#mix/')[1];
+            if (!mixId) return;
 
             btn.disabled = true;
             const originalHTML = btn.innerHTML;
