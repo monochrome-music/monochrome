@@ -249,11 +249,12 @@ export const recentActivityManager = {
     _get() {
         try {
             const data = localStorage.getItem(this.STORAGE_KEY);
-            const parsed = data ? JSON.parse(data) : { artists: [], albums: [], playlists: [] };
+            const parsed = data ? JSON.parse(data) : { artists: [], albums: [], playlists: [], mixes: [] };
             if (!parsed.playlists) parsed.playlists = [];
+            if (!parsed.mixes) parsed.mixes = [];
             return parsed;
         } catch (e) {
-            return { artists: [], albums: [], playlists: [] };
+            return { artists: [], albums: [], playlists: [], mixes: [] };
         }
     },
 
@@ -283,6 +284,10 @@ export const recentActivityManager = {
 
     addPlaylist(playlist) {
         this._add('playlists', playlist);
+    },
+
+    addMix(mix) {
+        this._add('mixes', mix);
     }
 };
 

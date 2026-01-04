@@ -1,5 +1,5 @@
 // sw.js
-const SW_VERSION = 'monochrome-v7'; // Note To Self: Change Every Deploy
+const SW_VERSION = 'monochrome-v8'; // Note To Self: Change Every Deploy
 const CACHE_NAME = `monochrome-${SW_VERSION}`;
 
 const ASSETS = [
@@ -23,6 +23,7 @@ const ASSETS = [
   '/js/downloads.js',
   '/js/db.js',
   '/js/metadata.js',
+  '/js/vibrant-color.js',
 
   '/manifest.json',
   '/assets/logo.svg',

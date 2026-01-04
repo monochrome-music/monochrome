@@ -1,7 +1,7 @@
 export class MusicDatabase {
     constructor() {
         this.dbName = 'MonochromeDB';
-        this.version = 4;
+        this.version = 5;
         this.db = null;
     }
 
@@ -39,6 +39,10 @@ export class MusicDatabase {
                 }
                 if (!db.objectStoreNames.contains('favorites_playlists')) {
                     const store = db.createObjectStore('favorites_playlists', { keyPath: 'uuid' });
+                    store.createIndex('addedAt', 'addedAt', { unique: false });
+                }
+                if (!db.objectStoreNames.contains('favorites_mixes')) {
+                    const store = db.createObjectStore('favorites_mixes', { keyPath: 'id' });
                     store.createIndex('addedAt', 'addedAt', { unique: false });
                 }
                 if (!db.objectStoreNames.contains('history_tracks')) {
@@ -107,7 +111,8 @@ export class MusicDatabase {
 
     // Favorites API
     async toggleFavorite(type, item) {
-        const storeName = `favorites_${type}s`; // tracks, albums, artists
+        const plural = type === 'mix' ? 'mixes' : `${type}s`;
+        const storeName = `favorites_${plural}`;
         const key = type === 'playlist' ? item.uuid : item.id;
         const exists = await this.isFavorite(type, key);
 
@@ -123,7 +128,8 @@ export class MusicDatabase {
     }
 
     async isFavorite(type, id) {
-        const storeName = `favorites_${type}s`;
+        const plural = type === 'mix' ? 'mixes' : `${type}s`;
+        const storeName = `favorites_${plural}`;
         try {
             const result = await this.performTransaction(storeName, 'readonly', (store) => store.get(id));
             return !!result;
@@ -133,7 +139,8 @@ export class MusicDatabase {
     }
 
     async getFavorites(type) {
-        const storeName = `favorites_${type}s`;
+        const plural = type === 'mix' ? 'mixes' : `${type}s`;
+        const storeName = `favorites_${plural}`;
         const db = await this.open();
         return new Promise((resolve, reject) => {
             const transaction = db.transaction(storeName, 'readonly');
@@ -214,6 +221,18 @@ export class MusicDatabase {
             };
         }
 
+        if (type === 'mix') {
+            return {
+                id: item.id,
+                addedAt: item.addedAt,
+                title: item.title,
+                subTitle: item.subTitle,
+                description: item.description,
+                mixType: item.mixType,
+                cover: item.cover
+            };
+        }
+
         return item;
     }
 
@@ -222,6 +241,7 @@ export class MusicDatabase {
         const albums = await this.getFavorites('album');
         const artists = await this.getFavorites('artist');
         const playlists = await this.getFavorites('playlist');
+        const mixes = await this.getFavorites('mix');
         const history = await this.getHistory();
 
         const userPlaylists = await this.getPlaylists();
@@ -230,6 +250,7 @@ export class MusicDatabase {
             favorites_albums: albums.map(a => this._minifyItem('album', a)),
             favorites_artists: artists.map(a => this._minifyItem('artist', a)),
             favorites_playlists: playlists.map(p => this._minifyItem('playlist', p)),
+            favorites_mixes: mixes.map(m => this._minifyItem('mix', m)),
             history_tracks: history.map(t => this._minifyItem('track', t)),
             user_playlists: userPlaylists
         };
@@ -260,6 +281,7 @@ export class MusicDatabase {
         await importStore('favorites_albums', data.favorites_albums);
         await importStore('favorites_artists', data.favorites_artists);
         await importStore('favorites_playlists', data.favorites_playlists);
+        await importStore('favorites_mixes', data.favorites_mixes);
         await importStore('history_tracks', data.history_tracks);
         if (data.user_playlists) {
             await importStore('user_playlists', data.user_playlists);

@@ -540,6 +540,9 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                         } else if (type === 'playlist') {
                             const data = await api.getPlaylist(id);
                             item = data.playlist;
+                        } else if (type === 'mix') {
+                            const data = await api.getMix(id);
+                            item = data.mix;
                         }
                     } catch (err) { console.error(err); }
                 }

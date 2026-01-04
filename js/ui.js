@@ -207,6 +207,27 @@ export class UIRenderer {
         `;
     }
 
+    createMixCardHTML(mix) {
+        const imageSrc = mix.cover || 'assets/appicon.png';
+        const description = mix.subTitle || mix.description || '';
+        
+        return `
+            <div class="card" data-mix-id="${mix.id}" data-href="#mix/${mix.id}" style="cursor: pointer;">
+                <div class="card-image-wrapper">
+                    <img src="${imageSrc}" alt="${mix.title}" class="card-image" loading="lazy">
+                    <button class="like-btn card-like-btn" data-action="toggle-like" data-type="mix" title="Add to Liked">
+                        ${this.createHeartIcon(false)}
+                    </button>
+                    <button class="play-btn card-play-btn" data-action="play-card" data-type="mix" data-id="${mix.id}" title="Play">
+                        ${SVG_PLAY}
+                    </button>
+                </div>
+                <h3 class="card-title">${mix.title}</h3>
+                <p class="card-subtitle">${description}</p>
+            </div>
+        `;
+    }
+
     createUserPlaylistCardHTML(playlist) {
         let imageHTML = '';
         
@@ -607,8 +628,22 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
         }
 
         const likedPlaylists = await db.getFavorites('playlist');
-        if (likedPlaylists.length) {
-            playlistsContainer.innerHTML = likedPlaylists.map(p => this.createPlaylistCardHTML(p)).join('');
+        const likedMixes = await db.getFavorites('mix');
+        
+        let mixedContent = [];
+        if (likedPlaylists.length) mixedContent.push(...likedPlaylists.map(p => ({ ...p, _type: 'playlist' })));
+        if (likedMixes.length) mixedContent.push(...likedMixes.map(m => ({ ...m, _type: 'mix' })));
+        
+        // Sort by addedAt descending
+        mixedContent.sort((a, b) => b.addedAt - a.addedAt);
+
+        if (mixedContent.length) {
+            playlistsContainer.innerHTML = mixedContent.map(item => {
+                return item._type === 'playlist' 
+                    ? this.createPlaylistCardHTML(item) 
+                    : this.createMixCardHTML(item);
+            }).join('');
+
             likedPlaylists.forEach(playlist => {
                 const el = playlistsContainer.querySelector(`[data-playlist-id="${playlist.uuid}"]`);
                 if (el) {
@@ -616,8 +651,16 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                     this.updateLikeState(el, 'playlist', playlist.uuid);
                 }
             });
+            
+            likedMixes.forEach(mix => {
+                const el = playlistsContainer.querySelector(`[data-mix-id="${mix.id}"]`);
+                if (el) {
+                    trackDataStore.set(el, mix);
+                    this.updateLikeState(el, 'mix', mix.id);
+                }
+            });
         } else {
-            playlistsContainer.innerHTML = createPlaceholder('No liked playlists yet.');
+            playlistsContainer.innerHTML = createPlaceholder('No liked playlists or mixes yet.');
         }
 
         const myPlaylistsContainer = document.getElementById('my-playlists-container');
@@ -670,26 +713,47 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
         }
 
         if (playlistsContainer) {
-            if (recents.playlists && recents.playlists.length) {
-                playlistsContainer.innerHTML = recents.playlists.map(playlist => {
-                    if (playlist.isUserPlaylist) {
-                        return this.createUserPlaylistCardHTML(playlist);
+            const playlists = recents.playlists || [];
+            const mixes = recents.mixes || [];
+            
+            // Note: Since we don't have a unified timestamp for recents in the separate arrays without normalizing,
+            // we will just display playlists then mixes, or interleave them if we wanted to be fancy.
+            // But usually recents are just lists.
+            // Let's just concatenate them.
+            
+            const combinedRecents = [...playlists, ...mixes]; // Order: Playlists then Mixes
+
+            if (combinedRecents.length) {
+                playlistsContainer.innerHTML = combinedRecents.map(item => {
+                    if (item.isUserPlaylist) {
+                        return this.createUserPlaylistCardHTML(item);
                     }
-                    return this.createPlaylistCardHTML(playlist);
+                    if (item.mixType) { // It's a mix
+                         return this.createMixCardHTML(item);
+                    }
+                    return this.createPlaylistCardHTML(item);
                 }).join('');
                 
-                recents.playlists.forEach(playlist => {
-                    const id = playlist.isUserPlaylist ? playlist.id : playlist.uuid;
-                    const el = playlistsContainer.querySelector(`[data-playlist-id="${id}"]`);
-                    if (el) {
-                        trackDataStore.set(el, playlist);
-                        if (!playlist.isUserPlaylist) {
-                            this.updateLikeState(el, 'playlist', playlist.uuid);
+                combinedRecents.forEach(item => {
+                    if (item.isUserPlaylist) {
+                        const el = playlistsContainer.querySelector(`[data-playlist-id="${item.id}"]`);
+                        if (el) trackDataStore.set(el, item);
+                    } else if (item.mixType) {
+                        const el = playlistsContainer.querySelector(`[data-mix-id="${item.id}"]`);
+                        if (el) {
+                            trackDataStore.set(el, item);
+                            this.updateLikeState(el, 'mix', item.id);
+                        }
+                    } else {
+                        const el = playlistsContainer.querySelector(`[data-playlist-id="${item.uuid}"]`);
+                        if (el) {
+                            trackDataStore.set(el, item);
+                            this.updateLikeState(el, 'playlist', item.uuid);
                         }
                     }
                 });
             } else {
-                playlistsContainer.innerHTML = createPlaceholder("You haven't viewed any playlists yet.");
+                playlistsContainer.innerHTML = createPlaceholder("You haven't viewed any playlists or mixes yet.");
             }
         }
     }
@@ -1245,6 +1309,17 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                 this.player.setQueue(tracks, 0);
                 this.player.playTrackFromQueue();
             };
+            
+            recentActivityManager.addMix(mix);
+            
+             // Update header like button
+            const mixLikeBtn = document.getElementById('like-mix-btn');
+            if (mixLikeBtn) {
+                mixLikeBtn.style.display = 'flex';
+                const isLiked = await db.isFavorite('mix', mix.id);
+                mixLikeBtn.innerHTML = this.createHeartIcon(isLiked);
+                mixLikeBtn.classList.toggle('active', isLiked);
+            }
 
             document.title = `${displayTitle} - Monochrome`;
         } catch (error) {
