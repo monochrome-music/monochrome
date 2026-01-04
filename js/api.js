@@ -221,6 +221,40 @@ export class LosslessAPI {
         }
     }
 
+    deduplicateAlbums(albums) {
+        const unique = new Map();
+
+        for (const album of albums) {
+            // Key based on title and numberOfTracks (excluding duration and explicit)
+            const key = JSON.stringify([album.title, album.numberOfTracks || 0]);
+            
+            if (unique.has(key)) {
+                const existing = unique.get(key);
+                
+                // Priority 1: Explicit
+                if (album.explicit && !existing.explicit) {
+                    unique.set(key, album);
+                    continue;
+                }
+                if (!album.explicit && existing.explicit) {
+                    continue;
+                }
+
+                // Priority 2: More Metadata Tags (if explicit status is same)
+                const existingTags = existing.mediaMetadata?.tags?.length || 0;
+                const newTags = album.mediaMetadata?.tags?.length || 0;
+
+                if (newTags > existingTags) {
+                    unique.set(key, album);
+                }
+            } else {
+                unique.set(key, album);
+            }
+        }
+        
+        return Array.from(unique.values());
+    }
+
     async searchTracks(query, options = {}) {
         const cached = await this.cache.get('search_tracks', query);
         if (cached) return cached;
@@ -273,9 +307,10 @@ export class LosslessAPI {
             const response = await this.fetchWithRetry(`/search/?al=${encodeURIComponent(query)}`, options);
             const data = await response.json();
             const normalized = this.normalizeSearchResponse(data, 'albums');
+            const preparedItems = normalized.items.map(a => this.prepareAlbum(a));
             const result = {
                 ...normalized,
-                items: normalized.items.map(a => this.prepareAlbum(a))
+                items: this.deduplicateAlbums(preparedItems)
             };
 
             await this.cache.set('search_albums', query, result);
@@ -582,7 +617,8 @@ export class LosslessAPI {
             console.warn('Failed to fetch additional albums via search:', e);
         }
 
-        const allReleases = Array.from(albumMap.values()).sort((a, b) =>
+        const rawReleases = Array.from(albumMap.values());
+        const allReleases = this.deduplicateAlbums(rawReleases).sort((a, b) =>
             new Date(b.releaseDate || 0) - new Date(a.releaseDate || 0)
         );
 
