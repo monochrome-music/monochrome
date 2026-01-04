@@ -325,6 +325,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                 alert('Failed to play album: ' + error.message);
             }
         }
+        if (e.target.closest('#download-mix-btn')) {
+            const btn = e.target.closest('#download-mix-btn');
+            if (btn.disabled) return;
+
+            const param = window.location.hash.split('#mix/')[1];
+            if (!param) return;
+            const [mixId] = param.split('?');
+
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Downloading...</span>';
+
+            try {
+                const { mix, tracks } = await api.getMix(mixId);
+                await downloadPlaylistAsZip(mix, tracks, api, player.quality, lyricsManager);
+            } catch (error) {
+                console.error('Mix download failed:', error);
+                alert('Failed to download mix: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        }
+
         if (e.target.closest('#download-playlist-btn')) {
         const btn = e.target.closest('#download-playlist-btn');
         if (btn.disabled) return;

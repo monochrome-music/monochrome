@@ -1185,6 +1185,8 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
         const tracklistContainer = document.getElementById('mix-detail-tracklist');
         const playBtn = document.getElementById('play-mix-btn');
         if (playBtn) playBtn.innerHTML = `${SVG_PLAY}<span>Play</span>`;
+        const dlBtn = document.getElementById('download-mix-btn');
+        if (dlBtn) dlBtn.innerHTML = `${SVG_DOWNLOAD}<span>Download</span>`;
 
         // Skeleton loading
         imageEl.src = '';

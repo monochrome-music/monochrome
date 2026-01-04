@@ -247,18 +247,18 @@
                         <div class="meta" id="album-detail-producer"></div>
                         <div class="detail-header-actions">
                             <button id="play-album-btn" class="btn-primary">
-                                <span>Play Album</span>
+                            <span>Play Album</span>
                             </button>
-                <button id="album-mix-btn" class="btn-primary" style="display: none;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-                    </svg>
-                    <span>Mix</span>
-                </button>
-                <button id="download-album-btn" class="btn-primary">
-                    <span>Download</span>
-                </button>
-                <button id="like-album-btn" class="btn-secondary like-btn" data-action="toggle-like" data-type="album" title="Save to Favorites">
+                            <button id="album-mix-btn" class="btn-primary" style="display: none;">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                                </svg>
+                                <span>Mix</span>
+                            </button>
+                            <button id="download-album-btn" class="btn-primary">
+                            <span>Download</span>
+                            </button>
+                            <button id="like-album-btn" class="btn-secondary like-btn" data-action="toggle-like" data-type="album" title="Save to Favorites">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
                             </button>
                         </div>
@@ -293,13 +293,13 @@
                     <div class="detail-header-info">
                         <h1 class="title" id="playlist-detail-title"></h1>
                         <div class="meta" id="playlist-detail-meta"></div>
-                        <p id="playlist-detail-description" class="detail-description"></p>
+                        <div class="meta" id="playlist-detail-description" class="detail-description"></div>
                         <div class="detail-header-actions">
                             <button id="play-playlist-btn" class="btn-primary">
-                                <span>Play</span>
+                            <span>Play</span>
                             </button>
                             <button id="download-playlist-btn" class="btn-primary">
-                                <span>Download</span>
+                            <span>Download</span>
                             </button>
                             <button id="like-playlist-btn" class="btn-secondary like-btn" data-action="toggle-like" data-type="playlist" title="Save to Favorites">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
@@ -316,10 +316,13 @@
                     <div class="detail-header-info">
                         <h1 class="title" id="mix-detail-title"></h1>
                         <div class="meta" id="mix-detail-meta"></div>
-                        <p id="mix-detail-description" class="detail-description"></p>
+                        <div class="meta" id="mix-detail-description" class="detail-description"></div>
                         <div class="detail-header-actions">
                             <button id="play-mix-btn" class="btn-primary">
-                                <span>Play</span>
+                            <span>Play</span>
+                            </button>
+                            <button id="download-mix-btn" class="btn-primary">
+                            <span>Download</span>
                             </button>
                         </div>
                     </div>
@@ -347,7 +350,7 @@
                                 <span>Mix</span>
                             </button>
                             <button id="download-discography-btn" class="btn-primary">
-                                <span>Download Discography</span>
+                            <span>Download Discography</span>
                             </button>
                             <button id="like-artist-btn" class="btn-secondary like-btn" data-action="toggle-like" data-type="artist" title="Save to Favorites">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
@@ -411,8 +414,8 @@
                                 <span class="description">Use the album cover as a blurred background on album pages and as primary color</span>
                             </div>
                             <label class="toggle-switch">
-                                <input type="checkbox" id="album-background-toggle">
-                                <span class="slider"></span>
+                            <input type="checkbox" id="album-background-toggle">
+                            <span class="slider"></span>
                             </label>
                         </div>
                     </div>
@@ -433,8 +436,8 @@
                                 <span class="description">Automatically scrobble played tracks</span>
                             </div>
                             <label class="toggle-switch">
-                                <input type="checkbox" id="lastfm-toggle">
-                                <span class="slider"></span>
+                            <input type="checkbox" id="lastfm-toggle">
+                            <span class="slider"></span>
                             </label>
                         </div>
 
@@ -444,8 +447,8 @@
                                 <span class="description">Automatically 'love' tracks on Last.fm when you like them</span>
                             </div>
                             <label class="toggle-switch">
-                                <input type="checkbox" id="lastfm-love-toggle">
-                                <span class="slider"></span>
+                            <input type="checkbox" id="lastfm-love-toggle">
+                            <span class="slider"></span>
                             </label>
                         </div>
                     </div>
@@ -492,8 +495,8 @@
                                 <span class="description">Play audio without interruption between tracks</span>
                             </div>
                             <label class="toggle-switch">
-                                <input type="checkbox" checked>
-                                <span class="slider"></span>
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
                             </label>
                         </div>
                     </div>
@@ -529,8 +532,8 @@
                                 <span class="description">Include .lrc files when downloading tracks/albums</span>
                             </div>
                             <label class="toggle-switch">
-                                <input type="checkbox" id="download-lyrics-toggle">
-                                <span class="slider"></span>
+                            <input type="checkbox" id="download-lyrics-toggle">
+                            <span class="slider"></span>
                             </label>
                         </div>
                         <div class="setting-item">
@@ -596,7 +599,7 @@
                         Monochrome is a lightweight, privacy-focused music streaming client designed for high-fidelity audio playback. 
                         Built with modern web technologies, it provides a clean, distraction-free listening experience.
                         <br>
-                        <h3><strong>NOTE:</strong> The instance you are currently on (monochrome.samidy.com) is a Community Fork adding additional features (library/playlists, accounts, mix + Big UI Improvments & More).</h3>
+                        <strong>NOTE:</strong> The instance you are currently on (monochrome.samidy.com) is a Community Fork adding additional features (library/playlists, accounts, mix + Big UI Improvments & More).
                         <strong>I Am Not Affiliated With The Original owner.</strong>
                     </p>
                     <br>
@@ -643,7 +646,7 @@
             <div id="page-account" class="page">
                 <h2 class="section-title" style="text-align: center;">Sign Up / Sign In</h2>
                 <div class="account-content">
-                <p style="text-align: center;" class="account-description">Make An Account to Allow Syncing Your Library Between Devices.</p>
+                    <p style="text-align: center;" class="account-description">Make An Account to Allow Syncing Your Library Between Devices.</p>
                     <div class="account-buttons" id="auth-buttons-container" style="display: flex; gap: 20px; align-items: center; justify-content: center; margin-top: 50px; flex-wrap: wrap;">
                         <button id="firebase-connect-btn" class="btn-secondary">Connect with Google</button>
                         <button id="toggle-email-auth-btn" class="btn-secondary">Connect with Email</button>
@@ -669,9 +672,9 @@
                     </script>
                     <p style="padding-top: 50px; text-align: center; color: #8B8B93;">We only store music data and a randomized ID to find out which Google account is which. <br> All data is anonymous. We do not store anything like emails, usernames, or anything sensitive. <br> <br> However, if you want complete control over your data, we allow you to use your own firebase configuration.</p>
                     <div style="display: flex; gap: 50px; align-items: center; justify-content: center; padding-top: 25px;">
-                    <a id="toggle-firebase-config-btn" class="btn-secondary" href="#settings">Advanced: Custom Configuration</a>
+                        <a id="toggle-firebase-config-btn" class="btn-secondary" href="#settings">Advanced: Custom Configuration</a>
                     </div>
-            </div>
+                </div>
             </div>
         </main>
         
