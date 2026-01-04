@@ -201,7 +201,7 @@ export class UIRenderer {
                         ${SVG_PLAY}
                     </button>
                 </div>
-                <h3 class="card-title">${playlist.title}</h3>
+                <h4 class="card-title">${playlist.title}</h4>
                 <p class="card-subtitle">${playlist.numberOfTracks || 0} tracks</p>
             </div>
         `;
@@ -222,7 +222,7 @@ export class UIRenderer {
                         ${SVG_PLAY}
                     </button>
                 </div>
-                <h3 class="card-title">${mix.title}</h3>
+                <h4 class="card-title">${mix.title}</h4>
                 <p class="card-subtitle">${description}</p>
             </div>
         `;
@@ -289,7 +289,7 @@ export class UIRenderer {
                         ${SVG_PLAY}
                     </button>
                 </div>
-                <h3 class="card-title">${playlist.name}</h3>
+                <h4 class="card-title">${playlist.name}</h4>
                 <p class="card-subtitle">${playlist.tracks ? playlist.tracks.length : (playlist.numberOfTracks || 0)} tracks</p>
             </div>
         `;
@@ -323,7 +323,7 @@ export class UIRenderer {
                         ${SVG_PLAY}
                     </button>
                 </div>
-                <h3 class="card-title">${album.title} ${explicitBadge}</h3>
+                <h4 class="card-title">${album.title} ${explicitBadge}</h4>
                 <p class="card-subtitle">${album.artist?.name ?? ''}</p>
                 <p class="card-subtitle">${yearDisplay}${typeLabel}</p>
             </div>
@@ -339,7 +339,7 @@ export class UIRenderer {
                         ${this.createHeartIcon(false)}
                     </button>
                 </div>
-                <h3 class="card-title">${artist.name}</h3>
+                <h4 class="card-title">${artist.name}</h4>
             </div>
         `;
     }
