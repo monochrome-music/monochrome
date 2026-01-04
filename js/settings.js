@@ -1,5 +1,5 @@
 //js/settings
-import { themeManager, lastFMStorage, nowPlayingSettings, lyricsSettings, backgroundSettings, trackListSettings } from './storage.js';
+import { themeManager, lastFMStorage, nowPlayingSettings, lyricsSettings, backgroundSettings, trackListSettings, cardSettings } from './storage.js';
 import { db } from './db.js';
 import { authManager } from './firebase/auth.js';
 import { syncManager } from './firebase/sync.js';
@@ -263,6 +263,24 @@ export function initializeSettings(scrobbler, player, api, ui) {
         trackListActionsMode.value = trackListSettings.getMode();
         trackListActionsMode.addEventListener('change', (e) => {
             trackListSettings.setMode(e.target.value);
+        });
+    }
+
+    // Compact Artist Toggle
+    const compactArtistToggle = document.getElementById('compact-artist-toggle');
+    if (compactArtistToggle) {
+        compactArtistToggle.checked = cardSettings.isCompactArtist();
+        compactArtistToggle.addEventListener('change', (e) => {
+            cardSettings.setCompactArtist(e.target.checked);
+        });
+    }
+
+    // Compact Album Toggle
+    const compactAlbumToggle = document.getElementById('compact-album-toggle');
+    if (compactAlbumToggle) {
+        compactAlbumToggle.checked = cardSettings.isCompactAlbum();
+        compactAlbumToggle.addEventListener('change', (e) => {
+            cardSettings.setCompactAlbum(e.target.checked);
         });
     }
 

@@ -1,7 +1,7 @@
 //js/ui.js
 import { SVG_PLAY, SVG_DOWNLOAD, SVG_MENU, SVG_HEART, formatTime, createPlaceholder, trackDataStore, hasExplicitContent, getTrackArtists, getTrackTitle, calculateTotalDuration, formatDuration } from './utils.js';
 import { openLyricsPanel } from './lyrics.js';
-import { recentActivityManager, backgroundSettings, trackListSettings } from './storage.js';
+import { recentActivityManager, backgroundSettings, trackListSettings, cardSettings } from './storage.js';
 import { db } from './db.js';
 import { getVibrantColorFromImage } from './vibrant-color.js';
 
@@ -190,8 +190,9 @@ export class UIRenderer {
 
     createPlaylistCardHTML(playlist) {
         const imageId = playlist.squareImage || playlist.image || playlist.uuid; // Fallback or use a specific cover getter if needed
+        const isCompact = cardSettings.isCompactAlbum();
         return `
-            <div class="card" data-playlist-id="${playlist.uuid}" data-href="#playlist/${playlist.uuid}" style="cursor: pointer;">
+            <div class="card ${isCompact ? 'compact' : ''}" data-playlist-id="${playlist.uuid}" data-href="#playlist/${playlist.uuid}" style="cursor: pointer;">
                 <div class="card-image-wrapper">
                     <img src="${this.api.getCoverUrl(imageId)}" alt="${playlist.title}" class="card-image" loading="lazy">
                     <button class="like-btn card-like-btn" data-action="toggle-like" data-type="playlist" title="Add to Liked">
@@ -201,8 +202,10 @@ export class UIRenderer {
                         ${SVG_PLAY}
                     </button>
                 </div>
-                <h4 class="card-title">${playlist.title}</h4>
-                <p class="card-subtitle">${playlist.numberOfTracks || 0} tracks</p>
+                <div class="card-info">
+                    <h4 class="card-title">${playlist.title}</h4>
+                    <p class="card-subtitle">${playlist.numberOfTracks || 0} tracks</p>
+                </div>
             </div>
         `;
     }
@@ -210,9 +213,10 @@ export class UIRenderer {
     createMixCardHTML(mix) {
         const imageSrc = mix.cover || 'assets/appicon.png';
         const description = mix.subTitle || mix.description || '';
+        const isCompact = cardSettings.isCompactAlbum();
         
         return `
-            <div class="card" data-mix-id="${mix.id}" data-href="#mix/${mix.id}" style="cursor: pointer;">
+            <div class="card ${isCompact ? 'compact' : ''}" data-mix-id="${mix.id}" data-href="#mix/${mix.id}" style="cursor: pointer;">
                 <div class="card-image-wrapper">
                     <img src="${imageSrc}" alt="${mix.title}" class="card-image" loading="lazy">
                     <button class="like-btn card-like-btn" data-action="toggle-like" data-type="mix" title="Add to Liked">
@@ -222,8 +226,10 @@ export class UIRenderer {
                         ${SVG_PLAY}
                     </button>
                 </div>
-                <h4 class="card-title">${mix.title}</h4>
-                <p class="card-subtitle">${description}</p>
+                <div class="card-info">
+                    <h4 class="card-title">${mix.title}</h4>
+                    <p class="card-subtitle">${description}</p>
+                </div>
             </div>
         `;
     }
@@ -266,8 +272,10 @@ export class UIRenderer {
             }
         }
 
+        const isCompact = cardSettings.isCompactAlbum();
+
         return `
-            <div class="card user-playlist" data-playlist-id="${playlist.id}" data-href="#userplaylist/${playlist.id}" style="cursor: pointer;">
+            <div class="card user-playlist ${isCompact ? 'compact' : ''}" data-playlist-id="${playlist.id}" data-href="#userplaylist/${playlist.id}" style="cursor: pointer;">
                 <div class="card-image-wrapper">
                     ${imageHTML}
                     <button class="edit-playlist-btn" data-action="edit-playlist" title="Edit Playlist">
@@ -289,8 +297,10 @@ export class UIRenderer {
                         ${SVG_PLAY}
                     </button>
                 </div>
-                <h4 class="card-title">${playlist.name}</h4>
-                <p class="card-subtitle">${playlist.tracks ? playlist.tracks.length : (playlist.numberOfTracks || 0)} tracks</p>
+                <div class="card-info">
+                    <h4 class="card-title">${playlist.name}</h4>
+                    <p class="card-subtitle">${playlist.tracks ? playlist.tracks.length : (playlist.numberOfTracks || 0)} tracks</p>
+                </div>
             </div>
         `;
     }
@@ -312,8 +322,10 @@ export class UIRenderer {
             typeLabel = ' • Single';
         }
 
+        const isCompact = cardSettings.isCompactAlbum();
+
         return `
-            <div class="card" data-album-id="${album.id}" data-href="#album/${album.id}" style="cursor: pointer;">
+            <div class="card ${isCompact ? 'compact' : ''}" data-album-id="${album.id}" data-href="#album/${album.id}" style="cursor: pointer;">
                 <div class="card-image-wrapper">
                     <img src="${this.api.getCoverUrl(album.cover)}" alt="${album.title}" class="card-image" loading="lazy">
                     <button class="like-btn card-like-btn" data-action="toggle-like" data-type="album" title="Add to Liked">
@@ -323,16 +335,19 @@ export class UIRenderer {
                         ${SVG_PLAY}
                     </button>
                 </div>
-                <h4 class="card-title">${album.title} ${explicitBadge}</h4>
-                <p class="card-subtitle">${album.artist?.name ?? ''}</p>
-                <p class="card-subtitle">${yearDisplay}${typeLabel}</p>
+                <div class="card-info">
+                    <h4 class="card-title">${album.title} ${explicitBadge}</h4>
+                    <p class="card-subtitle">${album.artist?.name ?? ''}</p>
+                    <p class="card-subtitle">${yearDisplay}${typeLabel}</p>
+                </div>
             </div>
         `;
     }
 
     createArtistCardHTML(artist) {
+        const isCompact = cardSettings.isCompactArtist();
         return `
-            <div class="card artist" data-artist-id="${artist.id}" data-href="#artist/${artist.id}" style="cursor: pointer;">
+            <div class="card artist ${isCompact ? 'compact' : ''}" data-artist-id="${artist.id}" data-href="#artist/${artist.id}" style="cursor: pointer;">
                 <div class="card-image-wrapper">
                     <img src="${this.api.getArtistPictureUrl(artist.picture)}" alt="${artist.name}" class="card-image" loading="lazy">
                     <button class="like-btn card-like-btn" data-action="toggle-like" data-type="artist" title="Add to Liked">

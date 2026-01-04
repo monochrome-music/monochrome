@@ -635,7 +635,7 @@ body.has-page-background .track-item:hover {
 
 .card-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: var(--spacing-lg);
 }
 
@@ -2512,7 +2512,7 @@ input:checked + .slider::before {
     }
 
     .card-grid {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
         gap: var(--spacing-md);
     }
 
@@ -2784,7 +2784,7 @@ input:checked + .slider::before {
 
 @media (max-width: 480px) {
     .card-grid {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         gap: var(--spacing-sm);
     }
 
@@ -3128,6 +3128,62 @@ input:checked + .slider::before {
     text-align: center;
     padding: 2rem;
     color: var(--muted-foreground);
+}
+
+/* Compact Cards (Artist and Album) */
+.card.compact {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    min-height: 60px;
+}
+
+.card.compact .card-image-wrapper {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 0;
+    flex-shrink: 0;
+}
+
+.card.artist.compact .card-image-wrapper {
+    width: 40px;
+    height: 40px;
+}
+
+.card.compact .card-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.card.compact .card-title {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.card.compact .card-subtitle {
+    margin: 0;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--muted-foreground);
+}
+
+.card.compact .card-like-btn {
+    display: none !important;
+}
+
+.card.compact:hover .card-like-btn {
+    opacity: 1;
 }
 
 /* Mobile adjustments */

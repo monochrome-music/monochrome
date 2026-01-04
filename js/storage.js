@@ -446,6 +446,36 @@ export const trackListSettings = {
     }
 };
 
+export const cardSettings = {
+    COMPACT_ARTIST_KEY: 'card-compact-artist',
+    COMPACT_ALBUM_KEY: 'card-compact-album',
+
+    isCompactArtist() {
+        try {
+            const val = localStorage.getItem(this.COMPACT_ARTIST_KEY);
+            return val === null ? true : val === 'true';
+        } catch (e) {
+            return true;
+        }
+    },
+
+    setCompactArtist(enabled) {
+        localStorage.setItem(this.COMPACT_ARTIST_KEY, enabled ? 'true' : 'false');
+    },
+
+    isCompactAlbum() {
+        try {
+            return localStorage.getItem(this.COMPACT_ALBUM_KEY) === 'true';
+        } catch (e) {
+            return false;
+        }
+    },
+
+    setCompactAlbum(enabled) {
+        localStorage.setItem(this.COMPACT_ALBUM_KEY, enabled ? 'true' : 'false');
+    }
+};
+
 export const queueManager = {
     STORAGE_KEY: 'monochrome-queue',
 
