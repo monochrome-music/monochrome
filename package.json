@@ -1,0 +1,28 @@
+{
+  "name": "monochrome",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "[<img src=\"https://github.com/SamidyFR/monochrome/blob/main/assets/512.png?raw=true\" alt=\"Monochrome Logo\">](https://monochrome.samidy.com)",
+  "main": "sw.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SamidyFR/monochrome.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SamidyFR/monochrome/issues"
+  },
+  "homepage": "https://github.com/SamidyFR/monochrome#readme",
+  "devDependencies": {
+    "vite": "^7.3.0",
+    "vite-plugin-pwa": "^1.2.0"
+  }
+}

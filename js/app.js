@@ -14,6 +14,7 @@ import { debounce, SVG_PLAY } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 import { db } from './db.js';
 import { syncManager } from './firebase/sync.js';
+import { registerSW } from 'virtual:pwa-register';
 
 function initializeCasting(audioPlayer, castBtn) {
     if (!castBtn) return;
@@ -766,32 +767,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateTabTitle(player);
     });
 
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js')
-                .then(reg => {
-                    console.log('Service worker registered');
-
-                    if (reg.waiting) {
-                        showUpdateNotification(reg.waiting);
-                    }
-
-                    reg.addEventListener('updatefound', () => {
-                        const newWorker = reg.installing;
-                        newWorker.addEventListener('statechange', () => {
-                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                showUpdateNotification(newWorker);
-                            }
-                        });
-                    });
-                })
-                .catch(err => console.log('Service worker not registered', err));
-        });
-
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-            window.location.reload();
-        });
-    }
+    // PWA Update Logic
+    const updateSW = registerSW({
+        onNeedRefresh() {
+            showUpdateNotification(() => updateSW(true));
+        },
+        onOfflineReady() {
+            console.log('App ready to work offline');
+        },
+    });
 
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', (e) => {
@@ -830,7 +814,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 });
 
-function showUpdateNotification(worker) {
+function showUpdateNotification(updateCallback) {
     const notification = document.createElement('div');
     notification.className = 'update-notification';
     notification.innerHTML = `
@@ -843,8 +827,10 @@ function showUpdateNotification(worker) {
     document.body.appendChild(notification);
 
     document.getElementById('update-now-btn').addEventListener('click', () => {
-        if (worker) {
-            worker.postMessage({ action: 'skipWaiting' });
+        if (typeof updateCallback === 'function') {
+            updateCallback();
+        } else if (updateCallback && updateCallback.postMessage) {
+            updateCallback.postMessage({ action: 'skipWaiting' });
         } else {
             window.location.reload();
         }
