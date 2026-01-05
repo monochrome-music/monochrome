@@ -202,26 +202,55 @@ export class UIRenderer {
         `;
     }
 
-    createPlaylistCardHTML(playlist) {
-        const imageId = playlist.squareImage || playlist.image || playlist.uuid; // Fallback or use a specific cover getter if needed
-        const isCompact = cardSettings.isCompactAlbum();
+    createBaseCardHTML({ type, id, href, title, subtitle, imageHTML, actionButtonsHTML, isCompact, extraClasses = '' }) {
+        const playBtnHTML = type !== 'artist' ? `
+            <button class="play-btn card-play-btn" data-action="play-card" data-type="${type}" data-id="${id}" title="Play">
+                ${SVG_PLAY}
+            </button>
+        ` : '';
+
+        const cardContent = type === 'artist' 
+            ? `<h4 class="card-title">${title}</h4>`
+            : `<div class="card-info">
+                    <h4 class="card-title">${title}</h4>
+                    <p class="card-subtitle">${subtitle}</p>
+               </div>`;
+
+        // In compact mode, move the play button outside the wrapper to position it on the right side of the card
+        const buttonsInWrapper = !isCompact ? playBtnHTML : '';
+        const buttonsOutside = isCompact ? playBtnHTML : '';
+
         return `
-            <div class="card ${isCompact ? 'compact' : ''}" data-playlist-id="${playlist.uuid}" data-href="#playlist/${playlist.uuid}" style="cursor: pointer;">
+            <div class="card ${extraClasses} ${isCompact ? 'compact' : ''}" data-${type}-id="${id}" data-href="${href}" style="cursor: pointer;">
                 <div class="card-image-wrapper">
-                    <img src="${this.api.getCoverUrl(imageId)}" alt="${playlist.title}" class="card-image" loading="lazy">
-                    <button class="like-btn card-like-btn" data-action="toggle-like" data-type="playlist" title="Add to Liked">
-                        ${this.createHeartIcon(false)}
-                    </button>
-                    <button class="play-btn card-play-btn" data-action="play-card" data-type="playlist" data-id="${playlist.uuid}" title="Play">
-                        ${SVG_PLAY}
-                    </button>
+                    ${imageHTML}
+                    ${actionButtonsHTML}
+                    ${buttonsInWrapper}
                 </div>
-                <div class="card-info">
-                    <h4 class="card-title">${playlist.title}</h4>
-                    <p class="card-subtitle">${playlist.numberOfTracks || 0} tracks</p>
-                </div>
+                ${cardContent}
+                ${buttonsOutside}
             </div>
         `;
+    }
+
+    createPlaylistCardHTML(playlist) {
+        const imageId = playlist.squareImage || playlist.image || playlist.uuid;
+        const isCompact = cardSettings.isCompactAlbum();
+        
+        return this.createBaseCardHTML({
+            type: 'playlist',
+            id: playlist.uuid,
+            href: `#playlist/${playlist.uuid}`,
+            title: playlist.title,
+            subtitle: `${playlist.numberOfTracks || 0} tracks`,
+            imageHTML: `<img src="${this.api.getCoverUrl(imageId)}" alt="${playlist.title}" class="card-image" loading="lazy">`,
+            actionButtonsHTML: `
+                <button class="like-btn card-like-btn" data-action="toggle-like" data-type="playlist" title="Add to Liked">
+                    ${this.createHeartIcon(false)}
+                </button>
+            `,
+            isCompact
+        });
     }
 
     createMixCardHTML(mix) {
@@ -229,28 +258,24 @@ export class UIRenderer {
         const description = mix.subTitle || mix.description || '';
         const isCompact = cardSettings.isCompactAlbum();
         
-        return `
-            <div class="card ${isCompact ? 'compact' : ''}" data-mix-id="${mix.id}" data-href="#mix/${mix.id}" style="cursor: pointer;">
-                <div class="card-image-wrapper">
-                    <img src="${imageSrc}" alt="${mix.title}" class="card-image" loading="lazy">
-                    <button class="like-btn card-like-btn" data-action="toggle-like" data-type="mix" title="Add to Liked">
-                        ${this.createHeartIcon(false)}
-                    </button>
-                    <button class="play-btn card-play-btn" data-action="play-card" data-type="mix" data-id="${mix.id}" title="Play">
-                        ${SVG_PLAY}
-                    </button>
-                </div>
-                <div class="card-info">
-                    <h4 class="card-title">${mix.title}</h4>
-                    <p class="card-subtitle">${description}</p>
-                </div>
-            </div>
-        `;
+        return this.createBaseCardHTML({
+            type: 'mix',
+            id: mix.id,
+            href: `#mix/${mix.id}`,
+            title: mix.title,
+            subtitle: description,
+            imageHTML: `<img src="${imageSrc}" alt="${mix.title}" class="card-image" loading="lazy">`,
+            actionButtonsHTML: `
+                <button class="like-btn card-like-btn" data-action="toggle-like" data-type="mix" title="Add to Liked">
+                    ${this.createHeartIcon(false)}
+                </button>
+            `,
+            isCompact
+        });
     }
 
     createUserPlaylistCardHTML(playlist) {
         let imageHTML = '';
-        
         if (playlist.cover) {
              imageHTML = `<img src="${playlist.cover}" alt="${playlist.name}" class="card-image" loading="lazy">`;
         } else {
@@ -273,7 +298,6 @@ export class UIRenderer {
                 const count = Math.min(uniqueCovers.length, 4);
                 const itemsClass = count < 4 ? `items-${count}` : '';
                 const covers = uniqueCovers.slice(0, 4);
-                
                 imageHTML = `
                     <div class="card-image card-collage ${itemsClass}">
                         ${covers.map(cover => `<img src="${this.api.getCoverUrl(cover)}" alt="" loading="lazy">`).join('')}
@@ -288,35 +312,34 @@ export class UIRenderer {
 
         const isCompact = cardSettings.isCompactAlbum();
 
-        return `
-            <div class="card user-playlist ${isCompact ? 'compact' : ''}" data-playlist-id="${playlist.id}" data-href="#userplaylist/${playlist.id}" style="cursor: pointer;">
-                <div class="card-image-wrapper">
-                    ${imageHTML}
-                    <button class="edit-playlist-btn" data-action="edit-playlist" title="Edit Playlist">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                    </button>
-                    <button class="delete-playlist-btn" data-action="delete-playlist" title="Delete Playlist">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 6h18"/>
-                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                            <line x1="10" y1="11" x2="10" y2="17"/>
-                            <line x1="14" y1="11" x2="14" y2="17"/>
-                        </svg>
-                    </button>
-                    <button class="play-btn card-play-btn" data-action="play-card" data-type="user-playlist" data-id="${playlist.id}" title="Play">
-                        ${SVG_PLAY}
-                    </button>
-                </div>
-                <div class="card-info">
-                    <h4 class="card-title">${playlist.name}</h4>
-                    <p class="card-subtitle">${playlist.tracks ? playlist.tracks.length : (playlist.numberOfTracks || 0)} tracks</p>
-                </div>
-            </div>
-        `;
+        return this.createBaseCardHTML({
+            type: 'user-playlist', // Note: data-type logic in base might need adjustment if it uses this for buttons. 
+            // Actually Base uses type for data attributes. play-card uses data-type="user-playlist" which is correct.
+            id: playlist.id,
+            href: `#userplaylist/${playlist.id}`,
+            title: playlist.name,
+            subtitle: `${playlist.tracks ? playlist.tracks.length : (playlist.numberOfTracks || 0)} tracks`,
+            imageHTML: imageHTML,
+            actionButtonsHTML: `
+                <button class="edit-playlist-btn" data-action="edit-playlist" title="Edit Playlist">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                </button>
+                <button class="delete-playlist-btn" data-action="delete-playlist" title="Delete Playlist">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 6h18"/>
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                        <line x1="10" y1="11" x2="10" y2="17"/>
+                        <line x1="14" y1="11" x2="14" y2="17"/>
+                    </svg>
+                </button>
+            `,
+            isCompact,
+            extraClasses: 'user-playlist'
+        });
     }
 
     createAlbumCardHTML(album) {
@@ -324,53 +347,49 @@ export class UIRenderer {
         let yearDisplay = '';
         if (album.releaseDate) {
             const date = new Date(album.releaseDate);
-            if (!isNaN(date.getTime())) {
-                yearDisplay = `${date.getFullYear()}`;
-            }
+            if (!isNaN(date.getTime())) yearDisplay = `${date.getFullYear()}`;
         }
 
         let typeLabel = '';
-        if (album.type === 'EP') {
-            typeLabel = ' • EP';
-        } else if (album.type === 'SINGLE') {
-            typeLabel = ' • Single';
-        }
+        if (album.type === 'EP') typeLabel = ' • EP';
+        else if (album.type === 'SINGLE') typeLabel = ' • Single';
 
         const isCompact = cardSettings.isCompactAlbum();
 
-        return `
-            <div class="card ${isCompact ? 'compact' : ''}" data-album-id="${album.id}" data-href="#album/${album.id}" style="cursor: pointer;">
-                <div class="card-image-wrapper">
-                    <img src="${this.api.getCoverUrl(album.cover)}" alt="${album.title}" class="card-image" loading="lazy">
-                    <button class="like-btn card-like-btn" data-action="toggle-like" data-type="album" title="Add to Liked">
-                        ${this.createHeartIcon(false)}
-                    </button>
-                    <button class="play-btn card-play-btn" data-action="play-card" data-type="album" data-id="${album.id}" title="Play">
-                        ${SVG_PLAY}
-                    </button>
-                </div>
-                <div class="card-info">
-                    <h4 class="card-title">${album.title} ${explicitBadge}</h4>
-                    <p class="card-subtitle">${album.artist?.name ?? ''}</p>
-                    <p class="card-subtitle">${yearDisplay}${typeLabel}</p>
-                </div>
-            </div>
-        `;
+        return this.createBaseCardHTML({
+            type: 'album',
+            id: album.id,
+            href: `#album/${album.id}`,
+            title: `${album.title} ${explicitBadge}`,
+            subtitle: `${album.artist?.name ?? ''} • ${yearDisplay}${typeLabel}`,
+            imageHTML: `<img src="${this.api.getCoverUrl(album.cover)}" alt="${album.title}" class="card-image" loading="lazy">`,
+            actionButtonsHTML: `
+                <button class="like-btn card-like-btn" data-action="toggle-like" data-type="album" title="Add to Liked">
+                    ${this.createHeartIcon(false)}
+                </button>
+            `,
+            isCompact
+        });
     }
 
     createArtistCardHTML(artist) {
         const isCompact = cardSettings.isCompactArtist();
-        return `
-            <div class="card artist ${isCompact ? 'compact' : ''}" data-artist-id="${artist.id}" data-href="#artist/${artist.id}" style="cursor: pointer;">
-                <div class="card-image-wrapper">
-                    <img src="${this.api.getArtistPictureUrl(artist.picture)}" alt="${artist.name}" class="card-image" loading="lazy">
-                    <button class="like-btn card-like-btn" data-action="toggle-like" data-type="artist" title="Add to Liked">
-                        ${this.createHeartIcon(false)}
-                    </button>
-                </div>
-                <h4 class="card-title">${artist.name}</h4>
-            </div>
-        `;
+        
+        return this.createBaseCardHTML({
+            type: 'artist',
+            id: artist.id,
+            href: `#artist/${artist.id}`,
+            title: artist.name,
+            subtitle: '',
+            imageHTML: `<img src="${this.api.getArtistPictureUrl(artist.picture)}" alt="${artist.name}" class="card-image" loading="lazy">`,
+            actionButtonsHTML: `
+                <button class="like-btn card-like-btn" data-action="toggle-like" data-type="artist" title="Add to Liked">
+                    ${this.createHeartIcon(false)}
+                </button>
+            `,
+            isCompact,
+            extraClasses: 'artist'
+        });
     }
 
     createSkeletonTrack(showCover = false) {

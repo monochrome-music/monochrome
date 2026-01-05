@@ -1,4 +1,3 @@
-
 :root {
     color-scheme: light dark;
     --spacing-xs: 0.4rem;
@@ -133,11 +132,11 @@
     --secondary-foreground: #9399b2;
     --muted: #313244;
     --muted-foreground: #a6adc8;
-    --border: #313244; 
+    --border: #313244;
     --input: #45475a;
     --ring: #89b4fa;
-    --highlight: #89b4fa; 
-    --highlight-rgb: #b4befe; 
+    --highlight: #89b4fa;
+    --highlight-rgb: #b4befe;
     --active-highlight: #b4befe;
     --explicit-badge: #f9e2af;
 }
@@ -154,11 +153,11 @@
     --secondary-foreground: #6e738d;
     --muted: #363a4f;
     --muted-foreground: #a5adcb;
-    --border: #363a4f; 
+    --border: #363a4f;
     --input: #494d64;
     --ring: #8aadf4;
-    --highlight: #8aadf4; 
-    --highlight-rgb: #b7bdf8; 
+    --highlight: #8aadf4;
+    --highlight-rgb: #b7bdf8;
     --active-highlight: #b7bdf8;
     --explicit-badge: #eed49f;
 }
@@ -166,7 +165,7 @@
 :root[data-theme="frappe"] {
     color-scheme: dark;
     --background: #303446;
-    --foreground:#c6d0f5;
+    --foreground: #c6d0f5;
     --card: #414559;
     --card-foreground: #949cbb;
     --primary: #8caaee;
@@ -175,11 +174,11 @@
     --secondary-foreground: #a5adce;
     --muted: #414559;
     --muted-foreground: #a5adce;
-    --border: #414559; 
+    --border: #414559;
     --input: #45475a;
     --ring: #8caaee;
-    --highlight: #8caaee; 
-    --highlight-rgb: #babbf1; 
+    --highlight: #8caaee;
+    --highlight-rgb: #babbf1;
     --active-highlight: #babbf1;
     --explicit-badge: #e5c890;
 }
@@ -332,11 +331,11 @@ kbd {
     background-repeat: no-repeat;
     opacity: 0;
     transition: opacity 0.5s ease-in-out;
-    
+
     /* Fade out at the bottom */
-    mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0) 100%);
-    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.8) 40%, rgba(0,0,0,0) 100%);
-    
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.8) 40%, rgba(0, 0, 0, 0) 100%);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.8) 40%, rgba(0, 0, 0, 0) 100%);
+
     /* Blur effect */
     filter: var(--cover-filter);
     pointer-events: none;
@@ -348,8 +347,8 @@ kbd {
 
 /* Light mode adjustments */
 :root[data-theme="light"] #page-background {
-    mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
-    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 100%);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 100%);
 }
 
 .now-playing-bar {
@@ -529,6 +528,7 @@ body.has-page-background .track-item:hover {
         opacity: 0;
         transform: translateY(4px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -540,6 +540,7 @@ body.has-page-background .track-item:hover {
         opacity: 0;
         transform: scale(0.95);
     }
+
     to {
         opacity: 1;
         transform: scale(1);
@@ -551,6 +552,7 @@ body.has-page-background .track-item:hover {
         opacity: 0;
         transform: translateX(100%);
     }
+
     to {
         opacity: 1;
         transform: translateX(0);
@@ -562,6 +564,7 @@ body.has-page-background .track-item:hover {
         opacity: 1;
         transform: translateX(0);
     }
+
     to {
         opacity: 0;
         transform: translateX(100%);
@@ -569,17 +572,31 @@ body.has-page-background .track-item:hover {
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
 }
 
 @keyframes skeleton-loading {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
 }
 
 .animate-spin {
@@ -1623,7 +1640,7 @@ input:checked + .slider::before {
     width: 100%;
     height: 100%;
     /* Remove fixed padding to allow flex centering to work within the overlay's padded box */
-    padding: 1rem; 
+    padding: 1rem;
     position: relative;
 }
 
@@ -1655,7 +1672,7 @@ input:checked + .slider::before {
     max-width: 80vw;
     max-height: 60vh;
     border-radius: var(--radius);
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
     object-fit: contain;
     margin-bottom: 2rem;
     z-index: 1;
@@ -1842,6 +1859,11 @@ input:checked + .slider::before {
     .queue-track-item .queue-remove-btn {
         opacity: 1;
     }
+
+    /* Hide like button on compact cards on mobile */
+    .card.compact .card-like-btn {
+        display: none !important;
+    }
 }
 
 .queue-track-item .queue-remove-btn:hover {
@@ -1864,12 +1886,10 @@ input:checked + .slider::before {
 }
 
 .skeleton {
-    background: linear-gradient(
-        90deg,
-        var(--secondary) 0%,
-        var(--muted) 50%,
-        var(--secondary) 100%
-    );
+    background: linear-gradient(90deg,
+            var(--secondary) 0%,
+            var(--muted) 50%,
+            var(--secondary) 100%);
     background-size: 200% 100%;
     animation: skeleton-loading 1.5s ease-in-out infinite;
     border-radius: var(--radius);
@@ -3007,6 +3027,7 @@ input:checked + .slider::before {
         padding-top: max(var(--spacing-md), env(safe-area-inset-top));
     }
 }
+
 /* Side Panels (Lyrics & Queue) */
 :root {
     --player-bar-height-desktop: 90px;
@@ -3178,12 +3199,44 @@ input:checked + .slider::before {
     color: var(--muted-foreground);
 }
 
+/* Compact Card Play Button */
+.card.compact .card-play-btn {
+    right: 0.5rem;
+    top: 25%;
+    width: 36px !important;
+    height: 36px !important;
+    background-color: var(--primary) !important;
+    color: var(--primary-foreground) !important;
+    box-shadow: var(--shadow-md);
+    transition: opacity 0.2s ease;
+}
+
+/* Hide play button initially on desktop (hover capable), show on hover */
+@media (hover: hover) {
+    .card.compact .card-play-btn {
+        opacity: 0;
+    }
+
+    .card.compact:hover .card-play-btn {
+        opacity: 1;
+    }
+}
+
+/* Adjust like button for compact size */
 .card.compact .card-like-btn {
-    display: none !important;
+    width: 24px !important;
+    height: 24px !important;
+    top: 0;
+    right: 0;
 }
 
 .card.compact:hover .card-like-btn {
     opacity: 1;
+}
+
+.card.compact.user-playlist .edit-playlist-btn,
+.card.compact.user-playlist .delete-playlist-btn {
+    display: none !important; /* Hide edit/delete on compact view to prevent covering image */
 }
 
 /* Mobile adjustments */
@@ -3270,6 +3323,7 @@ input:checked + .slider::before {
     cursor: pointer;
     transition: color var(--transition);
 }
+
 .now-playing-bar .artist .artist-link:hover {
     color: var(--highlight);
     text-decoration: underline;
@@ -3384,10 +3438,10 @@ img:not([src]), img[src=''] {
 }
 
 .search-bar {
-  display: flex;
-  align-items: center;
-  width: 80%;
-  max-width: 100%;
+    display: flex;
+    align-items: center;
+    width: 80%;
+    max-width: 100%;
 }
 
 
@@ -3445,24 +3499,21 @@ img:not([src]), img[src=''] {
     }
 }
 
-
-
-
 #playlist-modal {
-	opacity: 1;
-	animation-name: fadeInOpacity;
-	animation-iteration-count: 1;
-	animation-timing-function: ease-in;
-	animation-duration: 0.1s;
+    opacity: 1;
+    animation-name: fadeInOpacity;
+    animation-iteration-count: 1;
+    animation-timing-function: ease-in;
+    animation-duration: 0.1s;
 }
 
 @keyframes fadeInOpacity {
-	0% {
-		opacity: 0;
-	}
+    0% {
+        opacity: 0;
+    }
 	100% {
-		opacity: 1;
-	}
+        opacity: 1;
+    }
 }
 
 /* fuck this chud ass shit bro */
