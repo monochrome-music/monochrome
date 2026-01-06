@@ -537,13 +537,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     if (e.target.closest('.remove-from-playlist-btn')) {
+        e.stopPropagation();
         const btn = e.target.closest('.remove-from-playlist-btn');
         const index = parseInt(btn.dataset.trackIndex);
         const playlistId = window.location.hash.split('/')[1];
         db.getPlaylist(playlistId).then(async (playlist) => {
             if (playlist && playlist.tracks[index]) {
                 const trackId = playlist.tracks[index].id;
-                await db.removeTrackFromPlaylist(playlistId, trackId);
+                const updatedPlaylist = await db.removeTrackFromPlaylist(playlistId, trackId);
+                syncManager.syncUserPlaylist(updatedPlaylist, 'update');
                 ui.renderPlaylistPage(playlistId);
             }
         });

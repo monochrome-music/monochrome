@@ -577,7 +577,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
         }
 
         const trackItem = e.target.closest('.track-item');
-        if (trackItem && !trackItem.dataset.queueIndex) {
+        if (trackItem && !trackItem.dataset.queueIndex && !e.target.closest('.remove-from-playlist-btn')) {
             const parentList = trackItem.closest('.track-list');
             const allTrackElements = Array.from(parentList.querySelectorAll('.track-item'));
             const trackList = allTrackElements.map(el => trackDataStore.get(el)).filter(Boolean);
