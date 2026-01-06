@@ -274,6 +274,57 @@ export class SyncManager {
         }
         await remove(this.userRef);
     }
+
+    // Public Playlist API
+
+    async publishPlaylist(playlist) {
+        if (!this.user) throw new Error("Not authenticated");
+
+        const minified = db._minifyItem('playlist', playlist);
+        const playlistId = playlist.id || playlist.uuid;
+
+        if (!playlistId) throw new Error("Invalid playlist ID");
+
+        // Ensure playlist has necessary data
+        const publicData = {
+            ...minified,
+            uid: this.user.uid,
+            originalId: playlistId,
+            publishedAt: Date.now(),
+            tracks: playlist.tracks ? playlist.tracks.map(t => db._minifyItem('track', t)) : []
+        };
+
+        // Use a global 'public_playlists' node
+        const publicRef = ref(database, `public_playlists/${playlistId}`);
+        await set(publicRef, publicData);
+    }
+
+    async unpublishPlaylist(playlistId) {
+        if (!this.user) throw new Error("Not authenticated");
+        const publicRef = ref(database, `public_playlists/${playlistId}`);
+        await remove(publicRef);
+    }
+
+    async getPublicPlaylist(playlistId) {
+        if (!database) {
+            console.warn("[Sync] Database not initialized, cannot fetch public playlist");
+            return null;
+        }
+        try {
+            const publicRef = ref(database, `public_playlists/${playlistId}`);
+            const snapshot = await get(publicRef);
+            if (!snapshot.exists()) {
+                console.warn(`[Sync] Public playlist ${playlistId} not found in database.`);
+                return null;
+            }
+            const data = snapshot.val();
+            console.log(`[Sync] Public playlist fetch for ${playlistId}: Found`);
+            return data;
+        } catch (error) {
+            console.error("[Sync] Failed to fetch public playlist:", error);
+            return null;
+        }
+    }
 }
 
 export const syncManager = new SyncManager();

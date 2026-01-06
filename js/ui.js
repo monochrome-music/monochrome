@@ -4,6 +4,7 @@ import { openLyricsPanel } from './lyrics.js';
 import { recentActivityManager, backgroundSettings, trackListSettings, cardSettings } from './storage.js';
 import { db } from './db.js';
 import { getVibrantColorFromImage } from './vibrant-color.js';
+import { syncManager } from './firebase/sync.js';
 
 export class UIRenderer {
     constructor(api, player) {
@@ -710,7 +711,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
         if (myPlaylists.length) {
             myPlaylistsContainer.innerHTML = myPlaylists.map(p => this.createUserPlaylistCardHTML(p)).join('');
             myPlaylists.forEach(playlist => {
-                const el = myPlaylistsContainer.querySelector(`[data-playlist-id="${playlist.id}"]`);
+                const el = myPlaylistsContainer.querySelector(`[data-user-playlist-id="${playlist.id}"]`);
                 if (el) {
                     trackDataStore.set(el, playlist);
                 }
@@ -778,7 +779,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                 
                 combinedRecents.forEach(item => {
                     if (item.isUserPlaylist) {
-                        const el = playlistsContainer.querySelector(`[data-playlist-id="${item.id}"]`);
+                        const el = playlistsContainer.querySelector(`[data-user-playlist-id="${item.id}"]`);
                         if (el) trackDataStore.set(el, item);
                     } else if (item.mixType) {
                         const el = playlistsContainer.querySelector(`[data-mix-id="${item.id}"]`);
@@ -1129,21 +1130,36 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
         `;
 
         try {
-            // Check if it's a user playlist
-            const userPlaylist = await db.getPlaylist(playlistId);
-            if (userPlaylist) {
-                // Render user playlist
-                imageEl.src = userPlaylist.cover || 'assets/appicon.png';
+            // Check if it's a user playlist (UUID format)
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(playlistId);
+            
+            const ownedPlaylist = await db.getPlaylist(playlistId);
+            let playlistData = ownedPlaylist;
+            
+            // If not in local DB, check if it's a public Firebase playlist
+            if (!playlistData) {
+                try {
+                    playlistData = await syncManager.getPublicPlaylist(playlistId);
+                } catch (e) {
+                    console.warn('Failed to check public Firebase playlists:', e);
+                }
+            }
+
+            if (playlistData) {
+                // ... (rest of the logic)
+
+                // Render user or public firebase playlist
+                imageEl.src = playlistData.cover || 'assets/appicon.png';
                 imageEl.style.backgroundColor = '';
 
-                titleEl.textContent = userPlaylist.name;
-                this.adjustTitleFontSize(titleEl, userPlaylist.name);
+                titleEl.textContent = playlistData.name || playlistData.title;
+                this.adjustTitleFontSize(titleEl, titleEl.textContent);
 
-                const tracks = userPlaylist.tracks || [];
+                const tracks = playlistData.tracks || [];
                 const totalDuration = calculateTotalDuration(tracks);
 
                 metaEl.textContent = `${tracks.length} tracks • ${formatDuration(totalDuration)}`;
-                descEl.textContent = '';
+                descEl.textContent = playlistData.description || '';
 
                 tracklistContainer.innerHTML = `
                     <div class="track-list-header">
@@ -1155,18 +1171,20 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
 
                 this.renderListWithTracks(tracklistContainer, tracks, true);
 
-                // Add remove buttons to tracks
-                const trackItems = tracklistContainer.querySelectorAll('.track-item');
-                trackItems.forEach((item, index) => {
-                    const actionsDiv = item.querySelector('.track-item-actions');
-                    const removeBtn = document.createElement('button');
-                    removeBtn.className = 'track-action-btn remove-from-playlist-btn';
-                    removeBtn.title = 'Remove from playlist';
-                    removeBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
-                    removeBtn.dataset.trackIndex = index;
-                    const menuBtn = actionsDiv.querySelector('.track-menu-btn');
-                    actionsDiv.insertBefore(removeBtn, menuBtn);
-                });
+                // Add remove buttons to tracks ONLY IF OWNED
+                if (ownedPlaylist) {
+                    const trackItems = tracklistContainer.querySelectorAll('.track-item');
+                    trackItems.forEach((item, index) => {
+                        const actionsDiv = item.querySelector('.track-item-actions');
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'track-action-btn remove-from-playlist-btn';
+                        removeBtn.title = 'Remove from playlist';
+                        removeBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+                        removeBtn.dataset.trackIndex = index;
+                        const menuBtn = actionsDiv.querySelector('.track-menu-btn');
+                        actionsDiv.insertBefore(removeBtn, menuBtn);
+                    });
+                }
 
                 // Update header like button - hide for user playlists
                 const playlistLikeBtn = document.getElementById('like-playlist-btn');
@@ -1184,6 +1202,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                     this.player.playTrackFromQueue();
                 };
 
+                // Add edit and delete buttons ONLY IF OWNED
                 const actionsDiv = document.getElementById('page-playlist').querySelector('.detail-header-actions');
 
                 const existingShuffle = actionsDiv.querySelector('#shuffle-playlist-btn');
@@ -1192,22 +1211,39 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                 if (existingEdit) existingEdit.remove();
                 const existingDelete = actionsDiv.querySelector('#delete-playlist-btn');
                 if (existingDelete) existingDelete.remove();
+                const existingShare = actionsDiv.querySelector('#share-playlist-btn');
+                if (existingShare) existingShare.remove();
 
-                const editBtn = document.createElement('button');
-                editBtn.id = 'edit-playlist-btn';
-                editBtn.className = 'btn-secondary';
-                editBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span>Edit</span>';
-                const deleteBtn = document.createElement('button');
-                deleteBtn.id = 'delete-playlist-btn';
-                deleteBtn.className = 'btn-secondary danger';
-                deleteBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg><span>Delete</span>';
                 actionsDiv.appendChild(shuffleBtn);
-                actionsDiv.appendChild(editBtn);
-                actionsDiv.appendChild(deleteBtn);
+                
+                if (ownedPlaylist) {
+                    const editBtn = document.createElement('button');
+                    editBtn.id = 'edit-playlist-btn';
+                    editBtn.className = 'btn-secondary';
+                    editBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span>Edit</span>';
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.id = 'delete-playlist-btn';
+                    deleteBtn.className = 'btn-secondary danger';
+                    deleteBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg><span>Delete</span>';
+                    actionsDiv.appendChild(editBtn);
+                    actionsDiv.appendChild(deleteBtn);
+                }
+
+                if (playlistData.isPublic) {
+                    const shareBtn = document.createElement('button');
+                    shareBtn.id = 'share-playlist-btn';
+                    shareBtn.className = 'btn-secondary';
+                    shareBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg><span>Share</span>';
+                    shareBtn.onclick = () => {
+                        const url = `${window.location.origin}${window.location.pathname}#userplaylist/${playlistData.id || playlistData.uuid}`;
+                        navigator.clipboard.writeText(url).then(() => alert('Link copied to clipboard!'));
+                    };
+                    actionsDiv.appendChild(shareBtn);
+                }
 
                 const uniqueCovers = [];
                 const seenCovers = new Set();
-                const trackList = userPlaylist.tracks || [];
+                const trackList = playlistData.tracks || [];
                 for (const track of trackList) {
                     const cover = track.album?.cover;
                     if (cover && !seenCovers.has(cover)) {
@@ -1218,19 +1254,31 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                 }
 
                 recentActivityManager.addPlaylist({ 
-                    id: userPlaylist.id,
-                    name: userPlaylist.name,
-                    title: userPlaylist.name,
-                    uuid: userPlaylist.id,
-                    cover: userPlaylist.cover,
+                    id: playlistData.id || playlistData.uuid,
+                    name: playlistData.name || playlistData.title,
+                    title: playlistData.title || playlistData.name,
+                    uuid: playlistData.uuid || playlistData.id,
+                    cover: playlistData.cover,
                     images: uniqueCovers,
-                    numberOfTracks: userPlaylist.tracks ? userPlaylist.tracks.length : 0,
+                    numberOfTracks: playlistData.tracks ? playlistData.tracks.length : 0,
                     isUserPlaylist: true
                 });
-                document.title = userPlaylist.name;
+                document.title = `${playlistData.name || playlistData.title} - Monochrome`;
             } else {
+                // If it is a UUID, we know it won't be in the API.
+                if (isUUID) {
+                    throw new Error('Playlist not found. If this is a custom playlist, make sure it is set to Public.');
+                }
+
                 // Render API playlist
-                const { playlist, tracks } = await this.api.getPlaylist(playlistId);
+                let apiResult;
+                try {
+                    apiResult = await this.api.getPlaylist(playlistId);
+                } catch (error) {
+                    throw error;
+                }
+
+                const { playlist, tracks } = apiResult;
 
                 const imageId = playlist.squareImage || playlist.image;
                 if (imageId) {
@@ -1297,6 +1345,23 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                 if (deleteBtn) {
                     deleteBtn.style.display = 'none';
                 }
+                
+                // Cleanup potentially stale buttons
+                const existingEdit = actionsDiv.querySelector('#edit-playlist-btn');
+                if (existingEdit) existingEdit.remove();
+                const existingShare = actionsDiv.querySelector('#share-playlist-btn');
+                if (existingShare) existingShare.remove();
+
+                // Add Share button
+                const shareBtn = document.createElement('button');
+                shareBtn.id = 'share-playlist-btn';
+                shareBtn.className = 'btn-secondary';
+                shareBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg><span>Share</span>';
+                shareBtn.onclick = () => {
+                    const url = `${window.location.origin}${window.location.pathname}#playlist/${playlist.uuid}`;
+                    navigator.clipboard.writeText(url).then(() => alert('Link copied to clipboard!'));
+                };
+                actionsDiv.appendChild(shareBtn);
 
                 recentActivityManager.addPlaylist(playlist);
                 document.title = playlist.title || 'Artist Mix';

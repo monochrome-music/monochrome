@@ -212,12 +212,12 @@ export class MusicDatabase {
 
         if (type === 'playlist') {
             return {
-                uuid: item.uuid,
-                addedAt: item.addedAt,
-                title: item.title,
+                uuid: item.uuid || item.id,
+                addedAt: item.addedAt || item.createdAt || null,
+                title: item.title || item.name,
                 // UI checks squareImage || image || uuid
-                image: item.image || item.squareImage,
-                numberOfTracks: item.numberOfTracks,
+                image: item.image || item.squareImage || item.cover || null,
+                numberOfTracks: item.numberOfTracks || (item.tracks ? item.tracks.length : 0),
                 user: item.user ? { name: item.user.name } : null
             };
         }

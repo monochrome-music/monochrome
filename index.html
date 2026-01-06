@@ -80,9 +80,27 @@
                     <input type="file" id="csv-file-input" class="btn-secondary" accept=".csv" style="width: 100%; margin-bottom: 0.5rem;">
                     <p style="font-size: 0.8rem; margin: 0;">This Feature Isnt Perfect And is Prone To Errors! Please check Your Playlist After To Remove Weird Songs That Were Added By The System.</p>
                 </div>
-                <div class="modal-actions" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-                    <button id="playlist-modal-cancel" class="btn-secondary">Cancel</button>
-                    <button id="playlist-modal-save" class="btn-primary">Save</button>
+
+                <div class="setting-item" style="margin-bottom: 1rem; padding: 0; border: none; background: transparent;">
+                    <div class="info">
+                        <span class="label">Public Playlist</span>
+                        <span class="description">Visible to anyone with the link</span>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="playlist-public-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="modal-actions" style="display: flex; gap: 0.5rem; justify-content: space-between; align-items: center;">
+                    <button id="playlist-share-btn" class="btn-secondary" style="display: none;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                        Share
+                    </button>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button id="playlist-modal-cancel" class="btn-secondary">Cancel</button>
+                        <button id="playlist-modal-save" class="btn-primary">Save</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -235,7 +253,13 @@
 
             <div id="page-library" class="page">
                 <section class="content-section">
-                    <h2 class="section-title">My Playlists <button id="create-playlist-btn" class="btn-secondary">Create Playlist</button></h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h2 class="section-title" style="margin-bottom: 0;">My Playlists</h2>
+                        <div style="display: flex; gap: 0.5rem;">
+
+                            <button id="create-playlist-btn" class="btn-secondary">Create Playlist</button>
+                        </div>
+                    </div>
                     <div class="card-grid" id="my-playlists-container"></div>
                 </section>
 

@@ -40,10 +40,18 @@ Firebase will block login attempts from unknown domains.
             ".read": "$uid === auth.uid",
             ".write": "$uid === auth.uid"
           }
+        },
+        "public_playlists": {
+          ".read": true,
+          "$playlistId": {
+            ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid)"
+          }
         }
       }
     }
     ```
+    *   **Note:** The `public_playlists` rule allows anyone to read the playlists. The write rule ensures that only authenticated users can publish, and only the owner (creator) of a playlist can modify or delete it.
+
 3.  Click **Publish**.
 
 ## 5. Get Your Configuration

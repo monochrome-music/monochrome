@@ -241,6 +241,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    // Toggle Share Button visibility on switch change
+    document.getElementById('playlist-public-toggle')?.addEventListener('change', (e) => {
+        const shareBtn = document.getElementById('playlist-share-btn');
+        if (shareBtn) shareBtn.style.display = e.target.checked ? 'flex' : 'none';
+    });
+
     document.getElementById('close-fullscreen-cover-btn')?.addEventListener('click', () => {
         ui.closeFullscreenCover();
     });
@@ -390,23 +396,57 @@ document.addEventListener('DOMContentLoaded', async () => {
         modal.dataset.editingId = '';
         document.getElementById('csv-import-section').style.display = 'block';
         document.getElementById('csv-file-input').value = '';
+
+        // Reset Public Toggle
+        const publicToggle = document.getElementById('playlist-public-toggle');
+        const shareBtn = document.getElementById('playlist-share-btn');
+        if (publicToggle) publicToggle.checked = false;
+        if (shareBtn) shareBtn.style.display = 'none';
+
         modal.style.display = 'flex';
         document.getElementById('playlist-name-input').focus();
     }
 
     if (e.target.closest('#playlist-modal-save')) {
         const name = document.getElementById('playlist-name-input').value.trim();
+        const isPublic = document.getElementById('playlist-public-toggle')?.checked;
+
         if (name) {
             const modal = document.getElementById('playlist-modal');
             const editingId = modal.dataset.editingId;
+
+            const handlePublicStatus = async (playlist) => {
+                playlist.isPublic = isPublic;
+                if (isPublic) {
+                    try {
+                        await syncManager.publishPlaylist(playlist);
+                    } catch (e) {
+                        console.error('Failed to publish playlist:', e);
+                        alert('Failed to publish playlist. Please ensure you are logged in.');
+                    }
+                } else {
+                    try {
+                        await syncManager.unpublishPlaylist(playlist.id);
+                    } catch (e) {
+                         // Ignore error if it wasn't public
+                    }
+                }
+                return playlist;
+            };
+
             if (editingId) {
                 // Edit
                 db.getPlaylist(editingId).then(async (playlist) => {
                     if (playlist) {
                         playlist.name = name;
+                        await handlePublicStatus(playlist);
                         await db.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
                         syncManager.syncUserPlaylist(playlist, 'update');
                         ui.renderLibraryPage();
+                        // Also update current page if we are on it
+                        if (window.location.hash === `#userplaylist/${editingId}`) {
+                             ui.renderPlaylistPage(editingId);
+                        }
                         modal.style.display = 'none';
                         delete modal.dataset.editingId;
                     }
@@ -473,7 +513,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 }
 
-                db.createPlaylist(name, tracks, '').then(playlist => {
+                db.createPlaylist(name, [], '').then(async playlist => {
+                    await handlePublicStatus(playlist);
+                    // Update DB again with isPublic flag
+                    await db.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
                     syncManager.syncUserPlaylist(playlist, 'create');
                     ui.renderLibraryPage();
                     modal.style.display = 'none';
@@ -488,12 +531,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (e.target.closest('.edit-playlist-btn')) {
         const card = e.target.closest('.user-playlist');
-        const playlistId = card.dataset.playlistId;
-        db.getPlaylist(playlistId).then(playlist => {
+        const playlistId = card.dataset.userPlaylistId;
+        db.getPlaylist(playlistId).then(async playlist => {
             if (playlist) {
                 const modal = document.getElementById('playlist-modal');
                 document.getElementById('playlist-modal-title').textContent = 'Edit Playlist';
                 document.getElementById('playlist-name-input').value = playlist.name;
+
+                // Set Public Toggle
+                const publicToggle = document.getElementById('playlist-public-toggle');
+                const shareBtn = document.getElementById('playlist-share-btn');
+
+                // Check if actually public in Firebase to be sure (async) or trust local flag
+                // We trust local flag for UI speed, but could verify.
+                if (publicToggle) publicToggle.checked = !!playlist.isPublic;
+
+                if (shareBtn) {
+                     shareBtn.style.display = playlist.isPublic ? 'flex' : 'none';
+                     shareBtn.onclick = () => {
+                         const url = `${window.location.origin}${window.location.pathname}#userplaylist/${playlist.id}`;
+                         navigator.clipboard.writeText(url).then(() => alert('Link copied to clipboard!'));
+                     };
+                }
+
                 modal.dataset.editingId = playlistId;
                 document.getElementById('csv-import-section').style.display = 'none';
                 modal.style.display = 'flex';
@@ -504,7 +564,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (e.target.closest('.delete-playlist-btn')) {
         const card = e.target.closest('.user-playlist');
-        const playlistId = card.dataset.playlistId;
+        const playlistId = card.dataset.userPlaylistId;
         if (confirm('Are you sure you want to delete this playlist?')) {
             db.deletePlaylist(playlistId).then(() => {
                 syncManager.syncUserPlaylist({ id: playlistId }, 'delete');
@@ -520,6 +580,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const modal = document.getElementById('playlist-modal');
                 document.getElementById('playlist-modal-title').textContent = 'Edit Playlist';
                 document.getElementById('playlist-name-input').value = playlist.name;
+
+                const publicToggle = document.getElementById('playlist-public-toggle');
+                const shareBtn = document.getElementById('playlist-share-btn');
+
+                if (publicToggle) publicToggle.checked = !!playlist.isPublic;
+                if (shareBtn) {
+                     shareBtn.style.display = playlist.isPublic ? 'flex' : 'none';
+                     shareBtn.onclick = () => {
+                         const url = `${window.location.origin}${window.location.pathname}#userplaylist/${playlist.id}`;
+                         navigator.clipboard.writeText(url).then(() => alert('Link copied to clipboard!'));
+                     };
+                }
+
                 modal.dataset.editingId = playlistId;
                 document.getElementById('csv-import-section').style.display = 'none';
                 modal.style.display = 'flex';
@@ -565,8 +638,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (userPlaylist) {
                     tracks = userPlaylist.tracks;
                 } else {
-                    const { tracks: apiTracks } = await api.getPlaylist(playlistId);
-                    tracks = apiTracks;
+                    // Try API, if fail, try Public Firebase
+                    try {
+                        const { tracks: apiTracks } = await api.getPlaylist(playlistId);
+                        tracks = apiTracks;
+                    } catch (e) {
+                        const publicPlaylist = await syncManager.getPublicPlaylist(playlistId);
+                        if (publicPlaylist) {
+                             tracks = publicPlaylist.tracks;
+                        } else {
+                            throw e;
+                        }
+                    }
                 }
                 if (tracks.length > 0) {
                     player.setQueue(tracks, 0);
