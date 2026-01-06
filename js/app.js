@@ -386,6 +386,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const modal = document.getElementById('playlist-modal');
         document.getElementById('playlist-modal-title').textContent = 'Create Playlist';
         document.getElementById('playlist-name-input').value = '';
+        modal.dataset.editingId = '';
+        document.getElementById('csv-import-section').style.display = 'block';
+        document.getElementById('csv-file-input').value = '';
         modal.style.display = 'flex';
         document.getElementById('playlist-name-input').focus();
     }
@@ -409,7 +412,67 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
             } else {
                 // Create
-                db.createPlaylist(name, [], '').then(playlist => {
+                const csvFileInput = document.getElementById('csv-file-input');
+                let tracks = [];
+
+                if (csvFileInput.files.length > 0) {
+                    // Import from CSV
+                    const file = csvFileInput.files[0];
+                    const progressElement = document.getElementById('csv-import-progress');
+                    const progressFill = document.getElementById('csv-progress-fill');
+                    const progressCurrent = document.getElementById('csv-progress-current');
+                    const progressTotal = document.getElementById('csv-progress-total');
+                    const currentTrackElement = progressElement.querySelector('.current-track');
+
+                    try {
+                        // Show progress bar
+                        progressElement.style.display = 'block';
+                        progressFill.style.width = '0%';
+                        progressCurrent.textContent = '0';
+                        currentTrackElement.textContent = 'Reading CSV file...';
+
+                        const csvText = await file.text();
+                        const lines = csvText.trim().split('\n');
+                        const totalTracks = Math.max(0, lines.length - 1);
+                        progressTotal.textContent = totalTracks.toString();
+
+                        const result = await parseCSV(csvText, api, (progress) => {
+                            const percentage = totalTracks > 0 ? (progress.current / totalTracks) * 100 : 0;
+                            progressFill.style.width = `${Math.min(percentage, 100)}%`;
+                            progressCurrent.textContent = progress.current.toString();
+                            currentTrackElement.textContent = progress.currentTrack;
+                        });
+
+                        tracks = result.tracks;
+                        const missingTracks = result.missingTracks;
+
+                        if (tracks.length === 0) {
+                            alert('No valid tracks found in the CSV file! Please check the format.');
+                            progressElement.style.display = 'none';
+                            return;
+                        }
+                        console.log(`Imported ${tracks.length} tracks from CSV`);
+
+                        // if theres missing songs, warn the user
+                        if (missingTracks.length > 0) {
+                            setTimeout(() => {
+                                showMissingTracksNotification(missingTracks);
+                            }, 500);
+                        }
+                    } catch (error) {
+                        console.error('Failed to parse CSV!', error);
+                        alert('Failed to parse CSV file! ' + error.message);
+                        progressElement.style.display = 'none';
+                        return;
+                    } finally {
+                        // Hide progress bar
+                        setTimeout(() => {
+                            progressElement.style.display = 'none';
+                        }, 1000);
+                    }
+                }
+
+                db.createPlaylist(name, tracks, '').then(playlist => {
                     syncManager.syncUserPlaylist(playlist, 'create');
                     ui.renderLibraryPage();
                     modal.style.display = 'none';
@@ -431,6 +494,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 document.getElementById('playlist-modal-title').textContent = 'Edit Playlist';
                 document.getElementById('playlist-name-input').value = playlist.name;
                 modal.dataset.editingId = playlistId;
+                document.getElementById('csv-import-section').style.display = 'none';
                 modal.style.display = 'flex';
                 document.getElementById('playlist-name-input').focus();
             }
@@ -456,6 +520,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 document.getElementById('playlist-modal-title').textContent = 'Edit Playlist';
                 document.getElementById('playlist-name-input').value = playlist.name;
                 modal.dataset.editingId = playlistId;
+                document.getElementById('csv-import-section').style.display = 'none';
                 modal.style.display = 'flex';
                 document.getElementById('playlist-name-input').focus();
             }
@@ -813,6 +878,117 @@ function showInstallPrompt(deferredPrompt) {
         notification.remove();
         localStorage.setItem('installPromptDismissed', 'true');
     });
+}
+
+function showMissingTracksNotification(missingTracks) {
+    const modal = document.createElement('div');
+    modal.className = 'missing-tracks-modal-overlay';
+    modal.innerHTML = `
+        <div class="missing-tracks-modal">
+            <div class="missing-tracks-header">
+                <h3>Note</h3>
+                <button class="close-missing-tracks">&times;</button>
+            </div>
+            <div class="missing-tracks-content">
+                <p>Unfortunately some songs weren't able to be added. This could be an issue with our import system, try searching for the song and adding it. But it could also be due to Monochrome not having it sadly :(</p>
+                <div class="missing-tracks-list">
+                    <h4>Missing Tracks:</h4>
+                    <ul>
+                        ${missingTracks.map(track => `<li>${track}</li>`).join('')}
+                    </ul>
+                </div>
+            </div>
+            <div class="missing-tracks-actions">
+                <button class="btn-secondary" id="close-missing-tracks-btn">OK</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    const closeModal = () => modal.remove();
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal || e.target.classList.contains('close-missing-tracks') || e.target.id === 'close-missing-tracks-btn') {
+            closeModal();
+        }
+    });
+}
+
+async function parseCSV(csvText, api, onProgress) {
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) return [];
+
+    const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+    const rows = lines.slice(1);
+
+    const tracks = [];
+    const missingTracks = [];
+    const totalTracks = rows.length;
+
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const values = row.split(',').map(v => v.replace(/"/g, '').trim());
+        if (values.length >= headers.length) {
+            let trackTitle = '';
+            let artistNames = '';
+
+            headers.forEach((header, index) => {
+                const value = values[index];
+                switch (header.toLowerCase()) {
+                    case 'track name':
+                    case 'title':
+                    case 'song':
+                        trackTitle = value;
+                        break;
+                    case 'artist name(s)':
+                    case 'artist':
+                    case 'artists':
+                        artistNames = value;
+                        break;
+                }
+            });
+
+            if (onProgress) {
+                onProgress({
+                    current: i,
+                    total: totalTracks,
+                    currentTrack: trackTitle || 'Unknown track'
+                });
+            }
+
+            // Search for the track in hifi tidal api's catalog
+            if (trackTitle && artistNames) {
+                try {
+                    const searchQuery = `${trackTitle} ${artistNames}`;
+                    const searchResults = await api.searchTracks(searchQuery);
+
+                    if (searchResults.items && searchResults.items.length > 0) {
+                        // Use the first result
+                        const foundTrack = searchResults.items[0];
+                        tracks.push(foundTrack);
+                        console.log(`Found track: "${trackTitle}" by ${artistNames}`);
+                    } else {
+                        console.warn(`Track not found: "${trackTitle}" by ${artistNames}`);
+                        missingTracks.push(`${trackTitle} - ${artistNames}`);
+                    }
+                } catch (error) {
+                    console.error(`Error searching for track "${trackTitle}":`, error);
+                    missingTracks.push(`${trackTitle} - ${artistNames}`);
+                }
+            }
+        }
+    }
+
+    // yayyy its finished :P
+    if (onProgress) {
+        onProgress({
+            current: totalTracks,
+            total: totalTracks,
+            currentTrack: 'Import complete'
+        });
+    }
+
+    return { tracks, missingTracks };
 }
 
 function showKeyboardShortcuts() {

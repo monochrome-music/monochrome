@@ -1,5 +1,5 @@
 //js/lyrics.js
-import { getTrackTitle, getTrackArtists, SVG_DOWNLOAD, SVG_CLOSE } from './utils.js';
+import { getTrackTitle, getTrackArtists, buildTrackFilename, SVG_DOWNLOAD, SVG_CLOSE } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 
 export class LyricsManager {
@@ -136,7 +136,7 @@ export class LyricsManager {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${getTrackArtists(track)} - ${getTrackTitle(track)}.lrc`;
+        a.download = buildTrackFilename(track, 'LOSSLESS').replace(/\.flac$/, '.lrc');
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

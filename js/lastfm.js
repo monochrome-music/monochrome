@@ -1,5 +1,5 @@
 //js/lastfm.js
-import { delay } from './utils.js';
+import { delay, getTrackArtists } from './utils.js';
 
 export class LastFMScrobbler {
     constructor() {
@@ -155,7 +155,7 @@ export class LastFMScrobbler {
 
         try {
             const params = {
-                artist: track.artist?.name || 'Unknown Artist',
+                artist: track.artist?.name || track.artists?.[0]?.name || 'Unknown Artist',
                 track: track.title
             };
 
@@ -205,7 +205,7 @@ export class LastFMScrobbler {
             const timestamp = Math.floor(Date.now() / 1000);
 
             const params = {
-                artist: this.currentTrack.artist?.name || 'Unknown Artist',
+                artist: this.currentTrack.artist?.name || this.currentTrack.artists?.[0]?.name || 'Unknown Artist',
                 track: this.currentTrack.title,
                 timestamp: timestamp
             };
@@ -237,7 +237,7 @@ export class LastFMScrobbler {
 
         try {
             const params = {
-                artist: track.artist?.name || 'Unknown Artist',
+                artist: track.artist?.name || track.artists?.[0]?.name || 'Unknown Artist',
                 track: track.title
             };
 

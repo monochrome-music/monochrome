@@ -73,6 +73,12 @@
             <div class="modal-content" style="background: var(--card); padding: 2rem; border-radius: var(--radius); max-width: 400px; width: 90%;">
                 <h3 id="playlist-modal-title">Create Playlist</h3>
                 <input type="text" id="playlist-name-input" placeholder="Playlist name" style="width: 100%; margin: 1rem 0; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--background); color: var(--foreground);">
+                <div id="csv-import-section" style="display: none; margin: 1rem 0; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--background-secondary);">
+                    <p style="margin-bottom: 0.5rem; font-size: 0.9rem;">Import from CSV</p>
+                    <p style="font-size: 0.8rem; margin: 0;">Only Spotify Is Supported for now. please use <a href="https://exportify.app/" style="text-decoration: underline;">Exportify</a> to export your playlist into a csv.</p>
+                    <br>
+                    <input type="file" id="csv-file-input" class="btn-secondary" accept=".csv" style="width: 100%; margin-bottom: 0.5rem;">
+                </div>
                 <div class="modal-actions" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
                     <button id="playlist-modal-cancel" class="btn-secondary">Cancel</button>
                     <button id="playlist-modal-save" class="btn-primary">Save</button>
@@ -82,6 +88,22 @@
     </div>
 
     <div id="sidebar-overlay"></div>
+
+    <div id="csv-import-progress" class="csv-import-progress" style="display: none;">
+        <div class="progress-header">
+            <h4>Importing Tracks from CSV</h4>
+            <p class="progress-warning">This can take a while depending on your playlist size. Please be patient.</p>
+        </div>
+        <div class="progress-content">
+            <div class="current-track">Preparing import...</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="csv-progress-fill"></div>
+            </div>
+            <div class="progress-text">
+                <span id="csv-progress-current">0</span> / <span id="csv-progress-total">0</span> tracks processed
+            </div>
+        </div>
+    </div>
 
     <div class="app-container">
         <aside class="sidebar">

@@ -1,4 +1,6 @@
 //router.js
+import { getTrackArtists } from './utils.js';
+
 export function createRouter(ui) {
     const router = () => {
         const path = window.location.hash.substring(1) || "home";
@@ -44,7 +46,7 @@ export function createRouter(ui) {
 export function updateTabTitle(player) {
     if (player.currentTrack) {
         const track = player.currentTrack;
-        document.title = `${track.title} • ${track.artist?.name || 'Unknown'} - Monochrome`;
+        document.title = `${track.title} • ${getTrackArtists(track)}`;
     } else {
         const hash = window.location.hash;
         if (hash.includes('#album/') || hash.includes('#playlist/')) {

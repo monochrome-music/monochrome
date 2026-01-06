@@ -11,6 +11,7 @@ export class UIRenderer {
         this.player = player;
         this.currentTrack = null;
         this.searchAbortController = null;
+        this.vibrantColorCache = new Map();
     }
 
     // Helper for Heart Icon
@@ -27,6 +28,15 @@ export class UIRenderer {
             return;
         }
 
+        // Check cache first
+        if (this.vibrantColorCache.has(url)) {
+            const cachedColor = this.vibrantColorCache.get(url);
+            if (cachedColor) {
+                this.setVibrantColor(cachedColor);
+                return;
+            }
+        }
+
         const img = new Image();
         img.crossOrigin = 'Anonymous';
         // Add cache buster to bypass opaque response in cache
@@ -37,16 +47,20 @@ export class UIRenderer {
             try {
                 const color = getVibrantColorFromImage(img);
                 if (color) {
+                    this.vibrantColorCache.set(url, color);
                     this.setVibrantColor(color);
                 } else {
+                    this.vibrantColorCache.set(url, null);
                     this.resetVibrantColor();
                 }
             } catch (e) {
+                this.vibrantColorCache.set(url, null);
                 this.resetVibrantColor();
             }
         };
 
         img.onerror = () => {
+            this.vibrantColorCache.set(url, null);
             this.resetVibrantColor();
         };
     }
@@ -87,8 +101,8 @@ export class UIRenderer {
             return;
         }
 
-        if (backgroundSettings.isEnabled() && this.currentTrack?.album?.vibrantColor) {
-            this.setVibrantColor(this.currentTrack.album.vibrantColor);
+        if (backgroundSettings.isEnabled() && this.currentTrack?.album?.cover) {
+            this.extractAndApplyColor(this.api.getCoverUrl(this.currentTrack.album.cover, '80'));
         } else {
             this.resetVibrantColor();
         }
@@ -509,11 +523,6 @@ export class UIRenderer {
     }
 
     resetVibrantColor() {
-        if (backgroundSettings.isEnabled() && this.currentTrack?.album?.vibrantColor) {
-            this.setVibrantColor(this.currentTrack.album.vibrantColor);
-            return;
-        }
-
         const root = document.documentElement;
         root.style.removeProperty('--primary');
         root.style.removeProperty('--primary-foreground');
@@ -545,8 +554,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
         
         nextTrackEl.classList.remove('animate-in');
         void nextTrackEl.offsetWidth;
-        nextTrackEl.classList.add('animate-in');
-    } else {
+        nextTrackEl.classList.add('animate-in');    } else {
         nextTrackEl.style.display = 'none';
         nextTrackEl.classList.remove('animate-in');
     }
@@ -924,9 +932,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
 
             // Set background and vibrant color
             this.setPageBackground(coverUrl);
-            if (backgroundSettings.isEnabled() && album.vibrantColor) {
-                this.setVibrantColor(album.vibrantColor);
-            } else {
+            if (backgroundSettings.isEnabled() && album.cover) {
                 this.extractAndApplyColor(this.api.getCoverUrl(album.cover, '80'));
             }
 
@@ -983,7 +989,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                 albumLikeBtn.classList.toggle('active', isLiked);
             }
 
-            document.title = `${album.title} - ${album.artist.name} - Monochrome`;
+            document.title = `${album.title} - ${album.artist.name}`;
 
             // "More from Artist" and Related Sections
             const moreAlbumsSection = document.getElementById('album-section-more-albums');
@@ -1191,7 +1197,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                     numberOfTracks: userPlaylist.tracks ? userPlaylist.tracks.length : 0,
                     isUserPlaylist: true
                 });
-                document.title = `${userPlaylist.name} - Monochrome`;
+                document.title = userPlaylist.name;
             } else {
                 // Render API playlist
                 const { playlist, tracks } = await this.api.getPlaylist(playlistId);
@@ -1200,7 +1206,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                 if (imageId) {
                     imageEl.src = this.api.getCoverUrl(imageId, '1080');
                     this.setPageBackground(imageEl.src);
-                    
+
                     this.extractAndApplyColor(this.api.getCoverUrl(imageId, '160'));
                 } else {
                     imageEl.src = 'assets/appicon.png';
@@ -1242,7 +1248,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                 }
 
                 recentActivityManager.addPlaylist(playlist);
-                document.title = `${playlist.title || 'Artist Mix'} - Monochrome`;
+                document.title = playlist.title || 'Artist Mix';
             }
         } catch (error) {
             console.error("Failed to load playlist:", error);
@@ -1294,9 +1300,9 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                  } else {
                      imageEl.src = 'assets/appicon.png';
                      this.setPageBackground(null);
+                     this.resetVibrantColor();
                  }
             }
-            this.resetVibrantColor();
             
             imageEl.style.backgroundColor = '';
 
@@ -1336,7 +1342,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                 mixLikeBtn.classList.toggle('active', isLiked);
             }
 
-            document.title = `${displayTitle} - Monochrome`;
+            document.title = displayTitle;
         } catch (error) {
             console.error("Failed to load mix:", error);
             tracklistContainer.innerHTML = createPlaceholder(`Could not load mix details. ${error.message}`);
@@ -1403,7 +1409,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
 
             // Set background
             this.setPageBackground(imageEl.src);
-            
+
             // Extract vibrant color using robust image extraction (160x160 for speed/accuracy balance)
             const artistPic160 = this.api.getArtistPictureUrl(artist.picture, '160');
             this.extractAndApplyColor(artistPic160);
@@ -1458,7 +1464,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
 
             recentActivityManager.addArtist(artist);
 
-            document.title = `${artist.name} - Monochrome`;
+            document.title = artist.name;
         } catch (error) {
             console.error("Failed to load artist:", error);
             tracksContainer.innerHTML = albumsContainer.innerHTML =

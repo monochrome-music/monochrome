@@ -177,7 +177,8 @@ export class MusicDatabase {
                 album: item.album ? {
                     id: item.album.id,
                     cover: item.album.cover,
-                    releaseDate: item.album.releaseDate || null
+                    releaseDate: item.album.releaseDate || null,
+                    vibrantColor: item.album.vibrantColor || null
                 } : null,
                 // Fallback date
                 streamStartDate: item.streamStartDate || null,

@@ -68,7 +68,7 @@ export class Player {
                 }
                 const totalDurationEl = document.getElementById('total-duration');
                 if (totalDurationEl) totalDurationEl.textContent = formatTime(track.duration);
-                document.title = `${trackTitle} • ${track.artist?.name || 'Unknown'}`;
+        document.title = `${trackTitle} • ${getTrackArtists(track)}`;
 
                 this.updatePlayingTrackIndicator();
                 this.updateMediaSession(track);
@@ -202,7 +202,7 @@ export class Player {
         if (mixBtn) {
             mixBtn.style.display = (track.mixes && track.mixes.TRACK_MIX) ? 'flex' : 'none';
         }
-        document.title = `${trackTitle} • ${track.artist?.name || 'Unknown'}`;
+        document.title = `${trackTitle} • ${getTrackArtists(track)}`;
 
         this.updatePlayingTrackIndicator();
         this.updateMediaSession(track);

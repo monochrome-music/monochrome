@@ -3464,3 +3464,283 @@ img:not([src]), img[src=''] {
 		opacity: 1;
 	}
 }
+
+/* fuck this chud ass shit bro */
+.csv-import-progress {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-xl);
+    z-index: 10001;
+    max-width: 400px;
+    min-width: 350px;
+    animation: slideIn 0.3s ease;
+}
+
+.csv-import-progress .progress-header {
+    margin-bottom: 1rem;
+}
+
+.csv-import-progress .progress-header h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.csv-import-progress .progress-warning {
+    font-size: 0.85rem;
+    color: var(--muted-foreground);
+    line-height: 1.4;
+}
+
+.csv-import-progress .progress-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.csv-import-progress .current-track {
+    font-size: 0.9rem;
+    color: var(--foreground);
+    font-weight: 500;
+    min-height: 1.2rem;
+}
+
+.csv-import-progress .progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--secondary);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.csv-import-progress .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--highlight));
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.3s ease;
+    position: relative;
+}
+
+.csv-import-progress .progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        transparent 100%
+    );
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.csv-import-progress .progress-text {
+    font-size: 0.85rem;
+    color: var(--muted-foreground);
+    text-align: center;
+}
+
+.csv-import-progress .progress-text span {
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+@media (max-width: 768px) {
+    .csv-import-progress {
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+        min-width: 0;
+    }
+}
+
+/* OH NO SOME SONGS WERENT FOUND FUCK ME FUCK ME */
+.missing-tracks-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.2s ease;
+}
+
+.missing-tracks-modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    max-width: 600px;
+    width: 90%;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-xl);
+    animation: scaleIn 0.2s ease;
+}
+
+.missing-tracks-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2rem 2rem 1.5rem 2rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.missing-tracks-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--foreground);
+    letter-spacing: -0.025em;
+}
+
+.close-missing-tracks {
+    background: transparent;
+    border: none;
+    color: var(--muted-foreground);
+    font-size: 1.5rem;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius);
+    transition: all var(--transition);
+}
+
+.close-missing-tracks:hover {
+    background: var(--secondary);
+    color: var(--foreground);
+}
+
+.missing-tracks-content {
+    padding: 2rem;
+}
+
+.missing-tracks-content p {
+    margin-bottom: 2rem;
+    line-height: 1.7;
+    color: var(--foreground);
+    font-size: 1rem;
+    font-weight: 400;
+}
+
+.missing-tracks-list h4 {
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--foreground);
+    letter-spacing: -0.01em;
+}
+
+.missing-tracks-list ul {
+    list-style: none;
+    padding: 0;
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--secondary);
+}
+
+.missing-tracks-list li {
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--foreground);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 400;
+    line-height: 1.4;
+}
+
+.missing-tracks-list li:last-child {
+    border-bottom: none;
+}
+
+.missing-tracks-list li:nth-child(even) {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.missing-tracks-actions {
+    padding: 1.5rem 2rem 2rem 2rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+}
+
+.missing-tracks-actions .btn-secondary {
+    min-width: 100px;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .missing-tracks-modal {
+        width: 95%;
+        max-height: 90vh;
+        margin: 1rem;
+    }
+
+    .missing-tracks-header,
+    .missing-tracks-content,
+    .missing-tracks-actions {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+
+    .missing-tracks-header {
+        padding-top: 1.5rem;
+        padding-bottom: 1rem;
+    }
+
+    .missing-tracks-content {
+        padding-top: 1.5rem;
+        padding-bottom: 1.5rem;
+    }
+
+    .missing-tracks-actions {
+        padding-top: 1rem;
+        padding-bottom: 1.5rem;
+    }
+
+    .missing-tracks-list ul {
+        max-height: 250px;
+    }
+
+    .missing-tracks-header h3 {
+        font-size: 1.25rem;
+    }
+
+    .missing-tracks-content p {
+        font-size: 0.95rem;
+    }
+
+    .missing-tracks-list li {
+        padding: 0.625rem 1rem;
+        font-size: 0.9rem;
+    }
+}
+
+
