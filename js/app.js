@@ -989,7 +989,31 @@ async function parseCSV(csvText, api, onProgress) {
     const lines = csvText.trim().split('\n');
     if (lines.length < 2) return [];
 
-    const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+    // Robust CSV line parser that respects quotes
+    const parseLine = (text) => {
+        const values = [];
+        let current = '';
+        let inQuote = false;
+        
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            
+            if (char === '"') {
+                inQuote = !inQuote;
+            } else if (char === ',' && !inQuote) {
+                values.push(current);
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+        values.push(current);
+        
+        // Clean up quotes: remove surrounding quotes and unescape double quotes if any
+        return values.map(v => v.trim().replace(/^"|"$/g, '').replace(/""/g, '"').trim());
+    };
+
+    const headers = parseLine(lines[0]);
     const rows = lines.slice(1);
 
     const tracks = [];
@@ -998,13 +1022,18 @@ async function parseCSV(csvText, api, onProgress) {
 
     for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
-        const values = row.split(',').map(v => v.replace(/"/g, '').trim());
+        if (!row.trim()) continue; // Skip empty lines
+
+        const values = parseLine(row);
+        
         if (values.length >= headers.length) {
             let trackTitle = '';
             let artistNames = '';
 
             headers.forEach((header, index) => {
                 const value = values[index];
+                if (!value) return;
+
                 switch (header.toLowerCase()) {
                     case 'track name':
                     case 'title':
