@@ -485,7 +485,7 @@ export class Player {
 
         navigator.mediaSession.metadata = new MediaMetadata({
             title: trackTitle || 'Unknown Title',
-            artist: track.artist?.name || 'Unknown Artist',
+            artist: getTrackArtists(track) || 'Unknown Artist',
             album: track.album?.title || 'Unknown Album',
             artwork: artwork.length > 0 ? artwork : undefined
         });
