@@ -17,7 +17,7 @@ This project uses [Vite](https://vitejs.dev/) for local development and optimize
    ```bash
    npm run dev
    ```
-   The app will be available at `http://localhost:5173/monochrome/`.
+   The app will be available at `http://localhost:5173/`.
 
 ### Why Vite?
 - **Instant Updates**: Support for Hot Module Replacement (HMR) means changes to JS/CSS are reflected instantly in the browser.
@@ -32,6 +32,9 @@ This project uses [Vite](https://vitejs.dev/) for local development and optimize
 
 ## Deployment
 Deployment is automated via **GitHub Actions**.
+
+> [!NOTE]
+> The project uses a relative base path (`./`) in `vite.config.js`. This allows the exact same build artifact to work on both **Cloudflare Pages** (served from root) and **GitHub Pages** (served from `/monochrome/`), provided that Hash Routing is used.
 
 1. Simply push your changes to the `main` branch.
 2. The [Deploy to GitHub Pages](.github/workflows/deploy.yml) workflow will trigger automatically.

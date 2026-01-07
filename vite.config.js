@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
-  base: '/monochrome/',
+  base: './',
   build: {
     outDir: 'dist',
     emptyOutDir: true,
