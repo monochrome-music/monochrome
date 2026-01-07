@@ -1192,54 +1192,10 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                     playlistLikeBtn.style.display = 'none';
                 }
 
-                const shuffleBtn = document.createElement('button');
-                shuffleBtn.id = 'shuffle-playlist-btn';
-                shuffleBtn.className = 'btn-primary';
-                shuffleBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22"/><path d="M2 6h1.972a4 4 0 0 1 3.6 2.2"/><path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45"/></svg><span>Shuffle</span>';
-                shuffleBtn.onclick = () => {
-                    const shuffledTracks = [...tracks].sort(() => Math.random() - 0.5);
-                    this.player.setQueue(shuffledTracks, 0);
-                    this.player.playTrackFromQueue();
-                };
-
-                // Add edit and delete buttons ONLY IF OWNED
-                const actionsDiv = document.getElementById('page-playlist').querySelector('.detail-header-actions');
-
-                const existingShuffle = actionsDiv.querySelector('#shuffle-playlist-btn');
-                if (existingShuffle) existingShuffle.remove();
-                const existingEdit = actionsDiv.querySelector('#edit-playlist-btn');
-                if (existingEdit) existingEdit.remove();
-                const existingDelete = actionsDiv.querySelector('#delete-playlist-btn');
-                if (existingDelete) existingDelete.remove();
-                const existingShare = actionsDiv.querySelector('#share-playlist-btn');
-                if (existingShare) existingShare.remove();
-
-                actionsDiv.appendChild(shuffleBtn);
-                
-                if (ownedPlaylist) {
-                    const editBtn = document.createElement('button');
-                    editBtn.id = 'edit-playlist-btn';
-                    editBtn.className = 'btn-secondary';
-                    editBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span>Edit</span>';
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.id = 'delete-playlist-btn';
-                    deleteBtn.className = 'btn-secondary danger';
-                    deleteBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg><span>Delete</span>';
-                    actionsDiv.appendChild(editBtn);
-                    actionsDiv.appendChild(deleteBtn);
-                }
-
-                if (playlistData.isPublic) {
-                    const shareBtn = document.createElement('button');
-                    shareBtn.id = 'share-playlist-btn';
-                    shareBtn.className = 'btn-secondary';
-                    shareBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg><span>Share</span>';
-                    shareBtn.onclick = () => {
-                        const url = `${window.location.origin}${window.location.pathname}#userplaylist/${playlistData.id || playlistData.uuid}`;
-                        navigator.clipboard.writeText(url).then(() => alert('Link copied to clipboard!'));
-                    };
-                    actionsDiv.appendChild(shareBtn);
-                }
+                // Render Actions (Shuffle, Edit, Delete, Share)
+                // If it is owned, isOwned = true.
+                // If it is public, isPublic is in playlistData.
+                this.updatePlaylistHeaderActions(playlistData, !!ownedPlaylist, tracks);
 
                 const uniqueCovers = [];
                 const seenCovers = new Set();
@@ -1310,27 +1266,6 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
 
                 this.renderListWithTracks(tracklistContainer, tracks, true);
 
-                const shuffleBtn = document.createElement('button');
-                shuffleBtn.id = 'shuffle-playlist-btn';
-                shuffleBtn.className = 'btn-primary';
-                shuffleBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22"/><path d="M2 6h1.972a4 4 0 0 1 3.6 2.2"/><path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45"/></svg><span>Shuffle</span>';
-                shuffleBtn.onclick = () => {
-                    const shuffledTracks = [...tracks].sort(() => Math.random() - 0.5);
-                    this.player.setQueue(shuffledTracks, 0);
-                    this.player.playTrackFromQueue();
-                };
-
-                const actionsDiv = document.getElementById('page-playlist').querySelector('.detail-header-actions');
-
-                const existingShuffle = actionsDiv.querySelector('#shuffle-playlist-btn');
-                if (existingShuffle) existingShuffle.remove();
-
-                const playBtn = document.getElementById('play-playlist-btn');
-                const dlBtn = document.getElementById('download-playlist-btn');
-                if (playBtn && dlBtn) {
-                    actionsDiv.insertBefore(shuffleBtn, dlBtn);
-                }
-
                 // Update header like button
                 const playlistLikeBtn = document.getElementById('like-playlist-btn');
                 if (playlistLikeBtn) {
@@ -1345,23 +1280,9 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                 if (deleteBtn) {
                     deleteBtn.style.display = 'none';
                 }
-                
-                // Cleanup potentially stale buttons
-                const existingEdit = actionsDiv.querySelector('#edit-playlist-btn');
-                if (existingEdit) existingEdit.remove();
-                const existingShare = actionsDiv.querySelector('#share-playlist-btn');
-                if (existingShare) existingShare.remove();
 
-                // Add Share button
-                const shareBtn = document.createElement('button');
-                shareBtn.id = 'share-playlist-btn';
-                shareBtn.className = 'btn-secondary';
-                shareBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg><span>Share</span>';
-                shareBtn.onclick = () => {
-                    const url = `${window.location.origin}${window.location.pathname}#playlist/${playlist.uuid}`;
-                    navigator.clipboard.writeText(url).then(() => alert('Link copied to clipboard!'));
-                };
-                actionsDiv.appendChild(shareBtn);
+                // Render Actions (Shuffle + Share)
+                this.updatePlaylistHeaderActions(playlist, false, tracks, true);
 
                 recentActivityManager.addPlaylist(playlist);
                 document.title = playlist.title || 'Artist Mix';
@@ -1646,6 +1567,107 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
         } catch (error) {
             console.error('Failed to load history:', error);
             container.innerHTML = createPlaceholder('Failed to load history.');
+        }
+    }
+
+    updatePlaylistHeaderActions(playlist, isOwned, tracks, showShare = false) {
+        const actionsDiv = document.getElementById('page-playlist').querySelector('.detail-header-actions');
+        
+        // Cleanup existing dynamic buttons
+        ['shuffle-playlist-btn', 'edit-playlist-btn', 'delete-playlist-btn', 'share-playlist-btn'].forEach(id => {
+            const btn = actionsDiv.querySelector(`#${id}`);
+            if (btn) btn.remove();
+        });
+
+        const fragment = document.createDocumentFragment();
+
+        // Shuffle
+        const shuffleBtn = document.createElement('button');
+        shuffleBtn.id = 'shuffle-playlist-btn';
+        shuffleBtn.className = 'btn-primary';
+        shuffleBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22"/><path d="M2 6h1.972a4 4 0 0 1 3.6 2.2"/><path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45"/></svg><span>Shuffle</span>';
+        shuffleBtn.onclick = () => {
+            const shuffledTracks = [...tracks].sort(() => Math.random() - 0.5);
+            this.player.setQueue(shuffledTracks, 0);
+            this.player.playTrackFromQueue();
+        };
+        fragment.appendChild(shuffleBtn);
+
+        // Edit/Delete (Owned Only)
+        if (isOwned) {
+            const editBtn = document.createElement('button');
+            editBtn.id = 'edit-playlist-btn';
+            editBtn.className = 'btn-secondary';
+            editBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span>Edit</span>';
+            fragment.appendChild(editBtn);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.id = 'delete-playlist-btn';
+            deleteBtn.className = 'btn-secondary danger';
+            deleteBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg><span>Delete</span>';
+            fragment.appendChild(deleteBtn);
+        }
+
+        // Share
+        if (showShare || playlist.isPublic) {
+            const shareBtn = document.createElement('button');
+            shareBtn.id = 'share-playlist-btn';
+            shareBtn.className = 'btn-secondary';
+            shareBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg><span>Share</span>';
+            
+            // Determine URL based on type (User Playlist or API Playlist)
+            // User Playlists use #userplaylist/ID, API use #playlist/UUID
+            // But we don't have isOwned strictly here for that decision? 
+            // Actually, if it's owned it's #userplaylist. 
+            // If it's public firebase, it's also #userplaylist.
+            // If it's API, it's #playlist.
+            
+            // Heuristic: If it has `isPublic` property (even if false), it's likely a User/Firebase playlist structure.
+            // API playlists don't usually have `isPublic`.
+            
+            const isUserType = 'isPublic' in playlist || isOwned; 
+            const prefix = isUserType ? 'userplaylist' : 'playlist';
+            
+            shareBtn.onclick = () => {
+                const url = `${window.location.origin}${window.location.pathname}#${prefix}/${playlist.id || playlist.uuid}`;
+                navigator.clipboard.writeText(url).then(() => alert('Link copied to clipboard!'));
+            };
+            fragment.appendChild(shareBtn);
+        }
+
+        // Insert before Download button if possible, else append
+        const dlBtn = actionsDiv.querySelector('#download-playlist-btn');
+        if (dlBtn) {
+            // We want Shuffle first, then Edit/Delete/Share.
+            // But Download is usually first or second.
+            // In renderPlaylistPage: Play, Download, Like.
+            // We want Shuffle after Play? Or after Download?
+            // Previous code: actionsDiv.insertBefore(shuffleBtn, dlBtn); => Shuffle before Download.
+            // Then appended others.
+            
+            // Let's just append everything for now to keep it simple, or insert Shuffle specifically.
+            // The Play button is static. Download is static.
+            
+            // If we want Shuffle before Download:
+            // fragment has Shuffle, Edit, Delete, Share.
+            // If we insert fragment before Download, all go before Download.
+            // That might change the order.
+            // Previous order: Shuffle (before Download), then Edit/Delete/Share (appended = after Like).
+            
+            // Let's split fragment?
+            // Or just use append for all.
+            // The user didn't complain about order, but consistency is good.
+            // "Fix popup buttons" was the request.
+            
+            // Let's stick to appending for now to minimize visual layout shifts from previous (where Edit/Delete were appended).
+            // Shuffle was inserted before Download.
+            actionsDiv.insertBefore(shuffleBtn, dlBtn);
+            // Append the rest
+            while (fragment.firstChild) {
+                actionsDiv.appendChild(fragment.firstChild);
+            }
+        } else {
+            actionsDiv.appendChild(fragment);
         }
     }
 

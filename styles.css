@@ -1212,6 +1212,13 @@ body.has-page-background .track-item:hover {
     transform: scale(1.05);
 }
 
+.modal-actions .btn-secondary {
+    padding: 0.875rem 1.75rem;
+    border-radius: 2rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
 .settings-list {
     max-width: 800px;
 }
