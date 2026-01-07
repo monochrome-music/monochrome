@@ -513,7 +513,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 }
 
-                db.createPlaylist(name, [], '').then(async playlist => {
+                db.createPlaylist(name, tracks, '').then(async playlist => {
                     await handlePublicStatus(playlist);
                     // Update DB again with isPublic flag
                     await db.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
