@@ -546,11 +546,11 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
     const coverUrl = this.api.getCoverUrl(track.album?.cover, '1280');
     image.src = coverUrl;
     title.textContent = track.title;
-    artist.textContent = track.artist?.name || 'Unknown Artist';
-    
+    artist.textContent = getTrackArtists(track);
+
     if (nextTrack) {
         nextTrackEl.style.display = 'flex';
-        nextTrackEl.querySelector('.value').textContent = `${nextTrack.title} • ${nextTrack.artist?.name || 'Unknown'}`;
+        nextTrackEl.querySelector('.value').textContent = `${nextTrack.title} • ${getTrackArtists(nextTrack)}`;
         
         nextTrackEl.classList.remove('animate-in');
         void nextTrackEl.offsetWidth;
@@ -1155,10 +1155,20 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                     playlistLikeBtn.style.display = 'none';
                 }
 
-                // Add edit and delete buttons
+                const shuffleBtn = document.createElement('button');
+                shuffleBtn.id = 'shuffle-playlist-btn';
+                shuffleBtn.className = 'btn-primary';
+                shuffleBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22"/><path d="M2 6h1.972a4 4 0 0 1 3.6 2.2"/><path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45"/></svg><span>Shuffle</span>';
+                shuffleBtn.onclick = () => {
+                    const shuffledTracks = [...tracks].sort(() => Math.random() - 0.5);
+                    this.player.setQueue(shuffledTracks, 0);
+                    this.player.playTrackFromQueue();
+                };
+
                 const actionsDiv = document.getElementById('page-playlist').querySelector('.detail-header-actions');
-                
-                // Cleanup existing buttons
+
+                const existingShuffle = actionsDiv.querySelector('#shuffle-playlist-btn');
+                if (existingShuffle) existingShuffle.remove();
                 const existingEdit = actionsDiv.querySelector('#edit-playlist-btn');
                 if (existingEdit) existingEdit.remove();
                 const existingDelete = actionsDiv.querySelector('#delete-playlist-btn');
@@ -1172,6 +1182,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                 deleteBtn.id = 'delete-playlist-btn';
                 deleteBtn.className = 'btn-secondary danger';
                 deleteBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg><span>Delete</span>';
+                actionsDiv.appendChild(shuffleBtn);
                 actionsDiv.appendChild(editBtn);
                 actionsDiv.appendChild(deleteBtn);
 
@@ -1231,6 +1242,27 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                 `;
 
                 this.renderListWithTracks(tracklistContainer, tracks, true);
+
+                const shuffleBtn = document.createElement('button');
+                shuffleBtn.id = 'shuffle-playlist-btn';
+                shuffleBtn.className = 'btn-primary';
+                shuffleBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22"/><path d="M2 6h1.972a4 4 0 0 1 3.6 2.2"/><path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45"/></svg><span>Shuffle</span>';
+                shuffleBtn.onclick = () => {
+                    const shuffledTracks = [...tracks].sort(() => Math.random() - 0.5);
+                    this.player.setQueue(shuffledTracks, 0);
+                    this.player.playTrackFromQueue();
+                };
+
+                const actionsDiv = document.getElementById('page-playlist').querySelector('.detail-header-actions');
+
+                const existingShuffle = actionsDiv.querySelector('#shuffle-playlist-btn');
+                if (existingShuffle) existingShuffle.remove();
+
+                const playBtn = document.getElementById('play-playlist-btn');
+                const dlBtn = document.getElementById('download-playlist-btn');
+                if (playBtn && dlBtn) {
+                    actionsDiv.insertBefore(shuffleBtn, dlBtn);
+                }
 
                 // Update header like button
                 const playlistLikeBtn = document.getElementById('like-playlist-btn');
