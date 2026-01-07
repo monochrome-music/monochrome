@@ -205,7 +205,6 @@ export class Player {
         document.title = `${trackTitle} • ${getTrackArtists(track)}`;
 
         this.updatePlayingTrackIndicator();
-        this.updateMediaSession(track);
 
         try {
             let streamUrl;
@@ -228,6 +227,8 @@ export class Player {
             }
             await this.audio.play();
 
+            // Update Media Session AFTER play starts to ensure metadata is captured
+            this.updateMediaSession(track);
             this.updateMediaSessionPlaybackState();
             this.preloadNextTracks();
         } catch (error) {
@@ -467,6 +468,9 @@ export class Player {
 
     updateMediaSession(track) {
         if (!('mediaSession' in navigator)) return;
+
+        // Force a refresh for picky Bluetooth systems by clearing metadata first
+        navigator.mediaSession.metadata = null;
 
         const artwork = [];
         const sizes = ['320'];
