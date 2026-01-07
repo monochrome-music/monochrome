@@ -1058,6 +1058,9 @@ async function parseCSV(csvText, api, onProgress) {
 
             // Search for the track in hifi tidal api's catalog
             if (trackTitle && artistNames) {
+                // Add a small delay to prevent rate limiting
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
                 try {
                     const searchQuery = `${trackTitle} ${artistNames}`;
                     const searchResults = await api.searchTracks(searchQuery);

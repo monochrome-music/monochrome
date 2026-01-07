@@ -48,7 +48,19 @@ export class LosslessAPI {
                     const response = await fetch(url, { signal: options.signal });
 
                     if (response.status === 429) {
-                        throw new Error(RATE_LIMIT_ERROR_MESSAGE);
+                         const retryAfter = response.headers.get('Retry-After');
+                         let waitTime = 2000 * attempt; // Default exponential backoff
+
+                         if (retryAfter) {
+                             const seconds = parseInt(retryAfter, 10);
+                             if (!isNaN(seconds)) {
+                                 waitTime = seconds * 1000;
+                             }
+                         }
+                         
+                         console.warn(`Rate limit hit. Waiting ${waitTime}ms before retry ${attempt}/${maxRetries}...`);
+                         await delay(waitTime);
+                         continue;
                     }
 
                     if (response.ok) {
