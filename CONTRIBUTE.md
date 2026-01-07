@@ -1,8 +1,5 @@
-# Monochrome Music
 
-A minimalist music streaming application designed for high-fidelity audio playback.
-
-## Development
+# Development
 This project uses [Vite](https://vitejs.dev/) for local development and optimized builds.
 
 ### Prerequisites
