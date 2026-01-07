@@ -6,24 +6,24 @@ import { addMetadataToAudio } from './metadata.js';
 const downloadTasks = new Map();
 let downloadNotificationContainer = null;
 
-/**
- * Adds a cover blob to a JSZip instance
- */
-function addCoverBlobToZip(zip, folderPath, blob) {
-    if (!blob) return;
-    const path = folderPath ? `${folderPath}/cover.jpg` : 'cover.jpg';
-    if (!zip.file(path)) {
-        zip.file(path, blob);
+async function loadZipJS() {
+    try {
+        // Load zip.js from CDN (ES Module)
+        const module = await import('https://cdn.jsdelivr.net/npm/@zip.js/zip.js@2.7.34/index.js');
+        return module;
+    } catch (error) {
+        console.error('Failed to load zip.js:', error);
+        throw new Error('Failed to load ZIP library');
     }
 }
 
-async function loadJSZip() {
+async function loadStreamSaver() {
     try {
-        const module = await import('https://cdn.jsdelivr.net/npm/jszip@3.10.1/+esm');
+        const module = await import('https://cdn.jsdelivr.net/npm/streamsaver@2.0.6/StreamSaver.js');
         return module.default;
     } catch (error) {
-        console.error('Failed to load JSZip:', error);
-        throw new Error('Failed to load ZIP library');
+        console.error('Failed to load StreamSaver:', error);
+        throw new Error('Failed to load StreamSaver library');
     }
 }
 
@@ -167,7 +167,7 @@ function removeDownloadTask(trackId) {
     }, 300);
 }
 
-async function downloadTrackBlob(track, quality, api, lyricsManager = null) {
+async function downloadTrackBlob(track, quality, api) {
     const lookup = await api.getTrack(track.id, quality);
     let streamUrl;
 
@@ -193,81 +193,49 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null) {
     return blob;
 }
 
-async function generateAndDownloadZip(zip, filename, notification, progressTotal, fileHandle = null) {
-    updateBulkDownloadProgress(notification, progressTotal, progressTotal, 'Creating ZIP...');
+/**
+ * Initializes the download stream (using File System Access API or StreamSaver)
+ * and returns a ZipWriter instance that pipes to it.
+ */
+async function createZipStreamWriter(filename) {
+    const zip = await loadZipJS();
+    let writable;
+    let abortFn = null;
 
-    try {
-        // Use the pre-acquired file handle for streaming (Chrome/Edge/Opera)
-        if (fileHandle) {
-            const writable = await fileHandle.createWritable();
-            
-            await new Promise((resolve, reject) => {
-                zip.generateInternalStream({
-                    type: 'uint8array',
-                    compression: 'STORE',
-                    streamFiles: true
-                })
-                .on('data', (chunk, metadata) => {
-                    writable.write(chunk);
-                })
-                .on('error', (err) => {
-                    writable.close();
-                    reject(err);
-                })
-                .on('end', () => {
-                    writable.close();
-                    resolve();
-                })
-                .resume();
-            });
-        } else {
-            // Fallback for Firefox/Safari or if user cancelled/API not available
-            const zipBlob = await zip.generateAsync({
-                type: 'blob',
-                compression: 'STORE',
-                streamFiles: true
-            });
-
-            const url = URL.createObjectURL(zipBlob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${filename}.zip`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        completeBulkDownload(notification, true);
-    } catch (error) {
-        console.error('ZIP generation failed:', error);
-        completeBulkDownload(notification, false, 'ZIP creation failed');
-    }
-}
-
-async function initializeZipDownload(defaultName, useFilePicker = false) {
-    const JSZip = await loadJSZip();
-    const zip = new JSZip();
-
-    let fileHandle = null;
-    if (useFilePicker && window.showSaveFilePicker) {
+    // 1. Try File System Access API (Chrome/Edge/Opera)
+    if (window.showSaveFilePicker) {
         try {
-            fileHandle = await window.showSaveFilePicker({
-                suggestedName: `${defaultName}.zip`,
+            const handle = await window.showSaveFilePicker({
+                suggestedName: `${filename}.zip`,
                 types: [{
                     description: 'ZIP Archive',
                     accept: { 'application/zip': ['.zip'] }
                 }]
             });
+            writable = await handle.createWritable();
         } catch (err) {
             if (err.name === 'AbortError') return null; // User cancelled
             throw err;
         }
+    } 
+    // 2. Fallback to StreamSaver.js (Firefox/Safari)
+    else {
+        const streamSaver = await loadStreamSaver();
+        writable = streamSaver.createWriteStream(`${filename}.zip`);
+        // StreamSaver doesn't support aborting via API easily in this flow,
+        // but closing the writer effectively ends it.
     }
-    return { zip, fileHandle };
+
+    // Create zip.js writer
+    // zip.js requires a specific Writer interface for WritableStream
+    const zipWriter = new zip.ZipWriter(new zip.WritableStreamWriter(writable));
+
+    return { zipWriter, zipModule: zip };
 }
 
-async function downloadTracksToZip(zip, tracks, folderName, api, quality, lyricsManager, notification, startProgressIndex = 0, totalTracks = tracks.length) {
+async function streamTracksToZip(zipWriter, zipModule, tracks, folderName, api, quality, lyricsManager, notification, startProgressIndex = 0, totalTracks = tracks.length) {
+    const { BlobReader, TextReader } = zipModule;
+
     for (let i = 0; i < tracks.length; i++) {
         const track = tracks[i];
         const currentGlobalIndex = startProgressIndex + i;
@@ -277,9 +245,15 @@ async function downloadTracksToZip(zip, tracks, folderName, api, quality, lyrics
         updateBulkDownloadProgress(notification, currentGlobalIndex, totalTracks, trackTitle);
 
         try {
+            // Download track (into memory blob)
             const blob = await downloadTrackBlob(track, quality, api);
-            zip.file(`${folderName}/${filename}`, blob);
+            
+            // Write to ZIP stream (and flush to disk immediately)
+            await zipWriter.add(`${folderName}/${filename}`, new BlobReader(blob));
+            
+            // Blob is now eligible for GC (as we await the write)
 
+            // Lyrics
             if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
                 try {
                     const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
@@ -287,11 +261,11 @@ async function downloadTracksToZip(zip, tracks, folderName, api, quality, lyrics
                         const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
                         if (lrcContent) {
                             const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
-                            zip.file(`${folderName}/${lrcFilename}`, lrcContent);
+                            await zipWriter.add(`${folderName}/${lrcFilename}`, new TextReader(lrcContent));
                         }
                     }
                 } catch (error) {
-                    console.log('Could not add lyrics for:', trackTitle);
+                    // Ignore lyrics error
                 }
             }
         } catch (err) {
@@ -311,21 +285,25 @@ export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsMana
         year: year
     });
 
-    // Only prompt for save location if we have >= 20 tracks (to capture user gesture early)
-    // Otherwise, we'll auto-download the blob at the end
-    const initResult = await initializeZipDownload(folderName, tracks.length >= 20);
-    if (!initResult) return; // User cancelled
-    const { zip, fileHandle } = initResult;
+    const streamResult = await createZipStreamWriter(folderName);
+    if (!streamResult) return; // Cancelled
+    const { zipWriter, zipModule } = streamResult;
 
-    const coverBlob = await getCoverBlob(api, album.cover || album.album?.cover || album.coverId);
     const notification = createBulkDownloadNotification('album', album.title, tracks.length);
 
     try {
-        addCoverBlobToZip(zip, folderName, coverBlob);
-        await downloadTracksToZip(zip, tracks, folderName, api, quality, lyricsManager, notification);
-        await generateAndDownloadZip(zip, folderName, notification, tracks.length, fileHandle);
+        const coverBlob = await getCoverBlob(api, album.cover || album.album?.cover || album.coverId);
+        if (coverBlob) {
+            await zipWriter.add(`${folderName}/cover.jpg`, new zipModule.BlobReader(coverBlob));
+        }
+
+        await streamTracksToZip(zipWriter, zipModule, tracks, folderName, api, quality, lyricsManager, notification);
+        
+        await zipWriter.close();
+        completeBulkDownload(notification, true);
     } catch (error) {
         completeBulkDownload(notification, false, error.message);
+        try { await zipWriter.close(); } catch (e) {} // Try to close anyway
         throw error;
     }
 }
@@ -337,22 +315,27 @@ export async function downloadPlaylistAsZip(playlist, tracks, api, quality, lyri
         year: new Date().getFullYear()
     });
 
-    const initResult = await initializeZipDownload(folderName, tracks.length >= 20);
-    if (!initResult) return; // User cancelled
-    const { zip, fileHandle } = initResult;
+    const streamResult = await createZipStreamWriter(folderName);
+    if (!streamResult) return; // Cancelled
+    const { zipWriter, zipModule } = streamResult;
 
     const notification = createBulkDownloadNotification('playlist', playlist.title, tracks.length);       
 
     try {
-        // Find a representative cover for the playlist (first track with cover)
+        // Cover
         const representativeTrack = tracks.find(t => t.album?.cover);
         const coverBlob = await getCoverBlob(api, representativeTrack?.album?.cover);
-        addCoverBlobToZip(zip, folderName, coverBlob);
+        if (coverBlob) {
+            await zipWriter.add(`${folderName}/cover.jpg`, new zipModule.BlobReader(coverBlob));
+        }
 
-        await downloadTracksToZip(zip, tracks, folderName, api, quality, lyricsManager, notification);
-        await generateAndDownloadZip(zip, folderName, notification, tracks.length, fileHandle);
+        await streamTracksToZip(zipWriter, zipModule, tracks, folderName, api, quality, lyricsManager, notification);
+        
+        await zipWriter.close();
+        completeBulkDownload(notification, true);
     } catch (error) {
         completeBulkDownload(notification, false, error.message);
+        try { await zipWriter.close(); } catch (e) {}
         throw error;
     }
 }
@@ -360,23 +343,25 @@ export async function downloadPlaylistAsZip(playlist, tracks, api, quality, lyri
 export async function downloadDiscography(artist, api, quality, lyricsManager = null) {
     const rootFolder = `${sanitizeForFilename(artist.name)} discography`;
 
-    // Always use file picker for discography as it's likely large
-    const initResult = await initializeZipDownload(rootFolder, true);
-    if (!initResult) return; // User cancelled
-    const { zip, fileHandle } = initResult;
+    const streamResult = await createZipStreamWriter(rootFolder);
+    if (!streamResult) return;
+    const { zipWriter, zipModule } = streamResult;
 
     const allReleases = [...(artist.albums || []), ...(artist.eps || [])];
-    const notification = createBulkDownloadNotification('discography', artist.name, allReleases.length);
+    const notification = createBulkDownloadNotification('discography', artist.name, allReleases.length); // Total is approx tracks, but showing albums for now in text
 
     try {
+        // Calculate total tracks for better progress? 
+        // It's expensive to fetch all album details first. We'll just update text.
+        
+        let totalTracksDownloaded = 0;
+
         for (let albumIndex = 0; albumIndex < allReleases.length; albumIndex++) {
             const album = allReleases[albumIndex];
-
             updateBulkDownloadProgress(notification, albumIndex, allReleases.length, album.title);
 
             try {
                 const { album: fullAlbum, tracks } = await api.getAlbum(album.id);
-                const coverBlob = await getCoverBlob(api, fullAlbum.cover || album.cover);
                 
                 const releaseDateStr = fullAlbum.releaseDate || (tracks[0]?.streamStartDate ? tracks[0].streamStartDate.split('T')[0] : '');
                 const releaseDate = releaseDateStr ? new Date(releaseDateStr) : null;
@@ -389,13 +374,28 @@ export async function downloadDiscography(artist, api, quality, lyricsManager = 
                 });
 
                 const fullFolderPath = `${rootFolder}/${albumFolder}`;
-                addCoverBlobToZip(zip, fullFolderPath, coverBlob);
+                
+                // Cover
+                const coverBlob = await getCoverBlob(api, fullAlbum.cover || album.cover);
+                if (coverBlob) {
+                    await zipWriter.add(`${fullFolderPath}/cover.jpg`, new zipModule.BlobReader(coverBlob));
+                }
+
+                // We reuse the streamTracksToZip logic but we need to pass just this album's tracks
+                // and careful with progress bar. streamTracksToZip resets progress?
+                // Let's call the logic manually to control progress bar or adapt streamTracksToZip.
+                
+                // Actually, streamTracksToZip updates progress based on its inputs. 
+                // For discography, we might want to keep the "Album X/Y" progress.
+                // Let's just inline the loop here or simple helper.
+                
+                const { BlobReader, TextReader } = zipModule;
 
                 for (const track of tracks) {
                      const filename = buildTrackFilename(track, quality);
                      try {
                         const blob = await downloadTrackBlob(track, quality, api);
-                        zip.file(`${fullFolderPath}/${filename}`, blob);
+                        await zipWriter.add(`${fullFolderPath}/${filename}`, new BlobReader(blob));
 
                         if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
                             try {
@@ -404,12 +404,10 @@ export async function downloadDiscography(artist, api, quality, lyricsManager = 
                                     const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
                                     if (lrcContent) {
                                         const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
-                                        zip.file(`${fullFolderPath}/${lrcFilename}`, lrcContent);
+                                        await zipWriter.add(`${fullFolderPath}/${lrcFilename}`, new TextReader(lrcContent));
                                     }
                                 }
-                            } catch (error) {
-                                // Silent fail for lyrics in bulk
-                            }
+                            } catch (e) {}
                         }
                      } catch (err) {
                          console.error(`Failed to download track ${track.title}:`, err);
@@ -421,9 +419,11 @@ export async function downloadDiscography(artist, api, quality, lyricsManager = 
             }
         }
 
-        await generateAndDownloadZip(zip, rootFolder, notification, allReleases.length, fileHandle);
+        await zipWriter.close();
+        completeBulkDownload(notification, true);
     } catch (error) {
         completeBulkDownload(notification, false, error.message);
+        try { await zipWriter.close(); } catch (e) {}
         throw error;
     }
 }
