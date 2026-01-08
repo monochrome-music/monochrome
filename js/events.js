@@ -102,7 +102,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
     shuffleBtn.addEventListener('click', () => {
         player.toggleShuffle();
         shuffleBtn.classList.toggle('active', player.shuffleActive);
-        renderQueue(player);
+        if (window.renderQueueFunction) window.renderQueueFunction();
     });
 
     repeatBtn.addEventListener('click', () => {
@@ -364,11 +364,11 @@ export async function handleTrackAction(action, item, player, api, lyricsManager
 
     if (action === 'add-to-queue') {
         player.addToQueue(item);
-        renderQueue(player);
+        if (window.renderQueueFunction) window.renderQueueFunction();
         showNotification(`Added to queue: ${item.title}`);
     } else if (action === 'play-next') {
         player.addNextToQueue(item);
-        renderQueue(player);
+        if (window.renderQueueFunction) window.renderQueueFunction();
         showNotification(`Playing next: ${item.title}`);
     } else if (action === 'track-mix') {
         if (item.mixes && item.mixes.TRACK_MIX) {
@@ -522,6 +522,17 @@ export async function handleTrackAction(action, item, player, api, lyricsManager
             }
         });
     }
+}
+
+async function updateContextMenuLikeState(contextMenu, contextTrack) {
+    if (!contextMenu || !contextTrack) return;
+
+    const likeItem = contextMenu.querySelector('li[data-action="toggle-like"]');
+    if (!likeItem) return;
+
+    const { db } = await import('./db.js');
+    const isLiked = await db.isFavorite('track', contextTrack.id);
+    likeItem.textContent = isLiked ? 'Unlike' : 'Like';
 }
 
 export function initializeTrackInteractions(player, api, mainContent, contextMenu, lyricsManager, ui, scrobbler) {
