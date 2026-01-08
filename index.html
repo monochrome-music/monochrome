@@ -30,7 +30,7 @@
             <li data-action="download">Download</li>
         </ul>
     </div>
-    
+
     <div id="side-panel" class="side-panel">
         <div class="panel-header">
             <h3 id="side-panel-title">Panel</h3>
@@ -315,7 +315,7 @@
                     </div>
                 </header>
                 <div class="track-list" id="album-detail-tracklist"></div>
-                
+
                 <section class="content-section" id="album-section-more-albums" style="display: none; margin-top: 3rem;">
                     <h2 class="section-title" id="album-title-more-albums">More from Artist</h2>
                     <div class="card-grid" id="album-detail-more-albums"></div>
@@ -611,6 +611,16 @@
                         </div>
                         <div class="setting-item">
                             <div class="info">
+                                <span class="label">Romaji Lyrics</span>
+                                <span class="description">Convert Japanese lyrics to Romaji (Latin characters)</span>
+                            </div>
+                            <label class="toggle-switch">
+                            <input type="checkbox" id="romaji-lyrics-toggle">
+                            <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <div class="info">
                                 <span class="label">Filename Template</span>
                                 <span class="description">Customize download filenames. Available: {trackNumber}, {artist}, {title}, {album}</span>
                             </div>
@@ -669,7 +679,7 @@
                 <h2 class="section-title">About Monochrome</h2>
                 <div class="about-content">
                     <p class="about-description">
-                        Monochrome is a lightweight, privacy-focused music streaming client designed for high-fidelity audio playback. 
+                        Monochrome is a lightweight, privacy-focused music streaming client designed for high-fidelity audio playback.
                         Built with modern web technologies, it provides a clean, distraction-free listening experience.
                         <br>
                         <strong>NOTE:</strong> The instance you are currently on (monochrome.samidy.com) is a Community Fork adding additional features (library/playlists, accounts, mix + Big UI Improvments & More).
@@ -765,9 +775,9 @@
                 <div class="donate-content">
                     <p style="text-align: center;" class="donate-description">If Monochrome has been useful To you and you're able to, consider giving a little donation. <br> It helps Pay for the domain, and you get To support us :)</p>
                     <button id="donate-btn" class="btn-secondary">Donate To Monochrome</button>
-                    
+
         </main>
-        
+
         <footer class="now-playing-bar">
             <div class="track-info">
                 <img src="./assets/appicon.png" alt="Current Track Cover" class="cover">
