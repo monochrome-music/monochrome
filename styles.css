@@ -3850,3 +3850,10 @@ img:not([src]), img[src=''] {
     }
 }
 
+
+.library-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
