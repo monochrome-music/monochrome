@@ -574,35 +574,44 @@ export class Player {
 
     updateSleepTimerUI() {
         const timerBtn = document.getElementById('sleep-timer-btn');
-        if (!timerBtn) return;
-
-        if (this.isSleepTimerActive()) {
-            const remaining = this.getSleepTimerRemaining();
-            if (remaining > 0) {
-                const minutes = Math.floor(remaining / 60);
-                const seconds = remaining % 60;
-                timerBtn.innerHTML = `<span style="font-size: 12px; font-weight: bold;">${minutes}:${seconds.toString().padStart(2, '0')}</span>`;
-                timerBtn.title = `Sleep Timer: ${minutes}:${seconds.toString().padStart(2, '0')} remaining`;
-                timerBtn.classList.add('active');
+        const timerBtnDesktop = document.getElementById('sleep-timer-btn-desktop');
+        
+        const updateBtn = (btn) => {
+            if (!btn) return;
+            if (this.isSleepTimerActive()) {
+                const remaining = this.getSleepTimerRemaining();
+                if (remaining > 0) {
+                    const minutes = Math.floor(remaining / 60);
+                    const seconds = remaining % 60;
+                    btn.innerHTML = `<span style="font-size: 12px; font-weight: bold;">${minutes}:${seconds.toString().padStart(2, '0')}</span>`;
+                    btn.title = `Sleep Timer: ${minutes}:${seconds.toString().padStart(2, '0')} remaining`;
+                    btn.classList.add('active');
+                    btn.style.color = 'var(--primary)';
+                } else {
+                    btn.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12,6 12,12 16,14"/>
+                        </svg>
+                    `;
+                    btn.title = 'Sleep Timer';
+                    btn.classList.remove('active');
+                    btn.style.color = '';
+                }
             } else {
-                timerBtn.innerHTML = `
+                btn.innerHTML = `
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10"/>
                         <polyline points="12,6 12,12 16,14"/>
                     </svg>
                 `;
-                timerBtn.title = 'Sleep Timer';
-                timerBtn.classList.remove('active');
+                btn.title = 'Sleep Timer';
+                btn.classList.remove('active');
+                btn.style.color = '';
             }
-        } else {
-            timerBtn.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polyline points="12,6 12,12 16,14"/>
-                </svg>
-            `;
-            timerBtn.title = 'Sleep Timer';
-            timerBtn.classList.remove('active');
-        }
+        };
+
+        updateBtn(timerBtn);
+        updateBtn(timerBtnDesktop);
     }
 }
