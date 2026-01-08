@@ -13,7 +13,8 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
     const prevBtn = document.getElementById('prev-btn');
     const shuffleBtn = document.getElementById('shuffle-btn');
     const repeatBtn = document.getElementById('repeat-btn');
-    const sleepTimerBtn = document.getElementById('sleep-timer-btn');
+    const sleepTimerBtnDesktop = document.getElementById('sleep-timer-btn-desktop');
+    const sleepTimerBtnMobile = document.getElementById('sleep-timer-btn');
 
     // History tracking
     let historyLoggedTrackId = null;
@@ -114,15 +115,29 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
             : (mode === REPEAT_MODE.ALL ? 'Repeat Queue' : 'Repeat One');
     });
 
-    // Sleep Timer
-    sleepTimerBtn.addEventListener('click', () => {
-        if (player.isSleepTimerActive()) {
-            player.clearSleepTimer();
-            showNotification('Sleep timer cancelled');
-        } else {
-            showSleepTimerModal(player);
-        }
-    });
+    // Sleep Timer for desktop
+    if (sleepTimerBtnDesktop) {
+        sleepTimerBtnDesktop.addEventListener('click', () => {
+            if (player.isSleepTimerActive()) {
+                player.clearSleepTimer();
+                showNotification('Sleep timer cancelled');
+            } else {
+                showSleepTimerModal(player);
+            }
+        });
+    }
+
+    // Sleep Timer for mobile
+    if (sleepTimerBtnMobile) {
+        sleepTimerBtnMobile.addEventListener('click', () => {
+            if (player.isSleepTimerActive()) {
+                player.clearSleepTimer();
+                showNotification('Sleep timer cancelled');
+            } else {
+                showSleepTimerModal(player);
+            }
+        });
+    }
 
     // Volume controls
     const volumeBar = document.getElementById('volume-bar');
