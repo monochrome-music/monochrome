@@ -399,8 +399,15 @@ export async function handleTrackAction(action, item, player, api, lyricsManager
                 const data = await api.getPlaylist(item.uuid);
                 tracks = data.tracks;
             } else if (type === 'user-playlist') {
-                const playlist = await db.getPlaylist(item.id);
-                tracks = playlist ? playlist.tracks : [];
+                let playlist = await db.getPlaylist(item.id);
+                if (!playlist) {
+                    try {
+                        playlist = await syncManager.getPublicPlaylist(item.id);
+                    } catch (e) {
+                         // Ignore
+                    }
+                }
+                tracks = playlist ? playlist.tracks : (item.tracks || []);
             }
 
             if (tracks.length > 0) {

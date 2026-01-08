@@ -301,10 +301,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         try {
             let playlist, tracks;
-            const userPlaylist = await db.getPlaylist(playlistId);
+            let userPlaylist = await db.getPlaylist(playlistId);
+            
+            if (!userPlaylist) {
+                try {
+                    userPlaylist = await syncManager.getPublicPlaylist(playlistId);
+                } catch (e) {
+                    // Not a public playlist
+                }
+            }
             
             if (userPlaylist) {
-                playlist = { ...userPlaylist, title: userPlaylist.name };
+                playlist = { ...userPlaylist, title: userPlaylist.name || userPlaylist.title };
                 tracks = userPlaylist.tracks || [];
             } else {
                 const data = await api.getPlaylist(playlistId);

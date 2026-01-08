@@ -81,14 +81,23 @@ export class UIRenderer {
         this.updateGlobalTheme();
         
         const likeBtn = document.getElementById('now-playing-like-btn');
-        if (likeBtn) {
-            if (track) {
+        const addPlaylistBtn = document.getElementById('now-playing-add-playlist-btn');
+        const mobileAddPlaylistBtn = document.getElementById('mobile-add-playlist-btn');
+        const lyricsBtn = document.getElementById('toggle-lyrics-btn');
+
+        if (track) {
+            if (likeBtn) {
                 likeBtn.style.display = 'flex';
-                // Use the centralized update logic if possible, or manual here
                 this.updateLikeState(likeBtn.parentElement, 'track', track.id);
-            } else {
-                likeBtn.style.display = 'none';
             }
+            if (addPlaylistBtn) addPlaylistBtn.style.removeProperty('display');
+            if (mobileAddPlaylistBtn) mobileAddPlaylistBtn.style.removeProperty('display');
+            if (lyricsBtn) lyricsBtn.style.removeProperty('display');
+        } else {
+            if (likeBtn) likeBtn.style.display = 'none';
+            if (addPlaylistBtn) addPlaylistBtn.style.setProperty('display', 'none', 'important');
+            if (mobileAddPlaylistBtn) mobileAddPlaylistBtn.style.setProperty('display', 'none', 'important');
+            if (lyricsBtn) lyricsBtn.style.display = 'none';
         }
     }
 
