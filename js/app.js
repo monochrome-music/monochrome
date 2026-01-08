@@ -378,7 +378,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         ui.renderLibraryPage();
                         // Also update current page if we are on it
                         if (window.location.hash === `#userplaylist/${editingId}`) {
-                             ui.renderPlaylistPage(editingId);
+                             ui.renderPlaylistPage(editingId, 'user');
                         }
                         modal.style.display = 'none';
                         delete modal.dataset.editingId;
@@ -553,7 +553,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const trackId = playlist.tracks[index].id;
                 const updatedPlaylist = await db.removeTrackFromPlaylist(playlistId, trackId);
                 syncManager.syncUserPlaylist(updatedPlaylist, 'update');
-                ui.renderPlaylistPage(playlistId);
+                ui.renderPlaylistPage(playlistId, 'user');
             }
         });
     }

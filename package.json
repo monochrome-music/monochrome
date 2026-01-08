@@ -24,5 +24,9 @@
   "devDependencies": {
     "vite": "^7.3.0",
     "vite-plugin-pwa": "^1.2.0"
+  },
+  "overrides": {
+    "sourcemap-codec": "npm:@jridgewell/sourcemap-codec@^1.4.14",
+    "source-map": "^0.7.4"
   }
 }
