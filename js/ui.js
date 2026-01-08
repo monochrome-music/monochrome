@@ -1103,7 +1103,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
         }
     }
 
-    async renderPlaylistPage(playlistId) {
+    async renderPlaylistPage(playlistId, source = null) {
         this.showPage('playlist');
         const imageEl = document.getElementById('playlist-detail-image');
         const titleEl = document.getElementById('playlist-detail-title');
@@ -1133,15 +1133,25 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
             // Check if it's a user playlist (UUID format)
             const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(playlistId);
             
-            const ownedPlaylist = await db.getPlaylist(playlistId);
-            let playlistData = ownedPlaylist;
-            
-            // If not in local DB, check if it's a public Firebase playlist
-            if (!playlistData) {
-                try {
-                    playlistData = await syncManager.getPublicPlaylist(playlistId);
-                } catch (e) {
-                    console.warn('Failed to check public Firebase playlists:', e);
+            let playlistData = null;
+            let ownedPlaylist = null;
+
+            // Priority:
+            // 1. If source is 'user', check DB/Sync.
+            // 2. If source is 'api', check API.
+            // 3. If no source, check DB if UUID, then API.
+
+            if (source === 'user' || (!source && isUUID)) {
+                ownedPlaylist = await db.getPlaylist(playlistId);
+                playlistData = ownedPlaylist;
+                
+                // If not in local DB, check if it's a public Firebase playlist
+                if (!playlistData) {
+                    try {
+                        playlistData = await syncManager.getPublicPlaylist(playlistId);
+                    } catch (e) {
+                        console.warn('Failed to check public Firebase playlists:', e);
+                    }
                 }
             }
 
@@ -1221,9 +1231,9 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                 });
                 document.title = `${playlistData.name || playlistData.title} - Monochrome`;
             } else {
-                // If it is a UUID, we know it won't be in the API.
-                if (isUUID) {
-                    throw new Error('Playlist not found. If this is a custom playlist, make sure it is set to Public.');
+                // If source was explicitly 'user' and we didn't find it, fail.
+                if (source === 'user') {
+                     throw new Error('Playlist not found. If this is a custom playlist, make sure it is set to Public.');
                 }
 
                 // Render API playlist
@@ -1282,7 +1292,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                 }
 
                 // Render Actions (Shuffle + Share)
-                this.updatePlaylistHeaderActions(playlist, false, tracks, true);
+                this.updatePlaylistHeaderActions(playlist, false, tracks, false);
 
                 recentActivityManager.addPlaylist(playlist);
                 document.title = playlist.title || 'Artist Mix';
@@ -1608,28 +1618,15 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
             fragment.appendChild(deleteBtn);
         }
 
-        // Share
-        if (showShare || playlist.isPublic) {
+        // Share (User Playlists Only)
+        if (showShare || (isOwned && playlist.isPublic)) {
             const shareBtn = document.createElement('button');
             shareBtn.id = 'share-playlist-btn';
             shareBtn.className = 'btn-secondary';
             shareBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg><span>Share</span>';
             
-            // Determine URL based on type (User Playlist or API Playlist)
-            // User Playlists use #userplaylist/ID, API use #playlist/UUID
-            // But we don't have isOwned strictly here for that decision? 
-            // Actually, if it's owned it's #userplaylist. 
-            // If it's public firebase, it's also #userplaylist.
-            // If it's API, it's #playlist.
-            
-            // Heuristic: If it has `isPublic` property (even if false), it's likely a User/Firebase playlist structure.
-            // API playlists don't usually have `isPublic`.
-            
-            const isUserType = 'isPublic' in playlist || isOwned; 
-            const prefix = isUserType ? 'userplaylist' : 'playlist';
-            
             shareBtn.onclick = () => {
-                const url = `${window.location.origin}${window.location.pathname}#${prefix}/${playlist.id || playlist.uuid}`;
+                const url = `${window.location.origin}${window.location.pathname}#userplaylist/${playlist.id || playlist.uuid}`;
                 navigator.clipboard.writeText(url).then(() => alert('Link copied to clipboard!'));
             };
             fragment.appendChild(shareBtn);

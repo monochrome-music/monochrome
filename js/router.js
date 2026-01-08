@@ -17,10 +17,10 @@ export function createRouter(ui) {
                 ui.renderArtistPage(param);
                 break;
             case 'playlist':
-                ui.renderPlaylistPage(param);
+                ui.renderPlaylistPage(param, 'api');
                 break;
             case 'userplaylist':
-                ui.renderPlaylistPage(param);
+                ui.renderPlaylistPage(param, 'user');
                 break;
             case 'mix':
                 ui.renderMixPage(param);
