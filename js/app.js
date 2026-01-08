@@ -118,6 +118,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const scrobbler = new LastFMScrobbler();
     const lyricsManager = new LyricsManager(api);
 
+    // Pre-load Kuroshiro for romaji conversion in background (always load so it's ready instantly)
+    lyricsManager.loadKuroshiro().catch(err => {
+        console.warn('Failed to pre-load Kuroshiro:', err);
+    });
+
     const currentTheme = themeManager.getTheme();
     themeManager.setTheme(currentTheme);
     trackListSettings.getMode();
