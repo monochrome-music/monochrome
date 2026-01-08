@@ -1600,7 +1600,7 @@ input:checked + .slider::before {
     border-radius: var(--radius);
     padding: 0.5rem;
     box-shadow: var(--shadow-lg);
-    z-index: 1000;
+    z-index: 3000;
     min-width: 160px;
 }
 
