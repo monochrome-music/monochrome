@@ -8,6 +8,9 @@ import {
 } from "./utils.js";
 import { sidePanelManager } from "./side-panel.js";
 
+// Dictionary path for kuromoji (loaded from CDN)
+const KUROMOJI_DICT_PATH = "https://unpkg.com/kuromoji@0.1.2/dict/";
+
 export class LyricsManager {
   constructor(api) {
     this.api = api;
@@ -24,10 +27,11 @@ export class LyricsManager {
     this.originalLyricsData = null;
     this.kuroshiroLoaded = false;
     this.kuroshiroLoading = false;
-    this.convertedNodes = new WeakSet(); // Track already converted nodes
+    this.romajiTextCache = new Map(); // Cache: originalText -> convertedRomaji
+    this.convertedTracksCache = new Set(); // Track IDs that have been fully converted
   }
 
-  // Load Kuroshiro from CDN
+  // Load Kuroshiro from CDN (npm package uses Node.js path which doesn't work in browser)
   async loadKuroshiro() {
     if (this.kuroshiroLoaded) return true;
     if (this.kuroshiroLoading) {
@@ -53,7 +57,7 @@ export class LyricsManager {
         );
       }
 
-      // Load Kuromoji analyzer from CDN with proper dictionary path
+      // Load Kuromoji analyzer from CDN
       if (!window.KuromojiAnalyzer) {
         await this.loadScript(
           "https://unpkg.com/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js",
@@ -67,10 +71,10 @@ export class LyricsManager {
 
       this.kuroshiro = new Kuroshiro();
 
-      // Initialize with custom dictionary path from unpkg
+      // Initialize with dictionary path from CDN
       await this.kuroshiro.init(
         new KuromojiAnalyzer({
-          dictPath: "https://unpkg.com/kuromoji@0.1.2/dict/",
+          dictPath: KUROMOJI_DICT_PATH,
         }),
       );
 
@@ -89,6 +93,11 @@ export class LyricsManager {
   // Helper to load external scripts
   loadScript(src) {
     return new Promise((resolve, reject) => {
+      // Check if script already exists
+      if (document.querySelector(`script[src="${src}"]`)) {
+        resolve();
+        return;
+      }
       const script = document.createElement("script");
       script.src = src;
       script.onload = resolve;
@@ -104,9 +113,14 @@ export class LyricsManager {
     return /[\u3040-\u30FF\u31F0-\u9FFF]/.test(text);
   }
 
-  // Convert Japanese text to Romaji (including Kanji)
+  // Convert Japanese text to Romaji (including Kanji) with caching
   async convertToRomaji(text) {
     if (!text) return text;
+
+    // Check cache first
+    if (this.romajiTextCache.has(text)) {
+      return this.romajiTextCache.get(text);
+    }
 
     // Make sure Kuroshiro is loaded
     if (!this.kuroshiroLoaded) {
@@ -129,6 +143,8 @@ export class LyricsManager {
         mode: "spaced",
         romajiSystem: "hepburn",
       });
+      // Cache the result
+      this.romajiTextCache.set(text, result);
       return result;
     } catch (error) {
       console.warn(
@@ -327,14 +343,21 @@ export class LyricsManager {
     const observeRoot = amLyricsElement.shadowRoot || amLyricsElement;
 
     this.romajiObserver = new MutationObserver((mutations) => {
-      // Only process if new text content was added (ignore attribute changes like highlight)
-      const hasNewContent = mutations.some(
-        (mutation) =>
-          mutation.type === "childList" && mutation.addedNodes.length > 0,
-      );
+      // Check if any relevant mutation occurred
+      const hasRelevantChange = mutations.some((mutation) => {
+        // New nodes added
+        if (mutation.type === "childList" && mutation.addedNodes.length > 0) {
+          return true;
+        }
+        // Text content changed
+        if (mutation.type === "characterData" && mutation.target.textContent) {
+          // Only trigger if the text contains Japanese
+          return this.containsJapanese(mutation.target.textContent);
+        }
+        return false;
+      });
 
-      if (!hasNewContent) {
-        // Ignore highlight changes and other attribute mutations
+      if (!hasRelevantChange) {
         return;
       }
 
@@ -348,27 +371,17 @@ export class LyricsManager {
     });
 
     // Observe all child nodes for changes (in shadow DOM if it exists)
-    // Only watch for new nodes, not attribute changes (to avoid highlight spam)
+    // Watch for new nodes AND text content changes to catch when lyrics refresh
     this.romajiObserver.observe(observeRoot, {
       childList: true,
       subtree: true,
-      characterData: false, // Don't watch text changes, only new nodes
+      characterData: true, // Watch text changes to catch lyric refreshes
       attributes: false, // Don't watch attribute changes (highlight, etc)
     });
 
-    // Initial conversion if Romaji mode is enabled
+    // Initial conversion if Romaji mode is enabled - single attempt, no periodic polling
     if (this.isRomajiMode) {
-      // Try immediately and after delays to catch lyrics when they load
       this.convertLyricsContent(amLyricsElement);
-      setTimeout(async () => {
-        await this.convertLyricsContent(amLyricsElement);
-      }, 500);
-      setTimeout(async () => {
-        await this.convertLyricsContent(amLyricsElement);
-      }, 1500);
-      setTimeout(async () => {
-        await this.convertLyricsContent(amLyricsElement);
-      }, 3000);
     }
   }
 
@@ -405,14 +418,7 @@ export class LyricsManager {
     }
 
     // Convert Japanese text to Romaji (using async/await for Kuroshiro)
-    let convertedCount = 0;
-
     for (const textNode of textNodes) {
-      // Skip if already converted
-      if (this.convertedNodes.has(textNode)) {
-        continue;
-      }
-
       if (!textNode.parentElement) {
         continue;
       }
@@ -443,17 +449,20 @@ export class LyricsManager {
         continue;
       }
 
-      // Check if contains Japanese
+      // Check if contains Japanese - convert if we find Japanese
       if (this.containsJapanese(originalText)) {
         const romajiText = await this.convertToRomaji(originalText);
 
+        // Only update if conversion produced different text
         if (romajiText && romajiText !== originalText) {
           textNode.textContent = romajiText;
-          // Mark as converted
-          this.convertedNodes.add(textNode);
-          convertedCount++;
         }
       }
+    }
+
+    // Mark this track as converted
+    if (this.currentTrackId) {
+      this.convertedTracksCache.add(this.currentTrackId);
     }
   }
 
@@ -467,8 +476,6 @@ export class LyricsManager {
       clearTimeout(this.observerTimeout);
       this.observerTimeout = null;
     }
-    // Clear converted nodes tracking when stopping
-    this.convertedNodes = new WeakSet();
   }
 
   // Toggle Romaji mode
@@ -480,12 +487,10 @@ export class LyricsManager {
       if (this.isRomajiMode) {
         // Turning ON: Setup observer and convert immediately
         this.setupLyricsObserver(amLyricsElement);
-        // Also try immediate conversion (don't wait for timeout)
         await this.convertLyricsContent(amLyricsElement);
       } else {
-        // Turning OFF: Stop observer (original lyrics should remain)
+        // Turning OFF: Stop observer
         // Note: To restore original Japanese, we'd need to reload the component
-        // For now, the converted text stays until lyrics are reloaded
         this.stopLyricsObserver();
       }
     }
@@ -602,49 +607,52 @@ async function renderLyricsComponent(
 
     container.appendChild(amLyrics);
 
-    // Wait for lyrics to load in the component, then setup observer
+    // Setup observer IMMEDIATELY to catch lyrics as they load (not after waiting)
+    // This is critical - observer must be running before lyrics arrive from LRCLIB
+    lyricsManager.setupLyricsObserver(amLyrics);
+
+    // If Romaji mode is enabled, ensure Kuroshiro is ready
+    if (lyricsManager.isRomajiMode && !lyricsManager.kuroshiroLoaded) {
+      await lyricsManager.loadKuroshiro();
+    }
+
+    // Wait for lyrics to appear, then do an immediate conversion
     const waitForLyrics = () => {
       return new Promise((resolve) => {
         // Check if lyrics are already loaded
-        const hasLyrics =
-          amLyrics.querySelector(".lyric-line, [class*='lyric']") ||
-          (amLyrics.textContent && amLyrics.textContent.length > 50);
+        const checkForLyrics = () => {
+          const hasLyrics =
+            amLyrics.querySelector(".lyric-line, [class*='lyric']") ||
+            (amLyrics.shadowRoot && amLyrics.shadowRoot.querySelector("[class*='lyric']")) ||
+            (amLyrics.textContent && amLyrics.textContent.length > 50);
+          return hasLyrics;
+        };
 
-        if (hasLyrics) {
+        if (checkForLyrics()) {
           resolve();
           return;
         }
 
-        // Wait up to 10 seconds for lyrics to load
+        // Check more frequently (200ms) for faster response
         let attempts = 0;
-        const maxAttempts = 20;
+        const maxAttempts = 25; // 5 seconds max
         const interval = setInterval(() => {
           attempts++;
-          const hasContent =
-            amLyrics.querySelector(".lyric-line, [class*='lyric']") ||
-            (amLyrics.textContent && amLyrics.textContent.length > 50);
-          if (hasContent || attempts >= maxAttempts) {
+          if (checkForLyrics() || attempts >= maxAttempts) {
             clearInterval(interval);
             resolve();
           }
-        }, 500);
+        }, 200);
       });
     };
 
     await waitForLyrics();
 
-    // Setup observer to convert lyrics to Romaji
-    lyricsManager.setupLyricsObserver(amLyrics);
-
-    // If Romaji mode is already enabled, convert after shadow DOM is ready
+    // Convert immediately after lyrics detected
     if (lyricsManager.isRomajiMode) {
-      // Ensure Kuroshiro is loaded before converting
-      if (!lyricsManager.kuroshiroLoaded) {
-        await lyricsManager.loadKuroshiro();
-      }
-      // Add small delay to ensure shadow DOM is fully populated
-      await new Promise((resolve) => setTimeout(resolve, 200));
       await lyricsManager.convertLyricsContent(amLyrics);
+      // One retry after 500ms in case more lyrics load
+      setTimeout(() => lyricsManager.convertLyricsContent(amLyrics), 500);
     }
 
     const cleanup = setupSync(track, audioPlayer, amLyrics);
