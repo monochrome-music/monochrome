@@ -362,6 +362,7 @@ kbd {
     gap: var(--spacing-xl);
     position: relative;
     z-index: 2100;
+    height: var(--player-bar-height-desktop);
 }
 
 .sidebar-logo {
@@ -3351,7 +3352,7 @@ img:not([src]), img[src=''] {
             "progress progress" auto / 1fr auto;
         gap: var(--spacing-sm);
         padding: var(--spacing-sm) var(--spacing-md);
-        height: auto;
+        height: var(--player-bar-height-mobile);
     }
 
     .now-playing-bar .track-info {
@@ -3635,7 +3636,7 @@ img:not([src]), img[src=''] {
 }
 
 @media (max-width: 480px) {
-.card-grid {
+    .card-grid {
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         gap: var(--spacing-sm);
     }
@@ -3750,8 +3751,11 @@ img:not([src]), img[src=''] {
     [data-track-actions-mode="inline"] .track-actions-inline .track-action-btn:not([data-action="play-next"]) {
         display: none;
     }
-}
 
+    .player-actions-row {
+        gap: 0.25rem;
+    }
+}
 @media (max-width: 360px) {
 .player-controls .buttons {
         justify-content: space-between;
