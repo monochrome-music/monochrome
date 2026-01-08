@@ -8,8 +8,9 @@ import {
 } from "./utils.js";
 import { sidePanelManager } from "./side-panel.js";
 
-// Dictionary path for kuromoji (loaded from CDN)
-const KUROMOJI_DICT_PATH = "https://unpkg.com/kuromoji@0.1.2/dict/";
+// Dictionary path for kuromoji
+// Using CDN - the kuroshiro-analyzer loaded from unpkg will use this as base for fetching dict files
+const KUROMOJI_DICT_PATH = "https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/";
 
 export class LyricsManager {
   constructor(api) {
@@ -48,7 +49,39 @@ export class LyricsManager {
 
     this.kuroshiroLoading = true;
     try {
-      console.log("Loading Kuroshiro for Kanji to Romaji conversion...");
+      // Bug on kuromoji@0.1.2 where it mangles absolute URLs
+      // Using self-hosted dict files is failed, so we use CDN with monkey-patch
+      // Monkey-patch XMLHttpRequest to redirect dictionary requests to CDN
+      // Kuromoji uses XHR, not fetch, for loading dictionary files
+      if (!window._originalXHROpen) {
+        window._originalXHROpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+          const urlStr = url.toString();
+          if (urlStr.includes('/dict/') && urlStr.includes('.dat.gz')) {
+            // Extract just the filename
+            const filename = urlStr.split('/').pop();
+            // Redirect to CDN
+            const cdnUrl = `https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/${filename}`;
+            return window._originalXHROpen.call(this, method, cdnUrl, ...rest);
+          }
+          return window._originalXHROpen.call(this, method, url, ...rest);
+        };
+      }
+
+      // Also patch fetch just in case
+      if (!window._originalFetch) {
+        window._originalFetch = window.fetch;
+        window.fetch = async (url, options) => {
+          const urlStr = url.toString();
+          if (urlStr.includes('/dict/') && urlStr.includes('.dat.gz')) {
+            const filename = urlStr.split('/').pop();
+            const cdnUrl = `https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/${filename}`;
+            console.log(`Redirecting dict fetch: ${filename} -> CDN`);
+            return window._originalFetch(cdnUrl, options);
+          }
+          return window._originalFetch(url, options);
+        };
+      }
 
       // Load Kuroshiro from CDN
       if (!window.Kuroshiro) {
@@ -71,10 +104,10 @@ export class LyricsManager {
 
       this.kuroshiro = new Kuroshiro();
 
-      // Initialize with dictionary path from CDN
+      // Initialize with a dummy path - our fetch interceptor will redirect to CDN
       await this.kuroshiro.init(
         new KuromojiAnalyzer({
-          dictPath: KUROMOJI_DICT_PATH,
+          dictPath: "/dict/", // This gets mangled but our interceptor fixes it
         }),
       );
 
