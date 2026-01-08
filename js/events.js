@@ -543,11 +543,17 @@ async function updateContextMenuLikeState(contextMenu, contextTrack) {
     if (!contextMenu || !contextTrack) return;
 
     const likeItem = contextMenu.querySelector('li[data-action="toggle-like"]');
-    if (!likeItem) return;
+    if (likeItem) {
+        const { db } = await import('./db.js');
+        const isLiked = await db.isFavorite('track', contextTrack.id);
+        likeItem.textContent = isLiked ? 'Unlike' : 'Like';
+    }
 
-    const { db } = await import('./db.js');
-    const isLiked = await db.isFavorite('track', contextTrack.id);
-    likeItem.textContent = isLiked ? 'Unlike' : 'Like';
+    const trackMixItem = contextMenu.querySelector('li[data-action="track-mix"]');
+    if (trackMixItem) {
+        const hasMix = contextTrack.mixes && contextTrack.mixes.TRACK_MIX;
+        trackMixItem.style.display = hasMix ? 'block' : 'none';
+    }
 }
 
 export function initializeTrackInteractions(player, api, mainContent, contextMenu, lyricsManager, ui, scrobbler) {
