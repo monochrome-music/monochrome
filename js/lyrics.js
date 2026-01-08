@@ -31,6 +31,7 @@ export class LyricsManager {
     this.romajiTextCache = new Map(); // Cache: originalText -> convertedRomaji
     this.convertedTracksCache = new Set(); // Track IDs that have been fully converted
     this.originalLinesCache = new Map(); // Cache: line element -> original innerHTML
+    this.isConverting = false; // Prevent overlapping conversions
   }
 
   // Load Kuroshiro from CDN (npm package uses Node.js path which doesn't work in browser)
@@ -554,59 +555,77 @@ export class LyricsManager {
       return;
     }
 
-    // Find the root to traverse - check for shadow DOM first
-    const rootToTraverse = amLyricsElement.shadowRoot || amLyricsElement;
-
-    // Make sure Kuroshiro is ready
-    if (!this.kuroshiroLoaded) {
-      const success = await this.loadKuroshiro();
-      if (!success) {
-        console.warn("Cannot convert lyrics - Kuroshiro load failed");
-        return;
-      }
-    }
-
-    // NEW APPROACH: Find lyrics lines instead of individual text nodes
-    const lyricsLines = rootToTraverse.querySelectorAll(".lyrics-line");
-
-    if (lyricsLines.length === 0) {
-      console.warn("No lyrics lines found");
+    // Prevent overlapping conversions
+    if (this.isConverting) {
       return;
     }
+    this.isConverting = true;
 
-    // Process each line with FULL CONTEXT
-    for (const line of lyricsLines) {
-      const spans = line.querySelectorAll(".progress-text");
+    try {
+      // Find the root to traverse - check for shadow DOM first
+      const rootToTraverse = amLyricsElement.shadowRoot || amLyricsElement;
 
-      if (spans.length === 0) continue;
-
-      // Step 1: Extract full line text for proper context
-      const fullText = this.extractLineText(line);
-
-      if (!fullText || !this.containsJapanese(fullText)) {
-        continue;
+      // Make sure Kuroshiro is ready
+      if (!this.kuroshiroLoaded) {
+        const success = await this.loadKuroshiro();
+        if (!success) {
+          console.warn("Cannot convert lyrics - Kuroshiro load failed");
+          return;
+        }
       }
 
-      // Skip if already converted (check first span)
-      const firstSpanText = spans[0].textContent.trim();
-      if (!this.containsJapanese(firstSpanText)) {
-        continue; // Already converted
+      // NEW APPROACH: Find lyrics lines instead of individual text nodes
+      const lyricsLines = rootToTraverse.querySelectorAll(".lyrics-line");
+
+      if (lyricsLines.length === 0) {
+        return;
       }
 
-      // Step 2: Convert with FULL CONTEXT using Kuroshiro
-      const romajiText = await this.convertToRomaji(fullText);
+      // Check if already fully converted (all lines have romaji-converted)
+      const unconvertedLines = Array.from(lyricsLines).filter(
+        (line) => !line.querySelector(".romaji-converted")
+      );
 
-      if (!romajiText || romajiText === fullText) {
-        continue;
+      if (unconvertedLines.length === 0) {
+        return; // All lines already converted
       }
 
-      // Step 3: Replace all spans with single romaji text (uses interpolate timing)
-      this.replaceLineWithRomaji(line, spans, romajiText);
-    }
+      // Process only unconverted lines
+      for (const line of unconvertedLines) {
+        const spans = line.querySelectorAll(".progress-text");
 
-    // Mark this track as converted
-    if (this.currentTrackId) {
-      this.convertedTracksCache.add(this.currentTrackId);
+        if (spans.length === 0) continue;
+
+        // Step 1: Extract full line text for proper context
+        const fullText = this.extractLineText(line);
+
+        if (!fullText || !this.containsJapanese(fullText)) {
+          continue;
+        }
+
+        // Skip if already converted (check first span)
+        const firstSpanText = spans[0].textContent.trim();
+        if (!this.containsJapanese(firstSpanText)) {
+          continue; // Already converted
+        }
+
+        // Step 2: Convert with FULL CONTEXT using Kuroshiro
+        const romajiText = await this.convertToRomaji(fullText);
+
+        if (!romajiText || romajiText === fullText) {
+          continue;
+        }
+
+        // Step 3: Replace all spans with single romaji text (uses interpolate timing)
+        this.replaceLineWithRomaji(line, spans, romajiText);
+      }
+
+      // Mark this track as converted
+      if (this.currentTrackId) {
+        this.convertedTracksCache.add(this.currentTrackId);
+      }
+    } finally {
+      this.isConverting = false;
     }
   }
 
