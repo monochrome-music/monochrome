@@ -804,6 +804,12 @@
                 <div class="player-actions-row">
                     <button id="now-playing-like-btn" class="like-btn" data-action="toggle-like" title="Save to Favorites" style="display: none;">
                     </button>
+                    <button id="now-playing-add-playlist-btn" title="Add to Playlist" class="desktop-only">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                    </button>
                     <button id="now-playing-mix-btn" class="mix-btn" data-action="track-mix" title="Track Mix" style="display: none;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
@@ -819,12 +825,11 @@
                             <line x1="12" y1="15" x2="12" y2="3"></line>
                         </svg>
                     </button>
-                    <button id="cast-btn" title="Cast" class="desktop-only">
+
+                    <button id="mobile-add-playlist-btn" class="mobile-only">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path>
-                            <path d="M2 12a9 9 0 0 1 9 9"></path>
-                            <path d="M2 17a5 5 0 0 1 5 5"></path>
-                            <path d="M2 22h.01"></path>
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                         </svg>
                     </button>
                     <button id="queue-btn" title="Queue">
@@ -836,10 +841,22 @@
                     <div id="volume-bar" class="volume-bar">
                         <div id="volume-fill" class="volume-fill"></div>
                     </div>
+                    <button id="sleep-timer-btn" title="Sleep Timer">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12,6 12,12 16,14"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
+
+
         </footer>
     </div>
     <script type="module" src="js/app.js"></script>
 </body>
 </html>
+            </div>
+</html>
+            </div>
+    </div>

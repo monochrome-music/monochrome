@@ -13,6 +13,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
     const prevBtn = document.getElementById('prev-btn');
     const shuffleBtn = document.getElementById('shuffle-btn');
     const repeatBtn = document.getElementById('repeat-btn');
+    const sleepTimerBtn = document.getElementById('sleep-timer-btn');
 
     // History tracking
     let historyLoggedTrackId = null;
@@ -111,6 +112,16 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
         repeatBtn.title = mode === REPEAT_MODE.OFF
             ? 'Repeat'
             : (mode === REPEAT_MODE.ALL ? 'Repeat Queue' : 'Repeat One');
+    });
+
+    // Sleep Timer
+    sleepTimerBtn.addEventListener('click', () => {
+        if (player.isSleepTimerActive()) {
+            player.clearSleepTimer();
+            showNotification('Sleep timer cancelled');
+        } else {
+            showSleepTimerModal(player);
+        }
     });
 
     // Volume controls
@@ -680,44 +691,96 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             }
         });
     }
-}
 
-function renderQueue(player) {
-    // This will be called from queue module
-    if (window.renderQueueFunction) {
-        window.renderQueueFunction();
+    const nowPlayingAddPlaylistBtn = document.getElementById('now-playing-add-playlist-btn');
+    if (nowPlayingAddPlaylistBtn) {
+        nowPlayingAddPlaylistBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (player.currentTrack) {
+                await handleTrackAction('add-to-playlist', player.currentTrack, player, api, lyricsManager, 'track', ui, scrobbler);
+            }
+        });
+    }
+
+    // Mobile add playlist button functionality
+    const mobileAddPlaylistBtn = document.getElementById('mobile-add-playlist-btn');
+
+    if (mobileAddPlaylistBtn) {
+        mobileAddPlaylistBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (player.currentTrack) {
+                await handleTrackAction('add-to-playlist', player.currentTrack, player, api, lyricsManager, 'track', ui, scrobbler);
+            }
+        });
     }
 }
 
+function showSleepTimerModal(player) {
+    const modal = document.createElement('div');
+    modal.className = 'sleep-timer-modal';
+    modal.innerHTML = `
+        <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+            <div class="modal-content" style="background: var(--card); padding: 2rem; border-radius: var(--radius); max-width: 300px; width: 90%;">
+                <h3 style="text-align: center; margin-bottom: 1.5rem;">Sleep Timer</h3>
+                <div class="timer-options" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <button class="timer-option btn-secondary" data-minutes="5">5 minutes</button>
+                    <button class="timer-option btn-secondary" data-minutes="15">15 minutes</button>
+                    <button class="timer-option btn-secondary" data-minutes="30">30 minutes</button>
+                    <button class="timer-option btn-secondary" data-minutes="60">1 hour</button>
+                    <button class="timer-option btn-secondary" data-minutes="120">2 hours</button>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                        <input type="number" id="custom-minutes" placeholder="Custom" min="1" max="480" style="flex: 1; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--background); color: var(--foreground);">
+                        <button class="timer-option btn-primary" id="custom-timer-btn" style="padding: 0.5rem 1rem;">Set</button>
+                    </div>
+                </div>
+                <div class="modal-actions" style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 1.5rem;">
+                    <button id="cancel-sleep-timer" class="btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
 
-
-async function updateContextMenuLikeState(menu, track) {
-    const likeItem = menu.querySelector('[data-action="toggle-like"]');
-    if (likeItem) {
-        const isLiked = await db.isFavorite('track', track.id);
-        likeItem.textContent = isLiked ? 'Remove from Favorites' : 'Add to Favorites';
-    }
-
-    const mixItem = menu.querySelector('[data-action="track-mix"]');
-    if (mixItem) {
-        if (track.mixes && track.mixes.TRACK_MIX) {
-            mixItem.style.display = 'block';
-        } else {
-            mixItem.style.display = 'none';
+    modal.addEventListener('click', (e) => {
+        if (e.target.id === 'cancel-sleep-timer' || e.target.classList.contains('modal-overlay')) {
+            modal.remove();
+            return;
         }
-    }
+
+        const timerOption = e.target.closest('.timer-option');
+        if (timerOption) {
+            const minutes = parseInt(timerOption.dataset.minutes);
+            if (minutes) {
+                player.setSleepTimer(minutes);
+                showNotification(`Sleep timer set for ${minutes} minute${minutes === 1 ? '' : 's'}`);
+                modal.remove();
+            }
+        }
+
+        if (e.target.id === 'custom-timer-btn') {
+            const customInput = document.getElementById('custom-minutes');
+            const minutes = parseInt(customInput.value);
+            if (minutes && minutes > 0 && minutes <= 480) {
+                player.setSleepTimer(minutes);
+                showNotification(`Sleep timer set for ${minutes} minute${minutes === 1 ? '' : 's'}`);
+                modal.remove();
+            } else {
+                showNotification('Please enter a valid number of minutes (1-480)');
+            }
+        }
+    });
 }
 
 function positionMenu(menu, x, y, anchorRect = null) {
     // Temporarily show to measure dimensions
     menu.style.visibility = 'hidden';
     menu.style.display = 'block';
-    
+
     const menuWidth = menu.offsetWidth;
     const menuHeight = menu.offsetHeight;
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
-    
+
     let left = x;
     let top = y;
 
