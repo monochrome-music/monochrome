@@ -53,7 +53,10 @@ export const apiSettings = {
             } catch (error) {
                 console.error('Failed to load instances from GitHub:', error);
                 this.defaultInstances = {
-                    api: ["https://monochrome-api.samidy.com"],
+                    api: [
+                        "https://tidal-api.binimum.org",
+                        "https://monochrome-api.samidy.com"
+                    ],
                     streaming: [
                         "https://triton.squid.wtf",
                         "https://wolf.qqdl.site",
@@ -63,7 +66,7 @@ export const apiSettings = {
                         "https://hund.qqdl.site",
                         "https://tidal.kinoplus.online",
                         "https://tidal-api.binimum.org"
-                      ]
+                    ]
                 };
                 this.instancesLoaded = true;
                 return this.defaultInstances;

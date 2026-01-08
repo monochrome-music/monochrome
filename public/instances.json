@@ -1,5 +1,6 @@
 {
   "api": [
+    "https://tidal-api.binimum.org",
     "https://monochrome-api.samidy.com"
   ],
   "streaming": [
