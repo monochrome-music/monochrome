@@ -1,7 +1,11 @@
-[<img src="https://github.com/SamidyFR/monochrome/blob/main/assets/512.png?raw=true" alt="Monochrome Logo">](https://monochrome.samidy.com)
+<p align="center">
+  <a href="https://monochrome.samidy.com">
+    <img src="https://github.com/SamidyFR/monochrome/blob/main/public/assets/512.png?raw=true" alt="Monochrome Logo">
+  </a>
+</p>
 
 
-# Monochrome
+<h1 align="center">Monochrome</h1>
 
 **Monochrome** is an open-source, privacy-respecting, ad-free [TIDAL](https://tidal.com) web UI, built on top of [Hi-Fi](https://github.com/sachinsenal0x64/hifi).
 
