@@ -1,5 +1,5 @@
 //js/ui.js
-import { SVG_PLAY, SVG_DOWNLOAD, SVG_MENU, SVG_HEART, formatTime, createPlaceholder, trackDataStore, hasExplicitContent, getTrackArtists, getTrackTitle, calculateTotalDuration, formatDuration } from './utils.js';
+import { SVG_PLAY, SVG_DOWNLOAD, SVG_MENU, SVG_HEART, formatTime, createPlaceholder, trackDataStore, hasExplicitContent, getTrackArtists, getTrackTitle, calculateTotalDuration, formatDuration, escapeHtml } from './utils.js';
 import { openLyricsPanel } from './lyrics.js';
 import { recentActivityManager, backgroundSettings, trackListSettings, cardSettings } from './storage.js';
 import { db } from './db.js';
@@ -198,10 +198,10 @@ export class UIRenderer {
                 <div class="track-item-info">
                     <div class="track-item-details">
                         <div class="title">
-                            ${trackTitle}
+                            ${escapeHtml(trackTitle)}
                             ${explicitBadge}
                         </div>
-                        <div class="artist">${trackArtists}${yearDisplay}</div>
+                        <div class="artist">${escapeHtml(trackArtists)}${yearDisplay}</div>
                     </div>
                 </div>
                 <div class="track-item-duration">${formatTime(track.duration)}</div>
@@ -327,7 +327,7 @@ export class UIRenderer {
             // Actually Base uses type for data attributes. play-card uses data-type="user-playlist" which is correct.
             id: playlist.id,
             href: `#userplaylist/${playlist.id}`,
-            title: playlist.name,
+            title: escapeHtml(playlist.name),
             subtitle: `${playlist.tracks ? playlist.tracks.length : (playlist.numberOfTracks || 0)} tracks`,
             imageHTML: imageHTML,
             actionButtonsHTML: `
@@ -370,9 +370,9 @@ export class UIRenderer {
             type: 'album',
             id: album.id,
             href: `#album/${album.id}`,
-            title: `${album.title} ${explicitBadge}`,
-            subtitle: `${album.artist?.name ?? ''} • ${yearDisplay}${typeLabel}`,
-            imageHTML: `<img src="${this.api.getCoverUrl(album.cover)}" alt="${album.title}" class="card-image" loading="lazy">`,
+            title: `${escapeHtml(album.title)} ${explicitBadge}`,
+            subtitle: `${escapeHtml(album.artist?.name ?? '')} • ${yearDisplay}${typeLabel}`,
+            imageHTML: `<img src="${this.api.getCoverUrl(album.cover)}" alt="${escapeHtml(album.title)}" class="card-image" loading="lazy">`,
             actionButtonsHTML: `
                 <button class="like-btn card-like-btn" data-action="toggle-like" data-type="album" title="Add to Liked">
                     ${this.createHeartIcon(false)}
@@ -389,9 +389,9 @@ export class UIRenderer {
             type: 'artist',
             id: artist.id,
             href: `#artist/${artist.id}`,
-            title: artist.name,
+            title: escapeHtml(artist.name),
             subtitle: '',
-            imageHTML: `<img src="${this.api.getArtistPictureUrl(artist.picture)}" alt="${artist.name}" class="card-image" loading="lazy">`,
+            imageHTML: `<img src="${this.api.getArtistPictureUrl(artist.picture)}" alt="${escapeHtml(artist.name)}" class="card-image" loading="lazy">`,
             actionButtonsHTML: `
                 <button class="like-btn card-like-btn" data-action="toggle-like" data-type="artist" title="Add to Liked">
                     ${this.createHeartIcon(false)}
@@ -966,7 +966,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
             }
 
             const explicitBadge = hasExplicitContent(album) ? this.createExplicitBadge() : '';
-            titleEl.innerHTML = `${album.title} ${explicitBadge}`;
+            titleEl.innerHTML = `${escapeHtml(album.title)} ${explicitBadge}`;
 
             this.adjustTitleFontSize(titleEl, album.title);
 

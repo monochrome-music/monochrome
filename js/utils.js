@@ -166,6 +166,16 @@ export const debounce = (func, wait) => {
     };
 };
 
+export const escapeHtml = (unsafe) => {
+    if (typeof unsafe !== 'string') return unsafe;
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+};
+
 export const getTrackTitle = (track, { fallback = 'Unknown Title' } = {}) => {
     if (!track?.title) return fallback;
     return track?.version ? `${track.title} (${track.version})` : track.title;
