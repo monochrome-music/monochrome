@@ -23,11 +23,6 @@
   "homepage": "https://github.com/SamidyFR/monochrome#readme",
   "devDependencies": {
     "vite": "^7.3.0",
-    "vite-plugin-pwa": "^1.2.0",
-    "wanakana": "^5.3.1"
-  },
-  "dependencies": {
-    "kuroshiro": "^1.2.0",
-    "kuroshiro-analyzer-kuromoji": "^1.1.0"
+    "vite-plugin-pwa": "^1.2.0"
   }
 }
