@@ -207,6 +207,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
       if (theme === "custom") {
         document.getElementById("custom-theme-editor").classList.add("show");
         renderCustomThemeEditor();
+        themeManager.setTheme('custom');
       } else {
         document.getElementById("custom-theme-editor").classList.remove("show");
         themeManager.setTheme(theme);

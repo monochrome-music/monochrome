@@ -660,10 +660,17 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
     });
 
     mainContent.addEventListener('contextmenu', async e => {
-        const trackItem = e.target.closest('.track-item');
-        if (trackItem && !trackItem.dataset.queueIndex) {
+        const trackItem = e.target.closest('.track-item, .queue-track-item');
+        if (trackItem) {
             e.preventDefault();
-            contextTrack = trackDataStore.get(trackItem);
+            if (trackItem.classList.contains('queue-track-item')) {
+                // For queue items, get track from player's queue
+                const queueIndex = parseInt(trackItem.dataset.queueIndex);
+                contextTrack = player.getCurrentQueue()[queueIndex];
+            } else {
+                // For regular track items
+                contextTrack = trackDataStore.get(trackItem);
+            }
 
             if (contextTrack) {
                 await updateContextMenuLikeState(contextMenu, contextTrack);
@@ -679,8 +686,9 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
     contextMenu.addEventListener('click', async e => {
         e.stopPropagation();
         const action = e.target.dataset.action;
-        if (action && contextTrack) {
-            await handleTrackAction(action, contextTrack, player, api, lyricsManager, 'track', ui, scrobbler);
+        const track = contextMenu._contextTrack || contextTrack;
+        if (action && track) {
+            await handleTrackAction(action, track, player, api, lyricsManager, 'track', ui, scrobbler);
         }
         contextMenu.style.display = 'none';
     });
@@ -740,18 +748,50 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             }
         });
     }
+    // cast is back working woo :P
+    const castBtn = document.getElementById('cast-btn');
+    if (castBtn) {
+        castBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+
+            const audioPlayer = document.getElementById('audio-player');
+            if (!audioPlayer.src) {
+                alert('Please play a track first to enable casting.');
+                return;
+            }
+
+            if ('remote' in audioPlayer) {
+                audioPlayer.remote.prompt().catch(err => {
+                    if (err.name === 'NotAllowedError') return;
+                    if (err.name === 'NotFoundError') {
+                        alert('No remote playback devices (Chromecast/AirPlay) were found on your network.');
+                        return;
+                    }
+                    console.log('Cast prompt error:', err);
+                });
+            } else if (audioPlayer.webkitShowPlaybackTargetPicker) {
+                audioPlayer.webkitShowPlaybackTargetPicker();
+            } else {
+                alert('Casting is not supported in this browser. Try Chrome for Chromecast or Safari for AirPlay.');
+            }
+        });
+    }
+
+
 
     // Mobile add playlist button functionality
     const mobileAddPlaylistBtn = document.getElementById('mobile-add-playlist-btn');
 
-    if (mobileAddPlaylistBtn) {
-        mobileAddPlaylistBtn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            if (player.currentTrack) {
-                await handleTrackAction('add-to-playlist', player.currentTrack, player, api, lyricsManager, 'track', ui, scrobbler);
-            }
-        });
-    }
+        if (mobileAddPlaylistBtn) {
+            mobileAddPlaylistBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                if (player.currentTrack) {
+                    await handleTrackAction('add-to-playlist', player.currentTrack, player, api, lyricsManager, 'track', ui, scrobbler);
+                }
+            });
+        }
+
+
 }
 
 function showSleepTimerModal(player) {

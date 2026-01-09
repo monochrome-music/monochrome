@@ -1190,7 +1190,7 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
 
                 this.renderListWithTracks(tracklistContainer, tracks, true);
 
-                // Add remove buttons to tracks ONLY IF OWNED
+                // Add remove buttons and enable reordering ONLY IF OWNED
                 if (ownedPlaylist) {
                     const trackItems = tracklistContainer.querySelectorAll('.track-item');
                     trackItems.forEach((item, index) => {
@@ -1203,6 +1203,8 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
                         const menuBtn = actionsDiv.querySelector('.track-menu-btn');
                         actionsDiv.insertBefore(removeBtn, menuBtn);
                     });
+
+                    this.enableTrackReordering(tracklistContainer, tracks, playlistId, syncManager);
                 }
 
                 // Update header like button - hide for user playlists
@@ -1675,6 +1677,110 @@ async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
         } else {
             actionsDiv.appendChild(fragment);
         }
+    }
+
+    enableTrackReordering(container, tracks, playlistId, syncManager) {
+        let draggedElement = null;
+        let draggedIndex = -1;
+        let trackItems = Array.from(container.querySelectorAll('.track-item'));
+
+        trackItems.forEach((item, index) => {
+            item.draggable = true;
+            item.dataset.index = index;
+        });
+
+        const dragStart = (e) => {
+            draggedElement = e.target;
+            draggedIndex = parseInt(e.target.dataset.index);
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', draggedIndex);
+            draggedElement.classList.add('dragging');
+        };
+
+        const dragEnd = () => {
+            if (draggedElement) {
+                draggedElement.classList.remove('dragging');
+                draggedElement = null;
+            }
+        };
+
+        const dragOver = (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+
+            if (!draggedElement) return;
+
+            const afterElement = getDragAfterElement(container, e.clientY);
+            if (afterElement === draggedElement) return;
+
+            if (afterElement) {
+                container.insertBefore(draggedElement, afterElement);
+            } else {
+                container.appendChild(draggedElement);
+            }
+        };
+
+        const drop = async (e) => {
+            e.preventDefault();
+
+            if (!draggedElement) return;
+
+            // Get new order from DOM
+            const newTrackItems = Array.from(container.querySelectorAll('.track-item'));
+            const newTracks = newTrackItems.map(item => {
+                const originalIndex = parseInt(item.dataset.index);
+                return tracks[originalIndex];
+            });
+
+            newTrackItems.forEach((item, index) => {
+                item.dataset.index = index;
+            });
+
+
+            tracks.length = 0;
+            tracks.push(...newTracks);
+
+            // Save to DB
+            await db.updatePlaylistTracks(playlistId, newTracks);
+            syncManager.syncUserPlaylist({ id: playlistId, tracks: newTracks }, 'update');
+
+            draggedElement = null;
+            draggedIndex = -1;
+        };
+
+        container.addEventListener('dragstart', dragStart);
+        container.addEventListener('dragend', dragEnd);
+        container.addEventListener('dragover', dragOver);
+        container.addEventListener('drop', drop);
+
+        // Cache function to avoid recreating
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.track-item:not(.dragging)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+    }
+
+    getDragAfterElement(container, y) {
+        const draggableElements = [...container.querySelectorAll('.track-item:not(.dragging)')];
+
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
     }
 
     renderApiSettings() {

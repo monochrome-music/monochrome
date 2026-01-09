@@ -352,6 +352,14 @@ export class MusicDatabase {
         await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
         return playlist;
     }
+
+    async updatePlaylistTracks(playlistId, tracks) {
+        const playlist = await this.performTransaction('user_playlists', 'readonly', (store) => store.get(playlistId));
+        if (!playlist) throw new Error('Playlist not found');
+        playlist.tracks = tracks;
+        await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
+        return playlist;
+    }
 }
 
 export const db = new MusicDatabase();

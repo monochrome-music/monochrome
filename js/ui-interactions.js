@@ -1,5 +1,5 @@
 //js/ui-interactions.js
-import { SVG_CLOSE, SVG_BIN, formatTime, trackDataStore, getTrackTitle, getTrackArtists } from './utils.js';
+import { SVG_CLOSE, SVG_BIN, SVG_HEART, formatTime, trackDataStore, getTrackTitle, getTrackArtists } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 
 export function initializeUIInteractions(player, api) {
@@ -86,6 +86,9 @@ export function initializeUIInteractions(player, api) {
                         </div>
                     </div>
                     <div class="track-item-duration">${formatTime(track.duration)}</div>
+                    <button class="queue-like-btn" data-action="toggle-like" title="Add to Liked">
+                        ${SVG_HEART}
+                    </button>
                     <button class="queue-remove-btn" data-track-index="${index}" title="Remove from queue">
                         ${SVG_BIN}
                     </button>
@@ -95,10 +98,20 @@ export function initializeUIInteractions(player, api) {
 
         container.innerHTML = html;
 
-        container.querySelectorAll('.queue-track-item').forEach((item) => {
+        container.querySelectorAll('.queue-track-item').forEach(async (item) => {
             const index = parseInt(item.dataset.queueIndex);
+            const track = player.getCurrentQueue()[index];
 
-            item.addEventListener('click', (e) => {
+            // Update like button state
+            const likeBtn = item.querySelector('.queue-like-btn');
+            if (likeBtn && track) {
+                const { db } = await import('./db.js');
+                const isLiked = await db.isFavorite('track', track.id);
+                likeBtn.classList.toggle('active', isLiked);
+                likeBtn.innerHTML = isLiked ? SVG_HEART.replace('class="heart-icon"', 'class="heart-icon filled"') : SVG_HEART;
+            }
+
+            item.addEventListener('click', async (e) => {
                 const removeBtn = e.target.closest('.queue-remove-btn');
                 if (removeBtn) {
                     e.stopPropagation();
@@ -106,8 +119,74 @@ export function initializeUIInteractions(player, api) {
                     refreshQueuePanel();
                     return;
                 }
+
+                const likeBtn = e.target.closest('.queue-like-btn');
+                if (likeBtn && likeBtn.dataset.action === 'toggle-like') {
+                    e.stopPropagation();
+                    const track = player.getCurrentQueue()[index];
+                    if (track) {
+                        const { db } = await import('./db.js');
+                        const { syncManager } = await import('./firebase/sync.js');
+                        const { showNotification } = await import('./downloads.js');
+
+                        const added = await db.toggleFavorite('track', track);
+                        syncManager.syncLibraryItem('track', track, added);
+
+                        // Update button state
+                        likeBtn.classList.toggle('active', added);
+                        likeBtn.innerHTML = added ? SVG_HEART.replace('class="heart-icon"', 'class="heart-icon filled"') : SVG_HEART;
+
+                        showNotification(added ? `Added to Liked: ${track.title}` : `Removed from Liked: ${track.title}`);
+                    }
+                    return;
+                }
+
                 player.playAtIndex(index);
                 refreshQueuePanel();
+            });
+
+            item.addEventListener('contextmenu', async (e) => {
+                e.preventDefault();
+                const contextMenu = document.getElementById('context-menu');
+                if (contextMenu) {
+                    const track = player.getCurrentQueue()[index];
+                    if (track) {
+                        const { db } = await import('./db.js');
+                        const isLiked = await db.isFavorite('track', track.id);
+                        const likeItem = contextMenu.querySelector('li[data-action="toggle-like"]');
+                        if (likeItem) {
+                            likeItem.textContent = isLiked ? 'Unlike' : 'Like';
+                        }
+
+                        const trackMixItem = contextMenu.querySelector('li[data-action="track-mix"]');
+                        if (trackMixItem) {
+                            const hasMix = track.mixes && track.mixes.TRACK_MIX;
+                            trackMixItem.style.display = hasMix ? 'block' : 'none';
+                        }
+
+
+                        const rect = item.getBoundingClientRect();
+                        const menuWidth = 150;
+                        const menuHeight = 200;
+
+                        let left = e.clientX;
+                        let top = e.clientY;
+
+                        if (left + menuWidth > window.innerWidth) {
+                            left = window.innerWidth - menuWidth - 10;
+                        }
+                        if (top + menuHeight > window.innerHeight) {
+                            top = e.clientY - menuHeight - 10;
+                        }
+
+                        contextMenu.style.left = `${left}px`;
+                        contextMenu.style.top = `${top}px`;
+                        contextMenu.style.display = 'block';
+
+
+                        contextMenu._contextTrack = track;
+                    }
+                }
             });
 
             item.addEventListener('dragstart', (e) => {

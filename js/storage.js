@@ -321,12 +321,25 @@ export const themeManager = {
 
     setTheme(theme) {
         localStorage.setItem(this.STORAGE_KEY, theme);
-        
+
         if (theme === 'system') {
             const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
         } else {
             document.documentElement.setAttribute('data-theme', theme);
+        }
+
+
+        if (theme !== 'custom') {
+            const root = document.documentElement;
+            ['background', 'foreground', 'primary', 'secondary', 'muted', 'border', 'highlight'].forEach(key => {
+                root.style.removeProperty(`--${key}`);
+            });
+        } else {
+            const customTheme = this.getCustomTheme();
+            if (customTheme) {
+                this.applyCustomTheme(customTheme);
+            }
         }
     },
 
@@ -342,6 +355,7 @@ export const themeManager = {
     setCustomTheme(colors) {
         localStorage.setItem(this.CUSTOM_THEME_KEY, JSON.stringify(colors));
         this.applyCustomTheme(colors);
+        this.setTheme('custom');
     },
 
     applyCustomTheme(colors) {
