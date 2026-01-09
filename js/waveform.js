@@ -27,16 +27,19 @@ export class WaveformGenerator {
     }
 
     extractPeaks(audioBuffer) {
-        const { numberOfChannels, length, sampleRate } = audioBuffer;
-        const numPeaks = Math.floor(4*length/sampleRate);
+        const { length, duration } = audioBuffer;
+        const numPeaks = Math.min(Math.floor(4*duration), 1000);
         const peaks = new Float32Array(numPeaks);
         const chanData = audioBuffer.getChannelData(0); // Use first channel
         const step = Math.floor(length / numPeaks);
+        const stride = 8; // Check every 8th sample for speed
 
         for (let i = 0; i < numPeaks; i++) {
             let max = 0;
-            for (let j = 0; j < step; j++) {
-                const datum = chanData[i * step + j];
+            const start = i * step;
+            const end = start + step;
+            for (let j = start; j < end; j += stride) {
+                const datum = chanData[j];
                 if (datum > max) {
                     max = datum;
                 } else if (-datum > max) {
