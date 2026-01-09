@@ -493,6 +493,22 @@ export const cardSettings = {
     }
 };
 
+export const waveformSettings = {
+    STORAGE_KEY: 'waveform-seekbar-enabled',
+
+    isEnabled() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) === 'true';
+        } catch (e) {
+            return false;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    }
+};
+
 export const queueManager = {
     STORAGE_KEY: 'monochrome-queue',
 

@@ -1,11 +1,15 @@
 //js/events.js
 import { SVG_PLAY, SVG_PAUSE, SVG_VOLUME, SVG_MUTE, REPEAT_MODE, trackDataStore, RATE_LIMIT_ERROR_MESSAGE, buildTrackFilename, getTrackTitle, formatTime } from './utils.js';
-import { lastFMStorage } from './storage.js';
+import { lastFMStorage, waveformSettings } from './storage.js';
 import { showNotification, downloadTrackWithMetadata } from './downloads.js';
 import { lyricsSettings } from './storage.js';
 import { updateTabTitle } from './router.js';
 import { db } from './db.js';
 import { syncManager } from './firebase/sync.js';
+import { waveformGenerator } from './waveform.js';
+
+let currentWaveformPeaks = null;
+let currentTrackIdForWaveform = null;
 
 export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
     const playPauseBtn = document.querySelector('.play-pause-btn');
@@ -40,6 +44,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
             if (scrobbler.isAuthenticated() && lastFMStorage.isEnabled()) {
                 scrobbler.updateNowPlaying(player.currentTrack);
             }
+            updateWaveform();
         }
 
         playPauseBtn.innerHTML = SVG_PAUSE;
@@ -143,6 +148,106 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
     const volumeBar = document.getElementById('volume-bar');
     const volumeFill = document.getElementById('volume-fill');
     const volumeBtn = document.getElementById('volume-btn');
+
+    // Waveform Masking Logic
+    const updateWaveform = async () => {
+        const progressBar = document.getElementById('progress-bar');
+        const playerControls = document.querySelector('.player-controls');
+
+        if (!waveformSettings.isEnabled() || !player.currentTrack) {
+            if (progressBar) {
+                progressBar.style.webkitMaskImage = '';
+                progressBar.style.maskImage = '';
+                progressBar.classList.remove('has-waveform', 'waveform-loaded');
+            }
+            if (playerControls) {
+                playerControls.classList.remove('waveform-loaded');
+            }
+            currentTrackIdForWaveform = null;
+            return;
+        }
+
+        if (progressBar && currentTrackIdForWaveform !== player.currentTrack.id) {
+            currentTrackIdForWaveform = player.currentTrack.id;
+            progressBar.classList.add('has-waveform');
+            progressBar.classList.remove('waveform-loaded');
+            if (playerControls) {
+                playerControls.classList.remove('waveform-loaded');
+            }
+            
+            // Clear current mask while loading
+            progressBar.style.webkitMaskImage = '';
+            progressBar.style.maskImage = '';
+
+            try {
+                const streamUrl = await player.api.getStreamUrl(player.currentTrack.id, 'LOW');
+                const waveformData = await waveformGenerator.getWaveform(streamUrl, player.currentTrack.id);
+                
+                if (waveformData && currentTrackIdForWaveform === player.currentTrack.id) {
+                    let { peaks, duration } = waveformData;
+                    const trackDuration = player.currentTrack.duration;
+
+                    // Padding logic for sync
+                    if (trackDuration && duration && duration < trackDuration) {
+                        const diff = trackDuration - duration;
+                        if (diff > 0.5) { // If difference is significant (> 500ms)
+                            // Calculate how many peaks represent the missing time
+                            // peaks.length represents 'duration'
+                            // X peaks represent 'diff'
+                            const peaksPerSecond = peaks.length / duration;
+                            const paddingPeaksCount = Math.floor(diff * peaksPerSecond);
+                            
+                            if (paddingPeaksCount > 0) {
+                                const newPeaks = new Float32Array(peaks.length + paddingPeaksCount);
+                                // Fill start with 0s (implied by new Float32Array)
+                                newPeaks.set(peaks, paddingPeaksCount);
+                                peaks = newPeaks;
+                            }
+                        }
+                    }
+
+                    // Create a temporary canvas to generate the mask
+                    const canvas = document.createElement('canvas');
+                    const rect = progressBar.getBoundingClientRect();
+                    canvas.width = rect.width || 500;
+                    canvas.height = 28; // Fixed height for mask generation
+
+                    waveformGenerator.drawWaveform(canvas, peaks);
+
+                    const dataUrl = canvas.toDataURL();
+                    progressBar.style.webkitMaskImage = `url(${dataUrl})`;
+                    progressBar.style.webkitMaskSize = '100% 100%';
+                    progressBar.style.webkitMaskRepeat = 'no-repeat';
+                    progressBar.style.maskImage = `url(${dataUrl})`;
+                    progressBar.style.maskSize = '100% 100%';
+                    progressBar.style.maskRepeat = 'no-repeat';
+                    
+                    progressBar.classList.add('waveform-loaded');
+                    if (playerControls) {
+                        playerControls.classList.add('waveform-loaded');
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to load waveform mask:', e);
+            }
+        }
+    };
+
+    window.addEventListener('waveform-toggle', (e) => {
+        if (!e.detail.enabled) {
+            const progressBar = document.getElementById('progress-bar');
+            const playerControls = document.querySelector('.player-controls');
+            if (progressBar) {
+                progressBar.style.webkitMaskImage = '';
+                progressBar.style.maskImage = '';
+                progressBar.classList.remove('has-waveform', 'waveform-loaded');
+            }
+            if (playerControls) {
+                playerControls.classList.remove('waveform-loaded');
+            }
+        }
+        updateWaveform();
+    });
 
     const updateVolumeUI = () => {
         const { volume, muted } = audioPlayer;

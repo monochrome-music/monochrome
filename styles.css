@@ -355,7 +355,7 @@ kbd {
     grid-area: player;
     background-color: var(--card);
     border-top: 1px solid var(--border);
-    padding: var(--spacing-md) var(--spacing-lg);
+    padding: var(--spacing-sm) var(--spacing-md);
     display: grid;
     grid-template-columns: 1fr 2fr 1fr;
     align-items: center;
@@ -1383,6 +1383,11 @@ input:checked + .slider::before {
     gap: var(--spacing-sm);
 }
 
+.player-controls.waveform-loaded {
+    gap: 0.1rem;
+    margin-bottom: -0.4rem;
+}
+
 .player-controls .buttons {
     display: flex;
     align-items: center;
@@ -1500,6 +1505,21 @@ input:checked + .slider::before {
     background-color: var(--highlight);
     border-radius: 50%;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+.progress-bar.has-waveform.waveform-loaded {
+    height: 28px;
+}
+
+.progress-bar.has-waveform.waveform-loaded .progress-fill {
+    background-color: var(--primary);
+}
+
+.progress-bar.has-waveform.waveform-loaded .progress-fill::after {
+    display: none;
+}
+
+#waveform-canvas {
+    display: none;
 }
 
 .volume-controls {
@@ -3215,6 +3235,10 @@ img:not([src]), img[src=''] {
     .now-playing-bar .player-controls {
         position: relative !important;
         padding-bottom: 50px !important;
+    }
+
+    .player-controls.waveform-loaded {
+        gap: 0;
     }
 }
 

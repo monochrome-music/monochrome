@@ -7,6 +7,7 @@ import {
   backgroundSettings,
   trackListSettings,
   cardSettings,
+  waveformSettings,
 } from "./storage.js";
 import { db } from "./db.js";
 import { authManager } from "./firebase/auth.js";
@@ -341,6 +342,17 @@ export function initializeSettings(scrobbler, player, api, ui) {
     albumBackgroundToggle.checked = backgroundSettings.isEnabled();
     albumBackgroundToggle.addEventListener("change", (e) => {
       backgroundSettings.setEnabled(e.target.checked);
+    });
+  }
+
+  // Waveform Toggle
+  const waveformToggle = document.getElementById("waveform-toggle");
+  if (waveformToggle) {
+    waveformToggle.checked = waveformSettings.isEnabled();
+    waveformToggle.addEventListener("change", (e) => {
+      waveformSettings.setEnabled(e.target.checked);
+
+      window.dispatchEvent(new CustomEvent("waveform-toggle", { detail: { enabled: e.target.checked } }));
     });
   }
 
