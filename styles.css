@@ -2943,8 +2943,6 @@ img:not([src]), img[src=''] {
     background: var(--primary);
 }
 
-
-
 #playlist-modal {
     opacity: 1;
     animation-name: fadeInOpacity;
@@ -3668,15 +3666,11 @@ img:not([src]), img[src=''] {
         font-size: 1.75rem;
     }
 
-.fullscreen-cover-content {
+    .fullscreen-cover-content {
         flex-direction: column;
     }
 
-    .fullscreen-lyrics-toggle {
-        right: 3.5rem;
-    }
-
-.csv-import-progress {
+    .csv-import-progress {
         bottom: 10px;
         right: 10px;
         left: 10px;
@@ -3684,7 +3678,7 @@ img:not([src]), img[src=''] {
         min-width: 0;
     }
 
-.missing-tracks-modal {
+    .missing-tracks-modal {
         width: 95%;
         max-height: 90vh;
         margin: 1rem;
@@ -3729,7 +3723,7 @@ img:not([src]), img[src=''] {
         font-size: 0.9rem;
     }
 
-.mobile-only {
+    .mobile-only {
         display: flex !important;
     }
 
