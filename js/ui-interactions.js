@@ -1,5 +1,5 @@
 //js/ui-interactions.js
-import { SVG_CLOSE, SVG_BIN, SVG_HEART, formatTime, trackDataStore, getTrackTitle, getTrackArtists } from './utils.js';
+import { SVG_CLOSE, SVG_BIN, SVG_HEART, formatTime, trackDataStore, getTrackTitle, getTrackArtists, escapeHtml } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 
 export function initializeUIInteractions(player, api) {
@@ -81,8 +81,8 @@ export function initializeUIInteractions(player, api) {
                         <img src="${api.getCoverUrl(track.album?.cover)}"
                              class="track-item-cover" loading="lazy">
                         <div class="track-item-details">
-                            <div class="title">${trackTitle}</div>
-                            <div class="artist">${trackArtists}</div>
+                            <div class="title">${escapeHtml(trackTitle)}</div>
+                            <div class="artist">${escapeHtml(trackArtists)}</div>
                         </div>
                     </div>
                     <div class="track-item-duration">${formatTime(track.duration)}</div>
