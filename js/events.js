@@ -900,6 +900,8 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
 }
 
 function showSleepTimerModal(player) {
+    if (document.querySelector('.sleep-timer-modal')) return;
+
     const modal = document.createElement('div');
     modal.className = 'sleep-timer-modal';
     modal.innerHTML = `
