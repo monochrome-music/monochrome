@@ -349,7 +349,6 @@ kbd {
 
     /* Fade out at the bottom */
     mask-image: linear-gradient(to bottom, rgb(0, 0, 0, 1) 0%, rgb(0, 0, 0, 0.8) 40%, rgb(0, 0, 0, 0) 100%);
-    mask-image: linear-gradient(to bottom, rgb(0, 0, 0, 1) 0%, rgb(0, 0, 0, 0.8) 40%, rgb(0, 0, 0, 0) 100%);
 
     /* Blur effect */
     filter: var(--cover-filter);
@@ -362,7 +361,6 @@ kbd {
 
 /* Light mode adjustments */
 :root[data-theme='light'] #page-background {
-    mask-image: linear-gradient(to bottom, rgb(0, 0, 0, 1) 0%, rgb(0, 0, 0, 0) 100%);
     mask-image: linear-gradient(to bottom, rgb(0, 0, 0, 1) 0%, rgb(0, 0, 0, 0) 100%);
 }
 
@@ -696,7 +694,6 @@ body.has-page-background .track-item:hover {
     right: 2%;
     background: rgb(0, 0, 0, 0.25) !important;
     backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
     border-radius: 50% !important;
     width: 32px !important;
     height: 32px !important;
@@ -732,7 +729,6 @@ body.has-page-background .track-item:hover {
     position: absolute;
     top: 2%;
     background: rgb(0, 0, 0, 0.5) !important;
-    backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
     border-radius: 50% !important;
     width: 32px !important;
@@ -1490,7 +1486,6 @@ input:checked + .slider::before {
 .volume-bar {
     position: relative;
     cursor: pointer;
-    user-select: none;
     user-select: none;
     touch-action: none;
 }
@@ -3023,6 +3018,7 @@ img[src=''] {
         transform: scale(0.95);
         opacity: 0;
     }
+
     to {
         transform: scale(1);
         opacity: 1;
@@ -3126,6 +3122,7 @@ img[src=''] {
     0% {
         transform: translateX(-100%);
     }
+
     100% {
         transform: translateX(100%);
     }
