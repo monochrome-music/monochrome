@@ -615,39 +615,43 @@ export async function handleTrackAction(action, item, player, api, lyricsManager
             return;
         }
 
-        const modal = document.createElement('div');
-        modal.className = 'playlist-select-modal';
-        modal.innerHTML = `
-            <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
-                <div class="modal-content" style="background: var(--card); padding: 2rem; border-radius: var(--radius); max-width: 400px; width: 90%;">
-                    <h3>Add to Playlist</h3>
-                    <div id="playlist-list" style="margin: 1rem 0; max-height: 200px; overflow-y: auto;">
-                        ${playlists.map(p => `<div class="playlist-option" data-id="${p.id}" style="padding: 0.5rem; cursor: pointer; border-bottom: 1px solid var(--border);">${p.name}</div>`).join('')}
-                    </div>
-                    <div class="modal-actions" style="display: flex; gap: 0.5rem; justify-content: flex-end;">
-                        <button id="cancel-add-playlist" class="btn-secondary">Cancel</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.body.appendChild(modal);
+        const modal = document.getElementById('playlist-select-modal');
+        const list = document.getElementById('playlist-select-list');
+        const cancelBtn = document.getElementById('playlist-select-cancel');
+        const overlay = modal.querySelector('.modal-overlay');
 
-        modal.addEventListener('click', async (e) => {
-            if (e.target.id === 'cancel-add-playlist') {
-                modal.remove();
-                return;
-            }
+        list.innerHTML = playlists.map(p => `
+            <div class="modal-option" data-id="${p.id}">${p.name}</div>
+        `).join('');
 
-            const option = e.target.closest('.playlist-option');
+        const closeModal = () => {
+            modal.classList.remove('active');
+            cleanup();
+        };
+
+        const handleOptionClick = async (e) => {
+            const option = e.target.closest('.modal-option');
             if (option) {
                 const playlistId = option.dataset.id;
                 await db.addTrackToPlaylist(playlistId, item);
                 const updatedPlaylist = await db.getPlaylist(playlistId);
                 syncManager.syncUserPlaylist(updatedPlaylist, 'update');
                 showNotification(`Added to playlist: ${option.textContent}`);
-                modal.remove();
+                closeModal();
             }
-        });
+        };
+
+        const cleanup = () => {
+            cancelBtn.removeEventListener('click', closeModal);
+            overlay.removeEventListener('click', closeModal);
+            list.removeEventListener('click', handleOptionClick);
+        };
+
+        cancelBtn.addEventListener('click', closeModal);
+        overlay.addEventListener('click', closeModal);
+        list.addEventListener('click', handleOptionClick);
+
+        modal.classList.add('active');
     }
 }
 
@@ -900,61 +904,52 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
 }
 
 function showSleepTimerModal(player) {
-    if (document.querySelector('.sleep-timer-modal')) return;
+    const modal = document.getElementById('sleep-timer-modal');
+    if (!modal) return;
 
-    const modal = document.createElement('div');
-    modal.className = 'sleep-timer-modal';
-    modal.innerHTML = `
-        <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
-            <div class="modal-content" style="background: var(--card); padding: 2rem; border-radius: var(--radius); max-width: 300px; width: 90%;">
-                <h3 style="text-align: center; margin-bottom: 1.5rem;">Sleep Timer</h3>
-                <div class="timer-options" style="display: flex; flex-direction: column; gap: 0.5rem;">
-                    <button class="timer-option btn-secondary" data-minutes="5">5 minutes</button>
-                    <button class="timer-option btn-secondary" data-minutes="15">15 minutes</button>
-                    <button class="timer-option btn-secondary" data-minutes="30">30 minutes</button>
-                    <button class="timer-option btn-secondary" data-minutes="60">1 hour</button>
-                    <button class="timer-option btn-secondary" data-minutes="120">2 hours</button>
-                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                        <input type="number" id="custom-minutes" placeholder="Custom" min="1" max="480" style="flex: 1; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--background); color: var(--foreground);">
-                        <button class="timer-option btn-primary" id="custom-timer-btn" style="padding: 0.5rem 1rem;">Set</button>
-                    </div>
-                </div>
-                <div class="modal-actions" style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 1.5rem;">
-                    <button id="cancel-sleep-timer" class="btn-secondary">Cancel</button>
-                </div>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
+    const closeModal = () => {
+        modal.classList.remove('active');
+        cleanup();
+    };
 
-    modal.addEventListener('click', (e) => {
-        if (e.target.id === 'cancel-sleep-timer' || e.target.classList.contains('modal-overlay')) {
-            modal.remove();
-            return;
-        }
-
+    const handleOptionClick = (e) => {
         const timerOption = e.target.closest('.timer-option');
         if (timerOption) {
-            const minutes = parseInt(timerOption.dataset.minutes);
+            let minutes;
+            if (timerOption.id === 'custom-timer-btn') {
+                const customInput = document.getElementById('custom-minutes');
+                minutes = parseInt(customInput.value);
+                if (!minutes || minutes < 1) {
+                    showNotification('Please enter a valid number of minutes');
+                    return;
+                }
+            } else {
+                minutes = parseInt(timerOption.dataset.minutes);
+            }
+
             if (minutes) {
                 player.setSleepTimer(minutes);
                 showNotification(`Sleep timer set for ${minutes} minute${minutes === 1 ? '' : 's'}`);
-                modal.remove();
+                closeModal();
             }
         }
+    };
 
-        if (e.target.id === 'custom-timer-btn') {
-            const customInput = document.getElementById('custom-minutes');
-            const minutes = parseInt(customInput.value);
-            if (minutes && minutes > 0 && minutes <= 480) {
-                player.setSleepTimer(minutes);
-                showNotification(`Sleep timer set for ${minutes} minute${minutes === 1 ? '' : 's'}`);
-                modal.remove();
-            } else {
-                showNotification('Please enter a valid number of minutes (1-480)');
-            }
+    const handleCancel = (e) => {
+        if (e.target.id === 'cancel-sleep-timer' || e.target.classList.contains('modal-overlay')) {
+            closeModal();
         }
-    });
+    };
+
+    const cleanup = () => {
+        modal.removeEventListener('click', handleOptionClick);
+        modal.removeEventListener('click', handleCancel);
+    };
+
+    modal.addEventListener('click', handleOptionClick);
+    modal.addEventListener('click', handleCancel);
+
+    modal.classList.add('active');
 }
 
 function positionMenu(menu, x, y, anchorRect = null) {

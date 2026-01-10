@@ -420,7 +420,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (publicToggle) publicToggle.checked = false;
         if (shareBtn) shareBtn.style.display = 'none';
 
-        modal.style.display = 'flex';
+        modal.classList.add('active');
         document.getElementById('playlist-name-input').focus();
     }
 
@@ -464,7 +464,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if (window.location.hash === `#userplaylist/${editingId}`) {
                              ui.renderPlaylistPage(editingId, 'user');
                         }
-                        modal.style.display = 'none';
+                        modal.classList.remove('active');
                         delete modal.dataset.editingId;
                     }
                 });
@@ -536,14 +536,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     await db.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
                     syncManager.syncUserPlaylist(playlist, 'create');
                     ui.renderLibraryPage();
-                    modal.style.display = 'none';
+                    modal.classList.remove('active');
                 });
             }
         }
     }
 
     if (e.target.closest('#playlist-modal-cancel')) {
-        document.getElementById('playlist-modal').style.display = 'none';
+        document.getElementById('playlist-modal').classList.remove('active');
     }
 
     if (e.target.closest('.edit-playlist-btn')) {
@@ -573,7 +573,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 modal.dataset.editingId = playlistId;
                 document.getElementById('csv-import-section').style.display = 'none';
-                modal.style.display = 'flex';
+                modal.classList.add('active');
                 document.getElementById('playlist-name-input').focus();
             }
         });
@@ -612,7 +612,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 modal.dataset.editingId = playlistId;
                 document.getElementById('csv-import-section').style.display = 'none';
-                modal.style.display = 'flex';
+                modal.classList.add('active');
                 document.getElementById('playlist-name-input').focus();
             }
         });
@@ -969,37 +969,24 @@ function showInstallPrompt(deferredPrompt) {
 }
 
 function showMissingTracksNotification(missingTracks) {
-    const modal = document.createElement('div');
-    modal.className = 'missing-tracks-modal-overlay';
-    modal.innerHTML = `
-        <div class="missing-tracks-modal">
-            <div class="missing-tracks-header">
-                <h3>Note</h3>
-                <button class="close-missing-tracks">&times;</button>
-            </div>
-            <div class="missing-tracks-content">
-                <p>Unfortunately some songs weren't able to be added. This could be an issue with our import system, try searching for the song and adding it. But it could also be due to Monochrome not having it sadly :(</p>
-                <div class="missing-tracks-list">
-                    <h4>Missing Tracks:</h4>
-                    <ul>
-                        ${missingTracks.map(track => `<li>${track}</li>`).join('')}
-                    </ul>
-                </div>
-            </div>
-            <div class="missing-tracks-actions">
-                <button class="btn-secondary" id="close-missing-tracks-btn">OK</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
+    const modal = document.getElementById('missing-tracks-modal');
+    const listUl = document.getElementById('missing-tracks-list-ul');
+    
+    listUl.innerHTML = missingTracks.map(track => `<li>${track}</li>`).join('');
+    
+    const closeModal = () => modal.classList.remove('active');
 
-    const closeModal = () => modal.remove();
-
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal || e.target.classList.contains('close-missing-tracks') || e.target.id === 'close-missing-tracks-btn') {
+    // Remove old listeners if any (though usually these functions are called once per instance, 
+    // but since we reuse the same modal element we should be careful or use a one-time listener)
+    const handleClose = (e) => {
+        if (e.target === modal || e.target.closest('.close-missing-tracks') || e.target.id === 'close-missing-tracks-btn' || e.target.classList.contains('modal-overlay')) {
             closeModal();
+            modal.removeEventListener('click', handleClose);
         }
-    });
+    };
+
+    modal.addEventListener('click', handleClose);
+    modal.classList.add('active');
 }
 
 async function parseCSV(csvText, api, onProgress) {
@@ -1112,80 +1099,36 @@ async function parseCSV(csvText, api, onProgress) {
 }
 
 function showKeyboardShortcuts() {
-    const modal = document.createElement('div');
-    modal.className = 'shortcuts-modal-overlay';
-    modal.innerHTML = `
-        <div class="shortcuts-modal">
-            <div class="shortcuts-header">
-                <h3>Keyboard Shortcuts</h3>
-                <button class="close-shortcuts">&times;</button>
-            </div>
-            <div class="shortcuts-content">
-                <div class="shortcut-item">
-                    <kbd>Space</kbd>
-                    <span>Play / Pause</span>
-                </div>
-                <div class="shortcut-item">
-                    <kbd>→</kbd>
-                    <span>Seek forward 10s</span>
-                </div>
-                <div class="shortcut-item">
-                    <kbd>←</kbd>
-                    <span>Seek backward 10s</span>
-                </div>
-                <div class="shortcut-item">
-                    <kbd>Shift</kbd> + <kbd>→</kbd>
-                    <span>Next track</span>
-                </div>
-                <div class="shortcut-item">
-                    <kbd>Shift</kbd> + <kbd>←</kbd>
-                    <span>Previous track</span>
-                </div>
-                <div class="shortcut-item">
-                    <kbd>↑</kbd>
-                    <span>Volume up</span>
-                </div>
-                <div class="shortcut-item">
-                    <kbd>↓</kbd>
-                    <span>Volume down</span>
-                </div>
-                <div class="shortcut-item">
-                    <kbd>M</kbd>
-                    <span>Mute / Unmute</span>
-                </div>
-                <div class="shortcut-item">
-                    <kbd>S</kbd>
-                    <span>Toggle shuffle</span>
-                </div>
-                <div class="shortcut-item">
-                    <kbd>R</kbd>
-                    <span>Toggle repeat</span>
-                </div>
-                <div class="shortcut-item">
-                    <kbd>Q</kbd>
-                    <span>Open queue</span>
-                </div>
-                <div class="shortcut-item">
-                    <kbd>L</kbd>
-                    <span>Toggle lyrics</span>
-                </div>
-                <div class="shortcut-item">
-                    <kbd>/</kbd>
-                    <span>Focus search</span>
-                </div>
-                <div class="shortcut-item">
-                    <kbd>Esc</kbd>
-                    <span>Close modals</span>
-                </div>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(modal);
 
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal || e.target.classList.contains('close-shortcuts')) {
-            modal.remove();
+    const modal = document.getElementById('shortcuts-modal');
+
+    
+
+    const closeModal = () => {
+
+        modal.classList.remove('active');
+
+        modal.removeEventListener('click', handleClose);
+
+    };
+
+
+
+    const handleClose = (e) => {
+
+        if (e.target === modal || e.target.classList.contains('close-shortcuts') || e.target.classList.contains('modal-overlay')) {
+
+            closeModal();
+
         }
-    });
+
+    };
+
+
+
+    modal.addEventListener('click', handleClose);
+
+    modal.classList.add('active');
+
 }
 

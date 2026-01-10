@@ -68,37 +68,114 @@
         </div>
     </div>
 
-    <div id="playlist-modal" class="modal" style="display: none;">
-        <div class="modal-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;">
-            <div class="modal-content" style="background: var(--card); padding: 2rem; border-radius: var(--radius); max-width: 400px; width: 90%;">
-                <h3 id="playlist-modal-title">Create Playlist</h3>
-                <input type="text" id="playlist-name-input" placeholder="Playlist name" style="width: 100%; margin: 1rem 0; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--background); color: var(--foreground);">
-                <div id="csv-import-section" style="display: none; margin: 1rem 0; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--background-secondary);">
-                    <p style="margin-bottom: 0.5rem; font-size: 0.9rem;">Import from CSV</p>
-                    <p style="font-size: 0.8rem; margin: 0;">Only Spotify Is Supported for now. please use <a href="https://exportify.app/" style="text-decoration: underline;">Exportify</a> to export your playlist into a csv. Also Make sure its headers are in english.</p>
-                    <br>
-                    <input type="file" id="csv-file-input" class="btn-secondary" accept=".csv" style="width: 100%; margin-bottom: 0.5rem;">
-                    <p style="font-size: 0.8rem; margin: 0;">This Feature Isnt Perfect And is Prone To Errors! Please check Your Playlist After To Remove Weird Songs That Were Added By The System.</p>
-                </div>
+    <div id="playlist-modal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <h3 id="playlist-modal-title">Create Playlist</h3>
+            <input type="text" id="playlist-name-input" class="template-input" placeholder="Playlist name" style="margin: 1rem 0;">
+            <div id="csv-import-section" style="display: none; margin: 1rem 0; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--background-secondary);">
+                <p style="margin-bottom: 0.5rem; font-size: 0.9rem;">Import from CSV</p>
+                <p style="font-size: 0.8rem; margin: 0;">Only Spotify Is Supported for now. please use <a href="https://exportify.app/" style="text-decoration: underline;">Exportify</a> to export your playlist into a csv. Also Make sure its headers are in english.</p>
+                <br>
+                <input type="file" id="csv-file-input" class="btn-secondary" accept=".csv" style="width: 100%; margin-bottom: 0.5rem;">
+                <p style="font-size: 0.8rem; margin: 0;">This Feature Isnt Perfect And is Prone To Errors! Please check Your Playlist After To Remove Weird Songs That Were Added By The System.</p>
+            </div>
 
-                <div class="setting-item" style="margin-bottom: 1rem; padding: 0; border: none; background: transparent;">
-                    <div class="info">
-                        <span class="label">Public Playlist</span>
-                        <span class="description">Visible to anyone with the link</span>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="playlist-public-toggle">
-                        <span class="slider"></span>
-                    </label>
+            <div class="setting-item" style="margin-bottom: 1rem; padding: 0; border: none; background: transparent;">
+                <div class="info">
+                    <span class="label">Public Playlist</span>
+                    <span class="description">Visible to anyone with the link</span>
                 </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="playlist-public-toggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
 
-                <div class="modal-actions" style="display: flex; gap: 0.5rem; justify-content: space-between; align-items: center;">
-                    <button id="playlist-share-btn" class="btn-secondary" style="display: none;">Share</button>
-                    <div style="display: flex; gap: 0.5rem; margin-left: auto;">
-                        <button id="playlist-modal-cancel" class="btn-secondary">Cancel</button>
-                        <button id="playlist-modal-save" class="btn-primary">Save</button>
-                    </div>
+            <div class="modal-actions">
+                <button id="playlist-share-btn" class="btn-secondary" style="display: none;">Share</button>
+                <button id="playlist-modal-cancel" class="btn-secondary">Cancel</button>
+                <button id="playlist-modal-save" class="btn-primary">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="playlist-select-modal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <h3>Add to Playlist</h3>
+            <div id="playlist-select-list" class="modal-list">
+                <!-- Options will be injected here -->
+            </div>
+            <div class="modal-actions">
+                <button id="playlist-select-cancel" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="shortcuts-modal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content medium">
+            <div class="shortcuts-header">
+                <h3>Keyboard Shortcuts</h3>
+                <button class="close-shortcuts">&times;</button>
+            </div>
+            <div class="shortcuts-content">
+                <div class="shortcut-item"><kbd>Space</kbd><span>Play / Pause</span></div>
+                <div class="shortcut-item"><kbd>→</kbd><span>Seek forward 10s</span></div>
+                <div class="shortcut-item"><kbd>←</kbd><span>Seek backward 10s</span></div>
+                <div class="shortcut-item"><kbd>Shift</kbd> + <kbd>→</kbd><span>Next track</span></div>
+                <div class="shortcut-item"><kbd>Shift</kbd> + <kbd>←</kbd><span>Previous track</span></div>
+                <div class="shortcut-item"><kbd>↑</kbd><span>Volume up</span></div>
+                <div class="shortcut-item"><kbd>↓</kbd><span>Volume down</span></div>
+                <div class="shortcut-item"><kbd>M</kbd><span>Mute / Unmute</span></div>
+                <div class="shortcut-item"><kbd>S</kbd><span>Toggle shuffle</span></div>
+                <div class="shortcut-item"><kbd>R</kbd><span>Toggle repeat</span></div>
+                <div class="shortcut-item"><kbd>Q</kbd><span>Open queue</span></div>
+                <div class="shortcut-item"><kbd>L</kbd><span>Toggle lyrics</span></div>
+                <div class="shortcut-item"><kbd>/</kbd><span>Focus search</span></div>
+                <div class="shortcut-item"><kbd>Esc</kbd><span>Close modals</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="missing-tracks-modal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content wide">
+            <div class="missing-tracks-header">
+                <h3>Note</h3>
+                <button class="close-missing-tracks">&times;</button>
+            </div>
+            <div class="missing-tracks-content">
+                <p>Unfortunately some songs weren't able to be added. This could be an issue with our import system, try searching for the song and adding it. But it could also be due to Monochrome not having it sadly :(</p>
+                <div class="missing-tracks-list">
+                    <h4>Missing Tracks:</h4>
+                    <ul id="missing-tracks-list-ul"></ul>
                 </div>
+            </div>
+            <div class="missing-tracks-actions">
+                <button class="btn-secondary" id="close-missing-tracks-btn">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="sleep-timer-modal" class="modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-content" style="max-width: 300px;">
+            <h3 style="text-align: center; margin-bottom: 1.5rem;">Sleep Timer</h3>
+            <div class="timer-options">
+                <button class="timer-option btn-secondary" data-minutes="5">5 minutes</button>
+                <button class="timer-option btn-secondary" data-minutes="15">15 minutes</button>
+                <button class="timer-option btn-secondary" data-minutes="30">30 minutes</button>
+                <button class="timer-option btn-secondary" data-minutes="60">1 hour</button>
+                <button class="timer-option btn-secondary" data-minutes="120">2 hours</button>
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                    <input type="number" id="custom-minutes" class="template-input" placeholder="Custom" min="1" max="480">
+                    <button class="timer-option btn-primary" id="custom-timer-btn" style="padding: 0.5rem 1rem;">Set</button>
+                </div>
+            </div>
+            <div class="modal-actions" style="justify-content: center;">
+                <button id="cancel-sleep-timer" class="btn-secondary">Cancel</button>
             </div>
         </div>
     </div>
