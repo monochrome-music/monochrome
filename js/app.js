@@ -15,6 +15,7 @@ import { sidePanelManager } from './side-panel.js';
 import { db } from './db.js';
 import { syncManager } from './firebase/sync.js';
 import { registerSW } from 'virtual:pwa-register';
+import './smooth-scrolling.js';
 
 
 function initializeCasting(audioPlayer, castBtn) {
@@ -1188,4 +1189,3 @@ function showKeyboardShortcuts() {
         }
     });
 }
-

@@ -509,6 +509,22 @@ export const waveformSettings = {
     }
 };
 
+export const smoothScrollingSettings = {
+    STORAGE_KEY: 'smooth-scrolling-enabled',
+
+    isEnabled() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) === 'true';
+        } catch (e) {
+            return false;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    }
+};
+
 export const queueManager = {
     STORAGE_KEY: 'monochrome-queue',
 
