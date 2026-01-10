@@ -287,7 +287,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
   if (replayGainPreamp) {
     replayGainPreamp.value = replayGainSettings.getPreamp();
     replayGainPreamp.addEventListener("change", (e) => {
-      replayGainSettings.setPreamp(parseFloat(e.target.value) || 0);
+      replayGainSettings.setPreamp(parseFloat(e.target.value) || 3);
       player.applyReplayGain();
     });
   }

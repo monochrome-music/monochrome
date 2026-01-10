@@ -504,7 +504,7 @@ export const replayGainSettings = {
     },
     getPreamp() {
         const val = parseFloat(localStorage.getItem(this.STORAGE_KEY_PREAMP));
-        return isNaN(val) ? 0 : val;
+        return isNaN(val) ? 3 : val;
     },
     setPreamp(db) {
         localStorage.setItem(this.STORAGE_KEY_PREAMP, db);
