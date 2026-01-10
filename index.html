@@ -75,10 +75,10 @@
             <input type="text" id="playlist-name-input" class="template-input" placeholder="Playlist name" style="margin: 1rem 0;">
             <div id="csv-import-section" style="display: none; margin: 1rem 0; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--background-secondary);">
                 <p style="margin-bottom: 0.5rem; font-size: 0.9rem;">Import from CSV</p>
-                <p style="font-size: 0.8rem; margin: 0;">Only Spotify Is Supported for now. please use <a href="https://exportify.app/" style="text-decoration: underline;">Exportify</a> to export your playlist into a csv. Also Make sure its headers are in english.</p>
+                <p style="font-size: 0.8rem; margin: 0;">Only Spotify is supported for now. Please use <a href="https://exportify.app/" style="text-decoration: underline;">Exportify</a> to export your playlist into a .csv. Make sure its headers are in English.</p>
                 <br>
                 <input type="file" id="csv-file-input" class="btn-secondary" accept=".csv" style="width: 100%; margin-bottom: 0.5rem;">
-                <p style="font-size: 0.8rem; margin: 0;">This Feature Isnt Perfect And is Prone To Errors! Please check Your Playlist After To Remove Weird Songs That Were Added By The System.</p>
+                <p style="font-size: 0.8rem; margin: 0;">This feature isn't perfect and is prone to errors! Please check your playlist after to remove any unwanted songs that were added by the system.</p>
             </div>
 
             <div class="setting-item" style="margin-bottom: 1rem; padding: 0; border: none; background: transparent;">
@@ -147,7 +147,7 @@
                 <button class="close-missing-tracks">&times;</button>
             </div>
             <div class="missing-tracks-content">
-                <p>Unfortunately some songs weren't able to be added. This could be an issue with our import system, try searching for the song and adding it. But it could also be due to Monochrome not having it sadly :(</p>
+                <p>Unfortunately, some songs weren't able to be added. This could be an issue with our import system - try searching for the song and adding it. It could also be due to Monochrome not having the song :(</p>
                 <div class="missing-tracks-list">
                     <h4>Missing Tracks:</h4>
                     <ul id="missing-tracks-list-ul"></ul>
@@ -548,16 +548,6 @@
                         </div>
                         <div class="setting-item">
                             <div class="info">
-                                <span class="label">Smooth Scrolling</span>
-                                <span class="description">Provides a smoother scrolling experience with Lenis (Experimental)</span>
-                            </div>
-                            <label class="toggle-switch">
-                            <input type="checkbox" id="smooth-scrolling-toggle">
-                            <span class="slider"></span>
-                            </label>
-                        </div>
-                        <div class="setting-item">
-                            <div class="info">
                                 <span class="label">Album Cover Background</span>
                                 <span class="description">Use the album cover as a blurred background on album pages and as primary color</span>
                             </div>
@@ -605,7 +595,7 @@
                         <div class="setting-item">
                             <div class="info">
                                 <a class="label" id="firebase-config" href="#toggle-firebase-config-btn">ADVANCED: Firebase Configuration</a>
-                                <span class="description">Manage Which Database You would like to connect to. <br> Monochrome-Owned Database Is Default.</span>
+                                <span class="description">Select which database you would like to connect to. <br> Monochrome-owned database is default.</span>
                             </div>
                             <div>
                                 <button id="toggle-firebase-config-btn" class="btn-secondary">Custom Configuration</button>
@@ -822,10 +812,10 @@
                     <br><br><br>
                     <div class="about-donate">
                         <h2 class="section-title" style="text-align: center;">Donate to Monochrome</h2>
-                        <p style="text-align: center;" class="donate-description">If Monochrome has been useful To you and you're able to, consider giving a little donation. <br> It helps pay for the server and domain, and you get to support us :)</p>
+                        <p style="text-align: center;" class="donate-description">If Monochrome has been useful to you and you're able to, consider making a donation. <br> It helps pay for the server and domain, and you get to support us :)</p>
                         <div class="donate-button" id="donate-button-container" style="display: flex; gap: 20px; align-items: center; justify-content: center; margin-top: 50px; flex-wrap: wrap;">
                         <a href="https://ko-fi.com/monochromemusic">
-                        <button id="donate-btn" class="btn-secondary">Donate To Monochrome</button>
+                        <button id="donate-btn" class="btn-secondary">Donate to Monochrome</button>
                         </a>
                         </div>
                     </div>
@@ -851,7 +841,7 @@
             <div id="page-account" class="page">
                 <h2 class="section-title" style="text-align: center;">Sign Up / Sign In</h2>
                 <div class="account-content">
-                    <p style="text-align: center;" class="account-description">Make An Account to Allow Syncing Your Library Between Devices.</p>
+                    <p style="text-align: center;" class="account-description">Make an account to allow syncing your library between devices.</p>
                     <div class="account-buttons" id="auth-buttons-container" style="display: flex; gap: 20px; align-items: center; justify-content: center; margin-top: 50px; flex-wrap: wrap;">
                         <button id="firebase-connect-btn" class="btn-secondary">Connect with Google</button>
                         <button id="toggle-email-auth-btn" class="btn-secondary">Connect with Email</button>
@@ -882,10 +872,10 @@
                 </div>
             </div>
             <div id="page-donate" class="page">
-                <h2 class="section-title" style="text-align: center;">Donate To Monochrome</h2>
+                <h2 class="section-title" style="text-align: center;">Donate to Monochrome</h2>
                 <div class="donate-content">
-                    <p style="text-align: center;" class="donate-description">If Monochrome has been useful To you and you're able to, consider giving a little donation. <br> It helps Pay for the domain, and you get To support us :)</p>
-                    <button id="donate-btn" class="btn-secondary">Donate To Monochrome</button>
+                    <p style="text-align: center;" class="donate-description">If Monochrome has been useful to you and you're able to, consider making a donation. <br> It helps pay for the domain, and you get to support us :)</p>
+                    <button id="donate-btn" class="btn-secondary">Donate to Monochrome</button>
 
         </main>
 
@@ -989,12 +979,8 @@
 
         </footer>
     </div>
-    <script src="https://unpkg.com/@studio-freight/lenis"></script>
     <script type="module" src="js/app.js"></script>
-
-
 </body>
-
 </html>
             </div>
 </html>
