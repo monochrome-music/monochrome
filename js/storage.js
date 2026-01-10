@@ -166,12 +166,10 @@ export const apiSettings = {
     async getInstances(type = 'api') {
         let instancesObj;
 
-        try {
-            const stored = localStorage.getItem(this.STORAGE_KEY);
-            if (stored) {
-                instancesObj = JSON.parse(stored);
-            }
-        } catch (e) {}
+        const stored = localStorage.getItem(this.STORAGE_KEY);
+        if (stored) {
+            instancesObj = JSON.parse(stored);
+        }
 
         if (!instancesObj) {
             instancesObj = await this.loadInstancesFromGitHub();

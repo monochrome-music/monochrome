@@ -1311,12 +1311,7 @@ export class UIRenderer {
                 }
 
                 // Render API playlist
-                let apiResult;
-                try {
-                    apiResult = await this.api.getPlaylist(playlistId);
-                } catch (error) {
-                    throw error;
-                }
+                let apiResult = await this.api.getPlaylist(playlistId);
 
                 const { playlist, tracks } = apiResult;
 

@@ -69,10 +69,7 @@ export class LosslessAPI {
                     }
 
                     if (response.status === 401) {
-                        let errorData;
-                        try {
-                            errorData = await response.clone().json();
-                        } catch {}
+                        let errorData = await response.clone().json();
 
                         if (errorData?.subStatus === 11002) {
                             lastError = new Error(errorData?.userMessage || 'Authentication failed');
