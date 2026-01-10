@@ -1410,7 +1410,14 @@ input:checked + .slider::before {
     -webkit-tap-highlight-color: transparent;
 }
 
-.player-controls .buttons button:hover {
+@media (hover: hover) {
+    .player-controls .buttons button:hover {
+        color: var(--foreground);
+        background-color: var(--secondary);
+    }
+}
+
+.player-controls .buttons button:active {
     color: var(--foreground);
     background-color: var(--secondary);
 }
@@ -1433,8 +1440,16 @@ input:checked + .slider::before {
     height: 36px;
 }
 
-.player-controls .buttons .play-pause-btn:hover {
-    transform: scale(1.05);
+@media (hover: hover) {
+    .player-controls .buttons .play-pause-btn:hover {
+        transform: scale(1.05);
+        background-color: var(--primary);
+        color: var(--primary-foreground);
+    }
+}
+
+.player-controls .buttons .play-pause-btn:active {
+    transform: scale(0.95);
     background-color: var(--primary);
     color: var(--primary-foreground);
 }
@@ -1544,7 +1559,14 @@ input:checked + .slider::before {
     justify-content: center;
 }
 
-.volume-controls button:hover {
+@media (hover: hover) {
+    .volume-controls button:hover {
+        color: var(--foreground);
+        background-color: var(--secondary);
+    }
+}
+
+.volume-controls button:active {
     color: var(--foreground);
     background-color: var(--secondary);
 }
