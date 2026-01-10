@@ -1,0 +1,53 @@
+name: Lint Codebase
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+permissions:
+    contents: write
+
+jobs:
+    lint:
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+              if: github.event_name == 'pull_request'
+              with:
+                  ref: ${{ github.head_ref }}
+                  repository: ${{ github.event.pull_request.head.repo.full_name }}
+
+            - uses: actions/checkout@v4
+              if: github.event_name != 'pull_request'
+
+            - name: Use Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'npm'
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Fix JS Lint
+              run: npm run lint:js -- --fix
+              continue-on-error: true
+
+            - name: Fix CSS Lint
+              run: npm run lint:css -- --fix
+              continue-on-error: true
+
+            - name: Format with Prettier
+              run: npm run format
+              continue-on-error: true
+
+            - name: Commit and Push changes
+              uses: stefanzweifel/git-auto-commit-action@v5
+              with:
+                  commit_message: 'style: auto-fix linting issues'
+
+            - name: Run HTML Lint
+              run: npm run lint:html

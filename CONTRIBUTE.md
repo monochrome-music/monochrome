@@ -21,6 +21,25 @@ This project uses [Vite](https://vitejs.dev/) for local development and optimize
 - **Dependency Management**: No more manual path tracking or broken internal imports.
 - **Automated PWA**: Service Worker generation and asset hashing are handled automatically.
 
+## Code Quality & Linting
+
+We use a standard stack to ensure code quality and consistency:
+
+-   **JS**: [ESLint](https://eslint.org/)
+-   **CSS**: [Stylelint](https://stylelint.io/)
+-   **HTML**: [HTMLHint](https://htmlhint.com/)
+-   **Formatting**: [Prettier](https://prettier.io/)
+
+### Commands
+
+-   **Check everything:** `npm run lint`
+-   **Auto-format code:** `npm run format` (Runs Prettier)
+-   **Fix JS issues:** `npm run lint:js -- --fix`
+-   **Fix CSS issues:** `npm run lint:css -- --fix`
+
+> [!IMPORTANT]
+> A GitHub Action automatically runs these checks on every push and pull request. Please ensure `npm run lint` passes before committing.
+
 ## Project Structure
 - `/js`: Application source code.
 - `/public`: Static assets (images, manifest, instances.json) that are copied directly to the build folder.

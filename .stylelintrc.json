@@ -1,0 +1,12 @@
+{
+    "extends": "stylelint-config-standard",
+    "rules": {
+        "no-empty-source": null,
+        "selector-class-pattern": null,
+        "media-feature-range-notation": null,
+        "declaration-block-no-redundant-longhand-properties": null,
+        "color-function-notation": null,
+        "alpha-value-notation": null
+    },
+    "ignoreFiles": ["dist/**/*.css", "node_modules/**/*.css", "legacy/**/*.css"]
+}
