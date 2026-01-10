@@ -857,34 +857,6 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             }
         });
     }
-    // cast is back working woo :P
-    const castBtn = document.getElementById('cast-btn');
-    if (castBtn) {
-        castBtn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-
-            const audioPlayer = document.getElementById('audio-player');
-            if (!audioPlayer.src) {
-                alert('Please play a track first to enable casting.');
-                return;
-            }
-
-            if ('remote' in audioPlayer) {
-                audioPlayer.remote.prompt().catch(err => {
-                    if (err.name === 'NotAllowedError') return;
-                    if (err.name === 'NotFoundError') {
-                        alert('No remote playback devices (Chromecast/AirPlay) were found on your network.');
-                        return;
-                    }
-                    console.log('Cast prompt error:', err);
-                });
-            } else if (audioPlayer.webkitShowPlaybackTargetPicker) {
-                audioPlayer.webkitShowPlaybackTargetPicker();
-            } else {
-                alert('Casting is not supported in this browser. Try Chrome for Chromecast or Safari for AirPlay.');
-            }
-        });
-    }
 
 
 
