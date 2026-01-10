@@ -1,6 +1,6 @@
 //js/player.js
 import { REPEAT_MODE, formatTime, getTrackArtists, getTrackTitle, getTrackArtistsHTML } from './utils.js';
-import { queueManager } from './storage.js';
+import { queueManager, replayGainSettings } from './storage.js';
 
 export class Player {
     constructor(audioElement, api, quality = 'LOSSLESS') {
@@ -16,6 +16,8 @@ export class Player {
         this.preloadCache = new Map();
         this.preloadAbortController = null;
         this.currentTrack = null;
+        this.currentRgValues = null;
+        this.userVolume = parseFloat(localStorage.getItem('volume') || '0.7');
 
         // Sleep timer properties
         this.sleepTimer = null;
@@ -28,6 +30,47 @@ export class Player {
         window.addEventListener('beforeunload', () => {
             this.saveQueueState();
         });
+    }
+
+    setVolume(value) {
+        this.userVolume = Math.max(0, Math.min(1, value));
+        localStorage.setItem('volume', this.userVolume);
+        this.applyReplayGain();
+    }
+
+    applyReplayGain() {
+        const mode = replayGainSettings.getMode(); // 'off', 'track', 'album'
+        let gainDb = 0;
+        let peak = 1.0;
+
+        if (mode !== 'off' && this.currentRgValues) {
+            const { trackReplayGain, trackPeakAmplitude, albumReplayGain, albumPeakAmplitude } = this.currentRgValues;
+            
+            if (mode === 'album' && albumReplayGain !== undefined) {
+                gainDb = albumReplayGain;
+                peak = albumPeakAmplitude || 1.0;
+            } else if (trackReplayGain !== undefined) {
+                gainDb = trackReplayGain;
+                peak = trackPeakAmplitude || 1.0;
+            }
+            
+            // Apply Pre-Amp
+            gainDb += replayGainSettings.getPreamp();
+        }
+
+        // Convert dB to linear scale: 10^(dB/20)
+        let scale = Math.pow(10, gainDb / 20);
+
+        // Peak protection (prevent clipping)
+        if (scale * peak > 1.0) {
+            scale = 1.0 / peak;
+        }
+
+        // Calculate effective volume
+        const effectiveVolume = this.userVolume * scale;
+        
+        // Apply to audio element
+        this.audio.volume = Math.max(0, Math.min(1, effectiveVolume));
     }
 
     loadQueueState() {
@@ -212,18 +255,29 @@ export class Player {
         this.updatePlayingTrackIndicator();
 
         try {
+            // Get track data for ReplayGain (should be cached by API)
+            const trackData = await this.api.getTrack(track.id, this.quality);
+            
+            if (trackData && trackData.info) {
+                this.currentRgValues = {
+                    trackReplayGain: trackData.info.trackReplayGain,
+                    trackPeakAmplitude: trackData.info.trackPeakAmplitude,
+                    albumReplayGain: trackData.info.albumReplayGain,
+                    albumPeakAmplitude: trackData.info.albumPeakAmplitude
+                };
+            } else {
+                this.currentRgValues = null;
+            }
+            this.applyReplayGain();
+
             let streamUrl;
 
             if (this.preloadCache.has(track.id)) {
                 streamUrl = this.preloadCache.get(track.id);
+            } else if (trackData.originalTrackUrl) {
+                streamUrl = trackData.originalTrackUrl;
             } else {
-                const trackData = await this.api.getTrack(track.id, this.quality);
-
-                if (trackData.originalTrackUrl) {
-                    streamUrl = trackData.originalTrackUrl;
-                } else {
-                    streamUrl = this.api.extractStreamUrlFromManifest(trackData.info.manifest);
-                }
+                streamUrl = this.api.extractStreamUrlFromManifest(trackData.info.manifest);
             }
 
             this.audio.src = streamUrl;

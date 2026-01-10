@@ -2408,41 +2408,6 @@ input:checked + .slider::before {
     align-items: stretch;
 }
 
-.shortcuts-modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(4px);
-    z-index: 10000;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    animation: fadeIn 0.2s ease;
-}
-
-.shortcuts-modal {
-    background: var(--card);
-    border-radius: var(--radius);
-    width: 90%;
-    max-width: 500px;
-    max-height: 80vh;
-    overflow-y: auto;
-    box-shadow: var(--shadow-xl);
-    animation: scaleIn 0.2s ease;
-}
-
-.shortcuts-header {
-    padding: 1rem;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.shortcuts-header h3 {
-    margin: 0;
-}
-
 .close-shortcuts {
     background: transparent;
     border: none;
@@ -2943,7 +2908,91 @@ img:not([src]), img[src=''] {
     background: var(--primary);
 }
 
+/* Modals */
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
 
+.modal.active {
+    display: flex;
+}
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: -1;
+}
+
+.modal-content {
+    background: var(--card);
+    padding: 2rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    max-width: 400px;
+    width: 90%;
+    box-shadow: var(--shadow-xl);
+    animation: scaleIn 0.2s ease;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-content.wide {
+    max-width: 600px;
+}
+
+.modal-content.medium {
+    max-width: 500px;
+}
+
+.modal-list {
+    margin: 1rem 0;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.modal-option {
+    padding: 0.75rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s ease;
+}
+
+.modal-option:hover {
+    background: var(--secondary);
+}
+
+.modal-option:last-child {
+    border-bottom: none;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+}
+
+.timer-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.timer-option {
+    text-align: center;
+}
+
+@keyframes scaleIn {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
 
 #playlist-modal {
     opacity: 1;
@@ -3059,33 +3108,6 @@ img:not([src]), img[src=''] {
 }
 
 
-
-/* OH NO SOME SONGS WERENT FOUND FUCK ME FUCK ME */
-.missing-tracks-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-    animation: fadeIn 0.2s ease;
-}
-
-.missing-tracks-modal {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    max-width: 600px;
-    width: 90%;
-    max-height: 85vh;
-    overflow-y: auto;
-    box-shadow: var(--shadow-xl);
-    animation: scaleIn 0.2s ease;
-}
 
 .missing-tracks-header {
     display: flex;
@@ -3668,15 +3690,11 @@ img:not([src]), img[src=''] {
         font-size: 1.75rem;
     }
 
-.fullscreen-cover-content {
+    .fullscreen-cover-content {
         flex-direction: column;
     }
 
-    .fullscreen-lyrics-toggle {
-        right: 3.5rem;
-    }
-
-.csv-import-progress {
+    .csv-import-progress {
         bottom: 10px;
         right: 10px;
         left: 10px;
@@ -3684,7 +3702,7 @@ img:not([src]), img[src=''] {
         min-width: 0;
     }
 
-.missing-tracks-modal {
+    .missing-tracks-modal {
         width: 95%;
         max-height: 90vh;
         margin: 1rem;
@@ -3729,7 +3747,7 @@ img:not([src]), img[src=''] {
         font-size: 0.9rem;
     }
 
-.mobile-only {
+    .mobile-only {
         display: flex !important;
     }
 

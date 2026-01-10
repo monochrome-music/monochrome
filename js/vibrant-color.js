@@ -67,29 +67,26 @@ export function getVibrantColorFromImage(imgElement) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
 
-    canvas.width = imgElement.naturalWidth || imgElement.width;
-    canvas.height = imgElement.naturalHeight || imgElement.height;
-
     try {
-        ctx.drawImage(imgElement, 0, 0);
-        
-        // Downscale for performance if image is large
-        const maxDimension = 64; 
-        if (canvas.width > maxDimension || canvas.height > maxDimension) {
-            const scale = Math.min(maxDimension / canvas.width, maxDimension / canvas.height);
-            const w = Math.floor(canvas.width * scale);
-            const h = Math.floor(canvas.height * scale);
-            const smallCanvas = document.createElement('canvas');
-            smallCanvas.width = w;
-            smallCanvas.height = h;
-            smallCanvas.getContext('2d').drawImage(imgElement, 0, 0, w, h);
-            ctx.drawImage(smallCanvas, 0, 0, canvas.width, canvas.height); 
-            // Actually, better to just use the small canvas data
-            var imageData = smallCanvas.getContext('2d').getImageData(0, 0, w, h);
-        } else {
-            var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const maxDimension = 64;
+        let w = imgElement.naturalWidth || imgElement.width;
+        let h = imgElement.naturalHeight || imgElement.height;
+
+        if (w > maxDimension || h > maxDimension) {
+            const scale = Math.min(maxDimension / w, maxDimension / h);
+            w = Math.floor(w * scale);
+            h = Math.floor(h * scale);
         }
 
+        canvas.width = w;
+        canvas.height = h;
+
+        // Draw image directly at small size
+        // Note: For best quality downscaling, one might step down, but for color extraction,
+        // direct browser downscaling is sufficient and much faster/lighter.
+        ctx.drawImage(imgElement, 0, 0, w, h);
+
+        const imageData = ctx.getImageData(0, 0, w, h);
         const pixels = imageData.data;
         const candidates = [];
         
