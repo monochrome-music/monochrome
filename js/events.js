@@ -250,7 +250,8 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
     });
 
     const updateVolumeUI = () => {
-        const { volume, muted } = audioPlayer;
+        const { muted } = audioPlayer;
+        const volume = player.userVolume;
         volumeBtn.innerHTML = (muted || volume === 0) ? SVG_MUTE : SVG_VOLUME;
         const effectiveVolume = muted ? 0 : volume * 100;
         volumeFill.style.setProperty('--volume-level', `${effectiveVolume}%`);
@@ -268,7 +269,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
     const savedVolume = parseFloat(localStorage.getItem('volume') || '0.7');
     const savedMuted = localStorage.getItem('muted') === 'true';
 
-    audioPlayer.volume = savedVolume;
+    player.setVolume(savedVolume);
     audioPlayer.muted = savedMuted;
 
     volumeFill.style.width = `${savedVolume * 100}%`;
@@ -337,10 +338,9 @@ function initializeSmoothSliders(audioPlayer, player) {
 
         if (isAdjustingVolume) {
             seek(volumeBar, e, position => {
-                audioPlayer.volume = position;
+                player.setVolume(position);
                 volumeFill.style.width = `${position * 100}%`;
                 volumeBar.style.setProperty('--volume-level', `${position * 100}%`);
-                localStorage.setItem('volume', position);
             });
         }
     });
@@ -360,10 +360,9 @@ function initializeSmoothSliders(audioPlayer, player) {
             const touch = e.touches[0];
             const rect = volumeBar.getBoundingClientRect();
             const position = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
-            audioPlayer.volume = position;
+            player.setVolume(position);
             volumeFill.style.width = `${position * 100}%`;
             volumeBar.style.setProperty('--volume-level', `${position * 100}%`);
-            localStorage.setItem('volume', position);
         }
     });
 
@@ -417,10 +416,9 @@ function initializeSmoothSliders(audioPlayer, player) {
     volumeBar.addEventListener('mousedown', (e) => {
         isAdjustingVolume = true;
         seek(volumeBar, e, position => {
-            audioPlayer.volume = position;
+            player.setVolume(position);
             volumeFill.style.width = `${position * 100}%`;
             volumeBar.style.setProperty('--volume-level', `${position * 100}%`);
-            localStorage.setItem('volume', position);
         });
     });
 
@@ -430,52 +428,48 @@ function initializeSmoothSliders(audioPlayer, player) {
         const touch = e.touches[0];
         const rect = volumeBar.getBoundingClientRect();
         const position = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
-        audioPlayer.volume = position;
+        player.setVolume(position);
         volumeFill.style.width = `${position * 100}%`;
         volumeBar.style.setProperty('--volume-level', `${position * 100}%`);
-        localStorage.setItem('volume', position);
     });
 
     volumeBar.addEventListener('click', e => {
         if (!isAdjustingVolume) {
             seek(volumeBar, e, position => {
-                audioPlayer.volume = position;
+                player.setVolume(position);
                 volumeFill.style.width = `${position * 100}%`;
                 volumeBar.style.setProperty('--volume-level', `${position * 100}%`);
-                localStorage.setItem('volume', position);
             });
         }
     });
     volumeBar.addEventListener('wheel', e => {
         e.preventDefault();
         const delta = e.deltaY > 0 ? -0.05 : 0.05;
-        const newVolume = Math.max(0, Math.min(1, audioPlayer.volume + delta));
+        const newVolume = Math.max(0, Math.min(1, player.userVolume + delta));
 
         if (delta > 0 && audioPlayer.muted) {
             audioPlayer.muted = false;
             localStorage.setItem('muted', false);
         }
 
-        audioPlayer.volume = newVolume;
+        player.setVolume(newVolume);
         volumeFill.style.width = `${newVolume * 100}%`;
         volumeBar.style.setProperty('--volume-level', `${newVolume * 100}%`);
-        localStorage.setItem('volume', newVolume);
     }, { passive: false });
 
     volumeBtn?.addEventListener('wheel', e => {
         e.preventDefault();
         const delta = e.deltaY > 0 ? -0.05 : 0.05;
-        const newVolume = Math.max(0, Math.min(1, audioPlayer.volume + delta));
+        const newVolume = Math.max(0, Math.min(1, player.userVolume + delta));
 
         if (delta > 0 && audioPlayer.muted) {
             audioPlayer.muted = false;
             localStorage.setItem('muted', false);
         }
 
-        audioPlayer.volume = newVolume;
+        player.setVolume(newVolume);
         volumeFill.style.width = `${newVolume * 100}%`;
         volumeBar.style.setProperty('--volume-level', `${newVolume * 100}%`);
-        localStorage.setItem('volume', newVolume);
     }, { passive: false });
 }
 

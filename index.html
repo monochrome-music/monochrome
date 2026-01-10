@@ -636,6 +636,24 @@
                             <span class="slider"></span>
                             </label>
                         </div>
+                        <div class="setting-item">
+                            <div class="info">
+                                <span class="label">ReplayGain Mode</span>
+                                <span class="description">Normalize volume across tracks</span>
+                            </div>
+                            <select id="replay-gain-mode">
+                                <option value="off">Off</option>
+                                <option value="track">Track</option>
+                                <option value="album">Album</option>
+                            </select>
+                        </div>
+                        <div class="setting-item">
+                            <div class="info">
+                                <span class="label">ReplayGain Pre-Amp</span>
+                                <span class="description">Adjust gain manually (dB)</span>
+                            </div>
+                            <input type="number" id="replay-gain-preamp" value="0" step="0.5" style="width: 80px;">
+                        </div>
                     </div>
 
                     <div class="settings-group">

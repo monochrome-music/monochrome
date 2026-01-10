@@ -493,6 +493,24 @@ export const cardSettings = {
     }
 };
 
+export const replayGainSettings = {
+    STORAGE_KEY_MODE: 'replay-gain-mode', // 'off', 'track', 'album'
+    STORAGE_KEY_PREAMP: 'replay-gain-preamp',
+    getMode() {
+        return localStorage.getItem(this.STORAGE_KEY_MODE) || 'track';
+    },
+    setMode(mode) {
+        localStorage.setItem(this.STORAGE_KEY_MODE, mode);
+    },
+    getPreamp() {
+        const val = parseFloat(localStorage.getItem(this.STORAGE_KEY_PREAMP));
+        return isNaN(val) ? 0 : val;
+    },
+    setPreamp(db) {
+        localStorage.setItem(this.STORAGE_KEY_PREAMP, db);
+    }
+};
+
 export const waveformSettings = {
     STORAGE_KEY: 'waveform-seekbar-enabled',
 

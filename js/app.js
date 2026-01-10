@@ -119,11 +119,11 @@ function initializeKeyboardShortcuts(player, audioPlayer) {
                 break;
             case 'arrowup':
                 e.preventDefault();
-                audioPlayer.volume = Math.min(1, audioPlayer.volume + 0.1);
+                player.setVolume(player.userVolume + 0.1);
                 break;
             case 'arrowdown':
                 e.preventDefault();
-                audioPlayer.volume = Math.max(0, audioPlayer.volume - 0.1);
+                player.setVolume(player.userVolume - 0.1);
                 break;
             case 'm':
                 audioPlayer.muted = !audioPlayer.muted;

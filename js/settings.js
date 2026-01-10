@@ -8,6 +8,7 @@ import {
   trackListSettings,
   cardSettings,
   waveformSettings,
+  replayGainSettings,
 } from "./storage.js";
 import { db } from "./db.js";
 import { authManager } from "./firebase/auth.js";
@@ -269,6 +270,25 @@ export function initializeSettings(scrobbler, player, api, ui) {
       const newQuality = e.target.value;
       player.setQuality(newQuality);
       localStorage.setItem("playback-quality", newQuality);
+    });
+  }
+
+  // ReplayGain Settings
+  const replayGainMode = document.getElementById("replay-gain-mode");
+  if (replayGainMode) {
+    replayGainMode.value = replayGainSettings.getMode();
+    replayGainMode.addEventListener("change", (e) => {
+      replayGainSettings.setMode(e.target.value);
+      player.applyReplayGain();
+    });
+  }
+
+  const replayGainPreamp = document.getElementById("replay-gain-preamp");
+  if (replayGainPreamp) {
+    replayGainPreamp.value = replayGainSettings.getPreamp();
+    replayGainPreamp.addEventListener("change", (e) => {
+      replayGainSettings.setPreamp(parseFloat(e.target.value) || 0);
+      player.applyReplayGain();
     });
   }
 
