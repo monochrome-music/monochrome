@@ -626,6 +626,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const playlistId = window.location.hash.split('/')[1];
         if (confirm('Are you sure you want to delete this playlist?')) {
             db.deletePlaylist(playlistId).then(() => {
+                syncManager.syncUserPlaylist({ id: playlistId }, 'delete');
                 window.location.hash = '#library';
             });
         }
