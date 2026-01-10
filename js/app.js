@@ -481,6 +481,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const progressCurrent = document.getElementById('csv-progress-current');
                     const progressTotal = document.getElementById('csv-progress-total');
                     const currentTrackElement = progressElement.querySelector('.current-track');
+                    const currentArtistElement = progressElement.querySelector('.current-artist');
 
                     try {
                         // Show progress bar
@@ -488,6 +489,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         progressFill.style.width = '0%';
                         progressCurrent.textContent = '0';
                         currentTrackElement.textContent = 'Reading CSV file...';
+                        if (currentArtistElement) currentArtistElement.textContent = '';
 
                         const csvText = await file.text();
                         const lines = csvText.trim().split('\n');
@@ -499,6 +501,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             progressFill.style.width = `${Math.min(percentage, 100)}%`;
                             progressCurrent.textContent = progress.current.toString();
                             currentTrackElement.textContent = progress.currentTrack;
+                            if (currentArtistElement) currentArtistElement.textContent = progress.currentArtist || '';
                         });
 
                         tracks = result.tracks;
@@ -1056,7 +1059,8 @@ async function parseCSV(csvText, api, onProgress) {
                 onProgress({
                     current: i,
                     total: totalTracks,
-                    currentTrack: trackTitle || 'Unknown track'
+                    currentTrack: trackTitle || 'Unknown track',
+                    currentArtist: artistNames || ''
                 });
             }
 
@@ -1066,12 +1070,45 @@ async function parseCSV(csvText, api, onProgress) {
                 await new Promise(resolve => setTimeout(resolve, 300));
                 
                 try {
-                    const searchQuery = `${trackTitle} ${artistNames}`;
-                    const searchResults = await api.searchTracks(searchQuery);
+                    let foundTrack = null;
+
+                    // 1. Initial Search: Title + All Artists
+                    let searchQuery = `${trackTitle} ${artistNames}`;
+                    let searchResults = await api.searchTracks(searchQuery);
 
                     if (searchResults.items && searchResults.items.length > 0) {
-                        // Use the first result
-                        const foundTrack = searchResults.items[0];
+                        foundTrack = searchResults.items[0];
+                    }
+
+                    // 2. Retry with Main Artist only
+                    if (!foundTrack) {
+                        const mainArtist = artistNames.split(',')[0].trim();
+                        // Only retry if mainArtist is actually different from artistNames (e.g. multiple artists)
+                        if (mainArtist && mainArtist !== artistNames) {
+                            searchQuery = `${trackTitle} ${mainArtist}`;
+                            console.log(`Retry 1 (Main Artist): ${searchQuery}`);
+                            searchResults = await api.searchTracks(searchQuery);
+                            if (searchResults.items && searchResults.items.length > 0) {
+                                foundTrack = searchResults.items[0];
+                            }
+                        }
+                    }
+
+                    // 3. Retry with Cleaned Title (if " - " exists) + Main Artist
+                    if (!foundTrack && trackTitle.includes(' - ')) {
+                        const mainArtist = artistNames.split(',')[0].trim();
+                        const cleanedTitle = trackTitle.split(' - ')[0].trim();
+                        if (cleanedTitle) {
+                            searchQuery = `${cleanedTitle} ${mainArtist}`;
+                            console.log(`Retry 2 (Cleaned Title): ${searchQuery}`);
+                            searchResults = await api.searchTracks(searchQuery);
+                            if (searchResults.items && searchResults.items.length > 0) {
+                                foundTrack = searchResults.items[0];
+                            }
+                        }
+                    }
+
+                    if (foundTrack) {
                         tracks.push(foundTrack);
                         console.log(`Found track: "${trackTitle}" by ${artistNames}`);
                     } else {
