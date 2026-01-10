@@ -3948,7 +3948,7 @@ img:not([src]), img[src=''] {
         grid-area: main;
     }
 
-    .progress-bar,
+    .progress-bar:not(.waveform-loaded),
     .volume-bar {
         height: 8px;
     }
