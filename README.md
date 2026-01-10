@@ -4,7 +4,6 @@
   </a>
 </p>
 
-
 <h1 align="center">Monochrome</h1>
 
 ### **Monochrome** is an open-source, privacy-respecting, ad-free [TIDAL](https://tidal.com) web UI, built on top of [Hi-Fi](https://github.com/sachinsenal0x64/hifi).
@@ -14,6 +13,7 @@
 [<img src="https://files.catbox.moe/94f3pq.png" alt="Monochrome UI" width="800">](https://monochrome.samidy.com/#album/378149557)
 
 ### Features
+
 <ul>
 <li>High-quality lossless audio streaming</li>
 <li>Lyrics support with karaoke mode</li>
@@ -30,13 +30,12 @@
 <li>Keyboard shortcuts for power users</li>
 </ul>
 
-  
-### Check it out live at: [**monochrome.samidy.com**](https://monochrome.samidy.com)  
+### Check it out live at: [**monochrome.samidy.com**](https://monochrome.samidy.com)
+
 <br>
 
 [![GitHub stars](https://img.shields.io/github/stars/SamidyFR/monochrome?style=for-the-badge&color=ffffff&labelColor=000000)](https://github.com/SamidyFR/monochrome/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/SamidyFR/monochrome?style=for-the-badge&color=ffffff&labelColor=000000)](https://github.com/SamidyFR/monochrome/forks)
 [![GitHub issues](https://img.shields.io/github/issues/SamidyFR/monochrome?style=for-the-badge&color=ffffff&labelColor=000000)](https://github.com/SamidyFR/monochrome/issues)
-
 
 [<img src="https://github.com/monochrome-music/monochrome/blob/main/assets/asseenonfmhy880x310.png?raw=true" alt="As seen on FMHY" height="50">](https://fmhy.net/audio#streaming-sites)

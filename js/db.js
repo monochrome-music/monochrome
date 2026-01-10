@@ -12,7 +12,7 @@ export class MusicDatabase {
             const request = indexedDB.open(this.dbName, this.version);
 
             request.onerror = (event) => {
-                console.error("Database error:", event.target.error);
+                console.error('Database error:', event.target.error);
                 reject(event.target.error);
             };
 
@@ -99,7 +99,7 @@ export class MusicDatabase {
             const transaction = db.transaction(storeName, 'readonly');
             const store = transaction.objectStore(storeName);
             const index = store.index('timestamp');
-            const request = index.getAll(); 
+            const request = index.getAll();
 
             request.onsuccess = () => {
                 // Return reversed (newest first)
@@ -162,7 +162,7 @@ export class MusicDatabase {
         // Base properties to keep
         const base = {
             id: item.id,
-            addedAt: item.addedAt || null
+            addedAt: item.addedAt || null,
         };
 
         if (type === 'track') {
@@ -172,18 +172,20 @@ export class MusicDatabase {
                 duration: item.duration,
                 explicit: item.explicit,
                 // Keep minimal artist info
-                artists: item.artists?.map(a => ({ id: a.id, name: a.name })) || [],
+                artists: item.artists?.map((a) => ({ id: a.id, name: a.name })) || [],
                 // Keep minimal album info
-                album: item.album ? {
-                    id: item.album.id,
-                    cover: item.album.cover,
-                    releaseDate: item.album.releaseDate || null,
-                    vibrantColor: item.album.vibrantColor || null
-                } : null,
+                album: item.album
+                    ? {
+                          id: item.album.id,
+                          cover: item.album.cover,
+                          releaseDate: item.album.releaseDate || null,
+                          vibrantColor: item.album.vibrantColor || null,
+                      }
+                    : null,
                 // Fallback date
                 streamStartDate: item.streamStartDate || null,
                 // Keep version if exists
-                version: item.version || null
+                version: item.version || null,
             };
         }
 
@@ -195,10 +197,14 @@ export class MusicDatabase {
                 releaseDate: item.releaseDate || null,
                 explicit: item.explicit,
                 // UI uses singular 'artist'
-                artist: item.artist ? { name: item.artist.name, id: item.artist.id } : (item.artists?.[0] ? { name: item.artists[0].name, id: item.artists[0].id } : null),
+                artist: item.artist
+                    ? { name: item.artist.name, id: item.artist.id }
+                    : item.artists?.[0]
+                      ? { name: item.artists[0].name, id: item.artists[0].id }
+                      : null,
                 // Keep type and track count for UI labels
                 type: item.type || null,
-                numberOfTracks: item.numberOfTracks
+                numberOfTracks: item.numberOfTracks,
             };
         }
 
@@ -206,7 +212,7 @@ export class MusicDatabase {
             return {
                 ...base,
                 name: item.name,
-                picture: item.picture || item.image || null // Handle both just in case
+                picture: item.picture || item.image || null, // Handle both just in case
             };
         }
 
@@ -218,7 +224,7 @@ export class MusicDatabase {
                 // UI checks squareImage || image || uuid
                 image: item.image || item.squareImage || item.cover || null,
                 numberOfTracks: item.numberOfTracks || (item.tracks ? item.tracks.length : 0),
-                user: item.user ? { name: item.user.name } : null
+                user: item.user ? { name: item.user.name } : null,
             };
         }
 
@@ -230,7 +236,7 @@ export class MusicDatabase {
                 subTitle: item.subTitle,
                 description: item.description,
                 mixType: item.mixType,
-                cover: item.cover
+                cover: item.cover,
             };
         }
 
@@ -247,13 +253,13 @@ export class MusicDatabase {
 
         const userPlaylists = await this.getPlaylists();
         const data = {
-            favorites_tracks: tracks.map(t => this._minifyItem('track', t)),
-            favorites_albums: albums.map(a => this._minifyItem('album', a)),
-            favorites_artists: artists.map(a => this._minifyItem('artist', a)),
-            favorites_playlists: playlists.map(p => this._minifyItem('playlist', p)),
-            favorites_mixes: mixes.map(m => this._minifyItem('mix', m)),
-            history_tracks: history.map(t => this._minifyItem('track', t)),
-            user_playlists: userPlaylists
+            favorites_tracks: tracks.map((t) => this._minifyItem('track', t)),
+            favorites_albums: albums.map((a) => this._minifyItem('album', a)),
+            favorites_artists: artists.map((a) => this._minifyItem('artist', a)),
+            favorites_playlists: playlists.map((p) => this._minifyItem('playlist', p)),
+            favorites_mixes: mixes.map((m) => this._minifyItem('mix', m)),
+            history_tracks: history.map((t) => this._minifyItem('track', t)),
+            user_playlists: userPlaylists,
         };
         return data;
     }
@@ -266,7 +272,6 @@ export class MusicDatabase {
             // If items is undefined, we skip this store (don't clear, don't update)
             // This allows partial updates (e.g. library only)
             if (items === undefined) return;
-
 
             let itemsArray = Array.isArray(items) ? items : Object.values(items || {});
 
@@ -302,9 +307,9 @@ export class MusicDatabase {
         const playlist = {
             id: id,
             name: name,
-            tracks: tracks.map(t => this._minifyItem('track', t)),
+            tracks: tracks.map((t) => this._minifyItem('track', t)),
             cover: cover,
-            createdAt: Date.now()
+            createdAt: Date.now(),
         };
         await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
         return playlist;
@@ -315,7 +320,7 @@ export class MusicDatabase {
         if (!playlist) throw new Error('Playlist not found');
         playlist.tracks = playlist.tracks || [];
         const minifiedTrack = this._minifyItem('track', track);
-        if (playlist.tracks.some(t => t.id === track.id)) return;
+        if (playlist.tracks.some((t) => t.id === track.id)) return;
         playlist.tracks.push(minifiedTrack);
         await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
         return playlist;
@@ -325,7 +330,7 @@ export class MusicDatabase {
         const playlist = await this.performTransaction('user_playlists', 'readonly', (store) => store.get(playlistId));
         if (!playlist) throw new Error('Playlist not found');
         playlist.tracks = playlist.tracks || [];
-        playlist.tracks = playlist.tracks.filter(t => t.id !== trackId);
+        playlist.tracks = playlist.tracks.filter((t) => t.id !== trackId);
         await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
         return playlist;
     }

@@ -45,7 +45,7 @@ export class Player {
 
         if (mode !== 'off' && this.currentRgValues) {
             const { trackReplayGain, trackPeakAmplitude, albumReplayGain, albumPeakAmplitude } = this.currentRgValues;
-            
+
             if (mode === 'album' && albumReplayGain !== undefined) {
                 gainDb = albumReplayGain;
                 peak = albumPeakAmplitude || 1.0;
@@ -53,7 +53,7 @@ export class Player {
                 gainDb = trackReplayGain;
                 peak = trackPeakAmplitude || 1.0;
             }
-            
+
             // Apply Pre-Amp
             gainDb += replayGainSettings.getPreamp();
         }
@@ -68,7 +68,7 @@ export class Player {
 
         // Calculate effective volume
         const effectiveVolume = this.userVolume * scale;
-        
+
         // Apply to audio element
         this.audio.volume = Math.max(0, Math.min(1, effectiveVolume));
     }
@@ -82,17 +82,17 @@ export class Player {
             this.currentQueueIndex = savedState.currentQueueIndex ?? -1;
             this.shuffleActive = savedState.shuffleActive || false;
             this.repeatMode = savedState.repeatMode || REPEAT_MODE.OFF;
-            
+
             // Restore current track if queue exists and index is valid
             const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
             if (this.currentQueueIndex >= 0 && this.currentQueueIndex < currentQueue.length) {
                 this.currentTrack = currentQueue[this.currentQueueIndex];
-                
+
                 // Restore UI
                 const track = this.currentTrack;
                 const trackTitle = getTrackTitle(track);
                 const trackArtistsHTML = getTrackArtistsHTML(track);
-                
+
                 let yearDisplay = '';
                 const releaseDate = track.album?.releaseDate || track.streamStartDate;
                 if (releaseDate) {
@@ -112,11 +112,11 @@ export class Player {
 
                 const mixBtn = document.getElementById('now-playing-mix-btn');
                 if (mixBtn) {
-                    mixBtn.style.display = (track.mixes && track.mixes.TRACK_MIX) ? 'flex' : 'none';
+                    mixBtn.style.display = track.mixes && track.mixes.TRACK_MIX ? 'flex' : 'none';
                 }
                 const totalDurationEl = document.getElementById('total-duration');
                 if (totalDurationEl) totalDurationEl.textContent = formatTime(track.duration);
-        document.title = `${trackTitle} • ${getTrackArtists(track)}`;
+                document.title = `${trackTitle} • ${getTrackArtists(track)}`;
 
                 this.updatePlayingTrackIndicator();
                 this.updateMediaSession(track);
@@ -131,7 +131,7 @@ export class Player {
             originalQueueBeforeShuffle: this.originalQueueBeforeShuffle,
             currentQueueIndex: this.currentQueueIndex,
             shuffleActive: this.shuffleActive,
-            repeatMode: this.repeatMode
+            repeatMode: this.repeatMode,
         });
     }
 
@@ -230,7 +230,7 @@ export class Player {
 
         const trackTitle = getTrackTitle(track);
         const trackArtistsHTML = getTrackArtistsHTML(track);
-        
+
         let yearDisplay = '';
         const releaseDate = track.album?.releaseDate || track.streamStartDate;
         if (releaseDate) {
@@ -240,14 +240,13 @@ export class Player {
             }
         }
 
-        document.querySelector('.now-playing-bar .cover').src =
-            this.api.getCoverUrl(track.album?.cover);
+        document.querySelector('.now-playing-bar .cover').src = this.api.getCoverUrl(track.album?.cover);
         document.querySelector('.now-playing-bar .title').textContent = trackTitle;
         document.querySelector('.now-playing-bar .artist').innerHTML = trackArtistsHTML + yearDisplay;
-        
+
         const mixBtn = document.getElementById('now-playing-mix-btn');
         if (mixBtn) {
-            mixBtn.style.display = (track.mixes && track.mixes.TRACK_MIX) ? 'flex' : 'none';
+            mixBtn.style.display = track.mixes && track.mixes.TRACK_MIX ? 'flex' : 'none';
         }
         document.title = `${trackTitle} • ${getTrackArtists(track)}`;
 
@@ -262,7 +261,7 @@ export class Player {
                     trackReplayGain: trackData.info.trackReplayGain,
                     trackPeakAmplitude: trackData.info.trackPeakAmplitude,
                     albumReplayGain: trackData.info.albumReplayGain,
-                    albumPeakAmplitude: trackData.info.albumPeakAmplitude
+                    albumPeakAmplitude: trackData.info.albumPeakAmplitude,
                 };
             } else {
                 this.currentRgValues = null;
@@ -344,9 +343,9 @@ export class Player {
         }
 
         if (this.audio.paused) {
-            this.audio.play().catch(e => {
+            this.audio.play().catch((e) => {
                 if (e.name === 'NotAllowedError' || e.name === 'AbortError') return;
-                console.error("Play failed, reloading track:", e);
+                console.error('Play failed, reloading track:', e);
                 if (this.currentTrack) {
                     this.playTrackFromQueue();
                 }
@@ -377,7 +376,7 @@ export class Player {
             this.originalQueueBeforeShuffle = [...this.queue];
             const currentTrack = this.queue[this.currentQueueIndex];
             this.shuffledQueue = [...this.queue].sort(() => Math.random() - 0.5);
-            this.currentQueueIndex = this.shuffledQueue.findIndex(t => t.id === currentTrack?.id);
+            this.currentQueueIndex = this.shuffledQueue.findIndex((t) => t.id === currentTrack?.id);
 
             if (this.currentQueueIndex === -1 && currentTrack) {
                 this.shuffledQueue.unshift(currentTrack);
@@ -386,7 +385,7 @@ export class Player {
         } else {
             const currentTrack = this.shuffledQueue[this.currentQueueIndex];
             this.queue = [...this.originalQueueBeforeShuffle];
-            this.currentQueueIndex = this.queue.findIndex(t => t.id === currentTrack?.id);
+            this.currentQueueIndex = this.queue.findIndex((t) => t.id === currentTrack?.id);
         }
 
         this.preloadCache.clear();
@@ -421,17 +420,17 @@ export class Player {
     addNextToQueue(track) {
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
         const insertIndex = this.currentQueueIndex + 1;
-        
+
         // Insert after current track
         currentQueue.splice(insertIndex, 0, track);
-        
-        // If we are shuffling, we might want to also add it to the original queue for consistency, 
+
+        // If we are shuffling, we might want to also add it to the original queue for consistency,
         // though syncing that is tricky. The standard logic often just appends to the active queue view.
         if (this.shuffleActive) {
-             this.originalQueueBeforeShuffle.push(track); // Just append to end of main list? Or logic needed.
-             // Simplest is to just modify the active playing queue.
+            this.originalQueueBeforeShuffle.push(track); // Just append to end of main list? Or logic needed.
+            // Simplest is to just modify the active playing queue.
         } else {
-             // In linear mode, `currentQueue` IS `this.queue`
+            // In linear mode, `currentQueue` IS `this.queue`
         }
 
         this.saveQueueState();
@@ -440,14 +439,14 @@ export class Player {
 
     removeFromQueue(index) {
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
-        
+
         // If removing current track
         if (index === this.currentQueueIndex) {
             // If playing, we might want to stop or just let it finish?
-            // For now, let's just remove it. 
+            // For now, let's just remove it.
             // If it's the last track, playback will stop naturally or we handle it?
         }
-        
+
         if (index < this.currentQueueIndex) {
             this.currentQueueIndex--;
         }
@@ -456,12 +455,12 @@ export class Player {
 
         if (this.shuffleActive) {
             // Also remove from original queue
-             const originalIndex = this.originalQueueBeforeShuffle.findIndex(t => t.id === removedTrack.id); // Simple ID check
-             if (originalIndex !== -1) {
-                 this.originalQueueBeforeShuffle.splice(originalIndex, 1);
-             }
+            const originalIndex = this.originalQueueBeforeShuffle.findIndex((t) => t.id === removedTrack.id); // Simple ID check
+            if (originalIndex !== -1) {
+                this.originalQueueBeforeShuffle.splice(originalIndex, 1);
+            }
         }
-        
+
         this.saveQueueState();
         this.preloadNextTracks();
     }
@@ -513,13 +512,11 @@ export class Player {
 
     updatePlayingTrackIndicator() {
         const currentTrack = this.getCurrentQueue()[this.currentQueueIndex];
-        document.querySelectorAll('.track-item').forEach(item => {
-            item.classList.toggle('playing',
-                currentTrack && item.dataset.trackId == currentTrack.id
-            );
+        document.querySelectorAll('.track-item').forEach((item) => {
+            item.classList.toggle('playing', currentTrack && item.dataset.trackId == currentTrack.id);
         });
 
-        document.querySelectorAll('.queue-track-item').forEach(item => {
+        document.querySelectorAll('.queue-track-item').forEach((item) => {
             const index = parseInt(item.dataset.queueIndex);
             item.classList.toggle('playing', index === this.currentQueueIndex);
         });
@@ -537,11 +534,11 @@ export class Player {
         const trackTitle = getTrackTitle(track);
 
         if (coverId) {
-            sizes.forEach(size => {
+            sizes.forEach((size) => {
                 artwork.push({
                     src: this.api.getCoverUrl(coverId, size),
                     sizes: `${size}x${size}`,
-                    type: 'image/jpeg'
+                    type: 'image/jpeg',
                 });
             });
         }
@@ -550,7 +547,7 @@ export class Player {
             title: trackTitle || 'Unknown Title',
             artist: getTrackArtists(track) || 'Unknown Artist',
             album: track.album?.title || 'Unknown Album',
-            artwork: artwork.length > 0 ? artwork : undefined
+            artwork: artwork.length > 0 ? artwork : undefined,
         });
 
         this.updateMediaSessionPlaybackState();
@@ -576,7 +573,7 @@ export class Player {
             navigator.mediaSession.setPositionState({
                 duration: duration,
                 playbackRate: this.audio.playbackRate || 1,
-                position: Math.min(this.audio.currentTime, duration)
+                position: Math.min(this.audio.currentTime, duration),
             });
         } catch (error) {
             console.debug('Failed to update Media Session position:', error);
@@ -587,13 +584,16 @@ export class Player {
     setSleepTimer(minutes) {
         this.clearSleepTimer(); // Clear any existing timer
 
-        this.sleepTimerEndTime = Date.now() + (minutes * 60 * 1000);
+        this.sleepTimerEndTime = Date.now() + minutes * 60 * 1000;
 
-        this.sleepTimer = setTimeout(() => {
-            this.audio.pause();
-            this.clearSleepTimer();
-            this.updateSleepTimerUI();
-        }, minutes * 60 * 1000);
+        this.sleepTimer = setTimeout(
+            () => {
+                this.audio.pause();
+                this.clearSleepTimer();
+                this.updateSleepTimerUI();
+            },
+            minutes * 60 * 1000
+        );
 
         // Update UI every second
         this.sleepTimerInterval = setInterval(() => {
@@ -629,7 +629,7 @@ export class Player {
     updateSleepTimerUI() {
         const timerBtn = document.getElementById('sleep-timer-btn');
         const timerBtnDesktop = document.getElementById('sleep-timer-btn-desktop');
-        
+
         const updateBtn = (btn) => {
             if (!btn) return;
             if (this.isSleepTimerActive()) {

@@ -1,1040 +1,1806 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monochrome Music</title>
-    <meta name="theme-color" content="#000000" />
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Monochrome">
-    <meta name="description" content="A minimalist music streaming application">
-    <link rel="apple-touch-icon" href="assets/logo.svg">
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" href="./assets/logo.svg" type="image/svg+xml">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <audio id="audio-player"></audio>
-    <div id="context-menu">
-        <ul>
-            <li data-action="toggle-like">Like</li>
-            <li data-action="add-to-playlist">Add to Playlist</li>
-            <li data-action="track-mix" style="display: none;">Track Mix</li>
-            <li data-action="play-next">Play Next</li>
-            <li data-action="add-to-queue">Add to Queue</li>
-            <li data-action="download">Download</li>
-        </ul>
-    </div>
-
-    <div id="side-panel" class="side-panel">
-        <div class="panel-header">
-            <h3 id="side-panel-title">Panel</h3>
-            <div class="panel-controls" id="side-panel-controls">
-                <!-- Controls injected dynamically -->
-            </div>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Monochrome Music</title>
+        <meta name="theme-color" content="#000000" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Monochrome" />
+        <meta name="description" content="A minimalist music streaming application" />
+        <link rel="apple-touch-icon" href="assets/logo.svg" />
+        <link rel="manifest" href="manifest.json" />
+        <link rel="icon" href="./assets/logo.svg" type="image/svg+xml" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="styles.css" />
+    </head>
+    <body>
+        <audio id="audio-player"></audio>
+        <div id="context-menu">
+            <ul>
+                <li data-action="toggle-like">Like</li>
+                <li data-action="add-to-playlist">Add to Playlist</li>
+                <li data-action="track-mix" style="display: none">Track Mix</li>
+                <li data-action="play-next">Play Next</li>
+                <li data-action="add-to-queue">Add to Queue</li>
+                <li data-action="download">Download</li>
+            </ul>
         </div>
-        <div id="side-panel-content" class="panel-content">
-            <!-- Content injected dynamically -->
-        </div>
-    </div>
 
-    <div id="fullscreen-cover-overlay" style="display: none;">
-        <div class="fullscreen-cover-content">
-            <button id="close-fullscreen-cover-btn" title="Close">&times;</button>
-            <button id="toggle-fullscreen-lyrics-btn" class="fullscreen-lyrics-toggle" title="Toggle Lyrics">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                    <line x1="12" y1="19" x2="12" y2="22"/>
-                    <line x1="8" y1="22" x2="16" y2="22"/>
-                </svg>
-            </button>
-            <div class="fullscreen-main-view">
-                <img id="fullscreen-cover-image" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Album Cover">
-                <div class="fullscreen-track-info">
-                    <h2 id="fullscreen-track-title"></h2>
-                    <h3 id="fullscreen-track-artist"></h3>
-                    <div id="fullscreen-next-track" style="display: none;">
-                        <span class="label">Up Next: </span>
-                        <span class="value"></span>
-                    </div>
+        <div id="side-panel" class="side-panel">
+            <div class="panel-header">
+                <h3 id="side-panel-title">Panel</h3>
+                <div class="panel-controls" id="side-panel-controls">
+                    <!-- Controls injected dynamically -->
                 </div>
             </div>
-        </div>
-    </div>
-
-    <div id="playlist-modal" class="modal">
-        <div class="modal-overlay"></div>
-        <div class="modal-content">
-            <h3 id="playlist-modal-title">Create Playlist</h3>
-            <input type="text" id="playlist-name-input" class="template-input" placeholder="Playlist name" style="margin: 1rem 0;">
-            <input type="url" id="playlist-cover-input" class="template-input" placeholder="Cover image URL (optional)" style="margin: 0.5rem 0;">
-            <p style="font-size: 0.8rem; margin: 0;">Upload your cover to <a href="https://catbox.moe" style="text-decoration: underline;">catbox.moe</a> then paste the link here. (or any other service that allows directly linking to a file, but we recommend catbox due to their storage of your files lasting forever)</p>
-            <br>
-            <div id="csv-import-section" style="display: none; margin: 1rem 0; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--background-secondary);">
-                <p style="margin-bottom: 0.5rem; font-size: 0.9rem;">Import from CSV</p>
-                <p style="font-size: 0.8rem; margin: 0;">Spotify and Apple Music are supported. (Apple Music is prone to errors.) Please use <a href="https://exportify.app/" style="text-decoration: underline;">Exportify (Spotify)</a> or <a href="https://www.tunemymusic.com/transfer/spotify-to-apple-music" style="text-decoration: underline;">TuneMyMusic (Apple Music)</a> to export your playlist into a .csv. Make sure its headers are in English.</p>
-                <br>
-                <input type="file" id="csv-file-input" class="btn-secondary" accept=".csv" style="width: 100%; margin-bottom: 0.5rem;">
-                <p style="font-size: 0.8rem; margin: 0;"><b>Warning:</b> This feature isn't perfect and is prone to errors! Please check your playlist after to remove any unwanted songs that were added by the system.</p>
-            </div>
-
-            <div class="setting-item" style="margin-bottom: 1rem; padding: 0; border: none; background: transparent;">
-                <div class="info">
-                    <span class="label">Public Playlist</span>
-                    <span class="description">Visible to anyone with the link</span>
-                </div>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="playlist-public-toggle">
-                    <span class="slider"></span>
-                </label>
-            </div>
-
-            <div class="modal-actions">
-                <button id="playlist-share-btn" class="btn-secondary" style="display: none;">Share</button>
-                <button id="playlist-modal-cancel" class="btn-secondary">Cancel</button>
-                <button id="playlist-modal-save" class="btn-primary">Save</button>
+            <div id="side-panel-content" class="panel-content">
+                <!-- Content injected dynamically -->
             </div>
         </div>
-    </div>
 
-    <div id="playlist-select-modal" class="modal">
-        <div class="modal-overlay"></div>
-        <div class="modal-content">
-            <h3>Add to Playlist</h3>
-            <div id="playlist-select-list" class="modal-list">
-                <!-- Options will be injected here -->
-            </div>
-            <div class="modal-actions">
-                <button id="playlist-select-cancel" class="btn-secondary">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="shortcuts-modal" class="modal">
-        <div class="modal-overlay"></div>
-        <div class="modal-content medium">
-            <div class="shortcuts-header">
-                <h3>Keyboard Shortcuts</h3>
-                <button class="close-shortcuts">&times;</button>
-            </div>
-            <div class="shortcuts-content">
-                <div class="shortcut-item"><kbd>Space</kbd><span>Play / Pause</span></div>
-                <div class="shortcut-item"><kbd>→</kbd><span>Seek forward 10s</span></div>
-                <div class="shortcut-item"><kbd>←</kbd><span>Seek backward 10s</span></div>
-                <div class="shortcut-item"><kbd>Shift</kbd> + <kbd>→</kbd><span>Next track</span></div>
-                <div class="shortcut-item"><kbd>Shift</kbd> + <kbd>←</kbd><span>Previous track</span></div>
-                <div class="shortcut-item"><kbd>↑</kbd><span>Volume up</span></div>
-                <div class="shortcut-item"><kbd>↓</kbd><span>Volume down</span></div>
-                <div class="shortcut-item"><kbd>M</kbd><span>Mute / Unmute</span></div>
-                <div class="shortcut-item"><kbd>S</kbd><span>Toggle shuffle</span></div>
-                <div class="shortcut-item"><kbd>R</kbd><span>Toggle repeat</span></div>
-                <div class="shortcut-item"><kbd>Q</kbd><span>Open queue</span></div>
-                <div class="shortcut-item"><kbd>L</kbd><span>Toggle lyrics</span></div>
-                <div class="shortcut-item"><kbd>/</kbd><span>Focus search</span></div>
-                <div class="shortcut-item"><kbd>Esc</kbd><span>Close modals</span></div>
-            </div>
-        </div>
-    </div>
-
-    <div id="missing-tracks-modal" class="modal">
-        <div class="modal-overlay"></div>
-        <div class="modal-content wide">
-            <div class="missing-tracks-header">
-                <h3>Note</h3>
-                <button class="close-missing-tracks">&times;</button>
-            </div>
-            <div class="missing-tracks-content">
-                <p>Unfortunately, some songs weren't able to be added. This could be an issue with our import system - try searching for the song and adding it. It could also be due to Monochrome not having the song :(</p>
-                <div class="missing-tracks-list">
-                    <h4>Missing Tracks:</h4>
-                    <ul id="missing-tracks-list-ul"></ul>
-                </div>
-            </div>
-            <div class="missing-tracks-actions">
-                <button class="btn-secondary" id="close-missing-tracks-btn">OK</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="sleep-timer-modal" class="modal">
-        <div class="modal-overlay"></div>
-        <div class="modal-content" style="max-width: 300px;">
-            <h3 style="text-align: center; margin-bottom: 1.5rem;">Sleep Timer</h3>
-            <div class="timer-options">
-                <button class="timer-option btn-secondary" data-minutes="5">5 minutes</button>
-                <button class="timer-option btn-secondary" data-minutes="15">15 minutes</button>
-                <button class="timer-option btn-secondary" data-minutes="30">30 minutes</button>
-                <button class="timer-option btn-secondary" data-minutes="60">1 hour</button>
-                <button class="timer-option btn-secondary" data-minutes="120">2 hours</button>
-                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                    <input type="number" id="custom-minutes" class="template-input" placeholder="Custom" min="1" max="480">
-                    <button class="timer-option btn-primary" id="custom-timer-btn" style="padding: 0.5rem 1rem;">Set</button>
-                </div>
-            </div>
-            <div class="modal-actions" style="justify-content: center;">
-                <button id="cancel-sleep-timer" class="btn-secondary">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="discography-download-modal" class="modal">
-        <div class="modal-overlay"></div>
-        <div class="modal-content" style="max-width: 500px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h3 style="margin: 0;">Download Discography</h3>
-                <button class="close-modal-btn" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--muted-foreground);">&times;</button>
-            </div>
-            <p style="margin-bottom: 1rem; color: var(--muted-foreground);">Select which releases to download for <span id="discography-artist-name"></span>:</p>
-            <div style="display: flex; flex-direction: column; gap: 1rem;">
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                    <input type="checkbox" id="download-albums" checked>
-                    <span>Albums (<span id="albums-count">0</span>)</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                    <input type="checkbox" id="download-eps">
-                    <span>EPs (<span id="eps-count">0</span>)</span>
-                </label>
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-                    <input type="checkbox" id="download-singles">
-                    <span>Singles (<span id="singles-count">0</span>)</span>
-                </label>
-            </div>
-            <div class="modal-actions" style="margin-top: 1.5rem;">
-                <button class="btn-secondary" id="cancel-discography-download">Cancel</button>
-                <button class="btn-primary" id="start-discography-download">Download</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="sidebar-overlay"></div>
-
-    <div id="csv-import-progress" class="csv-import-progress" style="display: none;">
-        <div class="progress-header">
-            <h4>Importing Tracks from CSV</h4>
-            <p class="progress-warning">This can take a while depending on your playlist size. Please be patient.</p>
-        </div>
-        <div class="progress-content">
-            <div class="current-track">Preparing import...</div>
-            <div class="current-artist" style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 0.5rem;"></div>
-            <div class="progress-bar">
-                <div class="progress-fill" id="csv-progress-fill"></div>
-            </div>
-            <div class="progress-text">
-                <span id="csv-progress-current">0</span> / <span id="csv-progress-total">0</span> tracks processed
-            </div>
-        </div>
-    </div>
-
-    <div class="app-container">
-        <aside class="sidebar">
-            <div>
-                <div class="sidebar-logo">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="14.75 14.75 70.5 70.5" >
-                      <g fill="currentColor" >
-                        <path d="M38.25 14.75H85.25V61.75H61.75V38.25H38.25ZM14.75 38.25H38.25V61.75H61.75V85.25H14.75Z"  />
-                      </g>
-                    </svg>
-                    <span>Monochrome</span>
-                </div>
-                <nav class="sidebar-nav">
-                    <ul>
-                        <li class="nav-item">
-                            <a href="#home">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-house-icon lucide-house"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-                                <span>Home</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="#library">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 6 4 14"/><path d="M12 6v14"/><path d="M8 8v12"/><path d="M4 4v16"/></svg>
-                                <span>Library</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="#recent">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
-                                <span>Recent</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="#settings">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/>
-                                    <circle cx="12" cy="12" r="3"/>
-                                </svg>
-                                <span>Settings</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="#about">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info-icon lucide-info"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-                                <span>About</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="#account">
-                                <svg viewBox="0 0 24 24" id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><g stroke-width="0"></g><g stroke-linecap="round" stroke-linejoin="round"></g><g><defs><style>.cls-1{fill:none;stroke:currentColor;stroke-miterlimit:10;stroke-width:1.9200000000000004;}</style></defs><circle class="cls-1" cx="12" cy="7.25" r="5.73"></circle><path class="cls-1" d="M1.5,23.48l.37-2.05A10.3,10.3,0,0,1,12,13h0a10.3,10.3,0,0,1,10.13,8.45l.37,2.05"></path></g></svg>
-                                <span>Account</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="https://monochrome.samidy.com/discord" target="_blank">
-                                <svg width="64px" height="64px" viewBox="0 -28.5 256 256" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="xMidYMid" fill="#000000"><g stroke-width="0"></g><g stroke-linecap="round" stroke-linejoin="round"></g><g> <g> <path d="M216.856339,16.5966031 C200.285002,8.84328665 182.566144,3.2084988 164.041564,0 C161.766523,4.11318106 159.108624,9.64549908 157.276099,14.0464379 C137.583995,11.0849896 118.072967,11.0849896 98.7430163,14.0464379 C96.9108417,9.64549908 94.1925838,4.11318106 91.8971895,0 C73.3526068,3.2084988 55.6133949,8.86399117 39.0420583,16.6376612 C5.61752293,67.146514 -3.4433191,116.400813 1.08711069,164.955721 C23.2560196,181.510915 44.7403634,191.567697 65.8621325,198.148576 C71.0772151,190.971126 75.7283628,183.341335 79.7352139,175.300261 C72.104019,172.400575 64.7949724,168.822202 57.8887866,164.667963 C59.7209612,163.310589 61.5131304,161.891452 63.2445898,160.431257 C105.36741,180.133187 151.134928,180.133187 192.754523,160.431257 C194.506336,161.891452 196.298154,163.310589 198.110326,164.667963 C191.183787,168.842556 183.854737,172.420929 176.223542,175.320965 C180.230393,183.341335 184.861538,190.991831 190.096624,198.16893 C211.238746,191.588051 232.743023,181.531619 254.911949,164.955721 C260.227747,108.668201 245.831087,59.8662432 216.856339,16.5966031 Z M85.4738752,135.09489 C72.8290281,135.09489 62.4592217,123.290155 62.4592217,108.914901 C62.4592217,94.5396472 72.607595,82.7145587 85.4738752,82.7145587 C98.3405064,82.7145587 108.709962,94.5189427 108.488529,108.914901 C108.508531,123.290155 98.3405064,135.09489 85.4738752,135.09489 Z M170.525237,135.09489 C157.88039,135.09489 147.510584,123.290155 147.510584,108.914901 C147.510584,94.5396472 157.658606,82.7145587 170.525237,82.7145587 C183.391518,82.7145587 193.761324,94.5189427 193.539891,108.914901 C193.539891,123.290155 183.391518,135.09489 170.525237,135.09489 Z" fill="#8E8E96" fill-rule="nonzero"> </path> </g> </g></svg>
-                                <span>Discord</span>
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-            </div>
-        </aside>
-
-        <main class="main-content">
-            <div id="page-background"></div>
-            <header class="main-header">
-                <div class="navigation-controls desktop-only">
-                    <button id="nav-back" class="nav-btn" title="Go Back">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-                    </button>
-                    <button id="nav-forward" class="nav-btn" title="Go Forward">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-                    </button>
-                </div>
-                <button class="hamburger-menu" id="hamburger-btn" title="Open navigation">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="3" y1="12" x2="21" y2="12"></line>
-                        <line x1="3" y1="6" x2="21" y2="6"></line>
-                        <line x1="3" y1="18" x2="21" y2="18"></line>
+        <div id="fullscreen-cover-overlay" style="display: none">
+            <div class="fullscreen-cover-content">
+                <button id="close-fullscreen-cover-btn" title="Close">&times;</button>
+                <button id="toggle-fullscreen-lyrics-btn" class="fullscreen-lyrics-toggle" title="Toggle Lyrics">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                        <line x1="12" y1="19" x2="12" y2="22" />
+                        <line x1="8" y1="22" x2="16" y2="22" />
                     </svg>
                 </button>
-                <form class="search-bar" id="search-form">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                    <input type="search" id="search-input" placeholder="Search for tracks, artists, albums...">
-                </form>
-            </header>
-
-            <div id="page-home" class="page">
-                <section class="content-section">
-                    <h2 class="section-title">Recent Albums</h2>
-                    <div class="card-grid" id="home-recent-albums"></div>
-                </section>
-                <section class="content-section">
-                    <h2 class="section-title">Recent Artists</h2>
-                    <div class="card-grid" id="home-recent-artists"></div>
-                </section>
-                <section class="content-section">
-                    <h2 class="section-title">Recent Playlists and Mixes</h2>
-                    <div class="card-grid" id="home-recent-playlists"></div>
-                </section>
-            </div>
-
-            <div id="page-search" class="page">
-                <h2 class="section-title" id="search-results-title">Search Results</h2>
-                <div class="search-tabs">
-                    <button class="search-tab active" data-tab="tracks">Tracks</button>
-                    <button class="search-tab" data-tab="albums">Albums</button>
-                    <button class="search-tab" data-tab="artists">Artists</button>
-                    <button class="search-tab" data-tab="playlists">Playlists</button>
-                </div>
-                <div class="search-tab-content active" id="search-tab-tracks">
-                    <div class="track-list" id="search-tracks-container"></div>
-                </div>
-                <div class="search-tab-content" id="search-tab-albums">
-                    <div class="card-grid" id="search-albums-container"></div>
-                </div>
-                <div class="search-tab-content" id="search-tab-artists">
-                    <div class="card-grid" id="search-artists-container"></div>
-                </div>
-                <div class="search-tab-content" id="search-tab-playlists">
-                    <div class="card-grid" id="search-playlists-container"></div>
+                <div class="fullscreen-main-view">
+                    <img
+                        id="fullscreen-cover-image"
+                        src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                        alt="Album Cover"
+                    />
+                    <div class="fullscreen-track-info">
+                        <h2 id="fullscreen-track-title"></h2>
+                        <h3 id="fullscreen-track-artist"></h3>
+                        <div id="fullscreen-next-track" style="display: none">
+                            <span class="label">Up Next: </span>
+                            <span class="value"></span>
+                        </div>
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <div id="page-library" class="page">
-                <section class="content-section">
-            <div class="library-header">
-                <h2>My Playlists</h2>
-                <button id="create-playlist-btn" class="btn-primary" style="margin: 10px 0;">Create Playlist</button>
+        <div id="playlist-modal" class="modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <h3 id="playlist-modal-title">Create Playlist</h3>
+                <input
+                    type="text"
+                    id="playlist-name-input"
+                    class="template-input"
+                    placeholder="Playlist name"
+                    style="margin: 1rem 0"
+                />
+                <input
+                    type="url"
+                    id="playlist-cover-input"
+                    class="template-input"
+                    placeholder="Cover image URL (optional)"
+                    style="margin: 0.5rem 0"
+                />
+                <p style="font-size: 0.8rem; margin: 0">
+                    Upload your cover to
+                    <a href="https://catbox.moe" style="text-decoration: underline">catbox.moe</a> then paste the link
+                    here. (or any other service that allows directly linking to a file, but we recommend catbox due to
+                    their storage of your files lasting forever)
+                </p>
+                <br />
+                <div
+                    id="csv-import-section"
+                    style="
+                        display: none;
+                        margin: 1rem 0;
+                        padding: 1rem;
+                        border: 1px solid var(--border);
+                        border-radius: var(--radius);
+                        background: var(--background-secondary);
+                    "
+                >
+                    <p style="margin-bottom: 0.5rem; font-size: 0.9rem">Import from CSV</p>
+                    <p style="font-size: 0.8rem; margin: 0">
+                        Spotify and Apple Music are supported. (Apple Music is prone to errors.) Please use
+                        <a href="https://exportify.app/" style="text-decoration: underline">Exportify (Spotify)</a> or
+                        <a
+                            href="https://www.tunemymusic.com/transfer/spotify-to-apple-music"
+                            style="text-decoration: underline"
+                            >TuneMyMusic (Apple Music)</a
+                        >
+                        to export your playlist into a .csv. Make sure its headers are in English.
+                    </p>
+                    <br />
+                    <input
+                        type="file"
+                        id="csv-file-input"
+                        class="btn-secondary"
+                        accept=".csv"
+                        style="width: 100%; margin-bottom: 0.5rem"
+                    />
+                    <p style="font-size: 0.8rem; margin: 0">
+                        <b>Warning:</b> This feature isn't perfect and is prone to errors! Please check your playlist
+                        after to remove any unwanted songs that were added by the system.
+                    </p>
+                </div>
+
+                <div
+                    class="setting-item"
+                    style="margin-bottom: 1rem; padding: 0; border: none; background: transparent"
+                >
+                    <div class="info">
+                        <span class="label">Public Playlist</span>
+                        <span class="description">Visible to anyone with the link</span>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="playlist-public-toggle" />
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="modal-actions">
+                    <button id="playlist-share-btn" class="btn-secondary" style="display: none">Share</button>
+                    <button id="playlist-modal-cancel" class="btn-secondary">Cancel</button>
+                    <button id="playlist-modal-save" class="btn-primary">Save</button>
+                </div>
             </div>
-                    <div class="card-grid" id="my-playlists-container"></div>
-                </section>
+        </div>
 
-                <section class="content-section">
-                    <h2 class="section-title">Favorites</h2>
+        <div id="playlist-select-modal" class="modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <h3>Add to Playlist</h3>
+                <div id="playlist-select-list" class="modal-list">
+                    <!-- Options will be injected here -->
+                </div>
+                <div class="modal-actions">
+                    <button id="playlist-select-cancel" class="btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="shortcuts-modal" class="modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content medium">
+                <div class="shortcuts-header">
+                    <h3>Keyboard Shortcuts</h3>
+                    <button class="close-shortcuts">&times;</button>
+                </div>
+                <div class="shortcuts-content">
+                    <div class="shortcut-item"><kbd>Space</kbd><span>Play / Pause</span></div>
+                    <div class="shortcut-item"><kbd>→</kbd><span>Seek forward 10s</span></div>
+                    <div class="shortcut-item"><kbd>←</kbd><span>Seek backward 10s</span></div>
+                    <div class="shortcut-item"><kbd>Shift</kbd> + <kbd>→</kbd><span>Next track</span></div>
+                    <div class="shortcut-item"><kbd>Shift</kbd> + <kbd>←</kbd><span>Previous track</span></div>
+                    <div class="shortcut-item"><kbd>↑</kbd><span>Volume up</span></div>
+                    <div class="shortcut-item"><kbd>↓</kbd><span>Volume down</span></div>
+                    <div class="shortcut-item"><kbd>M</kbd><span>Mute / Unmute</span></div>
+                    <div class="shortcut-item"><kbd>S</kbd><span>Toggle shuffle</span></div>
+                    <div class="shortcut-item"><kbd>R</kbd><span>Toggle repeat</span></div>
+                    <div class="shortcut-item"><kbd>Q</kbd><span>Open queue</span></div>
+                    <div class="shortcut-item"><kbd>L</kbd><span>Toggle lyrics</span></div>
+                    <div class="shortcut-item"><kbd>/</kbd><span>Focus search</span></div>
+                    <div class="shortcut-item"><kbd>Esc</kbd><span>Close modals</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="missing-tracks-modal" class="modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content wide">
+                <div class="missing-tracks-header">
+                    <h3>Note</h3>
+                    <button class="close-missing-tracks">&times;</button>
+                </div>
+                <div class="missing-tracks-content">
+                    <p>
+                        Unfortunately, some songs weren't able to be added. This could be an issue with our import
+                        system - try searching for the song and adding it. It could also be due to Monochrome not having
+                        the song :(
+                    </p>
+                    <div class="missing-tracks-list">
+                        <h4>Missing Tracks:</h4>
+                        <ul id="missing-tracks-list-ul"></ul>
+                    </div>
+                </div>
+                <div class="missing-tracks-actions">
+                    <button class="btn-secondary" id="close-missing-tracks-btn">OK</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="sleep-timer-modal" class="modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content" style="max-width: 300px">
+                <h3 style="text-align: center; margin-bottom: 1.5rem">Sleep Timer</h3>
+                <div class="timer-options">
+                    <button class="timer-option btn-secondary" data-minutes="5">5 minutes</button>
+                    <button class="timer-option btn-secondary" data-minutes="15">15 minutes</button>
+                    <button class="timer-option btn-secondary" data-minutes="30">30 minutes</button>
+                    <button class="timer-option btn-secondary" data-minutes="60">1 hour</button>
+                    <button class="timer-option btn-secondary" data-minutes="120">2 hours</button>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem">
+                        <input
+                            type="number"
+                            id="custom-minutes"
+                            class="template-input"
+                            placeholder="Custom"
+                            min="1"
+                            max="480"
+                        />
+                        <button class="timer-option btn-primary" id="custom-timer-btn" style="padding: 0.5rem 1rem">
+                            Set
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-actions" style="justify-content: center">
+                    <button id="cancel-sleep-timer" class="btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="discography-download-modal" class="modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content" style="max-width: 500px">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem">
+                    <h3 style="margin: 0">Download Discography</h3>
+                    <button
+                        class="close-modal-btn"
+                        style="
+                            background: none;
+                            border: none;
+                            font-size: 24px;
+                            cursor: pointer;
+                            color: var(--muted-foreground);
+                        "
+                    >
+                        &times;
+                    </button>
+                </div>
+                <p style="margin-bottom: 1rem; color: var(--muted-foreground)">
+                    Select which releases to download for <span id="discography-artist-name"></span>:
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 1rem">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer">
+                        <input type="checkbox" id="download-albums" checked />
+                        <span>Albums (<span id="albums-count">0</span>)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer">
+                        <input type="checkbox" id="download-eps" />
+                        <span>EPs (<span id="eps-count">0</span>)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer">
+                        <input type="checkbox" id="download-singles" />
+                        <span>Singles (<span id="singles-count">0</span>)</span>
+                    </label>
+                </div>
+                <div class="modal-actions" style="margin-top: 1.5rem">
+                    <button class="btn-secondary" id="cancel-discography-download">Cancel</button>
+                    <button class="btn-primary" id="start-discography-download">Download</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="sidebar-overlay"></div>
+
+        <div id="csv-import-progress" class="csv-import-progress" style="display: none">
+            <div class="progress-header">
+                <h4>Importing Tracks from CSV</h4>
+                <p class="progress-warning">
+                    This can take a while depending on your playlist size. Please be patient.
+                </p>
+            </div>
+            <div class="progress-content">
+                <div class="current-track">Preparing import...</div>
+                <div
+                    class="current-artist"
+                    style="font-size: 0.9em; color: var(--text-secondary); margin-bottom: 0.5rem"
+                ></div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="csv-progress-fill"></div>
+                </div>
+                <div class="progress-text">
+                    <span id="csv-progress-current">0</span> / <span id="csv-progress-total">0</span> tracks processed
+                </div>
+            </div>
+        </div>
+
+        <div class="app-container">
+            <aside class="sidebar">
+                <div>
+                    <div class="sidebar-logo">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="200"
+                            height="200"
+                            viewBox="14.75 14.75 70.5 70.5"
+                        >
+                            <g fill="currentColor">
+                                <path
+                                    d="M38.25 14.75H85.25V61.75H61.75V38.25H38.25ZM14.75 38.25H38.25V61.75H61.75V85.25H14.75Z"
+                                />
+                            </g>
+                        </svg>
+                        <span>Monochrome</span>
+                    </div>
+                    <nav class="sidebar-nav">
+                        <ul>
+                            <li class="nav-item">
+                                <a href="#home">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="24"
+                                        height="24"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        class="lucide lucide-house-icon lucide-house"
+                                    >
+                                        <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
+                                        <path
+                                            d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+                                        />
+                                    </svg>
+                                    <span>Home</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#library">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="24"
+                                        height="24"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="m16 6 4 14" />
+                                        <path d="M12 6v14" />
+                                        <path d="M8 8v12" />
+                                        <path d="M4 4v16" />
+                                    </svg>
+                                    <span>Library</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#recent">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="24"
+                                        height="24"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                                        <path d="M3 3v5h5" />
+                                        <path d="M12 7v5l4 2" />
+                                    </svg>
+                                    <span>Recent</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#settings">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="24"
+                                        height="24"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path
+                                            d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"
+                                        />
+                                        <circle cx="12" cy="12" r="3" />
+                                    </svg>
+                                    <span>Settings</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#about">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="24"
+                                        height="24"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        class="lucide lucide-info-icon lucide-info"
+                                    >
+                                        <circle cx="12" cy="12" r="10" />
+                                        <path d="M12 16v-4" />
+                                        <path d="M12 8h.01" />
+                                    </svg>
+                                    <span>About</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="#account">
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        id="Layer_1"
+                                        data-name="Layer 1"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="currentColor"
+                                    >
+                                        <g stroke-width="0"></g>
+                                        <g stroke-linecap="round" stroke-linejoin="round"></g>
+                                        <g>
+                                            <defs>
+                                                <style>
+                                                    .cls-1 {
+                                                        fill: none;
+                                                        stroke: currentColor;
+                                                        stroke-miterlimit: 10;
+                                                        stroke-width: 1.9200000000000004;
+                                                    }
+                                                </style>
+                                            </defs>
+                                            <circle class="cls-1" cx="12" cy="7.25" r="5.73"></circle>
+                                            <path
+                                                class="cls-1"
+                                                d="M1.5,23.48l.37-2.05A10.3,10.3,0,0,1,12,13h0a10.3,10.3,0,0,1,10.13,8.45l.37,2.05"
+                                            ></path>
+                                        </g>
+                                    </svg>
+                                    <span>Account</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="https://monochrome.samidy.com/discord" target="_blank">
+                                    <svg
+                                        width="64px"
+                                        height="64px"
+                                        viewBox="0 -28.5 256 256"
+                                        version="1.1"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        xmlns:xlink="http://www.w3.org/1999/xlink"
+                                        preserveAspectRatio="xMidYMid"
+                                        fill="#000000"
+                                    >
+                                        <g stroke-width="0"></g>
+                                        <g stroke-linecap="round" stroke-linejoin="round"></g>
+                                        <g>
+                                            <g>
+                                                <path
+                                                    d="M216.856339,16.5966031 C200.285002,8.84328665 182.566144,3.2084988 164.041564,0 C161.766523,4.11318106 159.108624,9.64549908 157.276099,14.0464379 C137.583995,11.0849896 118.072967,11.0849896 98.7430163,14.0464379 C96.9108417,9.64549908 94.1925838,4.11318106 91.8971895,0 C73.3526068,3.2084988 55.6133949,8.86399117 39.0420583,16.6376612 C5.61752293,67.146514 -3.4433191,116.400813 1.08711069,164.955721 C23.2560196,181.510915 44.7403634,191.567697 65.8621325,198.148576 C71.0772151,190.971126 75.7283628,183.341335 79.7352139,175.300261 C72.104019,172.400575 64.7949724,168.822202 57.8887866,164.667963 C59.7209612,163.310589 61.5131304,161.891452 63.2445898,160.431257 C105.36741,180.133187 151.134928,180.133187 192.754523,160.431257 C194.506336,161.891452 196.298154,163.310589 198.110326,164.667963 C191.183787,168.842556 183.854737,172.420929 176.223542,175.320965 C180.230393,183.341335 184.861538,190.991831 190.096624,198.16893 C211.238746,191.588051 232.743023,181.531619 254.911949,164.955721 C260.227747,108.668201 245.831087,59.8662432 216.856339,16.5966031 Z M85.4738752,135.09489 C72.8290281,135.09489 62.4592217,123.290155 62.4592217,108.914901 C62.4592217,94.5396472 72.607595,82.7145587 85.4738752,82.7145587 C98.3405064,82.7145587 108.709962,94.5189427 108.488529,108.914901 C108.508531,123.290155 98.3405064,135.09489 85.4738752,135.09489 Z M170.525237,135.09489 C157.88039,135.09489 147.510584,123.290155 147.510584,108.914901 C147.510584,94.5396472 157.658606,82.7145587 170.525237,82.7145587 C183.391518,82.7145587 193.761324,94.5189427 193.539891,108.914901 C193.539891,123.290155 183.391518,135.09489 170.525237,135.09489 Z"
+                                                    fill="#8E8E96"
+                                                    fill-rule="nonzero"
+                                                ></path>
+                                            </g>
+                                        </g>
+                                    </svg>
+                                    <span>Discord</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </aside>
+
+            <main class="main-content">
+                <div id="page-background"></div>
+                <header class="main-header">
+                    <div class="navigation-controls desktop-only">
+                        <button id="nav-back" class="nav-btn" title="Go Back">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path d="m15 18-6-6 6-6" />
+                            </svg>
+                        </button>
+                        <button id="nav-forward" class="nav-btn" title="Go Forward">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path d="m9 18 6-6-6-6" />
+                            </svg>
+                        </button>
+                    </div>
+                    <button class="hamburger-menu" id="hamburger-btn" title="Open navigation">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                    <form class="search-bar" id="search-form">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="24"
+                            height="24"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input type="search" id="search-input" placeholder="Search for tracks, artists, albums..." />
+                    </form>
+                </header>
+
+                <div id="page-home" class="page">
+                    <section class="content-section">
+                        <h2 class="section-title">Recent Albums</h2>
+                        <div class="card-grid" id="home-recent-albums"></div>
+                    </section>
+                    <section class="content-section">
+                        <h2 class="section-title">Recent Artists</h2>
+                        <div class="card-grid" id="home-recent-artists"></div>
+                    </section>
+                    <section class="content-section">
+                        <h2 class="section-title">Recent Playlists and Mixes</h2>
+                        <div class="card-grid" id="home-recent-playlists"></div>
+                    </section>
+                </div>
+
+                <div id="page-search" class="page">
+                    <h2 class="section-title" id="search-results-title">Search Results</h2>
                     <div class="search-tabs">
-                        <button class="search-tab active" data-tab="tracks">Liked Tracks</button>
+                        <button class="search-tab active" data-tab="tracks">Tracks</button>
                         <button class="search-tab" data-tab="albums">Albums</button>
                         <button class="search-tab" data-tab="artists">Artists</button>
-                        <button class="search-tab" data-tab="playlists">Playlists and Mixes</button>
+                        <button class="search-tab" data-tab="playlists">Playlists</button>
                     </div>
-                    <div class="search-tab-content active" id="library-tab-tracks">
-                        <div class="track-list" id="library-tracks-container"></div>
+                    <div class="search-tab-content active" id="search-tab-tracks">
+                        <div class="track-list" id="search-tracks-container"></div>
                     </div>
-                    <div class="search-tab-content" id="library-tab-albums">
-                        <div class="card-grid" id="library-albums-container"></div>
+                    <div class="search-tab-content" id="search-tab-albums">
+                        <div class="card-grid" id="search-albums-container"></div>
                     </div>
-                    <div class="search-tab-content" id="library-tab-artists">
-                        <div class="card-grid" id="library-artists-container"></div>
+                    <div class="search-tab-content" id="search-tab-artists">
+                        <div class="card-grid" id="search-artists-container"></div>
                     </div>
-                    <div class="search-tab-content" id="library-tab-playlists">
-                        <div class="card-grid" id="library-playlists-container"></div>
+                    <div class="search-tab-content" id="search-tab-playlists">
+                        <div class="card-grid" id="search-playlists-container"></div>
                     </div>
+                </div>
+
+                <div id="page-library" class="page">
+                    <section class="content-section">
+                        <div class="library-header">
+                            <h2>My Playlists</h2>
+                            <button id="create-playlist-btn" class="btn-primary" style="margin: 10px 0">
+                                Create Playlist
+                            </button>
+                        </div>
+                        <div class="card-grid" id="my-playlists-container"></div>
+                    </section>
+
+                    <section class="content-section">
+                        <h2 class="section-title">Favorites</h2>
+                        <div class="search-tabs">
+                            <button class="search-tab active" data-tab="tracks">Liked Tracks</button>
+                            <button class="search-tab" data-tab="albums">Albums</button>
+                            <button class="search-tab" data-tab="artists">Artists</button>
+                            <button class="search-tab" data-tab="playlists">Playlists and Mixes</button>
+                        </div>
+                        <div class="search-tab-content active" id="library-tab-tracks">
+                            <div class="track-list" id="library-tracks-container"></div>
+                        </div>
+                        <div class="search-tab-content" id="library-tab-albums">
+                            <div class="card-grid" id="library-albums-container"></div>
+                        </div>
+                        <div class="search-tab-content" id="library-tab-artists">
+                            <div class="card-grid" id="library-artists-container"></div>
+                        </div>
+                        <div class="search-tab-content" id="library-tab-playlists">
+                            <div class="card-grid" id="library-playlists-container"></div>
+                        </div>
+                    </section>
+                </div>
+
+                <div id="page-recent" class="page">
+                    <h2 class="section-title">Recently played</h2>
+                    <div class="track-list" id="recent-tracks-container"></div>
+                </div>
+
+                <div id="page-album" class="page">
+                    <header class="detail-header">
+                        <img
+                            id="album-detail-image"
+                            src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                            alt=""
+                            class="detail-header-image"
+                        />
+                        <div class="detail-header-info">
+                            <h1 class="title" id="album-detail-title"></h1>
+                            <div class="meta" id="album-detail-meta"></div>
+                            <div class="meta" id="album-detail-producer"></div>
+                            <div class="detail-header-actions">
+                                <button id="play-album-btn" class="btn-primary">
+                                    <span>Play Album</span>
+                                </button>
+                                <button id="album-mix-btn" class="btn-primary" style="display: none">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 24 24"
+                                        fill="currentColor"
+                                    >
+                                        <path
+                                            d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
+                                        />
+                                    </svg>
+                                    <span>Mix</span>
+                                </button>
+                                <button id="download-album-btn" class="btn-primary">
+                                    <span>Download</span>
+                                </button>
+                                <button
+                                    id="like-album-btn"
+                                    class="btn-secondary like-btn"
+                                    data-action="toggle-like"
+                                    data-type="album"
+                                    title="Save to Favorites"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        class="heart-icon"
+                                    >
+                                        <path
+                                            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                                        ></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+                    <div class="track-list" id="album-detail-tracklist"></div>
+
+                    <section
+                        class="content-section"
+                        id="album-section-more-albums"
+                        style="display: none; margin-top: 3rem"
+                    >
+                        <h2 class="section-title" id="album-title-more-albums">More from Artist</h2>
+                        <div class="card-grid" id="album-detail-more-albums"></div>
+                    </section>
+
+                    <section class="content-section" id="album-section-eps" style="display: none; margin-top: 3rem">
+                        <h2 class="section-title" id="album-title-eps">EPs and Singles</h2>
+                        <div class="card-grid" id="album-detail-eps"></div>
+                    </section>
+
+                    <section
+                        class="content-section"
+                        id="album-section-similar-artists"
+                        style="display: none; margin-top: 3rem"
+                    >
+                        <h2 class="section-title">Similar Artists</h2>
+                        <div class="card-grid" id="album-detail-similar-artists"></div>
+                    </section>
+
+                    <section
+                        class="content-section"
+                        id="album-section-similar-albums"
+                        style="display: none; margin-top: 3rem"
+                    >
+                        <h2 class="section-title">Similar Albums</h2>
+                        <div class="card-grid" id="album-detail-similar-albums"></div>
+                    </section>
+                </div>
+
+                <section id="page-playlist" class="page">
+                    <header class="detail-header">
+                        <img id="playlist-detail-image" class="detail-header-image" alt="Playlist Cover" />
+                        <div class="detail-header-info">
+                            <h1 class="title" id="playlist-detail-title"></h1>
+                            <div class="meta" id="playlist-detail-meta"></div>
+                            <div class="meta" id="playlist-detail-description" class="detail-description"></div>
+                            <div class="detail-header-actions">
+                                <button id="play-playlist-btn" class="btn-primary">
+                                    <span>Play</span>
+                                </button>
+                                <button id="download-playlist-btn" class="btn-primary">
+                                    <span>Download</span>
+                                </button>
+                                <button
+                                    id="like-playlist-btn"
+                                    class="btn-secondary like-btn"
+                                    data-action="toggle-like"
+                                    data-type="playlist"
+                                    title="Save to Favorites"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        class="heart-icon"
+                                    >
+                                        <path
+                                            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                                        ></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+                    <div id="playlist-detail-tracklist" class="track-list"></div>
                 </section>
-            </div>
 
-            <div id="page-recent" class="page">
-                <h2 class="section-title">Recently played</h2>
-                <div class="track-list" id="recent-tracks-container"></div>
-            </div>
-
-            <div id="page-album" class="page">
-                <header class="detail-header">
-                    <img id="album-detail-image" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="detail-header-image">
-                    <div class="detail-header-info">
-                        <h1 class="title" id="album-detail-title"></h1>
-                        <div class="meta" id="album-detail-meta"></div>
-                        <div class="meta" id="album-detail-producer"></div>
-                        <div class="detail-header-actions">
-                            <button id="play-album-btn" class="btn-primary">
-                            <span>Play Album</span>
-                            </button>
-                            <button id="album-mix-btn" class="btn-primary" style="display: none;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-                                </svg>
-                                <span>Mix</span>
-                            </button>
-                            <button id="download-album-btn" class="btn-primary">
-                            <span>Download</span>
-                            </button>
-                            <button id="like-album-btn" class="btn-secondary like-btn" data-action="toggle-like" data-type="album" title="Save to Favorites">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                            </button>
+                <section id="page-mix" class="page">
+                    <header class="detail-header">
+                        <img id="mix-detail-image" class="detail-header-image" alt="Mix Cover" />
+                        <div class="detail-header-info">
+                            <h1 class="title" id="mix-detail-title"></h1>
+                            <div class="meta" id="mix-detail-meta"></div>
+                            <div class="meta" id="mix-detail-description" class="detail-description"></div>
+                            <div class="detail-header-actions">
+                                <button id="play-mix-btn" class="btn-primary">
+                                    <span>Play</span>
+                                </button>
+                                <button id="download-mix-btn" class="btn-primary">
+                                    <span>Download</span>
+                                </button>
+                                <button
+                                    id="like-mix-btn"
+                                    class="btn-secondary like-btn"
+                                    data-action="toggle-like"
+                                    data-type="mix"
+                                    title="Save to Favorites"
+                                    style="display: none"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        class="heart-icon"
+                                    >
+                                        <path
+                                            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                                        ></path>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                </header>
-                <div class="track-list" id="album-detail-tracklist"></div>
-
-                <section class="content-section" id="album-section-more-albums" style="display: none; margin-top: 3rem;">
-                    <h2 class="section-title" id="album-title-more-albums">More from Artist</h2>
-                    <div class="card-grid" id="album-detail-more-albums"></div>
+                    </header>
+                    <div id="mix-detail-tracklist" class="track-list"></div>
                 </section>
 
-                <section class="content-section" id="album-section-eps" style="display: none; margin-top: 3rem;">
-                    <h2 class="section-title" id="album-title-eps">EPs and Singles</h2>
-                    <div class="card-grid" id="album-detail-eps"></div>
-                </section>
+                <div id="page-artist" class="page">
+                    <header class="detail-header">
+                        <img
+                            id="artist-detail-image"
+                            src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                            alt="Artist"
+                            class="detail-header-image artist"
+                        />
+                        <div class="detail-header-info">
+                            <h1 class="title" id="artist-detail-name"></h1>
+                            <div class="meta" id="artist-detail-meta"></div>
+                            <div class="detail-header-actions">
+                                <button id="play-artist-radio-btn" class="btn-primary">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 24 24"
+                                        fill="currentColor"
+                                    >
+                                        <path
+                                            d="M4.5 9v6h3l5 5V4l-5 5h-3zm16 3a6 6 0 0 0-3.26-5.3l-1.48 1.48C17.31 9.21 18 10.53 18 12c0 1.47-.69 2.79-1.74 3.82l1.48 1.48A6 6 0 0 0 20.5 12z"
+                                        />
+                                    </svg>
+                                    <span>Artist Radio</span>
+                                </button>
+                                <button id="artist-mix-btn" class="btn-primary" style="display: none">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 24 24"
+                                        fill="currentColor"
+                                    >
+                                        <path
+                                            d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
+                                        />
+                                    </svg>
+                                    <span>Mix</span>
+                                </button>
+                                <button id="download-discography-btn" class="btn-primary">
+                                    <span>Download Discography</span>
+                                </button>
+                                <button
+                                    id="like-artist-btn"
+                                    class="btn-secondary like-btn"
+                                    data-action="toggle-like"
+                                    data-type="artist"
+                                    title="Save to Favorites"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        class="heart-icon"
+                                    >
+                                        <path
+                                            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+                                        ></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+                    <section class="content-section">
+                        <h2 class="section-title">Popular Tracks</h2>
+                        <div class="track-list" id="artist-detail-tracks"></div>
+                    </section>
+                    <section class="content-section">
+                        <h2 class="section-title">Albums</h2>
+                        <div class="card-grid" id="artist-detail-albums"></div>
+                    </section>
+                    <section class="content-section" id="artist-section-eps" style="display: none">
+                        <h2 class="section-title">EPs and Singles</h2>
+                        <div class="card-grid" id="artist-detail-eps"></div>
+                    </section>
+                    <section class="content-section" id="artist-section-similar" style="display: none">
+                        <h2 class="section-title">Similar Artists</h2>
+                        <div class="card-grid" id="artist-detail-similar"></div>
+                    </section>
+                </div>
 
-                <section class="content-section" id="album-section-similar-artists" style="display: none; margin-top: 3rem;">
-                    <h2 class="section-title">Similar Artists</h2>
-                    <div class="card-grid" id="album-detail-similar-artists"></div>
-                </section>
+                <div id="page-settings" class="page">
+                    <h2 class="section-title">Settings</h2>
+                    <div class="settings-list">
+                        <div class="settings-group">
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Theme</span>
+                                    <span class="description">Choose your preferred color scheme</span>
+                                </div>
+                            </div>
+                            <div class="theme-picker" id="theme-picker">
+                                <div class="theme-option" data-theme="system">System</div>
+                                <div class="theme-option" data-theme="light">Light</div>
+                                <div class="theme-option" data-theme="dark">Dark</div>
+                                <div class="theme-option" data-theme="monochrome">Black</div>
+                                <div class="theme-option" data-theme="ocean">Ocean</div>
+                                <div class="theme-option" data-theme="purple">Purple</div>
+                                <div class="theme-option" data-theme="forest">Forest</div>
+                                <div class="theme-option" data-theme="mocha">Mocha</div>
+                                <div class="theme-option" data-theme="machiatto">Machiatto</div>
+                                <div class="theme-option" data-theme="frappe">Frappé</div>
+                                <div class="theme-option" data-theme="latte">Latte</div>
+                                <div class="theme-option" data-theme="custom">Custom</div>
+                            </div>
+                            <div class="custom-theme-editor" id="custom-theme-editor">
+                                <h4>Custom Theme</h4>
+                                <div class="theme-color-grid" id="theme-color-grid"></div>
+                                <div class="theme-actions">
+                                    <button class="btn-secondary" id="apply-custom-theme">Apply Theme</button>
+                                    <button class="btn-secondary" id="reset-custom-theme">Reset</button>
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Waveform Seekbar</span>
+                                    <span class="description"
+                                        >Show a visual waveform of the track in the progress bar (Experimental)</span
+                                    >
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="waveform-toggle" />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Smooth Scrolling</span>
+                                    <span class="description"
+                                        >Provides a smoother scrolling experience with Lenis (Experimental)</span
+                                    >
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="smooth-scrolling-toggle" />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Album Cover Background</span>
+                                    <span class="description"
+                                        >Use the album cover as a blurred background on album pages and as primary
+                                        color</span
+                                    >
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="album-background-toggle" />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="settings-group">
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Last.fm Scrobbling</span>
+                                    <span class="description" id="lastfm-status"
+                                        >Connect your Last.fm account to scrobble tracks</span
+                                    >
+                                </div>
+                                <div id="lastfm-controls">
+                                    <button id="lastfm-connect-btn" class="btn-secondary">Connect Last.fm</button>
+                                </div>
+                            </div>
 
-                <section class="content-section" id="album-section-similar-albums" style="display: none; margin-top: 3rem;">
-                    <h2 class="section-title">Similar Albums</h2>
-                    <div class="card-grid" id="album-detail-similar-albums"></div>
-                </section>
-            </div>
+                            <div class="setting-item" id="lastfm-toggle-setting" style="display: none">
+                                <div class="info">
+                                    <span class="label">Enable Scrobbling</span>
+                                    <span class="description">Automatically scrobble played tracks</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="lastfm-toggle" />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
 
-            <section id="page-playlist" class="page">
-                <header class="detail-header">
-                    <img id="playlist-detail-image" class="detail-header-image" alt="Playlist Cover">
-                    <div class="detail-header-info">
-                        <h1 class="title" id="playlist-detail-title"></h1>
-                        <div class="meta" id="playlist-detail-meta"></div>
-                        <div class="meta" id="playlist-detail-description" class="detail-description"></div>
-                        <div class="detail-header-actions">
-                            <button id="play-playlist-btn" class="btn-primary">
-                            <span>Play</span>
-                            </button>
-                            <button id="download-playlist-btn" class="btn-primary">
-                            <span>Download</span>
-                            </button>
-                            <button id="like-playlist-btn" class="btn-secondary like-btn" data-action="toggle-like" data-type="playlist" title="Save to Favorites">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                            </button>
-                        </div>
-                    </div>
-                </header>
-                <div id="playlist-detail-tracklist" class="track-list"></div>
-            </section>
-
-            <section id="page-mix" class="page">
-                <header class="detail-header">
-                    <img id="mix-detail-image" class="detail-header-image" alt="Mix Cover">
-                    <div class="detail-header-info">
-                        <h1 class="title" id="mix-detail-title"></h1>
-                        <div class="meta" id="mix-detail-meta"></div>
-                        <div class="meta" id="mix-detail-description" class="detail-description"></div>
-                        <div class="detail-header-actions">
-                            <button id="play-mix-btn" class="btn-primary">
-                            <span>Play</span>
-                            </button>
-                            <button id="download-mix-btn" class="btn-primary">
-                            <span>Download</span>
-                            </button>
-                            <button id="like-mix-btn" class="btn-secondary like-btn" data-action="toggle-like" data-type="mix" title="Save to Favorites" style="display: none;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                            </button>
-                        </div>
-                    </div>
-                </header>
-                <div id="mix-detail-tracklist" class="track-list"></div>
-            </section>
-
-            <div id="page-artist" class="page">
-                <header class="detail-header">
-                    <img id="artist-detail-image" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Artist" class="detail-header-image artist">
-                    <div class="detail-header-info">
-                        <h1 class="title" id="artist-detail-name"></h1>
-                        <div class="meta" id="artist-detail-meta"></div>
-                        <div class="detail-header-actions">
-                            <button id="play-artist-radio-btn" class="btn-primary">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M4.5 9v6h3l5 5V4l-5 5h-3zm16 3a6 6 0 0 0-3.26-5.3l-1.48 1.48C17.31 9.21 18 10.53 18 12c0 1.47-.69 2.79-1.74 3.82l1.48 1.48A6 6 0 0 0 20.5 12z"/>
-                                </svg>
-                                <span>Artist Radio</span>
-                            </button>
-                            <button id="artist-mix-btn" class="btn-primary" style="display: none;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-                                </svg>
-                                <span>Mix</span>
-                            </button>
-                            <button id="download-discography-btn" class="btn-primary">
-                            <span>Download Discography</span>
-                            </button>
-                            <button id="like-artist-btn" class="btn-secondary like-btn" data-action="toggle-like" data-type="artist" title="Save to Favorites">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                            </button>
-                        </div>
-                    </div>
-                </header>
-                <section class="content-section">
-                    <h2 class="section-title">Popular Tracks</h2>
-                    <div class="track-list" id="artist-detail-tracks"></div>
-                </section>
-                <section class="content-section">
-                    <h2 class="section-title">Albums</h2>
-                    <div class="card-grid" id="artist-detail-albums"></div>
-                </section>
-                <section class="content-section" id="artist-section-eps" style="display: none;">
-                    <h2 class="section-title">EPs and Singles</h2>
-                    <div class="card-grid" id="artist-detail-eps"></div>
-                </section>
-                <section class="content-section" id="artist-section-similar" style="display: none;">
-                    <h2 class="section-title">Similar Artists</h2>
-                    <div class="card-grid" id="artist-detail-similar"></div>
-                </section>
-            </div>
-
-            <div id="page-settings" class="page">
-                <h2 class="section-title">Settings</h2>
-                <div class="settings-list">
-                    <div class="settings-group">
-                        <div class="setting-item">
-                            <div class="info">
-                                <span class="label">Theme</span>
-                                <span class="description">Choose your preferred color scheme</span>
-                            </div>
-                        </div>
-                        <div class="theme-picker" id="theme-picker">
-                            <div class="theme-option" data-theme="system">System</div>
-                            <div class="theme-option" data-theme="light">Light</div>
-                            <div class="theme-option" data-theme="dark">Dark</div>
-                            <div class="theme-option" data-theme="monochrome">Black</div>
-                            <div class="theme-option" data-theme="ocean">Ocean</div>
-                            <div class="theme-option" data-theme="purple">Purple</div>
-                            <div class="theme-option" data-theme="forest">Forest</div>
-                            <div class="theme-option" data-theme="mocha">Mocha</div>
-                            <div class="theme-option" data-theme="machiatto">Machiatto</div>
-                            <div class="theme-option" data-theme="frappe">Frappé</div>
-                            <div class="theme-option" data-theme="latte">Latte</div>
-                            <div class="theme-option" data-theme="custom">Custom</div>
-                        </div>
-                        <div class="custom-theme-editor" id="custom-theme-editor">
-                            <h4>Custom Theme</h4>
-                            <div class="theme-color-grid" id="theme-color-grid"></div>
-                            <div class="theme-actions">
-                                <button class="btn-secondary" id="apply-custom-theme">Apply Theme</button>
-                                <button class="btn-secondary" id="reset-custom-theme">Reset</button>
-                            </div>
-                        </div>
-                        <div class="setting-item">
-                            <div class="info">
-                                <span class="label">Waveform Seekbar</span>
-                                <span class="description">Show a visual waveform of the track in the progress bar (Experimental)</span>
-                            </div>
-                            <label class="toggle-switch">
-                            <input type="checkbox" id="waveform-toggle">
-                            <span class="slider"></span>
-                            </label>
-                        </div>
-                        <div class="setting-item">
-                            <div class="info">
-                                <span class="label">Smooth Scrolling</span>
-                                <span class="description">Provides a smoother scrolling experience with Lenis (Experimental)</span>
-                            </div>
-                            <label class="toggle-switch">
-                            <input type="checkbox" id="smooth-scrolling-toggle">
-                            <span class="slider"></span>
-                            </label>
-                        </div>
-                        <div class="setting-item">
-                            <div class="info">
-                                <span class="label">Album Cover Background</span>
-                                <span class="description">Use the album cover as a blurred background on album pages and as primary color</span>
-                            </div>
-                            <label class="toggle-switch">
-                            <input type="checkbox" id="album-background-toggle">
-                            <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-                    <div class="settings-group">
-                        <div class="setting-item">
-                            <div class="info">
-                                <span class="label">Last.fm Scrobbling</span>
-                                <span class="description" id="lastfm-status">Connect your Last.fm account to scrobble tracks</span>
-                            </div>
-                            <div id="lastfm-controls">
-                                <button id="lastfm-connect-btn" class="btn-secondary">Connect Last.fm</button>
+                            <div class="setting-item" id="lastfm-love-setting" style="display: none">
+                                <div class="info">
+                                    <span class="label">Love on Like</span>
+                                    <span class="description"
+                                        >Automatically 'love' tracks on Last.fm when you like them</span
+                                    >
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="lastfm-love-toggle" />
+                                    <span class="slider"></span>
+                                </label>
                             </div>
                         </div>
 
-                        <div class="setting-item" id="lastfm-toggle-setting" style="display: none;">
-                            <div class="info">
-                                <span class="label">Enable Scrobbling</span>
-                                <span class="description">Automatically scrobble played tracks</span>
-                            </div>
-                            <label class="toggle-switch">
-                            <input type="checkbox" id="lastfm-toggle">
-                            <span class="slider"></span>
-                            </label>
-                        </div>
-
-                        <div class="setting-item" id="lastfm-love-setting" style="display: none;">
-                            <div class="info">
-                                <span class="label">Love on Like</span>
-                                <span class="description">Automatically 'love' tracks on Last.fm when you like them</span>
-                            </div>
-                            <label class="toggle-switch">
-                            <input type="checkbox" id="lastfm-love-toggle">
-                            <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="settings-group">
-                        <div class="setting-item">
-                            <div class="info">
-                                <a class="label" id="firebase-config" href="#toggle-firebase-config-btn">ADVANCED: Firebase Configuration</a>
-                                <span class="description">Select which database you would like to connect to. <br> Monochrome-owned database is default.</span>
-                            </div>
-                            <div>
-                                <button id="toggle-firebase-config-btn" class="btn-secondary">Custom Configuration</button>
-                                <div class="firebase-settings-wrapper">
-                                    <div id="custom-firebase-config-container" class="custom-firebase-config">
-                                        <p class="config-help-text">Default shared instance is active. <a href="https://github.com/SamidyFR/monochrome/blob/main/firebase-setup.md" target="_blank" class="text-link">Override below only if needed.</a></p>
-                                        <textarea id="firebase-config-input" class="template-input" rows="5" placeholder="{ &quot;apiKey&quot;: &quot;...&quot;, &quot;authDomain&quot;: &quot;...&quot;, ... }"></textarea>
-                                        <div class="firebase-controls-container">
-                                            <button id="save-firebase-config-btn" class="btn-secondary">Save & Reload</button>
-                                            <button id="share-firebase-config-btn" class="btn-secondary">Share</button>
-                                            <button id="clear-firebase-config-btn" class="btn-secondary danger">Clear Config</button>
+                        <div class="settings-group">
+                            <div class="setting-item">
+                                <div class="info">
+                                    <a class="label" id="firebase-config" href="#toggle-firebase-config-btn"
+                                        >ADVANCED: Firebase Configuration</a
+                                    >
+                                    <span class="description"
+                                        >Select which database you would like to connect to. <br />
+                                        Monochrome-owned database is default.</span
+                                    >
+                                </div>
+                                <div>
+                                    <button id="toggle-firebase-config-btn" class="btn-secondary">
+                                        Custom Configuration
+                                    </button>
+                                    <div class="firebase-settings-wrapper">
+                                        <div id="custom-firebase-config-container" class="custom-firebase-config">
+                                            <p class="config-help-text">
+                                                Default shared instance is active.
+                                                <a
+                                                    href="https://github.com/SamidyFR/monochrome/blob/main/firebase-setup.md"
+                                                    target="_blank"
+                                                    class="text-link"
+                                                    >Override below only if needed.</a
+                                                >
+                                            </p>
+                                            <textarea
+                                                id="firebase-config-input"
+                                                class="template-input"
+                                                rows="5"
+                                                placeholder="{ &quot;apiKey&quot;: &quot;...&quot;, &quot;authDomain&quot;: &quot;...&quot;, ... }"
+                                            ></textarea>
+                                            <div class="firebase-controls-container">
+                                                <button id="save-firebase-config-btn" class="btn-secondary">
+                                                    Save & Reload
+                                                </button>
+                                                <button id="share-firebase-config-btn" class="btn-secondary">
+                                                    Share
+                                                </button>
+                                                <button id="clear-firebase-config-btn" class="btn-secondary danger">
+                                                    Clear Config
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                    </div>
-
-                    <div class="settings-group">
-                        <div class="setting-item">
-                            <div class="info">
-                                <span class="label">Streaming Quality</span>
-                                <span class="description">Quality for streaming playback</span>
-                            </div>
-                            <select id="streaming-quality-setting">
-                                <option value="LOSSLESS">FLAC (Lossless)</option>
-                                <option value="HIGH">AAC 320kbps</option>
-                                <option value="LOW">AAC 96kbps</option>
-                            </select>
-                        </div>
-                        <div class="setting-item">
-                            <div class="info">
-                                <span class="label">Download Quality</span>
-                                <span class="description">Quality for track downloads</span>
-                            </div>
-                            <select id="download-quality-setting">
-                                <option value="LOSSLESS">FLAC (Lossless)</option>
-                                <option value="HIGH">AAC 320kbps</option>
-                                <option value="LOW">AAC 96kbps</option>
-                            </select>
-                        </div>
-                        <div class="setting-item">
-                            <div class="info">
-                                <span class="label">Gapless Playback</span>
-                                <span class="description">Play audio without interruption between tracks</span>
-                            </div>
-                            <label class="toggle-switch">
-                            <input type="checkbox" checked>
-                            <span class="slider"></span>
-                            </label>
-                        </div>
-                        <div class="setting-item">
-                            <div class="info">
-                                <span class="label">ReplayGain Mode</span>
-                                <span class="description">Normalize volume across tracks</span>
-                            </div>
-                            <select id="replay-gain-mode">
-                                <option value="off">Off</option>
-                                <option value="track">Track</option>
-                                <option value="album">Album</option>
-                            </select>
-                        </div>
-                        <div class="setting-item">
-                            <div class="info">
-                                <span class="label">ReplayGain Pre-Amp</span>
-                                <span class="description">Adjust gain manually (dB)</span>
-                            </div>
-                            <input type="number" id="replay-gain-preamp" value="3" step="0.5" style="width: 80px;">
-                        </div>
-                    </div>
-
-                    <div class="settings-group">
-                        <div class="setting-item">
-                            <div class="info">
-                                <span class="label">Now Playing View Mode</span>
-                                <span class="description">Choose what shows when you click the album art</span>
-                            </div>
-                            <select id="now-playing-mode">
-                                <option value="album">Show Album</option>
-                                <option value="cover">Enlarged Cover</option>
-                                <option value="lyrics">Lyrics Panel</option>
-                            </select>
-                        </div>
-                        <div class="setting-item">
-                            <div class="info">
-                                <span class="label">Track List Actions</span>
-                                <span class="description">Choose between a dropdown menu or inline buttons for track actions</span>
-                            </div>
-                            <select id="track-list-actions-mode">
-                                <option value="dropdown">Dropdown Menu</option>
-                                <option value="inline">Inline Buttons</option>
-                            </select>
-                        </div>
-                        <div class="setting-item">
-                            <div class="info">
-                                <span class="label">Compact Artists</span>
-                                <span class="description">Show artist cards in a compact, horizontal layout</span>
-                            </div>
-                            <label class="toggle-switch">
-                            <input type="checkbox" id="compact-artist-toggle">
-                            <span class="slider"></span>
-                            </label>
-                        </div>
-                        <div class="setting-item">
-                            <div class="info">
-                                <span class="label">Compact Albums</span>
-                                <span class="description">Show album cards in a compact, horizontal layout</span>
-                            </div>
-                            <label class="toggle-switch">
-                            <input type="checkbox" id="compact-album-toggle">
-                            <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="settings-group">
-                        <div class="setting-item">
-                            <div class="info">
-                                <span class="label">Download Lyrics</span>
-                                <span class="description">Include .lrc files when downloading tracks/albums</span>
-                            </div>
-                            <label class="toggle-switch">
-                            <input type="checkbox" id="download-lyrics-toggle">
-                            <span class="slider"></span>
-                            </label>
-                        </div>
-                        <div class="setting-item">
-                            <div class="info">
-                                <span class="label">Romaji Lyrics</span>
-                                <span class="description">Convert Japanese lyrics to Romaji (Latin characters)</span>
-                            </div>
-                            <label class="toggle-switch">
-                            <input type="checkbox" id="romaji-lyrics-toggle">
-                            <span class="slider"></span>
-                            </label>
-                        </div>
-                        <div class="setting-item">
-                            <div class="info">
-                                <span class="label">Filename Template</span>
-                                <span class="description">Customize download filenames. Available: {trackNumber}, {artist}, {title}, {album}</span>
-                            </div>
-                            <input type="text" id="filename-template" class="template-input" placeholder="{trackNumber} - {artist} - {title}">
-                        </div>
-                        <div class="setting-item">
-                            <div class="info">
-                                <span class="label">ZIP Folder Template</span>
-                                <span class="description">Customize album folder names. Available: {albumTitle}, {albumArtist}, {year}</span>
-                            </div>
-                            <input type="text" id="zip-folder-template" class="template-input" placeholder="{albumTitle} - {albumArtist} - monochrome.tf">
-                        </div>
-                    </div>
-
-                    <div class="settings-group">
-                        <div class="setting-item">
-                            <div class="info">
-                                <span class="label">Keyboard Shortcuts</span>
-                                <span class="description">View available keyboard shortcuts</span>
-                            </div>
-                            <button id="show-shortcuts-btn" class="btn-secondary">Show Shortcuts</button>
-                        </div>
-                        <div class="setting-item">
-                            <div class="info">
-                                <span class="label">Cache</span>
-                                <span class="description" id="cache-info">Stores API responses to reduce requests</span>
-                            </div>
-                            <button id="clear-cache-btn" class="btn-secondary">Clear Cache</button>
-                        </div>
-                        <div class="setting-item">
-                            <div class="info">
-                                <span class="label">Backup & Restore</span>
-                                <span class="description">Export or import your library and history as JSON</span>
-                            </div>
-                            <div style="display: flex; gap: 0.5rem;">
-                                <button id="export-library-btn" class="btn-secondary">Export</button>
-                                <button id="import-library-btn" class="btn-secondary">Import</button>
-                                <input type="file" id="import-library-input" style="display: none;" accept=".json">
-                            </div>
-                        </div>
-                        <div id="api-instance-manager">
-                            <div class="setting-item" style="padding-bottom: 1rem; border: none;">
+                        <div class="settings-group">
+                            <div class="setting-item">
                                 <div class="info">
-                                    <span class="label">API Instances</span>
-                                    <span class="description">Manage and prioritize API instances. Automatically sorted by speed.</span>
+                                    <span class="label">Streaming Quality</span>
+                                    <span class="description">Quality for streaming playback</span>
                                 </div>
-                                <button id="refresh-speed-test-btn" class="btn-secondary">Refresh Speed Test</button>
+                                <select id="streaming-quality-setting">
+                                    <option value="LOSSLESS">FLAC (Lossless)</option>
+                                    <option value="HIGH">AAC 320kbps</option>
+                                    <option value="LOW">AAC 96kbps</option>
+                                </select>
                             </div>
-                            <ul id="api-instance-list"></ul>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Download Quality</span>
+                                    <span class="description">Quality for track downloads</span>
+                                </div>
+                                <select id="download-quality-setting">
+                                    <option value="LOSSLESS">FLAC (Lossless)</option>
+                                    <option value="HIGH">AAC 320kbps</option>
+                                    <option value="LOW">AAC 96kbps</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Gapless Playback</span>
+                                    <span class="description">Play audio without interruption between tracks</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" checked />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">ReplayGain Mode</span>
+                                    <span class="description">Normalize volume across tracks</span>
+                                </div>
+                                <select id="replay-gain-mode">
+                                    <option value="off">Off</option>
+                                    <option value="track">Track</option>
+                                    <option value="album">Album</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">ReplayGain Pre-Amp</span>
+                                    <span class="description">Adjust gain manually (dB)</span>
+                                </div>
+                                <input type="number" id="replay-gain-preamp" value="3" step="0.5" style="width: 80px" />
+                            </div>
+                        </div>
+
+                        <div class="settings-group">
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Now Playing View Mode</span>
+                                    <span class="description">Choose what shows when you click the album art</span>
+                                </div>
+                                <select id="now-playing-mode">
+                                    <option value="album">Show Album</option>
+                                    <option value="cover">Enlarged Cover</option>
+                                    <option value="lyrics">Lyrics Panel</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Track List Actions</span>
+                                    <span class="description"
+                                        >Choose between a dropdown menu or inline buttons for track actions</span
+                                    >
+                                </div>
+                                <select id="track-list-actions-mode">
+                                    <option value="dropdown">Dropdown Menu</option>
+                                    <option value="inline">Inline Buttons</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Compact Artists</span>
+                                    <span class="description">Show artist cards in a compact, horizontal layout</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="compact-artist-toggle" />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Compact Albums</span>
+                                    <span class="description">Show album cards in a compact, horizontal layout</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="compact-album-toggle" />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="settings-group">
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Download Lyrics</span>
+                                    <span class="description">Include .lrc files when downloading tracks/albums</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="download-lyrics-toggle" />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Romaji Lyrics</span>
+                                    <span class="description"
+                                        >Convert Japanese lyrics to Romaji (Latin characters)</span
+                                    >
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="romaji-lyrics-toggle" />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Filename Template</span>
+                                    <span class="description"
+                                        >Customize download filenames. Available: {trackNumber}, {artist}, {title},
+                                        {album}</span
+                                    >
+                                </div>
+                                <input
+                                    type="text"
+                                    id="filename-template"
+                                    class="template-input"
+                                    placeholder="{trackNumber} - {artist} - {title}"
+                                />
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">ZIP Folder Template</span>
+                                    <span class="description"
+                                        >Customize album folder names. Available: {albumTitle}, {albumArtist},
+                                        {year}</span
+                                    >
+                                </div>
+                                <input
+                                    type="text"
+                                    id="zip-folder-template"
+                                    class="template-input"
+                                    placeholder="{albumTitle} - {albumArtist} - monochrome.tf"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="settings-group">
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Keyboard Shortcuts</span>
+                                    <span class="description">View available keyboard shortcuts</span>
+                                </div>
+                                <button id="show-shortcuts-btn" class="btn-secondary">Show Shortcuts</button>
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Cache</span>
+                                    <span class="description" id="cache-info"
+                                        >Stores API responses to reduce requests</span
+                                    >
+                                </div>
+                                <button id="clear-cache-btn" class="btn-secondary">Clear Cache</button>
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Backup & Restore</span>
+                                    <span class="description">Export or import your library and history as JSON</span>
+                                </div>
+                                <div style="display: flex; gap: 0.5rem">
+                                    <button id="export-library-btn" class="btn-secondary">Export</button>
+                                    <button id="import-library-btn" class="btn-secondary">Import</button>
+                                    <input type="file" id="import-library-input" style="display: none" accept=".json" />
+                                </div>
+                            </div>
+                            <div id="api-instance-manager">
+                                <div class="setting-item" style="padding-bottom: 1rem; border: none">
+                                    <div class="info">
+                                        <span class="label">API Instances</span>
+                                        <span class="description"
+                                            >Manage and prioritize API instances. Automatically sorted by speed.</span
+                                        >
+                                    </div>
+                                    <button id="refresh-speed-test-btn" class="btn-secondary">
+                                        Refresh Speed Test
+                                    </button>
+                                </div>
+                                <ul id="api-instance-list"></ul>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div id="page-about" class="page">
-                <h2 class="section-title">About Monochrome</h2>
-                <div class="about-content">
-                    <p class="about-description">
-                        Monochrome is a lightweight, privacy-focused music streaming client designed for high-fidelity audio playback.
-                        Built with modern web technologies, it provides a clean, distraction-free listening experience.
-                        <br>
-                    </p>
-                    <br>
-                    <div class="about-features">
-                        <h4>Features</h4>
-                        <ul>
-                            <li>High-quality lossless audio streaming</li>
-                            <li>Lyrics support with karaoke mode</li>
-                            <li>Recently Played tracking for easy history access</li>
-                            <li>Comprehensive Personal Library for favorites</li>
-                            <li>Intelligent API caching for improved performance</li>
-                            <li>Offline-capable Progressive Web App (PWA)</li>
-                            <li>Media Session API integration for system controls</li>
-                            <li>Queue management with shuffle and repeat modes</li>
-                            <li>Track downloads with automatic metadata embedding</li>
-                            <li>Multiple API instance support with failover</li>
-                            <li>Dark, minimalist interface optimized for focus</li>
-                            <li>Customizable themes</li>
-                            <li>Keyboard shortcuts for power users</li>
-                        </ul>
-                    </div>
-                    <div class="about-tech">
-                        <h4>Technology Stack</h4>
-                        <p>Vanilla JavaScript • ES6 Modules • IndexedDB • Service Workers • Media Session API</p>
-                    </div>
-                    <br><br><br>
-                    <div class="about-donate">
-                        <h2 class="section-title" style="text-align: center;">Donate to Monochrome</h2>
-                        <p style="text-align: center;" class="donate-description">If Monochrome has been useful to you and you're able to, consider making a donation. <br> It helps pay for the server and domain, and you get to support us :)</p>
-                        <div class="donate-button" id="donate-button-container" style="display: flex; gap: 20px; align-items: center; justify-content: center; margin-top: 50px; flex-wrap: wrap;">
-                        <a href="https://ko-fi.com/monochromemusic">
-                        <button id="donate-btn" class="btn-secondary">Donate to Monochrome</button>
-                        </a>
+                <div id="page-about" class="page">
+                    <h2 class="section-title">About Monochrome</h2>
+                    <div class="about-content">
+                        <p class="about-description">
+                            Monochrome is a lightweight, privacy-focused music streaming client designed for
+                            high-fidelity audio playback. Built with modern web technologies, it provides a clean,
+                            distraction-free listening experience.
+                            <br />
+                        </p>
+                        <br />
+                        <div class="about-features">
+                            <h4>Features</h4>
+                            <ul>
+                                <li>High-quality lossless audio streaming</li>
+                                <li>Lyrics support with karaoke mode</li>
+                                <li>Recently Played tracking for easy history access</li>
+                                <li>Comprehensive Personal Library for favorites</li>
+                                <li>Intelligent API caching for improved performance</li>
+                                <li>Offline-capable Progressive Web App (PWA)</li>
+                                <li>Media Session API integration for system controls</li>
+                                <li>Queue management with shuffle and repeat modes</li>
+                                <li>Track downloads with automatic metadata embedding</li>
+                                <li>Multiple API instance support with failover</li>
+                                <li>Dark, minimalist interface optimized for focus</li>
+                                <li>Customizable themes</li>
+                                <li>Keyboard shortcuts for power users</li>
+                            </ul>
+                        </div>
+                        <div class="about-tech">
+                            <h4>Technology Stack</h4>
+                            <p>Vanilla JavaScript • ES6 Modules • IndexedDB • Service Workers • Media Session API</p>
+                        </div>
+                        <br /><br /><br />
+                        <div class="about-donate">
+                            <h2 class="section-title" style="text-align: center">Donate to Monochrome</h2>
+                            <p style="text-align: center" class="donate-description">
+                                If Monochrome has been useful to you and you're able to, consider making a donation.
+                                <br />
+                                It helps pay for the server and domain, and you get to support us :)
+                            </p>
+                            <div
+                                class="donate-button"
+                                id="donate-button-container"
+                                style="
+                                    display: flex;
+                                    gap: 20px;
+                                    align-items: center;
+                                    justify-content: center;
+                                    margin-top: 50px;
+                                    flex-wrap: wrap;
+                                "
+                            >
+                                <a href="https://ko-fi.com/monochromemusic">
+                                    <button id="donate-btn" class="btn-secondary">Donate to Monochrome</button>
+                                </a>
+                            </div>
+                        </div>
+                        <br /><br /><br />
+                        <div class="about-links">
+                            <a
+                                href="https://github.com/SamidyFR/monochrome"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="github-link"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="24"
+                                    height="24"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    class="lucide lucide-github-icon lucide-github"
+                                >
+                                    <path
+                                        d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"
+                                    />
+                                    <path d="M9 18c-4.51 2-5-2-7-2" />
+                                </svg>
+                                View on GitHub
+                            </a>
+                            <br />
+                            <a
+                                href="https://github.com/eduardprigoana/monochrome"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="github-link"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="24"
+                                    height="24"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    class="lucide lucide-github-icon lucide-github"
+                                >
+                                    <path
+                                        d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"
+                                    />
+                                    <path d="M9 18c-4.51 2-5-2-7-2" />
+                                </svg>
+                                View on GitHub (Original Repo)
+                            </a>
+                        </div>
+                        <div class="about-footer">
+                            <p class="version">Version 1.3.0</p>
+                            <p class="disclaimer">
+                                This is an independent client and is not affiliated with or endorsed by TIDAL or any
+                                music streaming service.
+                            </p>
+                            <p class="disclaimer">
+                                This application does not host, store, or distribute any media files. <br />
+                                All content displayed or accessed through this app is provided by third‑party services
+                                and APIs that are publicly available on the internet. <br />
+                                We do not control, operate, or maintain any external content sources and are not
+                                responsible for the accuracy, availability, or legality of any content provided by third
+                                parties. <br />
+                                Users are solely responsible for how they use this application and for ensuring that
+                                their use complies with applicable laws and regulations in their jurisdiction.
+                            </p>
                         </div>
                     </div>
-                    <br><br><br>
-                    <div class="about-links">
-                        <a href="https://github.com/SamidyFR/monochrome" target="_blank" rel="noopener noreferrer" class="github-link">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-github-icon lucide-github"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
-                            View on GitHub
-                        </a>
-                        <br>
-                        <a href="https://github.com/eduardprigoana/monochrome" target="_blank" rel="noopener noreferrer" class="github-link">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-github-icon lucide-github"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
-                            View on GitHub (Original Repo)
-                        </a>
-                    </div>
-                    <div class="about-footer">
-                        <p class="version">Version 1.3.0</p>
-                        <p class="disclaimer">This is an independent client and is not affiliated with or endorsed by TIDAL or any music streaming service.</p>
-                        <p class="disclaimer">This application does not host, store, or distribute any media files. <br> All content displayed or accessed through this app is provided by third‑party services and APIs that are publicly available on the internet. <br> We do not control, operate, or maintain any external content sources and are not responsible for the accuracy, availability, or legality of any content provided by third parties. <br> Users are solely responsible for how they use this application and for ensuring that their use complies with applicable laws and regulations in their jurisdiction.</p>
-                    </div>
                 </div>
-            </div>
-            <div id="page-account" class="page">
-                <h2 class="section-title" style="text-align: center;">Sign Up / Sign In</h2>
-                <div class="account-content">
-                    <p style="text-align: center;" class="account-description">Make an account to allow syncing your library between devices.</p>
-                    <div class="account-buttons" id="auth-buttons-container" style="display: flex; gap: 20px; align-items: center; justify-content: center; margin-top: 50px; flex-wrap: wrap;">
-                        <button id="firebase-connect-btn" class="btn-secondary">Connect with Google</button>
-                        <button id="toggle-email-auth-btn" class="btn-secondary">Connect with Email</button>
-                        <button id="firebase-clear-cloud-btn" class="btn-secondary danger">Clear Cloud Data</button>
-                    </div>
-
-                    <div id="email-auth-container" style="display: none; flex-direction: column; gap: 15px; width: 100%; max-width: 320px; margin: 20px auto; padding: 20px; background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);">
-                        <h3 style="text-align: center; margin-bottom: 10px;">Email Authentication</h3>
-                        <input type="email" id="auth-email" class="template-input" placeholder="Email Address">
-                        <input type="password" id="auth-password" class="template-input" placeholder="Password">
-                        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
-                            <button id="email-signin-btn" class="btn-primary" style="flex: 1;">Sign In</button>
-                            <button id="email-signup-btn" class="btn-secondary" style="flex: 1;">Sign Up</button>
+                <div id="page-account" class="page">
+                    <h2 class="section-title" style="text-align: center">Sign Up / Sign In</h2>
+                    <div class="account-content">
+                        <p style="text-align: center" class="account-description">
+                            Make an account to allow syncing your library between devices.
+                        </p>
+                        <div
+                            class="account-buttons"
+                            id="auth-buttons-container"
+                            style="
+                                display: flex;
+                                gap: 20px;
+                                align-items: center;
+                                justify-content: center;
+                                margin-top: 50px;
+                                flex-wrap: wrap;
+                            "
+                        >
+                            <button id="firebase-connect-btn" class="btn-secondary">Connect with Google</button>
+                            <button id="toggle-email-auth-btn" class="btn-secondary">Connect with Email</button>
+                            <button id="firebase-clear-cloud-btn" class="btn-secondary danger">Clear Cloud Data</button>
                         </div>
-                        <button id="cancel-email-auth-btn" class="btn-secondary" style="width: 100%; margin-top: 10px;">Cancel</button>
+
+                        <div
+                            id="email-auth-container"
+                            style="
+                                display: none;
+                                flex-direction: column;
+                                gap: 15px;
+                                width: 100%;
+                                max-width: 320px;
+                                margin: 20px auto;
+                                padding: 20px;
+                                background: var(--card);
+                                border-radius: var(--radius);
+                                border: 1px solid var(--border);
+                            "
+                        >
+                            <h3 style="text-align: center; margin-bottom: 10px">Email Authentication</h3>
+                            <input type="email" id="auth-email" class="template-input" placeholder="Email Address" />
+                            <input type="password" id="auth-password" class="template-input" placeholder="Password" />
+                            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px">
+                                <button id="email-signin-btn" class="btn-primary" style="flex: 1">Sign In</button>
+                                <button id="email-signup-btn" class="btn-secondary" style="flex: 1">Sign Up</button>
+                            </div>
+                            <button
+                                id="cancel-email-auth-btn"
+                                class="btn-secondary"
+                                style="width: 100%; margin-top: 10px"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                        <p id="firebase-status" style="text-align: center; padding-top: 15px; color: #8b8b93">
+                            Sync your library across devices
+                        </p>
+                        <script>
+                            if (window.authManager && window.authManager.user) {
+                                const statusText = document.getElementById('firebase-status');
+                                if (statusText)
+                                    statusText.textContent = `Signed in as ${window.authManager.user.email}`;
+                            }
+                        </script>
+                        <p style="padding-top: 50px; text-align: center; color: #8b8b93">
+                            We only store music data and a randomized ID to find out which Google account is which.
+                            <br />
+                            All data is anonymous. We do not store anything like emails, usernames, or anything
+                            sensitive. <br />
+                            <br />
+                            However, if you want complete control over your data, we allow you to use your own firebase
+                            configuration.
+                        </p>
+                        <div
+                            style="
+                                display: flex;
+                                gap: 50px;
+                                align-items: center;
+                                justify-content: center;
+                                padding-top: 25px;
+                            "
+                        >
+                            <a id="advanced-config-link" class="btn-secondary" href="#settings"
+                                >Advanced: Custom Configuration</a
+                            >
+                        </div>
                     </div>
-                    <p id="firebase-status" style="text-align: center; padding-top: 15px; color: #8B8B93;">Sync your library across devices</p>
-                    <script>
-                        if (window.authManager && window.authManager.user) {
-                            const statusText = document.getElementById('firebase-status');
-                            if (statusText) statusText.textContent = `Signed in as ${window.authManager.user.email}`;
-                        }
-                    </script>
-                    <p style="padding-top: 50px; text-align: center; color: #8B8B93;">We only store music data and a randomized ID to find out which Google account is which. <br> All data is anonymous. We do not store anything like emails, usernames, or anything sensitive. <br> <br> However, if you want complete control over your data, we allow you to use your own firebase configuration.</p>
-                    <div style="display: flex; gap: 50px; align-items: center; justify-content: center; padding-top: 25px;">
-                        <a id="advanced-config-link" class="btn-secondary" href="#settings">Advanced: Custom Configuration</a>
+                </div>
+                <div id="page-donate" class="page">
+                    <h2 class="section-title" style="text-align: center">Donate to Monochrome</h2>
+                    <div class="donate-content">
+                        <p style="text-align: center" class="donate-description">
+                            If Monochrome has been useful to you and you're able to, consider making a donation. <br />
+                            It helps pay for the domain, and you get to support us :)
+                        </p>
+                        <button id="donate-btn-page" class="btn-secondary">Donate to Monochrome</button>
                     </div>
                 </div>
-            </div>
-            <div id="page-donate" class="page">
-                <h2 class="section-title" style="text-align: center;">Donate to Monochrome</h2>
-                <div class="donate-content">
-                    <p style="text-align: center;" class="donate-description">If Monochrome has been useful to you and you're able to, consider making a donation. <br> It helps pay for the domain, and you get to support us :)</p>
-                    <button id="donate-btn-page" class="btn-secondary">Donate to Monochrome</button>
-                </div>
-            </div>
+            </main>
 
-        </main>
-
-        <footer class="now-playing-bar">
-            <div class="track-info">
-                <img src="./assets/appicon.png" alt="Current Track Cover" class="cover">
-                <div class="details">
-                    <div class="title">Select a song</div>
-                    <div class="artist"></div>
-                </div>
-            </div>
-            <div class="player-controls">
-                <div class="buttons">
-                    <button id="shuffle-btn" title="Shuffle">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-shuffle-icon lucide-shuffle"><path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22"/><path d="M2 6h1.972a4 4 0 0 1 3.6 2.2"/><path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45"/></svg>
-                    </button>
-                    <button id="prev-btn" title="Previous">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-left-to-line-icon lucide-arrow-left-to-line"><path d="M3 19V5"/><path d="m13 6-6 6 6 6"/><path d="M7 12h14"/></svg>
-                    </button>
-                    <button class="play-pause-btn" title="Play"></button>
-                    <button id="next-btn" title="Next">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right-to-line-icon lucide-arrow-right-to-line"><path d="M17 12H3"/><path d="m11 18 6-6-6-6"/><path d="M21 5v14"/></svg>
-                    </button>
-                    <button id="repeat-btn" title="Repeat">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-repeat-icon lucide-repeat"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
-                    </button>
-                </div>
-                <div class="progress-container">
-                    <span id="current-time">0:00</span>
-                    <div id="progress-bar" class="progress-bar">
-                        <div id="progress-fill" class="progress-fill"></div>
+            <footer class="now-playing-bar">
+                <div class="track-info">
+                    <img src="./assets/appicon.png" alt="Current Track Cover" class="cover" />
+                    <div class="details">
+                        <div class="title">Select a song</div>
+                        <div class="artist"></div>
                     </div>
-                    <span id="total-duration">0:00</span>
                 </div>
-            </div>
-            <div class="volume-controls">
-                <div class="player-actions-row">
-                    <button id="now-playing-like-btn" class="like-btn" data-action="toggle-like" title="Save to Favorites" style="display: none;">
-                    </button>
-                    <button id="now-playing-add-playlist-btn" title="Add to Playlist" class="desktop-only" style="display: none;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                    </button>
-
-                    <button id="now-playing-mix-btn" class="mix-btn" data-action="track-mix" title="Track Mix" style="display: none;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-                        </svg>
-                    </button>
-                    <button id="toggle-lyrics-btn" title="Lyrics" style="display: none;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mic"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
-                    </button>
-                    <button id="download-current-btn" title="Download current track" class="desktop-only">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                    </button>
-                    <button id="cast-btn" title="Cast">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path>
-                            <path d="M2 12a9 9 0 0 1 9 9"></path>
-                            <path d="M2 17a5 5 0 0 1 5 5"></path>
-                            <path d="M2 22h.01"></path>
-                        </svg>
-                    </button>
-
-                    <button id="mobile-add-playlist-btn" class="mobile-only" style="display: none !important;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                    </button>
-                    <button id="sleep-timer-btn" title="Sleep Timer" class="mobile-only">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"/>
-                            <polyline points="12,6 12,12 16,14"/>
-                        </svg>
-                    </button>
-                    <button id="queue-btn" title="Queue">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-list-icon lucide-list"><path d="M3 5h.01"/><path d="M3 12h.01"/><path d="M3 19h.01"/><path d="M8 5h13"/><path d="M8 12h13"/><path d="M8 19h13"/></svg>
-                    </button>
-                </div>
-                <div class="volume-slider-row desktop-only">
-                    <button id="volume-btn" title="Mute"></button>
-                    <div id="volume-bar" class="volume-bar">
-                        <div id="volume-fill" class="volume-fill"></div>
+                <div class="player-controls">
+                    <div class="buttons">
+                        <button id="shuffle-btn" title="Shuffle">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                class="lucide lucide-shuffle-icon lucide-shuffle"
+                            >
+                                <path d="m18 14 4 4-4 4" />
+                                <path d="m18 2 4 4-4 4" />
+                                <path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22" />
+                                <path d="M2 6h1.972a4 4 0 0 1 3.6 2.2" />
+                                <path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45" />
+                            </svg>
+                        </button>
+                        <button id="prev-btn" title="Previous">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                class="lucide lucide-arrow-left-to-line-icon lucide-arrow-left-to-line"
+                            >
+                                <path d="M3 19V5" />
+                                <path d="m13 6-6 6 6 6" />
+                                <path d="M7 12h14" />
+                            </svg>
+                        </button>
+                        <button class="play-pause-btn" title="Play"></button>
+                        <button id="next-btn" title="Next">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                class="lucide lucide-arrow-right-to-line-icon lucide-arrow-right-to-line"
+                            >
+                                <path d="M17 12H3" />
+                                <path d="m11 18 6-6-6-6" />
+                                <path d="M21 5v14" />
+                            </svg>
+                        </button>
+                        <button id="repeat-btn" title="Repeat">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                class="lucide lucide-repeat-icon lucide-repeat"
+                            >
+                                <path d="m17 2 4 4-4 4" />
+                                <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+                                <path d="m7 22-4-4 4-4" />
+                                <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+                            </svg>
+                        </button>
                     </div>
-                    <button id="sleep-timer-btn-desktop" title="Sleep Timer">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"/>
-                            <polyline points="12,6 12,12 16,14"/>
-                        </svg>
-                    </button>
+                    <div class="progress-container">
+                        <span id="current-time">0:00</span>
+                        <div id="progress-bar" class="progress-bar">
+                            <div id="progress-fill" class="progress-fill"></div>
+                        </div>
+                        <span id="total-duration">0:00</span>
+                    </div>
                 </div>
-            </div>
+                <div class="volume-controls">
+                    <div class="player-actions-row">
+                        <button
+                            id="now-playing-like-btn"
+                            class="like-btn"
+                            data-action="toggle-like"
+                            title="Save to Favorites"
+                            style="display: none"
+                        ></button>
+                        <button
+                            id="now-playing-add-playlist-btn"
+                            title="Add to Playlist"
+                            class="desktop-only"
+                            style="display: none"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                        </button>
 
+                        <button
+                            id="now-playing-mix-btn"
+                            class="mix-btn"
+                            data-action="track-mix"
+                            title="Track Mix"
+                            style="display: none"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                            >
+                                <path
+                                    d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
+                                />
+                            </svg>
+                        </button>
+                        <button id="toggle-lyrics-btn" title="Lyrics" style="display: none">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                class="lucide lucide-mic"
+                            >
+                                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                                <line x1="12" y1="19" x2="12" y2="22" />
+                                <line x1="8" y1="22" x2="16" y2="22" />
+                            </svg>
+                        </button>
+                        <button id="download-current-btn" title="Download current track" class="desktop-only">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                        </button>
+                        <button id="cast-btn" title="Cast">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path d="M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path>
+                                <path d="M2 12a9 9 0 0 1 9 9"></path>
+                                <path d="M2 17a5 5 0 0 1 5 5"></path>
+                                <path d="M2 22h.01"></path>
+                            </svg>
+                        </button>
 
-        </footer>
-    </div>
-    <script src="https://unpkg.com/@studio-freight/lenis"></script>
-    <script type="module" src="js/app.js"></script>
-</body>
+                        <button id="mobile-add-playlist-btn" class="mobile-only" style="display: none !important">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                        </button>
+                        <button id="sleep-timer-btn" title="Sleep Timer" class="mobile-only">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <circle cx="12" cy="12" r="10" />
+                                <polyline points="12,6 12,12 16,14" />
+                            </svg>
+                        </button>
+                        <button id="queue-btn" title="Queue">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                class="lucide lucide-list-icon lucide-list"
+                            >
+                                <path d="M3 5h.01" />
+                                <path d="M3 12h.01" />
+                                <path d="M3 19h.01" />
+                                <path d="M8 5h13" />
+                                <path d="M8 12h13" />
+                                <path d="M8 19h13" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="volume-slider-row desktop-only">
+                        <button id="volume-btn" title="Mute"></button>
+                        <div id="volume-bar" class="volume-bar">
+                            <div id="volume-fill" class="volume-fill"></div>
+                        </div>
+                        <button id="sleep-timer-btn-desktop" title="Sleep Timer">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <circle cx="12" cy="12" r="10" />
+                                <polyline points="12,6 12,12 16,14" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </footer>
+        </div>
+        <script src="https://unpkg.com/@studio-freight/lenis"></script>
+        <script type="module" src="js/app.js"></script>
+    </body>
 </html>

@@ -1,5 +1,15 @@
 //js/ui-interactions.js
-import { SVG_CLOSE, SVG_BIN, SVG_HEART, SVG_DOWNLOAD, formatTime, trackDataStore, getTrackTitle, getTrackArtists, escapeHtml } from './utils.js';
+import {
+    SVG_CLOSE,
+    SVG_BIN,
+    SVG_HEART,
+    SVG_DOWNLOAD,
+    formatTime,
+    trackDataStore,
+    getTrackTitle,
+    getTrackArtists,
+    escapeHtml,
+} from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 
 export function initializeUIInteractions(player, api) {
@@ -23,7 +33,7 @@ export function initializeUIInteractions(player, api) {
 
     sidebarOverlay.addEventListener('click', closeSidebar);
 
-    sidebar.addEventListener('click', e => {
+    sidebar.addEventListener('click', (e) => {
         if (e.target.closest('a')) {
             closeSidebar();
         }
@@ -113,9 +123,13 @@ export function initializeUIInteractions(player, api) {
                     <div class="modal-content">
                         <h3>Add Queue to Playlist</h3>
                         <div class="modal-list">
-                            ${playlists.map(p => `
+                            ${playlists
+                                .map(
+                                    (p) => `
                                 <div class="modal-option" data-id="${p.id}">${escapeHtml(p.name)}</div>
-                            `).join('')}
+                            `
+                                )
+                                .join('')}
                         </div>
                         <div class="modal-actions">
                             <button class="btn-secondary cancel-btn">Cancel</button>
@@ -179,12 +193,13 @@ export function initializeUIInteractions(player, api) {
             return;
         }
 
-        const html = currentQueue.map((track, index) => {
-            const isPlaying = index === player.currentQueueIndex;
-            const trackTitle = getTrackTitle(track);
-            const trackArtists = getTrackArtists(track, { fallback: "Unknown" });
+        const html = currentQueue
+            .map((track, index) => {
+                const isPlaying = index === player.currentQueueIndex;
+                const trackTitle = getTrackTitle(track);
+                const trackArtists = getTrackArtists(track, { fallback: 'Unknown' });
 
-            return `
+                return `
                 <div class="queue-track-item ${isPlaying ? 'playing' : ''}" data-queue-index="${index}" data-track-id="${track.id}" draggable="true">
                     <div class="drag-handle">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -209,7 +224,8 @@ export function initializeUIInteractions(player, api) {
                     </button>
                 </div>
             `;
-        }).join('');
+            })
+            .join('');
 
         container.innerHTML = html;
 
@@ -223,7 +239,9 @@ export function initializeUIInteractions(player, api) {
                 const { db } = await import('./db.js');
                 const isLiked = await db.isFavorite('track', track.id);
                 likeBtn.classList.toggle('active', isLiked);
-                likeBtn.innerHTML = isLiked ? SVG_HEART.replace('class="heart-icon"', 'class="heart-icon filled"') : SVG_HEART;
+                likeBtn.innerHTML = isLiked
+                    ? SVG_HEART.replace('class="heart-icon"', 'class="heart-icon filled"')
+                    : SVG_HEART;
             }
 
             item.addEventListener('click', async (e) => {
@@ -249,9 +267,13 @@ export function initializeUIInteractions(player, api) {
 
                         // Update button state
                         likeBtn.classList.toggle('active', added);
-                        likeBtn.innerHTML = added ? SVG_HEART.replace('class="heart-icon"', 'class="heart-icon filled"') : SVG_HEART;
+                        likeBtn.innerHTML = added
+                            ? SVG_HEART.replace('class="heart-icon"', 'class="heart-icon filled"')
+                            : SVG_HEART;
 
-                        showNotification(added ? `Added to Liked: ${track.title}` : `Removed from Liked: ${track.title}`);
+                        showNotification(
+                            added ? `Added to Liked: ${track.title}` : `Removed from Liked: ${track.title}`
+                        );
                     }
                     return;
                 }
@@ -279,7 +301,6 @@ export function initializeUIInteractions(player, api) {
                             trackMixItem.style.display = hasMix ? 'block' : 'none';
                         }
 
-
                         const rect = item.getBoundingClientRect();
                         const menuWidth = 150;
                         const menuHeight = 200;
@@ -297,7 +318,6 @@ export function initializeUIInteractions(player, api) {
                         contextMenu.style.left = `${left}px`;
                         contextMenu.style.top = `${top}px`;
                         contextMenu.style.display = 'block';
-
 
                         contextMenu._contextTrack = track;
                     }
@@ -345,16 +365,16 @@ export function initializeUIInteractions(player, api) {
     };
 
     // Search and Library tabs
-    document.querySelectorAll('.search-tab').forEach(tab => {
+    document.querySelectorAll('.search-tab').forEach((tab) => {
         tab.addEventListener('click', () => {
             const page = tab.closest('.page');
             if (!page) return;
 
-            page.querySelectorAll('.search-tab').forEach(t => t.classList.remove('active'));
-            page.querySelectorAll('.search-tab-content').forEach(c => c.classList.remove('active'));
+            page.querySelectorAll('.search-tab').forEach((t) => t.classList.remove('active'));
+            page.querySelectorAll('.search-tab-content').forEach((c) => c.classList.remove('active'));
 
             tab.classList.add('active');
-            
+
             const prefix = page.id === 'page-library' ? 'library-tab-' : 'search-tab-';
             const contentId = `${prefix}${tab.dataset.tab}`;
             document.getElementById(contentId)?.classList.add('active');

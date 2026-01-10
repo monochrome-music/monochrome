@@ -10,7 +10,9 @@ function rgbToHsl(r, g, b) {
 
     const max = Math.max(r, g, b);
     const min = Math.min(r, g, b);
-    let h, s, l = (max + min) / 2;
+    let h,
+        s,
+        l = (max + min) / 2;
 
     if (max === min) {
         h = s = 0; // achromatic
@@ -19,9 +21,15 @@ function rgbToHsl(r, g, b) {
         s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
 
         switch (max) {
-            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
-            case g: h = (b - r) / d + 2; break;
-            case b: h = (r - g) / d + 4; break;
+            case r:
+                h = (g - b) / d + (g < b ? 6 : 0);
+                break;
+            case g:
+                h = (b - r) / d + 2;
+                break;
+            case b:
+                h = (r - g) / d + 4;
+                break;
         }
         h /= 6;
     }
@@ -41,20 +49,20 @@ function hslToHex(h, s, l) {
         const hue2rgb = (p, q, t) => {
             if (t < 0) t += 1;
             if (t > 1) t -= 1;
-            if (t < 1/6) return p + (q - p) * 6 * t;
-            if (t < 1/2) return q;
-            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            if (t < 1 / 6) return p + (q - p) * 6 * t;
+            if (t < 1 / 2) return q;
+            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
             return p;
         };
 
         const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
         const p = 2 * l - q;
-        r = hue2rgb(p, q, h + 1/3);
+        r = hue2rgb(p, q, h + 1 / 3);
         g = hue2rgb(p, q, h);
-        b = hue2rgb(p, q, h - 1/3);
+        b = hue2rgb(p, q, h - 1 / 3);
     }
 
-    const toHex = x => {
+    const toHex = (x) => {
         const hex = Math.round(x * 255).toString(16);
         return hex.length === 1 ? '0' + hex : hex;
     };
@@ -89,7 +97,7 @@ export function getVibrantColorFromImage(imgElement) {
         const imageData = ctx.getImageData(0, 0, w, h);
         const pixels = imageData.data;
         const candidates = [];
-        
+
         // Iterate through pixels
         for (let i = 0; i < pixels.length; i += 4) {
             const r = pixels[i];
@@ -110,7 +118,7 @@ export function getVibrantColorFromImage(imgElement) {
 
         // If no candidates found with strict criteria, relax criteria
         if (candidates.length === 0) {
-             for (let i = 0; i < pixels.length; i += 4) {
+            for (let i = 0; i < pixels.length; i += 4) {
                 const r = pixels[i];
                 const g = pixels[i + 1];
                 const b = pixels[i + 2];
@@ -129,15 +137,14 @@ export function getVibrantColorFromImage(imgElement) {
 
         // Sort by saturation (descending) then lightness (proximity to 0.5)
         candidates.sort((c1, c2) => {
-            return c2.s - c1.s || (0.5 - Math.abs(c1.l - 0.5)) - (0.5 - Math.abs(c2.l - 0.5));
+            return c2.s - c1.s || 0.5 - Math.abs(c1.l - 0.5) - (0.5 - Math.abs(c2.l - 0.5));
         });
 
         // Pick the top candidate (most vibrant)
         // Optionally averaging top N could be done, but simplified "best single pixel" is usually sufficient for "Vibrant"
         const best = candidates[0];
-        
-        return hslToHex(best.h, best.s, best.l);
 
+        return hslToHex(best.h, best.s, best.l);
     } catch (e) {
         throw e; // Re-throw to allow UI to handle CORS retry
     }

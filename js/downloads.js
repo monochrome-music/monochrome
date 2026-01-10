@@ -1,5 +1,14 @@
 //js/downloads.js
-import { buildTrackFilename, sanitizeForFilename, RATE_LIMIT_ERROR_MESSAGE, getTrackArtists, getTrackTitle, formatTemplate, SVG_CLOSE, getCoverBlob } from './utils.js';
+import {
+    buildTrackFilename,
+    sanitizeForFilename,
+    RATE_LIMIT_ERROR_MESSAGE,
+    getTrackArtists,
+    getTrackTitle,
+    formatTemplate,
+    SVG_CLOSE,
+    getCoverBlob,
+} from './utils.js';
 import { lyricsSettings } from './storage.js';
 import { addMetadataToAudio } from './metadata.js';
 
@@ -105,16 +114,12 @@ export function updateDownloadProgress(trackId, progress) {
     const statusEl = taskEl.querySelector('.download-status');
 
     if (progress.stage === 'downloading') {
-        const percent = progress.totalBytes
-            ? Math.round((progress.receivedBytes / progress.totalBytes) * 100)
-            : 0;
+        const percent = progress.totalBytes ? Math.round((progress.receivedBytes / progress.totalBytes) * 100) : 0;
 
         progressFill.style.width = `${percent}%`;
 
         const receivedMB = (progress.receivedBytes / (1024 * 1024)).toFixed(1);
-        const totalMB = progress.totalBytes
-            ? (progress.totalBytes / (1024 * 1024)).toFixed(1)
-            : '?';
+        const totalMB = progress.totalBytes ? (progress.totalBytes / (1024 * 1024)).toFixed(1) : '?';
 
         statusEl.textContent = `Downloading: ${receivedMB}MB / ${totalMB}MB (${percent}%)`;
     }
@@ -161,7 +166,7 @@ function removeDownloadTask(trackId) {
         taskEl.remove();
         downloadTasks.delete(trackId);
 
-        if (downloadNotificationContainer && downloadNotificationContainer.children.length === 0) {       
+        if (downloadNotificationContainer && downloadNotificationContainer.children.length === 0) {
             downloadNotificationContainer.remove();
             downloadNotificationContainer = null;
         }
@@ -202,12 +207,12 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
     if (!response.ok) {
         throw new Error(`Failed to fetch track: ${response.status}`);
     }
-    
+
     let blob = await response.blob();
-    
+
     // Add metadata to the blob
     blob = await addMetadataToAudio(blob, track, api, quality);
-    
+
     return blob;
 }
 
@@ -218,32 +223,32 @@ async function generateAndDownloadZip(zip, filename, notification, progressTotal
         // Use the pre-acquired file handle for streaming (Chrome/Edge/Opera)
         if (fileHandle) {
             const writable = await fileHandle.createWritable();
-            
+
             await new Promise((resolve, reject) => {
                 zip.generateInternalStream({
                     type: 'uint8array',
                     compression: 'STORE',
-                    streamFiles: true
+                    streamFiles: true,
                 })
-                .on('data', (chunk, metadata) => {
-                    writable.write(chunk);
-                })
-                .on('error', (err) => {
-                    writable.close();
-                    reject(err);
-                })
-                .on('end', () => {
-                    writable.close();
-                    resolve();
-                })
-                .resume();
+                    .on('data', (chunk, metadata) => {
+                        writable.write(chunk);
+                    })
+                    .on('error', (err) => {
+                        writable.close();
+                        reject(err);
+                    })
+                    .on('end', () => {
+                        writable.close();
+                        resolve();
+                    })
+                    .resume();
             });
         } else {
             // Fallback for Firefox/Safari or if user cancelled/API not available
             const zipBlob = await zip.generateAsync({
                 type: 'blob',
                 compression: 'STORE',
-                streamFiles: true
+                streamFiles: true,
             });
 
             const url = URL.createObjectURL(zipBlob);
@@ -272,10 +277,12 @@ async function initializeZipDownload(defaultName, useFilePicker = false) {
         try {
             fileHandle = await window.showSaveFilePicker({
                 suggestedName: `${defaultName}.zip`,
-                types: [{
-                    description: 'ZIP Archive',
-                    accept: { 'application/zip': ['.zip'] }
-                }]
+                types: [
+                    {
+                        description: 'ZIP Archive',
+                        accept: { 'application/zip': ['.zip'] },
+                    },
+                ],
             });
         } catch (err) {
             if (err.name === 'AbortError') return null; // User cancelled
@@ -285,7 +292,17 @@ async function initializeZipDownload(defaultName, useFilePicker = false) {
     return { zip, fileHandle };
 }
 
-async function downloadTracksToZip(zip, tracks, folderName, api, quality, lyricsManager, notification, startProgressIndex = 0, totalTracks = tracks.length) {
+async function downloadTracksToZip(
+    zip,
+    tracks,
+    folderName,
+    api,
+    quality,
+    lyricsManager,
+    notification,
+    startProgressIndex = 0,
+    totalTracks = tracks.length
+) {
     const { abortController } = bulkDownloadTasks.get(notification);
     const signal = abortController.signal;
 
@@ -325,14 +342,15 @@ async function downloadTracksToZip(zip, tracks, folderName, api, quality, lyrics
 }
 
 export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsManager = null) {
-    const releaseDateStr = album.releaseDate || (tracks[0]?.streamStartDate ? tracks[0].streamStartDate.split('T')[0] : '');
+    const releaseDateStr =
+        album.releaseDate || (tracks[0]?.streamStartDate ? tracks[0].streamStartDate.split('T')[0] : '');
     const releaseDate = releaseDateStr ? new Date(releaseDateStr) : null;
-    const year = (releaseDate && !isNaN(releaseDate.getTime())) ? releaseDate.getFullYear() : '';
+    const year = releaseDate && !isNaN(releaseDate.getTime()) ? releaseDate.getFullYear() : '';
 
     const folderName = formatTemplate(localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist}', {
         albumTitle: album.title,
         albumArtist: album.artist?.name,
-        year: year
+        year: year,
     });
 
     // Only prompt for save location if we have >= 20 tracks (to capture user gesture early)
@@ -361,7 +379,7 @@ export async function downloadPlaylistAsZip(playlist, tracks, api, quality, lyri
     const folderName = formatTemplate(localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist}', {
         albumTitle: playlist.title,
         albumArtist: 'Playlist',
-        year: new Date().getFullYear()
+        year: new Date().getFullYear(),
     });
 
     const initResult = await initializeZipDownload(folderName, tracks.length >= 20);
@@ -372,7 +390,7 @@ export async function downloadPlaylistAsZip(playlist, tracks, api, quality, lyri
 
     try {
         // Find a representative cover for the playlist (first track with cover)
-        const representativeTrack = tracks.find(t => t.album?.cover);
+        const representativeTrack = tracks.find((t) => t.album?.cover);
         const coverBlob = await getCoverBlob(api, representativeTrack?.album?.cover);
         addCoverBlobToZip(zip, folderName, coverBlob);
 
@@ -408,23 +426,28 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
             try {
                 const { album: fullAlbum, tracks } = await api.getAlbum(album.id);
                 const coverBlob = await getCoverBlob(api, fullAlbum.cover || album.cover);
-                
-                const releaseDateStr = fullAlbum.releaseDate || (tracks[0]?.streamStartDate ? tracks[0].streamStartDate.split('T')[0] : '');
-                const releaseDate = releaseDateStr ? new Date(releaseDateStr) : null;
-                const year = (releaseDate && !isNaN(releaseDate.getTime())) ? releaseDate.getFullYear() : '';
 
-                const albumFolder = formatTemplate(localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist}', {
-                    albumTitle: fullAlbum.title,
-                    albumArtist: fullAlbum.artist?.name,
-                    year: year
-                });
+                const releaseDateStr =
+                    fullAlbum.releaseDate ||
+                    (tracks[0]?.streamStartDate ? tracks[0].streamStartDate.split('T')[0] : '');
+                const releaseDate = releaseDateStr ? new Date(releaseDateStr) : null;
+                const year = releaseDate && !isNaN(releaseDate.getTime()) ? releaseDate.getFullYear() : '';
+
+                const albumFolder = formatTemplate(
+                    localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist}',
+                    {
+                        albumTitle: fullAlbum.title,
+                        albumArtist: fullAlbum.artist?.name,
+                        year: year,
+                    }
+                );
 
                 const fullFolderPath = `${rootFolder}/${albumFolder}`;
                 addCoverBlobToZip(zip, fullFolderPath, coverBlob);
 
                 for (const track of tracks) {
-                     const filename = buildTrackFilename(track, quality);
-                     try {
+                    const filename = buildTrackFilename(track, quality);
+                    try {
                         const blob = await downloadTrackBlob(track, quality, api, null, signal);
                         zip.file(`${fullFolderPath}/${filename}`, blob);
 
@@ -442,14 +465,13 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                                 // Silent fail for lyrics in bulk
                             }
                         }
-                     } catch (err) {
-                         if (err.name === 'AbortError') {
-                             throw err;
-                         }
-                         console.error(`Failed to download track ${track.title}:`, err);
-                     }
+                    } catch (err) {
+                        if (err.name === 'AbortError') {
+                            throw err;
+                        }
+                        console.error(`Failed to download track ${track.title}:`, err);
+                    }
                 }
-
             } catch (error) {
                 if (error.name === 'AbortError') {
                     throw error;
@@ -545,7 +567,6 @@ function completeBulkDownload(notifEl, success = true, message = null) {
 }
 
 export async function downloadTrackWithMetadata(track, quality, api, lyricsManager = null, abortController = null) {
-
     if (!track) {
         alert('No track is currently playing');
         return;
@@ -556,20 +577,14 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
     const controller = abortController || new AbortController();
 
     try {
-        const { taskEl } = addDownloadTask(
-            track.id,
-            track,
-            filename,
-            api,
-            controller
-        );
+        const { taskEl } = addDownloadTask(track.id, track, filename, api, controller);
 
         await api.downloadTrack(track.id, quality, filename, {
             signal: controller.signal,
             track: track,
             onProgress: (progress) => {
                 updateDownloadProgress(track.id, progress);
-            }
+            },
         });
 
         completeDownloadTask(track.id, true);
@@ -586,9 +601,8 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
         }
     } catch (error) {
         if (error.name !== 'AbortError') {
-            const errorMsg = error.message === RATE_LIMIT_ERROR_MESSAGE
-                ? error.message
-                : 'Download failed. Please try again.';
+            const errorMsg =
+                error.message === RATE_LIMIT_ERROR_MESSAGE ? error.message : 'Download failed. Please try again.';
             completeDownloadTask(track.id, false, errorMsg);
         }
     }

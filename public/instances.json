@@ -1,16 +1,13 @@
 {
-  "api": [
-    "https://tidal-api.binimum.org",
-    "https://monochrome-api.samidy.com"
-  ],
-  "streaming": [
-    "https://triton.squid.wtf",
-    "https://wolf.qqdl.site",
-    "https://maus.qqdl.site",
-    "https://vogel.qqdl.site",
-    "https://katze.qqdl.site",
-    "https://hund.qqdl.site",
-    "https://tidal.kinoplus.online",
-    "https://tidal-api.binimum.org"
-  ]
+    "api": ["https://tidal-api.binimum.org", "https://monochrome-api.samidy.com"],
+    "streaming": [
+        "https://triton.squid.wtf",
+        "https://wolf.qqdl.site",
+        "https://maus.qqdl.site",
+        "https://vogel.qqdl.site",
+        "https://katze.qqdl.site",
+        "https://hund.qqdl.site",
+        "https://tidal.kinoplus.online",
+        "https://tidal-api.binimum.org"
+    ]
 }

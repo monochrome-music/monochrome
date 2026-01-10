@@ -16,7 +16,7 @@ export class SidePanelManager {
 
         this.currentView = view;
         this.titleElement.textContent = title;
-        
+
         // Clear previous content
         this.controlsElement.innerHTML = '';
         this.contentElement.innerHTML = '';

@@ -34,9 +34,7 @@ export class APICache {
     }
 
     generateKey(type, params) {
-        const paramString = typeof params === 'object'
-            ? JSON.stringify(params)
-            : String(params);
+        const paramString = typeof params === 'object' ? JSON.stringify(params) : String(params);
         return `${type}:${paramString}`;
     }
 
@@ -71,7 +69,7 @@ export class APICache {
         const entry = {
             key,
             data,
-            timestamp: Date.now()
+            timestamp: Date.now(),
         };
 
         this.memoryCache.set(key, entry);
@@ -147,7 +145,7 @@ export class APICache {
             }
         }
 
-        expired.forEach(key => this.memoryCache.delete(key));
+        expired.forEach((key) => this.memoryCache.delete(key));
 
         if (this.db) {
             try {
@@ -174,7 +172,7 @@ export class APICache {
         return {
             memoryEntries: this.memoryCache.size,
             maxSize: this.maxSize,
-            ttl: this.ttl
+            ttl: this.ttl,
         };
     }
 }
