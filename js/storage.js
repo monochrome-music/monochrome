@@ -511,6 +511,20 @@ export const replayGainSettings = {
     }
 };
 
+export const downloadQualitySettings = {
+    STORAGE_KEY: 'download-quality',
+    getQuality() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) || 'LOSSLESS';
+        } catch (e) {
+            return 'LOSSLESS';
+        }
+    },
+    setQuality(quality) {
+        localStorage.setItem(this.STORAGE_KEY, quality);
+    }
+};
+
 export const waveformSettings = {
     STORAGE_KEY: 'waveform-seekbar-enabled',
 

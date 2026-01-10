@@ -2984,10 +2984,27 @@ img:not([src]), img[src=''] {
     cursor: pointer;
     border-bottom: 1px solid var(--border);
     transition: background 0.2s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .modal-option:hover {
     background: var(--secondary);
+}
+
+.modal-option.already-contains {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.modal-option.already-contains:hover {
+    background: transparent;
+}
+
+.modal-option .checkmark {
+    color: var(--highlight);
+    flex-shrink: 0;
 }
 
 .modal-option:last-child {
@@ -4019,5 +4036,11 @@ img:not([src]), img[src=''] {
         bottom: -0.25em !important;
         right: -0.25em !important;
         transform: none !important;
+    }
+}
+
+@media (max-width: 1024px) {
+    .player-controls .progress-container {
+        order: -1;
     }
 }

@@ -207,7 +207,6 @@ export class Player {
                 if (this.preloadAbortController.signal.aborted) break;
 
                 this.preloadCache.set(track.id, streamUrl);
-                
                 // Warm connection/cache
                 fetch(streamUrl, { method: 'HEAD', signal: this.preloadAbortController.signal }).catch(() => {});
             } catch (error) {
@@ -257,7 +256,7 @@ export class Player {
         try {
             // Get track data for ReplayGain (should be cached by API)
             const trackData = await this.api.getTrack(track.id, this.quality);
-            
+
             if (trackData && trackData.info) {
                 this.currentRgValues = {
                     trackReplayGain: trackData.info.trackReplayGain,
@@ -472,6 +471,7 @@ export class Player {
         this.shuffledQueue = [];
         this.originalQueueBeforeShuffle = [];
         this.currentQueueIndex = -1;
+        this.preloadCache.clear();
         this.saveQueueState();
     }
 

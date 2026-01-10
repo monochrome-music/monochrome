@@ -267,14 +267,21 @@ export class MusicDatabase {
             // This allows partial updates (e.g. library only)
             if (items === undefined) return;
 
+
+            let itemsArray = Array.isArray(items) ? items : Object.values(items || {});
+
             const transaction = db.transaction(storeName, 'readwrite');
             const store = transaction.objectStore(storeName);
             if (clear) {
                 store.clear();
             }
 
-            for (const item of items) {
-                store.put(item);
+            for (const item of itemsArray) {
+                try {
+                    store.put(item);
+                } catch (error) {
+                    console.warn(`Failed to import item in ${storeName}:`, item, error);
+                }
             }
         };
 

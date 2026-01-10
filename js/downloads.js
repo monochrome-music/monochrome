@@ -4,6 +4,7 @@ import { lyricsSettings } from './storage.js';
 import { addMetadataToAudio } from './metadata.js';
 
 const downloadTasks = new Map();
+const bulkDownloadTasks = new Map();
 let downloadNotificationContainer = null;
 
 /**
@@ -57,20 +58,21 @@ export function showNotification(message) {
     }, 1500);
 }
 
-export function addDownloadTask(trackId, track, filename, api) {
+export function addDownloadTask(trackId, track, filename, api, abortController) {
     const container = createDownloadNotification();
 
     const taskEl = document.createElement('div');
     taskEl.className = 'download-task';
     taskEl.dataset.trackId = trackId;
     const trackTitle = getTrackTitle(track);
+    const trackArtists = getTrackArtists(track);
     taskEl.innerHTML = `
         <div style="display: flex; align-items: start; gap: 0.75rem;">
             <img src="${api.getCoverUrl(track.album?.cover)}"
                  style="width: 40px; height: 40px; border-radius: 4px; flex-shrink: 0;">
             <div style="flex: 1; min-width: 0;">
                 <div style="font-weight: 500; font-size: 0.9rem; margin-bottom: 0.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${trackTitle}</div>
-                <div style="font-size: 0.8rem; color: var(--muted-foreground); margin-bottom: 0.5rem;">${track.artist?.name || 'Unknown'}</div>
+                <div style="font-size: 0.8rem; color: var(--muted-foreground); margin-bottom: 0.5rem;">${trackArtists}</div>
                 <div class="download-progress-bar" style="height: 4px; background: var(--secondary); border-radius: 2px; overflow: hidden;">
                     <div class="download-progress-fill" style="width: 0%; height: 100%; background: var(--highlight); transition: width 0.2s;"></div>
                 </div>
@@ -84,7 +86,6 @@ export function addDownloadTask(trackId, track, filename, api) {
 
     container.appendChild(taskEl);
 
-    const abortController = new AbortController();
     downloadTasks.set(trackId, { taskEl, abortController });
 
     taskEl.querySelector('.download-cancel').addEventListener('click', () => {
@@ -167,7 +168,24 @@ function removeDownloadTask(trackId) {
     }, 300);
 }
 
-async function downloadTrackBlob(track, quality, api, lyricsManager = null) {
+function removeBulkDownloadTask(notifEl) {
+    const task = bulkDownloadTasks.get(notifEl);
+    if (!task) return;
+
+    notifEl.style.animation = 'slideOut 0.3s ease';
+
+    setTimeout(() => {
+        notifEl.remove();
+        bulkDownloadTasks.delete(notifEl);
+
+        if (downloadNotificationContainer && downloadNotificationContainer.children.length === 0) {
+            downloadNotificationContainer.remove();
+            downloadNotificationContainer = null;
+        }
+    }, 300);
+}
+
+async function downloadTrackBlob(track, quality, api, lyricsManager = null, signal = null) {
     const lookup = await api.getTrack(track.id, quality);
     let streamUrl;
 
@@ -180,7 +198,7 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null) {
         }
     }
 
-    const response = await fetch(streamUrl);
+    const response = await fetch(streamUrl, { signal });
     if (!response.ok) {
         throw new Error(`Failed to fetch track: ${response.status}`);
     }
@@ -268,6 +286,9 @@ async function initializeZipDownload(defaultName, useFilePicker = false) {
 }
 
 async function downloadTracksToZip(zip, tracks, folderName, api, quality, lyricsManager, notification, startProgressIndex = 0, totalTracks = tracks.length) {
+    const { abortController } = bulkDownloadTasks.get(notification);
+    const signal = abortController.signal;
+
     for (let i = 0; i < tracks.length; i++) {
         const track = tracks[i];
         const currentGlobalIndex = startProgressIndex + i;
@@ -277,7 +298,7 @@ async function downloadTracksToZip(zip, tracks, folderName, api, quality, lyrics
         updateBulkDownloadProgress(notification, currentGlobalIndex, totalTracks, trackTitle);
 
         try {
-            const blob = await downloadTrackBlob(track, quality, api);
+            const blob = await downloadTrackBlob(track, quality, api, null, signal);
             zip.file(`${folderName}/${filename}`, blob);
 
             if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
@@ -295,6 +316,9 @@ async function downloadTracksToZip(zip, tracks, folderName, api, quality, lyrics
                 }
             }
         } catch (err) {
+            if (err.name === 'AbortError') {
+                throw err;
+            }
             console.error(`Failed to download track ${trackTitle}:`, err);
         }
     }
@@ -325,12 +349,15 @@ export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsMana
         await downloadTracksToZip(zip, tracks, folderName, api, quality, lyricsManager, notification);
         await generateAndDownloadZip(zip, folderName, notification, tracks.length, fileHandle);
     } catch (error) {
+        if (error.name === 'AbortError') {
+            return;
+        }
         completeBulkDownload(notification, false, error.message);
         throw error;
     }
 }
 
-export async function downloadPlaylistAsZip(playlist, tracks, api, quality, lyricsManager = null) {       
+export async function downloadPlaylistAsZip(playlist, tracks, api, quality, lyricsManager = null) {
     const folderName = formatTemplate(localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist}', {
         albumTitle: playlist.title,
         albumArtist: 'Playlist',
@@ -341,7 +368,7 @@ export async function downloadPlaylistAsZip(playlist, tracks, api, quality, lyri
     if (!initResult) return; // User cancelled
     const { zip, fileHandle } = initResult;
 
-    const notification = createBulkDownloadNotification('playlist', playlist.title, tracks.length);       
+    const notification = createBulkDownloadNotification('playlist', playlist.title, tracks.length);
 
     try {
         // Find a representative cover for the playlist (first track with cover)
@@ -352,12 +379,15 @@ export async function downloadPlaylistAsZip(playlist, tracks, api, quality, lyri
         await downloadTracksToZip(zip, tracks, folderName, api, quality, lyricsManager, notification);
         await generateAndDownloadZip(zip, folderName, notification, tracks.length, fileHandle);
     } catch (error) {
+        if (error.name === 'AbortError') {
+            return;
+        }
         completeBulkDownload(notification, false, error.message);
         throw error;
     }
 }
 
-export async function downloadDiscography(artist, api, quality, lyricsManager = null) {
+export async function downloadDiscography(artist, selectedReleases, api, quality, lyricsManager = null) {
     const rootFolder = `${sanitizeForFilename(artist.name)} discography`;
 
     // Always use file picker for discography as it's likely large
@@ -365,14 +395,15 @@ export async function downloadDiscography(artist, api, quality, lyricsManager = 
     if (!initResult) return; // User cancelled
     const { zip, fileHandle } = initResult;
 
-    const allReleases = [...(artist.albums || []), ...(artist.eps || [])];
-    const notification = createBulkDownloadNotification('discography', artist.name, allReleases.length);
+    const notification = createBulkDownloadNotification('discography', artist.name, selectedReleases.length);
+    const { abortController } = bulkDownloadTasks.get(notification);
+    const signal = abortController.signal;
 
     try {
-        for (let albumIndex = 0; albumIndex < allReleases.length; albumIndex++) {
-            const album = allReleases[albumIndex];
+        for (let albumIndex = 0; albumIndex < selectedReleases.length; albumIndex++) {
+            const album = selectedReleases[albumIndex];
 
-            updateBulkDownloadProgress(notification, albumIndex, allReleases.length, album.title);
+            updateBulkDownloadProgress(notification, albumIndex, selectedReleases.length, album.title);
 
             try {
                 const { album: fullAlbum, tracks } = await api.getAlbum(album.id);
@@ -394,7 +425,7 @@ export async function downloadDiscography(artist, api, quality, lyricsManager = 
                 for (const track of tracks) {
                      const filename = buildTrackFilename(track, quality);
                      try {
-                        const blob = await downloadTrackBlob(track, quality, api);
+                        const blob = await downloadTrackBlob(track, quality, api, null, signal);
                         zip.file(`${fullFolderPath}/${filename}`, blob);
 
                         if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
@@ -412,17 +443,26 @@ export async function downloadDiscography(artist, api, quality, lyricsManager = 
                             }
                         }
                      } catch (err) {
+                         if (err.name === 'AbortError') {
+                             throw err;
+                         }
                          console.error(`Failed to download track ${track.title}:`, err);
                      }
                 }
 
             } catch (error) {
+                if (error.name === 'AbortError') {
+                    throw error;
+                }
                 console.error(`Failed to download album ${album.title}:`, error);
             }
         }
 
-        await generateAndDownloadZip(zip, rootFolder, notification, allReleases.length, fileHandle);
+        await generateAndDownloadZip(zip, rootFolder, notification, selectedReleases.length, fileHandle);
     } catch (error) {
+        if (error.name === 'AbortError') {
+            return;
+        }
         completeBulkDownload(notification, false, error.message);
         throw error;
     }
@@ -433,8 +473,10 @@ function createBulkDownloadNotification(type, name, totalItems) {
 
     const notifEl = document.createElement('div');
     notifEl.className = 'download-task bulk-download';
+    notifEl.dataset.bulkType = type;
+    notifEl.dataset.bulkName = name;
 
-    const typeLabel = type === 'album' ? 'Album' : type === 'playlist' ? 'Playlist' : 'Discography';      
+    const typeLabel = type === 'album' ? 'Album' : type === 'playlist' ? 'Playlist' : 'Discography';
 
     notifEl.innerHTML = `
         <div style="display: flex; align-items: start; gap: 0.75rem;">
@@ -448,10 +490,22 @@ function createBulkDownloadNotification(type, name, totalItems) {
                 </div>
                 <div class="download-status" style="font-size: 0.75rem; color: var(--muted-foreground); margin-top: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Starting...</div>
             </div>
+            <button class="download-cancel" style="background: transparent; border: none; color: var(--muted-foreground); cursor: pointer; padding: 4px; border-radius: 4px; transition: all 0.2s;">
+                ${SVG_CLOSE}
+            </button>
         </div>
     `;
 
     container.appendChild(notifEl);
+
+    const abortController = new AbortController();
+    bulkDownloadTasks.set(notifEl, { abortController });
+
+    notifEl.querySelector('.download-cancel').addEventListener('click', () => {
+        abortController.abort();
+        removeBulkDownloadTask(notifEl);
+    });
+
     return notifEl;
 }
 
@@ -502,11 +556,12 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
     const controller = abortController || new AbortController();
 
     try {
-        const { taskEl, taskAbortController } = addDownloadTask(
+        const { taskEl } = addDownloadTask(
             track.id,
             track,
             filename,
-            api
+            api,
+            controller
         );
 
         await api.downloadTrack(track.id, quality, filename, {

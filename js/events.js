@@ -2,7 +2,7 @@
 import { SVG_PLAY, SVG_PAUSE, SVG_VOLUME, SVG_MUTE, REPEAT_MODE, trackDataStore, RATE_LIMIT_ERROR_MESSAGE, buildTrackFilename, getTrackTitle, formatTime } from './utils.js';
 import { lastFMStorage, waveformSettings } from './storage.js';
 import { showNotification, downloadTrackWithMetadata } from './downloads.js';
-import { lyricsSettings } from './storage.js';
+import { lyricsSettings, downloadQualitySettings } from './storage.js';
 import { updateTabTitle } from './router.js';
 import { db } from './db.js';
 import { syncManager } from './firebase/sync.js';
@@ -530,7 +530,7 @@ export async function handleTrackAction(action, item, player, api, lyricsManager
             showNotification(`Failed to play ${type}`);
         }
     } else if (action === 'download') {
-        await downloadTrackWithMetadata(item, player.quality, api, lyricsManager);
+        await downloadTrackWithMetadata(item, downloadQualitySettings.getQuality(), api, lyricsManager);
     } else if (action === 'toggle-like') {
         const added = await db.toggleFavorite(type, item);
         syncManager.syncLibraryItem(type, item, added);
@@ -620,9 +620,27 @@ export async function handleTrackAction(action, item, player, api, lyricsManager
         const cancelBtn = document.getElementById('playlist-select-cancel');
         const overlay = modal.querySelector('.modal-overlay');
 
-        list.innerHTML = playlists.map(p => `
-            <div class="modal-option" data-id="${p.id}">${p.name}</div>
-        `).join('');
+        // Check what playlists already have this
+        const trackId = item.id;
+        const playlistsWithTrack = new Set();
+
+        for (const playlist of playlists) {
+            if (playlist.tracks && playlist.tracks.some(track => track.id === trackId)) {
+                playlistsWithTrack.add(playlist.id);
+            }
+        }
+
+        const checkmarkSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+
+        list.innerHTML = playlists.map(p => {
+            const alreadyContains = playlistsWithTrack.has(p.id);
+            return `
+                <div class="modal-option ${alreadyContains ? 'already-contains' : ''}" data-id="${p.id}">
+                    <span>${p.name}</span>
+                    ${alreadyContains ? `<span class="checkmark">${checkmarkSvg}</span>` : ''}
+                </div>
+            `;
+        }).join('');
 
         const closeModal = () => {
             modal.classList.remove('active');
@@ -633,10 +651,16 @@ export async function handleTrackAction(action, item, player, api, lyricsManager
             const option = e.target.closest('.modal-option');
             if (option) {
                 const playlistId = option.dataset.id;
+                const alreadyContains = playlistsWithTrack.has(playlistId);
+
+                if (alreadyContains) {
+                    return;
+                }
+
                 await db.addTrackToPlaylist(playlistId, item);
                 const updatedPlaylist = await db.getPlaylist(playlistId);
                 syncManager.syncUserPlaylist(updatedPlaylist, 'update');
-                showNotification(`Added to playlist: ${option.textContent}`);
+                showNotification(`Added to playlist: ${option.querySelector('span').textContent}`);
                 closeModal();
             }
         };
@@ -683,7 +707,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             const itemElement = actionBtn.closest('.track-item, .card');
             const action = actionBtn.dataset.action;
             const type = actionBtn.dataset.type || 'track';
-            
+
             let item = itemElement ? trackDataStore.get(itemElement) : null;
 
             // If no item from element (e.g. header buttons), try to get from hash

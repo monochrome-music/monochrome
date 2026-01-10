@@ -1,6 +1,6 @@
 //js/app.js
 import { LosslessAPI } from './api.js';
-import { apiSettings, themeManager, nowPlayingSettings, trackListSettings } from './storage.js';
+import { apiSettings, themeManager, nowPlayingSettings, trackListSettings, downloadQualitySettings } from './storage.js';
 import { UIRenderer } from './ui.js';
 import { Player } from './player.js';
 import { LastFMScrobbler } from './lastfm.js';
@@ -355,7 +355,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             try {
                 const { mix, tracks } = await api.getMix(mixId);
-                await downloadPlaylistAsZip(mix, tracks, api, player.quality, lyricsManager);
+                await downloadPlaylistAsZip(mix, tracks, api, downloadQualitySettings.getQuality(), lyricsManager);
             } catch (error) {
                 console.error('Mix download failed:', error);
                 alert('Failed to download mix: ' + error.message);
@@ -397,7 +397,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 tracks = data.tracks;
             }
             
-            await downloadPlaylistAsZip(playlist, tracks, api, player.quality, lyricsManager);
+            await downloadPlaylistAsZip(playlist, tracks, api, downloadQualitySettings.getQuality(), lyricsManager);
         } catch (error) {
             console.error('Playlist download failed:', error);
             alert('Failed to download playlist: ' + error.message);
@@ -411,6 +411,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const modal = document.getElementById('playlist-modal');
         document.getElementById('playlist-modal-title').textContent = 'Create Playlist';
         document.getElementById('playlist-name-input').value = '';
+        document.getElementById('playlist-cover-input').value = '';
         modal.dataset.editingId = '';
         document.getElementById('csv-import-section').style.display = 'block';
         document.getElementById('csv-file-input').value = '';
@@ -454,9 +455,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (editingId) {
                 // Edit
+                const cover = document.getElementById('playlist-cover-input').value.trim();
                 db.getPlaylist(editingId).then(async (playlist) => {
                     if (playlist) {
                         playlist.name = name;
+                        playlist.cover = cover;
                         await handlePublicStatus(playlist);
                         await db.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
                         syncManager.syncUserPlaylist(playlist, 'update');
@@ -534,7 +537,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 }
 
-                db.createPlaylist(name, tracks, '').then(async playlist => {
+                const cover = document.getElementById('playlist-cover-input').value.trim();
+                db.createPlaylist(name, tracks, cover).then(async playlist => {
                     await handlePublicStatus(playlist);
                     // Update DB again with isPublic flag
                     await db.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
@@ -558,6 +562,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const modal = document.getElementById('playlist-modal');
                 document.getElementById('playlist-modal-title').textContent = 'Edit Playlist';
                 document.getElementById('playlist-name-input').value = playlist.name;
+                document.getElementById('playlist-cover-input').value = playlist.cover || '';
 
                 // Set Public Toggle
                 const publicToggle = document.getElementById('playlist-public-toggle');
@@ -601,6 +606,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const modal = document.getElementById('playlist-modal');
                 document.getElementById('playlist-modal-title').textContent = 'Edit Playlist';
                 document.getElementById('playlist-name-input').value = playlist.name;
+                document.getElementById('playlist-cover-input').value = playlist.cover || '';
 
                 const publicToggle = document.getElementById('playlist-public-toggle');
                 const shareBtn = document.getElementById('playlist-share-btn');
@@ -697,7 +703,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             try {
                 const { album, tracks } = await api.getAlbum(albumId);
-                await downloadAlbumAsZip(album, tracks, api, player.quality, lyricsManager);
+                await downloadAlbumAsZip(album, tracks, api, downloadQualitySettings.getQuality(), lyricsManager);
             } catch (error) {
                 console.error('Album download failed:', error);
                 alert('Failed to download album: ' + error.message);
@@ -783,19 +789,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             const artistId = window.location.hash.split('/')[1];
             if (!artistId) return;
 
-            btn.disabled = true;
-            const originalHTML = btn.innerHTML;
-            btn.innerHTML = '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Downloading...</span>';
-
             try {
                 const artist = await api.getArtist(artistId);
-                await downloadDiscography(artist, api, player.quality, lyricsManager);
+                showDiscographyDownloadModal(artist, api, downloadQualitySettings.getQuality(), lyricsManager, btn);
             } catch (error) {
-                console.error('Discography download failed:', error);
-                alert('Failed to download discography: ' + error.message);
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalHTML;
+                console.error('Failed to load artist for discography download:', error);
+                alert('Failed to load artist: ' + error.message);
             }
         }
     });
@@ -1135,6 +1134,73 @@ async function parseCSV(csvText, api, onProgress) {
     }
 
     return { tracks, missingTracks };
+}
+
+function showDiscographyDownloadModal(artist, api, quality, lyricsManager, triggerBtn) {
+    const modal = document.getElementById('discography-download-modal');
+
+    document.getElementById('discography-artist-name').textContent = artist.name;
+    document.getElementById('albums-count').textContent = artist.albums?.length || 0;
+    document.getElementById('eps-count').textContent = (artist.eps || []).filter(a => a.type === 'EP').length;
+    document.getElementById('singles-count').textContent = (artist.eps || []).filter(a => a.type === 'SINGLE').length;
+
+    // Reset checkboxes
+    document.getElementById('download-albums').checked = true;
+    document.getElementById('download-eps').checked = true;
+    document.getElementById('download-singles').checked = true;
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+    };
+
+    const handleClose = (e) => {
+        if (e.target === modal || e.target.classList.contains('modal-overlay') || e.target.closest('.close-modal-btn') || e.target.id === 'cancel-discography-download') {
+            closeModal();
+        }
+    };
+
+    modal.addEventListener('click', handleClose);
+
+    document.getElementById('start-discography-download').onclick = async () => {
+        const includeAlbums = document.getElementById('download-albums').checked;
+        const includeEPs = document.getElementById('download-eps').checked;
+        const includeSingles = document.getElementById('download-singles').checked;
+
+        if (!includeAlbums && !includeEPs && !includeSingles) {
+            alert('Please select at least one type of release to download.');
+            return;
+        }
+
+        closeModal();
+
+        // Filter releases based on selection
+        let selectedReleases = [];
+        if (includeAlbums) {
+            selectedReleases = selectedReleases.concat(artist.albums || []);
+        }
+        if (includeEPs) {
+            selectedReleases = selectedReleases.concat((artist.eps || []).filter(a => a.type === 'EP'));
+        }
+        if (includeSingles) {
+            selectedReleases = selectedReleases.concat((artist.eps || []).filter(a => a.type === 'SINGLE'));
+        }
+
+        triggerBtn.disabled = true;
+        const originalHTML = triggerBtn.innerHTML;
+        triggerBtn.innerHTML = '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Downloading...</span>';
+
+        try {
+            await downloadDiscography(artist, selectedReleases, api, quality, lyricsManager);
+        } catch (error) {
+            console.error('Discography download failed:', error);
+            alert('Failed to download discography: ' + error.message);
+        } finally {
+            triggerBtn.disabled = false;
+            triggerBtn.innerHTML = originalHTML;
+        }
+    };
+
+    modal.classList.add('active');
 }
 
 function showKeyboardShortcuts() {

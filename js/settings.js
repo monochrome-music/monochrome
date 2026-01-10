@@ -9,7 +9,8 @@ import {
   cardSettings,
   waveformSettings,
   replayGainSettings,
-  smoothScrollingSettings
+  smoothScrollingSettings,
+  downloadQualitySettings
 } from "./storage.js";
 import { db } from "./db.js";
 import { authManager } from "./firebase/auth.js";
@@ -260,17 +261,27 @@ export function initializeSettings(scrobbler, player, api, ui) {
       renderCustomThemeEditor();
     });
 
-  // Quality setting
-  const qualitySetting = document.getElementById("quality-setting");
-  if (qualitySetting) {
+  // Streaming Quality setting
+  const streamingQualitySetting = document.getElementById("streaming-quality-setting");
+  if (streamingQualitySetting) {
     const savedQuality = localStorage.getItem("playback-quality") || "LOSSLESS";
-    qualitySetting.value = savedQuality;
+    streamingQualitySetting.value = savedQuality;
     player.setQuality(savedQuality);
 
-    qualitySetting.addEventListener("change", (e) => {
+    streamingQualitySetting.addEventListener("change", (e) => {
       const newQuality = e.target.value;
       player.setQuality(newQuality);
       localStorage.setItem("playback-quality", newQuality);
+    });
+  }
+
+  // Download Quality setting
+  const downloadQualitySetting = document.getElementById("download-quality-setting");
+  if (downloadQualitySetting) {
+    downloadQualitySetting.value = downloadQualitySettings.getQuality();
+
+    downloadQualitySetting.addEventListener("change", (e) => {
+      downloadQualitySettings.setQuality(e.target.value);
     });
   }
 
