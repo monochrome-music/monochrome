@@ -1196,7 +1196,8 @@ export class UIRenderer {
                         const addToPlaylistBtn = document.createElement('button');
                         addToPlaylistBtn.className = 'track-action-btn add-to-playlist-btn';
                         addToPlaylistBtn.title = 'Add to this playlist';
-                        addToPlaylistBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>';
+                        addToPlaylistBtn.innerHTML =
+                            '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>';
                         addToPlaylistBtn.onclick = async (e) => {
                             e.stopPropagation();
                             const trackData = trackDataStore.get(item);
@@ -1222,7 +1223,12 @@ export class UIRenderer {
                                             this.renderListWithTracks(tracklistContainer, updatedPlaylist.tracks, true);
 
                                             if (document.querySelector('.remove-from-playlist-btn')) {
-                                                this.enableTrackReordering(tracklistContainer, updatedPlaylist.tracks, playlistId, syncManager);
+                                                this.enableTrackReordering(
+                                                    tracklistContainer,
+                                                    updatedPlaylist.tracks,
+                                                    playlistId,
+                                                    syncManager
+                                                );
                                             }
 
                                             // Update the playlist metadata

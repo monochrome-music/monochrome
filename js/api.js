@@ -742,7 +742,7 @@ export class LosslessAPI {
         }
 
         const recommendedTracks = [];
-        const seenTrackIds = new Set(tracks.map(t => t.id));
+        const seenTrackIds = new Set(tracks.map((t) => t.id));
 
         const artistsToProcess = artists.slice(0, Math.min(5, artists.length));
         console.log(`Processing ${artistsToProcess.length} artists for recommendations`);
@@ -752,14 +752,11 @@ export class LosslessAPI {
                 console.log(`Fetching tracks for artist: ${artist.name} (ID: ${artist.id})`);
                 const artistData = await this.getArtist(artist.id);
                 if (artistData && artistData.tracks && artistData.tracks.length > 0) {
-
-                    const newTracks = artistData.tracks
-                        .filter(track => !seenTrackIds.has(track.id))
-                        .slice(0, 4);
+                    const newTracks = artistData.tracks.filter((track) => !seenTrackIds.has(track.id)).slice(0, 4);
 
                     console.log(`Found ${newTracks.length} new tracks from ${artist.name}`);
                     recommendedTracks.push(...newTracks);
-                    seenTrackIds.add(...newTracks.map(t => t.id));
+                    seenTrackIds.add(...newTracks.map((t) => t.id));
                 } else {
                     console.warn(`No tracks found for artist ${artist.name}`);
                 }
