@@ -645,11 +645,23 @@ export class UIRenderer {
         }
 
         overlay.style.display = 'flex';
+
+        // hide player when in fullscreen
+        const nowPlayingBar = document.querySelector('.now-playing-bar');
+        if (nowPlayingBar) {
+            nowPlayingBar.style.display = 'none';
+        }
     }
 
     closeFullscreenCover() {
         const overlay = document.getElementById('fullscreen-cover-overlay');
         overlay.style.display = 'none';
+
+        // show player whrn not in fullscreen
+        const nowPlayingBar = document.querySelector('.now-playing-bar');
+        if (nowPlayingBar) {
+            nowPlayingBar.style.display = '';
+        }
     }
 
     showPage(pageId) {

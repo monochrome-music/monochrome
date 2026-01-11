@@ -326,7 +326,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             openLyricsPanel(player.currentTrack, audioPlayer, lyricsManager);
         }
 
-        // Update Fullscreen/Enlarged Cover if it's open
+        // Update Fullscreen if it's open
         const fullscreenOverlay = document.getElementById('fullscreen-cover-overlay');
         if (fullscreenOverlay && getComputedStyle(fullscreenOverlay).display !== 'none') {
             const nextTrack = player.getNextTrack();

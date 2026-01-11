@@ -1757,8 +1757,8 @@ input:checked + .slider::before {
 }
 
 #fullscreen-cover-image {
-    max-width: 80vw;
-    max-height: 60vh;
+    max-width: 55vw;
+    max-height: 55vh;
     border-radius: var(--radius);
     box-shadow: 0 20px 50px rgb(0, 0, 0, 0.5);
     object-fit: contain;
