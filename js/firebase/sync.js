@@ -176,7 +176,7 @@ export class SyncManager {
                     favorites_artists: val.artists ? Object.values(val.artists) : [],
                     favorites_playlists: val.playlists ? Object.values(val.playlists) : [],
                 };
-                db.importData(importData, true).then(() => {
+                db.importData(importData, false).then(() => {
                     // Notify UI to refresh
                     window.dispatchEvent(new Event('library-changed'));
                 });

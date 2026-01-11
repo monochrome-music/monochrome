@@ -355,6 +355,10 @@ function initializeSmoothSliders(audioPlayer, player) {
 
         if (isAdjustingVolume) {
             seek(volumeBar, e, (position) => {
+                if (audioPlayer.muted) {
+                    audioPlayer.muted = false;
+                    localStorage.setItem('muted', false);
+                }
                 player.setVolume(position);
                 volumeFill.style.width = `${position * 100}%`;
                 volumeBar.style.setProperty('--volume-level', `${position * 100}%`);
@@ -377,6 +381,10 @@ function initializeSmoothSliders(audioPlayer, player) {
             const touch = e.touches[0];
             const rect = volumeBar.getBoundingClientRect();
             const position = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
+            if (audioPlayer.muted) {
+                audioPlayer.muted = false;
+                localStorage.setItem('muted', false);
+            }
             player.setVolume(position);
             volumeFill.style.width = `${position * 100}%`;
             volumeBar.style.setProperty('--volume-level', `${position * 100}%`);
@@ -433,6 +441,10 @@ function initializeSmoothSliders(audioPlayer, player) {
     volumeBar.addEventListener('mousedown', (e) => {
         isAdjustingVolume = true;
         seek(volumeBar, e, (position) => {
+            if (audioPlayer.muted) {
+                audioPlayer.muted = false;
+                localStorage.setItem('muted', false);
+            }
             player.setVolume(position);
             volumeFill.style.width = `${position * 100}%`;
             volumeBar.style.setProperty('--volume-level', `${position * 100}%`);
@@ -445,6 +457,10 @@ function initializeSmoothSliders(audioPlayer, player) {
         const touch = e.touches[0];
         const rect = volumeBar.getBoundingClientRect();
         const position = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
+        if (audioPlayer.muted) {
+            audioPlayer.muted = false;
+            localStorage.setItem('muted', false);
+        }
         player.setVolume(position);
         volumeFill.style.width = `${position * 100}%`;
         volumeBar.style.setProperty('--volume-level', `${position * 100}%`);
@@ -453,6 +469,10 @@ function initializeSmoothSliders(audioPlayer, player) {
     volumeBar.addEventListener('click', (e) => {
         if (!isAdjustingVolume) {
             seek(volumeBar, e, (position) => {
+                if (audioPlayer.muted) {
+                    audioPlayer.muted = false;
+                    localStorage.setItem('muted', false);
+                }
                 player.setVolume(position);
                 volumeFill.style.width = `${position * 100}%`;
                 volumeBar.style.setProperty('--volume-level', `${position * 100}%`);

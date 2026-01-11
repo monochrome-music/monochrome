@@ -14,6 +14,7 @@ import { addMetadataToAudio } from './metadata.js';
 
 const downloadTasks = new Map();
 const bulkDownloadTasks = new Map();
+const ongoingDownloads = new Set();
 let downloadNotificationContainer = null;
 
 /**
@@ -191,6 +192,25 @@ function removeBulkDownloadTask(notifEl) {
 }
 
 async function downloadTrackBlob(track, quality, api, lyricsManager = null, signal = null) {
+    let enrichedTrack = {
+        ...track,
+        artist: track.artist || (track.artists && track.artists.length > 0 ? track.artists[0] : null),
+    };
+
+    if (enrichedTrack.album && !enrichedTrack.album.title && enrichedTrack.album.id) {
+        try {
+            const albumData = await api.getAlbum(enrichedTrack.album.id);
+            if (albumData.album) {
+                enrichedTrack.album = {
+                    ...enrichedTrack.album,
+                    ...albumData.album,
+                };
+            }
+        } catch (error) {
+            console.warn('Failed to fetch album data for metadata:', error);
+        }
+    }
+
     const lookup = await api.getTrack(track.id, quality);
     let streamUrl;
 
@@ -211,7 +231,7 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
     let blob = await response.blob();
 
     // Add metadata to the blob
-    blob = await addMetadataToAudio(blob, track, api, quality);
+    blob = await addMetadataToAudio(blob, enrichedTrack, api, quality);
 
     return blob;
 }
@@ -338,6 +358,27 @@ async function downloadTracksToZip(
             }
             console.error(`Failed to download track ${trackTitle}:`, err);
         }
+    }
+}
+
+export async function downloadTracks(tracks, api, quality, lyricsManager = null) {
+    const folderName = `Queue - ${new Date().toISOString().slice(0, 10)}`;
+
+    const initResult = await initializeZipDownload(folderName, tracks.length >= 20);
+    if (!initResult) return;
+    const { zip, fileHandle } = initResult;
+
+    const notification = createBulkDownloadNotification('queue', 'Queue', tracks.length);
+
+    try {
+        await downloadTracksToZip(zip, tracks, folderName, api, quality, lyricsManager, notification);
+        await generateAndDownloadZip(zip, folderName, notification, tracks.length, fileHandle);
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            return;
+        }
+        completeBulkDownload(notification, false, error.message);
+        throw error;
     }
 }
 
@@ -572,16 +613,42 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
         return;
     }
 
-    const filename = buildTrackFilename(track, quality);
+    const downloadKey = `track-${track.id}`;
+    if (ongoingDownloads.has(downloadKey)) {
+        showNotification('This track is already being downloaded');
+        return;
+    }
+
+    let enrichedTrack = {
+        ...track,
+        artist: track.artist || (track.artists && track.artists.length > 0 ? track.artists[0] : null),
+    };
+
+    if (enrichedTrack.album && !enrichedTrack.album.title && enrichedTrack.album.id) {
+        try {
+            const albumData = await api.getAlbum(enrichedTrack.album.id);
+            if (albumData.album) {
+                enrichedTrack.album = {
+                    ...enrichedTrack.album,
+                    ...albumData.album,
+                };
+            }
+        } catch (error) {
+            console.warn('Failed to fetch album data for metadata:', error);
+        }
+    }
+
+    const filename = buildTrackFilename(enrichedTrack, quality);
 
     const controller = abortController || new AbortController();
+    ongoingDownloads.add(downloadKey);
 
     try {
-        const { taskEl } = addDownloadTask(track.id, track, filename, api, controller);
+        const { taskEl } = addDownloadTask(track.id, enrichedTrack, filename, api, controller);
 
         await api.downloadTrack(track.id, quality, filename, {
             signal: controller.signal,
-            track: track,
+            track: enrichedTrack,
             onProgress: (progress) => {
                 updateDownloadProgress(track.id, progress);
             },
@@ -605,5 +672,7 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
                 error.message === RATE_LIMIT_ERROR_MESSAGE ? error.message : 'Download failed. Please try again.';
             completeDownloadTask(track.id, false, errorMsg);
         }
+    } finally {
+        ongoingDownloads.delete(downloadKey);
     }
 }

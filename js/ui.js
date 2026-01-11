@@ -645,23 +645,11 @@ export class UIRenderer {
         }
 
         overlay.style.display = 'flex';
-
-        // hide player when in fullscreen
-        const nowPlayingBar = document.querySelector('.now-playing-bar');
-        if (nowPlayingBar) {
-            nowPlayingBar.style.display = 'none';
-        }
     }
 
     closeFullscreenCover() {
         const overlay = document.getElementById('fullscreen-cover-overlay');
         overlay.style.display = 'none';
-
-        // show player whrn not in fullscreen
-        const nowPlayingBar = document.querySelector('.now-playing-bar');
-        if (nowPlayingBar) {
-            nowPlayingBar.style.display = '';
-        }
     }
 
     showPage(pageId) {
@@ -1186,6 +1174,93 @@ export class UIRenderer {
         }
     }
 
+    async loadRecommendedSongsForPlaylist(tracks) {
+        const recommendedSection = document.getElementById('playlist-section-recommended');
+        const recommendedContainer = document.getElementById('playlist-detail-recommended');
+
+        if (!recommendedSection || !recommendedContainer) {
+            console.warn('Recommended songs section not found in DOM');
+            return;
+        }
+
+        try {
+            const recommendedTracks = await this.api.getRecommendedTracksForPlaylist(tracks, 20);
+
+            if (recommendedTracks.length > 0) {
+                this.renderListWithTracks(recommendedContainer, recommendedTracks, true);
+
+                const trackItems = recommendedContainer.querySelectorAll('.track-item');
+                trackItems.forEach((item) => {
+                    const actionsDiv = item.querySelector('.track-item-actions');
+                    if (actionsDiv) {
+                        const addToPlaylistBtn = document.createElement('button');
+                        addToPlaylistBtn.className = 'track-action-btn add-to-playlist-btn';
+                        addToPlaylistBtn.title = 'Add to this playlist';
+                        addToPlaylistBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>';
+                        addToPlaylistBtn.onclick = async (e) => {
+                            e.stopPropagation();
+                            const trackData = trackDataStore.get(item);
+                            if (trackData) {
+                                try {
+                                    const hash = window.location.hash;
+                                    const playlistMatch = hash.match(/#userplaylist\/([^/]+)/);
+                                    if (playlistMatch) {
+                                        const playlistId = playlistMatch[1];
+                                        await db.addTrackToPlaylist(playlistId, trackData);
+                                        const updatedPlaylist = await db.getPlaylist(playlistId);
+                                        syncManager.syncUserPlaylist(updatedPlaylist, 'update');
+
+                                        const tracklistContainer = document.getElementById('playlist-detail-tracklist');
+                                        if (tracklistContainer && updatedPlaylist.tracks) {
+                                            tracklistContainer.innerHTML = `
+                                                <div class="track-list-header">
+                                                    <span style="width: 40px; text-align: center;">#</span>
+                                                    <span>Title</span>
+                                                    <span class="duration-header">Duration</span>
+                                                </div>
+                                            `;
+                                            this.renderListWithTracks(tracklistContainer, updatedPlaylist.tracks, true);
+
+                                            if (document.querySelector('.remove-from-playlist-btn')) {
+                                                this.enableTrackReordering(tracklistContainer, updatedPlaylist.tracks, playlistId, syncManager);
+                                            }
+
+                                            // Update the playlist metadata
+                                            const metaEl = document.getElementById('playlist-detail-meta');
+                                            if (metaEl) {
+                                                const totalDuration = calculateTotalDuration(updatedPlaylist.tracks);
+                                                metaEl.textContent = `${updatedPlaylist.tracks.length} tracks • ${formatDuration(totalDuration)}`;
+                                            }
+                                        }
+
+                                        showNotification(`Added "${trackData.title}" to playlist`);
+                                    }
+                                } catch (error) {
+                                    console.error('Failed to add track to playlist:', error);
+                                    showNotification('Failed to add track to playlist');
+                                }
+                            }
+                        };
+
+                        const menuBtn = actionsDiv.querySelector('.track-menu-btn');
+                        if (menuBtn) {
+                            actionsDiv.insertBefore(addToPlaylistBtn, menuBtn);
+                        } else {
+                            actionsDiv.appendChild(addToPlaylistBtn);
+                        }
+                    }
+                });
+
+                recommendedSection.style.display = 'block';
+            } else {
+                recommendedSection.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Failed to load recommended songs:', error);
+            recommendedSection.style.display = 'none';
+        }
+    }
+
     async renderPlaylistPage(playlistId, source = null) {
         this.showPage('playlist');
         const imageEl = document.getElementById('playlist-detail-image');
@@ -1288,6 +1363,11 @@ export class UIRenderer {
                     playlistLikeBtn.style.display = 'none';
                 }
 
+                // Load recommended songs thingy
+                if (ownedPlaylist) {
+                    this.loadRecommendedSongsForPlaylist(tracks);
+                }
+
                 // Render Actions (Shuffle, Edit, Delete, Share)
                 // If it is owned, isOwned = true.
                 // If it is public, isPublic is in playlistData.
@@ -1370,6 +1450,12 @@ export class UIRenderer {
                 const deleteBtn = document.getElementById('delete-playlist-btn');
                 if (deleteBtn) {
                     deleteBtn.style.display = 'none';
+                }
+
+                // Hide recommended songs section for tidal playlists
+                const recommendedSection = document.getElementById('playlist-section-recommended');
+                if (recommendedSection) {
+                    recommendedSection.style.display = 'none';
                 }
 
                 // Render Actions (Shuffle + Share)
@@ -1806,26 +1892,34 @@ export class UIRenderer {
 
             if (!draggedElement) return;
 
-            // Get new order from DOM
-            const newTrackItems = Array.from(container.querySelectorAll('.track-item'));
-            const newTracks = newTrackItems.map((item) => {
-                const originalIndex = parseInt(item.dataset.index);
-                return tracks[originalIndex];
-            });
+            try {
+                // Get new order from DOM
+                const newTrackItems = Array.from(container.querySelectorAll('.track-item'));
+                const newTracks = newTrackItems.map((item) => {
+                    const originalIndex = parseInt(item.dataset.index);
+                    return tracks[originalIndex];
+                });
 
-            newTrackItems.forEach((item, index) => {
-                item.dataset.index = index;
-            });
+                newTrackItems.forEach((item, index) => {
+                    item.dataset.index = index;
+                });
 
-            tracks.length = 0;
-            tracks.push(...newTracks);
+                tracks.splice(0, tracks.length, ...newTracks);
 
-            // Save to DB
-            await db.updatePlaylistTracks(playlistId, newTracks);
-            syncManager.syncUserPlaylist({ id: playlistId, tracks: newTracks }, 'update');
+                // Save to DB
+                const updatedPlaylist = await db.updatePlaylistTracks(playlistId, newTracks);
+                syncManager.syncUserPlaylist(updatedPlaylist, 'update');
 
-            draggedElement = null;
-            draggedIndex = -1;
+                draggedElement = null;
+                draggedIndex = -1;
+            } catch (error) {
+                console.error('Error updating playlist tracks:', error);
+                if (draggedElement) {
+                    draggedElement.classList.remove('dragging');
+                    draggedElement = null;
+                }
+                draggedIndex = -1;
+            }
         };
 
         container.addEventListener('dragstart', dragStart);

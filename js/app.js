@@ -663,7 +663,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const trackId = playlist.tracks[index].id;
                     const updatedPlaylist = await db.removeTrackFromPlaylist(playlistId, trackId);
                     syncManager.syncUserPlaylist(updatedPlaylist, 'update');
-                    ui.renderPlaylistPage(playlistId, 'user');
+                    const scrollTop = document.querySelector('.main-content').scrollTop;
+                    await ui.renderPlaylistPage(playlistId, 'user');
+                    document.querySelector('.main-content').scrollTop = scrollTop;
                 }
             });
         }

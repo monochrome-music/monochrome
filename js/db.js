@@ -172,16 +172,23 @@ export class MusicDatabase {
                 duration: item.duration,
                 explicit: item.explicit,
                 // Keep minimal artist info
+                artist: item.artist || (item.artists && item.artists.length > 0 ? item.artists[0] : null),
                 artists: item.artists?.map((a) => ({ id: a.id, name: a.name })) || [],
                 // Keep minimal album info
                 album: item.album
                     ? {
                           id: item.album.id,
+                          title: item.album.title,
                           cover: item.album.cover,
                           releaseDate: item.album.releaseDate || null,
                           vibrantColor: item.album.vibrantColor || null,
+                          artist: item.album.artist,
+                          numberOfTracks: item.album.numberOfTracks,
                       }
                     : null,
+                copyright: item.copyright,
+                isrc: item.isrc,
+                trackNumber: item.trackNumber,
                 // Fallback date
                 streamStartDate: item.streamStartDate || null,
                 // Keep version if exists
@@ -421,12 +428,36 @@ export class MusicDatabase {
     }
 
     async updatePlaylistTracks(playlistId, tracks) {
-        const playlist = await this.performTransaction('user_playlists', 'readonly', (store) => store.get(playlistId));
-        if (!playlist) throw new Error('Playlist not found');
-        playlist.tracks = tracks;
-        this._updatePlaylistMetadata(playlist);
-        await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
-        return playlist;
+        const db = await this.open();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction('user_playlists', 'readwrite');
+            const store = transaction.objectStore('user_playlists');
+
+            const getRequest = store.get(playlistId);
+            getRequest.onsuccess = () => {
+                const playlist = getRequest.result;
+                if (!playlist) {
+                    reject(new Error('Playlist not found'));
+                    return;
+                }
+                playlist.tracks = tracks;
+                this._updatePlaylistMetadata(playlist);
+                const putRequest = store.put(playlist);
+                putRequest.onsuccess = () => {
+                    resolve(playlist);
+                };
+                putRequest.onerror = () => {
+                    reject(putRequest.error);
+                };
+            };
+            getRequest.onerror = () => {
+                reject(getRequest.error);
+            };
+
+            transaction.onerror = (event) => {
+                reject(event.target.error);
+            };
+        });
     }
 }
 

@@ -688,6 +688,92 @@ export class LosslessAPI {
         }
     }
 
+    async getRecommendedTracksForPlaylist(tracks, limit = 20) {
+        const artistMap = new Map();
+
+        // Check if tracks already have artist info (some might)
+        for (const track of tracks) {
+            if (track.artist && track.artist.id) {
+                artistMap.set(track.artist.id, track.artist);
+            }
+            if (track.artists && Array.isArray(track.artists)) {
+                for (const artist of track.artists) {
+                    if (artist.id) {
+                        artistMap.set(artist.id, artist);
+                    }
+                }
+            }
+        }
+
+        if (artistMap.size < 3) {
+            console.log('Not enough artists from stored data, trying search approach...');
+
+            for (const track of tracks.slice(0, 5)) {
+                try {
+                    // Search for the track to get full metadata
+                    const searchQuery = `"${track.title}" ${track.artist?.name || ''}`.trim();
+                    const searchResult = await this.searchTracks(searchQuery, { signal: AbortSignal.timeout(5000) });
+
+                    if (searchResult.items && searchResult.items.length > 0) {
+                        const foundTrack = searchResult.items[0];
+                        if (foundTrack.artist && foundTrack.artist.id) {
+                            artistMap.set(foundTrack.artist.id, foundTrack.artist);
+                        }
+                        if (foundTrack.artists && Array.isArray(foundTrack.artists)) {
+                            for (const artist of foundTrack.artists) {
+                                if (artist.id) {
+                                    artistMap.set(artist.id, artist);
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn(`Search failed for track "${track.title}":`, e);
+                }
+            }
+        }
+
+        const artists = Array.from(artistMap.values());
+        console.log(`Found ${artists.length} unique artists from ${tracks.length} tracks`);
+
+        if (artists.length === 0) {
+            console.log('No artists found, cannot generate recommendations');
+            return [];
+        }
+
+        const recommendedTracks = [];
+        const seenTrackIds = new Set(tracks.map(t => t.id));
+
+        const artistsToProcess = artists.slice(0, Math.min(5, artists.length));
+        console.log(`Processing ${artistsToProcess.length} artists for recommendations`);
+
+        for (const artist of artistsToProcess) {
+            try {
+                console.log(`Fetching tracks for artist: ${artist.name} (ID: ${artist.id})`);
+                const artistData = await this.getArtist(artist.id);
+                if (artistData && artistData.tracks && artistData.tracks.length > 0) {
+
+                    const newTracks = artistData.tracks
+                        .filter(track => !seenTrackIds.has(track.id))
+                        .slice(0, 4);
+
+                    console.log(`Found ${newTracks.length} new tracks from ${artist.name}`);
+                    recommendedTracks.push(...newTracks);
+                    seenTrackIds.add(...newTracks.map(t => t.id));
+                } else {
+                    console.warn(`No tracks found for artist ${artist.name}`);
+                }
+            } catch (e) {
+                console.warn(`Failed to get tracks for artist ${artist.name}:`, e);
+            }
+        }
+
+        console.log(`Total recommended tracks found: ${recommendedTracks.length}`);
+
+        const shuffled = recommendedTracks.sort(() => 0.5 - Math.random());
+        return shuffled.slice(0, limit);
+    }
+
     normalizeTrackResponse(apiResponse) {
         if (!apiResponse || typeof apiResponse !== 'object') {
             return apiResponse;
