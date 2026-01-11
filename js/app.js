@@ -1105,8 +1105,11 @@ async function parseCSV(csvText, api, onProgress) {
                     // Helper: Normalize strings for fuzzy matching
                     const normalize = (str) =>
                         str
+                            .normalize('NFD')
+                            .replace(/[\u0300-\u036f]/g, '')
                             .toLowerCase()
-                            .replace(/[^\w\s]/g, '')
+                            .replace(/[^\w\s]/g, ' ')
+                            .replace(/\s+/g, ' ')
                             .trim();
 
                     // Helper: Check if result matches our criteria
@@ -1140,7 +1143,7 @@ async function parseCSV(csvText, api, onProgress) {
                                 trackAlbum === queryAlbum ||
                                 trackAlbum.includes(queryAlbum) ||
                                 queryAlbum.includes(trackAlbum);
-                            return albumMatch; // Prefer album matches
+                            return albumMatch;
                         }
 
                         return true;
@@ -1206,10 +1209,19 @@ async function parseCSV(csvText, api, onProgress) {
                         }
                     }
 
-                    // 4. Retry: Cleaned Title + Main Artist (if " - " exists)
-                    if (!foundTrack && trackTitle.includes(' - ')) {
+                    // Clean title for retry strategies
+                    // Remove " - ", "(feat. ...)", "[feat. ...]"
+                    const cleanTitle = (t) =>
+                        t
+                            .split(' - ')[0]
+                            .replace(/\s*[\(\[]feat\.?.*?[\)\]]/i, '')
+                            .trim();
+                    const cleanedTitle = cleanTitle(trackTitle);
+                    const isTitleCleaned = cleanedTitle !== trackTitle;
+
+                    // 4. Retry: Cleaned Title + Main Artist + Album
+                    if (!foundTrack && isTitleCleaned) {
                         const mainArtist = (artistNames || '').split(',')[0].trim();
-                        const cleanedTitle = trackTitle.split(' - ')[0].trim();
                         if (cleanedTitle) {
                             let searchQuery = `${cleanedTitle} ${mainArtist}`;
                             if (albumName) searchQuery += ` ${albumName}`;
@@ -1227,20 +1239,36 @@ async function parseCSV(csvText, api, onProgress) {
                         }
                     }
 
-                    // 5. Retry: Title only with first artist
+                    // 5. Retry: Title + Main Artist (Ignore Album in Query and Match)
                     if (!foundTrack) {
                         const mainArtist = (artistNames || '').split(',')[0].trim();
+                        // Search WITHOUT album name to find tracks where album metadata differs
                         const searchQuery = `${trackTitle} ${mainArtist}`;
                         const searchResults = await api.searchTracks(searchQuery);
 
                         if (searchResults.items && searchResults.items.length > 0) {
-                            // For title-only search, be more lenient
                             for (const result of searchResults.items) {
-                                const trackTitle_ = normalize(result.title || '');
-                                const queryTitle = normalize(trackTitle);
-                                if (trackTitle_ === queryTitle) {
+                                // Pass null for album to ignore it in validation
+                                if (isValidMatch(result, trackTitle, mainArtist, null)) {
                                     foundTrack = result;
-                                    console.log(`Found (Retry 4 - Title Match): ${trackTitle}`);
+                                    console.log(`Found (Retry 4 - Ignore Album): ${trackTitle}`);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    // 6. Retry: Cleaned Title + Main Artist (Ignore Album in Query and Match)
+                    if (!foundTrack && isTitleCleaned) {
+                        const mainArtist = (artistNames || '').split(',')[0].trim();
+                        const searchQuery = `${cleanedTitle} ${mainArtist}`;
+                        const searchResults = await api.searchTracks(searchQuery);
+
+                        if (searchResults.items && searchResults.items.length > 0) {
+                            for (const result of searchResults.items) {
+                                if (isValidMatch(result, cleanedTitle, mainArtist, null)) {
+                                    foundTrack = result;
+                                    console.log(`Found (Retry 5 - Cleaned Title + Ignore Album): ${trackTitle}`);
                                     break;
                                 }
                             }
