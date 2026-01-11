@@ -3,7 +3,7 @@ import { getTrackArtists } from './utils.js';
 
 export function createRouter(ui) {
     const router = () => {
-        const path = window.location.hash.substring(1) || "home";
+        const path = window.location.hash.substring(1) || 'home';
         const [page, param] = path.split('/');
 
         switch (page) {

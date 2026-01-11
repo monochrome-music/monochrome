@@ -15,7 +15,7 @@ export class WaveformGenerator {
             const response = await fetch(url);
             const arrayBuffer = await response.arrayBuffer();
             const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
-            
+
             const peaks = this.extractPeaks(audioBuffer);
             const result = { peaks, duration: audioBuffer.duration };
             this.cache.set(trackId, result);
@@ -28,7 +28,7 @@ export class WaveformGenerator {
 
     extractPeaks(audioBuffer) {
         const { length, duration } = audioBuffer;
-        const numPeaks = Math.min(Math.floor(4*duration), 1000);
+        const numPeaks = Math.min(Math.floor(4 * duration), 1000);
         const peaks = new Float32Array(numPeaks);
         const chanData = audioBuffer.getChannelData(0); // Use first channel
         const step = Math.floor(length / numPeaks);
@@ -71,13 +71,13 @@ export class WaveformGenerator {
         const height = canvas.height;
 
         ctx.clearRect(0, 0, width, height);
-        
+
         const step = width / peaks.length;
         const centerY = height / 2;
 
         ctx.fillStyle = '#000'; // Mask color (opaque part)
         ctx.beginPath();
-        
+
         // Draw top half
         ctx.moveTo(0, centerY);
         for (let i = 0; i < peaks.length; i++) {
@@ -92,7 +92,7 @@ export class WaveformGenerator {
             const barHeight = Math.max(1.5, peak * height * 0.9);
             ctx.lineTo(i * step, centerY + barHeight / 2);
         }
-        
+
         ctx.closePath();
         ctx.fill();
     }

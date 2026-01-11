@@ -1,5 +1,15 @@
 //js/ui-interactions.js
-import { SVG_CLOSE, SVG_BIN, SVG_HEART, formatTime, trackDataStore, getTrackTitle, getTrackArtists, escapeHtml } from './utils.js';
+import {
+    SVG_CLOSE,
+    SVG_BIN,
+    SVG_HEART,
+    SVG_DOWNLOAD,
+    formatTime,
+    trackDataStore,
+    getTrackTitle,
+    getTrackArtists,
+    escapeHtml,
+} from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 
 export function initializeUIInteractions(player, api) {
@@ -23,7 +33,7 @@ export function initializeUIInteractions(player, api) {
 
     sidebarOverlay.addEventListener('click', closeSidebar);
 
-    sidebar.addEventListener('click', e => {
+    sidebar.addEventListener('click', (e) => {
         if (e.target.closest('a')) {
             closeSidebar();
         }
@@ -32,10 +42,22 @@ export function initializeUIInteractions(player, api) {
     // Queue panel
     const renderQueueControls = (container) => {
         const currentQueue = player.getCurrentQueue();
-        const showClearBtn = currentQueue.length > 0;
+        const showActionBtns = currentQueue.length > 0;
 
         container.innerHTML = `
-            <button id="clear-queue-btn" class="btn-icon" title="Clear Queue" style="display: ${showClearBtn ? 'flex' : 'none'}">
+            <button id="download-queue-btn" class="btn-icon" title="Download Queue" style="display: ${showActionBtns ? 'flex' : 'none'}">
+                ${SVG_DOWNLOAD}
+            </button>
+            <button id="like-queue-btn" class="btn-icon" title="Add Queue to Liked" style="display: ${showActionBtns ? 'flex' : 'none'}">
+                ${SVG_HEART}
+            </button>
+            <button id="add-queue-to-playlist-btn" class="btn-icon" title="Add Queue to Playlist" style="display: ${showActionBtns ? 'flex' : 'none'}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+            </button>
+            <button id="clear-queue-btn" class="btn-icon" title="Clear Queue" style="display: ${showActionBtns ? 'flex' : 'none'}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
             </button>
             <button id="close-side-panel-btn" class="btn-icon" title="Close">
@@ -46,6 +68,113 @@ export function initializeUIInteractions(player, api) {
         container.querySelector('#close-side-panel-btn').addEventListener('click', () => {
             sidePanelManager.close();
         });
+
+        const downloadBtn = container.querySelector('#download-queue-btn');
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', async () => {
+                const { downloadTracks } = await import('./downloads.js');
+                downloadTracks(currentQueue);
+            });
+        }
+
+        const likeBtn = container.querySelector('#like-queue-btn');
+        if (likeBtn) {
+            likeBtn.addEventListener('click', async () => {
+                const { db } = await import('./db.js');
+                const { syncManager } = await import('./firebase/sync.js');
+                const { showNotification } = await import('./downloads.js');
+
+                let addedCount = 0;
+                for (const track of currentQueue) {
+                    const wasAdded = await db.toggleFavorite('track', track);
+                    if (wasAdded) {
+                        syncManager.syncLibraryItem('track', track, true);
+                        addedCount++;
+                    }
+                }
+
+                if (addedCount > 0) {
+                    showNotification(`Added ${addedCount} track${addedCount > 1 ? 's' : ''} to Liked`);
+                } else {
+                    showNotification('All tracks in queue are already liked');
+                }
+
+                refreshQueuePanel();
+            });
+        }
+
+        const addToPlaylistBtn = container.querySelector('#add-queue-to-playlist-btn');
+        if (addToPlaylistBtn) {
+            addToPlaylistBtn.addEventListener('click', async () => {
+                const { db } = await import('./db.js');
+                const { syncManager } = await import('./firebase/sync.js');
+                const { showNotification } = await import('./downloads.js');
+
+                const playlists = await db.getPlaylists();
+                if (playlists.length === 0) {
+                    showNotification('No playlists yet. Create one first.');
+                    return;
+                }
+
+                const modal = document.createElement('div');
+                modal.className = 'modal active';
+                modal.innerHTML = `
+                    <div class="modal-overlay"></div>
+                    <div class="modal-content">
+                        <h3>Add Queue to Playlist</h3>
+                        <div class="modal-list">
+                            ${playlists
+                                .map(
+                                    (p) => `
+                                <div class="modal-option" data-id="${p.id}">${escapeHtml(p.name)}</div>
+                            `
+                                )
+                                .join('')}
+                        </div>
+                        <div class="modal-actions">
+                            <button class="btn-secondary cancel-btn">Cancel</button>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(modal);
+
+                const closeModal = () => {
+                    modal.remove();
+                };
+
+                modal.addEventListener('click', async (e) => {
+                    if (e.target.classList.contains('modal-overlay') || e.target.classList.contains('cancel-btn')) {
+                        closeModal();
+                        return;
+                    }
+
+                    const option = e.target.closest('.modal-option');
+                    if (option) {
+                        const playlistId = option.dataset.id;
+                        const playlistName = option.textContent;
+
+                        try {
+                            let addedCount = 0;
+                            for (const track of currentQueue) {
+                                const playlist = await db.addTrackToPlaylist(playlistId, track);
+                                addedCount++;
+                            }
+
+                            const updatedPlaylist = await db.getPlaylist(playlistId);
+                            syncManager.syncUserPlaylist(updatedPlaylist, 'update');
+
+                            showNotification(`Added ${addedCount} tracks to playlist: ${playlistName}`);
+                        } catch (error) {
+                            console.error('Failed to add tracks to playlist:', error);
+                            showNotification('Failed to add tracks to playlist');
+                        }
+
+                        closeModal();
+                    }
+                });
+            });
+        }
 
         const clearBtn = container.querySelector('#clear-queue-btn');
         if (clearBtn) {
@@ -64,12 +193,13 @@ export function initializeUIInteractions(player, api) {
             return;
         }
 
-        const html = currentQueue.map((track, index) => {
-            const isPlaying = index === player.currentQueueIndex;
-            const trackTitle = getTrackTitle(track);
-            const trackArtists = getTrackArtists(track, { fallback: "Unknown" });
+        const html = currentQueue
+            .map((track, index) => {
+                const isPlaying = index === player.currentQueueIndex;
+                const trackTitle = getTrackTitle(track);
+                const trackArtists = getTrackArtists(track, { fallback: 'Unknown' });
 
-            return `
+                return `
                 <div class="queue-track-item ${isPlaying ? 'playing' : ''}" data-queue-index="${index}" data-track-id="${track.id}" draggable="true">
                     <div class="drag-handle">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -94,7 +224,8 @@ export function initializeUIInteractions(player, api) {
                     </button>
                 </div>
             `;
-        }).join('');
+            })
+            .join('');
 
         container.innerHTML = html;
 
@@ -108,7 +239,9 @@ export function initializeUIInteractions(player, api) {
                 const { db } = await import('./db.js');
                 const isLiked = await db.isFavorite('track', track.id);
                 likeBtn.classList.toggle('active', isLiked);
-                likeBtn.innerHTML = isLiked ? SVG_HEART.replace('class="heart-icon"', 'class="heart-icon filled"') : SVG_HEART;
+                likeBtn.innerHTML = isLiked
+                    ? SVG_HEART.replace('class="heart-icon"', 'class="heart-icon filled"')
+                    : SVG_HEART;
             }
 
             item.addEventListener('click', async (e) => {
@@ -134,9 +267,13 @@ export function initializeUIInteractions(player, api) {
 
                         // Update button state
                         likeBtn.classList.toggle('active', added);
-                        likeBtn.innerHTML = added ? SVG_HEART.replace('class="heart-icon"', 'class="heart-icon filled"') : SVG_HEART;
+                        likeBtn.innerHTML = added
+                            ? SVG_HEART.replace('class="heart-icon"', 'class="heart-icon filled"')
+                            : SVG_HEART;
 
-                        showNotification(added ? `Added to Liked: ${track.title}` : `Removed from Liked: ${track.title}`);
+                        showNotification(
+                            added ? `Added to Liked: ${track.title}` : `Removed from Liked: ${track.title}`
+                        );
                     }
                     return;
                 }
@@ -164,7 +301,6 @@ export function initializeUIInteractions(player, api) {
                             trackMixItem.style.display = hasMix ? 'block' : 'none';
                         }
 
-
                         const rect = item.getBoundingClientRect();
                         const menuWidth = 150;
                         const menuHeight = 200;
@@ -182,7 +318,6 @@ export function initializeUIInteractions(player, api) {
                         contextMenu.style.left = `${left}px`;
                         contextMenu.style.top = `${top}px`;
                         contextMenu.style.display = 'block';
-
 
                         contextMenu._contextTrack = track;
                     }
@@ -230,16 +365,16 @@ export function initializeUIInteractions(player, api) {
     };
 
     // Search and Library tabs
-    document.querySelectorAll('.search-tab').forEach(tab => {
+    document.querySelectorAll('.search-tab').forEach((tab) => {
         tab.addEventListener('click', () => {
             const page = tab.closest('.page');
             if (!page) return;
 
-            page.querySelectorAll('.search-tab').forEach(t => t.classList.remove('active'));
-            page.querySelectorAll('.search-tab-content').forEach(c => c.classList.remove('active'));
+            page.querySelectorAll('.search-tab').forEach((t) => t.classList.remove('active'));
+            page.querySelectorAll('.search-tab-content').forEach((c) => c.classList.remove('active'));
 
             tab.classList.add('active');
-            
+
             const prefix = page.id === 'page-library' ? 'library-tab-' : 'search-tab-';
             const contentId = `${prefix}${tab.dataset.tab}`;
             document.getElementById(contentId)?.classList.add('active');

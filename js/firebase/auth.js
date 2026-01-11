@@ -1,6 +1,12 @@
 // js/firebase/auth.js
 import { auth, provider } from './config.js';
-import { signInWithPopup, signOut as firebaseSignOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import {
+    signInWithPopup,
+    signOut as firebaseSignOut,
+    onAuthStateChanged,
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 import { syncManager } from './sync.js';
 
 export class AuthManager {
@@ -16,12 +22,12 @@ export class AuthManager {
         this.unsubscribe = onAuthStateChanged(auth, (user) => {
             this.user = user;
             this.updateUI(user);
-            
+
             if (user) {
-                console.log("User logged in:", user.uid);
+                console.log('User logged in:', user.uid);
                 syncManager.initialize(user);
             } else {
-                console.log("User logged out");
+                console.log('User logged out');
                 syncManager.disconnect();
             }
         });
@@ -29,7 +35,7 @@ export class AuthManager {
 
     async signInWithGoogle() {
         if (!auth) {
-            alert("Firebase is not configured. Please check console.");
+            alert('Firebase is not configured. Please check console.');
             return;
         }
 
@@ -38,7 +44,7 @@ export class AuthManager {
             // The onAuthStateChanged listener will handle the rest
             return result.user;
         } catch (error) {
-            console.error("Login failed:", error);
+            console.error('Login failed:', error);
             alert(`Login failed: ${error.message}`);
             throw error;
         }
@@ -46,14 +52,14 @@ export class AuthManager {
 
     async signInWithEmail(email, password) {
         if (!auth) {
-            alert("Firebase is not configured.");
+            alert('Firebase is not configured.');
             return;
         }
         try {
             const result = await signInWithEmailAndPassword(auth, email, password);
             return result.user;
         } catch (error) {
-            console.error("Email Login failed:", error);
+            console.error('Email Login failed:', error);
             alert(`Login failed: ${error.message}`);
             throw error;
         }
@@ -61,14 +67,14 @@ export class AuthManager {
 
     async signUpWithEmail(email, password) {
         if (!auth) {
-            alert("Firebase is not configured.");
+            alert('Firebase is not configured.');
             return;
         }
         try {
             const result = await createUserWithEmailAndPassword(auth, email, password);
             return result.user;
         } catch (error) {
-            console.error("Sign Up failed:", error);
+            console.error('Sign Up failed:', error);
             alert(`Sign Up failed: ${error.message}`);
             throw error;
         }
@@ -81,7 +87,7 @@ export class AuthManager {
             await firebaseSignOut(auth);
             // The onAuthStateChanged listener will handle the rest
         } catch (error) {
-            console.error("Logout failed:", error);
+            console.error('Logout failed:', error);
             throw error;
         }
     }
@@ -99,18 +105,17 @@ export class AuthManager {
             connectBtn.textContent = 'Sign Out';
             connectBtn.classList.add('danger');
             connectBtn.onclick = () => this.signOut();
-            
+
             if (clearDataBtn) clearDataBtn.style.display = 'block';
             if (emailContainer) emailContainer.style.display = 'none';
             if (emailToggleBtn) emailToggleBtn.style.display = 'none';
 
             if (statusText) statusText.textContent = `Signed in as ${user.email}`;
-
         } else {
             connectBtn.textContent = 'Connect with Google';
             connectBtn.classList.remove('danger');
             connectBtn.onclick = () => this.signInWithGoogle();
-            
+
             if (clearDataBtn) clearDataBtn.style.display = 'none';
             if (emailToggleBtn) emailToggleBtn.style.display = 'inline-block';
 

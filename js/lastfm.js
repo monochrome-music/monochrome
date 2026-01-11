@@ -33,10 +33,13 @@ export class LastFMScrobbler {
     saveSession(sessionKey, username) {
         this.sessionKey = sessionKey;
         this.username = username;
-        localStorage.setItem('lastfm-session', JSON.stringify({
-            key: sessionKey,
-            name: username
-        }));
+        localStorage.setItem(
+            'lastfm-session',
+            JSON.stringify({
+                key: sessionKey,
+                name: username,
+            })
+        );
     }
 
     clearSession() {
@@ -56,9 +59,7 @@ export class LastFMScrobbler {
 
         const sortedKeys = Object.keys(filteredParams).sort();
 
-        const signatureString = sortedKeys
-            .map(key => `${key}${filteredParams[key]}`)
-            .join('') + this.API_SECRET;
+        const signatureString = sortedKeys.map((key) => `${key}${filteredParams[key]}`).join('') + this.API_SECRET;
 
         console.log('Signature string:', signatureString);
 
@@ -75,7 +76,7 @@ export class LastFMScrobbler {
         const requestParams = {
             method,
             api_key: this.API_KEY,
-            ...params
+            ...params,
         };
 
         if (requiresAuth && this.sessionKey) {
@@ -87,7 +88,7 @@ export class LastFMScrobbler {
         const formData = new URLSearchParams({
             ...requestParams,
             api_sig: signature,
-            format: 'json'
+            format: 'json',
         });
 
         try {
@@ -96,7 +97,7 @@ export class LastFMScrobbler {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: formData
+                body: formData,
             });
 
             const data = await response.json();
@@ -119,7 +120,7 @@ export class LastFMScrobbler {
 
             return {
                 token,
-                url: `https://www.last.fm/api/auth/?api_key=${this.API_KEY}&token=${token}`
+                url: `https://www.last.fm/api/auth/?api_key=${this.API_KEY}&token=${token}`,
             };
         } catch (error) {
             console.error('Failed to get auth URL:', error);
@@ -135,7 +136,7 @@ export class LastFMScrobbler {
                 this.saveSession(data.session.key, data.session.name);
                 return {
                     success: true,
-                    username: data.session.name
+                    username: data.session.name,
                 };
             }
 
@@ -156,7 +157,7 @@ export class LastFMScrobbler {
         try {
             const params = {
                 artist: track.artist?.name || track.artists?.[0]?.name || 'Unknown Artist',
-                track: track.title
+                track: track.title,
             };
 
             if (track.album?.title) {
@@ -177,7 +178,6 @@ export class LastFMScrobbler {
 
             this.scrobbleThreshold = Math.min(track.duration / 2, 240);
             this.scheduleScrobble(this.scrobbleThreshold * 1000);
-
         } catch (error) {
             console.error('Failed to update now playing:', error);
         }
@@ -207,7 +207,7 @@ export class LastFMScrobbler {
             const params = {
                 artist: this.currentTrack.artist?.name || this.currentTrack.artists?.[0]?.name || 'Unknown Artist',
                 track: this.currentTrack.title,
-                timestamp: timestamp
+                timestamp: timestamp,
             };
 
             if (this.currentTrack.album?.title) {
@@ -226,7 +226,6 @@ export class LastFMScrobbler {
 
             this.hasScrobbled = true;
             console.log('Scrobbled:', this.currentTrack.title);
-
         } catch (error) {
             console.error('Failed to scrobble:', error);
         }
@@ -238,7 +237,7 @@ export class LastFMScrobbler {
         try {
             const params = {
                 artist: track.artist?.name || track.artists?.[0]?.name || 'Unknown Artist',
-                track: track.title
+                track: track.title,
             };
 
             await this.makeRequest('track.love', params, true);
