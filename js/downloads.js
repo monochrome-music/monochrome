@@ -361,27 +361,6 @@ async function downloadTracksToZip(
     }
 }
 
-export async function downloadTracks(tracks, api, quality, lyricsManager = null) {
-    const folderName = `Queue - ${new Date().toISOString().slice(0, 10)}`;
-
-    const initResult = await initializeZipDownload(folderName, tracks.length >= 20);
-    if (!initResult) return;
-    const { zip, fileHandle } = initResult;
-
-    const notification = createBulkDownloadNotification('queue', 'Queue', tracks.length);
-
-    try {
-        await downloadTracksToZip(zip, tracks, folderName, api, quality, lyricsManager, notification);
-        await generateAndDownloadZip(zip, folderName, notification, tracks.length, fileHandle);
-    } catch (error) {
-        if (error.name === 'AbortError') {
-            return;
-        }
-        completeBulkDownload(notification, false, error.message);
-        throw error;
-    }
-}
-
 export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsManager = null) {
     const releaseDateStr =
         album.releaseDate || (tracks[0]?.streamStartDate ? tracks[0].streamStartDate.split('T')[0] : '');

@@ -11,6 +11,7 @@ import {
     escapeHtml,
 } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
+import { downloadQualitySettings } from './storage.js';
 
 export function initializeUIInteractions(player, api) {
     const sidebar = document.querySelector('.sidebar');
@@ -73,7 +74,7 @@ export function initializeUIInteractions(player, api) {
         if (downloadBtn) {
             downloadBtn.addEventListener('click', async () => {
                 const { downloadTracks } = await import('./downloads.js');
-                downloadTracks(currentQueue);
+                downloadTracks(currentQueue, api, downloadQualitySettings.getQuality());
             });
         }
 
