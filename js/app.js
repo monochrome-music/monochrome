@@ -1103,34 +1103,46 @@ async function parseCSV(csvText, api, onProgress) {
                     let foundTrack = null;
 
                     // Helper: Normalize strings for fuzzy matching
-                    const normalize = (str) => str.toLowerCase().replace(/[^\w\s]/g, '').trim();
-                    
+                    const normalize = (str) =>
+                        str
+                            .toLowerCase()
+                            .replace(/[^\w\s]/g, '')
+                            .trim();
+
                     // Helper: Check if result matches our criteria
                     const isValidMatch = (track, title, artists, album) => {
                         if (!track) return false;
-                        
+
                         const trackTitle = normalize(track.title || '');
-                        const trackArtists = (track.artists || []).map(a => normalize(a.name || '')).join(' ');
+                        const trackArtists = (track.artists || []).map((a) => normalize(a.name || '')).join(' ');
                         const trackAlbum = normalize(track.album?.name || '');
-                        
+
                         const queryTitle = normalize(title);
                         const queryArtists = normalize(artists);
                         const queryAlbum = normalize(album || '');
-                        
+
                         // Must match title (exact or substring match)
-                        const titleMatch = trackTitle === queryTitle || trackTitle.includes(queryTitle) || queryTitle.includes(trackTitle);
+                        const titleMatch =
+                            trackTitle === queryTitle ||
+                            trackTitle.includes(queryTitle) ||
+                            queryTitle.includes(trackTitle);
                         if (!titleMatch) return false;
-                        
+
                         // Must match at least one artist
-                        const artistMatch = trackArtists.includes(queryArtists.split(' ')[0]) || queryArtists.includes(trackArtists.split(' ')[0]);
+                        const artistMatch =
+                            trackArtists.includes(queryArtists.split(' ')[0]) ||
+                            queryArtists.includes(trackArtists.split(' ')[0]);
                         if (!artistMatch) return false;
-                        
+
                         // If album provided, prefer matching album but not strict
                         if (queryAlbum) {
-                            const albumMatch = trackAlbum === queryAlbum || trackAlbum.includes(queryAlbum) || queryAlbum.includes(trackAlbum);
+                            const albumMatch =
+                                trackAlbum === queryAlbum ||
+                                trackAlbum.includes(queryAlbum) ||
+                                queryAlbum.includes(trackAlbum);
                             return albumMatch; // Prefer album matches
                         }
-                        
+
                         return true;
                     };
 
@@ -1165,7 +1177,7 @@ async function parseCSV(csvText, api, onProgress) {
                             let searchQuery = `${trackTitle} ${mainArtist}`;
                             if (albumName) searchQuery += ` ${albumName}`;
                             const searchResults = await api.searchTracks(searchQuery);
-                            
+
                             if (searchResults.items && searchResults.items.length > 0) {
                                 for (const result of searchResults.items) {
                                     if (isValidMatch(result, trackTitle, mainArtist, albumName)) {
@@ -1182,7 +1194,7 @@ async function parseCSV(csvText, api, onProgress) {
                     if (!foundTrack && albumName) {
                         const searchQuery = `${trackTitle} ${albumName}`;
                         const searchResults = await api.searchTracks(searchQuery);
-                        
+
                         if (searchResults.items && searchResults.items.length > 0) {
                             for (const result of searchResults.items) {
                                 if (isValidMatch(result, trackTitle, artistNames, albumName)) {
@@ -1202,7 +1214,7 @@ async function parseCSV(csvText, api, onProgress) {
                             let searchQuery = `${cleanedTitle} ${mainArtist}`;
                             if (albumName) searchQuery += ` ${albumName}`;
                             const searchResults = await api.searchTracks(searchQuery);
-                            
+
                             if (searchResults.items && searchResults.items.length > 0) {
                                 for (const result of searchResults.items) {
                                     if (isValidMatch(result, cleanedTitle, mainArtist, albumName)) {
@@ -1220,7 +1232,7 @@ async function parseCSV(csvText, api, onProgress) {
                         const mainArtist = (artistNames || '').split(',')[0].trim();
                         const searchQuery = `${trackTitle} ${mainArtist}`;
                         const searchResults = await api.searchTracks(searchQuery);
-                        
+
                         if (searchResults.items && searchResults.items.length > 0) {
                             // For title-only search, be more lenient
                             for (const result of searchResults.items) {
@@ -1239,8 +1251,12 @@ async function parseCSV(csvText, api, onProgress) {
                         tracks.push(foundTrack);
                         console.log(`✓ "${trackTitle}" by ${artistNames}${albumName ? ' [' + albumName + ']' : ''}`);
                     } else {
-                        console.warn(`✗ Track not found: "${trackTitle}" by ${artistNames}${albumName ? ' [' + albumName + ']' : ''}`);
-                        missingTracks.push(`${trackTitle} - ${artistNames}${albumName ? ' (album: ' + albumName + ')' : ''}`);
+                        console.warn(
+                            `✗ Track not found: "${trackTitle}" by ${artistNames}${albumName ? ' [' + albumName + ']' : ''}`
+                        );
+                        missingTracks.push(
+                            `${trackTitle} - ${artistNames}${albumName ? ' (album: ' + albumName + ')' : ''}`
+                        );
                     }
                 } catch (error) {
                     console.error(`Error searching for track "${trackTitle}":`, error);
