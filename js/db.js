@@ -303,6 +303,26 @@ export class MusicDatabase {
         }
     }
 
+    _updatePlaylistMetadata(playlist) {
+        playlist.numberOfTracks = playlist.tracks ? playlist.tracks.length : 0;
+
+        if (!playlist.cover) {
+            const uniqueCovers = [];
+            const seenCovers = new Set();
+            const tracks = playlist.tracks || [];
+            for (const track of tracks) {
+                const cover = track.album?.cover;
+                if (cover && !seenCovers.has(cover)) {
+                    seenCovers.add(cover);
+                    uniqueCovers.push(cover);
+                    if (uniqueCovers.length >= 4) break;
+                }
+            }
+            playlist.images = uniqueCovers;
+        }
+        return playlist;
+    }
+
     // User Playlists API
     async createPlaylist(name, tracks = [], cover = '') {
         const id = crypto.randomUUID();
@@ -313,6 +333,7 @@ export class MusicDatabase {
             cover: cover,
             createdAt: Date.now(),
         };
+        this._updatePlaylistMetadata(playlist);
         await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
         return playlist;
     }
@@ -324,6 +345,7 @@ export class MusicDatabase {
         const minifiedTrack = this._minifyItem('track', track);
         if (playlist.tracks.some((t) => t.id === track.id)) return;
         playlist.tracks.push(minifiedTrack);
+        this._updatePlaylistMetadata(playlist);
         await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
         return playlist;
     }
@@ -333,6 +355,7 @@ export class MusicDatabase {
         if (!playlist) throw new Error('Playlist not found');
         playlist.tracks = playlist.tracks || [];
         playlist.tracks = playlist.tracks.filter((t) => t.id !== trackId);
+        this._updatePlaylistMetadata(playlist);
         await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
         return playlist;
     }
@@ -348,12 +371,42 @@ export class MusicDatabase {
     async getPlaylists() {
         const db = await this.open();
         return new Promise((resolve, reject) => {
-            const transaction = db.transaction('user_playlists', 'readonly');
+            const transaction = db.transaction('user_playlists', 'readwrite'); // Changed to readwrite for lazy migration
             const store = transaction.objectStore('user_playlists');
             const index = store.index('createdAt');
             const request = index.getAll();
             request.onsuccess = () => {
-                resolve(request.result.reverse()); // Newest first
+                const playlists = request.result.reverse(); // Newest first
+                const processedPlaylists = playlists.map((playlist) => {
+                    let needsUpdate = false;
+
+                    // Lazy migration for numberOfTracks
+                    if (typeof playlist.numberOfTracks === 'undefined') {
+                        playlist.numberOfTracks = playlist.tracks ? playlist.tracks.length : 0;
+                        needsUpdate = true;
+                    }
+
+                    // Lazy migration for images (collage)
+                    if (!playlist.cover && (!playlist.images || playlist.images.length === 0)) {
+                        this._updatePlaylistMetadata(playlist);
+                        needsUpdate = true;
+                    }
+
+                    if (needsUpdate) {
+                        // We are in a readwrite transaction, so we can put back
+                        try {
+                            store.put(playlist);
+                        } catch (e) {
+                            console.warn('Failed to update playlist metadata', e);
+                        }
+                    }
+
+                    // Return lightweight copy without tracks
+                    // eslint-disable-next-line no-unused-vars
+                    const { tracks, ...minified } = playlist;
+                    return minified;
+                });
+                resolve(processedPlaylists);
             };
             request.onerror = () => reject(request.error);
         });
@@ -371,6 +424,7 @@ export class MusicDatabase {
         const playlist = await this.performTransaction('user_playlists', 'readonly', (store) => store.get(playlistId));
         if (!playlist) throw new Error('Playlist not found');
         playlist.tracks = tracks;
+        this._updatePlaylistMetadata(playlist);
         await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
         return playlist;
     }
