@@ -51,9 +51,15 @@ export class SyncManager {
             // 1. Fetch Cloud Data
             const snapshot = await get(this.userRef);
             const cloudData = snapshot.val() || {};
+            const deletedPlaylists = cloudData.deleted_playlists || {};
 
             // 2. Fetch Local Data
             const localData = await db.exportData();
+
+            // Filter out deleted playlists from local data
+            if (localData.user_playlists && Array.isArray(localData.user_playlists)) {
+                localData.user_playlists = localData.user_playlists.filter((p) => !deletedPlaylists[p.id]);
+            }
 
             // 3. Merge Data (Union Strategy)
             const mergedData = this.mergeData(localData, cloudData);
@@ -278,8 +284,14 @@ export class SyncManager {
 
         if (action === 'create' || action === 'update') {
             await set(itemRef, playlist);
+            // Ensure it's not in deleted_playlists (just in case)
+            const deletedRef = child(this.userRef, `deleted_playlists/${id}`);
+            await remove(deletedRef);
         } else if (action === 'delete') {
             await remove(itemRef);
+            // Add tombstone
+            const deletedRef = child(this.userRef, `deleted_playlists/${id}`);
+            await set(deletedRef, { timestamp: Date.now() });
         }
     }
 
