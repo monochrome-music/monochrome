@@ -186,6 +186,8 @@ export class MusicDatabase {
                 streamStartDate: item.streamStartDate || null,
                 // Keep version if exists
                 version: item.version || null,
+                // Keep mix info
+                mixes: item.mixes || null,
             };
         }
 
