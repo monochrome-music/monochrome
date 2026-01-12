@@ -10,6 +10,9 @@ import {
     child,
     remove,
     runTransaction,
+    onChildAdded,
+    onChildChanged,
+    onChildRemoved,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 import { db } from '../db.js';
 
@@ -19,6 +22,7 @@ export class SyncManager {
         this.userRef = null;
         this.unsubscribeFunctions = [];
         this.isSyncing = false;
+        this.listenersSetup = false;
     }
 
     initialize(user) {
@@ -38,6 +42,7 @@ export class SyncManager {
         }
         this.user = null;
         this.userRef = null;
+        this.listenersSetup = false;
         console.log('SyncManager disconnected');
     }
 
@@ -83,12 +88,10 @@ export class SyncManager {
             await db.importData(importData, true);
 
             console.log('Initial sync complete.');
-
-            // 6. Setup Listeners for future changes
-            this.setupListeners();
         } catch (error) {
             console.error('Initial sync failed:', error);
         } finally {
+            this.setupListeners();
             this.isSyncing = false;
         }
     }
@@ -110,13 +113,48 @@ export class SyncManager {
 
             // Add/Overwrite with cloud items (Union Strategy)
             if (cloudItems) {
+                const processItem = (item, key) => {
+                    if (!item || typeof item !== 'object') return;
+
+                    if (item.tracks && typeof item.tracks === 'object' && !Array.isArray(item.tracks)) {
+                        item.tracks = Object.values(item.tracks);
+                    }
+
+                    const id = item[idKey] || key;
+                    const localItem = map.get(id);
+
+                    if (localItem) {
+                        const localTime = localItem.updatedAt || 0;
+                        const cloudTime = item.updatedAt || 0;
+
+
+                        if (cloudTime > localTime) {
+                            const localTracks = Array.isArray(localItem.tracks) ? localItem.tracks.length : 0;
+                            const cloudTracks = Array.isArray(item.tracks) ? item.tracks.length : 0;
+
+                            if (localTracks > 0 && cloudTracks === 0) {
+                            } else {
+                                map.set(id, item);
+                            }
+                        } else if (cloudTime === localTime) {
+                            const localTracks = Array.isArray(localItem.tracks) ? localItem.tracks.length : 0;
+                            const cloudTracks = Array.isArray(item.tracks) ? item.tracks.length : 0;
+                            if (cloudTracks >= localTracks) {
+                                map.set(id, item);
+                            }
+                        }
+                    } else {
+                        map.set(id, item);
+                    }
+                };
+
                 if (Array.isArray(cloudItems)) {
-                    cloudItems.forEach((item) => map.set(item[idKey], item));
+                    cloudItems.forEach((item) => processItem(item));
                 } else {
                     Object.keys(cloudItems).forEach((key) => {
                         const val = cloudItems[key];
                         if (typeof val === 'object') {
-                            map.set(val[idKey] || key, val);
+                            processItem(val, key);
                         }
                     });
                 }
@@ -162,6 +200,9 @@ export class SyncManager {
     }
 
     setupListeners() {
+        if (!this.userRef || this.listenersSetup) return;
+        this.listenersSetup = true;
+
         // Listen for changes in library
         const libraryRef = child(this.userRef, 'library');
 
@@ -208,22 +249,42 @@ export class SyncManager {
         // Listen for changes in user playlists
         const userPlaylistsRef = child(this.userRef, 'user_playlists');
 
-        const unsubUserPlaylists = onValue(userPlaylistsRef, (snapshot) => {
+        const handlePlaylistUpdate = (snapshot) => {
             if (this.isSyncing) return;
 
             const val = snapshot.val();
             if (val) {
+                if (val.tracks && typeof val.tracks === 'object' && !Array.isArray(val.tracks)) {
+                    val.tracks = Object.values(val.tracks);
+                }
+
                 const importData = {
-                    user_playlists: Object.values(val),
+                    user_playlists: [val],
                 };
-                db.importData(importData, true).then(() => {
+                db.importData(importData, false).then(() => {
                     // Notify UI to refresh library
+                    window.dispatchEvent(new Event('library-changed'));
+                });
+            }
+        };
+
+        const unsubChildAdded = onChildAdded(userPlaylistsRef, handlePlaylistUpdate);
+        const unsubChildChanged = onChildChanged(userPlaylistsRef, handlePlaylistUpdate);
+        const unsubChildRemoved = onChildRemoved(userPlaylistsRef, (snapshot) => {
+            if (this.isSyncing) return;
+            const key = snapshot.key;
+            if (key) {
+                db.deletePlaylist(key).then(() => {
                     window.dispatchEvent(new Event('library-changed'));
                 });
             }
         });
 
-        this.unsubscribeFunctions.push(() => off(userPlaylistsRef, 'value', unsubUserPlaylists));
+        this.unsubscribeFunctions.push(() => {
+            off(userPlaylistsRef, 'child_added', unsubChildAdded);
+            off(userPlaylistsRef, 'child_changed', unsubChildChanged);
+            off(userPlaylistsRef, 'child_removed', unsubChildRemoved);
+        });
     }
 
     // --- Public API for Broadcasters ---
@@ -258,7 +319,7 @@ export class SyncManager {
                 ...minified,
                 addedAt: item.addedAt || minified.addedAt || Date.now(),
             };
-            await set(itemRef, entry);
+            await set(itemRef, this.sanitizeForFirebase(entry));
         } else {
             await remove(itemRef);
         }
@@ -269,7 +330,7 @@ export class SyncManager {
 
         const itemRef = child(this.userRef, `history/recentTracks/${track.timestamp}`);
         try {
-            await set(itemRef, track);
+            await set(itemRef, this.sanitizeForFirebase(track));
         } catch (error) {
             console.error('Failed to sync history item:', error);
         }
@@ -283,7 +344,11 @@ export class SyncManager {
         const itemRef = child(this.userRef, path);
 
         if (action === 'create' || action === 'update') {
-            await set(itemRef, playlist);
+            const dataToSync = {
+                ...playlist,
+                updatedAt: Date.now(),
+            };
+            await set(itemRef, this.sanitizeForFirebase(dataToSync));
             // Ensure it's not in deleted_playlists (just in case)
             const deletedRef = child(this.userRef, `deleted_playlists/${id}`);
             await remove(deletedRef);
@@ -323,7 +388,7 @@ export class SyncManager {
 
         // Use a global 'public_playlists' node
         const publicRef = ref(database, `public_playlists/${playlistId}`);
-        await set(publicRef, publicData);
+        await set(publicRef, this.sanitizeForFirebase(publicData));
     }
 
     async unpublishPlaylist(playlistId) {
@@ -351,6 +416,25 @@ export class SyncManager {
             console.error('[Sync] Failed to fetch public playlist:', error);
             return null;
         }
+    }
+
+    sanitizeForFirebase(obj) {
+        if (obj === undefined) return null;
+        if (obj === null) return null;
+        if (typeof obj !== 'object') return obj;
+        if (Array.isArray(obj)) {
+            return obj.map((v) => this.sanitizeForFirebase(v));
+        }
+        const newObj = {};
+        for (const key in obj) {
+            if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                const val = this.sanitizeForFirebase(obj[key]);
+                if (val !== undefined) {
+                    newObj[key] = val;
+                }
+            }
+        }
+        return newObj;
     }
 }
 

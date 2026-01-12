@@ -659,7 +659,7 @@ export async function handleTrackAction(
             }
         }
     } else if (action === 'add-to-playlist') {
-        const playlists = await db.getPlaylists();
+        const playlists = await db.getPlaylists(true);
         if (playlists.length === 0) {
             showNotification('No playlists yet. Create one first.');
             return;
@@ -675,7 +675,7 @@ export async function handleTrackAction(
         const playlistsWithTrack = new Set();
 
         for (const playlist of playlists) {
-            if (playlist.tracks && playlist.tracks.some((track) => track.id === trackId)) {
+            if (playlist.tracks && playlist.tracks.some((track) => track.id == trackId)) {
                 playlistsWithTrack.add(playlist.id);
             }
         }

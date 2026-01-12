@@ -928,6 +928,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             ui.renderLibraryPage();
         } else if (hash === '#home' || hash === '') {
             ui.renderHomePage();
+        } else if (hash.startsWith('#userplaylist/')) {
+            const playlistId = hash.split('/')[1];
+            const content = document.querySelector('.main-content');
+            const scroll = content ? content.scrollTop : 0;
+            ui.renderPlaylistPage(playlistId, 'user').then(() => {
+                if (content) content.scrollTop = scroll;
+            });
         }
     });
     window.addEventListener('history-changed', () => {

@@ -168,27 +168,27 @@ export class MusicDatabase {
         if (type === 'track') {
             return {
                 ...base,
-                title: item.title,
-                duration: item.duration,
-                explicit: item.explicit,
+                title: item.title || null,
+                duration: item.duration || null,
+                explicit: item.explicit || false,
                 // Keep minimal artist info
-                artist: item.artist || (item.artists && item.artists.length > 0 ? item.artists[0] : null),
-                artists: item.artists?.map((a) => ({ id: a.id, name: a.name })) || [],
+                artist: item.artist || (item.artists && item.artists.length > 0 ? item.artists[0] : null) || null,
+                artists: item.artists?.map((a) => ({ id: a.id, name: a.name || null })) || [],
                 // Keep minimal album info
                 album: item.album
                     ? {
                           id: item.album.id,
-                          title: item.album.title,
-                          cover: item.album.cover,
+                          title: item.album.title || null,
+                          cover: item.album.cover || null,
                           releaseDate: item.album.releaseDate || null,
                           vibrantColor: item.album.vibrantColor || null,
-                          artist: item.album.artist,
-                          numberOfTracks: item.album.numberOfTracks,
+                          artist: item.album.artist || null,
+                          numberOfTracks: item.album.numberOfTracks || null,
                       }
                     : null,
-                copyright: item.copyright,
-                isrc: item.isrc,
-                trackNumber: item.trackNumber,
+                copyright: item.copyright || null,
+                isrc: item.isrc || null,
+                trackNumber: item.trackNumber || null,
                 // Fallback date
                 streamStartDate: item.streamStartDate || null,
                 // Keep version if exists
@@ -201,26 +201,26 @@ export class MusicDatabase {
         if (type === 'album') {
             return {
                 ...base,
-                title: item.title,
-                cover: item.cover,
+                title: item.title || null,
+                cover: item.cover || null,
                 releaseDate: item.releaseDate || null,
-                explicit: item.explicit,
+                explicit: item.explicit || false,
                 // UI uses singular 'artist'
                 artist: item.artist
-                    ? { name: item.artist.name, id: item.artist.id }
+                    ? { name: item.artist.name || null, id: item.artist.id }
                     : item.artists?.[0]
-                      ? { name: item.artists[0].name, id: item.artists[0].id }
+                      ? { name: item.artists[0].name || null, id: item.artists[0].id }
                       : null,
                 // Keep type and track count for UI labels
                 type: item.type || null,
-                numberOfTracks: item.numberOfTracks,
+                numberOfTracks: item.numberOfTracks || null,
             };
         }
 
         if (type === 'artist') {
             return {
                 ...base,
-                name: item.name,
+                name: item.name || null,
                 picture: item.picture || item.image || null, // Handle both just in case
             };
         }
@@ -229,11 +229,11 @@ export class MusicDatabase {
             return {
                 uuid: item.uuid || item.id,
                 addedAt: item.addedAt || item.createdAt || null,
-                title: item.title || item.name,
+                title: item.title || item.name || null,
                 // UI checks squareImage || image || uuid
                 image: item.image || item.squareImage || item.cover || null,
                 numberOfTracks: item.numberOfTracks || (item.tracks ? item.tracks.length : 0),
-                user: item.user ? { name: item.user.name } : null,
+                user: item.user ? { name: item.user.name || null } : null,
             };
         }
 
@@ -260,7 +260,7 @@ export class MusicDatabase {
         const mixes = await this.getFavorites('mix');
         const history = await this.getHistory();
 
-        const userPlaylists = await this.getPlaylists();
+        const userPlaylists = await this.getPlaylists(true);
         const data = {
             favorites_tracks: tracks.map((t) => this._minifyItem('track', t)),
             favorites_albums: albums.map((a) => this._minifyItem('album', a)),
@@ -339,6 +339,7 @@ export class MusicDatabase {
             tracks: tracks.map((t) => this._minifyItem('track', t)),
             cover: cover,
             createdAt: Date.now(),
+            updatedAt: Date.now(),
         };
         this._updatePlaylistMetadata(playlist);
         await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
@@ -352,6 +353,7 @@ export class MusicDatabase {
         const minifiedTrack = this._minifyItem('track', track);
         if (playlist.tracks.some((t) => t.id === track.id)) return;
         playlist.tracks.push(minifiedTrack);
+        playlist.updatedAt = Date.now();
         this._updatePlaylistMetadata(playlist);
         await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
         return playlist;
@@ -362,6 +364,7 @@ export class MusicDatabase {
         if (!playlist) throw new Error('Playlist not found');
         playlist.tracks = playlist.tracks || [];
         playlist.tracks = playlist.tracks.filter((t) => t.id !== trackId);
+        playlist.updatedAt = Date.now();
         this._updatePlaylistMetadata(playlist);
         await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
         return playlist;
@@ -375,7 +378,7 @@ export class MusicDatabase {
         return await this.performTransaction('user_playlists', 'readonly', (store) => store.get(playlistId));
     }
 
-    async getPlaylists() {
+    async getPlaylists(includeTracks = false) {
         const db = await this.open();
         return new Promise((resolve, reject) => {
             const transaction = db.transaction('user_playlists', 'readwrite'); // Changed to readwrite for lazy migration
@@ -408,6 +411,10 @@ export class MusicDatabase {
                         }
                     }
 
+                    if (includeTracks) {
+                        return playlist;
+                    }
+
                     // Return lightweight copy without tracks
                     // eslint-disable-next-line no-unused-vars
                     const { tracks, ...minified } = playlist;
@@ -423,6 +430,7 @@ export class MusicDatabase {
         const playlist = await this.performTransaction('user_playlists', 'readonly', (store) => store.get(playlistId));
         if (!playlist) throw new Error('Playlist not found');
         playlist.name = newName;
+        playlist.updatedAt = Date.now();
         await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
         return playlist;
     }
@@ -441,6 +449,7 @@ export class MusicDatabase {
                     return;
                 }
                 playlist.tracks = tracks;
+                playlist.updatedAt = Date.now();
                 this._updatePlaylistMetadata(playlist);
                 const putRequest = store.put(playlist);
                 putRequest.onsuccess = () => {
