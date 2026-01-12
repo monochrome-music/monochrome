@@ -127,7 +127,6 @@ export class SyncManager {
                         const localTime = localItem.updatedAt || 0;
                         const cloudTime = item.updatedAt || 0;
 
-
                         if (cloudTime > localTime) {
                             const localTracks = Array.isArray(localItem.tracks) ? localItem.tracks.length : 0;
                             const cloudTracks = Array.isArray(item.tracks) ? item.tracks.length : 0;
