@@ -658,21 +658,45 @@
                         </div>
                         <div class="search-tab-content" id="library-tab-local">
                             <div class="track-list" id="library-local-container">
-                                <div id="local-files-intro" style="padding: 20px; text-align: center;">
+                                <div id="local-files-intro" style="padding: 20px; text-align: center">
                                     <button id="select-local-folder-btn" class="btn-secondary">
-                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
-                                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                                        <svg
+                                            width="20"
+                                            height="20"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            style="margin-right: 8px"
+                                        >
+                                            <path
+                                                d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+                                            ></path>
                                         </svg>
                                         <span id="select-local-folder-text">Select Music Folder</span>
                                     </button>
-                                    <p style="margin-top: 10px; font-size: 0.9rem; color: var(--muted-foreground);">
-                                        Select a folder on your device to play local files. <br>
+                                    <p style="margin-top: 10px; font-size: 0.9rem; color: var(--muted-foreground)">
+                                        Select a folder on your device to play local files. <br />
                                         Note: Metadata reading is basic (FLAC/MP3 tags).
                                     </p>
                                 </div>
-                                <div id="local-files-header" style="display: none; justify-content: space-between; align-items: center; padding: 10px 20px;">
+                                <div
+                                    id="local-files-header"
+                                    style="
+                                        display: none;
+                                        justify-content: space-between;
+                                        align-items: center;
+                                        padding: 10px 20px;
+                                    "
+                                >
                                     <h3>Local Files</h3>
-                                    <button id="change-local-folder-btn" class="btn-secondary" style="font-size: 0.8rem; padding: 4px 8px;">Change Folder</button>
+                                    <button
+                                        id="change-local-folder-btn"
+                                        class="btn-secondary"
+                                        style="font-size: 0.8rem; padding: 4px 8px"
+                                    >
+                                        Change Folder
+                                    </button>
                                 </div>
                                 <div id="local-files-list"></div>
                             </div>

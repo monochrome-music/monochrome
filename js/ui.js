@@ -793,7 +793,7 @@ export class UIRenderer {
 
     async renderLocalFiles(container) {
         if (!container) return;
-        
+
         const introDiv = document.getElementById('local-files-intro');
         const headerDiv = document.getElementById('local-files-header');
         const listContainer = document.getElementById('local-files-list');
@@ -802,7 +802,7 @@ export class UIRenderer {
         const handle = await db.getSetting('local_folder_handle');
         if (handle) {
             if (selectBtnText) selectBtnText.textContent = `Load "${handle.name}"`;
-            
+
             if (window.localFilesCache && window.localFilesCache.length > 0) {
                 if (introDiv) introDiv.style.display = 'none';
                 if (headerDiv) {

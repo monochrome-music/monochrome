@@ -824,7 +824,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const handle = await window.showDirectoryPicker({
                     id: 'music-folder',
-                    mode: 'read'
+                    mode: 'read',
                 });
 
                 await db.saveSetting('local_folder_handle', handle);
@@ -832,7 +832,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const btn = document.getElementById('select-local-folder-btn');
                 const btnText = document.getElementById('select-local-folder-text');
                 if (btn) {
-                    if (btnText) btnText.textContent = 'Scanning...'; else btn.textContent = 'Scanning...';
+                    if (btnText) btnText.textContent = 'Scanning...';
+                    else btn.textContent = 'Scanning...';
                     btn.disabled = true;
                 }
 
@@ -843,7 +844,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     for await (const entry of dirHandle.values()) {
                         if (entry.kind === 'file') {
                             const name = entry.name.toLowerCase();
-                            if (name.endsWith('.flac') || name.endsWith('.mp3') || name.endsWith('.m4a') || name.endsWith('.wav') || name.endsWith('.ogg')) {
+                            if (
+                                name.endsWith('.flac') ||
+                                name.endsWith('.mp3') ||
+                                name.endsWith('.m4a') ||
+                                name.endsWith('.wav') ||
+                                name.endsWith('.ogg')
+                            ) {
                                 const file = await entry.getFile();
                                 const metadata = await readTrackMetadata(file);
                                 metadata.id = `local-${idCounter++}-${file.name}`;
@@ -865,7 +872,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 window.localFilesCache = tracks;
                 ui.renderLibraryPage();
-
             } catch (err) {
                 if (err.name !== 'AbortError') {
                     console.error('Error selecting folder:', err);
@@ -874,7 +880,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const btn = document.getElementById('select-local-folder-btn');
                 const btnText = document.getElementById('select-local-folder-text');
                 if (btn) {
-                    if (btnText) btnText.textContent = 'Select Music Folder'; else btn.textContent = 'Select Music Folder';
+                    if (btnText) btnText.textContent = 'Select Music Folder';
+                    else btn.textContent = 'Select Music Folder';
                     btn.disabled = false;
                 }
             }
