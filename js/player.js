@@ -200,7 +200,7 @@ export class Player {
 
         for (const { track } of tracksToPreload) {
             if (this.preloadCache.has(track.id)) continue;
-            const trackTitle = getTrackTitle(track);
+            if (track.isLocal) continue;
             try {
                 const streamUrl = await this.api.getStreamUrl(track.id, this.quality);
 
@@ -253,29 +253,35 @@ export class Player {
         this.updatePlayingTrackIndicator();
 
         try {
-            // Get track data for ReplayGain (should be cached by API)
-            const trackData = await this.api.getTrack(track.id, this.quality);
-
-            if (trackData && trackData.info) {
-                this.currentRgValues = {
-                    trackReplayGain: trackData.info.trackReplayGain,
-                    trackPeakAmplitude: trackData.info.trackPeakAmplitude,
-                    albumReplayGain: trackData.info.albumReplayGain,
-                    albumPeakAmplitude: trackData.info.albumPeakAmplitude,
-                };
-            } else {
-                this.currentRgValues = null;
-            }
-            this.applyReplayGain();
-
             let streamUrl;
 
-            if (this.preloadCache.has(track.id)) {
-                streamUrl = this.preloadCache.get(track.id);
-            } else if (trackData.originalTrackUrl) {
-                streamUrl = trackData.originalTrackUrl;
+            if (track.isLocal && track.file) {
+                streamUrl = URL.createObjectURL(track.file);
+                this.currentRgValues = null; // No replaygain for local files yet
+                this.applyReplayGain();
             } else {
-                streamUrl = this.api.extractStreamUrlFromManifest(trackData.info.manifest);
+                // Get track data for ReplayGain (should be cached by API)
+                const trackData = await this.api.getTrack(track.id, this.quality);
+
+                if (trackData && trackData.info) {
+                    this.currentRgValues = {
+                        trackReplayGain: trackData.info.trackReplayGain,
+                        trackPeakAmplitude: trackData.info.trackPeakAmplitude,
+                        albumReplayGain: trackData.info.albumReplayGain,
+                        albumPeakAmplitude: trackData.info.albumPeakAmplitude,
+                    };
+                } else {
+                    this.currentRgValues = null;
+                }
+                this.applyReplayGain();
+
+                if (this.preloadCache.has(track.id)) {
+                    streamUrl = this.preloadCache.get(track.id);
+                } else if (trackData.originalTrackUrl) {
+                    streamUrl = trackData.originalTrackUrl;
+                } else {
+                    streamUrl = this.api.extractStreamUrlFromManifest(trackData.info.manifest);
+                }
             }
 
             this.audio.src = streamUrl;

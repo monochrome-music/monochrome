@@ -28,6 +28,7 @@ import { db } from './db.js';
 import { syncManager } from './firebase/sync.js';
 import { registerSW } from 'virtual:pwa-register';
 import './smooth-scrolling.js';
+import { readTrackMetadata } from './metadata.js';
 
 function initializeCasting(audioPlayer, castBtn) {
     if (!castBtn) return;
@@ -815,6 +816,67 @@ document.addEventListener('DOMContentLoaded', async () => {
             } catch (error) {
                 console.error('Failed to load artist for discography download:', error);
                 alert('Failed to load artist: ' + error.message);
+            }
+        }
+
+        // Local Files Logic lollll
+        if (e.target.closest('#select-local-folder-btn') || e.target.closest('#change-local-folder-btn')) {
+            try {
+                const handle = await window.showDirectoryPicker({
+                    id: 'music-folder',
+                    mode: 'read'
+                });
+
+                await db.saveSetting('local_folder_handle', handle);
+
+                const btn = document.getElementById('select-local-folder-btn');
+                const btnText = document.getElementById('select-local-folder-text');
+                if (btn) {
+                    if (btnText) btnText.textContent = 'Scanning...'; else btn.textContent = 'Scanning...';
+                    btn.disabled = true;
+                }
+
+                const tracks = [];
+                let idCounter = 0;
+
+                async function scanDirectory(dirHandle) {
+                    for await (const entry of dirHandle.values()) {
+                        if (entry.kind === 'file') {
+                            const name = entry.name.toLowerCase();
+                            if (name.endsWith('.flac') || name.endsWith('.mp3') || name.endsWith('.m4a') || name.endsWith('.wav') || name.endsWith('.ogg')) {
+                                const file = await entry.getFile();
+                                const metadata = await readTrackMetadata(file);
+                                metadata.id = `local-${idCounter++}-${file.name}`;
+                                tracks.push(metadata);
+                            }
+                        } else if (entry.kind === 'directory') {
+                            await scanDirectory(entry);
+                        }
+                    }
+                }
+
+                await scanDirectory(handle);
+
+                tracks.sort((a, b) => {
+                    const artistA = a.artist.name || '';
+                    const artistB = b.artist.name || '';
+                    return artistA.localeCompare(artistB);
+                });
+
+                window.localFilesCache = tracks;
+                ui.renderLibraryPage();
+
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.error('Error selecting folder:', err);
+                    alert('Failed to access folder. Please try again.');
+                }
+                const btn = document.getElementById('select-local-folder-btn');
+                const btnText = document.getElementById('select-local-folder-text');
+                if (btn) {
+                    if (btnText) btnText.textContent = 'Select Music Folder'; else btn.textContent = 'Select Music Folder';
+                    btn.disabled = false;
+                }
             }
         }
     });

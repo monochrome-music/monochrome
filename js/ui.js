@@ -100,13 +100,28 @@ export class UIRenderer {
         const lyricsBtn = document.getElementById('toggle-lyrics-btn');
 
         if (track) {
+            const isLocal = track.isLocal;
+
             if (likeBtn) {
-                likeBtn.style.display = 'flex';
-                this.updateLikeState(likeBtn.parentElement, 'track', track.id);
+                if (isLocal) {
+                    likeBtn.style.display = 'none';
+                } else {
+                    likeBtn.style.display = 'flex';
+                    this.updateLikeState(likeBtn.parentElement, 'track', track.id);
+                }
             }
-            if (addPlaylistBtn) addPlaylistBtn.style.removeProperty('display');
-            if (mobileAddPlaylistBtn) mobileAddPlaylistBtn.style.removeProperty('display');
-            if (lyricsBtn) lyricsBtn.style.removeProperty('display');
+            if (addPlaylistBtn) {
+                if (isLocal) addPlaylistBtn.style.setProperty('display', 'none', 'important');
+                else addPlaylistBtn.style.removeProperty('display');
+            }
+            if (mobileAddPlaylistBtn) {
+                if (isLocal) mobileAddPlaylistBtn.style.setProperty('display', 'none', 'important');
+                else mobileAddPlaylistBtn.style.removeProperty('display');
+            }
+            if (lyricsBtn) {
+                if (isLocal) lyricsBtn.style.display = 'none';
+                else lyricsBtn.style.removeProperty('display');
+            }
         } else {
             if (likeBtn) likeBtn.style.display = 'none';
             if (addPlaylistBtn) addPlaylistBtn.style.setProperty('display', 'none', 'important');
@@ -165,6 +180,10 @@ export class UIRenderer {
         const trackTitle = getTrackTitle(track);
         const isCurrentTrack = this.player?.currentTrack?.id === track.id;
 
+        if (track.isLocal) {
+            showCover = false;
+        }
+
         let yearDisplay = '';
         const releaseDate = track.album?.releaseDate || track.streamStartDate;
         if (releaseDate) {
@@ -197,17 +216,17 @@ export class UIRenderer {
                         <path d="M19 15v6" />
                     </svg>
                 </button>
-                <button class="track-action-btn" data-action="download" title="Download">
+                <button class="track-action-btn" data-action="download" title="Download" ${track.isLocal ? 'style="display:none"' : ''}>
                     ${SVG_DOWNLOAD}
                 </button>
             </div>
-            <button class="track-menu-btn" type="button" title="More options">
+            <button class="track-menu-btn" type="button" title="More options" ${track.isLocal ? 'style="display:none"' : ''}>
                 ${SVG_MENU}
             </button>
         `;
 
         return `
-            <div class="track-item ${isCurrentTrack ? 'playing' : ''}" data-track-id="${track.id}">
+            <div class="track-item ${isCurrentTrack ? 'playing' : ''}" data-track-id="${track.id}" ${track.isLocal ? 'data-is-local="true"' : ''}>
                 ${trackNumberHTML}
                 <div class="track-item-info">
                     <div class="track-item-details">
@@ -218,7 +237,7 @@ export class UIRenderer {
                         <div class="artist">${escapeHtml(trackArtists)}${yearDisplay}</div>
                     </div>
                 </div>
-                <div class="track-item-duration">${formatTime(track.duration)}</div>
+                <div class="track-item-duration">${track.duration ? formatTime(track.duration) : '--:--'}</div>
                 <div class="track-item-actions">
                     ${actionsHTML}
                 </div>
@@ -681,6 +700,7 @@ export class UIRenderer {
         const albumsContainer = document.getElementById('library-albums-container');
         const artistsContainer = document.getElementById('library-artists-container');
         const playlistsContainer = document.getElementById('library-playlists-container');
+        const localContainer = document.getElementById('library-local-container');
 
         const likedTracks = await db.getFavorites('track');
         if (likedTracks.length) {
@@ -765,6 +785,43 @@ export class UIRenderer {
             });
         } else {
             myPlaylistsContainer.innerHTML = createPlaceholder('No playlists yet. Create your first playlist!');
+        }
+
+        // Render Local Files
+        this.renderLocalFiles(localContainer);
+    }
+
+    async renderLocalFiles(container) {
+        if (!container) return;
+        
+        const introDiv = document.getElementById('local-files-intro');
+        const headerDiv = document.getElementById('local-files-header');
+        const listContainer = document.getElementById('local-files-list');
+        const selectBtnText = document.getElementById('select-local-folder-text');
+
+        const handle = await db.getSetting('local_folder_handle');
+        if (handle) {
+            if (selectBtnText) selectBtnText.textContent = `Load "${handle.name}"`;
+            
+            if (window.localFilesCache && window.localFilesCache.length > 0) {
+                if (introDiv) introDiv.style.display = 'none';
+                if (headerDiv) {
+                    headerDiv.style.display = 'flex';
+                    headerDiv.querySelector('h3').textContent = `Local Files (${window.localFilesCache.length})`;
+                }
+                if (listContainer) {
+                    this.renderListWithTracks(listContainer, window.localFilesCache, false);
+                }
+            } else {
+                if (introDiv) introDiv.style.display = 'block';
+                if (headerDiv) headerDiv.style.display = 'none';
+                if (listContainer) listContainer.innerHTML = '';
+            }
+        } else {
+            if (selectBtnText) selectBtnText.textContent = 'Select Music Folder';
+            if (introDiv) introDiv.style.display = 'block';
+            if (headerDiv) headerDiv.style.display = 'none';
+            if (listContainer) listContainer.innerHTML = '';
         }
     }
 

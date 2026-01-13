@@ -50,6 +50,7 @@ Firebase will block login attempts from unknown domains.
             },
             "public_playlists": {
                 ".read": true,
+                ".indexOn": ["uid", "name"],
                 "$playlistId": {
                     ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid)"
                 }

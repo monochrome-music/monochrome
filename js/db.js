@@ -1,7 +1,7 @@
 export class MusicDatabase {
     constructor() {
         this.dbName = 'MonochromeDB';
-        this.version = 5;
+        this.version = 6;
         this.db = null;
     }
 
@@ -52,6 +52,9 @@ export class MusicDatabase {
                 if (!db.objectStoreNames.contains('user_playlists')) {
                     const store = db.createObjectStore('user_playlists', { keyPath: 'id' });
                     store.createIndex('createdAt', 'createdAt', { unique: false });
+                }
+                if (!db.objectStoreNames.contains('settings')) {
+                    db.createObjectStore('settings');
                 }
             };
         });
@@ -274,40 +277,90 @@ export class MusicDatabase {
     }
 
     async importData(data, clear = false) {
-        // Let's merge by put (replaces if ID exists).
         const db = await this.open();
 
         const importStore = async (storeName, items) => {
-            // If items is undefined, we skip this store (don't clear, don't update)
-            // This allows partial updates (e.g. library only)
-            if (items === undefined) return;
+            if (items === undefined) return false;
 
             let itemsArray = Array.isArray(items) ? items : Object.values(items || {});
-
-            const transaction = db.transaction(storeName, 'readwrite');
-            const store = transaction.objectStore(storeName);
-            if (clear) {
-                store.clear();
-            }
-
-            for (const item of itemsArray) {
-                try {
-                    store.put(item);
-                } catch (error) {
-                    console.warn(`Failed to import item in ${storeName}:`, item, error);
+            if (itemsArray.length === 0) {
+                if (clear) {
+                    return new Promise((resolve) => {
+                        const transaction = db.transaction(storeName, 'readwrite');
+                        const store = transaction.objectStore(storeName);
+                        const countReq = store.count();
+                        countReq.onsuccess = () => {
+                            if (countReq.result > 0) {
+                                store.clear();
+                                resolve(true);
+                            } else {
+                                resolve(false);
+                            }
+                        };
+                        countReq.onerror = () => resolve(false);
+                    });
                 }
+                return false;
             }
+
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(storeName, 'readwrite');
+                const store = transaction.objectStore(storeName);
+                let hasChanges = false;
+
+                if (clear) {
+                    store.clear();
+                    hasChanges = true;
+                }
+
+                let pending = itemsArray.length;
+
+                itemsArray.forEach((item) => {
+                    if (clear) {
+                        store.put(item);
+                        pending--;
+                        if (pending === 0) resolve(true);
+                        return;
+                    }
+
+                    let key;
+                    if (storeName === 'favorites_playlists') key = item.uuid;
+                    else if (storeName === 'history_tracks') key = item.timestamp;
+                    else key = item.id;
+
+                    const getReq = store.get(key);
+                    getReq.onsuccess = () => {
+                        const existing = getReq.result;
+                        if (!existing || JSON.stringify(existing) !== JSON.stringify(item)) {
+                            store.put(item);
+                            hasChanges = true;
+                        }
+                        pending--;
+                        if (pending === 0) resolve(hasChanges);
+                    };
+                    getReq.onerror = () => {
+                        store.put(item);
+                        hasChanges = true;
+                        pending--;
+                        if (pending === 0) resolve(hasChanges);
+                    };
+                });
+
+                transaction.onerror = () => reject(transaction.error);
+            });
         };
 
-        await importStore('favorites_tracks', data.favorites_tracks);
-        await importStore('favorites_albums', data.favorites_albums);
-        await importStore('favorites_artists', data.favorites_artists);
-        await importStore('favorites_playlists', data.favorites_playlists);
-        await importStore('favorites_mixes', data.favorites_mixes);
-        await importStore('history_tracks', data.history_tracks);
-        if (data.user_playlists) {
-            await importStore('user_playlists', data.user_playlists);
-        }
+        const results = await Promise.all([
+            importStore('favorites_tracks', data.favorites_tracks),
+            importStore('favorites_albums', data.favorites_albums),
+            importStore('favorites_artists', data.favorites_artists),
+            importStore('favorites_playlists', data.favorites_playlists),
+            importStore('favorites_mixes', data.favorites_mixes),
+            importStore('history_tracks', data.history_tracks),
+            data.user_playlists ? importStore('user_playlists', data.user_playlists) : Promise.resolve(false),
+        ]);
+
+        return results.some((r) => r);
     }
 
     _updatePlaylistMetadata(playlist) {
@@ -467,6 +520,14 @@ export class MusicDatabase {
                 reject(event.target.error);
             };
         });
+    }
+
+    async saveSetting(key, value) {
+        await this.performTransaction('settings', 'readwrite', (store) => store.put(value, key));
+    }
+
+    async getSetting(key) {
+        return await this.performTransaction('settings', 'readonly', (store) => store.get(key));
     }
 }
 

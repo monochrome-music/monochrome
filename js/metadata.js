@@ -27,6 +27,271 @@ export async function addMetadataToAudio(audioBlob, track, api, quality) {
 }
 
 /**
+ * Reads metadata from a file
+ * @param {File} file
+ * @returns {Promise<Object>} Track metadata
+ */
+export async function readTrackMetadata(file) {
+    const metadata = {
+        title: file.name.replace(/\.[^/.]+$/, ""),
+        artists: [],
+        artist: { name: 'Unknown Artist' }, // For fallback/compatibility
+        album: { title: 'Unknown Album', cover: 'assets/appicon.png', releaseDate: null },
+        duration: 0,
+        isLocal: true,
+        file: file,
+        id: `local-${file.name}-${file.lastModified}`
+    };
+
+    try {
+        if (file.type === 'audio/flac' || file.name.endsWith('.flac')) {
+            await readFlacMetadata(file, metadata);
+        } else if (file.type === 'audio/mp4' || file.name.endsWith('.m4a')) {
+            await readM4aMetadata(file, metadata);
+        } else if (file.type === 'audio/mpeg' || file.name.endsWith('.mp3')) {
+            await readMp3Metadata(file, metadata);
+        }
+    } catch (e) {
+        console.warn('Error reading metadata for', file.name, e);
+    }
+
+    if (metadata.artists.length > 0) {
+        metadata.artist = metadata.artists[0];
+    }
+
+    return metadata;
+}
+
+async function readFlacMetadata(file, metadata) {
+    const arrayBuffer = await file.arrayBuffer();
+    const dataView = new DataView(arrayBuffer);
+
+    if (!isFlacFile(dataView)) return;
+
+    const blocks = parseFlacBlocks(dataView);
+    const vorbisBlock = blocks.find(b => b.type === 4);
+    
+    const artists = [];
+    if (vorbisBlock) {
+        const offset = vorbisBlock.offset;
+        const vendorLen = dataView.getUint32(offset, true);
+        let pos = offset + 4 + vendorLen;
+        const commentListLen = dataView.getUint32(pos, true);
+        pos += 4;
+
+        for (let i = 0; i < commentListLen; i++) {
+            const len = dataView.getUint32(pos, true);
+            pos += 4;
+            const comment = new TextDecoder().decode(new Uint8Array(arrayBuffer, pos, len));
+            pos += len;
+
+            const eqIdx = comment.indexOf('=');
+            if (eqIdx > -1) {
+                const key = comment.substring(0, eqIdx);
+                const value = comment.substring(eqIdx + 1);
+                const upperKey = key.toUpperCase();
+                if (upperKey === 'TITLE') metadata.title = value;
+                if (upperKey === 'ARTIST' || upperKey === 'ALBUMARTIST') {
+                    artists.push(value);
+                }
+                if (upperKey === 'ALBUM') metadata.album.title = value;
+            }
+        }
+    }
+
+    if (artists.length > 0) {
+        metadata.artists = artists.flatMap(a => a.split(/; |\/|\\/)).map(name => ({ name: name.trim() }));
+    }
+}
+
+async function readM4aMetadata(file, metadata) {
+    try {
+        const chunkSize = Math.min(file.size, 5 * 1024 * 1024);
+        const buffer = await file.slice(0, chunkSize).arrayBuffer();
+        const view = new DataView(buffer);
+        
+        const atoms = parseMp4Atoms(view);
+
+        
+        const moov = atoms.find(a => a.type === 'moov');
+        if (!moov) return;
+        
+        const moovStart = moov.offset + 8;
+        const moovLen = moov.size - 8;
+        const moovData = new DataView(view.buffer, moovStart, moovLen);
+        const moovAtoms = parseMp4Atoms(moovData);
+        
+        const udta = moovAtoms.find(a => a.type === 'udta');
+        if (!udta) return;
+        
+        const udtaStart = moovStart + udta.offset + 8;
+        const udtaLen = udta.size - 8;
+        const udtaData = new DataView(view.buffer, udtaStart, udtaLen);
+        const udtaAtoms = parseMp4Atoms(udtaData);
+        
+        const meta = udtaAtoms.find(a => a.type === 'meta');
+        if (!meta) return;
+        
+        const metaStart = udtaStart + meta.offset + 12;
+        const metaLen = meta.size - 12;
+        const metaData = new DataView(view.buffer, metaStart, metaLen);
+        const metaAtoms = parseMp4Atoms(metaData);
+        
+        const ilst = metaAtoms.find(a => a.type === 'ilst');
+        if (!ilst) return;
+        
+        const ilstStart = metaStart + ilst.offset + 8;
+        const ilstLen = ilst.size - 8;
+        const ilstData = new DataView(view.buffer, ilstStart, ilstLen);
+        const items = parseMp4Atoms(ilstData);
+        
+        let artistStr = null;
+        
+        for (const item of items) {
+            const itemStart = ilstStart + item.offset + 8;
+            const itemLen = item.size - 8;
+            const itemData = new DataView(view.buffer, itemStart, itemLen);
+            const dataAtom = parseMp4Atoms(itemData).find(a => a.type === 'data');
+            if (dataAtom) {
+                const contentLen = dataAtom.size - 16;
+                const contentOffset = itemStart + dataAtom.offset + 16;
+                
+                if (item.type === '©nam') {
+                    metadata.title = new TextDecoder().decode(new Uint8Array(view.buffer, contentOffset, contentLen));
+                } else if (item.type === '©ART') {
+                    artistStr = new TextDecoder().decode(new Uint8Array(view.buffer, contentOffset, contentLen));
+                } else if (item.type === '©alb') {
+                    metadata.album.title = new TextDecoder().decode(new Uint8Array(view.buffer, contentOffset, contentLen));
+                }
+            }
+        }
+
+        if (artistStr) {
+            metadata.artists = artistStr.split(/; |\/|\\/).map(name => ({ name: name.trim() }));
+        }
+
+    } catch (e) {
+        console.warn('Error parsing M4A:', e);
+    }
+}
+
+async function readMp3Metadata(file, metadata) {
+    let buffer = await file.slice(0, 10).arrayBuffer();
+    let view = new DataView(buffer);
+
+    if (view.getUint8(0) === 0x49 && view.getUint8(1) === 0x44 && view.getUint8(2) === 0x33) {
+        const majorVer = view.getUint8(3);
+        const size = readSynchsafeInteger32(view, 6);
+        const tagSize = size + 10;
+        
+        buffer = await file.slice(0, tagSize).arrayBuffer();
+        view = new DataView(buffer);
+        
+        let offset = 10;
+        if ((view.getUint8(5) & 0x40) !== 0) {
+            const extSize = readSynchsafeInteger32(view, offset);
+            offset += extSize;
+        }
+
+        let tpe1 = null;
+        let tpe2 = null;
+        while (offset < view.byteLength) {
+            let frameId, frameSize;
+            
+            if (majorVer === 3) {
+                frameId = new TextDecoder().decode(new Uint8Array(buffer, offset, 4));
+                frameSize = view.getUint32(offset + 4, false);
+                offset += 10;
+            } else if (majorVer === 4) {
+                frameId = new TextDecoder().decode(new Uint8Array(buffer, offset, 4));
+                frameSize = readSynchsafeInteger32(view, offset + 4);
+                offset += 10;
+            } else {
+                break;
+            }
+
+            if (frameId.charCodeAt(0) === 0) break; 
+            if (offset + frameSize > view.byteLength) break;
+
+            const frameData = new DataView(buffer, offset, frameSize);
+            if (frameId === 'TIT2') metadata.title = readID3Text(frameData);
+            if (frameId === 'TPE1') tpe1 = readID3Text(frameData);
+            if (frameId === 'TPE2') tpe2 = readID3Text(frameData);
+            if (frameId === 'TALB') metadata.album.title = readID3Text(frameData);
+            if (frameId === 'TYER' || frameId === 'TDRC') {
+                const year = readID3Text(frameData);
+                if (year) metadata.album.releaseDate = year;
+            }
+
+            offset += frameSize;
+        }
+
+        const artistStr = tpe1 || tpe2;
+        if (artistStr) {
+            metadata.artists = artistStr.split('/').map(name => ({ name: name.trim() }));
+        }
+    }
+    
+    if (file.size > 128) {
+        const tailBuffer = await file.slice(file.size - 128).arrayBuffer();
+        const tailView = new DataView(tailBuffer);
+        const tag = new TextDecoder().decode(new Uint8Array(tailBuffer, 0, 3));
+        if (tag === 'TAG') {
+            const title = new TextDecoder().decode(new Uint8Array(tailBuffer, 3, 30)).replace(/\0/g, '').trim();
+            const artist = new TextDecoder().decode(new Uint8Array(tailBuffer, 33, 30)).replace(/\0/g, '').trim();
+            const album = new TextDecoder().decode(new Uint8Array(tailBuffer, 63, 30)).replace(/\0/g, '').trim();
+            if (title) metadata.title = title;
+            if (artist && metadata.artists.length === 0) {
+                metadata.artists = [{ name: artist }];
+            }
+            if (album) metadata.album.title = album;
+        }
+    }
+}
+
+function readSynchsafeInteger32(view, offset) {
+    return (
+        ((view.getUint8(offset) & 0x7f) << 21) |
+        ((view.getUint8(offset + 1) & 0x7f) << 14) |
+        ((view.getUint8(offset + 2) & 0x7f) << 7) |
+        (view.getUint8(offset + 3) & 0x7f)
+    );
+}
+
+function readID3Text(view) {
+    const encoding = view.getUint8(0);
+    const buffer = view.buffer.slice(view.byteOffset + 1, view.byteOffset + view.byteLength);
+    let decoder;
+    if (encoding === 0) decoder = new TextDecoder('iso-8859-1');
+    else if (encoding === 1) decoder = new TextDecoder('utf-16');
+    else if (encoding === 2) decoder = new TextDecoder('utf-16be');
+    else decoder = new TextDecoder('utf-8');
+    
+    return decoder.decode(buffer).replace(/\0/g, '');
+}
+
+function readID3Picture(view) {
+    let offset = 1;
+    const encoding = view.getUint8(0);
+    
+    let mimeEnd = offset;
+    while (view.getUint8(mimeEnd) !== 0) mimeEnd++;
+    const mime = new TextDecoder('iso-8859-1').decode(view.buffer.slice(view.byteOffset + offset, view.byteOffset + mimeEnd));
+    offset = mimeEnd + 1;
+    
+    const picType = view.getUint8(offset);
+    offset++;
+
+    let descEnd = offset;
+    while (view.getUint8(descEnd) !== 0 || (encoding === 1 || encoding === 2 ? view.getUint8(descEnd+1) !== 0 : false)) descEnd++;
+    offset = descEnd + (encoding === 1 || encoding === 2 ? 2 : 1);
+    
+    const imgData = view.buffer.slice(view.byteOffset + offset, view.byteOffset + view.byteLength);
+    const blob = new Blob([imgData], { type: mime });
+    return URL.createObjectURL(blob);
+}
+
+/**
  * Adds Vorbis comment metadata to FLAC files
  */
 async function addFlacMetadata(flacBlob, track, api) {

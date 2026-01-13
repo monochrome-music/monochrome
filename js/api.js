@@ -937,6 +937,10 @@ export class LosslessAPI {
             return `https://picsum.photos/seed/${Math.random()}/${size}`;
         }
 
+        if (typeof id === 'string' && (id.startsWith('blob:') || id.startsWith('assets/'))) {
+            return id;
+        }
+
         const formattedId = id.replace(/-/g, '/');
         return `https://resources.tidal.com/images/${formattedId}/${size}x${size}.jpg`;
     }

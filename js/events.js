@@ -799,6 +799,8 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             if (trackItem && !trackItem.dataset.queueIndex) {
                 const clickedTrack = trackDataStore.get(trackItem);
 
+                if (clickedTrack && clickedTrack.isLocal) return;
+
                 if (
                     contextMenu.style.display === 'block' &&
                     contextTrack &&
@@ -866,6 +868,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             }
 
             if (contextTrack) {
+                if (contextTrack.isLocal) return;
                 await updateContextMenuLikeState(contextMenu, contextTrack);
                 positionMenu(contextMenu, e.pageX, e.pageY);
             }

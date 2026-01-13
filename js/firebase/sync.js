@@ -56,14 +56,17 @@ export class SyncManager {
             // 1. Fetch Cloud Data
             const snapshot = await get(this.userRef);
             const cloudData = snapshot.val() || {};
-            const deletedPlaylists = cloudData.deleted_playlists || {};
 
             // 2. Fetch Local Data
             const localData = await db.exportData();
 
             // Filter out deleted playlists from local data
             if (localData.user_playlists && Array.isArray(localData.user_playlists)) {
-                localData.user_playlists = localData.user_playlists.filter((p) => !deletedPlaylists[p.id]);
+                const cloudPlaylists = cloudData.user_playlists || {};
+                localData.user_playlists = localData.user_playlists.filter((p) => {
+                    const cloudP = cloudPlaylists[p.id];
+                    return !cloudP || !cloudP.deleted;
+                });
             }
 
             // 3. Merge Data (Union Strategy)
@@ -123,7 +126,9 @@ export class SyncManager {
                     const id = item[idKey] || key;
                     const localItem = map.get(id);
 
-                    if (localItem) {
+                    if (item.deleted) {
+                        map.delete(id);
+                    } else if (localItem) {
                         const localTime = localItem.updatedAt || 0;
                         const cloudTime = item.updatedAt || 0;
 
@@ -202,48 +207,58 @@ export class SyncManager {
         if (!this.userRef || this.listenersSetup) return;
         this.listenersSetup = true;
 
-        // Listen for changes in library
-        const libraryRef = child(this.userRef, 'library');
+        const setupLibraryListener = (nodeName, storeName) => {
+            const nodeRef = child(this.userRef, `library/${nodeName}`);
 
-        const unsubLibrary = onValue(libraryRef, (snapshot) => {
-            if (this.isSyncing) return;
+            const handleAddOrChange = (snapshot) => {
+                if (this.isSyncing) return;
+                const val = snapshot.val();
+                if (val) {
+                    const importData = {};
+                    importData[storeName] = [val];
+                    db.importData(importData, false).then((changed) => {
+                        if (changed) window.dispatchEvent(new Event('library-changed'));
+                    });
+                }
+            };
 
-            const val = snapshot.val();
-            if (val) {
-                const importData = {
-                    favorites_tracks: val.tracks ? Object.values(val.tracks) : [],
-                    favorites_albums: val.albums ? Object.values(val.albums) : [],
-                    favorites_artists: val.artists ? Object.values(val.artists) : [],
-                    favorites_playlists: val.playlists ? Object.values(val.playlists) : [],
-                };
-                db.importData(importData, false).then(() => {
-                    // Notify UI to refresh
-                    window.dispatchEvent(new Event('library-changed'));
-                });
-            }
-        });
+            const handleRemove = (snapshot) => {
+                if (this.isSyncing) return;
+                const key = snapshot.key;
+                if (key) {
+                    db.performTransaction(storeName, 'readwrite', (store) => store.delete(key)).then(() => {
+                        window.dispatchEvent(new Event('library-changed'));
+                    });
+                }
+            };
 
-        this.unsubscribeFunctions.push(() => off(libraryRef, 'value', unsubLibrary));
+            const unsubAdd = onChildAdded(nodeRef, handleAddOrChange);
+            const unsubChange = onChildChanged(nodeRef, handleAddOrChange);
+            const unsubRemove = onChildRemoved(nodeRef, handleRemove);
+
+            this.unsubscribeFunctions.push(() => off(nodeRef, 'child_added', unsubAdd));
+            this.unsubscribeFunctions.push(() => off(nodeRef, 'child_changed', unsubChange));
+            this.unsubscribeFunctions.push(() => off(nodeRef, 'child_removed', unsubRemove));
+        };
+
+        setupLibraryListener('tracks', 'favorites_tracks');
+        setupLibraryListener('albums', 'favorites_albums');
+        setupLibraryListener('artists', 'favorites_artists');
+        setupLibraryListener('playlists', 'favorites_playlists');
 
         // Listen for changes in history
         const historyRef = child(this.userRef, 'history/recentTracks');
 
-        const unsubHistory = onValue(historyRef, (snapshot) => {
+        const unsubHistoryAdd = onChildAdded(historyRef, (snapshot) => {
             if (this.isSyncing) return;
-
             const val = snapshot.val();
             if (val) {
-                const importData = {
-                    history_tracks: Object.values(val),
-                };
-                db.importData(importData, true).then(() => {
-                    // Notify UI to refresh
-                    window.dispatchEvent(new Event('history-changed'));
+                db.importData({ history_tracks: [val] }, false).then((changed) => {
+                    if (changed) window.dispatchEvent(new Event('history-changed'));
                 });
             }
         });
-
-        this.unsubscribeFunctions.push(() => off(historyRef, 'value', unsubHistory));
+        this.unsubscribeFunctions.push(() => off(historyRef, 'child_added', unsubHistoryAdd));
 
         // Listen for changes in user playlists
         const userPlaylistsRef = child(this.userRef, 'user_playlists');
@@ -252,6 +267,12 @@ export class SyncManager {
             if (this.isSyncing) return;
 
             const val = snapshot.val();
+            if (val && val.deleted) {
+                db.deletePlaylist(val.id).then(() => {
+                    window.dispatchEvent(new Event('library-changed'));
+                });
+                return;
+            }
             if (val) {
                 if (val.tracks && typeof val.tracks === 'object' && !Array.isArray(val.tracks)) {
                     val.tracks = Object.values(val.tracks);
@@ -260,9 +281,9 @@ export class SyncManager {
                 const importData = {
                     user_playlists: [val],
                 };
-                db.importData(importData, false).then(() => {
+                db.importData(importData, false).then((changed) => {
                     // Notify UI to refresh library
-                    window.dispatchEvent(new Event('library-changed'));
+                    if (changed) window.dispatchEvent(new Event('library-changed'));
                 });
             }
         };
@@ -330,6 +351,16 @@ export class SyncManager {
         const itemRef = child(this.userRef, `history/recentTracks/${track.timestamp}`);
         try {
             await set(itemRef, this.sanitizeForFirebase(track));
+
+            const localHistory = await db.getHistory();
+            if (localHistory.length > 50) {
+                const toRemove = localHistory.slice(50);
+                const updates = {};
+                toRemove.forEach((t) => {
+                    updates[`history/recentTracks/${t.timestamp}`] = null;
+                });
+                await update(this.userRef, updates);
+            }
         } catch (error) {
             console.error('Failed to sync history item:', error);
         }
@@ -348,14 +379,8 @@ export class SyncManager {
                 updatedAt: Date.now(),
             };
             await set(itemRef, this.sanitizeForFirebase(dataToSync));
-            // Ensure it's not in deleted_playlists (just in case)
-            const deletedRef = child(this.userRef, `deleted_playlists/${id}`);
-            await remove(deletedRef);
         } else if (action === 'delete') {
-            await remove(itemRef);
-            // Add tombstone
-            const deletedRef = child(this.userRef, `deleted_playlists/${id}`);
-            await set(deletedRef, { timestamp: Date.now() });
+            await update(itemRef, { deleted: true, updatedAt: Date.now() });
         }
     }
 
