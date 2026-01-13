@@ -33,14 +33,14 @@ export async function addMetadataToAudio(audioBlob, track, api, quality) {
  */
 export async function readTrackMetadata(file) {
     const metadata = {
-        title: file.name.replace(/\.[^/.]+$/, ""),
+        title: file.name.replace(/\.[^/.]+$/, ''),
         artists: [],
         artist: { name: 'Unknown Artist' }, // For fallback/compatibility
         album: { title: 'Unknown Album', cover: 'assets/appicon.png', releaseDate: null },
         duration: 0,
         isLocal: true,
         file: file,
-        id: `local-${file.name}-${file.lastModified}`
+        id: `local-${file.name}-${file.lastModified}`,
     };
 
     try {
@@ -69,8 +69,8 @@ async function readFlacMetadata(file, metadata) {
     if (!isFlacFile(dataView)) return;
 
     const blocks = parseFlacBlocks(dataView);
-    const vorbisBlock = blocks.find(b => b.type === 4);
-    
+    const vorbisBlock = blocks.find((b) => b.type === 4);
+
     const artists = [];
     if (vorbisBlock) {
         const offset = vorbisBlock.offset;
@@ -100,7 +100,7 @@ async function readFlacMetadata(file, metadata) {
     }
 
     if (artists.length > 0) {
-        metadata.artists = artists.flatMap(a => a.split(/; |\/|\\/)).map(name => ({ name: name.trim() }));
+        metadata.artists = artists.flatMap((a) => a.split(/; |\/|\\/)).map((name) => ({ name: name.trim() }));
     }
 }
 
@@ -109,67 +109,67 @@ async function readM4aMetadata(file, metadata) {
         const chunkSize = Math.min(file.size, 5 * 1024 * 1024);
         const buffer = await file.slice(0, chunkSize).arrayBuffer();
         const view = new DataView(buffer);
-        
+
         const atoms = parseMp4Atoms(view);
 
-        
-        const moov = atoms.find(a => a.type === 'moov');
+        const moov = atoms.find((a) => a.type === 'moov');
         if (!moov) return;
-        
+
         const moovStart = moov.offset + 8;
         const moovLen = moov.size - 8;
         const moovData = new DataView(view.buffer, moovStart, moovLen);
         const moovAtoms = parseMp4Atoms(moovData);
-        
-        const udta = moovAtoms.find(a => a.type === 'udta');
+
+        const udta = moovAtoms.find((a) => a.type === 'udta');
         if (!udta) return;
-        
+
         const udtaStart = moovStart + udta.offset + 8;
         const udtaLen = udta.size - 8;
         const udtaData = new DataView(view.buffer, udtaStart, udtaLen);
         const udtaAtoms = parseMp4Atoms(udtaData);
-        
-        const meta = udtaAtoms.find(a => a.type === 'meta');
+
+        const meta = udtaAtoms.find((a) => a.type === 'meta');
         if (!meta) return;
-        
+
         const metaStart = udtaStart + meta.offset + 12;
         const metaLen = meta.size - 12;
         const metaData = new DataView(view.buffer, metaStart, metaLen);
         const metaAtoms = parseMp4Atoms(metaData);
-        
-        const ilst = metaAtoms.find(a => a.type === 'ilst');
+
+        const ilst = metaAtoms.find((a) => a.type === 'ilst');
         if (!ilst) return;
-        
+
         const ilstStart = metaStart + ilst.offset + 8;
         const ilstLen = ilst.size - 8;
         const ilstData = new DataView(view.buffer, ilstStart, ilstLen);
         const items = parseMp4Atoms(ilstData);
-        
+
         let artistStr = null;
-        
+
         for (const item of items) {
             const itemStart = ilstStart + item.offset + 8;
             const itemLen = item.size - 8;
             const itemData = new DataView(view.buffer, itemStart, itemLen);
-            const dataAtom = parseMp4Atoms(itemData).find(a => a.type === 'data');
+            const dataAtom = parseMp4Atoms(itemData).find((a) => a.type === 'data');
             if (dataAtom) {
                 const contentLen = dataAtom.size - 16;
                 const contentOffset = itemStart + dataAtom.offset + 16;
-                
+
                 if (item.type === '©nam') {
                     metadata.title = new TextDecoder().decode(new Uint8Array(view.buffer, contentOffset, contentLen));
                 } else if (item.type === '©ART') {
                     artistStr = new TextDecoder().decode(new Uint8Array(view.buffer, contentOffset, contentLen));
                 } else if (item.type === '©alb') {
-                    metadata.album.title = new TextDecoder().decode(new Uint8Array(view.buffer, contentOffset, contentLen));
+                    metadata.album.title = new TextDecoder().decode(
+                        new Uint8Array(view.buffer, contentOffset, contentLen)
+                    );
                 }
             }
         }
 
         if (artistStr) {
-            metadata.artists = artistStr.split(/; |\/|\\/).map(name => ({ name: name.trim() }));
+            metadata.artists = artistStr.split(/; |\/|\\/).map((name) => ({ name: name.trim() }));
         }
-
     } catch (e) {
         console.warn('Error parsing M4A:', e);
     }
@@ -183,10 +183,10 @@ async function readMp3Metadata(file, metadata) {
         const majorVer = view.getUint8(3);
         const size = readSynchsafeInteger32(view, 6);
         const tagSize = size + 10;
-        
+
         buffer = await file.slice(0, tagSize).arrayBuffer();
         view = new DataView(buffer);
-        
+
         let offset = 10;
         if ((view.getUint8(5) & 0x40) !== 0) {
             const extSize = readSynchsafeInteger32(view, offset);
@@ -197,7 +197,7 @@ async function readMp3Metadata(file, metadata) {
         let tpe2 = null;
         while (offset < view.byteLength) {
             let frameId, frameSize;
-            
+
             if (majorVer === 3) {
                 frameId = new TextDecoder().decode(new Uint8Array(buffer, offset, 4));
                 frameSize = view.getUint32(offset + 4, false);
@@ -210,7 +210,7 @@ async function readMp3Metadata(file, metadata) {
                 break;
             }
 
-            if (frameId.charCodeAt(0) === 0) break; 
+            if (frameId.charCodeAt(0) === 0) break;
             if (offset + frameSize > view.byteLength) break;
 
             const frameData = new DataView(buffer, offset, frameSize);
@@ -228,18 +228,27 @@ async function readMp3Metadata(file, metadata) {
 
         const artistStr = tpe1 || tpe2;
         if (artistStr) {
-            metadata.artists = artistStr.split('/').map(name => ({ name: name.trim() }));
+            metadata.artists = artistStr.split('/').map((name) => ({ name: name.trim() }));
         }
     }
-    
+
     if (file.size > 128) {
         const tailBuffer = await file.slice(file.size - 128).arrayBuffer();
         const tailView = new DataView(tailBuffer);
         const tag = new TextDecoder().decode(new Uint8Array(tailBuffer, 0, 3));
         if (tag === 'TAG') {
-            const title = new TextDecoder().decode(new Uint8Array(tailBuffer, 3, 30)).replace(/\0/g, '').trim();
-            const artist = new TextDecoder().decode(new Uint8Array(tailBuffer, 33, 30)).replace(/\0/g, '').trim();
-            const album = new TextDecoder().decode(new Uint8Array(tailBuffer, 63, 30)).replace(/\0/g, '').trim();
+            const title = new TextDecoder()
+                .decode(new Uint8Array(tailBuffer, 3, 30))
+                .replace(/\0/g, '')
+                .trim();
+            const artist = new TextDecoder()
+                .decode(new Uint8Array(tailBuffer, 33, 30))
+                .replace(/\0/g, '')
+                .trim();
+            const album = new TextDecoder()
+                .decode(new Uint8Array(tailBuffer, 63, 30))
+                .replace(/\0/g, '')
+                .trim();
             if (title) metadata.title = title;
             if (artist && metadata.artists.length === 0) {
                 metadata.artists = [{ name: artist }];
@@ -266,26 +275,32 @@ function readID3Text(view) {
     else if (encoding === 1) decoder = new TextDecoder('utf-16');
     else if (encoding === 2) decoder = new TextDecoder('utf-16be');
     else decoder = new TextDecoder('utf-8');
-    
+
     return decoder.decode(buffer).replace(/\0/g, '');
 }
 
 function readID3Picture(view) {
     let offset = 1;
     const encoding = view.getUint8(0);
-    
+
     let mimeEnd = offset;
     while (view.getUint8(mimeEnd) !== 0) mimeEnd++;
-    const mime = new TextDecoder('iso-8859-1').decode(view.buffer.slice(view.byteOffset + offset, view.byteOffset + mimeEnd));
+    const mime = new TextDecoder('iso-8859-1').decode(
+        view.buffer.slice(view.byteOffset + offset, view.byteOffset + mimeEnd)
+    );
     offset = mimeEnd + 1;
-    
+
     const picType = view.getUint8(offset);
     offset++;
 
     let descEnd = offset;
-    while (view.getUint8(descEnd) !== 0 || (encoding === 1 || encoding === 2 ? view.getUint8(descEnd+1) !== 0 : false)) descEnd++;
+    while (
+        view.getUint8(descEnd) !== 0 ||
+        (encoding === 1 || encoding === 2 ? view.getUint8(descEnd + 1) !== 0 : false)
+    )
+        descEnd++;
     offset = descEnd + (encoding === 1 || encoding === 2 ? 2 : 1);
-    
+
     const imgData = view.buffer.slice(view.byteOffset + offset, view.byteOffset + view.byteLength);
     const blob = new Blob([imgData], { type: mime });
     return URL.createObjectURL(blob);
