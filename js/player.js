@@ -1,4 +1,5 @@
 //js/player.js
+import { MediaPlayer } from 'dashjs';
 import { REPEAT_MODE, formatTime, getTrackArtists, getTrackTitle, getTrackArtistsHTML } from './utils.js';
 import { queueManager, replayGainSettings } from './storage.js';
 
@@ -23,6 +24,17 @@ export class Player {
         this.sleepTimer = null;
         this.sleepTimerEndTime = null;
         this.sleepTimerInterval = null;
+
+        // Initialize dash.js player
+        this.dashPlayer = MediaPlayer().create();
+        this.dashPlayer.updateSettings({
+            streaming: {
+                buffer: {
+                    fastSwitchEnabled: true,
+                },
+            },
+        });
+        this.dashInitialized = false;
 
         this.loadQueueState();
         this.setupMediaSession();
@@ -208,10 +220,13 @@ export class Player {
 
                 this.preloadCache.set(track.id, streamUrl);
                 // Warm connection/cache
-                fetch(streamUrl, { method: 'HEAD', signal: this.preloadAbortController.signal }).catch(() => {});
+                // For Blob URLs (DASH), this head request is not needed and can cause errors.
+                if (!streamUrl.startsWith('blob:')) {
+                    fetch(streamUrl, { method: 'HEAD', signal: this.preloadAbortController.signal }).catch(() => {});
+                }
             } catch (error) {
                 if (error.name !== 'AbortError') {
-                    console.debug('Failed to get stream URL for preload:', trackTitle);
+                    // console.debug('Failed to get stream URL for preload:', trackTitle);
                 }
             }
         }
@@ -256,9 +271,16 @@ export class Player {
             let streamUrl;
 
             if (track.isLocal && track.file) {
+                this.dashPlayer.reset(); // Ensure dash is off
                 streamUrl = URL.createObjectURL(track.file);
                 this.currentRgValues = null; // No replaygain for local files yet
                 this.applyReplayGain();
+
+                this.audio.src = streamUrl;
+                if (startTime > 0) {
+                    this.audio.currentTime = startTime;
+                }
+                await this.audio.play();
             } else {
                 // Get track data for ReplayGain (should be cached by API)
                 const trackData = await this.api.getTrack(track.id, this.quality);
@@ -282,13 +304,27 @@ export class Player {
                 } else {
                     streamUrl = this.api.extractStreamUrlFromManifest(trackData.info.manifest);
                 }
-            }
 
-            this.audio.src = streamUrl;
-            if (startTime > 0) {
-                this.audio.currentTime = startTime;
+                // Handle playback
+                if (streamUrl && streamUrl.startsWith('blob:') && !track.isLocal) {
+                    // It's likely a DASH manifest blob URL
+                    this.dashPlayer.initialize(this.audio, streamUrl, true);
+                    this.dashInitialized = true;
+                    if (startTime > 0) {
+                        this.dashPlayer.seek(startTime);
+                    }
+                } else {
+                    if (this.dashInitialized) {
+                        this.dashPlayer.reset();
+                        this.dashInitialized = false;
+                    }
+                    this.audio.src = streamUrl;
+                    if (startTime > 0) {
+                        this.audio.currentTime = startTime;
+                    }
+                    await this.audio.play();
+                }
             }
-            await this.audio.play();
 
             // Update Media Session AFTER play starts to ensure metadata is captured
             this.updateMediaSession(track);

@@ -11,6 +11,7 @@ import {
 } from './utils.js';
 import { lyricsSettings } from './storage.js';
 import { addMetadataToAudio } from './metadata.js';
+import { DashDownloader } from './dash-downloader.js';
 
 const downloadTasks = new Map();
 const bulkDownloadTasks = new Map();
@@ -223,12 +224,27 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
         }
     }
 
-    const response = await fetch(streamUrl, { signal });
-    if (!response.ok) {
-        throw new Error(`Failed to fetch track: ${response.status}`);
+    // Handle DASH streams (blob URLs)
+    if (streamUrl.startsWith('blob:')) {
+        try {
+            const downloader = new DashDownloader();
+            blob = await downloader.downloadDashStream(streamUrl, { signal });
+        } catch (dashError) {
+             console.error('DASH download failed:', dashError);
+             // Fallback
+             if (quality !== 'LOSSLESS') {
+                 console.warn('Falling back to LOSSLESS (16-bit) download.');
+                 return downloadTrackBlob(track, 'LOSSLESS', api, lyricsManager, signal);
+             }
+             throw dashError;
+        }
+    } else {
+        const response = await fetch(streamUrl, { signal });
+        if (!response.ok) {
+            throw new Error(`Failed to fetch track: ${response.status}`);
+        }
+        blob = await response.blob();
     }
-
-    let blob = await response.blob();
 
     // Add metadata to the blob
     blob = await addMetadataToAudio(blob, enrichedTrack, api, quality);
