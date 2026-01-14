@@ -299,6 +299,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
 function initializeSmoothSliders(audioPlayer, player) {
     const progressBar = document.getElementById('progress-bar');
     const progressFill = document.getElementById('progress-fill');
+    const currentTimeEl = document.getElementById('current-time');
     const volumeBar = document.getElementById('volume-bar');
     const volumeFill = document.getElementById('volume-fill');
     const volumeBtn = document.getElementById('volume-btn');
@@ -306,11 +307,21 @@ function initializeSmoothSliders(audioPlayer, player) {
     let isSeeking = false;
     let wasPlaying = false;
     let isAdjustingVolume = false;
+    let lastSeekPosition = 0;
 
     const seek = (bar, event, setter) => {
         const rect = bar.getBoundingClientRect();
         const position = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
         setter(position);
+    };
+
+    const updateSeekUI = (position) => {
+        if (!isNaN(audioPlayer.duration)) {
+             progressFill.style.width = `${position * 100}%`;
+             if (currentTimeEl) {
+                 currentTimeEl.textContent = formatTime(position * audioPlayer.duration);
+             }
+        }
     };
 
     // Progress bar with smooth dragging
@@ -320,10 +331,8 @@ function initializeSmoothSliders(audioPlayer, player) {
         if (wasPlaying) audioPlayer.pause();
 
         seek(progressBar, e, (position) => {
-            if (!isNaN(audioPlayer.duration)) {
-                audioPlayer.currentTime = position * audioPlayer.duration;
-                progressFill.style.width = `${position * 100}%`;
-            }
+            lastSeekPosition = position;
+            updateSeekUI(position);
         });
     });
 
@@ -337,19 +346,16 @@ function initializeSmoothSliders(audioPlayer, player) {
         const touch = e.touches[0];
         const rect = progressBar.getBoundingClientRect();
         const position = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
-        if (!isNaN(audioPlayer.duration)) {
-            audioPlayer.currentTime = position * audioPlayer.duration;
-            progressFill.style.width = `${position * 100}%`;
-        }
+        
+        lastSeekPosition = position;
+        updateSeekUI(position);
     });
 
     document.addEventListener('mousemove', (e) => {
         if (isSeeking) {
             seek(progressBar, e, (position) => {
-                if (!isNaN(audioPlayer.duration)) {
-                    audioPlayer.currentTime = position * audioPlayer.duration;
-                    progressFill.style.width = `${position * 100}%`;
-                }
+                lastSeekPosition = position;
+                updateSeekUI(position);
             });
         }
 
@@ -371,10 +377,9 @@ function initializeSmoothSliders(audioPlayer, player) {
             const touch = e.touches[0];
             const rect = progressBar.getBoundingClientRect();
             const position = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
-            if (!isNaN(audioPlayer.duration)) {
-                audioPlayer.currentTime = position * audioPlayer.duration;
-                progressFill.style.width = `${position * 100}%`;
-            }
+            
+            lastSeekPosition = position;
+            updateSeekUI(position);
         }
 
         if (isAdjustingVolume) {
@@ -393,13 +398,12 @@ function initializeSmoothSliders(audioPlayer, player) {
 
     document.addEventListener('mouseup', (e) => {
         if (isSeeking) {
-            seek(progressBar, e, (position) => {
-                if (!isNaN(audioPlayer.duration)) {
-                    audioPlayer.currentTime = position * audioPlayer.duration;
-                    player.updateMediaSessionPositionState();
-                    if (wasPlaying) audioPlayer.play();
-                }
-            });
+            // Commit the seek
+            if (!isNaN(audioPlayer.duration)) {
+                audioPlayer.currentTime = lastSeekPosition * audioPlayer.duration;
+                player.updateMediaSessionPositionState();
+                if (wasPlaying) audioPlayer.play();
+            }
             isSeeking = false;
         }
 
@@ -411,6 +415,7 @@ function initializeSmoothSliders(audioPlayer, player) {
     document.addEventListener('touchend', (e) => {
         if (isSeeking) {
             if (!isNaN(audioPlayer.duration)) {
+                audioPlayer.currentTime = lastSeekPosition * audioPlayer.duration;
                 player.updateMediaSessionPositionState();
                 if (wasPlaying) audioPlayer.play();
             }
@@ -423,7 +428,7 @@ function initializeSmoothSliders(audioPlayer, player) {
     });
 
     progressBar.addEventListener('click', (e) => {
-        if (!isSeeking) {
+        if (!isSeeking) { // Only handle click if not result of a drag release
             seek(progressBar, e, (position) => {
                 if (!isNaN(audioPlayer.duration) && audioPlayer.duration > 0 && audioPlayer.duration !== Infinity) {
                     audioPlayer.currentTime = position * audioPlayer.duration;
