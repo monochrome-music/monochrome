@@ -7,15 +7,15 @@ export class DashDownloader {
         // 1. Fetch and Parse Manifest
         const response = await fetch(manifestBlobUrl);
         const manifestText = await response.text();
-        
+
         const manifest = this.parseManifest(manifestText);
         if (!manifest) {
-            throw new Error("Failed to parse DASH manifest");
+            throw new Error('Failed to parse DASH manifest');
         }
 
         // 2. Generate URLs
         const urls = this.generateSegmentUrls(manifest);
-        
+
         // 3. Download Segments
         const chunks = [];
         let downloadedBytes = 0;
@@ -28,11 +28,11 @@ export class DashDownloader {
 
             const url = urls[i];
             const segmentResponse = await fetch(url, { signal });
-            
+
             if (!segmentResponse.ok) {
                 // Retry once?
                 console.warn(`Failed to fetch segment ${i}, retrying...`);
-                await new Promise(r => setTimeout(r, 1000));
+                await new Promise((r) => setTimeout(r, 1000));
                 const retryResponse = await fetch(url, { signal });
                 if (!retryResponse.ok) throw new Error(`Failed to fetch segment ${i}: ${retryResponse.status}`);
                 const chunk = await retryResponse.arrayBuffer();
@@ -50,7 +50,7 @@ export class DashDownloader {
                     receivedBytes: downloadedBytes, // accurate byte count
                     totalBytes: undefined, // Unknown total
                     currentSegment: i + 1,
-                    totalSegments: totalSegments
+                    totalSegments: totalSegments,
                 });
             }
         }
@@ -61,71 +61,71 @@ export class DashDownloader {
 
     parseManifest(manifestText) {
         const parser = new DOMParser();
-        const xml = parser.parseFromString(manifestText, "text/xml");
-        
-        const mpd = xml.querySelector("MPD");
-        if (!mpd) throw new Error("Invalid DASH manifest: No MPD tag");
+        const xml = parser.parseFromString(manifestText, 'text/xml');
 
-        const period = mpd.querySelector("Period");
-        if (!period) throw new Error("Invalid DASH manifest: No Period tag");
+        const mpd = xml.querySelector('MPD');
+        if (!mpd) throw new Error('Invalid DASH manifest: No MPD tag');
+
+        const period = mpd.querySelector('Period');
+        if (!period) throw new Error('Invalid DASH manifest: No Period tag');
 
         // Prefer highest bandwidth audio adaptation set
-        const adaptationSets = Array.from(period.querySelectorAll("AdaptationSet"));
-        let audioSet = adaptationSets.find(as => as.getAttribute("mimeType")?.startsWith("audio"));
-        
+        const adaptationSets = Array.from(period.querySelectorAll('AdaptationSet'));
+        let audioSet = adaptationSets.find((as) => as.getAttribute('mimeType')?.startsWith('audio'));
+
         // Fallback: look for any adaptation set if mimeType is missing (rare)
         if (!audioSet && adaptationSets.length > 0) audioSet = adaptationSets[0];
-        if (!audioSet) throw new Error("No AdaptationSet found");
+        if (!audioSet) throw new Error('No AdaptationSet found');
 
         // Find Representation
         // Get all representations and sort by bandwidth descending
-        const representations = Array.from(audioSet.querySelectorAll("Representation"))
-            .sort((a, b) => {
-                const bwA = parseInt(a.getAttribute("bandwidth") || "0");
-                const bwB = parseInt(b.getAttribute("bandwidth") || "0");
-                return bwB - bwA;
-            });
-            
-        if (representations.length === 0) throw new Error("No Representation found");
+        const representations = Array.from(audioSet.querySelectorAll('Representation')).sort((a, b) => {
+            const bwA = parseInt(a.getAttribute('bandwidth') || '0');
+            const bwB = parseInt(b.getAttribute('bandwidth') || '0');
+            return bwB - bwA;
+        });
+
+        if (representations.length === 0) throw new Error('No Representation found');
         const rep = representations[0];
-        const repId = rep.getAttribute("id");
+        const repId = rep.getAttribute('id');
 
         // Find SegmentTemplate
         // Can be in Representation or AdaptationSet
-        const segmentTemplate = rep.querySelector("SegmentTemplate") || audioSet.querySelector("SegmentTemplate");
-        if (!segmentTemplate) throw new Error("No SegmentTemplate found");
+        const segmentTemplate = rep.querySelector('SegmentTemplate') || audioSet.querySelector('SegmentTemplate');
+        if (!segmentTemplate) throw new Error('No SegmentTemplate found');
 
-        const initialization = segmentTemplate.getAttribute("initialization");
-        const media = segmentTemplate.getAttribute("media");
-        const startNumber = parseInt(segmentTemplate.getAttribute("startNumber") || "1", 10);
-        
+        const initialization = segmentTemplate.getAttribute('initialization');
+        const media = segmentTemplate.getAttribute('media');
+        const startNumber = parseInt(segmentTemplate.getAttribute('startNumber') || '1', 10);
+
         // BaseURL
         // Can be at MPD, Period, AdaptationSet, or Representation level.
         // We strictly need to find the "deepest" one or combine them?
         // Usually simpler manifests have it at one level.
         // Let's resolve closest BaseURL.
-        const baseUrlTag = rep.querySelector("BaseURL") || 
-                           audioSet.querySelector("BaseURL") || 
-                           period.querySelector("BaseURL") || 
-                           mpd.querySelector("BaseURL");
-        const baseUrl = baseUrlTag ? baseUrlTag.textContent.trim() : "";
+        const baseUrlTag =
+            rep.querySelector('BaseURL') ||
+            audioSet.querySelector('BaseURL') ||
+            period.querySelector('BaseURL') ||
+            mpd.querySelector('BaseURL');
+        const baseUrl = baseUrlTag ? baseUrlTag.textContent.trim() : '';
 
         // SegmentTimeline
-        const segmentTimeline = segmentTemplate.querySelector("SegmentTimeline");
+        const segmentTimeline = segmentTemplate.querySelector('SegmentTimeline');
         const segments = [];
 
         if (segmentTimeline) {
-            const sElements = segmentTimeline.querySelectorAll("S");
+            const sElements = segmentTimeline.querySelectorAll('S');
             let currentTime = 0;
             let currentNumber = startNumber;
 
-            sElements.forEach(s => {
+            sElements.forEach((s) => {
                 // t is optional, defaults to previous end
-                const tAttr = s.getAttribute("t");
+                const tAttr = s.getAttribute('t');
                 if (tAttr) currentTime = parseInt(tAttr, 10);
 
-                const d = parseInt(s.getAttribute("d"), 10);
-                const r = parseInt(s.getAttribute("r") || "0", 10);
+                const d = parseInt(s.getAttribute('d'), 10);
+                const r = parseInt(s.getAttribute('r') || '0', 10);
 
                 // Initial segment
                 segments.push({ number: currentNumber, time: currentTime });
@@ -148,7 +148,7 @@ export class DashDownloader {
             initialization,
             media,
             segments,
-            repId
+            repId,
         };
     }
 
@@ -189,7 +189,7 @@ export class DashDownloader {
 
         // 2. Media Segments
         if (segments && segments.length > 0) {
-            segments.forEach(seg => {
+            segments.forEach((seg) => {
                 const path = resolveTemplate(media, seg.number, seg.time);
                 urls.push(joinPath(baseUrl, path));
             });

@@ -907,7 +907,7 @@ export class LosslessAPI {
                     const downloader = new DashDownloader();
                     blob = await downloader.downloadDashStream(streamUrl, {
                         signal: options.signal,
-                        onProgress: options.onProgress
+                        onProgress: options.onProgress,
                     });
                 } catch (dashError) {
                     console.error('DASH download failed:', dashError);
@@ -927,7 +927,7 @@ export class LosslessAPI {
                 if (!response.ok) {
                     throw new Error(`Fetch failed: ${response.status}`);
                 }
-                
+
                 // ... (standard handling for Content-Length and body reader)
                 const contentLength = response.headers.get('Content-Length');
                 const totalBytes = contentLength ? parseInt(contentLength, 10) : 0;

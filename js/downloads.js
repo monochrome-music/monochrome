@@ -230,13 +230,13 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
             const downloader = new DashDownloader();
             blob = await downloader.downloadDashStream(streamUrl, { signal });
         } catch (dashError) {
-             console.error('DASH download failed:', dashError);
-             // Fallback
-             if (quality !== 'LOSSLESS') {
-                 console.warn('Falling back to LOSSLESS (16-bit) download.');
-                 return downloadTrackBlob(track, 'LOSSLESS', api, lyricsManager, signal);
-             }
-             throw dashError;
+            console.error('DASH download failed:', dashError);
+            // Fallback
+            if (quality !== 'LOSSLESS') {
+                console.warn('Falling back to LOSSLESS (16-bit) download.');
+                return downloadTrackBlob(track, 'LOSSLESS', api, lyricsManager, signal);
+            }
+            throw dashError;
         }
     } else {
         const response = await fetch(streamUrl, { signal });
