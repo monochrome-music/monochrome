@@ -452,8 +452,8 @@ export class LosslessAPI {
 
                     // Also check if the first new item matches the last track we have (overlap check)
                     if (tracks.length > 0 && preparedItems[0].id === tracks[tracks.length - 1].id) {
-                        // If it's just one overlap, maybe we should skip it? 
-                        // But usually offset should be precise. 
+                        // If it's just one overlap, maybe we should skip it?
+                        // But usually offset should be precise.
                         // If we see exact same id as first track, it's definitely a loop.
                     }
 
