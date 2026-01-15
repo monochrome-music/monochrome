@@ -18,7 +18,11 @@ export async function addMetadataToAudio(audioBlob, track, api, quality) {
 
     // Hi-Res FLAC from DASH is usually in an MP4 container, so we should tag it as M4A
     if (quality === 'HI_RES_LOSSLESS') {
-        return await addM4aMetadata(audioBlob, track, api);
+        const taggedBlob = await addM4aMetadata(audioBlob, track, api);
+        if (extension === 'flac') {
+            return new Blob([taggedBlob], { type: 'audio/flac' });
+        }
+        return taggedBlob;
     }
 
     if (extension === 'flac') {
