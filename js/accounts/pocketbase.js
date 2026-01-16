@@ -55,35 +55,9 @@ const syncManager = {
         const record = await this._getUserRecord(user.uid);
         if (!record) return null;
 
-        let library = record.library || {};
-        if (typeof library === 'string') {
-            try {
-                library = JSON.parse(library);
-            } catch (e) {
-                console.error('Failed to parse library JSON:', e);
-                library = {};
-            }
-        }
-
-        let history = record.history || [];
-        if (typeof history === 'string') {
-            try {
-                history = JSON.parse(history);
-            } catch (e) {
-                console.error('Failed to parse history JSON:', e);
-                history = [];
-            }
-        }
-
-        let userPlaylists = record.user_playlists || {};
-        if (typeof userPlaylists === 'string') {
-            try {
-                userPlaylists = JSON.parse(userPlaylists);
-            } catch (e) {
-                console.error('Failed to parse user_playlists JSON:', e);
-                userPlaylists = {};
-            }
-        }
+        const library = this.safeParseInternal(record.library, 'library', {});
+        const history = this.safeParseInternal(record.history, 'history', []);
+        const userPlaylists = this.safeParseInternal(record.user_playlists, 'user_playlists', {});
 
         return { library, history, userPlaylists };
     },
@@ -96,10 +70,32 @@ const syncManager = {
         }
 
         try {
-            const updated = await this.pb.collection('DB_users').update(record.id, { [field]: data }, { f_id: uid });
+            const stringifiedData = typeof data === 'string' ? data : JSON.stringify(data);
+            const updated = await this.pb
+                .collection('DB_users')
+                .update(record.id, { [field]: stringifiedData }, { f_id: uid });
             this._userRecordCache = updated;
         } catch (error) {
             console.error(`Failed to sync ${field} to PocketBase:`, error);
+        }
+    },
+
+    safeParseInternal(str, fieldName, fallback) {
+        if (!str) return fallback;
+        if (typeof str !== 'string') return str;
+        try {
+            return JSON.parse(str);
+        } catch {
+            try {
+                // Recovery attempt: replace illegal internal quotes in name/title fields
+                const recovered = str.replace(/(:\s*")(.+?)("(?=\s*[,}\n\r]))/g, (match, p1, p2, p3) => {
+                    const escapedContent = p2.replace(/(?<!\\)"/g, '\\"');
+                    return p1 + escapedContent + p3;
+                });
+                return JSON.parse(recovered);
+            } catch {
+                return fallback;
+            }
         }
     },
 
@@ -110,16 +106,7 @@ const syncManager = {
         const record = await this._getUserRecord(user.uid);
         if (!record) return;
 
-        let library = record.library || {};
-
-        if (typeof library === 'string') {
-            try {
-                library = JSON.parse(library);
-            } catch (e) {
-                console.error('Library field is not valid JSON', e);
-                library = {};
-            }
-        }
+        let library = this.safeParseInternal(record.library, 'library', {});
 
         const pluralType = type === 'mix' ? 'mixes' : `${type}s`;
         const key = type === 'playlist' ? item.uuid : item.id;
@@ -230,15 +217,7 @@ const syncManager = {
         const record = await this._getUserRecord(user.uid);
         if (!record) return;
 
-        let history = record.history || [];
-        if (typeof history === 'string') {
-            try {
-                history = JSON.parse(history);
-            } catch (e) {
-                console.error('History field is not valid JSON', e);
-                history = [];
-            }
-        }
+        let history = this.safeParseInternal(record.history, 'history', []);
 
         const newHistory = [historyEntry, ...history].slice(0, 100);
         await this._updateUserJSON(user.uid, 'history', newHistory);
@@ -251,16 +230,7 @@ const syncManager = {
         const record = await this._getUserRecord(user.uid);
         if (!record) return;
 
-        let userPlaylists = record.user_playlists || {};
-
-        if (typeof userPlaylists === 'string') {
-            try {
-                userPlaylists = JSON.parse(userPlaylists);
-            } catch (e) {
-                console.error('user_playlists field is not valid JSON', e);
-                userPlaylists = {};
-            }
-        }
+        let userPlaylists = this.safeParseInternal(record.user_playlists, 'user_playlists', {});
 
         if (action === 'delete') {
             delete userPlaylists[playlist.id];
@@ -288,15 +258,7 @@ const syncManager = {
                 .getFirstListItem(`uuid="${uuid}"`, { p_id: uuid });
 
             let rawCover = record.image || record.cover || record.playlist_cover || '';
-            let extraData = record.data;
-
-            if (typeof extraData === 'string') {
-                try {
-                    extraData = JSON.parse(extraData);
-                } catch {
-                    // Ignore
-                }
-            }
+            let extraData = this.safeParseInternal(record.data, 'data', {});
 
             if (!rawCover && extraData && typeof extraData === 'object') {
                 rawCover = extraData.cover || extraData.image || '';
@@ -308,16 +270,7 @@ const syncManager = {
             }
 
             let images = [];
-            let tracks = record.tracks || [];
-
-            if (typeof tracks === 'string') {
-                try {
-                    tracks = JSON.parse(tracks);
-                } catch (e) {
-                    console.error('Failed to parse tracks JSON:', e);
-                    tracks = [];
-                }
-            }
+            let tracks = this.safeParseInternal(record.tracks, 'tracks', []);
 
             if (!finalCover && tracks && tracks.length > 0) {
                 const uniqueCovers = [];
@@ -384,7 +337,7 @@ const syncManager = {
 
         try {
             const existing = await this.pb.collection(PUBLIC_COLLECTION).getList(1, 1, {
-                filter: `uuid="${playlist.id}"`,
+                filter: `uuid="${playlist.id}"`, 
                 p_id: playlist.id,
             });
 
@@ -404,7 +357,7 @@ const syncManager = {
 
         try {
             const existing = await this.pb.collection('public_playlists').getList(1, 1, {
-                filter: `uuid="${uuid}"`,
+                filter: `uuid="${uuid}"`, 
                 p_id: uuid,
             });
 
