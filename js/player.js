@@ -242,8 +242,7 @@ export class Player {
         }
     }
 
-    async playTrack(track, options = {}) {
-        const { startTime = 0 } = options;
+    async playTrackFromQueue(startTime = 0) {
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
         if (this.currentQueueIndex < 0 || this.currentQueueIndex >= currentQueue.length) {
             return;
@@ -251,6 +250,7 @@ export class Player {
 
         this.saveQueueState();
 
+        const track = currentQueue[this.currentQueueIndex];
         this.currentTrack = track;
 
         const trackTitle = getTrackTitle(track);
