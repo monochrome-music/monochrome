@@ -1,6 +1,13 @@
 //js/player.js
 import { MediaPlayer } from 'dashjs';
-import { REPEAT_MODE, formatTime, getTrackArtists, getTrackTitle, getTrackArtistsHTML, createQualityBadgeHTML } from './utils.js';
+import {
+    REPEAT_MODE,
+    formatTime,
+    getTrackArtists,
+    getTrackTitle,
+    getTrackArtistsHTML,
+    createQualityBadgeHTML,
+} from './utils.js';
 import { queueManager, replayGainSettings } from './storage.js';
 
 export class Player {
