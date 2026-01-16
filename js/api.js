@@ -413,7 +413,59 @@ export class LosslessAPI {
             }
         }
 
-        const tracks = (tracksSection?.items || []).map((i) => this.prepareTrack(i.item || i));
+        let tracks = (tracksSection?.items || []).map((i) => this.prepareTrack(i.item || i));
+
+        // Handle pagination if there are more tracks
+        if (album && album.numberOfTracks > tracks.length) {
+            let offset = tracks.length;
+            const SAFE_MAX_TRACKS = 10000;
+
+            while (tracks.length < album.numberOfTracks && tracks.length < SAFE_MAX_TRACKS) {
+                try {
+                    const nextResponse = await this.fetchWithRetry(`/album/?id=${id}&offset=${offset}&limit=500`);
+                    const nextJson = await nextResponse.json();
+                    const nextData = nextJson.data || nextJson;
+
+                    let nextItems = [];
+
+                    if (nextData.items) {
+                        nextItems = nextData.items;
+                    } else if (Array.isArray(nextData)) {
+                        for (const entry of nextData) {
+                            if (entry && typeof entry === 'object' && 'items' in entry && Array.isArray(entry.items)) {
+                                nextItems = entry.items;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!nextItems || nextItems.length === 0) break;
+
+                    const preparedItems = nextItems.map((i) => this.prepareTrack(i.item || i));
+                    if (preparedItems.length === 0) break;
+
+                    // Safeguard: If API ignores offset, it returns the first page again.
+                    // Check if the first new item matches the very first track we have.
+                    if (tracks.length > 0 && preparedItems[0].id === tracks[0].id) {
+                        break;
+                    }
+
+                    // Also check if the first new item matches the last track we have (overlap check)
+                    if (tracks.length > 0 && preparedItems[0].id === tracks[tracks.length - 1].id) {
+                        // If it's just one overlap, maybe we should skip it?
+                        // But usually offset should be precise.
+                        // If we see exact same id as first track, it's definitely a loop.
+                    }
+
+                    tracks = tracks.concat(preparedItems);
+                    offset += preparedItems.length;
+                } catch (error) {
+                    console.error(`Error fetching album tracks at offset ${offset}:`, error);
+                    break;
+                }
+            }
+        }
+
         const result = { album, tracks };
 
         await this.cache.set('album', id, result);
