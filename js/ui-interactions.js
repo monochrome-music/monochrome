@@ -81,8 +81,8 @@ export function initializeUIInteractions(player, api) {
         const likeBtn = container.querySelector('#like-queue-btn');
         if (likeBtn) {
             likeBtn.addEventListener('click', async () => {
-                const { db } = await import('./db.js');
-                const { syncManager } = await import('./firebase/sync.js');
+                    const { db } = await import('./db.js'); // Already imported
+                    const { syncManager } = await import('./accounts/pocketbase.js');
                 const { showNotification } = await import('./downloads.js');
 
                 let addedCount = 0;
@@ -107,8 +107,8 @@ export function initializeUIInteractions(player, api) {
         const addToPlaylistBtn = container.querySelector('#add-queue-to-playlist-btn');
         if (addToPlaylistBtn) {
             addToPlaylistBtn.addEventListener('click', async () => {
-                const { db } = await import('./db.js');
-                const { syncManager } = await import('./firebase/sync.js');
+                    const { db } = await import('./db.js'); // Already imported
+                    const { syncManager } = await import('./accounts/pocketbase.js');
                 const { showNotification } = await import('./downloads.js');
 
                 const playlists = await db.getPlaylists();
@@ -259,8 +259,8 @@ export function initializeUIInteractions(player, api) {
                     e.stopPropagation();
                     const track = player.getCurrentQueue()[index];
                     if (track) {
-                        const { db } = await import('./db.js');
-                        const { syncManager } = await import('./firebase/sync.js');
+                        const { db } = await import('./db.js'); // Already imported
+                        const { syncManager } = await import('./accounts/pocketbase.js');
                         const { showNotification } = await import('./downloads.js');
 
                         const added = await db.toggleFavorite('track', track);

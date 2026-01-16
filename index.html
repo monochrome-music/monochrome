@@ -152,7 +152,7 @@
                 >
                     <div class="info">
                         <span class="label">Public Playlist</span>
-                        <span class="description">Visible to anyone with the link</span>
+                        <span class="description">Visible to anyone with the link.</span>
                     </div>
                     <label class="toggle-switch">
                         <input type="checkbox" id="playlist-public-toggle" />
@@ -1102,55 +1102,6 @@
                         <div class="settings-group">
                             <div class="setting-item">
                                 <div class="info">
-                                    <a class="label" id="firebase-config" href="#toggle-firebase-config-btn"
-                                        >ADVANCED: Firebase Configuration</a
-                                    >
-                                    <span class="description"
-                                        >Select which database you would like to connect to. <br />
-                                        Monochrome-owned database is default.</span
-                                    >
-                                </div>
-                                <div>
-                                    <button id="toggle-firebase-config-btn" class="btn-secondary">
-                                        Custom Configuration
-                                    </button>
-                                    <div class="firebase-settings-wrapper">
-                                        <div id="custom-firebase-config-container" class="custom-firebase-config">
-                                            <p class="config-help-text">
-                                                Default shared instance is active.
-                                                <a
-                                                    href="https://github.com/SamidyFR/monochrome/blob/main/firebase-setup.md"
-                                                    target="_blank"
-                                                    class="text-link"
-                                                    >Override below only if needed.</a
-                                                >
-                                            </p>
-                                            <textarea
-                                                id="firebase-config-input"
-                                                class="template-input"
-                                                rows="5"
-                                                placeholder='{ "apiKey": "...", "authDomain": "...", ... }'
-                                            ></textarea>
-                                            <div class="firebase-controls-container">
-                                                <button id="save-firebase-config-btn" class="btn-secondary">
-                                                    Save & Reload
-                                                </button>
-                                                <button id="share-firebase-config-btn" class="btn-secondary">
-                                                    Share
-                                                </button>
-                                                <button id="clear-firebase-config-btn" class="btn-secondary danger">
-                                                    Clear Config
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="settings-group">
-                            <div class="setting-item">
-                                <div class="info">
                                     <span class="label">Streaming Quality</span>
                                     <span class="description">Quality for streaming playback</span>
                                 </div>
@@ -1460,7 +1411,7 @@
                             </a>
                         </div>
                         <div class="about-footer">
-                            <p class="version">Version 1.5.0</p>
+                            <p class="version">Version 1.6.0</p>
                             <p class="disclaimer">
                                 This is an independent client and is not affiliated with or endorsed by TIDAL or any
                                 music streaming service.
@@ -1542,27 +1493,10 @@
                             }
                         </script>
                         <p style="padding-top: 50px; text-align: center; color: #8b8b93">
-                            We only store music data and a randomized ID to find out which Google account is which.
+                            We only store music data and a randomized ID to find out which Google/Email account is which.
                             <br />
                             All data is anonymous. We do not store anything like emails, usernames, or anything
                             sensitive. <br />
-                            <br />
-                            However, if you want complete control over your data, we allow you to use your own firebase
-                            configuration.
-                        </p>
-                        <div
-                            style="
-                                display: flex;
-                                gap: 50px;
-                                align-items: center;
-                                justify-content: center;
-                                padding-top: 25px;
-                            "
-                        >
-                            <a id="advanced-config-link" class="btn-secondary" href="#settings"
-                                >Advanced: Custom Configuration</a
-                            >
-                        </div>
                     </div>
                 </div>
                 <div id="page-donate" class="page">
@@ -1857,6 +1791,7 @@
             </footer>
         </div>
         <script src="https://unpkg.com/@studio-freight/lenis"></script>
+        <script src="https://cdn.jsdelivr.net/npm/pocketbase@0.21.3/dist/pocketbase.umd.js"></script>
         <script type="module" src="js/app.js"></script>
     </body>
 </html>

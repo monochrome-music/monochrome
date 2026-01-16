@@ -7,12 +7,12 @@ import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-import { syncManager } from './sync.js';
 
 export class AuthManager {
     constructor() {
         this.user = null;
         this.unsubscribe = null;
+        this.authListeners = [];
         this.init();
     }
 
@@ -23,14 +23,16 @@ export class AuthManager {
             this.user = user;
             this.updateUI(user);
 
-            if (user) {
-                console.log('User logged in:', user.uid);
-                syncManager.initialize(user);
-            } else {
-                console.log('User logged out');
-                syncManager.disconnect();
-            }
+            this.authListeners.forEach((listener) => listener(user));
         });
+    }
+
+    onAuthStateChanged(callback) {
+        this.authListeners.push(callback);
+        // If we already have a user state, trigger immediately
+        if (this.user !== null) {
+            callback(this.user);
+        }
     }
 
     async signInWithGoogle() {

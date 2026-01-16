@@ -18,7 +18,7 @@ import { openLyricsPanel } from './lyrics.js';
 import { recentActivityManager, backgroundSettings, trackListSettings, cardSettings } from './storage.js';
 import { db } from './db.js';
 import { getVibrantColorFromImage } from './vibrant-color.js';
-import { syncManager } from './firebase/sync.js';
+import { syncManager } from './accounts/pocketbase.js';
 
 export class UIRenderer {
     constructor(api, player) {
@@ -1366,12 +1366,12 @@ export class UIRenderer {
                 ownedPlaylist = await db.getPlaylist(playlistId);
                 playlistData = ownedPlaylist;
 
-                // If not in local DB, check if it's a public Firebase playlist
+                // If not in local DB, check if it's a public Pocketbase playlist
                 if (!playlistData) {
                     try {
                         playlistData = await syncManager.getPublicPlaylist(playlistId);
                     } catch (e) {
-                        console.warn('Failed to check public Firebase playlists:', e);
+                        console.warn('Failed to check public pocketbase playlists:', e);
                     }
                 }
             }
@@ -1379,7 +1379,7 @@ export class UIRenderer {
             if (playlistData) {
                 // ... (rest of the logic)
 
-                // Render user or public firebase playlist
+                // Render user or public Pocketbase playlist
                 imageEl.src = playlistData.cover || 'assets/appicon.png';
                 imageEl.style.backgroundColor = '';
 

@@ -13,14 +13,12 @@ import {
     downloadQualitySettings,
 } from './storage.js';
 import { db } from './db.js';
-import { authManager } from './firebase/auth.js';
-import { syncManager } from './firebase/sync.js';
-import { initializeFirebaseSettingsUI } from './firebase/config.js';
+import { authManager } from './accounts/auth.js';
+import { syncManager } from './accounts/pocketbase.js';
 
 export function initializeSettings(scrobbler, player, api, ui) {
-    // Initialize Firebase UI & Settings
+    // Initialize account system UI & Settings
     authManager.updateUI(authManager.user);
-    initializeFirebaseSettingsUI();
 
     // Email Auth UI Logic
     const toggleEmailBtn = document.getElementById('toggle-email-auth-btn');

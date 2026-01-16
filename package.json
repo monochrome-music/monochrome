@@ -41,5 +41,8 @@
     "overrides": {
         "sourcemap-codec": "npm:@jridgewell/sourcemap-codec@^1.4.14",
         "source-map": "^0.7.4"
+    },
+    "dependencies": {
+        "pocketbase": "^0.26.5"
     }
 }

@@ -25,7 +25,7 @@ import { downloadAlbumAsZip, downloadDiscography, downloadPlaylistAsZip } from '
 import { debounce, SVG_PLAY } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 import { db } from './db.js';
-import { syncManager } from './firebase/sync.js';
+import { syncManager } from './accounts/pocketbase.js';
 import { registerSW } from 'virtual:pwa-register';
 import './smooth-scrolling.js';
 import { readTrackMetadata } from './metadata.js';
@@ -584,7 +584,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const publicToggle = document.getElementById('playlist-public-toggle');
                     const shareBtn = document.getElementById('playlist-share-btn');
 
-                    // Check if actually public in Firebase to be sure (async) or trust local flag
+                    // Check if actually public in Pocketbase to be sure (async) or trust local flag
                     // We trust local flag for UI speed, but could verify.
                     if (publicToggle) publicToggle.checked = !!playlist.isPublic;
 
@@ -684,7 +684,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (userPlaylist) {
                     tracks = userPlaylist.tracks;
                 } else {
-                    // Try API, if fail, try Public Firebase
+                    // Try API, if fail, try Public Pocketbase
                     try {
                         const { tracks: apiTracks } = await api.getPlaylist(playlistId);
                         tracks = apiTracks;
@@ -990,7 +990,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }, 3000);
     }
 
-    // Listener for Firebase Sync updates
+    // Listener for Pocketbase Sync updates
     window.addEventListener('library-changed', () => {
         const hash = window.location.hash;
         if (hash === '#library') {

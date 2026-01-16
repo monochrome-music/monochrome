@@ -16,7 +16,7 @@ import { showNotification, downloadTrackWithMetadata } from './downloads.js';
 import { lyricsSettings, downloadQualitySettings } from './storage.js';
 import { updateTabTitle } from './router.js';
 import { db } from './db.js';
-import { syncManager } from './firebase/sync.js';
+import { syncManager } from './accounts/pocketbase.js';
 import { waveformGenerator } from './waveform.js';
 
 let currentWaveformPeaks = null;
