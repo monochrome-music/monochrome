@@ -10,7 +10,7 @@
 
 <br>
 
-[<img src="https://files.catbox.moe/94f3pq.png" alt="Monochrome UI" width="800">](https://monochrome.samidy.com/#album/378149557)
+[<img src="https://files.catbox.moe/94f3pq.png" alt="Monochrome UI" width="800">](https://monochrome.samidy.com/#album/413189044)
 
 ### Features
 
