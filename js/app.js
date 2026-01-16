@@ -1016,17 +1016,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const track = contextMenu._contextTrack;
                         const albumItem = contextMenu.querySelector('[data-action="go-to-album"]');
                         const artistItem = contextMenu.querySelector('[data-action="go-to-artist"]');
-                        
+
                         if (track) {
                             if (albumItem) {
                                 let label = 'Album';
                                 const albumType = track.album?.type?.toUpperCase();
                                 const trackCount = track.album?.numberOfTracks;
-                                
+
                                 if (albumType === 'SINGLE' || trackCount === 1) label = 'Single';
                                 else if (albumType === 'EP') label = 'EP';
                                 else if (trackCount && trackCount <= 6) label = 'EP';
-                                
+
                                 albumItem.textContent = `Go to ${label}`;
                                 albumItem.style.display = track.album ? 'block' : 'none';
                             }
@@ -1039,7 +1039,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
         });
-        
+
         observer.observe(contextMenu, { attributes: true });
     }
 });
