@@ -102,7 +102,6 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
 
     audioPlayer.addEventListener('error', (e) => {
         console.error('Audio playback error:', e);
-        document.querySelector('.now-playing-bar .artist').textContent = 'Playback error. Try another track.';
         playPauseBtn.innerHTML = SVG_PLAY;
     });
 
@@ -723,6 +722,15 @@ export async function handleTrackAction(
         list.addEventListener('click', handleOptionClick);
 
         modal.classList.add('active');
+    } else if (action === 'go-to-artist') {
+        const artistId = item.artist?.id || item.artists?.[0]?.id;
+        if (artistId) {
+            window.location.hash = `#artist/${artistId}`;
+        }
+    } else if (action === 'go-to-album') {
+        if (item.album?.id) {
+            window.location.hash = `#album/${item.album.id}`;
+        }
     }
 }
 
@@ -863,6 +871,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
 
             if (contextTrack) {
                 if (contextTrack.isLocal) return;
+                contextMenu._contextTrack = contextTrack;
                 await updateContextMenuLikeState(contextMenu, contextTrack);
                 positionMenu(contextMenu, e.pageX, e.pageY);
             }
@@ -875,7 +884,10 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
 
     contextMenu.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const action = e.target.dataset.action;
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
         const track = contextMenu._contextTrack || contextTrack;
         if (action && track) {
             await handleTrackAction(action, track, player, api, lyricsManager, 'track', ui, scrobbler);

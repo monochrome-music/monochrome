@@ -332,8 +332,6 @@ export class Player {
             this.preloadNextTracks();
         } catch (error) {
             console.error(`Could not play track: ${trackTitle}`, error);
-            document.querySelector('.now-playing-bar .title').textContent = `Error: ${trackTitle}`;
-            document.querySelector('.now-playing-bar .artist').textContent = error.message || 'Could not load track';
         }
     }
 
