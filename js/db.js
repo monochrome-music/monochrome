@@ -337,13 +337,14 @@ export class MusicDatabase {
                     }
 
                     console.log(`${storeName}: Adding item with ID ${item.id || item.uuid || item.timestamp}`);
-                    
+
                     // Critical: Ensure key exists for IndexedDB store.put()
                     const keyPath = store.keyPath;
                     if (keyPath && !item[keyPath]) {
                         console.warn(`Item missing keyPath "${keyPath}" in ${storeName}, generating fallback.`);
                         if (keyPath === 'uuid') item.uuid = crypto.randomUUID();
-                        else if (keyPath === 'id') item.id = item.trackId || item.albumId || item.artistId || Date.now() + Math.random();
+                        else if (keyPath === 'id')
+                            item.id = item.trackId || item.albumId || item.artistId || Date.now() + Math.random();
                         else if (keyPath === 'timestamp') item.timestamp = Date.now() + Math.random();
                     }
 
