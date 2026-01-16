@@ -337,7 +337,7 @@ const syncManager = {
 
         try {
             const existing = await this.pb.collection(PUBLIC_COLLECTION).getList(1, 1, {
-                filter: `uuid="${playlist.id}"`, 
+                filter: `uuid="${playlist.id}"`,
                 p_id: playlist.id,
             });
 
@@ -357,7 +357,7 @@ const syncManager = {
 
         try {
             const existing = await this.pb.collection('public_playlists').getList(1, 1, {
-                filter: `uuid="${uuid}"`, 
+                filter: `uuid="${uuid}"`,
                 p_id: uuid,
             });
 
