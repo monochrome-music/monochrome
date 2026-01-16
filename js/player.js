@@ -1,6 +1,6 @@
 //js/player.js
 import { MediaPlayer } from 'dashjs';
-import { REPEAT_MODE, formatTime, getTrackArtists, getTrackTitle, getTrackArtistsHTML } from './utils.js';
+import { REPEAT_MODE, formatTime, getTrackArtists, getTrackTitle, getTrackArtistsHTML, createQualityBadgeHTML } from './utils.js';
 import { queueManager, replayGainSettings } from './storage.js';
 
 export class Player {
@@ -119,7 +119,10 @@ export class Player {
                 const artistEl = document.querySelector('.now-playing-bar .artist');
 
                 if (coverEl) coverEl.src = this.api.getCoverUrl(track.album?.cover);
-                if (titleEl) titleEl.textContent = trackTitle;
+                if (titleEl) {
+                    const qualityBadge = createQualityBadgeHTML(track);
+                    titleEl.innerHTML = `${trackTitle} ${qualityBadge}`;
+                }
                 if (artistEl) artistEl.innerHTML = trackArtistsHTML + yearDisplay;
 
                 const mixBtn = document.getElementById('now-playing-mix-btn');
@@ -232,7 +235,8 @@ export class Player {
         }
     }
 
-    async playTrackFromQueue(startTime = 0) {
+    async playTrack(track, options = {}) {
+        const { startTime = 0 } = options;
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
         if (this.currentQueueIndex < 0 || this.currentQueueIndex >= currentQueue.length) {
             return;
@@ -240,7 +244,6 @@ export class Player {
 
         this.saveQueueState();
 
-        const track = currentQueue[this.currentQueueIndex];
         this.currentTrack = track;
 
         const trackTitle = getTrackTitle(track);
@@ -256,7 +259,8 @@ export class Player {
         }
 
         document.querySelector('.now-playing-bar .cover').src = this.api.getCoverUrl(track.album?.cover);
-        document.querySelector('.now-playing-bar .title').textContent = trackTitle;
+        const qualityBadge = createQualityBadgeHTML(track);
+        document.querySelector('.now-playing-bar .title').innerHTML = `${trackTitle} ${qualityBadge}`;
         document.querySelector('.now-playing-bar .artist').innerHTML = trackArtistsHTML + yearDisplay;
 
         const mixBtn = document.getElementById('now-playing-mix-btn');

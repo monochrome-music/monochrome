@@ -552,6 +552,23 @@ export const smoothScrollingSettings = {
     },
 };
 
+export const qualityBadgeSettings = {
+    STORAGE_KEY: 'show-quality-badges',
+
+    isEnabled() {
+        try {
+            const val = localStorage.getItem(this.STORAGE_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+};
+
 export const queueManager = {
     STORAGE_KEY: 'monochrome-queue',
 

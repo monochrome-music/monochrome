@@ -10,6 +10,7 @@ import {
     hasExplicitContent,
     getTrackArtists,
     getTrackTitle,
+    createQualityBadgeHTML,
     calculateTotalDuration,
     formatDuration,
     escapeHtml,
@@ -176,6 +177,7 @@ export class UIRenderer {
 
         const trackNumberHTML = `<div class="track-number">${showCover ? trackImageHTML : displayIndex}</div>`;
         const explicitBadge = hasExplicitContent(track) ? this.createExplicitBadge() : '';
+        const qualityBadge = createQualityBadgeHTML(track);
         const trackArtists = getTrackArtists(track);
         const trackTitle = getTrackTitle(track);
         const isCurrentTrack = this.player?.currentTrack?.id === track.id;
@@ -233,6 +235,7 @@ export class UIRenderer {
                         <div class="title">
                             ${escapeHtml(trackTitle)}
                             ${explicitBadge}
+                            ${qualityBadge}
                         </div>
                         <div class="artist">${escapeHtml(trackArtists)}${yearDisplay}</div>
                     </div>
@@ -401,6 +404,7 @@ export class UIRenderer {
 
     createAlbumCardHTML(album) {
         const explicitBadge = hasExplicitContent(album) ? this.createExplicitBadge() : '';
+        const qualityBadge = createQualityBadgeHTML(album);
         let yearDisplay = '';
         if (album.releaseDate) {
             const date = new Date(album.releaseDate);
@@ -417,7 +421,7 @@ export class UIRenderer {
             type: 'album',
             id: album.id,
             href: `#album/${album.id}`,
-            title: `${escapeHtml(album.title)} ${explicitBadge}`,
+            title: `${escapeHtml(album.title)} ${explicitBadge} ${qualityBadge}`,
             subtitle: `${escapeHtml(album.artist?.name ?? '')} • ${yearDisplay}${typeLabel}`,
             imageHTML: `<img src="${this.api.getCoverUrl(album.cover)}" alt="${escapeHtml(album.title)}" class="card-image" loading="lazy">`,
             actionButtonsHTML: `
@@ -629,7 +633,8 @@ export class UIRenderer {
 
         const coverUrl = this.api.getCoverUrl(track.album?.cover, '1280');
         image.src = coverUrl;
-        title.textContent = track.title;
+        const qualityBadge = createQualityBadgeHTML(track);
+        title.innerHTML = `${escapeHtml(track.title)} ${qualityBadge}`;
         artist.textContent = getTrackArtists(track);
 
         if (nextTrack) {

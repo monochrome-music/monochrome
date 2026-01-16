@@ -872,6 +872,18 @@ body.has-page-background .track-item:hover {
     line-height: 1;
 }
 
+.quality-hires {
+    background-color: var(--highlight);
+    color: var(--primary-foreground);
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 0.15rem 0.3rem;
+    border-radius: 3px;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+    line-height: 1;
+}
+
 .track-list {
     display: flex;
     flex-direction: column;

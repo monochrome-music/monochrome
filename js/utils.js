@@ -1,4 +1,5 @@
 //js/utils.js
+import { qualityBadgeSettings } from './storage.js';
 
 export const QUALITY = 'LOSSLESS';
 
@@ -123,8 +124,17 @@ export const normalizeQualityToken = (value) => {
             return quality;
         }
     }
-
     return null;
+};
+
+export const createQualityBadgeHTML = (track) => {
+    if (!qualityBadgeSettings.isEnabled()) return '';
+
+    const quality = deriveTrackQuality(track);
+    if (quality === 'HI_RES_LOSSLESS') {
+        return '<span class="quality-badge quality-hires" title="Hi-Res Lossless">HR</span>';
+    }
+    return '';
 };
 
 export const deriveQualityFromTags = (rawTags) => {

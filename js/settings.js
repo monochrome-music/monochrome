@@ -11,6 +11,7 @@ import {
     replayGainSettings,
     smoothScrollingSettings,
     downloadQualitySettings,
+    qualityBadgeSettings,
 } from './storage.js';
 import { db } from './db.js';
 import { authManager } from './accounts/auth.js';
@@ -269,6 +270,18 @@ export function initializeSettings(scrobbler, player, api, ui) {
 
         downloadQualitySetting.addEventListener('change', (e) => {
             downloadQualitySettings.setQuality(e.target.value);
+        });
+    }
+
+    // Quality Badge Settings
+    const showQualityBadgesToggle = document.getElementById('show-quality-badges-toggle');
+    if (showQualityBadgesToggle) {
+        showQualityBadgesToggle.checked = qualityBadgeSettings.isEnabled();
+        showQualityBadgesToggle.addEventListener('change', (e) => {
+            qualityBadgeSettings.setEnabled(e.target.checked);
+            // Re-render to reflect changes
+            ui.renderLibraryPage();
+            if (window.renderQueueFunction) window.renderQueueFunction();
         });
     }
 
