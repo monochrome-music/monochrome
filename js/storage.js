@@ -569,6 +569,22 @@ export const qualityBadgeSettings = {
     },
 };
 
+export const bulkDownloadSettings = {
+    STORAGE_KEY: 'force-individual-downloads',
+
+    shouldForceIndividual() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) === 'true';
+        } catch {
+            return false;
+        }
+    },
+
+    setForceIndividual(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+};
+
 export const queueManager = {
     STORAGE_KEY: 'monochrome-queue',
 

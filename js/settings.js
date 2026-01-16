@@ -12,6 +12,7 @@ import {
     smoothScrollingSettings,
     downloadQualitySettings,
     qualityBadgeSettings,
+    bulkDownloadSettings,
 } from './storage.js';
 import { db } from './db.js';
 import { authManager } from './accounts/auth.js';
@@ -282,6 +283,14 @@ export function initializeSettings(scrobbler, player, api, ui) {
             // Re-render to reflect changes
             ui.renderLibraryPage();
             if (window.renderQueueFunction) window.renderQueueFunction();
+        });
+    }
+
+    const zippedBulkDownloadsToggle = document.getElementById('zipped-bulk-downloads-toggle');
+    if (zippedBulkDownloadsToggle) {
+        zippedBulkDownloadsToggle.checked = !bulkDownloadSettings.shouldForceIndividual();
+        zippedBulkDownloadsToggle.addEventListener('change', (e) => {
+            bulkDownloadSettings.setForceIndividual(!e.target.checked);
         });
     }
 
