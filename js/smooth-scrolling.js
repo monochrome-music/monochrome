@@ -1,4 +1,5 @@
 //js/smooth-scrolling.js
+/* global Lenis */
 import { smoothScrollingSettings } from './storage.js';
 
 let lenis = null;

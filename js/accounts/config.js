@@ -152,7 +152,7 @@ export function initializeFirebaseSettingsUI() {
                     customFirebaseConfigContainer.classList.add('visible');
                     toggleFirebaseConfigBtn.textContent = 'Hide Custom Configuration';
                 }
-            } catch (e) {
+            } catch {
                 firebaseConfigInput.value = currentConfig;
             }
         }
@@ -180,7 +180,7 @@ export function initializeFirebaseSettingsUI() {
                             prompt('Copy this link:', link);
                         });
                 }
-            } catch (e) {
+            } catch {
                 alert('Invalid configuration found.');
             }
         });

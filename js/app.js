@@ -10,13 +10,7 @@ import {
 import { UIRenderer } from './ui.js';
 import { Player } from './player.js';
 import { LastFMScrobbler } from './lastfm.js';
-import {
-    LyricsManager,
-    openLyricsPanel,
-    clearLyricsPanelSync,
-    renderLyricsInFullscreen,
-    clearFullscreenLyricsSync,
-} from './lyrics.js';
+import { LyricsManager, openLyricsPanel, clearLyricsPanelSync } from './lyrics.js';
 import { createRouter, updateTabTitle } from './router.js';
 import { initializeSettings } from './settings.js';
 import { initializePlayerEvents, initializeTrackInteractions, handleTrackAction } from './events.js';
@@ -176,7 +170,7 @@ function showOfflineNotification() {
     document.body.appendChild(notification);
 
     setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease forwards';
+        notification.style.animation = 'slide-out 0.3s ease forwards';
         setTimeout(() => notification.remove(), 300);
     }, 5000);
 }
@@ -184,7 +178,7 @@ function showOfflineNotification() {
 function hideOfflineNotification() {
     const notification = document.querySelector('.offline-notification');
     if (notification) {
-        notification.style.animation = 'slideOut 0.3s ease forwards';
+        notification.style.animation = 'slide-out 0.3s ease forwards';
         setTimeout(() => notification.remove(), 300);
     }
 }
@@ -398,7 +392,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (!userPlaylist) {
                     try {
                         userPlaylist = await syncManager.getPublicPlaylist(playlistId);
-                    } catch (e) {
+                    } catch {
                         // Not a public playlist
                     }
                 }
@@ -461,7 +455,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     } else {
                         try {
                             await syncManager.unpublishPlaylist(playlist.id);
-                        } catch (e) {
+                        } catch {
                             // Ignore error if it wasn't public
                         }
                     }
@@ -1292,7 +1286,7 @@ async function parseCSV(csvText, api, onProgress) {
                     const cleanTitle = (t) =>
                         t
                             .split(' - ')[0]
-                            .replace(/\s*[\(\[]feat\.?.*?[\)\]]/i, '')
+                            .replace(/\s*[([]feat\.?.*?[)\]]/i, '')
                             .trim();
                     const cleanedTitle = cleanTitle(trackTitle);
                     const isTitleCleaned = cleanedTitle !== trackTitle;

@@ -136,7 +136,7 @@ export class MusicDatabase {
         try {
             const result = await this.performTransaction(storeName, 'readonly', (store) => store.get(id));
             return !!result;
-        } catch (e) {
+        } catch {
             return false;
         }
     }
@@ -316,12 +316,10 @@ export class MusicDatabase {
             return new Promise((resolve, reject) => {
                 const transaction = db.transaction(storeName, 'readwrite');
                 const store = transaction.objectStore(storeName);
-                let hasChanges = false;
 
                 // force clear on first sync
                 console.log(`Clearing ${storeName} to Make Sure Everythings Good`);
                 store.clear();
-                hasChanges = true;
 
                 itemsArray.forEach((item) => {
                     if (item.id && typeof item.id === 'string' && !isNaN(item.id)) {

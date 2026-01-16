@@ -1,10 +1,9 @@
 //js/lyrics.js
-import { getTrackTitle, getTrackArtists, buildTrackFilename, SVG_DOWNLOAD, SVG_CLOSE } from './utils.js';
+import { getTrackTitle, getTrackArtists, buildTrackFilename, SVG_CLOSE } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 
 // Dictionary path for kuromoji
 // Using CDN - the kuroshiro-analyzer loaded from unpkg will use this as base for fetching dict files
-const KUROMOJI_DICT_PATH = 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/';
 
 export class LyricsManager {
     constructor(api) {
@@ -190,7 +189,7 @@ export class LyricsManager {
     getRomajiMode() {
         try {
             return localStorage.getItem('lyricsRomajiMode') === 'true';
-        } catch (e) {
+        } catch {
             return false;
         }
     }
@@ -549,7 +548,7 @@ export async function openLyricsPanel(track, audioPlayer, lyricsManager) {
             romajiBtn.addEventListener('click', async () => {
                 const amLyrics = sidePanelManager.panel.querySelector('am-lyrics');
                 if (amLyrics) {
-                    const newMode = await manager.toggleRomajiMode(amLyrics);
+                    await manager.toggleRomajiMode(amLyrics);
                     updateRomajiBtn();
                 }
             });

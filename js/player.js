@@ -618,7 +618,7 @@ export class Player {
                 position: Math.min(this.audio.currentTime, duration),
             });
         } catch (error) {
-            console.debug('Failed to update Media Session position:', error);
+            console.log('Failed to update Media Session position:', error);
         }
     }
 

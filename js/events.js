@@ -1,25 +1,13 @@
 //js/events.js
-import {
-    SVG_PLAY,
-    SVG_PAUSE,
-    SVG_VOLUME,
-    SVG_MUTE,
-    REPEAT_MODE,
-    trackDataStore,
-    RATE_LIMIT_ERROR_MESSAGE,
-    buildTrackFilename,
-    getTrackTitle,
-    formatTime,
-} from './utils.js';
+import { SVG_PLAY, SVG_PAUSE, SVG_VOLUME, SVG_MUTE, REPEAT_MODE, trackDataStore, formatTime } from './utils.js';
 import { lastFMStorage, waveformSettings } from './storage.js';
 import { showNotification, downloadTrackWithMetadata } from './downloads.js';
-import { lyricsSettings, downloadQualitySettings } from './storage.js';
+import { downloadQualitySettings } from './storage.js';
 import { updateTabTitle } from './router.js';
 import { db } from './db.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { waveformGenerator } from './waveform.js';
 
-let currentWaveformPeaks = null;
 let currentTrackIdForWaveform = null;
 
 export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
@@ -396,7 +384,7 @@ function initializeSmoothSliders(audioPlayer, player) {
         }
     });
 
-    document.addEventListener('mouseup', (e) => {
+    document.addEventListener('mouseup', () => {
         if (isSeeking) {
             // Commit the seek
             if (!isNaN(audioPlayer.duration)) {
@@ -412,7 +400,7 @@ function initializeSmoothSliders(audioPlayer, player) {
         }
     });
 
-    document.addEventListener('touchend', (e) => {
+    document.addEventListener('touchend', () => {
         if (isSeeking) {
             if (!isNaN(audioPlayer.duration)) {
                 audioPlayer.currentTime = lastSeekPosition * audioPlayer.duration;
@@ -562,7 +550,7 @@ export async function handleTrackAction(
                 if (!playlist) {
                     try {
                         playlist = await syncManager.getPublicPlaylist(item.id);
-                    } catch (e) {
+                    } catch {
                         // Ignore
                     }
                 }

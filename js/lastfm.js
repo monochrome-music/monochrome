@@ -1,5 +1,4 @@
 //js/lastfm.js
-import { delay, getTrackArtists } from './utils.js';
 
 export class LastFMScrobbler {
     constructor() {
@@ -66,7 +65,7 @@ export class LastFMScrobbler {
         try {
             const { default: md5 } = await import('https://cdn.jsdelivr.net/npm/md5@2.3.0/+esm');
             return md5(signatureString);
-        } catch (e) {
+        } catch {
             console.error('MD5 library not available');
             throw new Error('MD5 library required for Last.fm');
         }

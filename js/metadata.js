@@ -243,7 +243,6 @@ async function readMp3Metadata(file, metadata) {
 
     if (file.size > 128) {
         const tailBuffer = await file.slice(file.size - 128).arrayBuffer();
-        const tailView = new DataView(tailBuffer);
         const tag = new TextDecoder().decode(new Uint8Array(tailBuffer, 0, 3));
         if (tag === 'TAG') {
             const title = new TextDecoder()
@@ -286,33 +285,6 @@ function readID3Text(view) {
     else decoder = new TextDecoder('utf-8');
 
     return decoder.decode(buffer).replace(/\0/g, '');
-}
-
-function readID3Picture(view) {
-    let offset = 1;
-    const encoding = view.getUint8(0);
-
-    let mimeEnd = offset;
-    while (view.getUint8(mimeEnd) !== 0) mimeEnd++;
-    const mime = new TextDecoder('iso-8859-1').decode(
-        view.buffer.slice(view.byteOffset + offset, view.byteOffset + mimeEnd)
-    );
-    offset = mimeEnd + 1;
-
-    const picType = view.getUint8(offset);
-    offset++;
-
-    let descEnd = offset;
-    while (
-        view.getUint8(descEnd) !== 0 ||
-        (encoding === 1 || encoding === 2 ? view.getUint8(descEnd + 1) !== 0 : false)
-    )
-        descEnd++;
-    offset = descEnd + (encoding === 1 || encoding === 2 ? 2 : 1);
-
-    const imgData = view.buffer.slice(view.byteOffset + offset, view.byteOffset + view.byteLength);
-    const blob = new Blob([imgData], { type: mime });
-    return URL.createObjectURL(blob);
 }
 
 /**
@@ -438,7 +410,7 @@ function createVorbisCommentBlock(track) {
             if (!isNaN(year)) {
                 comments.push(['DATE', String(year)]);
             }
-        } catch (error) {
+        } catch {
             // Invalid date, skip
         }
     }
@@ -787,7 +759,7 @@ function createMp4MetadataAtoms(track) {
             if (!isNaN(year)) {
                 tags['©day'] = String(year);
             }
-        } catch (error) {
+        } catch {
             // Invalid date, skip
         }
     }
@@ -862,12 +834,6 @@ function rebuildMp4WithMetadata(dataView, atoms, metadataAtoms) {
 
     // Write preserved children of moov
     for (const child of filteredMoovChildren) {
-        const childStart = moovAtom.offset + 8 + child.offset; // child.offset is relative to moov body start in our parseMp4Atoms helper usage?
-        // Wait, parseMp4Atoms returns absolute offsets usually?
-        // Let's verify parseMp4Atoms usage.
-        // When we passed a slice DataView, the offsets returned by parseMp4Atoms
-        // are relative to the start of that DataView (which is moov body start).
-
         const absoluteChildStart = moovAtom.offset + 8 + child.offset;
         newFile.set(originalArray.subarray(absoluteChildStart, absoluteChildStart + child.size), offset);
         offset += child.size;

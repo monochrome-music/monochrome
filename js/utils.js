@@ -288,7 +288,7 @@ export async function getCoverBlob(api, coverId) {
                 return blob;
             }
         }
-    } catch (e) {
+    } catch {
         // Network error (CORS rejection not handled by SW), try proxy
         const url = api.getCoverUrl(coverId, '1280');
         const blob = await fetchWithProxy(url);

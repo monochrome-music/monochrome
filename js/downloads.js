@@ -64,7 +64,7 @@ export function showNotification(message) {
 
     // Auto remove
     setTimeout(() => {
-        notifEl.style.animation = 'slideOut 0.3s ease';
+        notifEl.style.animation = 'slide-out 0.3s ease forwards';
         setTimeout(() => notifEl.remove(), 300);
     }, 1500);
 }
@@ -162,7 +162,7 @@ function removeDownloadTask(trackId) {
     if (!task) return;
 
     const { taskEl } = task;
-    taskEl.style.animation = 'slideOut 0.3s ease';
+    taskEl.style.animation = 'slide-out 0.3s ease forwards';
 
     setTimeout(() => {
         taskEl.remove();
@@ -179,7 +179,7 @@ function removeBulkDownloadTask(notifEl) {
     const task = bulkDownloadTasks.get(notifEl);
     if (!task) return;
 
-    notifEl.style.animation = 'slideOut 0.3s ease';
+    notifEl.style.animation = 'slide-out 0.3s ease forwards';
 
     setTimeout(() => {
         notifEl.remove();
@@ -225,6 +225,7 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
     }
 
     // Handle DASH streams (blob URLs)
+    let blob;
     if (streamUrl.startsWith('blob:')) {
         try {
             const downloader = new DashDownloader();
@@ -266,7 +267,7 @@ async function generateAndDownloadZip(zip, filename, notification, progressTotal
                     compression: 'STORE',
                     streamFiles: true,
                 })
-                    .on('data', (chunk, metadata) => {
+                    .on('data', (chunk) => {
                         writable.write(chunk);
                     })
                     .on('error', (err) => {
@@ -364,7 +365,7 @@ async function downloadTracksToZip(
                             zip.file(`${folderName}/${lrcFilename}`, lrcContent);
                         }
                     }
-                } catch (error) {
+                } catch {
                     console.log('Could not add lyrics for:', trackTitle);
                 }
             }
@@ -518,7 +519,7 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                                         zip.file(`${fullFolderPath}/${lrcFilename}`, lrcContent);
                                     }
                                 }
-                            } catch (error) {
+                            } catch {
                                 // Silent fail for lyrics in bulk
                             }
                         }
@@ -547,7 +548,7 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
     }
 }
 
-function createBulkDownloadNotification(type, name, totalItems) {
+function createBulkDownloadNotification(type, name, _totalItems) {
     const container = createDownloadNotification();
 
     const notifEl = document.createElement('div');
@@ -608,7 +609,7 @@ function completeBulkDownload(notifEl, success = true, message = null) {
         statusEl.style.color = '#10b981';
 
         setTimeout(() => {
-            notifEl.style.animation = 'slideOut 0.3s ease';
+            notifEl.style.animation = 'slide-out 0.3s ease forwards';
             setTimeout(() => notifEl.remove(), 300);
         }, 3000);
     } else {
@@ -617,7 +618,7 @@ function completeBulkDownload(notifEl, success = true, message = null) {
         statusEl.style.color = '#ef4444';
 
         setTimeout(() => {
-            notifEl.style.animation = 'slideOut 0.3s ease';
+            notifEl.style.animation = 'slide-out 0.3s ease forwards';
             setTimeout(() => notifEl.remove(), 300);
         }, 5000);
     }
@@ -660,7 +661,7 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
     ongoingDownloads.add(downloadKey);
 
     try {
-        const { taskEl } = addDownloadTask(track.id, enrichedTrack, filename, api, controller);
+        addDownloadTask(track.id, enrichedTrack, filename, api, controller);
 
         await api.downloadTrack(track.id, quality, filename, {
             signal: controller.signal,
@@ -678,7 +679,7 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
                 if (lyricsData) {
                     lyricsManager.downloadLRC(lyricsData, track);
                 }
-            } catch (error) {
+            } catch {
                 console.log('Could not download lyrics for track');
             }
         }

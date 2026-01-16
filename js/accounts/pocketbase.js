@@ -1,3 +1,4 @@
+import PocketBase from 'pocketbase';
 import { db } from '../db.js';
 import { authManager } from './auth.js';
 
@@ -292,7 +293,9 @@ const syncManager = {
             if (typeof extraData === 'string') {
                 try {
                     extraData = JSON.parse(extraData);
-                } catch (e) {}
+                } catch {
+                    // Ignore
+                }
             }
 
             if (!rawCover && extraData && typeof extraData === 'object') {

@@ -58,7 +58,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
                 authButtonsContainer.style.display = 'flex';
                 emailInput.value = '';
                 passwordInput.value = '';
-            } catch (e) {
+            } catch {
                 // Error handled in authManager
             }
         });
@@ -78,7 +78,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
                 authButtonsContainer.style.display = 'flex';
                 emailInput.value = '';
                 passwordInput.value = '';
-            } catch (e) {
+            } catch {
                 // Error handled in authManager
             }
         });
@@ -165,7 +165,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
                         lastfmToggle.checked = true;
                         alert(`Successfully connected to Last.fm as ${result.username}!`);
                     }
-                } catch (e) {
+                } catch {
                     // Still waiting
                 }
             }, 2000);

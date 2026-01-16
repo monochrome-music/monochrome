@@ -31,7 +31,7 @@ export const apiSettings = {
                     if (isSimpleArray) {
                         groupedInstances.api = [...data.api];
                     } else {
-                        for (const [provider, config] of Object.entries(data.api)) {
+                        for (const [, config] of Object.entries(data.api)) {
                             if (config.cors === false && Array.isArray(config.urls)) {
                                 groupedInstances.api.push(...config.urls);
                             }
@@ -122,7 +122,7 @@ export const apiSettings = {
             }
 
             return data;
-        } catch (e) {
+        } catch {
             return { speeds: {}, timestamp: Date.now() };
         }
     },
@@ -141,7 +141,7 @@ export const apiSettings = {
 
         try {
             localStorage.setItem(this.SPEED_TEST_CACHE_KEY, JSON.stringify(currentCache));
-        } catch (e) {
+        } catch {
             console.warn('[SpeedTest] Failed to cache results');
         }
 
@@ -253,7 +253,7 @@ export const recentActivityManager = {
             if (!parsed.playlists) parsed.playlists = [];
             if (!parsed.mixes) parsed.mixes = [];
             return parsed;
-        } catch (e) {
+        } catch {
             return { artists: [], albums: [], playlists: [], mixes: [] };
         }
     },
@@ -311,7 +311,7 @@ export const themeManager = {
     getTheme() {
         try {
             return localStorage.getItem(this.STORAGE_KEY) || 'system';
-        } catch (e) {
+        } catch {
             return 'system';
         }
     },
@@ -343,7 +343,7 @@ export const themeManager = {
         try {
             const stored = localStorage.getItem(this.CUSTOM_THEME_KEY);
             return stored ? JSON.parse(stored) : null;
-        } catch (e) {
+        } catch {
             return null;
         }
     },
@@ -363,13 +363,10 @@ export const themeManager = {
 };
 
 export const lastFMStorage = {
-    STORAGE_KEY: 'lastfm-enabled',
-    LOVE_ON_LIKE_KEY: 'lastfm-love-on-like',
-
     isEnabled() {
         try {
             return localStorage.getItem(this.STORAGE_KEY) === 'true';
-        } catch (e) {
+        } catch {
             return false;
         }
     },
@@ -381,7 +378,7 @@ export const lastFMStorage = {
     shouldLoveOnLike() {
         try {
             return localStorage.getItem(this.LOVE_ON_LIKE_KEY) === 'true';
-        } catch (e) {
+        } catch {
             return false;
         }
     },
@@ -397,7 +394,7 @@ export const nowPlayingSettings = {
     getMode() {
         try {
             return localStorage.getItem(this.STORAGE_KEY) || 'cover';
-        } catch (e) {
+        } catch {
             return 'cover';
         }
     },
@@ -413,7 +410,7 @@ export const lyricsSettings = {
     shouldDownloadLyrics() {
         try {
             return localStorage.getItem(this.DOWNLOAD_WITH_TRACKS) === 'true';
-        } catch (e) {
+        } catch {
             return false;
         }
     },
@@ -430,7 +427,7 @@ export const backgroundSettings = {
         try {
             // Default to true if not set
             return localStorage.getItem(this.STORAGE_KEY) !== 'false';
-        } catch (e) {
+        } catch {
             return true;
         }
     },
@@ -448,7 +445,7 @@ export const trackListSettings = {
             const mode = localStorage.getItem(this.STORAGE_KEY) || 'dropdown';
             document.documentElement.setAttribute('data-track-actions-mode', mode);
             return mode;
-        } catch (e) {
+        } catch {
             return 'dropdown';
         }
     },
@@ -467,7 +464,7 @@ export const cardSettings = {
         try {
             const val = localStorage.getItem(this.COMPACT_ARTIST_KEY);
             return val === null ? true : val === 'true';
-        } catch (e) {
+        } catch {
             return true;
         }
     },
@@ -479,7 +476,7 @@ export const cardSettings = {
     isCompactAlbum() {
         try {
             return localStorage.getItem(this.COMPACT_ALBUM_KEY) === 'true';
-        } catch (e) {
+        } catch {
             return false;
         }
     },
@@ -512,7 +509,7 @@ export const downloadQualitySettings = {
     getQuality() {
         try {
             return localStorage.getItem(this.STORAGE_KEY) || 'LOSSLESS';
-        } catch (e) {
+        } catch {
             return 'LOSSLESS';
         }
     },
@@ -527,7 +524,7 @@ export const waveformSettings = {
     isEnabled() {
         try {
             return localStorage.getItem(this.STORAGE_KEY) === 'true';
-        } catch (e) {
+        } catch {
             return false;
         }
     },
@@ -543,7 +540,7 @@ export const smoothScrollingSettings = {
     isEnabled() {
         try {
             return localStorage.getItem(this.STORAGE_KEY) === 'true';
-        } catch (e) {
+        } catch {
             return false;
         }
     },
@@ -560,7 +557,7 @@ export const queueManager = {
         try {
             const data = localStorage.getItem(this.STORAGE_KEY);
             return data ? JSON.parse(data) : null;
-        } catch (e) {
+        } catch {
             return null;
         }
     },

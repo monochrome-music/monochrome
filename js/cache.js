@@ -57,7 +57,7 @@ export class APICache {
                     return cached.data;
                 }
             } catch (error) {
-                console.debug('IndexedDB read error:', error);
+                console.log('IndexedDB read error:', error);
             }
         }
 
@@ -83,7 +83,7 @@ export class APICache {
             try {
                 await this.setInIndexedDB(entry);
             } catch (error) {
-                console.debug('IndexedDB write error:', error);
+                console.log('IndexedDB write error:', error);
             }
         }
     }
@@ -163,7 +163,7 @@ export class APICache {
                     }
                 };
             } catch (error) {
-                console.debug('Failed to clear expired IndexedDB entries:', error);
+                console.log('Failed to clear expired IndexedDB entries:', error);
             }
         }
     }

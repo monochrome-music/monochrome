@@ -5,7 +5,6 @@ import {
     SVG_HEART,
     SVG_DOWNLOAD,
     formatTime,
-    trackDataStore,
     getTrackTitle,
     getTrackArtists,
     escapeHtml,
@@ -158,7 +157,7 @@ export function initializeUIInteractions(player, api) {
                         try {
                             let addedCount = 0;
                             for (const track of currentQueue) {
-                                const playlist = await db.addTrackToPlaylist(playlistId, track);
+                                await db.addTrackToPlaylist(playlistId, track);
                                 addedCount++;
                             }
 
@@ -302,7 +301,6 @@ export function initializeUIInteractions(player, api) {
                             trackMixItem.style.display = hasMix ? 'block' : 'none';
                         }
 
-                        const rect = item.getBoundingClientRect();
                         const menuWidth = 150;
                         const menuHeight = 200;
 
@@ -325,7 +323,7 @@ export function initializeUIInteractions(player, api) {
                 }
             });
 
-            item.addEventListener('dragstart', (e) => {
+            item.addEventListener('dragstart', () => {
                 draggedQueueIndex = index;
                 item.style.opacity = '0.5';
             });
