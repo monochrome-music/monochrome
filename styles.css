@@ -872,8 +872,8 @@ body.has-page-background .track-item:hover {
 }
 
 .quality-hires {
-    background-color: var(--highlight);
-    color: var(--primary-foreground);
+    border: 1px solid var(--muted-foreground);
+    color: var(--muted-foreground);
     font-size: 0.6rem;
     font-weight: 700;
     padding: 0.15rem 0.3rem;
