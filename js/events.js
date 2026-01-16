@@ -317,10 +317,10 @@ function initializeSmoothSliders(audioPlayer, player) {
 
     const updateSeekUI = (position) => {
         if (!isNaN(audioPlayer.duration)) {
-             progressFill.style.width = `${position * 100}%`;
-             if (currentTimeEl) {
-                 currentTimeEl.textContent = formatTime(position * audioPlayer.duration);
-             }
+            progressFill.style.width = `${position * 100}%`;
+            if (currentTimeEl) {
+                currentTimeEl.textContent = formatTime(position * audioPlayer.duration);
+            }
         }
     };
 
@@ -346,7 +346,7 @@ function initializeSmoothSliders(audioPlayer, player) {
         const touch = e.touches[0];
         const rect = progressBar.getBoundingClientRect();
         const position = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
-        
+
         lastSeekPosition = position;
         updateSeekUI(position);
     });
@@ -377,7 +377,7 @@ function initializeSmoothSliders(audioPlayer, player) {
             const touch = e.touches[0];
             const rect = progressBar.getBoundingClientRect();
             const position = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
-            
+
             lastSeekPosition = position;
             updateSeekUI(position);
         }
@@ -428,7 +428,8 @@ function initializeSmoothSliders(audioPlayer, player) {
     });
 
     progressBar.addEventListener('click', (e) => {
-        if (!isSeeking) { // Only handle click if not result of a drag release
+        if (!isSeeking) {
+            // Only handle click if not result of a drag release
             seek(progressBar, e, (position) => {
                 if (!isNaN(audioPlayer.duration) && audioPlayer.duration > 0 && audioPlayer.duration !== Infinity) {
                     audioPlayer.currentTime = position * audioPlayer.duration;
