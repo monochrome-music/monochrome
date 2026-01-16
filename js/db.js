@@ -141,28 +141,28 @@ export class MusicDatabase {
         }
     }
 
-	async getFavorites(type) {
-	    const plural = type === 'mix' ? 'mixes' : `${type}s`;
-	    const storeName = `favorites_${plural}`;
-	    const db = await this.open();
-	    return new Promise((resolve, reject) => {
-	        const transaction = db.transaction(storeName, 'readonly');
-	        const store = transaction.objectStore(storeName);
-	        
-	        const request = store.getAll();
-	        
-	        request.onsuccess = () => {
-	            const results = request.result;
-	            results.sort((a, b) => {
-	                const aTime = a.addedAt || 0;
-	                const bTime = b.addedAt || 0;
-	                return bTime - aTime; // Newest first
-	            });
-	            resolve(results);
-	        };
-	        request.onerror = () => reject(request.error);
-	    });
-	}
+    async getFavorites(type) {
+        const plural = type === 'mix' ? 'mixes' : `${type}s`;
+        const storeName = `favorites_${plural}`;
+        const db = await this.open();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(storeName, 'readonly');
+            const store = transaction.objectStore(storeName);
+
+            const request = store.getAll();
+
+            request.onsuccess = () => {
+                const results = request.result;
+                results.sort((a, b) => {
+                    const aTime = a.addedAt || 0;
+                    const bTime = b.addedAt || 0;
+                    return bTime - aTime; // Newest first
+                });
+                resolve(results);
+            };
+            request.onerror = () => reject(request.error);
+        });
+    }
 
     _minifyItem(type, item) {
         if (!item) return item;
@@ -281,105 +281,102 @@ export class MusicDatabase {
         return data;
     }
 
-	async importData(data, clear = false) {
-	    const db = await this.open();
-	
-	    const importStore = async (storeName, items) => {
-	        if (items === undefined) return false;
-	
-	        let itemsArray = Array.isArray(items) ? items : Object.values(items || {});
-	        
-	        console.log(`Importing to ${storeName}: ${itemsArray.length} items`);
-	        
-	        if (itemsArray.length === 0) {
-	            if (clear) {
-	                return new Promise((resolve, reject) => {
-	                    const transaction = db.transaction(storeName, 'readwrite');
-	                    const store = transaction.objectStore(storeName);
-	                    
-	                    const countReq = store.count();
-	                    countReq.onsuccess = () => {
-	                        if (countReq.result > 0) {
-	                            store.clear();
-	                        }
-	                    };
-	                    
-	                    transaction.oncomplete = () => {
-	                        resolve(countReq.result > 0);
-	                    };
-	                    transaction.onerror = () => reject(transaction.error);
-	                });
-	            }
-	            return false;
-	        }
-	
-	        return new Promise((resolve, reject) => {
-	            const transaction = db.transaction(storeName, 'readwrite');
-	            const store = transaction.objectStore(storeName);
-	            let hasChanges = false;
-	
-	            // force clear on first sync
-	            console.log(`Clearing ${storeName} to Make Sure Everythings Good`);
-	            store.clear();
-	            hasChanges = true;
-	            
-	            itemsArray.forEach((item) => {
-	                if (item.id && typeof item.id === 'string' && !isNaN(item.id)) {
-	                    item.id = parseInt(item.id, 10);
-	                }
-	                if (item.album?.id && typeof item.album.id === 'string' && !isNaN(item.album.id)) {
-	                    item.album.id = parseInt(item.album.id, 10);
-	                }
-	                if (item.artists) {
-	                    item.artists.forEach(artist => {
-	                        if (artist.id && typeof artist.id === 'string' && !isNaN(artist.id)) {
-	                            artist.id = parseInt(artist.id, 10);
-	                        }
-	                    });
-	                }
-	                
-	                console.log(`${storeName}: Adding item with ID ${item.id || item.uuid || item.timestamp}`);
-	                store.put(item);
-	            });
-	
-	            transaction.oncomplete = () => {
-	                console.log(`${storeName}: Imported ${itemsArray.length} items`);
-	                resolve(true);
-	            };
-	            
-	            transaction.onerror = (event) => {
-	                console.error(`${storeName}: Transaction error:`, event.target.error);
-	                reject(transaction.error);
-	            };
-	        });
-	    };
-	
-	    console.log('Starting import with data:', {
-	        tracks: data.favorites_tracks?.length || 0,
-	        albums: data.favorites_albums?.length || 0,
-	        artists: data.favorites_artists?.length || 0,
-	        playlists: data.favorites_playlists?.length || 0,
-	        mixes: data.favorites_mixes?.length || 0,
-	        history: data.history_tracks?.length || 0,
-	        userPlaylists: data.user_playlists?.length || 0,
-	    });
-	
-	    const results = await Promise.all([
-	        importStore('favorites_tracks', data.favorites_tracks),
-	        importStore('favorites_albums', data.favorites_albums),
-	        importStore('favorites_artists', data.favorites_artists),
-	        importStore('favorites_playlists', data.favorites_playlists),
-	        importStore('favorites_mixes', data.favorites_mixes),
-	        importStore('history_tracks', data.history_tracks),
-	        data.user_playlists ? importStore('user_playlists', data.user_playlists) : Promise.resolve(false),
-	    ]);
-	
-	    console.log('Import results:', results);
-	    return results.some((r) => r);
-	}
+    async importData(data, clear = false) {
+        const db = await this.open();
 
+        const importStore = async (storeName, items) => {
+            if (items === undefined) return false;
 
+            let itemsArray = Array.isArray(items) ? items : Object.values(items || {});
 
+            console.log(`Importing to ${storeName}: ${itemsArray.length} items`);
+
+            if (itemsArray.length === 0) {
+                if (clear) {
+                    return new Promise((resolve, reject) => {
+                        const transaction = db.transaction(storeName, 'readwrite');
+                        const store = transaction.objectStore(storeName);
+
+                        const countReq = store.count();
+                        countReq.onsuccess = () => {
+                            if (countReq.result > 0) {
+                                store.clear();
+                            }
+                        };
+
+                        transaction.oncomplete = () => {
+                            resolve(countReq.result > 0);
+                        };
+                        transaction.onerror = () => reject(transaction.error);
+                    });
+                }
+                return false;
+            }
+
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(storeName, 'readwrite');
+                const store = transaction.objectStore(storeName);
+                let hasChanges = false;
+
+                // force clear on first sync
+                console.log(`Clearing ${storeName} to Make Sure Everythings Good`);
+                store.clear();
+                hasChanges = true;
+
+                itemsArray.forEach((item) => {
+                    if (item.id && typeof item.id === 'string' && !isNaN(item.id)) {
+                        item.id = parseInt(item.id, 10);
+                    }
+                    if (item.album?.id && typeof item.album.id === 'string' && !isNaN(item.album.id)) {
+                        item.album.id = parseInt(item.album.id, 10);
+                    }
+                    if (item.artists) {
+                        item.artists.forEach((artist) => {
+                            if (artist.id && typeof artist.id === 'string' && !isNaN(artist.id)) {
+                                artist.id = parseInt(artist.id, 10);
+                            }
+                        });
+                    }
+
+                    console.log(`${storeName}: Adding item with ID ${item.id || item.uuid || item.timestamp}`);
+                    store.put(item);
+                });
+
+                transaction.oncomplete = () => {
+                    console.log(`${storeName}: Imported ${itemsArray.length} items`);
+                    resolve(true);
+                };
+
+                transaction.onerror = (event) => {
+                    console.error(`${storeName}: Transaction error:`, event.target.error);
+                    reject(transaction.error);
+                };
+            });
+        };
+
+        console.log('Starting import with data:', {
+            tracks: data.favorites_tracks?.length || 0,
+            albums: data.favorites_albums?.length || 0,
+            artists: data.favorites_artists?.length || 0,
+            playlists: data.favorites_playlists?.length || 0,
+            mixes: data.favorites_mixes?.length || 0,
+            history: data.history_tracks?.length || 0,
+            userPlaylists: data.user_playlists?.length || 0,
+        });
+
+        const results = await Promise.all([
+            importStore('favorites_tracks', data.favorites_tracks),
+            importStore('favorites_albums', data.favorites_albums),
+            importStore('favorites_artists', data.favorites_artists),
+            importStore('favorites_playlists', data.favorites_playlists),
+            importStore('favorites_mixes', data.favorites_mixes),
+            importStore('history_tracks', data.history_tracks),
+            data.user_playlists ? importStore('user_playlists', data.user_playlists) : Promise.resolve(false),
+        ]);
+
+        console.log('Import results:', results);
+        return results.some((r) => r);
+    }
 
     _updatePlaylistMetadata(playlist) {
         playlist.numberOfTracks = playlist.tracks ? playlist.tracks.length : 0;
@@ -402,9 +399,11 @@ export class MusicDatabase {
     }
 
     _dispatchPlaylistSync(action, playlist) {
-        window.dispatchEvent(new CustomEvent('sync-playlist-change', {
-            detail: { action, playlist }
-        }));
+        window.dispatchEvent(
+            new CustomEvent('sync-playlist-change', {
+                detail: { action, playlist },
+            })
+        );
     }
 
     // User Playlists API
@@ -418,14 +417,14 @@ export class MusicDatabase {
             createdAt: Date.now(),
             updatedAt: Date.now(),
             numberOfTracks: tracks.length,
-            images: [] // Initialize images
+            images: [], // Initialize images
         };
         this._updatePlaylistMetadata(playlist);
         await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
-        
+
         // TRIGGER SYNC
         this._dispatchPlaylistSync('create', playlist);
-        
+
         return playlist;
     }
 
@@ -439,9 +438,9 @@ export class MusicDatabase {
         playlist.updatedAt = Date.now();
         this._updatePlaylistMetadata(playlist);
         await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
-        
+
         this._dispatchPlaylistSync('update', playlist);
-        
+
         return playlist;
     }
 
@@ -453,15 +452,15 @@ export class MusicDatabase {
         playlist.updatedAt = Date.now();
         this._updatePlaylistMetadata(playlist);
         await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
-        
+
         this._dispatchPlaylistSync('update', playlist);
-        
+
         return playlist;
     }
 
     async deletePlaylist(playlistId) {
         await this.performTransaction('user_playlists', 'readwrite', (store) => store.delete(playlistId));
-        
+
         // TRIGGER SYNC (but for deleting)
         this._dispatchPlaylistSync('delete', { id: playlistId });
     }
@@ -474,9 +473,9 @@ export class MusicDatabase {
         playlist.updatedAt = Date.now();
         this._updatePlaylistMetadata(playlist);
         await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
-        
+
         this._dispatchPlaylistSync('update', playlist);
-        
+
         return playlist;
     }
 

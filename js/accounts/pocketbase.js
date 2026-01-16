@@ -19,22 +19,22 @@ const syncManager = {
         if (this._userRecordCache && this._userRecordCache.firebase_id === uid) {
             return this._userRecordCache;
         }
-        
+
         try {
-            const record = await this.pb.collection('DB_users').getFirstListItem(
-                `firebase_id="${uid}"`,
-                { f_id: uid }
-            );
+            const record = await this.pb.collection('DB_users').getFirstListItem(`firebase_id="${uid}"`, { f_id: uid });
             this._userRecordCache = record;
             return record;
         } catch (error) {
             if (error.status === 404) {
                 try {
-                    const newRecord = await this.pb.collection('DB_users').create({
-                        firebase_id: uid,
-                        library: {},
-                        history: [],
-                    }, { f_id: uid });
+                    const newRecord = await this.pb.collection('DB_users').create(
+                        {
+                            firebase_id: uid,
+                            library: {},
+                            history: [],
+                        },
+                        { f_id: uid }
+                    );
                     this._userRecordCache = newRecord;
                     return newRecord;
                 } catch (createError) {
@@ -95,11 +95,7 @@ const syncManager = {
         }
 
         try {
-            const updated = await this.pb.collection('DB_users').update(
-                record.id,
-                { [field]: data },
-                { f_id: uid }
-            );
+            const updated = await this.pb.collection('DB_users').update(record.id, { [field]: data }, { f_id: uid });
             this._userRecordCache = updated;
         } catch (error) {
             console.error(`Failed to sync ${field} to PocketBase:`, error);
@@ -114,13 +110,13 @@ const syncManager = {
         if (!record) return;
 
         let library = record.library || {};
-        
+
         if (typeof library === 'string') {
             try {
                 library = JSON.parse(library);
             } catch (e) {
                 console.error('Library field is not valid JSON', e);
-                library = {}; 
+                library = {};
             }
         }
 
@@ -255,7 +251,7 @@ const syncManager = {
         if (!record) return;
 
         let userPlaylists = record.user_playlists || {};
-        
+
         if (typeof userPlaylists === 'string') {
             try {
                 userPlaylists = JSON.parse(userPlaylists);
@@ -272,7 +268,7 @@ const syncManager = {
                 id: playlist.id,
                 name: playlist.name,
                 cover: playlist.cover || null,
-                tracks: playlist.tracks ? playlist.tracks.map(t => this._minifyItem('track', t)) : [],
+                tracks: playlist.tracks ? playlist.tracks.map((t) => this._minifyItem('track', t)) : [],
                 createdAt: playlist.createdAt || Date.now(),
                 updatedAt: playlist.updatedAt || Date.now(),
                 numberOfTracks: playlist.tracks ? playlist.tracks.length : 0,
@@ -286,18 +282,19 @@ const syncManager = {
 
     async getPublicPlaylist(uuid) {
         try {
-            const record = await this.pb.collection(PUBLIC_COLLECTION).getFirstListItem(
-                `uuid="${uuid}"`,
-                { p_id: uuid }
-            );
+            const record = await this.pb
+                .collection(PUBLIC_COLLECTION)
+                .getFirstListItem(`uuid="${uuid}"`, { p_id: uuid });
 
             let rawCover = record.image || record.cover || record.playlist_cover || '';
             let extraData = record.data;
-            
+
             if (typeof extraData === 'string') {
-                try { extraData = JSON.parse(extraData); } catch(e) {}
+                try {
+                    extraData = JSON.parse(extraData);
+                } catch (e) {}
             }
-            
+
             if (!rawCover && extraData && typeof extraData === 'object') {
                 rawCover = extraData.cover || extraData.image || '';
             }
@@ -309,7 +306,7 @@ const syncManager = {
 
             let images = [];
             let tracks = record.tracks || [];
-            
+
             if (typeof tracks === 'string') {
                 try {
                     tracks = JSON.parse(tracks);
@@ -338,7 +335,6 @@ const syncManager = {
                 finalTitle = extraData.title || extraData.name;
             }
             if (!finalTitle) finalTitle = 'Untitled Playlist';
-            
 
             return {
                 ...record,
@@ -352,7 +348,7 @@ const syncManager = {
                 numberOfTracks: tracks.length,
                 type: 'user-playlist',
                 isPublic: true,
-                user: { name: 'Community Playlist' }
+                user: { name: 'Community Playlist' },
             };
         } catch (error) {
             if (error.status === 404) return null;
@@ -379,14 +375,14 @@ const syncManager = {
             isPublic: true,
             data: {
                 title: playlist.name,
-                cover: playlist.cover
-            }
+                cover: playlist.cover,
+            },
         };
 
         try {
             const existing = await this.pb.collection(PUBLIC_COLLECTION).getList(1, 1, {
                 filter: `uuid="${playlist.id}"`,
-                p_id: playlist.id
+                p_id: playlist.id,
             });
 
             if (existing.items.length > 0) {
@@ -406,7 +402,7 @@ const syncManager = {
         try {
             const existing = await this.pb.collection('public_playlists').getList(1, 1, {
                 filter: `uuid="${uuid}"`,
-                p_id: uuid
+                p_id: uuid,
             });
 
             if (existing.items && existing.items.length > 0) {
@@ -439,24 +435,36 @@ const syncManager = {
             if (this._isSyncing) return;
 
             this._isSyncing = true;
-            
+
             try {
                 const data = await this.getUserData();
-                
+
                 if (data) {
                     const convertedData = {
-                        favorites_tracks: data.library.tracks ? Object.values(data.library.tracks).filter(t => t && typeof t === 'object') : [],
-                        favorites_albums: data.library.albums ? Object.values(data.library.albums).filter(a => a && typeof a === 'object') : [],
-                        favorites_artists: data.library.artists ? Object.values(data.library.artists).filter(a => a && typeof a === 'object') : [],
-                        favorites_playlists: data.library.playlists ? Object.values(data.library.playlists).filter(p => p && typeof p === 'object') : [],
-                        favorites_mixes: data.library.mixes ? Object.values(data.library.mixes).filter(m => m && typeof m === 'object') : [],
+                        favorites_tracks: data.library.tracks
+                            ? Object.values(data.library.tracks).filter((t) => t && typeof t === 'object')
+                            : [],
+                        favorites_albums: data.library.albums
+                            ? Object.values(data.library.albums).filter((a) => a && typeof a === 'object')
+                            : [],
+                        favorites_artists: data.library.artists
+                            ? Object.values(data.library.artists).filter((a) => a && typeof a === 'object')
+                            : [],
+                        favorites_playlists: data.library.playlists
+                            ? Object.values(data.library.playlists).filter((p) => p && typeof p === 'object')
+                            : [],
+                        favorites_mixes: data.library.mixes
+                            ? Object.values(data.library.mixes).filter((m) => m && typeof m === 'object')
+                            : [],
                         history_tracks: data.history || [],
-                        user_playlists: data.userPlaylists ? Object.values(data.userPlaylists).filter(p => p && typeof p === 'object') : [],
+                        user_playlists: data.userPlaylists
+                            ? Object.values(data.userPlaylists).filter((p) => p && typeof p === 'object')
+                            : [],
                     };
-                    
+
                     await db.importData(convertedData);
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                    
+                    await new Promise((resolve) => setTimeout(resolve, 300));
+
                     window.dispatchEvent(new CustomEvent('library-changed'));
                     window.dispatchEvent(new CustomEvent('history-changed'));
                     window.dispatchEvent(new HashChangeEvent('hashchange'));
