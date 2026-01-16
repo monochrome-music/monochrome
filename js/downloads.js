@@ -291,7 +291,16 @@ async function bulkDownloadSequentially(tracks, api, quality, lyricsManager, not
     }
 }
 
-async function bulkDownloadToZipStream(tracks, folderName, api, quality, lyricsManager, notification, fileHandle, coverBlob = null) {
+async function bulkDownloadToZipStream(
+    tracks,
+    folderName,
+    api,
+    quality,
+    lyricsManager,
+    notification,
+    fileHandle,
+    coverBlob = null
+) {
     const { abortController } = bulkDownloadTasks.get(notification);
     const signal = abortController.signal;
     const { downloadZip } = await loadClientZip();
@@ -322,10 +331,16 @@ async function bulkDownloadToZipStream(tracks, folderName, api, quality, lyricsM
                             const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
                             if (lrcContent) {
                                 const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
-                                yield { name: `${folderName}/${lrcFilename}`, lastModified: new Date(), input: lrcContent };
+                                yield {
+                                    name: `${folderName}/${lrcFilename}`,
+                                    lastModified: new Date(),
+                                    input: lrcContent,
+                                };
                             }
                         }
-                    } catch { /* ignore */ }
+                    } catch {
+                        /* ignore */
+                    }
                 }
             } catch (err) {
                 if (err.name === 'AbortError') throw err;
@@ -345,17 +360,26 @@ async function bulkDownloadToZipStream(tracks, folderName, api, quality, lyricsM
 
 async function startBulkDownload(tracks, defaultName, api, quality, lyricsManager, type, name, coverBlob = null) {
     const notification = createBulkDownloadNotification(type, name, tracks.length);
-    
+
     try {
         const useZip = window.showSaveFilePicker && !bulkDownloadSettings.shouldForceIndividual();
-        
+
         if (useZip) {
             try {
                 const fileHandle = await window.showSaveFilePicker({
                     suggestedName: `${defaultName}.zip`,
                     types: [{ description: 'ZIP Archive', accept: { 'application/zip': ['.zip'] } }],
                 });
-                await bulkDownloadToZipStream(tracks, defaultName, api, quality, lyricsManager, notification, fileHandle, coverBlob);
+                await bulkDownloadToZipStream(
+                    tracks,
+                    defaultName,
+                    api,
+                    quality,
+                    lyricsManager,
+                    notification,
+                    fileHandle,
+                    coverBlob
+                );
                 completeBulkDownload(notification, true);
             } catch (err) {
                 if (err.name === 'AbortError') {
@@ -381,7 +405,8 @@ export async function downloadTracks(tracks, api, quality, lyricsManager = null)
 }
 
 export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsManager = null) {
-    const releaseDateStr = album.releaseDate || (tracks[0]?.streamStartDate ? tracks[0].streamStartDate.split('T')[0] : '');
+    const releaseDateStr =
+        album.releaseDate || (tracks[0]?.streamStartDate ? tracks[0].streamStartDate.split('T')[0] : '');
     const releaseDate = releaseDateStr ? new Date(releaseDateStr) : null;
     const year = releaseDate && !isNaN(releaseDate.getTime()) ? releaseDate.getFullYear() : '';
 
@@ -433,18 +458,24 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                     try {
                         const { album: fullAlbum, tracks } = await api.getAlbum(album.id);
                         const coverBlob = await getCoverBlob(api, fullAlbum.cover || album.cover);
-                        const releaseDateStr = fullAlbum.releaseDate || (tracks[0]?.streamStartDate ? tracks[0].streamStartDate.split('T')[0] : '');
+                        const releaseDateStr =
+                            fullAlbum.releaseDate ||
+                            (tracks[0]?.streamStartDate ? tracks[0].streamStartDate.split('T')[0] : '');
                         const releaseDate = releaseDateStr ? new Date(releaseDateStr) : null;
                         const year = releaseDate && !isNaN(releaseDate.getTime()) ? releaseDate.getFullYear() : '';
 
-                        const albumFolder = formatTemplate(localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist}', {
-                            albumTitle: fullAlbum.title,
-                            albumArtist: fullAlbum.artist?.name,
-                            year: year,
-                        });
+                        const albumFolder = formatTemplate(
+                            localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist}',
+                            {
+                                albumTitle: fullAlbum.title,
+                                albumArtist: fullAlbum.artist?.name,
+                                year: year,
+                            }
+                        );
 
                         const fullFolderPath = `${rootFolder}/${albumFolder}`;
-                        if (coverBlob) yield { name: `${fullFolderPath}/cover.jpg`, lastModified: new Date(), input: coverBlob };
+                        if (coverBlob)
+                            yield { name: `${fullFolderPath}/cover.jpg`, lastModified: new Date(), input: coverBlob };
 
                         for (const track of tracks) {
                             if (signal.aborted) break;
@@ -460,10 +491,16 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                                             const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
                                             if (lrcContent) {
                                                 const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
-                                                yield { name: `${fullFolderPath}/${lrcFilename}`, lastModified: new Date(), input: lrcContent };
+                                                yield {
+                                                    name: `${fullFolderPath}/${lrcFilename}`,
+                                                    lastModified: new Date(),
+                                                    input: lrcContent,
+                                                };
                                             }
                                         }
-                                    } catch { /* ignore */ }
+                                    } catch {
+                                        /* ignore */
+                                    }
                                 }
                             } catch (err) {
                                 if (err.name === 'AbortError') throw err;
