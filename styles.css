@@ -505,7 +505,6 @@ kbd {
     position: relative;
     width: 80%;
     max-width: 100%;
-    margin-bottom: var(--spacing-xl);
     display: flex;
     align-items: center;
 }
