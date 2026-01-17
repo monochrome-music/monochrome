@@ -665,7 +665,7 @@ body.has-page-background .track-item:hover {
 
 .search-tab-content.active {
     display: block;
-    animation: fadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: fade-in 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card-grid {
@@ -1705,7 +1705,7 @@ input:checked + .slider::before {
     z-index: 3000;
     justify-content: center;
     align-items: center;
-    animation: fadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: fade-in 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 #fullscreen-cover-overlay {
@@ -1716,7 +1716,7 @@ input:checked + .slider::before {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    animation: fadeIn 0.3s ease;
+    animation: fade-in 0.3s ease;
     overflow: hidden;
     background-color: var(--background);
 
@@ -1819,7 +1819,7 @@ input:checked + .slider::before {
 }
 
 #fullscreen-next-track.animate-in {
-    animation: fadeIn 0.5s ease 0.2s forwards; /* Added forwards to keep opacity 1 */
+    animation: fade-in 0.5s ease 0.2s forwards; /* Added forwards to keep opacity 1 */
 }
 
 #fullscreen-next-track .label {
@@ -3005,34 +3005,8 @@ img[src=''] {
     text-align: center;
 }
 
-@keyframes scale-in {
-    from {
-        transform: scale(0.95);
-        opacity: 0;
-    }
-
-    to {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
 #playlist-modal {
-    opacity: 1;
-    animation-name: fade-in-opacity;
-    animation-iteration-count: 1;
-    animation-timing-function: ease-in;
-    animation-duration: 0.1s;
-}
-
-@keyframes fade-in-opacity {
-    0% {
-        opacity: 0;
-    }
-
-    100% {
-        opacity: 1;
-    }
+    animation: fade-in 0.1s ease-in;
 }
 
 /* fuck this chud ass shit bro */
