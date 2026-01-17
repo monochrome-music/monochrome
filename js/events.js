@@ -1,5 +1,15 @@
 //js/events.js
-import { SVG_PLAY, SVG_PAUSE, SVG_VOLUME, SVG_MUTE, REPEAT_MODE, trackDataStore, formatTime, SVG_BIN, escapeHtml } from './utils.js';
+import {
+    SVG_PLAY,
+    SVG_PAUSE,
+    SVG_VOLUME,
+    SVG_MUTE,
+    REPEAT_MODE,
+    trackDataStore,
+    formatTime,
+    SVG_BIN,
+    escapeHtml,
+} from './utils.js';
 import { lastFMStorage, waveformSettings } from './storage.js';
 import { showNotification, downloadTrackWithMetadata } from './downloads.js';
 import { downloadQualitySettings } from './storage.js';
@@ -705,9 +715,9 @@ export async function handleTrackAction(
         const handleOptionClick = async (e) => {
             const removeBtn = e.target.closest('.remove-from-playlist-btn-modal');
             const option = e.target.closest('.modal-option');
-            
+
             if (!option) return;
-            
+
             const playlistId = option.dataset.id;
 
             if (removeBtn) {
@@ -719,7 +729,7 @@ export async function handleTrackAction(
                 await renderModal();
             } else {
                 if (option.classList.contains('already-contains')) return;
-                
+
                 await db.addTrackToPlaylist(playlistId, item);
                 const updatedPlaylist = await db.getPlaylist(playlistId);
                 syncManager.syncUserPlaylist(updatedPlaylist, 'update');
