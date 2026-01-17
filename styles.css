@@ -3982,8 +3982,37 @@ img[src=''] {
     }
 }
 
-@media (max-width: 1024px) {
+
     .player-controls .progress-container {
         order: -1;
     }
+
+
+.now-playing-bar {
+    width: calc(96% - 190px) !important;
+    left: calc(190px + 2%);
+    bottom: 15px !important;
+    border-radius: 16px;
+    position: fixed !important;
+    background-color: color-mix(in srgb, var(--card) 85%, transparent);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body:has(#fullscreen-cover-overlay:not([style*="display: none"])) .now-playing-bar {
+    width: 96% !important;
+    left: 2% !important;
+}
+
+@media (max-width: 768px) {
+    .now-playing-bar {
+        width: 96% !important;
+        left: 2%;
+    }
+}
+
+.main-content {
+    padding-bottom: 160px !important;
 }
