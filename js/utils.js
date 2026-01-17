@@ -132,7 +132,7 @@ export const createQualityBadgeHTML = (track) => {
 
     const quality = deriveTrackQuality(track);
     if (quality === 'HI_RES_LOSSLESS') {
-        return '<span class="quality-badge quality-hires" title="Hi-Res Lossless">HR</span>';
+        return '<span class="quality-badge quality-hires" title="Hi-Res Lossless">HD</span>';
     }
     return '';
 };
