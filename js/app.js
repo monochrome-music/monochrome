@@ -812,6 +812,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
+        if (e.target.closest('#shuffle-liked-tracks-btn')) {
+            const btn = e.target.closest('#shuffle-liked-tracks-btn');
+            if (btn.disabled) return;
+
+            try {
+                const likedTracks = await db.getFavorites('track');
+                if (likedTracks.length > 0) {
+                    // Shuffle array
+                    for (let i = likedTracks.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [likedTracks[i], likedTracks[j]] = [likedTracks[j], likedTracks[i]];
+                    }
+                    player.setQueue(likedTracks, 0);
+                    document.getElementById('shuffle-btn').classList.remove('active');
+                    player.playTrackFromQueue();
+                }
+            } catch (error) {
+                console.error('Failed to shuffle liked tracks:', error);
+            }
+        }
+
         if (e.target.closest('#download-discography-btn')) {
             const btn = e.target.closest('#download-discography-btn');
             if (btn.disabled) return;

@@ -305,6 +305,33 @@
             </div>
         </div>
 
+        <div id="custom-db-modal" class="modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="margin: 0;">Custom Database/Auth</h3>
+                    <button id="custom-db-reset" class="btn-secondary danger" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">Reset to Defaults</button>
+                </div>
+                <p style="font-size: 0.9rem; color: var(--muted-foreground); margin-bottom: 1rem;">
+                    Configure custom PocketBase and Firebase instances. Leave empty to use defaults.
+                    <br>
+                    A Guide To Set This Up Can Be Found <a href="https://github.com/SamidyFR/monochrome/blob/main/self-hosted-database.md" style="text-decoration: underline;">Here</a>.
+                </p>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem;">PocketBase URL</label>
+                    <input type="url" id="custom-pb-url" class="template-input" placeholder="https://monodb.samidy.com">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem;">Firebase Configuration (JSON)</label>
+                    <textarea id="custom-firebase-config" class="template-input" style="height: 150px; font-family: monospace; font-size: 0.8rem; resize: vertical;" placeholder='{"apiKey": "...", ...}'></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button id="custom-db-cancel" class="btn-secondary">Cancel</button>
+                    <button id="custom-db-save" class="btn-primary">Save & Reload</button>
+                </div>
+            </div>
+        </div>
+
         <div id="sidebar-overlay"></div>
 
         <div id="csv-import-progress" class="csv-import-progress" style="display: none">
@@ -590,18 +617,49 @@
                 </header>
 
                 <div id="page-home" class="page">
-                    <section class="content-section">
-                        <h2 class="section-title">Recent Albums</h2>
-                        <div class="card-grid" id="home-recent-albums"></div>
-                    </section>
-                    <section class="content-section">
-                        <h2 class="section-title">Recent Artists</h2>
-                        <div class="card-grid" id="home-recent-artists"></div>
-                    </section>
-                    <section class="content-section">
-                        <h2 class="section-title">Recent Playlists and Mixes</h2>
-                        <div class="card-grid" id="home-recent-playlists"></div>
-                    </section>
+                    <div id="home-welcome" style="display: none; text-align: center; padding: 4rem 2rem;">
+                        <h2 style="margin-bottom: 1rem;">Welcome to Monochrome</h2>
+                        <p style="color: var(--muted-foreground);">You haven't listened to anything yet. Search for your favorite songs to get started!</p>
+                    </div>
+
+                    <div id="home-content" style="display: none;">
+                        <section class="content-section">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                                <h2 class="section-title" style="margin-bottom: 0;">Recommended Songs</h2>
+                                <button class="btn-secondary" id="refresh-songs-btn" title="Refresh" style="padding: 4px 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                                </button>
+                            </div>
+                            <div class="track-list" id="home-recommended-songs"></div>
+                        </section>
+                        <section class="content-section">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                                <h2 class="section-title" style="margin-bottom: 0;">Recommended Albums</h2>
+                                <button class="btn-secondary" id="refresh-albums-btn" title="Refresh" style="padding: 4px 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                                </button>
+                            </div>
+                            <div class="card-grid" id="home-recommended-albums"></div>
+                        </section>
+                        <section class="content-section">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                                <h2 class="section-title" style="margin-bottom: 0;">Recommended Artists</h2>
+                                <button class="btn-secondary" id="refresh-artists-btn" title="Refresh" style="padding: 4px 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                                </button>
+                            </div>
+                            <div class="card-grid" id="home-recommended-artists"></div>
+                        </section>
+                        <section class="content-section">
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                                <h2 class="section-title" style="margin-bottom: 0;">Jump Back In</h2>
+                                <button class="btn-secondary" id="clear-recent-btn" title="Clear History" style="padding: 4px 8px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                                </button>
+                            </div>
+                            <div class="card-grid" id="home-recent-mixed"></div>
+                        </section>
+                    </div>
                 </div>
 
                 <div id="page-search" class="page">
@@ -647,6 +705,11 @@
                             <button class="search-tab" data-tab="local">Local Files</button>
                         </div>
                         <div class="search-tab-content active" id="library-tab-tracks">
+                            <div style="display: flex; justify-content: flex-start; margin-bottom: 0.5rem;">
+                                <button id="shuffle-liked-tracks-btn" class="btn-secondary" style="display: none; width: 32px; height: 32px; padding: 0; align-items: center; justify-content: center; border-radius: 50%;" title="Shuffle Liked Tracks">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22"/><path d="M2 6h1.972a4 4 0 0 1 3.6 2.2"/><path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45"/></svg>
+                                </button>
+                            </div>
                             <div class="track-list" id="library-tracks-container"></div>
                         </div>
                         <div class="search-tab-content" id="library-tab-albums">
@@ -1310,6 +1373,13 @@
                                     <input type="file" id="import-library-input" style="display: none" accept=".json" />
                                 </div>
                             </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">ADVANCED: Custom Database/Auth</span>
+                                    <span class="description">Configure custom PocketBase and Firebase instances</span>
+                                </div>
+                                <button id="custom-db-btn" class="btn-secondary">Configure</button>
+                            </div>
                             <div id="api-instance-manager">
                                 <div class="setting-item" style="padding-bottom: 1rem; border: none">
                                     <div class="info">
@@ -1528,6 +1598,18 @@
                             All data is anonymous. We do not store anything like emails, usernames, or anything
                             sensitive. <br />
                         </p>
+                        <p style="padding-top: 50px; text-align: center; color: #8b8b93">
+                            However, if you want complete control over your data, we allow you to use your own Database Configuration.
+                        </p>
+                        <div style="
+                                display: flex;
+                                gap: 50px;
+                                align-items: center;
+                                justify-content: center;
+                                padding-top: 25px;
+                            ">
+                            <a id="advanced-config-link" class="btn-secondary" href="#settings">Advanced: Custom Configuration</a>
+                        </div>
                     </div>
                 </div>
                 <div id="page-donate" class="page">

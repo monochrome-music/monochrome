@@ -17,6 +17,7 @@ import {
 import { db } from './db.js';
 import { authManager } from './accounts/auth.js';
 import { syncManager } from './accounts/pocketbase.js';
+import { saveFirebaseConfig, clearFirebaseConfig } from './accounts/config.js';
 
 export function initializeSettings(scrobbler, player, api, ui) {
     // Initialize account system UI & Settings
@@ -537,4 +538,74 @@ export function initializeSettings(scrobbler, player, api, ui) {
         };
         reader.readAsText(file);
     });
+
+    const customDbBtn = document.getElementById('custom-db-btn');
+    const customDbModal = document.getElementById('custom-db-modal');
+    const customPbUrlInput = document.getElementById('custom-pb-url');
+    const customFirebaseConfigInput = document.getElementById('custom-firebase-config');
+    const customDbSaveBtn = document.getElementById('custom-db-save');
+    const customDbResetBtn = document.getElementById('custom-db-reset');
+    const customDbCancelBtn = document.getElementById('custom-db-cancel');
+
+    if (customDbBtn && customDbModal) {
+        customDbBtn.addEventListener('click', () => {
+            const pbUrl = localStorage.getItem('monochrome-pocketbase-url') || '';
+            const fbConfig = localStorage.getItem('monochrome-firebase-config');
+
+            customPbUrlInput.value = pbUrl;
+            if (fbConfig) {
+                try {
+                    customFirebaseConfigInput.value = JSON.stringify(JSON.parse(fbConfig), null, 2);
+                } catch {
+                    customFirebaseConfigInput.value = fbConfig;
+                }
+            } else {
+                customFirebaseConfigInput.value = '';
+            }
+
+            customDbModal.classList.add('active');
+        });
+
+        const closeCustomDbModal = () => {
+            customDbModal.classList.remove('active');
+        };
+
+        customDbCancelBtn.addEventListener('click', closeCustomDbModal);
+        customDbModal.querySelector('.modal-overlay').addEventListener('click', closeCustomDbModal);
+
+        customDbSaveBtn.addEventListener('click', () => {
+            const pbUrl = customPbUrlInput.value.trim();
+            const fbConfigStr = customFirebaseConfigInput.value.trim();
+
+            if (pbUrl) {
+                localStorage.setItem('monochrome-pocketbase-url', pbUrl);
+            } else {
+                localStorage.removeItem('monochrome-pocketbase-url');
+            }
+
+            if (fbConfigStr) {
+                try {
+                    const fbConfig = JSON.parse(fbConfigStr);
+                    saveFirebaseConfig(fbConfig);
+                } catch (e) {
+                    alert('Invalid JSON for Firebase Config');
+                    return;
+                }
+            } else {
+                clearFirebaseConfig();
+            }
+
+            alert('Settings saved. Reloading...');
+            window.location.reload();
+        });
+
+        customDbResetBtn.addEventListener('click', () => {
+            if (confirm('Reset custom database settings to default?')) {
+                localStorage.removeItem('monochrome-pocketbase-url');
+                clearFirebaseConfig();
+                alert('Settings reset. Reloading...');
+                window.location.reload();
+            }
+        });
+    }
 }

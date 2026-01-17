@@ -1,7 +1,7 @@
 //storage.js
 export const apiSettings = {
     STORAGE_KEY: 'monochrome-api-instances-v2',
-    INSTANCES_URL: '../public/instances.json',
+    INSTANCES_URL: 'instances.json',
     SPEED_TEST_CACHE_KEY: 'monochrome-instance-speeds',
     SPEED_TEST_CACHE_DURATION: 1000 * 60 * 60,
     defaultInstances: { api: [], streaming: [] },
@@ -171,6 +171,17 @@ export const apiSettings = {
         const stored = localStorage.getItem(this.STORAGE_KEY);
         if (stored) {
             instancesObj = JSON.parse(stored);
+
+            // love it when local storage doesnt update
+            if (instancesObj?.api?.length === 2) {
+                const hasBinimum = instancesObj.api.some((url) => url.includes('tidal-api.binimum.org'));
+                const hasSamidy = instancesObj.api.some((url) => url.includes('monochrome-api.samidy.com'));
+
+                if (hasBinimum && hasSamidy) {
+                    localStorage.removeItem(this.STORAGE_KEY);
+                    instancesObj = null;
+                }
+            }
         }
 
         if (!instancesObj) {
@@ -274,6 +285,10 @@ export const recentActivityManager = {
         data[type].unshift(item);
         data[type] = data[type].slice(0, this.LIMIT);
         this._save(data);
+    },
+
+    clear() {
+        this._save({ artists: [], albums: [], playlists: [], mixes: [] });
     },
 
     addArtist(artist) {

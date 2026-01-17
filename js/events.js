@@ -1,5 +1,5 @@
 //js/events.js
-import { SVG_PLAY, SVG_PAUSE, SVG_VOLUME, SVG_MUTE, REPEAT_MODE, trackDataStore, formatTime } from './utils.js';
+import { SVG_PLAY, SVG_PAUSE, SVG_VOLUME, SVG_MUTE, REPEAT_MODE, trackDataStore, formatTime, SVG_BIN, escapeHtml } from './utils.js';
 import { lastFMStorage, waveformSettings } from './storage.js';
 import { showNotification, downloadTrackWithMetadata } from './downloads.js';
 import { downloadQualitySettings } from './storage.js';
@@ -21,6 +21,10 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
 
     // History tracking
     let historyLoggedTrackId = null;
+
+    audioPlayer.addEventListener('loadstart', () => {
+        historyLoggedTrackId = null;
+    });
 
     // Sync UI with player state on load
     if (player.shuffleActive) {
@@ -652,41 +656,46 @@ export async function handleTrackAction(
             }
         }
     } else if (action === 'add-to-playlist') {
-        const playlists = await db.getPlaylists(true);
-        if (playlists.length === 0) {
-            showNotification('No playlists yet. Create one first.');
-            return;
-        }
-
         const modal = document.getElementById('playlist-select-modal');
         const list = document.getElementById('playlist-select-list');
         const cancelBtn = document.getElementById('playlist-select-cancel');
         const overlay = modal.querySelector('.modal-overlay');
 
-        // Check what playlists already have this
-        const trackId = item.id;
-        const playlistsWithTrack = new Set();
-
-        for (const playlist of playlists) {
-            if (playlist.tracks && playlist.tracks.some((track) => track.id == trackId)) {
-                playlistsWithTrack.add(playlist.id);
+        const renderModal = async () => {
+            const playlists = await db.getPlaylists(true);
+            if (playlists.length === 0) {
+                showNotification('No playlists yet. Create one first.');
+                return false;
             }
-        }
 
-        const checkmarkSvg =
-            '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+            const trackId = item.id;
+            const playlistsWithTrack = new Set();
 
-        list.innerHTML = playlists
-            .map((p) => {
-                const alreadyContains = playlistsWithTrack.has(p.id);
-                return `
-                <div class="modal-option ${alreadyContains ? 'already-contains' : ''}" data-id="${p.id}">
-                    <span>${p.name}</span>
-                    ${alreadyContains ? `<span class="checkmark">${checkmarkSvg}</span>` : ''}
-                </div>
-            `;
-            })
-            .join('');
+            for (const playlist of playlists) {
+                if (playlist.tracks && playlist.tracks.some((track) => track.id == trackId)) {
+                    playlistsWithTrack.add(playlist.id);
+                }
+            }
+
+            list.innerHTML = playlists
+                .map((p) => {
+                    const alreadyContains = playlistsWithTrack.has(p.id);
+                    return `
+                    <div class="modal-option ${alreadyContains ? 'already-contains' : ''}" data-id="${p.id}">
+                        <span>${p.name}</span>
+                        ${
+                            alreadyContains
+                                ? `<button class="remove-from-playlist-btn-modal" title="Remove from playlist" style="background: transparent; border: none; color: inherit; cursor: pointer; padding: 4px; display: flex; align-items: center;">${SVG_BIN}</button>`
+                                : ''
+                        }
+                    </div>
+                `;
+                })
+                .join('');
+            return true;
+        };
+
+        if (!(await renderModal())) return;
 
         const closeModal = () => {
             modal.classList.remove('active');
@@ -694,15 +703,23 @@ export async function handleTrackAction(
         };
 
         const handleOptionClick = async (e) => {
+            const removeBtn = e.target.closest('.remove-from-playlist-btn-modal');
             const option = e.target.closest('.modal-option');
-            if (option) {
-                const playlistId = option.dataset.id;
-                const alreadyContains = playlistsWithTrack.has(playlistId);
+            
+            if (!option) return;
+            
+            const playlistId = option.dataset.id;
 
-                if (alreadyContains) {
-                    return;
-                }
-
+            if (removeBtn) {
+                e.stopPropagation();
+                await db.removeTrackFromPlaylist(playlistId, item.id);
+                const updatedPlaylist = await db.getPlaylist(playlistId);
+                syncManager.syncUserPlaylist(updatedPlaylist, 'update');
+                showNotification(`Removed from playlist: ${option.querySelector('span').textContent}`);
+                await renderModal();
+            } else {
+                if (option.classList.contains('already-contains')) return;
+                
                 await db.addTrackToPlaylist(playlistId, item);
                 const updatedPlaylist = await db.getPlaylist(playlistId);
                 syncManager.syncUserPlaylist(updatedPlaylist, 'update');

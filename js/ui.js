@@ -708,9 +708,13 @@ export class UIRenderer {
         const localContainer = document.getElementById('library-local-container');
 
         const likedTracks = await db.getFavorites('track');
+        const shuffleBtn = document.getElementById('shuffle-liked-tracks-btn');
+
         if (likedTracks.length) {
+            if (shuffleBtn) shuffleBtn.style.display = 'flex';
             this.renderListWithTracks(tracksContainer, likedTracks, true);
         } else {
+            if (shuffleBtn) shuffleBtn.style.display = 'none';
             tracksContainer.innerHTML = createPlaceholder('No liked tracks yet.');
         }
 
@@ -832,85 +836,247 @@ export class UIRenderer {
 
     async renderHomePage() {
         this.showPage('home');
-        const recents = recentActivityManager.getRecents();
-
-        const albumsContainer = document.getElementById('home-recent-albums');
-        const artistsContainer = document.getElementById('home-recent-artists');
-        const playlistsContainer = document.getElementById('home-recent-playlists');
-
-        if (recents.albums.length) {
-            albumsContainer.innerHTML = recents.albums.map((album) => this.createAlbumCardHTML(album)).join('');
-            recents.albums.forEach((album) => {
-                const el = albumsContainer.querySelector(`[data-album-id="${album.id}"]`);
-                if (el) {
-                    trackDataStore.set(el, album);
-                    this.updateLikeState(el, 'album', album.id);
-                }
-            });
-        } else {
-            albumsContainer.innerHTML = createPlaceholder("You haven't viewed any albums yet.");
+        
+        const welcomeEl = document.getElementById('home-welcome');
+        const contentEl = document.getElementById('home-content');
+        
+        const history = await db.getHistory();
+        const favorites = await db.getFavorites('track');
+        const playlists = await db.getPlaylists(true);
+        
+        if (history.length === 0 && favorites.length === 0 && playlists.length === 0) {
+            if (welcomeEl) welcomeEl.style.display = 'block';
+            if (contentEl) contentEl.style.display = 'none';
+            return;
         }
 
-        if (recents.artists.length) {
-            artistsContainer.innerHTML = recents.artists.map((artist) => this.createArtistCardHTML(artist)).join('');
-            recents.artists.forEach((artist) => {
-                const el = artistsContainer.querySelector(`[data-artist-id="${artist.id}"]`);
-                if (el) {
-                    trackDataStore.set(el, artist);
-                    this.updateLikeState(el, 'artist', artist.id);
+        if (welcomeEl) welcomeEl.style.display = 'none';
+        if (contentEl) contentEl.style.display = 'block';
+
+        const refreshSongsBtn = document.getElementById('refresh-songs-btn');
+        const refreshAlbumsBtn = document.getElementById('refresh-albums-btn');
+        const refreshArtistsBtn = document.getElementById('refresh-artists-btn');
+        const clearRecentBtn = document.getElementById('clear-recent-btn');
+
+        if (refreshSongsBtn) refreshSongsBtn.onclick = () => this.renderHomeSongs(true);
+        if (refreshAlbumsBtn) refreshAlbumsBtn.onclick = () => this.renderHomeAlbums(true);
+        if (refreshArtistsBtn) refreshArtistsBtn.onclick = () => this.renderHomeArtists(true);
+        if (clearRecentBtn) clearRecentBtn.onclick = () => {
+            if (confirm('Clear recent activity?')) {
+                recentActivityManager.clear();
+                this.renderHomeRecent();
+            }
+        };
+
+        this.renderHomeSongs();
+        this.renderHomeAlbums();
+        this.renderHomeArtists();
+        this.renderHomeRecent();
+    }
+
+    async getSeeds() {
+        const history = await db.getHistory();
+        const favorites = await db.getFavorites('track');
+        const playlists = await db.getPlaylists(true);
+        const playlistTracks = playlists.flatMap(p => p.tracks || []);
+
+        // Prioritize: Playlists > Favorites > History
+        // Take random samples from each to form seeds
+        const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
+        
+        const seeds = [
+            ...shuffle(playlistTracks).slice(0, 20),
+            ...shuffle(favorites).slice(0, 20),
+            ...shuffle(history).slice(0, 10)
+        ];
+        
+        return shuffle(seeds);
+    }
+
+    async renderHomeSongs(forceRefresh = false) {
+        const songsContainer = document.getElementById('home-recommended-songs');
+        if (songsContainer) {
+            if (forceRefresh) songsContainer.innerHTML = this.createSkeletonTracks(5, true);
+            else if (songsContainer.children.length > 0 && !songsContainer.querySelector('.skeleton')) return; // Already loaded
+
+            try {
+                const seeds = await this.getSeeds();
+                const trackSeeds = seeds.slice(0, 5);
+                const recommendedTracks = await this.api.getRecommendedTracksForPlaylist(trackSeeds, 20);
+                
+                const filteredTracks = await this.filterUserContent(recommendedTracks, 'track');
+
+                if (filteredTracks.length > 0) {
+                    this.renderListWithTracks(songsContainer, filteredTracks, true);
+                } else {
+                    songsContainer.innerHTML = createPlaceholder('No song recommendations found.');
                 }
-            });
-        } else {
-            artistsContainer.innerHTML = createPlaceholder("You haven't viewed any artists yet.");
+            } catch (e) {
+                console.error(e);
+                songsContainer.innerHTML = createPlaceholder('Failed to load song recommendations.');
+            }
         }
+    }
 
-        if (playlistsContainer) {
-            const playlists = recents.playlists || [];
-            const mixes = recents.mixes || [];
+    async renderHomeAlbums(forceRefresh = false) {
+        const albumsContainer = document.getElementById('home-recommended-albums');
+        if (albumsContainer) {
+            if (forceRefresh) albumsContainer.innerHTML = this.createSkeletonCards(6);
+            else if (albumsContainer.children.length > 0 && !albumsContainer.querySelector('.skeleton')) return;
 
-            // Note: Since we don't have a unified timestamp for recents in the separate arrays without normalizing,
-            // we will just display playlists then mixes, or interleave them if we wanted to be fancy.
-            // But usually recents are just lists.
-            // Let's just concatenate them.
+            try {
+                const seeds = await this.getSeeds();
+                const albumSeed = seeds.find(t => t.album && t.album.id);
+                if (albumSeed) {
+                    const similarAlbums = await this.api.getSimilarAlbums(albumSeed.album.id);
+                    const filteredAlbums = await this.filterUserContent(similarAlbums, 'album');
 
-            const combinedRecents = [...playlists, ...mixes]; // Order: Playlists then Mixes
-
-            if (combinedRecents.length) {
-                playlistsContainer.innerHTML = combinedRecents
-                    .map((item) => {
-                        if (item.isUserPlaylist) {
-                            return this.createUserPlaylistCardHTML(item);
-                        }
-                        if (item.mixType) {
-                            // It's a mix
-                            return this.createMixCardHTML(item);
-                        }
-                        return this.createPlaylistCardHTML(item);
-                    })
-                    .join('');
-
-                combinedRecents.forEach((item) => {
-                    if (item.isUserPlaylist) {
-                        const el = playlistsContainer.querySelector(`[data-user-playlist-id="${item.id}"]`);
-                        if (el) trackDataStore.set(el, item);
-                    } else if (item.mixType) {
-                        const el = playlistsContainer.querySelector(`[data-mix-id="${item.id}"]`);
-                        if (el) {
-                            trackDataStore.set(el, item);
-                            this.updateLikeState(el, 'mix', item.id);
-                        }
+                    if (filteredAlbums.length > 0) {
+                        albumsContainer.innerHTML = filteredAlbums.slice(0, 12).map(a => this.createAlbumCardHTML(a)).join('');
+                        filteredAlbums.slice(0, 12).forEach(a => {
+                            const el = albumsContainer.querySelector(`[data-album-id="${a.id}"]`);
+                            if (el) {
+                                trackDataStore.set(el, a);
+                                this.updateLikeState(el, 'album', a.id);
+                            }
+                        });
                     } else {
-                        const el = playlistsContainer.querySelector(`[data-playlist-id="${item.uuid}"]`);
-                        if (el) {
-                            trackDataStore.set(el, item);
-                            this.updateLikeState(el, 'playlist', item.uuid);
-                        }
+                        albumsContainer.innerHTML = `<div style="grid-column: 1/-1; padding: 2rem 0;">${createPlaceholder('Tell us more about what you like so we can recommend albums!')}</div>`;
+                    }
+                } else {
+                    albumsContainer.innerHTML = `<div style="grid-column: 1/-1; padding: 2rem 0;">${createPlaceholder('Tell us more about what you like so we can recommend albums!')}</div>`;
+                }
+            } catch (e) {
+                console.error(e);
+                albumsContainer.innerHTML = createPlaceholder('Failed to load album recommendations.');
+            }
+        }
+    }
+
+    async renderHomeArtists(forceRefresh = false) {
+        const artistsContainer = document.getElementById('home-recommended-artists');
+        if (artistsContainer) {
+            if (forceRefresh) artistsContainer.innerHTML = this.createSkeletonCards(6, true);
+            else if (artistsContainer.children.length > 0 && !artistsContainer.querySelector('.skeleton')) return;
+
+            try {
+                const seeds = await this.getSeeds();
+                const artistSeed = seeds.find(t => (t.artist && t.artist.id) || (t.artists && t.artists.length > 0));
+                const artistId = artistSeed ? (artistSeed.artist?.id || artistSeed.artists?.[0]?.id) : null;
+                
+                if (artistId) {
+                    const similarArtists = await this.api.getSimilarArtists(artistId);
+                    const filteredArtists = await this.filterUserContent(similarArtists, 'artist');
+
+                    if (filteredArtists.length > 0) {
+                        artistsContainer.innerHTML = filteredArtists.slice(0, 12).map(a => this.createArtistCardHTML(a)).join('');
+                        filteredArtists.slice(0, 12).forEach(a => {
+                            const el = artistsContainer.querySelector(`[data-artist-id="${a.id}"]`);
+                            if (el) {
+                                trackDataStore.set(el, a);
+                                this.updateLikeState(el, 'artist', a.id);
+                            }
+                        });
+                    } else {
+                        artistsContainer.innerHTML = createPlaceholder('No artist recommendations found.');
+                    }
+                } else {
+                    artistsContainer.innerHTML = createPlaceholder('Listen to more music to get artist recommendations.');
+                }
+            } catch (e) {
+                console.error(e);
+                artistsContainer.innerHTML = createPlaceholder('Failed to load artist recommendations.');
+            }
+        }
+    }
+
+    renderHomeRecent() {
+        const recentContainer = document.getElementById('home-recent-mixed');
+        if (recentContainer) {
+            const recents = recentActivityManager.getRecents();
+            const items = [];
+            
+            if (recents.albums) items.push(...recents.albums.slice(0, 4).map(i => ({...i, _kind: 'album'})));
+            if (recents.playlists) items.push(...recents.playlists.slice(0, 4).map(i => ({...i, _kind: 'playlist'})));
+            if (recents.mixes) items.push(...recents.mixes.slice(0, 4).map(i => ({...i, _kind: 'mix'})));
+            
+            items.sort(() => Math.random() - 0.5);
+            const displayItems = items.slice(0, 6);
+
+            if (displayItems.length > 0) {
+                recentContainer.innerHTML = displayItems.map(item => {
+                    if (item._kind === 'album') return this.createAlbumCardHTML(item);
+                    if (item._kind === 'playlist') {
+                         if (item.isUserPlaylist) return this.createUserPlaylistCardHTML(item);
+                         return this.createPlaylistCardHTML(item);
+                    }
+                    if (item._kind === 'mix') return this.createMixCardHTML(item);
+                    return '';
+                }).join('');
+
+                displayItems.forEach(item => {
+                    let selector = '';
+                    if (item._kind === 'album') selector = `[data-album-id="${item.id}"]`;
+                    else if (item._kind === 'playlist') selector = item.isUserPlaylist ? `[data-user-playlist-id="${item.id}"]` : `[data-playlist-id="${item.uuid}"]`;
+                    else if (item._kind === 'mix') selector = `[data-mix-id="${item.id}"]`;
+                    
+                    const el = recentContainer.querySelector(selector);
+                    if (el) {
+                        trackDataStore.set(el, item);
+                        if (item._kind === 'album') this.updateLikeState(el, 'album', item.id);
+                        if (item._kind === 'playlist' && !item.isUserPlaylist) this.updateLikeState(el, 'playlist', item.uuid);
+                        if (item._kind === 'mix') this.updateLikeState(el, 'mix', item.id);
                     }
                 });
             } else {
-                playlistsContainer.innerHTML = createPlaceholder("You haven't viewed any playlists or mixes yet.");
+                recentContainer.innerHTML = createPlaceholder('No recent items yet...');
             }
         }
+    }
+
+    async filterUserContent(items, type) {
+        if (!items || items.length === 0) return [];
+
+        const favorites = await db.getFavorites(type);
+        const favoriteIds = new Set(favorites.map(i => i.id));
+        
+        const likedTracks = await db.getFavorites('track');
+        const playlists = await db.getPlaylists(true);
+        
+        const userTracksMap = new Map();
+        likedTracks.forEach(t => userTracksMap.set(t.id, t));
+        playlists.forEach(p => {
+            if (p.tracks) p.tracks.forEach(t => userTracksMap.set(t.id, t));
+        });
+
+        if (type === 'track') {
+            return items.filter(item => !userTracksMap.has(item.id));
+        }
+
+        if (type === 'album') {
+            const albumTrackCounts = new Map();
+            for (const track of userTracksMap.values()) {
+                if (track.album && track.album.id) {
+                    const aid = track.album.id;
+                    albumTrackCounts.set(aid, (albumTrackCounts.get(aid) || 0) + 1);
+                }
+            }
+
+            return items.filter(item => {
+                if (favoriteIds.has(item.id)) return false;
+
+                const userCount = albumTrackCounts.get(item.id) || 0;
+                const total = item.numberOfTracks;
+                
+                if (total && total > 0) {
+                    if ((userCount / total) > 0.5) return false;
+                }
+                
+                return true;
+            });
+        }
+
+        return items.filter(item => !favoriteIds.has(item.id));
     }
 
     async renderSearchPage(query) {

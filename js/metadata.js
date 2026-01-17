@@ -392,8 +392,9 @@ function createVorbisCommentBlock(track) {
     if (track.album?.title) {
         comments.push(['ALBUM', track.album.title]);
     }
-    if (track.album?.artist?.name) {
-        comments.push(['ALBUMARTIST', track.album.artist.name]);
+    const albumArtist = track.album?.artist?.name || track.artist?.name;
+    if (albumArtist) {
+        comments.push(['ALBUMARTIST', albumArtist]);
     }
     if (track.trackNumber) {
         comments.push(['TRACKNUMBER', String(track.trackNumber)]);
@@ -744,7 +745,7 @@ function createMp4MetadataAtoms(track) {
         '©nam': track.title || DEFAULT_TITLE,
         '©ART': track.artist?.name || DEFAULT_ARTIST,
         '©alb': track.album?.title || DEFAULT_ALBUM,
-        aART: track.album?.artist?.name || DEFAULT_ARTIST,
+        aART: track.album?.artist?.name || track.artist?.name || DEFAULT_ARTIST,
     };
 
     if (track.trackNumber) {

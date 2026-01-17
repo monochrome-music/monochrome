@@ -187,7 +187,7 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
         artist: track.artist || (track.artists && track.artists.length > 0 ? track.artists[0] : null),
     };
 
-    if (enrichedTrack.album && !enrichedTrack.album.title && enrichedTrack.album.id) {
+    if (enrichedTrack.album && (!enrichedTrack.album.title || !enrichedTrack.album.artist) && enrichedTrack.album.id) {
         try {
             const albumData = await api.getAlbum(enrichedTrack.album.id);
             if (albumData.album) {
@@ -630,7 +630,7 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
         artist: track.artist || (track.artists && track.artists.length > 0 ? track.artists[0] : null),
     };
 
-    if (enrichedTrack.album && !enrichedTrack.album.title && enrichedTrack.album.id) {
+    if (enrichedTrack.album && (!enrichedTrack.album.title || !enrichedTrack.album.artist) && enrichedTrack.album.id) {
         try {
             const albumData = await api.getAlbum(enrichedTrack.album.id);
             if (albumData.album) {

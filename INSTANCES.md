@@ -8,6 +8,8 @@ API:
 | | https://vogel.qqdl.site |
 | | https://katze.qqdl.site |
 | | https://hund.qqdl.site |
+| Spotisaver | https://hifi-one.spotisaver.net |
+| | https://hifi-two.spotisaver.net |
 | Kinoplus | https://tidal.kinoplus.online |
 | Binimum | https://tidal-api.binimum.org |
 
