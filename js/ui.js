@@ -836,14 +836,14 @@ export class UIRenderer {
 
     async renderHomePage() {
         this.showPage('home');
-        
+
         const welcomeEl = document.getElementById('home-welcome');
         const contentEl = document.getElementById('home-content');
-        
+
         const history = await db.getHistory();
         const favorites = await db.getFavorites('track');
         const playlists = await db.getPlaylists(true);
-        
+
         if (history.length === 0 && favorites.length === 0 && playlists.length === 0) {
             if (welcomeEl) welcomeEl.style.display = 'block';
             if (contentEl) contentEl.style.display = 'none';
@@ -861,12 +861,13 @@ export class UIRenderer {
         if (refreshSongsBtn) refreshSongsBtn.onclick = () => this.renderHomeSongs(true);
         if (refreshAlbumsBtn) refreshAlbumsBtn.onclick = () => this.renderHomeAlbums(true);
         if (refreshArtistsBtn) refreshArtistsBtn.onclick = () => this.renderHomeArtists(true);
-        if (clearRecentBtn) clearRecentBtn.onclick = () => {
-            if (confirm('Clear recent activity?')) {
-                recentActivityManager.clear();
-                this.renderHomeRecent();
-            }
-        };
+        if (clearRecentBtn)
+            clearRecentBtn.onclick = () => {
+                if (confirm('Clear recent activity?')) {
+                    recentActivityManager.clear();
+                    this.renderHomeRecent();
+                }
+            };
 
         this.renderHomeSongs();
         this.renderHomeAlbums();
@@ -878,18 +879,18 @@ export class UIRenderer {
         const history = await db.getHistory();
         const favorites = await db.getFavorites('track');
         const playlists = await db.getPlaylists(true);
-        const playlistTracks = playlists.flatMap(p => p.tracks || []);
+        const playlistTracks = playlists.flatMap((p) => p.tracks || []);
 
         // Prioritize: Playlists > Favorites > History
         // Take random samples from each to form seeds
         const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
-        
+
         const seeds = [
             ...shuffle(playlistTracks).slice(0, 20),
             ...shuffle(favorites).slice(0, 20),
-            ...shuffle(history).slice(0, 10)
+            ...shuffle(history).slice(0, 10),
         ];
-        
+
         return shuffle(seeds);
     }
 
@@ -903,7 +904,7 @@ export class UIRenderer {
                 const seeds = await this.getSeeds();
                 const trackSeeds = seeds.slice(0, 5);
                 const recommendedTracks = await this.api.getRecommendedTracksForPlaylist(trackSeeds, 20);
-                
+
                 const filteredTracks = await this.filterUserContent(recommendedTracks, 'track');
 
                 if (filteredTracks.length > 0) {
@@ -926,14 +927,17 @@ export class UIRenderer {
 
             try {
                 const seeds = await this.getSeeds();
-                const albumSeed = seeds.find(t => t.album && t.album.id);
+                const albumSeed = seeds.find((t) => t.album && t.album.id);
                 if (albumSeed) {
                     const similarAlbums = await this.api.getSimilarAlbums(albumSeed.album.id);
                     const filteredAlbums = await this.filterUserContent(similarAlbums, 'album');
 
                     if (filteredAlbums.length > 0) {
-                        albumsContainer.innerHTML = filteredAlbums.slice(0, 12).map(a => this.createAlbumCardHTML(a)).join('');
-                        filteredAlbums.slice(0, 12).forEach(a => {
+                        albumsContainer.innerHTML = filteredAlbums
+                            .slice(0, 12)
+                            .map((a) => this.createAlbumCardHTML(a))
+                            .join('');
+                        filteredAlbums.slice(0, 12).forEach((a) => {
                             const el = albumsContainer.querySelector(`[data-album-id="${a.id}"]`);
                             if (el) {
                                 trackDataStore.set(el, a);
@@ -961,16 +965,19 @@ export class UIRenderer {
 
             try {
                 const seeds = await this.getSeeds();
-                const artistSeed = seeds.find(t => (t.artist && t.artist.id) || (t.artists && t.artists.length > 0));
-                const artistId = artistSeed ? (artistSeed.artist?.id || artistSeed.artists?.[0]?.id) : null;
-                
+                const artistSeed = seeds.find((t) => (t.artist && t.artist.id) || (t.artists && t.artists.length > 0));
+                const artistId = artistSeed ? artistSeed.artist?.id || artistSeed.artists?.[0]?.id : null;
+
                 if (artistId) {
                     const similarArtists = await this.api.getSimilarArtists(artistId);
                     const filteredArtists = await this.filterUserContent(similarArtists, 'artist');
 
                     if (filteredArtists.length > 0) {
-                        artistsContainer.innerHTML = filteredArtists.slice(0, 12).map(a => this.createArtistCardHTML(a)).join('');
-                        filteredArtists.slice(0, 12).forEach(a => {
+                        artistsContainer.innerHTML = filteredArtists
+                            .slice(0, 12)
+                            .map((a) => this.createArtistCardHTML(a))
+                            .join('');
+                        filteredArtists.slice(0, 12).forEach((a) => {
                             const el = artistsContainer.querySelector(`[data-artist-id="${a.id}"]`);
                             if (el) {
                                 trackDataStore.set(el, a);
@@ -981,7 +988,9 @@ export class UIRenderer {
                         artistsContainer.innerHTML = createPlaceholder('No artist recommendations found.');
                     }
                 } else {
-                    artistsContainer.innerHTML = createPlaceholder('Listen to more music to get artist recommendations.');
+                    artistsContainer.innerHTML = createPlaceholder(
+                        'Listen to more music to get artist recommendations.'
+                    );
                 }
             } catch (e) {
                 console.error(e);
@@ -995,36 +1004,43 @@ export class UIRenderer {
         if (recentContainer) {
             const recents = recentActivityManager.getRecents();
             const items = [];
-            
-            if (recents.albums) items.push(...recents.albums.slice(0, 4).map(i => ({...i, _kind: 'album'})));
-            if (recents.playlists) items.push(...recents.playlists.slice(0, 4).map(i => ({...i, _kind: 'playlist'})));
-            if (recents.mixes) items.push(...recents.mixes.slice(0, 4).map(i => ({...i, _kind: 'mix'})));
-            
+
+            if (recents.albums) items.push(...recents.albums.slice(0, 4).map((i) => ({ ...i, _kind: 'album' })));
+            if (recents.playlists)
+                items.push(...recents.playlists.slice(0, 4).map((i) => ({ ...i, _kind: 'playlist' })));
+            if (recents.mixes) items.push(...recents.mixes.slice(0, 4).map((i) => ({ ...i, _kind: 'mix' })));
+
             items.sort(() => Math.random() - 0.5);
             const displayItems = items.slice(0, 6);
 
             if (displayItems.length > 0) {
-                recentContainer.innerHTML = displayItems.map(item => {
-                    if (item._kind === 'album') return this.createAlbumCardHTML(item);
-                    if (item._kind === 'playlist') {
-                         if (item.isUserPlaylist) return this.createUserPlaylistCardHTML(item);
-                         return this.createPlaylistCardHTML(item);
-                    }
-                    if (item._kind === 'mix') return this.createMixCardHTML(item);
-                    return '';
-                }).join('');
+                recentContainer.innerHTML = displayItems
+                    .map((item) => {
+                        if (item._kind === 'album') return this.createAlbumCardHTML(item);
+                        if (item._kind === 'playlist') {
+                            if (item.isUserPlaylist) return this.createUserPlaylistCardHTML(item);
+                            return this.createPlaylistCardHTML(item);
+                        }
+                        if (item._kind === 'mix') return this.createMixCardHTML(item);
+                        return '';
+                    })
+                    .join('');
 
-                displayItems.forEach(item => {
+                displayItems.forEach((item) => {
                     let selector = '';
                     if (item._kind === 'album') selector = `[data-album-id="${item.id}"]`;
-                    else if (item._kind === 'playlist') selector = item.isUserPlaylist ? `[data-user-playlist-id="${item.id}"]` : `[data-playlist-id="${item.uuid}"]`;
+                    else if (item._kind === 'playlist')
+                        selector = item.isUserPlaylist
+                            ? `[data-user-playlist-id="${item.id}"]`
+                            : `[data-playlist-id="${item.uuid}"]`;
                     else if (item._kind === 'mix') selector = `[data-mix-id="${item.id}"]`;
-                    
+
                     const el = recentContainer.querySelector(selector);
                     if (el) {
                         trackDataStore.set(el, item);
                         if (item._kind === 'album') this.updateLikeState(el, 'album', item.id);
-                        if (item._kind === 'playlist' && !item.isUserPlaylist) this.updateLikeState(el, 'playlist', item.uuid);
+                        if (item._kind === 'playlist' && !item.isUserPlaylist)
+                            this.updateLikeState(el, 'playlist', item.uuid);
                         if (item._kind === 'mix') this.updateLikeState(el, 'mix', item.id);
                     }
                 });
@@ -1038,19 +1054,19 @@ export class UIRenderer {
         if (!items || items.length === 0) return [];
 
         const favorites = await db.getFavorites(type);
-        const favoriteIds = new Set(favorites.map(i => i.id));
-        
+        const favoriteIds = new Set(favorites.map((i) => i.id));
+
         const likedTracks = await db.getFavorites('track');
         const playlists = await db.getPlaylists(true);
-        
+
         const userTracksMap = new Map();
-        likedTracks.forEach(t => userTracksMap.set(t.id, t));
-        playlists.forEach(p => {
-            if (p.tracks) p.tracks.forEach(t => userTracksMap.set(t.id, t));
+        likedTracks.forEach((t) => userTracksMap.set(t.id, t));
+        playlists.forEach((p) => {
+            if (p.tracks) p.tracks.forEach((t) => userTracksMap.set(t.id, t));
         });
 
         if (type === 'track') {
-            return items.filter(item => !userTracksMap.has(item.id));
+            return items.filter((item) => !userTracksMap.has(item.id));
         }
 
         if (type === 'album') {
@@ -1062,21 +1078,21 @@ export class UIRenderer {
                 }
             }
 
-            return items.filter(item => {
+            return items.filter((item) => {
                 if (favoriteIds.has(item.id)) return false;
 
                 const userCount = albumTrackCounts.get(item.id) || 0;
                 const total = item.numberOfTracks;
-                
+
                 if (total && total > 0) {
-                    if ((userCount / total) > 0.5) return false;
+                    if (userCount / total > 0.5) return false;
                 }
-                
+
                 return true;
             });
         }
 
-        return items.filter(item => !favoriteIds.has(item.id));
+        return items.filter((item) => !favoriteIds.has(item.id));
     }
 
     async renderSearchPage(query) {
