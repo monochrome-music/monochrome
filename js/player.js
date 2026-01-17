@@ -426,12 +426,20 @@ export class Player {
         if (this.shuffleActive) {
             this.originalQueueBeforeShuffle = [...this.queue];
             const currentTrack = this.queue[this.currentQueueIndex];
-            this.shuffledQueue = [...this.queue].sort(() => Math.random() - 0.5);
-            this.currentQueueIndex = this.shuffledQueue.findIndex((t) => t.id === currentTrack?.id);
+            
+            const tracksToShuffle = [...this.queue];
+            if (currentTrack && this.currentQueueIndex >= 0) {
+                tracksToShuffle.splice(this.currentQueueIndex, 1);
+            }
+            
+            tracksToShuffle.sort(() => Math.random() - 0.5);
 
-            if (this.currentQueueIndex === -1 && currentTrack) {
-                this.shuffledQueue.unshift(currentTrack);
+            if (currentTrack) {
+                this.shuffledQueue = [currentTrack, ...tracksToShuffle];
                 this.currentQueueIndex = 0;
+            } else {
+                this.shuffledQueue = tracksToShuffle;
+                this.currentQueueIndex = -1;
             }
         } else {
             const currentTrack = this.shuffledQueue[this.currentQueueIndex];

@@ -16,9 +16,8 @@ import {
     escapeHtml,
 } from './utils.js';
 import { openLyricsPanel } from './lyrics.js';
-import { recentActivityManager, backgroundSettings, cardSettings } from './storage.js';
+import { recentActivityManager, backgroundSettings, trackListSettings, cardSettings } from './storage.js';
 import { db } from './db.js';
-import { showNotification } from './downloads.js';
 import { getVibrantColorFromImage } from './vibrant-color.js';
 import { syncManager } from './accounts/pocketbase.js';
 
@@ -70,7 +69,7 @@ export class UIRenderer {
                     this.vibrantColorCache.set(url, null);
                     this.resetVibrantColor();
                 }
-            } catch {
+            } catch (e) {
                 this.vibrantColorCache.set(url, null);
                 this.resetVibrantColor();
             }
@@ -163,6 +162,7 @@ export class UIRenderer {
     }
 
     createTrackItemHTML(track, index, showCover = false, hasMultipleDiscs = false) {
+        const playIconSmall = SVG_PLAY;
         const trackImageHTML = showCover
             ? `<img src="${this.api.getCoverUrl(track.album?.cover)}" alt="Track Cover" class="track-item-cover" loading="lazy">`
             : '';
@@ -629,6 +629,7 @@ export class UIRenderer {
         const title = document.getElementById('fullscreen-track-title');
         const artist = document.getElementById('fullscreen-track-artist');
         const nextTrackEl = document.getElementById('fullscreen-next-track');
+        const lyricsContainer = document.getElementById('fullscreen-lyrics-container');
         const lyricsToggleBtn = document.getElementById('toggle-fullscreen-lyrics-btn');
 
         const coverUrl = this.api.getCoverUrl(track.album?.cover, '1280');

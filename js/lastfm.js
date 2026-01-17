@@ -1,4 +1,5 @@
 //js/lastfm.js
+import { delay, getTrackArtists } from './utils.js';
 
 export class LastFMScrobbler {
     constructor() {
@@ -65,7 +66,7 @@ export class LastFMScrobbler {
         try {
             const { default: md5 } = await import('https://cdn.jsdelivr.net/npm/md5@2.3.0/+esm');
             return md5(signatureString);
-        } catch {
+        } catch (e) {
             console.error('MD5 library not available');
             throw new Error('MD5 library required for Last.fm');
         }
@@ -155,7 +156,7 @@ export class LastFMScrobbler {
 
         try {
             const params = {
-                artist: track.artist?.name || track.artists?.[0]?.name || 'Unknown Artist',
+                artist: track.artists?.[0]?.name || track.artist?.name || 'Unknown Artist',
                 track: track.title,
             };
 
@@ -204,7 +205,7 @@ export class LastFMScrobbler {
             const timestamp = Math.floor(Date.now() / 1000);
 
             const params = {
-                artist: this.currentTrack.artist?.name || this.currentTrack.artists?.[0]?.name || 'Unknown Artist',
+                artist: this.currentTrack.artists?.[0]?.name || this.currentTrack.artist?.name || 'Unknown Artist',
                 track: this.currentTrack.title,
                 timestamp: timestamp,
             };
@@ -235,7 +236,7 @@ export class LastFMScrobbler {
 
         try {
             const params = {
-                artist: track.artist?.name || track.artists?.[0]?.name || 'Unknown Artist',
+                artist: track.artists?.[0]?.name || track.artist?.name || 'Unknown Artist',
                 track: track.title,
             };
 

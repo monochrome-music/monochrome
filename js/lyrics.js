@@ -1,9 +1,10 @@
 //js/lyrics.js
-import { getTrackTitle, getTrackArtists, buildTrackFilename, SVG_CLOSE } from './utils.js';
+import { getTrackTitle, getTrackArtists, buildTrackFilename, SVG_DOWNLOAD, SVG_CLOSE } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 
 // Dictionary path for kuromoji
 // Using CDN - the kuroshiro-analyzer loaded from unpkg will use this as base for fetching dict files
+const KUROMOJI_DICT_PATH = 'https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/';
 
 export class LyricsManager {
     constructor(api) {
@@ -189,7 +190,7 @@ export class LyricsManager {
     getRomajiMode() {
         try {
             return localStorage.getItem('lyricsRomajiMode') === 'true';
-        } catch {
+        } catch (e) {
             return false;
         }
     }
@@ -498,20 +499,14 @@ export class LyricsManager {
     }
 }
 
-export async function openLyricsPanel(track, audioPlayer, lyricsManager) {
+export function openLyricsPanel(track, audioPlayer, lyricsManager, forceOpen = false) {
     const manager = lyricsManager || new LyricsManager();
 
-    // Load Kuroshiro early for Kanji conversion (blocking if Romaji mode is enabled)
+    // Load Kuroshiro in background if needed
     if (!manager.kuroshiroLoaded && !manager.kuroshiroLoading) {
-        if (manager.getRomajiMode()) {
-            // If Romaji mode is enabled, wait for Kuroshiro to load before continuing
-            await manager.loadKuroshiro();
-        } else {
-            // Otherwise, load in background
-            manager.loadKuroshiro().catch((err) => {
-                console.warn('Failed to load Kuroshiro for Romaji conversion:', err);
-            });
-        }
+        manager.loadKuroshiro().catch((err) => {
+            console.warn('Failed to load Kuroshiro for Romaji conversion:', err);
+        });
     }
 
     const renderControls = (container) => {
@@ -548,7 +543,7 @@ export async function openLyricsPanel(track, audioPlayer, lyricsManager) {
             romajiBtn.addEventListener('click', async () => {
                 const amLyrics = sidePanelManager.panel.querySelector('am-lyrics');
                 if (amLyrics) {
-                    await manager.toggleRomajiMode(amLyrics);
+                    const newMode = await manager.toggleRomajiMode(amLyrics);
                     updateRomajiBtn();
                 }
             });
@@ -558,9 +553,13 @@ export async function openLyricsPanel(track, audioPlayer, lyricsManager) {
     const renderContent = async (container) => {
         clearLyricsPanelSync(audioPlayer, sidePanelManager.panel);
         await renderLyricsComponent(container, track, audioPlayer, manager);
+        if (container.lyricsCleanup) {
+            sidePanelManager.panel.lyricsCleanup = container.lyricsCleanup;
+            sidePanelManager.panel.lyricsManager = container.lyricsManager;
+        }
     };
 
-    sidePanelManager.open('lyrics', 'Lyrics', renderControls, renderContent);
+    sidePanelManager.open('lyrics', 'Lyrics', renderControls, renderContent, forceOpen);
 }
 
 async function renderLyricsComponent(container, track, audioPlayer, lyricsManager) {

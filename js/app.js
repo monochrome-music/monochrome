@@ -194,6 +194,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     const scrobbler = new LastFMScrobbler();
     const lyricsManager = new LyricsManager(api);
 
+    // Check browser support for local files
+    const selectLocalBtn = document.getElementById('select-local-folder-btn');
+    const browserWarning = document.getElementById('local-browser-warning');
+
+    if (selectLocalBtn && browserWarning) {
+        const ua = navigator.userAgent;
+        const isChromeOrEdge = (ua.indexOf('Chrome') > -1 || ua.indexOf('Edg') > -1) && !/Mobile|Android/.test(ua);
+        const hasFileSystemApi = 'showDirectoryPicker' in window;
+
+        if (!isChromeOrEdge || !hasFileSystemApi) {
+            selectLocalBtn.style.display = 'none';
+            browserWarning.style.display = 'block';
+        }
+    }
+
     // Pre-load Kuroshiro for romaji conversion in background (always load so it's ready instantly)
     lyricsManager.loadKuroshiro().catch((err) => {
         console.warn('Failed to pre-load Kuroshiro:', err);
@@ -318,7 +333,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Update lyrics panel if it's open
         if (sidePanelManager.isActive('lyrics')) {
             // Re-open forces update/refresh of content and sync
-            openLyricsPanel(player.currentTrack, audioPlayer, lyricsManager);
+            openLyricsPanel(player.currentTrack, audioPlayer, lyricsManager, true);
         }
 
         // Update Fullscreen if it's open
@@ -1016,17 +1031,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const track = contextMenu._contextTrack;
                         const albumItem = contextMenu.querySelector('[data-action="go-to-album"]');
                         const artistItem = contextMenu.querySelector('[data-action="go-to-artist"]');
-
+                        
                         if (track) {
                             if (albumItem) {
                                 let label = 'Album';
                                 const albumType = track.album?.type?.toUpperCase();
                                 const trackCount = track.album?.numberOfTracks;
-
+                                
                                 if (albumType === 'SINGLE' || trackCount === 1) label = 'Single';
                                 else if (albumType === 'EP') label = 'EP';
                                 else if (trackCount && trackCount <= 6) label = 'EP';
-
+                                
                                 albumItem.textContent = `Go to ${label}`;
                                 albumItem.style.display = track.album ? 'block' : 'none';
                             }
@@ -1039,7 +1054,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
         });
-
+        
         observer.observe(contextMenu, { attributes: true });
     }
 });

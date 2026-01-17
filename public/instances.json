@@ -1,5 +1,5 @@
 {
-    "api": ["https://tidal-api.binimum.org", "https://monochrome-api.samidy.com"],
+    "api": ["https://tidal-api.binimum.org", "https://monochrome-api.samidy.com", "https://triton.squid.wtf", "https://wolf.qqdl.site"],
     "streaming": [
         "https://triton.squid.wtf",
         "https://wolf.qqdl.site",

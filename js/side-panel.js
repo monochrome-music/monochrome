@@ -7,9 +7,9 @@ export class SidePanelManager {
         this.currentView = null; // 'queue' or 'lyrics'
     }
 
-    open(view, title, renderControlsCallback, renderContentCallback) {
+    open(view, title, renderControlsCallback, renderContentCallback, forceOpen = false) {
         // If clicking the same view that is already open, close it
-        if (this.currentView === view && this.panel.classList.contains('active')) {
+        if (!forceOpen && this.currentView === view && this.panel.classList.contains('active')) {
             this.close();
             return;
         }
