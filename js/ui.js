@@ -1233,7 +1233,7 @@ export class UIRenderer {
                 <span style="width: 40px; text-align: center;">#</span>
                 <span>Title</span>
                 <span class="duration-header">Duration</span>
-                <span></span>
+                <span style="display: flex; justify-content: flex-end; opacity: 0.8;">${SVG_MENU}</span>
             </div>
             ${this.createSkeletonTracks(10, false)}
         `;
@@ -1287,7 +1287,7 @@ export class UIRenderer {
                     <span style="width: 40px; text-align: center;">#</span>
                     <span>Title</span>
                     <span class="duration-header">Duration</span>
-                    <span></span>
+                    <span style="display: flex; justify-content: flex-end; opacity: 0.8;">${SVG_MENU}</span>
                 </div>
             `;
 
@@ -1461,12 +1461,12 @@ export class UIRenderer {
                                         const tracklistContainer = document.getElementById('playlist-detail-tracklist');
                                         if (tracklistContainer && updatedPlaylist.tracks) {
                                             tracklistContainer.innerHTML = `
-                                                                                                <div class="track-list-header">
-                                                                                                    <span style="width: 40px; text-align: center;">#</span>
-                                                                                                    <span>Title</span>
-                                                                                                    <span class="duration-header">Duration</span>
-                                                                                                    <span></span>
-                                                                                                </div>                                            `;
+                                                                                                                                                <div class="track-list-header">
+                                                                                                                                                    <span style="width: 40px; text-align: center;">#</span>
+                                                                                                                                                    <span>Title</span>
+                                                                                                                                                    <span class="duration-header">Duration</span>
+                                                                                                                                                    <span style="display: flex; justify-content: flex-end; opacity: 0.8;">${SVG_MENU}</span>
+                                                                                                                                                </div>                                            `;
                                             this.renderListWithTracks(tracklistContainer, updatedPlaylist.tracks, true);
 
                                             if (document.querySelector('.remove-from-playlist-btn')) {
@@ -1536,7 +1536,7 @@ export class UIRenderer {
                 <span style="width: 40px; text-align: center;">#</span>
                 <span>Title</span>
                 <span class="duration-header">Duration</span>
-                <span></span>
+                <span style="display: flex; justify-content: flex-end; opacity: 0.8;">${SVG_MENU}</span>
             </div>
             ${this.createSkeletonTracks(10, true)}
         `;
@@ -1588,7 +1588,7 @@ export class UIRenderer {
                         <span style="width: 40px; text-align: center;">#</span>
                         <span>Title</span>
                         <span class="duration-header">Duration</span>
-                        <span></span>
+                        <span style="display: flex; justify-content: flex-end; opacity: 0.8;">${SVG_MENU}</span>
                     </div>
                 `;
 
@@ -1687,7 +1687,7 @@ export class UIRenderer {
                         <span style="width: 40px; text-align: center;">#</span>
                         <span>Title</span>
                         <span class="duration-header">Duration</span>
-                        <span></span>
+                        <span style="display: flex; justify-content: flex-end; opacity: 0.8;">${SVG_MENU}</span>
                     </div>
                 `;
 
@@ -1750,7 +1750,7 @@ export class UIRenderer {
                 <span style="width: 40px; text-align: center;">#</span>
                 <span>Title</span>
                 <span class="duration-header">Duration</span>
-                <span></span>
+                <span style="display: flex; justify-content: flex-end; opacity: 0.8;">${SVG_MENU}</span>
             </div>
             ${this.createSkeletonTracks(10, true)}
         `;
@@ -1791,7 +1791,7 @@ export class UIRenderer {
                     <span style="width: 40px; text-align: center;">#</span>
                     <span>Title</span>
                     <span class="duration-header">Duration</span>
-                    <span></span>
+                    <span style="display: flex; justify-content: flex-end; opacity: 0.8;">${SVG_MENU}</span>
                 </div>
             `;
 
