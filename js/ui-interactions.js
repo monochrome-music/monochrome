@@ -379,4 +379,69 @@ export function initializeUIInteractions(player, api) {
             document.getElementById(contentId)?.classList.add('active');
         });
     });
-}
+
+    // Tooltip for truncated text
+    let tooltipEl = document.getElementById('custom-tooltip');
+    if (!tooltipEl) {
+        tooltipEl = document.createElement('div');
+        tooltipEl.id = 'custom-tooltip';
+        document.body.appendChild(tooltipEl);
+    }
+
+    const updateTooltipPosition = (e) => {
+        const x = e.clientX + 15;
+        const y = e.clientY + 15;
+        
+        // Prevent going off-screen
+        const rect = tooltipEl.getBoundingClientRect();
+        const winWidth = window.innerWidth;
+        const winHeight = window.innerHeight;
+        
+        let finalX = x;
+        let finalY = y;
+        
+        if (x + rect.width > winWidth) {
+            finalX = e.clientX - rect.width - 10;
+        }
+        
+        if (y + rect.height > winHeight) {
+            finalY = e.clientY - rect.height - 10;
+        }
+        
+        tooltipEl.style.transform = `translate(${finalX}px, ${finalY}px)`;
+        // Reset top/left to 0 since we use transform
+        tooltipEl.style.top = '0';
+        tooltipEl.style.left = '0';
+    };
+
+        document.body.addEventListener('mouseover', (e) => {
+            const selector =
+                '.card-title, .card-subtitle, .track-item-details .title, .track-item-details .artist, .now-playing-bar .title, .now-playing-bar .artist, .now-playing-bar .album';
+            const target = e.target.closest(selector);
+    
+            if (target) {
+                // Remove native title if present to avoid double tooltip
+                if (target.hasAttribute('title')) {
+                    target.removeAttribute('title');
+                }
+    
+                if (target.scrollWidth > target.clientWidth) {
+                    tooltipEl.innerHTML = target.innerHTML.trim();
+                    tooltipEl.classList.add('visible');
+                    updateTooltipPosition(e);
+    
+                    const moveHandler = (moveEvent) => {
+                        updateTooltipPosition(moveEvent);
+                    };
+    
+                    const outHandler = () => {
+                        tooltipEl.classList.remove('visible');
+                        target.removeEventListener('mousemove', moveHandler);
+                        target.removeEventListener('mouseleave', outHandler);
+                    };
+    
+                    target.addEventListener('mousemove', moveHandler);
+                    target.addEventListener('mouseleave', outHandler);
+                }
+            }
+        });}

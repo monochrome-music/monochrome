@@ -4114,3 +4114,29 @@ body:has(#fullscreen-cover-overlay:not([style*='display: none'])) .now-playing-b
         left: 2%;
     }
 }
+
+/* Custom Tooltip */
+#custom-tooltip {
+    position: fixed;
+    background: var(--card);
+    color: var(--card-foreground);
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    font-size: 0.85rem;
+    pointer-events: none;
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.1s ease;
+    white-space: nowrap;
+    max-width: 400px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    will-change: transform, opacity;
+}
+
+#custom-tooltip.visible {
+    opacity: 1;
+}
+
