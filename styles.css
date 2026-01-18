@@ -4139,4 +4139,3 @@ body:has(#fullscreen-cover-overlay:not([style*='display: none'])) .now-playing-b
 #custom-tooltip.visible {
     opacity: 1;
 }
-
