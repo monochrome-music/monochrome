@@ -8,7 +8,6 @@ import {
     trackDataStore,
     formatTime,
     SVG_BIN,
-    escapeHtml,
 } from './utils.js';
 import { lastFMStorage, waveformSettings } from './storage.js';
 import { showNotification, downloadTrackWithMetadata } from './downloads.js';

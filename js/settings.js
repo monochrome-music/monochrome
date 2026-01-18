@@ -587,7 +587,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
                 try {
                     const fbConfig = JSON.parse(fbConfigStr);
                     saveFirebaseConfig(fbConfig);
-                } catch (e) {
+                } catch {
                     alert('Invalid JSON for Firebase Config');
                     return;
                 }

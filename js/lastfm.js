@@ -1,6 +1,4 @@
 //js/lastfm.js
-import { delay, getTrackArtists } from './utils.js';
-
 export class LastFMScrobbler {
     constructor() {
         this.API_KEY = '0ecf01914957b40c17030db822845a76';
@@ -25,8 +23,8 @@ export class LastFMScrobbler {
                 this.sessionKey = data.key;
                 this.username = data.name;
             }
-        } catch (e) {
-            console.error('Failed to load Last.fm session:', e);
+        } catch {
+            console.error('Failed to load Last.fm session');
         }
     }
 
@@ -66,7 +64,7 @@ export class LastFMScrobbler {
         try {
             const { default: md5 } = await import('https://cdn.jsdelivr.net/npm/md5@2.3.0/+esm');
             return md5(signatureString);
-        } catch (e) {
+        } catch {
             console.error('MD5 library not available');
             throw new Error('MD5 library required for Last.fm');
         }
