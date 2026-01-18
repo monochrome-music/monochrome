@@ -259,9 +259,15 @@ export class Player {
             return;
         }
 
+        const track = currentQueue[this.currentQueueIndex];
+        if (track.isUnavailable) {
+            console.warn(`Attempted to play unavailable track: ${track.title}. Skipping...`);
+            this.playNext();
+            return;
+        }
+
         this.saveQueueState();
 
-        const track = currentQueue[this.currentQueueIndex];
         this.currentTrack = track;
 
         const trackTitle = getTrackTitle(track);
@@ -384,11 +390,17 @@ export class Player {
         }
     }
 
-    playNext() {
+    playNext(recursiveCount = 0) {
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
         const isLastTrack = this.currentQueueIndex >= currentQueue.length - 1;
 
-        if (this.repeatMode === REPEAT_MODE.ONE) {
+        if (recursiveCount > currentQueue.length) {
+            console.error('All tracks in queue are unavailable.');
+            this.audio.pause();
+            return;
+        }
+
+        if (this.repeatMode === REPEAT_MODE.ONE && !currentQueue[this.currentQueueIndex]?.isUnavailable) {
             this.audio.currentTime = 0;
             this.audio.play();
             return;
@@ -396,8 +408,16 @@ export class Player {
 
         if (!isLastTrack) {
             this.currentQueueIndex++;
+            // Skip unavailable tracks
+            if (currentQueue[this.currentQueueIndex].isUnavailable) {
+                return this.playNext(recursiveCount + 1);
+            }
         } else if (this.repeatMode === REPEAT_MODE.ALL) {
             this.currentQueueIndex = 0;
+            // Skip unavailable tracks
+            if (currentQueue[this.currentQueueIndex].isUnavailable) {
+                return this.playNext(recursiveCount + 1);
+            }
         } else {
             return;
         }
@@ -405,12 +425,24 @@ export class Player {
         this.playTrackFromQueue();
     }
 
-    playPrev() {
+    playPrev(recursiveCount = 0) {
         if (this.audio.currentTime > 3) {
             this.audio.currentTime = 0;
             this.updateMediaSessionPositionState();
         } else if (this.currentQueueIndex > 0) {
             this.currentQueueIndex--;
+            // Skip unavailable tracks
+            const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
+            
+            if (recursiveCount > currentQueue.length) {
+                console.error('All tracks in queue are unavailable.');
+                this.audio.pause();
+                return;
+            }
+
+            if (currentQueue[this.currentQueueIndex].isUnavailable) {
+                return this.playPrev(recursiveCount + 1);
+            }
             this.playTrackFromQueue();
         }
     }

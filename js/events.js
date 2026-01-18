@@ -536,6 +536,13 @@ export async function handleTrackAction(
 ) {
     if (!item) return;
 
+    // Actions not allowed for unavailable tracks
+    const forbiddenForUnavailable = ['add-to-queue', 'play-next', 'track-mix', 'download'];
+    if (item.isUnavailable && forbiddenForUnavailable.includes(action)) {
+        showNotification('This track is unavailable.');
+        return;
+    }
+
     if (action === 'add-to-queue') {
         player.addToQueue(item);
         if (window.renderQueueFunction) window.renderQueueFunction();
@@ -850,6 +857,9 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
         }
 
         const trackItem = e.target.closest('.track-item');
+        if (trackItem && trackItem.classList.contains('unavailable')) {
+            return;
+        }
         if (trackItem && !trackItem.dataset.queueIndex && !e.target.closest('.remove-from-playlist-btn')) {
             const parentList = trackItem.closest('.track-list');
             const allTrackElements = Array.from(parentList.querySelectorAll('.track-item'));
@@ -897,6 +907,15 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
 
             if (contextTrack) {
                 if (contextTrack.isLocal) return;
+
+                // Hide actions for unavailable tracks
+                const unavailableActions = ['play-next', 'add-to-queue', 'download', 'track-mix'];
+                contextMenu.querySelectorAll('[data-action]').forEach(btn => {
+                    if (unavailableActions.includes(btn.dataset.action)) {
+                        btn.style.display = contextTrack.isUnavailable ? 'none' : 'block';
+                    }
+                });
+
                 contextMenu._contextTrack = contextTrack;
                 await updateContextMenuLikeState(contextMenu, contextTrack);
                 positionMenu(contextMenu, e.pageX, e.pageY);

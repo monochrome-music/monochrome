@@ -1006,10 +1006,20 @@ body.has-page-background .track-item:hover {
     padding-left: calc(var(--spacing-sm) - 3px);
 }
 
-.track-item.playing .track-number,
 .track-item.playing .track-item-details .title {
     color: var(--highlight);
-    font-weight: 600;
+}
+
+.track-item.unavailable {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: grayscale(1);
+}
+
+.track-item.unavailable .title,
+.track-item.unavailable .artist,
+.track-item.unavailable .track-item-duration {
+    color: var(--muted-foreground);
 }
 
 .track-item.dragging {

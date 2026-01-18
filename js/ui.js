@@ -163,6 +163,7 @@ export class UIRenderer {
     }
 
     createTrackItemHTML(track, index, showCover = false, hasMultipleDiscs = false) {
+        const isUnavailable = track.isUnavailable;
         const trackImageHTML = showCover
             ? `<img src="${this.api.getCoverUrl(track.album?.cover)}" alt="Track Cover" class="track-item-cover" loading="lazy">`
             : '';
@@ -195,7 +196,9 @@ export class UIRenderer {
             }
         }
 
-        const actionsHTML = `
+        const actionsHTML = isUnavailable
+            ? ''
+            : `
             <div class="track-actions-inline">
                 <button class="track-action-btn like-btn" data-action="toggle-like" title="Add to Liked">
                     ${this.createHeartIcon(false)}
@@ -228,7 +231,10 @@ export class UIRenderer {
         `;
 
         return `
-            <div class="track-item ${isCurrentTrack ? 'playing' : ''}" data-track-id="${track.id}" ${track.isLocal ? 'data-is-local="true"' : ''}>
+            <div class="track-item ${isCurrentTrack ? 'playing' : ''} ${isUnavailable ? 'unavailable' : ''}" 
+                 data-track-id="${track.id}" 
+                 ${track.isLocal ? 'data-is-local="true"' : ''}
+                 ${isUnavailable ? 'title="This track is currently unavailable"' : ''}>
                 ${trackNumberHTML}
                 <div class="track-item-info">
                     <div class="track-item-details">
@@ -240,7 +246,7 @@ export class UIRenderer {
                         <div class="artist">${escapeHtml(trackArtists)}${yearDisplay}</div>
                     </div>
                 </div>
-                <div class="track-item-duration">${track.duration ? formatTime(track.duration) : '--:--'}</div>
+                <div class="track-item-duration">${isUnavailable ? '--:--' : (track.duration ? formatTime(track.duration) : '--:--')}</div>
                 <div class="track-item-actions">
                     ${actionsHTML}
                 </div>

@@ -188,6 +188,14 @@ export const hasExplicitContent = (item) => {
     return item?.explicit === true || item?.explicitLyrics === true;
 };
 
+export const isTrackUnavailable = (track) => {
+    if (!track) return true;
+    if (track.isLocal) return false;
+    // AllowStreaming false or StreamReady false usually mean unavailable
+    // title === 'Unavailable' is also a strong indicator from the user's example
+    return track.allowStreaming === false || track.streamReady === false || track.title === 'Unavailable';
+};
+
 export const debounce = (func, wait) => {
     let timeout;
     return function executedFunction(...args) {
