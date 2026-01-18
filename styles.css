@@ -1570,6 +1570,7 @@ input:checked + .slider::before {
     align-items: flex-end !important;
     gap: 0.5rem !important;
     flex-direction: column !important;
+    overflow: hidden;
 }
 
 .volume-controls button {
@@ -3272,7 +3273,7 @@ img[src=''] {
 
 @media (min-width: 769px) and (max-width: 1024px) {
     .now-playing-bar {
-        grid-template-columns: 1fr 2fr auto;
+        grid-template-columns: minmax(150px, 1fr) 0.8fr auto;
         padding: var(--spacing-md);
     }
 
