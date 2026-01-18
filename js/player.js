@@ -123,12 +123,23 @@ export class Player {
 
                 const coverEl = document.querySelector('.now-playing-bar .cover');
                 const titleEl = document.querySelector('.now-playing-bar .title');
+                const albumEl = document.querySelector('.now-playing-bar .album');
                 const artistEl = document.querySelector('.now-playing-bar .artist');
 
                 if (coverEl) coverEl.src = this.api.getCoverUrl(track.album?.cover);
                 if (titleEl) {
                     const qualityBadge = createQualityBadgeHTML(track);
                     titleEl.innerHTML = `${trackTitle} ${qualityBadge}`;
+                }
+                if (albumEl) {
+                    const albumTitle = track.album?.title || '';
+                    if (albumTitle && albumTitle !== trackTitle) {
+                        albumEl.textContent = albumTitle;
+                        albumEl.style.display = 'block';
+                    } else {
+                        albumEl.textContent = '';
+                        albumEl.style.display = 'none';
+                    }
                 }
                 if (artistEl) artistEl.innerHTML = trackArtistsHTML + yearDisplay;
 
@@ -268,6 +279,17 @@ export class Player {
         document.querySelector('.now-playing-bar .cover').src = this.api.getCoverUrl(track.album?.cover);
         const qualityBadge = createQualityBadgeHTML(track);
         document.querySelector('.now-playing-bar .title').innerHTML = `${trackTitle} ${qualityBadge}`;
+        const albumEl = document.querySelector('.now-playing-bar .album');
+        if (albumEl) {
+            const albumTitle = track.album?.title || '';
+            if (albumTitle && albumTitle !== trackTitle) {
+                albumEl.textContent = albumTitle;
+                albumEl.style.display = 'block';
+            } else {
+                albumEl.textContent = '';
+                albumEl.style.display = 'none';
+            }
+        }
         document.querySelector('.now-playing-bar .artist').innerHTML = trackArtistsHTML + yearDisplay;
 
         const mixBtn = document.getElementById('now-playing-mix-btn');

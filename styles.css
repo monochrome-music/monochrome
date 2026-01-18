@@ -1474,6 +1474,14 @@ input:checked + .slider::before {
     color: var(--highlight);
 }
 
+.track-info .details .album {
+    font-size: 0.8rem;
+    color: var(--muted-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .track-info .details .artist {
     font-size: 0.8rem;
     color: var(--muted-foreground);
