@@ -1004,21 +1004,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
+
+        // Show the manual install button in settings
+        const installSetting = document.getElementById('install-app-setting');
+        if (installSetting) installSetting.style.display = 'flex';
+
         if (!localStorage.getItem('installPromptDismissed')) {
             showInstallPrompt(deferredPrompt);
+        }
+    });
+
+    document.getElementById('manual-install-btn')?.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User response to install prompt: ${outcome}`);
+            deferredPrompt = null;
+            const installSetting = document.getElementById('install-app-setting');
+            if (installSetting) installSetting.style.display = 'none';
         }
     });
 
     document.getElementById('show-shortcuts-btn')?.addEventListener('click', () => {
         showKeyboardShortcuts();
     });
-
-    if (!localStorage.getItem('shortcuts-shown') && window.innerWidth > 768) {
-        setTimeout(() => {
-            showKeyboardShortcuts();
-            localStorage.setItem('shortcuts-shown', 'true');
-        }, 3000);
-    }
 
     // Listener for Pocketbase Sync updates
     window.addEventListener('library-changed', () => {
