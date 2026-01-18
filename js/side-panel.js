@@ -15,6 +15,7 @@ export class SidePanelManager {
         }
 
         this.currentView = view;
+        this.panel.dataset.view = view;
         this.titleElement.textContent = title;
 
         // Clear previous content
