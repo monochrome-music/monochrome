@@ -1596,6 +1596,7 @@ export class UIRenderer {
 
                 // Add remove buttons and enable reordering ONLY IF OWNED
                 if (ownedPlaylist) {
+                    tracklistContainer.classList.add('is-editable');
                     const trackItems = tracklistContainer.querySelectorAll('.track-item');
                     trackItems.forEach((item, index) => {
                         const actionsDiv = item.querySelector('.track-item-actions');
@@ -1610,6 +1611,8 @@ export class UIRenderer {
                     });
 
                     this.enableTrackReordering(tracklistContainer, tracks, playlistId, syncManager);
+                } else {
+                    tracklistContainer.classList.remove('is-editable');
                 }
 
                 // Update header like button - hide for user playlists

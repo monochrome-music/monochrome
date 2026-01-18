@@ -980,6 +980,10 @@ body.has-page-background .track-item:hover {
     justify-self: flex-end;
 }
 
+.is-editable .track-list-header .duration-header {
+    padding-right: 1.5rem;
+}
+
 .track-item {
     display: grid;
     grid-template-columns: 40px 1fr 80px 48px;
@@ -1146,6 +1150,17 @@ body.has-page-background .track-item:hover {
 .track-action-btn:hover {
     background-color: rgb(var(--highlight-rgb), 0.2);
     color: var(--foreground);
+}
+
+/* Editable Playlist Track Items (with remove button) */
+.is-editable .track-list-header,
+.is-editable .track-item {
+    grid-template-columns: 40px 1fr 80px 90px;
+}
+
+:root[data-track-actions-mode='inline'] .is-editable .track-list-header,
+:root[data-track-actions-mode='inline'] .is-editable .track-item {
+    grid-template-columns: 40px 1fr 80px 260px;
 }
 
 .detail-header {
@@ -2615,6 +2630,10 @@ input:checked + .slider::before {
 
 #playlist-detail-tracklist .track-list-header .duration-header {
     justify-self: flex-end;
+}
+
+.is-editable .track-list-header .duration-header {
+    padding-right: 1.5rem;
 }
 
 /* Responsive Design */
