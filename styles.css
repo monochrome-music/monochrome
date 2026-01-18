@@ -229,7 +229,7 @@
     --secondary: #e4e4e7;
     --secondary-foreground: #000;
     --muted: #e4e4e7;
-    --muted-foreground: #71717a;
+    --muted-foreground: #62626a;
     --border: #e4e4e7;
     --input: #e4e4e7;
     --ring: #2563eb;
@@ -373,9 +373,9 @@ kbd {
     border-top: 1px solid var(--border);
     padding: var(--spacing-sm) var(--spacing-md);
     display: grid;
-    grid-template-columns: 1fr 2fr 1fr;
+    grid-template-columns: 1fr 0.9fr 1fr;
     align-items: center;
-    gap: var(--spacing-xl);
+    gap: var(--spacing-sm);
     position: relative;
     z-index: 2100;
     height: var(--player-bar-height-desktop);
