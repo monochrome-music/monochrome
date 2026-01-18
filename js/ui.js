@@ -493,7 +493,7 @@ export class UIRenderer {
             .join('')}</div>`;
     }
 
-    renderListWithTracks(container, tracks, showCover) {
+    renderListWithTracks(container, tracks, showCover, append = false) {
         const fragment = document.createDocumentFragment();
         const tempDiv = document.createElement('div');
 
@@ -508,7 +508,7 @@ export class UIRenderer {
             fragment.appendChild(tempDiv.firstChild);
         }
 
-        container.innerHTML = '';
+        if (!append) container.innerHTML = '';
         container.appendChild(fragment);
 
         tracks.forEach((track) => {
@@ -1233,6 +1233,7 @@ export class UIRenderer {
                 <span style="width: 40px; text-align: center;">#</span>
                 <span>Title</span>
                 <span class="duration-header">Duration</span>
+                <span></span>
             </div>
             ${this.createSkeletonTracks(10, false)}
         `;
@@ -1286,6 +1287,7 @@ export class UIRenderer {
                     <span style="width: 40px; text-align: center;">#</span>
                     <span>Title</span>
                     <span class="duration-header">Duration</span>
+                    <span></span>
                 </div>
             `;
 
@@ -1295,7 +1297,7 @@ export class UIRenderer {
                 if (discA !== discB) return discA - discB;
                 return a.trackNumber - b.trackNumber;
             });
-            this.renderListWithTracks(tracklistContainer, tracks, false);
+            this.renderListWithTracks(tracklistContainer, tracks, false, true);
 
             recentActivityManager.addAlbum(album);
 
@@ -1459,12 +1461,12 @@ export class UIRenderer {
                                         const tracklistContainer = document.getElementById('playlist-detail-tracklist');
                                         if (tracklistContainer && updatedPlaylist.tracks) {
                                             tracklistContainer.innerHTML = `
-                                                <div class="track-list-header">
-                                                    <span style="width: 40px; text-align: center;">#</span>
-                                                    <span>Title</span>
-                                                    <span class="duration-header">Duration</span>
-                                                </div>
-                                            `;
+                                                                                                <div class="track-list-header">
+                                                                                                    <span style="width: 40px; text-align: center;">#</span>
+                                                                                                    <span>Title</span>
+                                                                                                    <span class="duration-header">Duration</span>
+                                                                                                    <span></span>
+                                                                                                </div>                                            `;
                                             this.renderListWithTracks(tracklistContainer, updatedPlaylist.tracks, true);
 
                                             if (document.querySelector('.remove-from-playlist-btn')) {
@@ -1534,6 +1536,7 @@ export class UIRenderer {
                 <span style="width: 40px; text-align: center;">#</span>
                 <span>Title</span>
                 <span class="duration-header">Duration</span>
+                <span></span>
             </div>
             ${this.createSkeletonTracks(10, true)}
         `;
@@ -1585,10 +1588,11 @@ export class UIRenderer {
                         <span style="width: 40px; text-align: center;">#</span>
                         <span>Title</span>
                         <span class="duration-header">Duration</span>
+                        <span></span>
                     </div>
                 `;
 
-                this.renderListWithTracks(tracklistContainer, tracks, true);
+                this.renderListWithTracks(tracklistContainer, tracks, true, true);
 
                 // Add remove buttons and enable reordering ONLY IF OWNED
                 if (ownedPlaylist) {
@@ -1683,10 +1687,11 @@ export class UIRenderer {
                         <span style="width: 40px; text-align: center;">#</span>
                         <span>Title</span>
                         <span class="duration-header">Duration</span>
+                        <span></span>
                     </div>
                 `;
 
-                this.renderListWithTracks(tracklistContainer, tracks, true);
+                this.renderListWithTracks(tracklistContainer, tracks, true, true);
 
                 // Update header like button
                 const playlistLikeBtn = document.getElementById('like-playlist-btn');
@@ -1745,6 +1750,7 @@ export class UIRenderer {
                 <span style="width: 40px; text-align: center;">#</span>
                 <span>Title</span>
                 <span class="duration-header">Duration</span>
+                <span></span>
             </div>
             ${this.createSkeletonTracks(10, true)}
         `;
@@ -1785,10 +1791,11 @@ export class UIRenderer {
                     <span style="width: 40px; text-align: center;">#</span>
                     <span>Title</span>
                     <span class="duration-header">Duration</span>
+                    <span></span>
                 </div>
             `;
 
-            this.renderListWithTracks(tracklistContainer, tracks, true);
+            this.renderListWithTracks(tracklistContainer, tracks, true, true);
 
             // Set play button action
             playBtn.onclick = () => {

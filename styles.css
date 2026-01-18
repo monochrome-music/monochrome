@@ -966,7 +966,7 @@ body.has-page-background .track-item:hover {
 
 .track-list-header {
     display: grid;
-    grid-template-columns: 40px 1fr auto;
+    grid-template-columns: 40px 1fr 80px 48px;
     align-items: center;
     gap: var(--spacing-md);
     padding: var(--spacing-sm);
@@ -982,7 +982,7 @@ body.has-page-background .track-item:hover {
 
 .track-item {
     display: grid;
-    grid-template-columns: 40px 1fr auto auto;
+    grid-template-columns: 40px 1fr 80px 48px;
     align-items: center;
     gap: var(--spacing-md);
     padding: var(--spacing-sm);
@@ -2096,7 +2096,7 @@ input:checked + .slider::before {
 
 .skeleton-track {
     display: grid;
-    grid-template-columns: 40px 1fr auto;
+    grid-template-columns: 40px 1fr 80px 48px;
     align-items: center;
     gap: var(--spacing-md);
     padding: var(--spacing-sm);
@@ -2596,7 +2596,7 @@ input:checked + .slider::before {
 
 #playlist-detail-tracklist .track-list-header {
     display: grid;
-    grid-template-columns: 40px 1fr auto;
+    grid-template-columns: 40px 1fr 80px 48px;
     align-items: center;
     gap: var(--spacing-md);
     padding: var(--spacing-sm);
