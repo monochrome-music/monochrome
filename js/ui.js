@@ -1925,6 +1925,14 @@ export class UIRenderer {
                 if (artist.eps && artist.eps.length > 0) {
                     epsContainer.innerHTML = artist.eps.map((album) => this.createAlbumCardHTML(album)).join('');
                     epsSection.style.display = 'block';
+
+                    artist.eps.forEach((album) => {
+                        const el = epsContainer.querySelector(`[data-album-id="${album.id}"]`);
+                        if (el) {
+                            trackDataStore.set(el, album);
+                            this.updateLikeState(el, 'album', album.id);
+                        }
+                    });
                 } else {
                     epsSection.style.display = 'none';
                 }
