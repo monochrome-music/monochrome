@@ -2677,8 +2677,8 @@ input:checked + .slider::before {
 .side-panel[data-view='lyrics'] {
     background: color-mix(in srgb, var(--card) 60%, transparent);
     backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border-left: 1px solid rgb(255, 255, 255, 0.1);
 }
 
 .panel-header {
