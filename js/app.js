@@ -1097,7 +1097,7 @@ function showUpdateNotification(updateCallback) {
             <strong>Update Available</strong>
             <p>A new version of Monochrome is available.</p>
         </div>
-        <button class="btn-secondary" id="update-now-btn">Update Now</button>
+        <button class="btn-primary" id="update-now-btn">Update Now</button>
     `;
     document.body.appendChild(notification);
 
@@ -1123,7 +1123,7 @@ function showInstallPrompt(deferredPrompt) {
             <p>Install this app for a better experience.</p>
         </div>
         <div style="display: flex; gap: 0.5rem;">
-            <button class="btn-secondary" id="install-btn">Install</button>
+            <button class="btn-primary" id="install-btn">Install</button>
             <button class="btn-secondary" id="dismiss-install">Dismiss</button>
         </div>
     `;
