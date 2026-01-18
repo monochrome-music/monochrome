@@ -910,7 +910,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
 
                 // Hide actions for unavailable tracks
                 const unavailableActions = ['play-next', 'add-to-queue', 'download', 'track-mix'];
-                contextMenu.querySelectorAll('[data-action]').forEach(btn => {
+                contextMenu.querySelectorAll('[data-action]').forEach((btn) => {
                     if (unavailableActions.includes(btn.dataset.action)) {
                         btn.style.display = contextTrack.isUnavailable ? 'none' : 'block';
                     }

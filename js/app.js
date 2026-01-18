@@ -1022,7 +1022,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 content.scrollTop = 0;
             }
         }
-        
+
         // Reset flag
         isGoingBack = false;
     };

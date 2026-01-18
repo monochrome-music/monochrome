@@ -433,7 +433,7 @@ export class Player {
             this.currentQueueIndex--;
             // Skip unavailable tracks
             const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
-            
+
             if (recursiveCount > currentQueue.length) {
                 console.error('All tracks in queue are unavailable.');
                 this.audio.pause();

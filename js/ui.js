@@ -246,7 +246,7 @@ export class UIRenderer {
                         <div class="artist">${escapeHtml(trackArtists)}${yearDisplay}</div>
                     </div>
                 </div>
-                <div class="track-item-duration">${isUnavailable ? '--:--' : (track.duration ? formatTime(track.duration) : '--:--')}</div>
+                <div class="track-item-duration">${isUnavailable ? '--:--' : track.duration ? formatTime(track.duration) : '--:--'}</div>
                 <div class="track-item-actions">
                     ${actionsHTML}
                 </div>
