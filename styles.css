@@ -1122,7 +1122,7 @@ body.has-page-background .track-item:hover {
 :root[data-track-actions-mode='inline'] .track-item,
 :root[data-track-actions-mode='inline'] .skeleton-track,
 :root[data-track-actions-mode='inline'] #playlist-detail-tracklist .track-list-header {
-    grid-template-columns: 40px 1fr 80px 175px;
+    grid-template-columns: 40px 1fr 80px 220px;
 }
 
 .track-item:hover .track-actions-inline {
