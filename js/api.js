@@ -39,66 +39,51 @@ export class LosslessAPI {
             throw new Error(`No API instances configured for type: ${type}`);
         }
 
-        const maxRetries = 3;
+        const maxTotalAttempts = instances.length * 2; // Allow some retries across instances
         let lastError = null;
+        let instanceIndex = 0;
 
-        for (const baseUrl of instances) {
+        for (let attempt = 1; attempt <= maxTotalAttempts; attempt++) {
+            const baseUrl = instances[instanceIndex % instances.length];
             const url = baseUrl.endsWith('/') ? `${baseUrl}${relativePath.substring(1)}` : `${baseUrl}${relativePath}`;
 
-            for (let attempt = 1; attempt <= maxRetries; attempt++) {
-                try {
-                    const response = await fetch(url, { signal: options.signal });
+            try {
+                const response = await fetch(url, { signal: options.signal });
 
-                    if (response.status === 429) {
-                        const retryAfter = response.headers.get('Retry-After');
-                        let waitTime = 2000 * attempt; // Default exponential backoff
+                if (response.status === 429) {
+                    console.warn(`Rate limit hit on ${baseUrl}. Trying next instance...`);
+                    instanceIndex++;
+                    await delay(500); // Small delay before trying next instance
+                    continue;
+                }
 
-                        if (retryAfter) {
-                            const seconds = parseInt(retryAfter, 10);
-                            if (!isNaN(seconds)) {
-                                waitTime = seconds * 1000;
-                            }
-                        }
+                if (response.ok) {
+                    return response;
+                }
 
-                        console.warn(`Rate limit hit. Waiting ${waitTime}ms before retry ${attempt}/${maxRetries}...`);
-                        await delay(waitTime);
+                if (response.status === 401) {
+                    let errorData = await response.clone().json();
+                    if (errorData?.subStatus === 11002) {
+                        console.warn(`Auth failed on ${baseUrl}. Trying next instance...`);
+                        instanceIndex++;
                         continue;
-                    }
-
-                    if (response.ok) {
-                        return response;
-                    }
-
-                    if (response.status === 401) {
-                        let errorData = await response.clone().json();
-
-                        if (errorData?.subStatus === 11002) {
-                            lastError = new Error(errorData?.userMessage || 'Authentication failed');
-                            if (attempt < maxRetries) {
-                                await delay(200 * attempt);
-                                continue;
-                            }
-                        }
-                    }
-
-                    if (response.status >= 500 && attempt < maxRetries) {
-                        await delay(200 * attempt);
-                        continue;
-                    }
-
-                    lastError = new Error(`Request failed with status ${response.status}`);
-                    break;
-                } catch (error) {
-                    if (error.name === 'AbortError') {
-                        throw error;
-                    }
-
-                    lastError = error;
-
-                    if (attempt < maxRetries) {
-                        await delay(200 * attempt);
                     }
                 }
+
+                if (response.status >= 500) {
+                    console.warn(`Server error ${response.status} on ${baseUrl}. Trying next instance...`);
+                    instanceIndex++;
+                    continue;
+                }
+
+                lastError = new Error(`Request failed with status ${response.status}`);
+                instanceIndex++;
+            } catch (error) {
+                if (error.name === 'AbortError') throw error;
+                lastError = error;
+                console.warn(`Network error on ${baseUrl}: ${error.message}. Trying next instance...`);
+                instanceIndex++;
+                await delay(200);
             }
         }
 
