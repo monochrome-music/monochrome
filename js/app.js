@@ -958,46 +958,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Session-based scroll positions (transient, cleared on refresh)
     const scrollPositions = new Map();
-
-    const handleRouter = async (e) => {
-        // Save scroll position for the previous page if available
-        if (e && e.oldURL) {
-            try {
-                const url = new URL(e.oldURL);
-                const oldHash = url.hash || '#home';
-                const content = document.querySelector('.main-content');
-                if (content) {
-                    scrollPositions.set(oldHash, content.scrollTop);
-                }
-            } catch {
-                // Ignore URL parsing errors
-            }
-        }
-
-        // Render the new page
-        await router();
-
-        // Restore scroll position for the new page
-        const newHash = window.location.hash || '#home';
-        const content = document.querySelector('.main-content');
-        if (content) {
-            const savedScroll = scrollPositions.get(newHash);
-            if (savedScroll !== undefined) {
-                // Small timeout to ensure DOM layout is stable after render
-                setTimeout(() => {
-                    content.scrollTop = savedScroll;
-                }, 0);
-            }
-        }
-    };
-
-    // Initial load
-    await handleRouter(null);
-    window.addEventListener('hashchange', handleRouter);
-
-    // Simple Navigation History
     const navStack = [window.location.hash];
     let navIndex = 0;
+    let isGoingBack = false;
 
     const updateNavButtons = () => {
         const backBtn = document.getElementById('nav-back');
@@ -1006,21 +969,67 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (fwdBtn) fwdBtn.disabled = navIndex >= navStack.length - 1;
     };
 
-    window.addEventListener('hashchange', () => {
+    const handleRouter = async (e) => {
         const hash = window.location.hash;
-        if (hash === navStack[navIndex]) return;
 
-        if (navIndex > 0 && hash === navStack[navIndex - 1]) {
-            navIndex--; // User went back
-        } else if (navIndex < navStack.length - 1 && hash === navStack[navIndex + 1]) {
-            navIndex++; // User went forward
-        } else {
-            navIndex++;
-            navStack.splice(navIndex); // Truncate forward history
-            navStack.push(hash);
+        // 1. Update history state and determine direction
+        if (e && e.oldURL) {
+            try {
+                const url = new URL(e.oldURL);
+                const oldHash = url.hash || '#home';
+
+                // Save scroll position for the old page
+                const content = document.querySelector('.main-content');
+                if (content) {
+                    scrollPositions.set(oldHash, content.scrollTop);
+                }
+
+                if (hash !== navStack[navIndex]) {
+                    if (navIndex > 0 && hash === navStack[navIndex - 1]) {
+                        navIndex--;
+                        isGoingBack = true;
+                    } else if (navIndex < navStack.length - 1 && hash === navStack[navIndex + 1]) {
+                        navIndex++;
+                        isGoingBack = false;
+                    } else {
+                        navIndex++;
+                        navStack.splice(navIndex);
+                        navStack.push(hash);
+                        isGoingBack = false;
+                    }
+                }
+            } catch {
+                isGoingBack = false;
+            }
         }
+
+        // 2. Render the new page
+        await router();
         updateNavButtons();
-    });
+
+        // 3. Handle scroll restoration
+        const content = document.querySelector('.main-content');
+        if (content) {
+            if (isGoingBack) {
+                const savedScroll = scrollPositions.get(hash || '#home');
+                if (savedScroll !== undefined) {
+                    setTimeout(() => {
+                        content.scrollTop = savedScroll;
+                    }, 0);
+                }
+            } else {
+                // For forward or new clicks, ensure we start at the top
+                content.scrollTop = 0;
+            }
+        }
+        
+        // Reset flag
+        isGoingBack = false;
+    };
+
+    // Initial load
+    await handleRouter(null);
+    window.addEventListener('hashchange', handleRouter);
     updateNavButtons();
 
     audioPlayer.addEventListener('play', () => {
