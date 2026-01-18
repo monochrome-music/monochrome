@@ -1256,6 +1256,11 @@ body.has-page-background .track-item:hover {
 .btn-primary:hover {
     transform: scale(1.05);
     box-shadow: var(--shadow-md);
+    filter: brightness(0.9);
+}
+
+.btn-primary:active {
+    transform: scale(0.98);
 }
 
 .btn-primary:disabled {
@@ -1281,6 +1286,11 @@ body.has-page-background .track-item:hover {
 
 .btn-secondary:hover {
     background-color: var(--muted);
+    filter: brightness(1.1);
+}
+
+.btn-secondary:active {
+    transform: scale(0.98);
 }
 
 .btn-secondary:disabled {
@@ -2596,7 +2606,7 @@ input:checked + .slider::before {
 
 @supports (padding-top: env(safe-area-inset-top)) {
     .now-playing-bar {
-        padding-bottom: max(var(--spacing-md), env(safe-area-inset-bottom));
+        padding-bottom: max(var(--spacing-sm), env(safe-area-inset-bottom));
     }
 
     .main-content,

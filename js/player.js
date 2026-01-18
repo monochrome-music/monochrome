@@ -282,7 +282,10 @@ export class Player {
             let streamUrl;
 
             if (track.isLocal && track.file) {
-                this.dashPlayer.reset(); // Ensure dash is off
+                if (this.dashInitialized) {
+                    this.dashPlayer.reset(); // Ensure dash is off
+                    this.dashInitialized = false;
+                }
                 streamUrl = URL.createObjectURL(track.file);
                 this.currentRgValues = null; // No replaygain for local files yet
                 this.applyReplayGain();
@@ -319,8 +322,13 @@ export class Player {
                 // Handle playback
                 if (streamUrl && streamUrl.startsWith('blob:') && !track.isLocal) {
                     // It's likely a DASH manifest blob URL
-                    this.dashPlayer.initialize(this.audio, streamUrl, true);
-                    this.dashInitialized = true;
+                    if (this.dashInitialized) {
+                        this.dashPlayer.attachSource(streamUrl);
+                    } else {
+                        this.dashPlayer.initialize(this.audio, streamUrl, true);
+                        this.dashInitialized = true;
+                    }
+
                     if (startTime > 0) {
                         this.dashPlayer.seek(startTime);
                     }
