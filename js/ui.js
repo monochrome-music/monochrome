@@ -1233,7 +1233,7 @@ export class UIRenderer {
                 <span style="width: 40px; text-align: center;">#</span>
                 <span>Title</span>
                 <span class="duration-header">Duration</span>
-                <span style="display: flex; justify-content: flex-end; opacity: 0.8;">${SVG_MENU}</span>
+                <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
             </div>
             ${this.createSkeletonTracks(10, false)}
         `;
@@ -1287,7 +1287,7 @@ export class UIRenderer {
                     <span style="width: 40px; text-align: center;">#</span>
                     <span>Title</span>
                     <span class="duration-header">Duration</span>
-                    <span style="display: flex; justify-content: flex-end; opacity: 0.8;">${SVG_MENU}</span>
+                    <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
                 </div>
             `;
 
@@ -1465,7 +1465,7 @@ export class UIRenderer {
                                                                                                                                                     <span style="width: 40px; text-align: center;">#</span>
                                                                                                                                                     <span>Title</span>
                                                                                                                                                     <span class="duration-header">Duration</span>
-                                                                                                                                                    <span style="display: flex; justify-content: flex-end; opacity: 0.8;">${SVG_MENU}</span>
+                                                                                                                                                    <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
                                                                                                                                                 </div>                                            `;
                                             this.renderListWithTracks(tracklistContainer, updatedPlaylist.tracks, true);
 
@@ -1536,7 +1536,7 @@ export class UIRenderer {
                 <span style="width: 40px; text-align: center;">#</span>
                 <span>Title</span>
                 <span class="duration-header">Duration</span>
-                <span style="display: flex; justify-content: flex-end; opacity: 0.8;">${SVG_MENU}</span>
+                <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
             </div>
             ${this.createSkeletonTracks(10, true)}
         `;
@@ -1588,7 +1588,7 @@ export class UIRenderer {
                         <span style="width: 40px; text-align: center;">#</span>
                         <span>Title</span>
                         <span class="duration-header">Duration</span>
-                        <span style="display: flex; justify-content: flex-end; opacity: 0.8;">${SVG_MENU}</span>
+                        <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
                     </div>
                 `;
 
@@ -1687,7 +1687,7 @@ export class UIRenderer {
                         <span style="width: 40px; text-align: center;">#</span>
                         <span>Title</span>
                         <span class="duration-header">Duration</span>
-                        <span style="display: flex; justify-content: flex-end; opacity: 0.8;">${SVG_MENU}</span>
+                        <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
                     </div>
                 `;
 
@@ -1750,7 +1750,7 @@ export class UIRenderer {
                 <span style="width: 40px; text-align: center;">#</span>
                 <span>Title</span>
                 <span class="duration-header">Duration</span>
-                <span style="display: flex; justify-content: flex-end; opacity: 0.8;">${SVG_MENU}</span>
+                <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
             </div>
             ${this.createSkeletonTracks(10, true)}
         `;
@@ -1791,7 +1791,7 @@ export class UIRenderer {
                     <span style="width: 40px; text-align: center;">#</span>
                     <span>Title</span>
                     <span class="duration-header">Duration</span>
-                    <span style="display: flex; justify-content: flex-end; opacity: 0.8;">${SVG_MENU}</span>
+                    <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
                 </div>
             `;
 
