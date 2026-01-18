@@ -2,37 +2,37 @@
 import { getTrackArtists } from './utils.js';
 
 export function createRouter(ui) {
-    const router = () => {
+    const router = async () => {
         const path = window.location.hash.substring(1) || 'home';
         const [page, param] = path.split('/');
 
         switch (page) {
             case 'search':
-                ui.renderSearchPage(decodeURIComponent(param));
+                await ui.renderSearchPage(decodeURIComponent(param));
                 break;
             case 'album':
-                ui.renderAlbumPage(param);
+                await ui.renderAlbumPage(param);
                 break;
             case 'artist':
-                ui.renderArtistPage(param);
+                await ui.renderArtistPage(param);
                 break;
             case 'playlist':
-                ui.renderPlaylistPage(param, 'api');
+                await ui.renderPlaylistPage(param, 'api');
                 break;
             case 'userplaylist':
-                ui.renderPlaylistPage(param, 'user');
+                await ui.renderPlaylistPage(param, 'user');
                 break;
             case 'mix':
-                ui.renderMixPage(param);
+                await ui.renderMixPage(param);
                 break;
             case 'library':
-                ui.renderLibraryPage();
+                await ui.renderLibraryPage();
                 break;
             case 'recent':
-                ui.renderRecentPage();
+                await ui.renderRecentPage();
                 break;
             case 'home':
-                ui.renderHomePage();
+                await ui.renderHomePage();
                 break;
             default:
                 ui.showPage(page);

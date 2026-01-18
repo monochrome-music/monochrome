@@ -955,8 +955,45 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelector('.play-pause-btn').innerHTML = SVG_PLAY;
 
     const router = createRouter(ui);
-    router();
-    window.addEventListener('hashchange', router);
+
+    // Session-based scroll positions (transient, cleared on refresh)
+    const scrollPositions = new Map();
+
+    const handleRouter = async (e) => {
+        // Save scroll position for the previous page if available
+        if (e && e.oldURL) {
+            try {
+                const url = new URL(e.oldURL);
+                const oldHash = url.hash || '#home';
+                const content = document.querySelector('.main-content');
+                if (content) {
+                    scrollPositions.set(oldHash, content.scrollTop);
+                }
+            } catch {
+                // Ignore URL parsing errors
+            }
+        }
+
+        // Render the new page
+        await router();
+
+        // Restore scroll position for the new page
+        const newHash = window.location.hash || '#home';
+        const content = document.querySelector('.main-content');
+        if (content) {
+            const savedScroll = scrollPositions.get(newHash);
+            if (savedScroll !== undefined) {
+                // Small timeout to ensure DOM layout is stable after render
+                setTimeout(() => {
+                    content.scrollTop = savedScroll;
+                }, 0);
+            }
+        }
+    };
+
+    // Initial load
+    await handleRouter(null);
+    window.addEventListener('hashchange', handleRouter);
 
     // Simple Navigation History
     const navStack = [window.location.hash];
