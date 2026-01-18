@@ -345,7 +345,7 @@
                         id="custom-firebase-config"
                         class="template-input"
                         style="height: 150px; font-family: monospace; font-size: 0.8rem; resize: vertical"
-                        placeholder='{"apiKey": "...", ...}'
+                        placeholder="{&quot;apiKey&quot;: &quot;...&quot;, ...}"
                     ></textarea>
                 </div>
                 <div class="modal-actions">
@@ -995,39 +995,45 @@
                             </div>
                         </div>
                     </header>
-                    <div class="track-list" id="album-detail-tracklist"></div>
+                    <div class="album-content-layout">
+                        <div class="track-list" id="album-detail-tracklist"></div>
 
-                    <section
-                        class="content-section"
-                        id="album-section-more-albums"
-                        style="display: none; margin-top: 3rem"
-                    >
-                        <h2 class="section-title" id="album-title-more-albums">from Artist</h2>
-                        <div class="card-grid" id="album-detail-more-albums"></div>
-                    </section>
+                        <section
+                            class="content-section"
+                            id="album-section-more-albums"
+                            style="display: none; margin-top: 3rem"
+                        >
+                            <h2 class="section-title" id="album-title-more-albums">from Artist</h2>
+                            <div class="card-grid" id="album-detail-more-albums"></div>
+                        </section>
 
-                    <section class="content-section" id="album-section-eps" style="display: none; margin-top: 3rem">
-                        <h2 class="section-title" id="album-title-eps">EPs and Singles</h2>
-                        <div class="card-grid" id="album-detail-eps"></div>
-                    </section>
+                        <section
+                            class="content-section"
+                            id="album-section-eps"
+                            style="display: none; margin-top: 3rem"
+                        >
+                            <h2 class="section-title" id="album-title-eps">EPs and Singles</h2>
+                            <div class="card-grid" id="album-detail-eps"></div>
+                        </section>
 
-                    <section
-                        class="content-section"
-                        id="album-section-similar-artists"
-                        style="display: none; margin-top: 3rem"
-                    >
-                        <h2 class="section-title">Similar Artists</h2>
-                        <div class="card-grid" id="album-detail-similar-artists"></div>
-                    </section>
+                        <section
+                            class="content-section"
+                            id="album-section-similar-artists"
+                            style="display: none; margin-top: 3rem"
+                        >
+                            <h2 class="section-title">Similar Artists</h2>
+                            <div class="card-grid" id="album-detail-similar-artists"></div>
+                        </section>
 
-                    <section
-                        class="content-section"
-                        id="album-section-similar-albums"
-                        style="display: none; margin-top: 3rem"
-                    >
-                        <h2 class="section-title">Similar Albums</h2>
-                        <div class="card-grid" id="album-detail-similar-albums"></div>
-                    </section>
+                        <section
+                            class="content-section"
+                            id="album-section-similar-albums"
+                            style="display: none; margin-top: 3rem"
+                        >
+                            <h2 class="section-title">Similar Albums</h2>
+                            <div class="card-grid" id="album-detail-similar-albums"></div>
+                        </section>
+                    </div>
                 </div>
 
                 <section id="page-playlist" class="page">

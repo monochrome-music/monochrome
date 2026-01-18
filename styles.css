@@ -327,6 +327,7 @@ kbd {
     padding: var(--spacing-xl);
     scroll-behavior: smooth;
     position: relative; /* Context for background */
+    padding-bottom: 160px !important;
 }
 
 /* Ensure content sits on top of background */
@@ -369,16 +370,29 @@ kbd {
 
 .now-playing-bar {
     grid-area: player;
-    background-color: var(--card);
-    border-top: 1px solid var(--border);
     padding: var(--spacing-sm) var(--spacing-md);
     display: grid;
     grid-template-columns: 1fr 0.9fr 1fr;
     align-items: center;
     gap: var(--spacing-sm);
-    position: relative;
     z-index: 2100;
+
+    /* Floating bar overrides */
+    width: calc(96% - 190px) !important;
+    left: calc(190px + 2%);
+    bottom: 15px !important;
+    border-radius: 16px;
+    position: fixed !important;
+    background-color: color-mix(in srgb, var(--card) 85%, transparent);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 32px rgb(0, 0, 0, 0.4);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     height: var(--player-bar-height-desktop);
+}
+
+:root[data-theme='light'] .now-playing-bar {
+    background-color: color-mix(in srgb, var(--card) 80%, transparent);
 }
 
 .sidebar-logo {
@@ -887,6 +901,67 @@ body.has-page-background .track-item:hover {
     display: flex;
     flex-direction: column;
     gap: 2px;
+}
+
+#home-recommended-songs,
+#artist-detail-tracks,
+#playlist-detail-recommended {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+    gap: 2px var(--spacing-xl);
+}
+
+@media (max-width: 1100px) {
+    #home-recommended-songs,
+    #artist-detail-tracks,
+    #playlist-detail-recommended {
+        grid-template-columns: 1fr;
+    }
+}
+
+.album-content-layout {
+    display: block;
+}
+
+.album-content-layout::after {
+    content: '';
+    display: table;
+    clear: both;
+}
+
+@media (min-width: 1200px) {
+    #album-detail-tracklist {
+        float: left;
+        width: 55%;
+        margin-right: var(--spacing-2xl);
+        margin-bottom: var(--spacing-2xl);
+    }
+
+    .album-content-layout .content-section {
+        /* Default flow to allow wrapping around the float */
+        margin-top: 0 !important;
+        margin-bottom: var(--spacing-2xl);
+    }
+
+    /* Switch to inline-block layout for flow behavior */
+    .album-content-layout .content-section .card-grid {
+        display: block;
+        gap: 0;
+    }
+
+    .album-content-layout .content-section .card-grid .card {
+        display: inline-block;
+        vertical-align: top;
+        width: 155px; /* Fixed width to ensure consistent flow */
+        margin: 0 var(--spacing-md) var(--spacing-md) 0;
+        white-space: normal; /* Reset in case inherited */
+    }
+
+    .album-content-layout .section-title {
+        font-size: 1.4rem;
+        margin-bottom: var(--spacing-md);
+        clear: none; /* Allow sitting next to float */
+    }
 }
 
 .track-list-header {
@@ -1489,6 +1564,7 @@ input:checked + .slider::before {
     gap: 0.75rem;
     font-size: 0.8rem;
     color: var(--muted-foreground);
+    order: -1;
 }
 
 .player-controls .progress-container span {
@@ -3983,23 +4059,6 @@ img[src=''] {
     }
 }
 
-.player-controls .progress-container {
-    order: -1;
-}
-
-.now-playing-bar {
-    width: calc(96% - 190px) !important;
-    left: calc(190px + 2%);
-    bottom: 15px !important;
-    border-radius: 16px;
-    position: fixed !important;
-    background-color: color-mix(in srgb, var(--card) 85%, transparent);
-    backdrop-filter: blur(20px);
-    border: 1px solid var(--border);
-    box-shadow: 0 8px 32px rgb(0, 0, 0, 0.4);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
 body:has(#fullscreen-cover-overlay:not([style*='display: none'])) .now-playing-bar {
     width: 96% !important;
     left: 2% !important;
@@ -4012,6 +4071,3 @@ body:has(#fullscreen-cover-overlay:not([style*='display: none'])) .now-playing-b
     }
 }
 
-.main-content {
-    padding-bottom: 160px !important;
-}

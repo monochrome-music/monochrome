@@ -1,4 +1,5 @@
 //js/ui.js
+import { showNotification } from './downloads.js';
 import {
     SVG_PLAY,
     SVG_DOWNLOAD,
