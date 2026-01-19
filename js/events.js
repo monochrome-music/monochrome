@@ -574,6 +574,11 @@ export async function handleTrackAction(
                     }
                 }
                 tracks = playlist ? playlist.tracks : item.tracks || [];
+                if (playlist) item.name = playlist.name;
+            } else if (type === 'mix') {
+                const data = await api.getMix(item.id);
+                tracks = data.tracks;
+                if (data.mix) item.title = data.mix.title;
             }
 
             if (tracks.length > 0) {
