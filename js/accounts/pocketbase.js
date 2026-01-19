@@ -405,7 +405,8 @@ const syncManager = {
 
                     const getAll = async (store) => {
                         if (database && typeof database.getAll === 'function') return database.getAll(store);
-                        if (database && database.db && typeof database.db.getAll === 'function') return database.db.getAll(store);
+                        if (database && database.db && typeof database.db.getAll === 'function')
+                            return database.db.getAll(store);
                         return [];
                     };
 
