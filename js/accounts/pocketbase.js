@@ -451,9 +451,7 @@ const syncManager = {
                                 id: playlist.id,
                                 name: playlist.name,
                                 cover: playlist.cover || null,
-                                tracks: playlist.tracks
-                                    ? playlist.tracks.map((t) => this._minifyItem('track', t))
-                                    : [],
+                                tracks: playlist.tracks ? playlist.tracks.map((t) => this._minifyItem('track', t)) : [],
                                 createdAt: playlist.createdAt || Date.now(),
                                 updatedAt: playlist.updatedAt || Date.now(),
                                 numberOfTracks: playlist.tracks ? playlist.tracks.length : 0,
@@ -479,9 +477,7 @@ const syncManager = {
                         favorites_tracks: Object.values(library.tracks).filter((t) => t && typeof t === 'object'),
                         favorites_albums: Object.values(library.albums).filter((a) => a && typeof a === 'object'),
                         favorites_artists: Object.values(library.artists).filter((a) => a && typeof a === 'object'),
-                        favorites_playlists: Object.values(library.playlists).filter(
-                            (p) => p && typeof p === 'object'
-                        ),
+                        favorites_playlists: Object.values(library.playlists).filter((p) => p && typeof p === 'object'),
                         favorites_mixes: Object.values(library.mixes).filter((m) => m && typeof m === 'object'),
                         history_tracks: history,
                         user_playlists: Object.values(userPlaylists).filter((p) => p && typeof p === 'object'),
