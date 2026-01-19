@@ -1,0 +1,16 @@
+{
+  "name": "monochrome",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.9.6"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.9.1"
+  }
+}

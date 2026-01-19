@@ -1,0 +1,31 @@
+{
+  "productName": "Monochrome",
+  "version": "0.1.0",
+  "identifier": "com.samidy.monochrome",
+  "build": {
+    "beforeDevCommand": "",
+    "beforeBuildCommand": "",
+    "devUrl": "https://monochrome.samidy.com",
+    "frontendDist": "dist"
+  },
+  "bundle": {
+    "active": true,
+    "icon": [
+      "icons/icon.png",
+      "icons/icon.ico"
+    ]
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "security": {
+      "csp": null,
+      "capabilities": ["main-capability"]
+    }
+  },
+  "plugins": {
+    "globalShortcut": {},
+    "shell": {
+      "open": true
+    }
+  }
+}

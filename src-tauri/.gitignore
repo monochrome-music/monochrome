@@ -1,0 +1,5 @@
+node_modules
+target
+src-tauri/target
+*.log
+../.vscode
