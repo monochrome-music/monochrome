@@ -466,7 +466,7 @@ kbd {
     position: fixed;
     inset: 0;
     background: rgb(0, 0, 0, 0.5);
-    z-index: 1999;
+    z-index: 2150;
     backdrop-filter: blur(2px);
 }
 
@@ -3509,7 +3509,7 @@ img[src=''] {
         left: 0;
         height: 100%;
         transform: translateX(-100%);
-        z-index: 2000;
+        z-index: 2200;
         transition:
             transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
             box-shadow 0.3s ease;
