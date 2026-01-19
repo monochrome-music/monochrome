@@ -1054,6 +1054,8 @@ function showSleepTimerModal(player) {
     const modal = document.getElementById('sleep-timer-modal');
     if (!modal) return;
 
+
+    
     const closeModal = () => {
         modal.classList.remove('active');
         cleanup();
