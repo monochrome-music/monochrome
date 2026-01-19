@@ -396,14 +396,27 @@ const syncManager = {
                 const cloudData = await this.getUserData();
 
                 if (cloudData) {
+                    let database = db;
+                    if (typeof database === 'function') {
+                        database = await database();
+                    } else {
+                        database = await database;
+                    }
+
+                    const getAll = async (store) => {
+                        if (database && typeof database.getAll === 'function') return database.getAll(store);
+                        if (database && database.db && typeof database.db.getAll === 'function') return database.db.getAll(store);
+                        return [];
+                    };
+
                     const localData = {
-                        tracks: (await db.getAll('favorites_tracks')) || [],
-                        albums: (await db.getAll('favorites_albums')) || [],
-                        artists: (await db.getAll('favorites_artists')) || [],
-                        playlists: (await db.getAll('favorites_playlists')) || [],
-                        mixes: (await db.getAll('favorites_mixes')) || [],
-                        history: (await db.getAll('history_tracks')) || [],
-                        userPlaylists: (await db.getAll('user_playlists')) || [],
+                        tracks: (await getAll('favorites_tracks')) || [],
+                        albums: (await getAll('favorites_albums')) || [],
+                        artists: (await getAll('favorites_artists')) || [],
+                        playlists: (await getAll('favorites_playlists')) || [],
+                        mixes: (await getAll('favorites_mixes')) || [],
+                        history: (await getAll('history_tracks')) || [],
+                        userPlaylists: (await getAll('user_playlists')) || [],
                     };
 
                     let { library, history, userPlaylists } = cloudData;
@@ -474,7 +487,7 @@ const syncManager = {
                         user_playlists: Object.values(userPlaylists).filter((p) => p && typeof p === 'object'),
                     };
 
-                    await db.importData(convertedData);
+                    await database.importData(convertedData);
                     await new Promise((resolve) => setTimeout(resolve, 300));
 
                     window.dispatchEvent(new CustomEvent('library-changed'));
