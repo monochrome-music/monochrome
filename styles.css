@@ -321,6 +321,16 @@ kbd {
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.sidebar-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.sidebar-nav.main {
+    flex: 1;
+}
+
 .main-content {
     grid-area: main;
     overflow-y: auto;
