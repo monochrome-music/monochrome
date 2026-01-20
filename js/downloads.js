@@ -60,6 +60,33 @@ async function uploadToServer(blob, filename, apiKey, serverUrl) {
     return await response.json();
 }
 
+/**
+ * Either upload to server or trigger browser download based on settings
+ */
+async function handleDownload(blob, filename) {
+    const serverUploadEnabled = isServerUploadEnabled();
+    
+    if (serverUploadEnabled) {
+        const config = getServerUploadConfig();
+        
+        if (config.apiKey) {
+            try {
+                await uploadToServer(blob, filename, config.apiKey, config.url);
+                return true; // Upload successful
+            } catch (error) {
+                console.error('Server upload failed:', error);
+                // Fall back to local download
+                triggerDownload(blob, filename);
+                return false;
+            }
+        }
+    }
+    
+    // Server upload disabled or no API key - use normal download
+    triggerDownload(blob, filename);
+    return false;
+}
+
 const downloadTasks = new Map();
 const bulkDownloadTasks = new Map();
 const ongoingDownloads = new Set();
@@ -314,7 +341,7 @@ async function bulkDownloadSequentially(tracks, api, quality, lyricsManager, not
 
         try {
             const blob = await downloadTrackBlob(track, quality, api, null, signal);
-            triggerDownload(blob, filename);
+            await handleDownload(blob, filename); // Use new function
 
             if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
                 try {
@@ -324,7 +351,7 @@ async function bulkDownloadSequentially(tracks, api, quality, lyricsManager, not
                         if (lrcContent) {
                             const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
                             const lrcBlob = new Blob([lrcContent], { type: 'text/plain' });
-                            triggerDownload(lrcBlob, lrcFilename);
+                            await handleDownload(lrcBlob, lrcFilename); // Use new function
                         }
                     }
                 } catch {
@@ -350,6 +377,11 @@ async function bulkDownloadToZipStream(
 ) {
     const { abortController } = bulkDownloadTasks.get(notification);
     const signal = abortController.signal;
+    
+    if (isServerUploadEnabled()) {
+        return await bulkDownloadSequentially(tracks, api, quality, lyricsManager, notification);
+    }
+
     const { downloadZip } = await loadClientZip();
 
     const writable = await fileHandle.createWritable();
