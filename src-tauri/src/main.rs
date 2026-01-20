@@ -13,10 +13,39 @@ use tauri::image::Image;
 use tauri::tray::{TrayIconBuilder, MouseButton, MouseButtonState};
 use tauri_plugin_notification::NotificationExt;
 use tauri_plugin_global_shortcut::GlobalShortcutExt;
+use tauri_plugin_dialog::DialogExt;
+use std::path::PathBuf;
+use std::fs;
 
 struct DiscordState {
     client: Mutex<Option<DiscordIpcClient>>,
     last_song: Mutex<Option<String>>,
+}
+
+struct DownloadState {
+    path: Mutex<Option<PathBuf>>,
+}
+
+fn save_download_path(app: &AppHandle, path: &PathBuf) {
+    if let Ok(config_dir) = app.path().app_config_dir() {
+        if !config_dir.exists() {
+            let _ = fs::create_dir_all(&config_dir);
+        }
+        let config_file = config_dir.join("download_path.txt");
+        let _ = fs::write(config_file, path.to_string_lossy().as_bytes());
+    }
+}
+
+fn load_download_path(app: &AppHandle) -> Option<PathBuf> {
+    if let Ok(config_dir) = app.path().app_config_dir() {
+        let config_file = config_dir.join("download_path.txt");
+        if config_file.exists() {
+            if let Ok(content) = fs::read_to_string(config_file) {
+                return Some(PathBuf::from(content.trim()));
+            }
+        }
+    }
+    None
 }
 
 #[tauri::command]
@@ -109,6 +138,8 @@ pub fn run() {
     }
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_shell::init())
@@ -122,11 +153,24 @@ pub fn run() {
             client: Mutex::new(client),
             last_song: Mutex::new(None)
         })
+        .manage(DownloadState {
+            path: Mutex::new(None)
+        })
         .setup(|app| {
+            if let Ok(config_dir) = app.path().app_config_dir() {
+                if !config_dir.exists() {
+                    let _ = fs::create_dir_all(&config_dir);
+                }
+            }
+            let state = app.state::<DownloadState>();
+            *state.path.lock().unwrap() = load_download_path(app.handle());
+
             let quit = MenuItemBuilder::with_id("quit", "Quit Monochrome").build(app)?;
             let show = MenuItemBuilder::with_id("show", "Show Player").build(app)?;
+            let change_dl = MenuItemBuilder::with_id("change_dl", "Set Download Folder").build(app)?;
             let menu = MenuBuilder::new(app)
                 .item(&show)
+                .item(&change_dl)
                 .separator()
                 .item(&quit)
                 .build()?;
@@ -145,6 +189,17 @@ pub fn run() {
                                 let _ = window.show();
                                 let _ = window.set_focus();
                             }
+                        }
+                        "change_dl" => {
+                            let app_handle = app.clone();
+                            app.dialog().file().pick_folder(move |folder| {
+                                if let Some(path) = folder {
+                                    let path = path.into_path().unwrap();
+                                    let state = app_handle.state::<DownloadState>();
+                                    *state.path.lock().unwrap() = Some(path.clone());
+                                    save_download_path(&app_handle, &path);
+                                }
+                            });
                         }
                         _ => {}
                     }
@@ -174,8 +229,21 @@ pub fn run() {
             .title("Monochrome")
             .inner_size(1200.0, 800.0)
             .initialization_script(include_str!("../discord-init.js"))
+            .on_download(|webview, event| {
+                if let tauri::webview::DownloadEvent::Requested { destination, .. } = event {
+                    let state = webview.app_handle().state::<DownloadState>();
+                    let path_guard = state.path.lock().unwrap();
+                    if let Some(path) = &*path_guard {
+                        if let Some(name) = destination.file_name() {
+                            *destination = path.join(name);
+                        }
+                    }
+                }
+                true
+            })
             .build()?;
 
+            let _ = window.show();
             let window_clone = window.clone();
             window.on_window_event(move |event| {
                 if let tauri::WindowEvent::CloseRequested { api, .. } = event {
