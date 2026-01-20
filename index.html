@@ -635,7 +635,7 @@
                             <circle cx="11" cy="11" r="8"></circle>
                             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                         </svg>
-                        <input type="search" id="search-input" placeholder="Search for tracks, artists, albums..." />
+                        <input type="search" id="search-input" placeholder="Search for etst, artists, albums..." />
                     </form>
                 </header>
 
@@ -1504,7 +1504,44 @@
                                 />
                             </div>
                         </div>
-
+                        <!-- Add this after the download-lyrics-toggle setting -->
+                        <div class="settings-group">
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Save to Server</span>
+                                    <span class="description">Upload downloads to your media server instead of saving locally</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="server-upload-toggle" />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item" id="server-upload-url-setting" style="display: none;">
+                                <div class="info">
+                                    <span class="label">Server Upload URL</span>
+                                    <span class="description">URL of your upload server endpoint</span>
+                                </div>
+                                <input
+                                    type="url"
+                                    id="server-upload-url"
+                                    class="template-input"
+                                    placeholder="https://up.delilah.ink"
+                                    value="https://up.delilah.ink"
+                                />
+                            </div>
+                            <div class="setting-item" id="server-upload-key-setting" style="display: none;">
+                                <div class="info">
+                                    <span class="label">Server API Key</span>
+                                    <span class="description">API key for server authentication</span>
+                                </div>
+                                <input
+                                    type="password"
+                                    id="server-upload-key"
+                                    class="template-input"
+                                    placeholder="Enter your API key"
+                                />
+                            </div>
+                        </div>
                         <div class="settings-group">
                             <div class="setting-item">
                                 <div class="info">

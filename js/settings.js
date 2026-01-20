@@ -417,6 +417,45 @@ export function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
+        // Server Upload Settings
+    const serverUploadToggle = document.getElementById('server-upload-toggle');
+    const serverUploadUrlSetting = document.getElementById('server-upload-url-setting');
+    const serverUploadKeySetting = document.getElementById('server-upload-key-setting');
+    const serverUploadUrl = document.getElementById('server-upload-url');
+    const serverUploadKey = document.getElementById('server-upload-key');
+
+    if (serverUploadToggle) {
+        // Initialize toggle state
+        serverUploadToggle.checked = localStorage.getItem('server-upload-enabled') === 'true';
+        
+        // Show/hide URL and key inputs based on toggle
+        const updateServerUploadVisibility = () => {
+            const isEnabled = serverUploadToggle.checked;
+            serverUploadUrlSetting.style.display = isEnabled ? 'flex' : 'none';
+            serverUploadKeySetting.style.display = isEnabled ? 'flex' : 'none';
+        };
+        updateServerUploadVisibility();
+        
+        serverUploadToggle.addEventListener('change', (e) => {
+            localStorage.setItem('server-upload-enabled', e.target.checked ? 'true' : 'false');
+            updateServerUploadVisibility();
+        });
+    }
+
+    if (serverUploadUrl) {
+        serverUploadUrl.value = localStorage.getItem('server-upload-url') || 'https://up.delilah.ink';
+        serverUploadUrl.addEventListener('change', (e) => {
+            localStorage.setItem('server-upload-url', e.target.value.trim());
+        });
+    }
+
+    if (serverUploadKey) {
+        serverUploadKey.value = localStorage.getItem('server-upload-key') || '';
+        serverUploadKey.addEventListener('change', (e) => {
+            localStorage.setItem('server-upload-key', e.target.value.trim());
+        });
+    }
+
     // API settings
     document.getElementById('refresh-speed-test-btn')?.addEventListener('click', async () => {
         const btn = document.getElementById('refresh-speed-test-btn');
