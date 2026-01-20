@@ -536,7 +536,7 @@
                                     <span>Account</span>
                                 </a>
                             </li>
-                            <li class="nav-item">
+                            <!-- <li class="nav-item">
                                 <a href="https://monochrome.samidy.com/discord" target="_blank">
                                     <svg
                                         width="64px"
@@ -562,7 +562,7 @@
                                     </svg>
                                     <span>Discord</span>
                                 </a>
-                            </li>
+                            </li> -->
                         </ul>
                     </nav>
                 </div>
@@ -813,7 +813,7 @@
                 <div id="page-library" class="page">
                     <section class="content-section">
                         <div class="library-header">
-                            <h2>My Playlists</h2>
+                            <h2>My Playlists (note: any playlists downloaded will appear here)</h2>
                             <button id="create-playlist-btn" class="btn-primary" style="margin: 10px 0">
                                 Create Playlist
                             </button>
@@ -1288,7 +1288,44 @@
                                     <span class="slider"></span>
                                 </label>
                             </div>
-                        </div>
+                    </div>
+                    <div class="settings-group">
+                                        <div class="setting-item">
+                                            <div class="info">
+                                                <span class="label">Save to Server</span>
+                                                <span class="description">Upload downloads to your media server instead of saving locally</span>
+                                            </div>
+                                            <label class="toggle-switch">
+                                                <input type="checkbox" id="server-upload-toggle" />
+                                                <span class="slider"></span>
+                                            </label>
+                                        </div>
+                                        <div class="setting-item" id="server-upload-url-setting" style="display: none;">
+                                            <div class="info">
+                                                <span class="label">Server Upload URL</span>
+                                                <span class="description">URL of your upload server endpoint</span>
+                                            </div>
+                                            <input
+                                                type="url"
+                                                id="server-upload-url"
+                                                class="template-input"
+                                                placeholder="https://up.delilah.ink"
+                                                value="https://up.delilah.ink"
+                                            />
+                                        </div>
+                                        <div class="setting-item" id="server-upload-key-setting" style="display: none;">
+                                            <div class="info">
+                                                <span class="label">Server API Key</span>
+                                                <span class="description">API key for server authentication</span>
+                                            </div>
+                                            <input
+                                                type="password"
+                                                id="server-upload-key"
+                                                class="template-input"
+                                                placeholder="Enter your API key"
+                                            />
+                                        </div>
+                                    </div>
                         <div class="settings-group">
                             <div class="setting-item">
                                 <div class="info">
@@ -1501,44 +1538,6 @@
                                     id="zip-folder-template"
                                     class="template-input"
                                     placeholder="{albumTitle} - {albumArtist} - monochrome.tf"
-                                />
-                            </div>
-                        </div>
-                        <!-- Add this after the download-lyrics-toggle setting -->
-                        <div class="settings-group">
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Save to Server</span>
-                                    <span class="description">Upload downloads to your media server instead of saving locally</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="server-upload-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item" id="server-upload-url-setting" style="display: none;">
-                                <div class="info">
-                                    <span class="label">Server Upload URL</span>
-                                    <span class="description">URL of your upload server endpoint</span>
-                                </div>
-                                <input
-                                    type="url"
-                                    id="server-upload-url"
-                                    class="template-input"
-                                    placeholder="https://up.delilah.ink"
-                                    value="https://up.delilah.ink"
-                                />
-                            </div>
-                            <div class="setting-item" id="server-upload-key-setting" style="display: none;">
-                                <div class="info">
-                                    <span class="label">Server API Key</span>
-                                    <span class="description">API key for server authentication</span>
-                                </div>
-                                <input
-                                    type="password"
-                                    id="server-upload-key"
-                                    class="template-input"
-                                    placeholder="Enter your API key"
                                 />
                             </div>
                         </div>
