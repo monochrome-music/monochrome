@@ -21,11 +21,11 @@ export class AuthManager {
 
     init() {
         if (!auth) return;
-        
+
         if (this.isTauri) {
             getRedirectResult(auth).catch(() => {});
         }
-        
+
         this.unsubscribe = onAuthStateChanged(auth, (user) => {
             this.user = user;
             this.updateUI(user);
