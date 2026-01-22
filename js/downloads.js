@@ -891,6 +891,7 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
         artist: track.artist || (track.artists && track.artists.length > 0 ? track.artists[0] : null),
     };
 
+    // Fetch full album data if needed
     if (enrichedTrack.album && (!enrichedTrack.album.title || !enrichedTrack.album.artist) && enrichedTrack.album.id) {
         try {
             const albumData = await api.getAlbum(enrichedTrack.album.id);
@@ -905,18 +906,47 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
         }
     }
 
-    const filename = buildTrackFilename(enrichedTrack, quality);
     const controller = abortController || new AbortController();
     ongoingDownloads.add(downloadKey);
+    
+    // Build folder name for server upload (same format as album downloads)
+    const serverUploadEnabled = isServerUploadEnabled();
+    let folderName = null;
+    
+    if (serverUploadEnabled && enrichedTrack.album) {
+        const albumTitle = enrichedTrack.album.title || 'Unknown Album';
+        const albumArtist = enrichedTrack.album.artist?.name || enrichedTrack.artist?.name || 'Unknown Artist';
+        const releaseDateStr = enrichedTrack.album.releaseDate || enrichedTrack.streamStartDate?.split('T')[0] || '';
+        const releaseDate = releaseDateStr ? new Date(releaseDateStr) : null;
+        const year = releaseDate && !isNaN(releaseDate.getTime()) ? releaseDate.getFullYear() : '';
+        
+        folderName = formatTemplate(localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist}', {
+            albumTitle: albumTitle,
+            albumArtist: albumArtist,
+            year: year,
+        });
+    }
+
+    let currentQuality = quality;
+    let filename = buildTrackFilename(enrichedTrack, currentQuality);
 
     try {
         addDownloadTask(track.id, enrichedTrack, filename, api, controller);
 
         // Download the track blob (with metadata embedded)
-        const blob = await downloadTrackBlob(enrichedTrack, quality, api, null, controller.signal);
+        let blob = await downloadTrackBlob(enrichedTrack, currentQuality, api, null, controller.signal);
         
-        // Check if server upload is enabled
-        const serverUploadEnabled = isServerUploadEnabled();
+        // Check if file is too large for server upload and retry at lower quality
+        if (serverUploadEnabled && blob && blob.size > SERVER_UPLOAD_MAX_SIZE) {
+            const fallbackQuality = getFallbackQuality(currentQuality);
+            
+            if (fallbackQuality) {
+                console.log(`[Download] File too large (${(blob.size / 1024 / 1024).toFixed(1)}MB), retrying at ${fallbackQuality} quality`);
+                currentQuality = fallbackQuality;
+                filename = buildTrackFilename(enrichedTrack, currentQuality);
+                blob = await downloadTrackBlob(enrichedTrack, currentQuality, api, null, controller.signal);
+            }
+        }
         
         if (serverUploadEnabled) {
             const config = getServerUploadConfig();
@@ -928,7 +958,6 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
             } else {
                 // Try to upload to server with retry logic
                 let uploadSuccess = false;
-                let lastError = null;
                 
                 for (let attempt = 1; attempt <= 2; attempt++) {
                     try {
@@ -938,33 +967,46 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
                             totalBytes: blob.size
                         });
                         
-                            // Check if file is too large for server upload
-                        if (blob.size > SERVER_UPLOAD_MAX_SIZE) {
-                            const fallbackQuality = getFallbackQuality(quality);
-                            
-                            if (fallbackQuality) {
-                                console.log(`[Download] File too large (${(blob.size / 1024 / 1024).toFixed(1)}MB), retrying at ${fallbackQuality} quality`);
-                                
-                                // Re-download at lower quality
-                                blob = await downloadTrackBlob(enrichedTrack, fallbackQuality, api, null, controller.signal);
-                                filename = buildTrackFilename(enrichedTrack, fallbackQuality);
-                            }
-                        }
-
-                        await uploadToServer(blob, filename, config.apiKey, config.url);
+                        // Pass folderName so track goes into a folder
+                        await uploadToServer(blob, filename, config.apiKey, config.url, folderName);
                         uploadSuccess = true;
                         break;
                     } catch (error) {
                         console.error(`Server upload attempt ${attempt} failed:`, error);
-                        lastError = error;
                         if (attempt < 2) {
-                            // Wait 1 second before retry
                             await new Promise(resolve => setTimeout(resolve, 1000));
                         }
                     }
                 }
                 
                 if (uploadSuccess) {
+                    // Handle lyrics upload (also to the same folder)
+                    if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
+                        try {
+                            const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
+                            if (lyricsData) {
+                                const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
+                                if (lrcContent) {
+                                    const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
+                                    const lrcBlob = new Blob([lrcContent], { type: 'text/plain' });
+                                    
+                                    try {
+                                        await uploadToServer(lrcBlob, lrcFilename, config.apiKey, config.url, folderName);
+                                    } catch (error) {
+                                        console.error('Failed to upload lyrics:', error);
+                                    }
+                                }
+                            }
+                        } catch (error) {
+                            console.log('Could not fetch lyrics for track');
+                        }
+                    }
+                    
+                    // Signal completion so server organizes the folder
+                    if (folderName) {
+                        await signalUploadComplete(folderName);
+                    }
+                    
                     completeDownloadTask(track.id, true, '✓ Saved to server');
                     showNotification('✓ Track saved to server');
                 } else {
@@ -972,44 +1014,35 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
                     console.warn('Server upload failed after 2 attempts, falling back to local download');
                     triggerDownload(blob, filename);
                     completeDownloadTask(track.id, true, '✓ Downloaded locally');
+                    
+                    // Also download lyrics locally
+                    if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
+                        try {
+                            const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
+                            if (lyricsData) {
+                                lyricsManager.downloadLRC(lyricsData, track);
+                            }
+                        } catch (error) {
+                            console.log('Could not download lyrics for track');
+                        }
+                    }
                 }
             }
         } else {
             // Server upload disabled, use normal download
             triggerDownload(blob, filename);
             completeDownloadTask(track.id, true);
-        }
-
-        // Handle lyrics if enabled
-        if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
-            try {
-                const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
-                if (lyricsData) {
-                    if (serverUploadEnabled) {
-                        const config = getServerUploadConfig();
-                        if (config.apiKey) {
-                            // Upload lyrics to server
-                            const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
-                            if (lrcContent) {
-                                const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
-                                const lrcBlob = new Blob([lrcContent], { type: 'text/plain' });
-                                
-                                try {
-                                    await uploadToServer(lrcBlob, lrcFilename, config.apiKey, config.url);
-                                } catch (error) {
-                                    console.error('Failed to upload lyrics:', error);
-                                    // Fall back to local download for lyrics
-                                    lyricsManager.downloadLRC(lyricsData, track);
-                                }
-                            }
-                        }
-                    } else {
-                        // Normal lyrics download
+            
+            // Handle lyrics locally
+            if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
+                try {
+                    const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
+                    if (lyricsData) {
                         lyricsManager.downloadLRC(lyricsData, track);
                     }
+                } catch (error) {
+                    console.log('Could not download lyrics for track');
                 }
-            } catch (error) {
-                console.log('Could not download lyrics for track');
             }
         }
     } catch (error) {
