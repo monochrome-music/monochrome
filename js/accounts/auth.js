@@ -1,9 +1,7 @@
-// js/firebase/auth.js
+// js/accounts/auth.js
 import { auth, provider } from './config.js';
 import {
     signInWithPopup,
-    signInWithRedirect,
-    getRedirectResult,
     signOut as firebaseSignOut,
     onAuthStateChanged,
     signInWithEmailAndPassword,
@@ -15,26 +13,23 @@ export class AuthManager {
         this.user = null;
         this.unsubscribe = null;
         this.authListeners = [];
-        this.isTauri = window.__TAURI__ !== undefined;
         this.init();
     }
 
     init() {
         if (!auth) return;
 
-        if (this.isTauri) {
-            getRedirectResult(auth).catch(() => {});
-        }
-
         this.unsubscribe = onAuthStateChanged(auth, (user) => {
             this.user = user;
             this.updateUI(user);
+
             this.authListeners.forEach((listener) => listener(user));
         });
     }
 
     onAuthStateChanged(callback) {
         this.authListeners.push(callback);
+        // If we already have a user state, trigger immediately
         if (this.user !== null) {
             callback(this.user);
         }
@@ -45,12 +40,10 @@ export class AuthManager {
             alert('Firebase is not configured. Please check console.');
             return;
         }
+
         try {
-            if (this.isTauri) {
-                await signInWithRedirect(auth, provider);
-                return;
-            }
             const result = await signInWithPopup(auth, provider);
+            // The onAuthStateChanged listener will handle the rest
             return result.user;
         } catch (error) {
             console.error('Login failed:', error);
@@ -91,8 +84,10 @@ export class AuthManager {
 
     async signOut() {
         if (!auth) return;
+
         try {
             await firebaseSignOut(auth);
+            // The onAuthStateChanged listener will handle the rest
         } catch (error) {
             console.error('Logout failed:', error);
             throw error;
@@ -106,22 +101,26 @@ export class AuthManager {
         const emailContainer = document.getElementById('email-auth-container');
         const emailToggleBtn = document.getElementById('toggle-email-auth-btn');
 
-        if (!connectBtn) return;
+        if (!connectBtn) return; // UI might not be rendered yet
 
         if (user) {
             connectBtn.textContent = 'Sign Out';
             connectBtn.classList.add('danger');
             connectBtn.onclick = () => this.signOut();
+
             if (clearDataBtn) clearDataBtn.style.display = 'block';
             if (emailContainer) emailContainer.style.display = 'none';
             if (emailToggleBtn) emailToggleBtn.style.display = 'none';
+
             if (statusText) statusText.textContent = `Signed in as ${user.email}`;
         } else {
             connectBtn.textContent = 'Connect with Google';
             connectBtn.classList.remove('danger');
             connectBtn.onclick = () => this.signInWithGoogle();
+
             if (clearDataBtn) clearDataBtn.style.display = 'none';
             if (emailToggleBtn) emailToggleBtn.style.display = 'inline-block';
+
             if (statusText) statusText.textContent = 'Sync your library across devices';
         }
     }
