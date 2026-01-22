@@ -30,6 +30,28 @@ function getServerUploadConfig() {
     };
 }
 
+const SERVER_UPLOAD_MAX_SIZE = 95 * 1024 * 1024; // 95MB (with safety margin)
+/**
+ * Get a lower quality setting for fallback when files are too large
+ * @param {string} currentQuality - Current quality setting
+ * @returns {string|null} - Lower quality to try, or null if already at lowest
+ */
+function getFallbackQuality(currentQuality) {
+    const qualityLevels = ['HI_RES_LOSSLESS', 'LOSSLESS', 'HIGH', 'LOW'];
+    const currentIndex = qualityLevels.indexOf(currentQuality);
+    
+    if (currentIndex === -1 || currentIndex >= qualityLevels.length - 1) {
+        return null; // Already at lowest or unknown quality
+    }
+    
+    // Return next lower quality (skip to HIGH/AAC if coming from lossless)
+    if (currentQuality === 'HI_RES_LOSSLESS' || currentQuality === 'LOSSLESS') {
+        return 'HIGH'; // Jump straight to AAC 320
+    }
+    
+    return qualityLevels[currentIndex + 1];
+}
+
 /**
  * Upload a blob to the server
  * @param {Blob} blob - The file blob to upload
@@ -419,28 +441,58 @@ async function bulkDownloadSequentially(tracks, api, quality, lyricsManager, not
     console.log(`[BulkDownload] Starting download of ${tracks.length} tracks to folder: ${folderName || '(none)'}`);
 
     let successCount = 0;
+    const serverUploadEnabled = isServerUploadEnabled();
     
     for (let i = 0; i < tracks.length; i++) {
         if (signal.aborted) {
             console.log(`[BulkDownload] Aborted at track ${i + 1}/${tracks.length}`);
             break;
         }
+        
         const track = tracks[i];
         const trackTitle = getTrackTitle(track);
-        const filename = buildTrackFilename(track, quality);
+        let currentQuality = quality;
+        let blob = null;
+        let filename = buildTrackFilename(track, currentQuality);
 
         updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
 
         try {
-            const blob = await downloadTrackBlob(track, quality, api, null, signal);
+            // Download the track
+            blob = await downloadTrackBlob(track, currentQuality, api, null, signal);
             
             if (!blob) {
                 console.error(`[BulkDownload] [${i + 1}/${tracks.length}] ERROR: downloadTrackBlob returned null/undefined for ${trackTitle}`);
                 continue;
             }
             
+            // Check if file is too large for server upload
+            if (serverUploadEnabled && blob.size > SERVER_UPLOAD_MAX_SIZE) {
+                const fallbackQuality = getFallbackQuality(currentQuality);
+                
+                if (fallbackQuality) {
+                    console.log(`[BulkDownload] [${i + 1}/${tracks.length}] File too large (${(blob.size / 1024 / 1024).toFixed(1)}MB), retrying at ${fallbackQuality} quality`);
+                    
+                    // Re-download at lower quality
+                    currentQuality = fallbackQuality;
+                    filename = buildTrackFilename(track, currentQuality);
+                    blob = await downloadTrackBlob(track, currentQuality, api, null, signal);
+                    
+                    if (!blob) {
+                        console.error(`[BulkDownload] [${i + 1}/${tracks.length}] ERROR: Fallback download failed for ${trackTitle}`);
+                        continue;
+                    }
+                    
+                    console.log(`[BulkDownload] [${i + 1}/${tracks.length}] Fallback download complete: ${(blob.size / 1024 / 1024).toFixed(1)}MB`);
+                } else {
+                    console.warn(`[BulkDownload] [${i + 1}/${tracks.length}] File too large and no fallback quality available, attempting upload anyway`);
+                }
+            }
+            
+            // Upload or download locally
             const uploadResult = await handleDownload(blob, filename, folderName);
 
+            // Handle lyrics
             if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
                 try {
                     const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
@@ -469,7 +521,7 @@ async function bulkDownloadSequentially(tracks, api, quality, lyricsManager, not
     console.log(`[BulkDownload] Finished: ${successCount}/${tracks.length} tracks uploaded`);
     
     // Signal server that upload is complete and ready for organization
-    if (folderName && isServerUploadEnabled() && successCount > 0) {
+    if (folderName && serverUploadEnabled && successCount > 0) {
         await signalUploadComplete(folderName);
     }
 }
@@ -886,6 +938,19 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
                             totalBytes: blob.size
                         });
                         
+                            // Check if file is too large for server upload
+                        if (blob.size > SERVER_UPLOAD_MAX_SIZE) {
+                            const fallbackQuality = getFallbackQuality(quality);
+                            
+                            if (fallbackQuality) {
+                                console.log(`[Download] File too large (${(blob.size / 1024 / 1024).toFixed(1)}MB), retrying at ${fallbackQuality} quality`);
+                                
+                                // Re-download at lower quality
+                                blob = await downloadTrackBlob(enrichedTrack, fallbackQuality, api, null, controller.signal);
+                                filename = buildTrackFilename(enrichedTrack, fallbackQuality);
+                            }
+                        }
+
                         await uploadToServer(blob, filename, config.apiKey, config.url);
                         uploadSuccess = true;
                         break;
