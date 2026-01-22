@@ -77,6 +77,48 @@ async function uploadToServer(blob, filename, apiKey, serverUrl, folderName = nu
 }
 
 /**
+ * Signal to the server that a batch upload is complete and ready for organization
+ * @param {string} folderName - The folder name to organize
+ * @returns {Promise<boolean>} - True if signal was sent successfully
+ */
+async function signalUploadComplete(folderName) {
+    if (!folderName) return false;
+    
+    const serverUploadEnabled = isServerUploadEnabled();
+    if (!serverUploadEnabled) return false;
+    
+    const config = getServerUploadConfig();
+    if (!config.apiKey) return false;
+    
+    try {
+        const completeUrl = config.url.replace(/\/$/, '') + '/complete';
+        
+        console.log(`[Upload] Signaling upload complete for folder: ${folderName}`);
+        
+        const response = await fetch(completeUrl, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${config.apiKey}`,
+                'X-Folder-Name': encodeURIComponent(folderName)
+            }
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`[Upload] Complete signal failed: ${response.status} - ${errorText}`);
+            return false;
+        }
+        
+        const result = await response.json();
+        console.log(`[Upload] Complete signal successful:`, result);
+        return true;
+    } catch (error) {
+        console.error(`[Upload] Failed to signal upload complete:`, error);
+        return false;
+    }
+}
+
+/**
  * Either upload to server or trigger browser download based on settings
  * @param {Blob} blob - The file blob
  * @param {string} filename - The filename
@@ -376,6 +418,8 @@ async function bulkDownloadSequentially(tracks, api, quality, lyricsManager, not
 
     console.log(`[BulkDownload] Starting download of ${tracks.length} tracks to folder: ${folderName || '(none)'}`);
 
+    let successCount = 0;
+    
     for (let i = 0; i < tracks.length; i++) {
         if (signal.aborted) {
             console.log(`[BulkDownload] Aborted at track ${i + 1}/${tracks.length}`);
@@ -385,11 +429,9 @@ async function bulkDownloadSequentially(tracks, api, quality, lyricsManager, not
         const trackTitle = getTrackTitle(track);
         const filename = buildTrackFilename(track, quality);
 
-        console.log(`[BulkDownload] [${i + 1}/${tracks.length}] Starting: ${trackTitle}`);
         updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
 
         try {
-            console.log(`[BulkDownload] [${i + 1}/${tracks.length}] Fetching blob...`);
             const blob = await downloadTrackBlob(track, quality, api, null, signal);
             
             if (!blob) {
@@ -397,9 +439,7 @@ async function bulkDownloadSequentially(tracks, api, quality, lyricsManager, not
                 continue;
             }
             
-            console.log(`[BulkDownload] [${i + 1}/${tracks.length}] Got blob: ${blob.size} bytes, uploading as ${filename}`);
             const uploadResult = await handleDownload(blob, filename, folderName);
-            console.log(`[BulkDownload] [${i + 1}/${tracks.length}] Upload result: ${uploadResult ? 'server' : 'local fallback'}`);
 
             if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
                 try {
@@ -413,22 +453,25 @@ async function bulkDownloadSequentially(tracks, api, quality, lyricsManager, not
                         }
                     }
                 } catch (lyricsErr) {
-                    console.log(`[BulkDownload] [${i + 1}/${tracks.length}] Lyrics fetch failed (non-fatal): ${lyricsErr.message}`);
+                    // Lyrics fetch failed, non-fatal
                 }
             }
             
-            console.log(`[BulkDownload] [${i + 1}/${tracks.length}] Completed: ${trackTitle}`);
+            successCount++;
         } catch (err) {
             if (err.name === 'AbortError') {
-                console.log(`[BulkDownload] [${i + 1}/${tracks.length}] Aborted during download`);
                 throw err;
             }
             console.error(`[BulkDownload] [${i + 1}/${tracks.length}] FAILED: ${trackTitle}`, err);
-            console.error(`[BulkDownload] Error details:`, err.message, err.stack);
         }
     }
     
-    console.log(`[BulkDownload] Finished processing all ${tracks.length} tracks`);
+    console.log(`[BulkDownload] Finished: ${successCount}/${tracks.length} tracks uploaded`);
+    
+    // Signal server that upload is complete and ready for organization
+    if (folderName && isServerUploadEnabled() && successCount > 0) {
+        await signalUploadComplete(folderName);
+    }
 }
 
 async function bulkDownloadToZipStream(
@@ -687,6 +730,10 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                 );
                 
                 await bulkDownloadSequentially(tracks, api, quality, lyricsManager, notification, albumFolder);
+                    
+                if (isServerUploadEnabled()) {
+                    await signalUploadComplete(albumFolder);
+                }
             }
             completeBulkDownload(notification, true);
         }
