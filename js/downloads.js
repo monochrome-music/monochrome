@@ -36,19 +36,28 @@ function getServerUploadConfig() {
  * @param {string} filename - Original filename
  * @param {string} apiKey - API key for authentication
  * @param {string} serverUrl - Server URL
+ * @param {string|null} folderName - Optional folder name for organizing uploads (album/playlist name)
  * @returns {Promise<object>} - Server response
  */
-async function uploadToServer(blob, filename, apiKey, serverUrl) {
+async function uploadToServer(blob, filename, apiKey, serverUrl, folderName = null) {
     if (!apiKey) {
         throw new Error('API key is required for server upload');
     }
 
+    const headers = {
+        'Authorization': `Bearer ${apiKey}`,
+        'X-Filename': filename
+    };
+    
+    // Add folder name header if provided (for album/playlist organization)
+    // URL-encode to handle non-ASCII characters (smart quotes, accents, etc.)
+    if (folderName) {
+        headers['X-Folder-Name'] = encodeURIComponent(folderName);
+    }
+
     const response = await fetch(serverUrl, {
         method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'X-Filename': filename
-        },
+        headers: headers,
         body: blob
     });
 
@@ -62,8 +71,11 @@ async function uploadToServer(blob, filename, apiKey, serverUrl) {
 
 /**
  * Either upload to server or trigger browser download based on settings
+ * @param {Blob} blob - The file blob
+ * @param {string} filename - The filename
+ * @param {string|null} folderName - Optional folder name for server organization
  */
-async function handleDownload(blob, filename) {
+async function handleDownload(blob, filename, folderName = null) {
     const serverUploadEnabled = isServerUploadEnabled();
     
     if (serverUploadEnabled) {
@@ -71,7 +83,7 @@ async function handleDownload(blob, filename) {
         
         if (config.apiKey) {
             try {
-                await uploadToServer(blob, filename, config.apiKey, config.url);
+                await uploadToServer(blob, filename, config.apiKey, config.url, folderName);
                 return true; // Upload successful
             } catch (error) {
                 console.error('Server upload failed:', error);
@@ -327,7 +339,7 @@ function triggerDownload(blob, filename) {
     URL.revokeObjectURL(url);
 }
 
-async function bulkDownloadSequentially(tracks, api, quality, lyricsManager, notification) {
+async function bulkDownloadSequentially(tracks, api, quality, lyricsManager, notification, folderName = null) {
     const { abortController } = bulkDownloadTasks.get(notification);
     const signal = abortController.signal;
 
@@ -341,7 +353,7 @@ async function bulkDownloadSequentially(tracks, api, quality, lyricsManager, not
 
         try {
             const blob = await downloadTrackBlob(track, quality, api, null, signal);
-            await handleDownload(blob, filename); // Use new function
+            await handleDownload(blob, filename, folderName);
 
             if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
                 try {
@@ -351,7 +363,7 @@ async function bulkDownloadSequentially(tracks, api, quality, lyricsManager, not
                         if (lrcContent) {
                             const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
                             const lrcBlob = new Blob([lrcContent], { type: 'text/plain' });
-                            await handleDownload(lrcBlob, lrcFilename); // Use new function
+                            await handleDownload(lrcBlob, lrcFilename, folderName);
                         }
                     }
                 } catch {
@@ -379,7 +391,7 @@ async function bulkDownloadToZipStream(
     const signal = abortController.signal;
     
     if (isServerUploadEnabled()) {
-        return await bulkDownloadSequentially(tracks, api, quality, lyricsManager, notification);
+        return await bulkDownloadSequentially(tracks, api, quality, lyricsManager, notification, folderName);
     }
 
     const { downloadZip } = await loadClientZip();
@@ -469,7 +481,7 @@ async function startBulkDownload(tracks, defaultName, api, quality, lyricsManage
             }
         } else {
             // Fallback or Forced: Individual sequential downloads
-            await bulkDownloadSequentially(tracks, api, quality, lyricsManager, notification);
+            await bulkDownloadSequentially(tracks, api, quality, lyricsManager, notification, defaultName);
             completeBulkDownload(notification, true);
         }
     } catch (error) {
@@ -602,8 +614,25 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                 if (signal.aborted) break;
                 const album = selectedReleases[albumIndex];
                 updateBulkDownloadProgress(notification, albumIndex, selectedReleases.length, album.title);
-                const { tracks } = await api.getAlbum(album.id);
-                await bulkDownloadSequentially(tracks, api, quality, lyricsManager, notification);
+                const { album: fullAlbum, tracks } = await api.getAlbum(album.id);
+                
+                // Construct folder name for this album (matching ZIP path logic)
+                const releaseDateStr =
+                    fullAlbum.releaseDate ||
+                    (tracks[0]?.streamStartDate ? tracks[0].streamStartDate.split('T')[0] : '');
+                const releaseDate = releaseDateStr ? new Date(releaseDateStr) : null;
+                const year = releaseDate && !isNaN(releaseDate.getTime()) ? releaseDate.getFullYear() : '';
+                
+                const albumFolder = formatTemplate(
+                    localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist}',
+                    {
+                        albumTitle: fullAlbum.title,
+                        albumArtist: fullAlbum.artist?.name,
+                        year: year,
+                    }
+                );
+                
+                await bulkDownloadSequentially(tracks, api, quality, lyricsManager, notification, albumFolder);
             }
             completeBulkDownload(notification, true);
         }
