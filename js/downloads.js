@@ -62,7 +62,7 @@ async function uploadToServer(blob, filename, apiKey, serverUrl, folderName = nu
 
     const headers = {
         'Authorization': `Bearer ${apiKey}`,
-        'X-Filename': filename
+        'X-Filename': encodeURIComponent(filename)
     };
     
     if (folderName) {
