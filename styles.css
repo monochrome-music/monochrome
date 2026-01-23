@@ -321,6 +321,16 @@ kbd {
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.sidebar-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.sidebar-nav.main {
+    flex: 1;
+}
+
 .main-content {
     grid-area: main;
     overflow-y: auto;
@@ -449,6 +459,7 @@ kbd {
 .sidebar-nav .nav-item a svg {
     width: 20px;
     height: 20px;
+    flex-shrink: 0;
 }
 
 #sidebar-overlay {
@@ -456,7 +467,7 @@ kbd {
     position: fixed;
     inset: 0;
     background: rgb(0, 0, 0, 0.5);
-    z-index: 1999;
+    z-index: 2150;
     backdrop-filter: blur(2px);
 }
 
@@ -909,6 +920,10 @@ body.has-page-background .track-item:hover {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
     gap: 2px var(--spacing-xl);
+}
+
+#playlist-detail-recommended .track-item {
+    grid-template-columns: 40px 1fr 80px 90px;
 }
 
 @media (max-width: 1100px) {
@@ -2642,10 +2657,6 @@ input:checked + .slider::before {
     justify-self: flex-end;
 }
 
-.is-editable .track-list-header .duration-header {
-    padding-right: 1.5rem;
-}
-
 /* Responsive Design */
 
 @supports (padding-top: env(safe-area-inset-top)) {
@@ -3499,7 +3510,7 @@ img[src=''] {
         left: 0;
         height: 100%;
         transform: translateX(-100%);
-        z-index: 2000;
+        z-index: 2200;
         transition:
             transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
             box-shadow 0.3s ease;

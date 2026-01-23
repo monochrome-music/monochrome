@@ -1,7 +1,7 @@
 //js/utils.js
 import { qualityBadgeSettings } from './storage.js';
 
-export const QUALITY = 'LOSSLESS';
+export const QUALITY = 'HI_RES_LOSSLESS';
 
 export const REPEAT_MODE = {
     OFF: 0,

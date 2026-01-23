@@ -835,7 +835,7 @@ export class LosslessAPI {
         return [trackStub, raw];
     }
 
-    async getTrack(id, quality = 'LOSSLESS') {
+    async getTrack(id, quality = 'HI_RES_LOSSLESS') {
         const cacheKey = `${id}_${quality}`;
         const cached = await this.cache.get('track', cacheKey);
         if (cached) return cached;
@@ -848,7 +848,7 @@ export class LosslessAPI {
         return result;
     }
 
-    async getStreamUrl(id, quality = 'LOSSLESS') {
+    async getStreamUrl(id, quality = 'HI_RES_LOSSLESS') {
         const cacheKey = `stream_${id}_${quality}`;
 
         if (this.streamCache.has(cacheKey)) {
@@ -871,7 +871,7 @@ export class LosslessAPI {
         return streamUrl;
     }
 
-    async downloadTrack(id, quality = 'LOSSLESS', filename, options = {}) {
+    async downloadTrack(id, quality = 'HI_RES_LOSSLESS', filename, options = {}) {
         const { onProgress, track } = options;
 
         try {

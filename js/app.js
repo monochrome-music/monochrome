@@ -187,7 +187,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const api = new LosslessAPI(apiSettings);
 
     const audioPlayer = document.getElementById('audio-player');
-    const currentQuality = localStorage.getItem('playback-quality') || 'LOSSLESS';
+    const currentQuality = localStorage.getItem('playback-quality') || 'HI_RES_LOSSLESS';
     const player = new Player(audioPlayer, api, currentQuality);
 
     const ui = new UIRenderer(api, player);

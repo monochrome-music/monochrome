@@ -393,32 +393,98 @@ const syncManager = {
             this._isSyncing = true;
 
             try {
-                const data = await this.getUserData();
+                const cloudData = await this.getUserData();
 
-                if (data) {
-                    const convertedData = {
-                        favorites_tracks: data.library.tracks
-                            ? Object.values(data.library.tracks).filter((t) => t && typeof t === 'object')
-                            : [],
-                        favorites_albums: data.library.albums
-                            ? Object.values(data.library.albums).filter((a) => a && typeof a === 'object')
-                            : [],
-                        favorites_artists: data.library.artists
-                            ? Object.values(data.library.artists).filter((a) => a && typeof a === 'object')
-                            : [],
-                        favorites_playlists: data.library.playlists
-                            ? Object.values(data.library.playlists).filter((p) => p && typeof p === 'object')
-                            : [],
-                        favorites_mixes: data.library.mixes
-                            ? Object.values(data.library.mixes).filter((m) => m && typeof m === 'object')
-                            : [],
-                        history_tracks: data.history || [],
-                        user_playlists: data.userPlaylists
-                            ? Object.values(data.userPlaylists).filter((p) => p && typeof p === 'object')
-                            : [],
+                if (cloudData) {
+                    let database = db;
+                    if (typeof database === 'function') {
+                        database = await database();
+                    } else {
+                        database = await database;
+                    }
+
+                    const getAll = async (store) => {
+                        if (database && typeof database.getAll === 'function') return database.getAll(store);
+                        if (database && database.db && typeof database.db.getAll === 'function')
+                            return database.db.getAll(store);
+                        return [];
                     };
 
-                    await db.importData(convertedData);
+                    const localData = {
+                        tracks: (await getAll('favorites_tracks')) || [],
+                        albums: (await getAll('favorites_albums')) || [],
+                        artists: (await getAll('favorites_artists')) || [],
+                        playlists: (await getAll('favorites_playlists')) || [],
+                        mixes: (await getAll('favorites_mixes')) || [],
+                        history: (await getAll('history_tracks')) || [],
+                        userPlaylists: (await getAll('user_playlists')) || [],
+                    };
+
+                    let { library, history, userPlaylists } = cloudData;
+                    let needsUpdate = false;
+
+                    if (!library) library = {};
+                    if (!library.tracks) library.tracks = {};
+                    if (!library.albums) library.albums = {};
+                    if (!library.artists) library.artists = {};
+                    if (!library.playlists) library.playlists = {};
+                    if (!library.mixes) library.mixes = {};
+                    if (!userPlaylists) userPlaylists = {};
+                    if (!history) history = [];
+
+                    const mergeItem = (collection, item, type) => {
+                        const id = type === 'playlist' ? item.uuid || item.id : item.id;
+                        if (!collection[id]) {
+                            collection[id] = this._minifyItem(type, item);
+                            needsUpdate = true;
+                        }
+                    };
+
+                    localData.tracks.forEach((item) => mergeItem(library.tracks, item, 'track'));
+                    localData.albums.forEach((item) => mergeItem(library.albums, item, 'album'));
+                    localData.artists.forEach((item) => mergeItem(library.artists, item, 'artist'));
+                    localData.playlists.forEach((item) => mergeItem(library.playlists, item, 'playlist'));
+                    localData.mixes.forEach((item) => mergeItem(library.mixes, item, 'mix'));
+
+                    localData.userPlaylists.forEach((playlist) => {
+                        if (!userPlaylists[playlist.id]) {
+                            userPlaylists[playlist.id] = {
+                                id: playlist.id,
+                                name: playlist.name,
+                                cover: playlist.cover || null,
+                                tracks: playlist.tracks ? playlist.tracks.map((t) => this._minifyItem('track', t)) : [],
+                                createdAt: playlist.createdAt || Date.now(),
+                                updatedAt: playlist.updatedAt || Date.now(),
+                                numberOfTracks: playlist.tracks ? playlist.tracks.length : 0,
+                                images: playlist.images || [],
+                                isPublic: playlist.isPublic || false,
+                            };
+                            needsUpdate = true;
+                        }
+                    });
+
+                    if (history.length === 0 && localData.history.length > 0) {
+                        history = localData.history;
+                        needsUpdate = true;
+                    }
+
+                    if (needsUpdate) {
+                        await this._updateUserJSON(user.uid, 'library', library);
+                        await this._updateUserJSON(user.uid, 'user_playlists', userPlaylists);
+                        await this._updateUserJSON(user.uid, 'history', history);
+                    }
+
+                    const convertedData = {
+                        favorites_tracks: Object.values(library.tracks).filter((t) => t && typeof t === 'object'),
+                        favorites_albums: Object.values(library.albums).filter((a) => a && typeof a === 'object'),
+                        favorites_artists: Object.values(library.artists).filter((a) => a && typeof a === 'object'),
+                        favorites_playlists: Object.values(library.playlists).filter((p) => p && typeof p === 'object'),
+                        favorites_mixes: Object.values(library.mixes).filter((m) => m && typeof m === 'object'),
+                        history_tracks: history,
+                        user_playlists: Object.values(userPlaylists).filter((p) => p && typeof p === 'object'),
+                    };
+
+                    await database.importData(convertedData);
                     await new Promise((resolve) => setTimeout(resolve, 300));
 
                     window.dispatchEvent(new CustomEvent('library-changed'));

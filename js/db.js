@@ -77,6 +77,10 @@ export class MusicDatabase {
         });
     }
 
+    async getAll(storeName) {
+        return await this.performTransaction(storeName, 'readonly', (store) => store.getAll());
+    }
+
     // History API
     async addToHistory(track) {
         const storeName = 'history_tracks';

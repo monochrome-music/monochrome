@@ -11,7 +11,7 @@ import {
 import { queueManager, replayGainSettings } from './storage.js';
 
 export class Player {
-    constructor(audioElement, api, quality = 'LOSSLESS') {
+    constructor(audioElement, api, quality = 'HI_RES_LOSSLESS') {
         this.audio = audioElement;
         this.api = api;
         this.quality = quality;

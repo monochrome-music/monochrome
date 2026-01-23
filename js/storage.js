@@ -530,9 +530,9 @@ export const downloadQualitySettings = {
     STORAGE_KEY: 'download-quality',
     getQuality() {
         try {
-            return localStorage.getItem(this.STORAGE_KEY) || 'LOSSLESS';
+            return localStorage.getItem(this.STORAGE_KEY) || 'HI_RES_LOSSLESS';
         } catch {
-            return 'LOSSLESS';
+            return 'HI_RES_LOSSLESS';
         }
     },
     setQuality(quality) {
