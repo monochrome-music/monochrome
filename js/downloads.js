@@ -550,7 +550,7 @@ export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsMana
     const releaseDate = releaseDateStr ? new Date(releaseDateStr) : null;
     const year = releaseDate && !isNaN(releaseDate.getTime()) ? releaseDate.getFullYear() : '';
 
-    const folderName = formatTemplate(localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist}', {
+    const folderName = formatTemplate(localStorage.getItem('zip-folder-template') || '{albumTitle}', {
         albumTitle: album.title,
         albumArtist: album.artist?.name,
         year: year,
@@ -561,7 +561,7 @@ export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsMana
 }
 
 export async function downloadPlaylistAsZip(playlist, tracks, api, quality, lyricsManager = null) {
-    const folderName = formatTemplate(localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist}', {
+    const folderName = formatTemplate(localStorage.getItem('zip-folder-template') || '{albumTitle}', {
         albumTitle: playlist.title,
         albumArtist: 'Playlist',
         year: new Date().getFullYear(),
@@ -605,7 +605,7 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                         const year = releaseDate && !isNaN(releaseDate.getTime()) ? releaseDate.getFullYear() : '';
 
                         const albumFolder = formatTemplate(
-                            localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist}',
+                            localStorage.getItem('zip-folder-template') || '{albumTitle}',
                             {
                                 albumTitle: fullAlbum.title,
                                 albumArtist: fullAlbum.artist?.name,
@@ -673,7 +673,7 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                 const year = releaseDate && !isNaN(releaseDate.getTime()) ? releaseDate.getFullYear() : '';
                 
                 const albumFolder = formatTemplate(
-                    localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist}',
+                    localStorage.getItem('zip-folder-template') || '{albumTitle}',
                     {
                         albumTitle: fullAlbum.title,
                         albumArtist: fullAlbum.artist?.name,
@@ -820,7 +820,7 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
         const releaseDate = releaseDateStr ? new Date(releaseDateStr) : null;
         const year = releaseDate && !isNaN(releaseDate.getTime()) ? releaseDate.getFullYear() : '';
         
-        folderName = formatTemplate(localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist}', {
+        folderName = formatTemplate(localStorage.getItem('zip-folder-template') || '{albumTitle}', {
             albumTitle: albumTitle,
             albumArtist: albumArtist,
             year: year,
