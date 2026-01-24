@@ -7,7 +7,7 @@ let globalUi = null;
 
 async function loadArtistsData() {
     try {
-        const response = await fetch('./artists.ndjson');
+        const response = await fetch('/artists.ndjson');
         if (!response.ok) throw new Error('Network response was not ok');
         const text = await response.text();
         artistsData = text.trim().split('\n')
@@ -452,7 +452,7 @@ export async function initTracker(player, ui) {
     globalUi = ui;
     await loadArtistsData();
 
-    const observer = new MutationObserver(async () => {
+    const checkAndRenderTracker = async () => {
         const artistNameEl = document.getElementById('artist-detail-name');
         const trackerSection = document.getElementById('artist-tracker-section');
         
@@ -474,10 +474,13 @@ export async function initTracker(player, ui) {
                 }
             }
         }
-    });
+    };
+
+    const observer = new MutationObserver(checkAndRenderTracker);
 
     const artistPage = document.getElementById('page-artist');
     if (artistPage) {
         observer.observe(artistPage, { attributes: true, childList: true, subtree: true });
+        checkAndRenderTracker();
     }
 }
