@@ -22,22 +22,22 @@ export async function addMetadataToAudio(audioBlob, track, api, quality) {
 
     const buffer = await audioBlob.slice(0, 4).arrayBuffer();
     const view = new DataView(buffer);
-    const isFlac = view.byteLength >= 4 && 
+    const isFlac =
+        view.byteLength >= 4 &&
         view.getUint8(0) === 0x66 && // f
         view.getUint8(1) === 0x4c && // L
         view.getUint8(2) === 0x61 && // a
-        view.getUint8(3) === 0x43;   // C
+        view.getUint8(3) === 0x43; // C
 
-        const mime = audioBlob.type;
+    const mime = audioBlob.type;
 
     if (mime === 'audio/flac') {
         return await addFlacMetadata(audioBlob, track, api);
     }
-    
+
     if (mime === 'audio/mp4') {
         return await addM4aMetadata(audioBlob, track, api);
     }
-    
 }
 
 /**

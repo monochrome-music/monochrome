@@ -10,14 +10,20 @@ async function loadArtistsData() {
         const response = await fetch('/artists.ndjson');
         if (!response.ok) throw new Error('Network response was not ok');
         const text = await response.text();
-        artistsData = text.trim().split('\n')
-            .filter(line => line.trim())
-            .map(line => {
-                try { return JSON.parse(line); } catch (e) { return null; }
+        artistsData = text
+            .trim()
+            .split('\n')
+            .filter((line) => line.trim())
+            .map((line) => {
+                try {
+                    return JSON.parse(line);
+                } catch (e) {
+                    return null;
+                }
             })
-            .filter(item => item !== null);
+            .filter((item) => item !== null);
     } catch (e) {
-        console.error("Failed to load Artists LIst:", e);
+        console.error('Failed to load Artists LIst:', e);
     }
 }
 
@@ -29,11 +35,13 @@ function getSheetId(url) {
 
 async function fetchTrackerData(sheetId) {
     try {
-        const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(`https://tracker.israeli.ovh/get/${sheetId}`)}`);
+        const response = await fetch(
+            `https://corsproxy.io/?${encodeURIComponent(`https://tracker.israeli.ovh/get/${sheetId}`)}`
+        );
         if (!response.ok) return null;
         return await response.json();
     } catch (e) {
-        console.error("Failed to fetch tracker data", e);
+        console.error('Failed to fetch tracker data', e);
         return null;
     }
 }
@@ -62,21 +70,21 @@ function getDirectUrl(rawUrl) {
 function renderLoadButton(container, sheetId, artistName) {
     container.innerHTML = '';
     container.style.display = 'block';
-    
+
     const wrapper = document.createElement('div');
     wrapper.style.textAlign = 'center';
     wrapper.style.padding = '2rem';
-    
+
     const button = document.createElement('button');
     button.className = 'btn-primary';
     button.textContent = 'Load Unreleased Projects';
     button.style.fontSize = '1.1rem';
     button.style.padding = '1rem 2rem';
-    
+
     button.onclick = async () => {
         button.textContent = 'Loading...';
         button.disabled = true;
-        
+
         const trackerData = await fetchTrackerData(sheetId);
         if (trackerData) {
             renderTracker(trackerData, container, artistName);
@@ -88,7 +96,7 @@ function renderLoadButton(container, sheetId, artistName) {
             }, 2000);
         }
     };
-    
+
     wrapper.appendChild(button);
     container.appendChild(wrapper);
 }
@@ -100,7 +108,7 @@ function renderTracker(trackerData, container, artistName) {
             Unreleased Songs & Info Provided By <a href="https://artistgrid.cx" target="_blank" style="text-decoration: underline;">ArtistGrid</a>. Consider Donating to Them.
         </p>
     `;
-    
+
     const erasContainer = document.createElement('div');
     erasContainer.className = 'card-grid';
     erasContainer.style.opacity = '0';
@@ -110,11 +118,11 @@ function renderTracker(trackerData, container, artistName) {
 
     if (!trackerData.eras) return;
 
-    Object.values(trackerData.eras).forEach(era => {
+    Object.values(trackerData.eras).forEach((era) => {
         const card = document.createElement('div');
         card.className = 'card';
         card.style.cursor = 'pointer';
-        
+
         const imgWrapper = document.createElement('div');
         imgWrapper.className = 'card-image-wrapper';
 
@@ -123,13 +131,13 @@ function renderTracker(trackerData, container, artistName) {
         img.src = era.image ? `https://corsproxy.io/?${encodeURIComponent(era.image)}` : 'assets/logo.svg';
         img.alt = era.name;
         img.loading = 'lazy';
-        
+
         imgWrapper.appendChild(img);
 
         const title = document.createElement('div');
         title.className = 'card-title';
         title.textContent = era.name;
-        
+
         const subtitle = document.createElement('div');
         subtitle.className = 'card-subtitle';
         subtitle.textContent = era.timeline || 'Unreleased';
@@ -137,9 +145,9 @@ function renderTracker(trackerData, container, artistName) {
         card.appendChild(imgWrapper);
         card.appendChild(title);
         card.appendChild(subtitle);
-        
+
         card.onclick = () => showEraSongs(era, artistName);
-        
+
         erasContainer.appendChild(card);
     });
 
@@ -153,7 +161,6 @@ function showEraSongs(era, artistName) {
     const modal = document.getElementById('tracker-modal');
     const overlay = modal.querySelector('.modal-overlay');
     const closeBtn = document.getElementById('close-tracker-modal');
-    
 
     const img = document.getElementById('tracker-header-image');
     const title = document.getElementById('tracker-header-title');
@@ -166,7 +173,7 @@ function showEraSongs(era, artistName) {
 
     const trackList = document.getElementById('tracker-tracklist');
     const filterContainer = document.getElementById('tracker-filters');
-    
+
     filterContainer.innerHTML = '';
     while (trackList.lastElementChild && !trackList.lastElementChild.classList.contains('track-list-header')) {
         trackList.removeChild(trackList.lastElementChild);
@@ -178,15 +185,15 @@ function showEraSongs(era, artistName) {
         { label: 'Special', emoji: '✨' },
         { label: 'Grails', emoji: '🏆' },
         { label: 'Wanted', emoji: '🥇' },
-        { label: 'Worst Of', emoji: '🗑️' }
+        { label: 'Worst Of', emoji: '🗑️' },
     ];
 
     let activeFilter = '';
 
     const applyFilter = () => {
         const items = trackList.querySelectorAll('.track-item');
-        
-        items.forEach(item => {
+
+        items.forEach((item) => {
             const titleEl = item.querySelector('.title');
             if (titleEl) {
                 const title = titleEl.textContent.trim();
@@ -199,37 +206,37 @@ function showEraSongs(era, artistName) {
         });
 
         const categories = trackList.querySelectorAll('h4');
-        categories.forEach(cat => {
+        categories.forEach((cat) => {
             let next = cat.nextElementSibling;
             let hasVisibleItems = false;
-            
-            while(next && next.tagName !== 'H4') {
+
+            while (next && next.tagName !== 'H4') {
                 if (next.classList.contains('track-item') && next.style.display !== 'none') {
                     hasVisibleItems = true;
                     break;
                 }
                 next = next.nextElementSibling;
             }
-            
+
             cat.style.display = hasVisibleItems ? 'block' : 'none';
         });
     };
 
-    filters.forEach(filter => {
+    filters.forEach((filter) => {
         const btn = document.createElement('button');
         btn.className = 'btn-secondary';
         btn.textContent = filter.emoji ? `${filter.emoji} ${filter.label}` : filter.label;
         btn.style.fontSize = '0.85rem';
         btn.style.padding = '0.4rem 0.8rem';
         btn.style.borderRadius = '2rem';
-        
+
         if (filter.emoji === '') {
-             btn.style.backgroundColor = 'var(--primary)';
-             btn.style.color = 'var(--primary-foreground)';
+            btn.style.backgroundColor = 'var(--primary)';
+            btn.style.color = 'var(--primary-foreground)';
         }
 
         btn.onclick = () => {
-            Array.from(filterContainer.children).forEach(b => {
+            Array.from(filterContainer.children).forEach((b) => {
                 b.style.backgroundColor = '';
                 b.style.color = '';
             });
@@ -248,7 +255,7 @@ function showEraSongs(era, artistName) {
     if (era.data) {
         Object.entries(era.data).forEach(([category, songs]) => {
             if (!songs || songs.length === 0) return;
-            
+
             const catTitle = document.createElement('h4');
             catTitle.textContent = category;
             catTitle.style.padding = '1rem 0.5rem 0.5rem';
@@ -260,10 +267,10 @@ function showEraSongs(era, artistName) {
 
             const isValidUrl = (u) => u && typeof u === 'string' && u.trim().length > 0;
 
-            songs.forEach(song => {
+            songs.forEach((song) => {
                 const trackItem = document.createElement('div');
                 trackItem.className = 'track-item';
-                
+
                 trackItem.innerHTML = `
                     <div class="track-number">${globalIndex++}</div>
                     <div class="track-item-info">
@@ -287,27 +294,40 @@ function showEraSongs(era, artistName) {
                     e.preventDefault();
                     const contextMenu = document.getElementById('context-menu');
                     if (contextMenu) {
-                        const rawUrl = (isValidUrl(song.url) ? song.url : null) || (song.urls ? song.urls.find(isValidUrl) : null);
+                        const rawUrl =
+                            (isValidUrl(song.url) ? song.url : null) || (song.urls ? song.urls.find(isValidUrl) : null);
                         const directUrl = getDirectUrl(rawUrl);
 
                         const track = {
                             id: `tracker-${song.name}`,
                             title: song.name,
-                            artist: { name: artistName || document.getElementById('artist-detail-name')?.textContent || 'Unknown Artist' },
-                            artists: [{ name: artistName || document.getElementById('artist-detail-name')?.textContent || 'Unknown Artist' }],
+                            artist: {
+                                name:
+                                    artistName ||
+                                    document.getElementById('artist-detail-name')?.textContent ||
+                                    'Unknown Artist',
+                            },
+                            artists: [
+                                {
+                                    name:
+                                        artistName ||
+                                        document.getElementById('artist-detail-name')?.textContent ||
+                                        'Unknown Artist',
+                                },
+                            ],
                             album: {
                                 title: era.name,
-                                cover: era.image
+                                cover: era.image,
                             },
                             duration: parseDuration(song.track_length),
                             isTracker: true,
                             audioUrl: directUrl,
-                            remoteUrl: directUrl
+                            remoteUrl: directUrl,
                         };
-                        
+
                         contextMenu._contextTrack = track;
-                        
-                        ['go-to-album', 'go-to-artist', 'toggle-like', 'download', 'track-mix'].forEach(action => {
+
+                        ['go-to-album', 'go-to-artist', 'toggle-like', 'download', 'track-mix'].forEach((action) => {
                             const item = contextMenu.querySelector(`[data-action="${action}"]`);
                             if (item) item.style.display = 'none';
                         });
@@ -326,7 +346,7 @@ function showEraSongs(era, artistName) {
                 if (hasValidUrl) {
                     trackItem.onclick = async () => {
                         if (song.track_length === '-') {
-                            const targetUrl = (song.urls && song.urls.length > 0) ? song.urls[0] : song.url;
+                            const targetUrl = song.urls && song.urls.length > 0 ? song.urls[0] : song.url;
                             if (targetUrl) window.open(targetUrl, '_blank');
                             return;
                         }
@@ -337,8 +357,9 @@ function showEraSongs(era, artistName) {
                         trackItem.classList.add('loading');
                         const trackNumEl = trackItem.querySelector('.track-number');
                         const originalNum = trackNumEl.textContent;
-                        trackNumEl.innerHTML = '<svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg>';
-                        
+                        trackNumEl.innerHTML =
+                            '<svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg>';
+
                         let urlsToTry = [];
                         if (isValidUrl(song.url)) {
                             urlsToTry.push(song.url);
@@ -349,12 +370,12 @@ function showEraSongs(era, artistName) {
 
                         let audioUrl = null;
                         let successfulUrl = null;
-                        
+
                         for (let rawUrl of urlsToTry) {
                             console.log(`Trying: ${rawUrl}`);
-                            
+
                             let downloadUrl = rawUrl;
-                            
+
                             if (rawUrl.includes('pillows.su/f/')) {
                                 const match = rawUrl.match(/pillows\.su\/f\/([a-f0-9]+)/);
                                 if (match) {
@@ -370,12 +391,14 @@ function showEraSongs(era, artistName) {
                             try {
                                 console.log(`Fetching: ${downloadUrl}`);
                                 const response = await fetch(downloadUrl);
-                                
+
                                 if (response.ok) {
                                     const contentType = response.headers.get('content-type') || '';
-                                    if (contentType.includes('audio/') || 
+                                    if (
+                                        contentType.includes('audio/') ||
                                         contentType.includes('mpeg') ||
-                                        contentType.includes('octet-stream')) {
+                                        contentType.includes('octet-stream')
+                                    ) {
                                         const arrayBuffer = await response.arrayBuffer();
                                         if (arrayBuffer.byteLength > 1000) {
                                             const blob = new Blob([arrayBuffer], { type: 'audio/mpeg' });
@@ -394,26 +417,43 @@ function showEraSongs(era, artistName) {
                         document.body.style.cursor = 'default';
                         trackItem.classList.remove('loading');
                         trackNumEl.textContent = originalNum;
-                        
+
                         if (!audioUrl) {
-                            alert(`Unable to load this track! :( The source may be unavailable.\n\nTried ${urlsToTry.length} URL(s)`);
+                            alert(
+                                `Unable to load this track! :( The source may be unavailable.\n\nTried ${urlsToTry.length} URL(s)`
+                            );
                             return;
                         }
-                        
+
                         if (globalPlayer) {
                             const track = {
                                 id: `tracker-${song.name}`,
                                 title: song.name,
-                                artist: { name: artistName || document.getElementById('artist-detail-name')?.textContent || 'Unknown Artist' },
-                                artists: [{ name: artistName || document.getElementById('artist-detail-name')?.textContent || 'Unknown Artist' }],
+                                artist: {
+                                    name:
+                                        artistName ||
+                                        document.getElementById('artist-detail-name')?.textContent ||
+                                        'Unknown Artist',
+                                },
+                                artists: [
+                                    {
+                                        name:
+                                            artistName ||
+                                            document.getElementById('artist-detail-name')?.textContent ||
+                                            'Unknown Artist',
+                                    },
+                                ],
                                 album: {
                                     title: era.name,
-                                    cover: era.image
+                                    cover: era.image,
                                 },
                                 duration: parseDuration(song.track_length),
                                 isTracker: true,
                                 audioUrl: audioUrl,
-                                remoteUrl: successfulUrl || (urlsToTry.length > 0 ? getDirectUrl(urlsToTry[0]) : null) || getDirectUrl(song.url)
+                                remoteUrl:
+                                    successfulUrl ||
+                                    (urlsToTry.length > 0 ? getDirectUrl(urlsToTry[0]) : null) ||
+                                    getDirectUrl(song.url),
                             };
 
                             globalPlayer.setQueue([track], 0);
@@ -455,18 +495,18 @@ export async function initTracker(player, ui) {
     const checkAndRenderTracker = async () => {
         const artistNameEl = document.getElementById('artist-detail-name');
         const trackerSection = document.getElementById('artist-tracker-section');
-        
+
         if (artistNameEl && trackerSection && artistNameEl.textContent) {
             const artistName = artistNameEl.textContent.trim();
-            
+
             if (trackerSection.dataset.artist === artistName) return;
-            
+
             trackerSection.dataset.artist = artistName;
             trackerSection.innerHTML = '';
             trackerSection.style.display = 'none';
 
-            const artistEntry = artistsData.find(a => a.name.toLowerCase() === artistName.toLowerCase());
-            
+            const artistEntry = artistsData.find((a) => a.name.toLowerCase() === artistName.toLowerCase());
+
             if (artistEntry && artistEntry.url) {
                 const sheetId = getSheetId(artistEntry.url);
                 if (sheetId) {

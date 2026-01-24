@@ -545,7 +545,16 @@ function createBulkDownloadNotification(type, name, _totalItems) {
     notifEl.dataset.bulkType = type;
     notifEl.dataset.bulkName = name;
 
-    const typeLabel = type === 'album' ? 'Album' : type === 'playlist' ? 'Playlist' : type === 'liked' ? 'Liked Tracks' : type === 'queue' ? 'Queue' : 'Discography';
+    const typeLabel =
+        type === 'album'
+            ? 'Album'
+            : type === 'playlist'
+              ? 'Playlist'
+              : type === 'liked'
+                ? 'Liked Tracks'
+                : type === 'queue'
+                  ? 'Queue'
+                  : 'Discography';
 
     notifEl.innerHTML = `
         <div style="display: flex; align-items: start; gap: 0.75rem;">

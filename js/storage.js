@@ -626,7 +626,7 @@ export const visualizerSettings = {
     getSensitivity() {
         try {
             const val = localStorage.getItem(this.SENSITIVITY_KEY);
-            if (val === null) return 1.0; 
+            if (val === null) return 1.0;
             return parseFloat(val);
         } catch {
             return 1.0;

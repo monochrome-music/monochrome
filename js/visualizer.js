@@ -11,7 +11,7 @@ export class Visualizer {
         this.isActive = false;
         this.animationId = null;
         this.particles = [];
-        
+
         this.kick = 0;
         this.lastIntensity = 0;
         this.lastBeatTime = 0;
@@ -33,7 +33,7 @@ export class Visualizer {
             this.source.connect(this.analyser);
             this.analyser.connect(this.audioContext.destination);
         } catch (e) {
-            console.warn("Visualizer init failed (likely CORS or already connected):", e);
+            console.warn('Visualizer init failed (likely CORS or already connected):', e);
         }
     }
 
@@ -45,11 +45,11 @@ export class Visualizer {
         if (this.audioContext.state === 'suspended') {
             this.audioContext.resume();
         }
-        
+
         this.resize();
         window.addEventListener('resize', this.resizeBound);
         this.canvas.style.display = 'block';
-        
+
         this.particles = [];
         this.energyAverage = 0.3;
         this.kick = 0;
@@ -61,7 +61,7 @@ export class Visualizer {
         this.isActive = false;
         if (this.animationId) cancelAnimationFrame(this.animationId);
         window.removeEventListener('resize', this.resizeBound);
-        
+
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.canvas.style.display = 'none';
     }
@@ -93,14 +93,11 @@ export class Visualizer {
 
         for (let i = 0; i < 4; i++) bassSum += dataArray[i];
         const bass = bassSum / 4 / 255;
-        
 
-        const intensity = bass * bass; 
-
+        const intensity = bass * bass;
 
         this.energyAverage = this.energyAverage * 0.99 + intensity * 0.01;
         this.upbeatSmoother = this.upbeatSmoother * 0.92 + intensity * 0.08;
-
 
         if (visualizerSettings.isSmartIntensityEnabled()) {
             let target = 0.1;
@@ -113,18 +110,14 @@ export class Visualizer {
             sensitivity = target;
         }
 
-
         let threshold = 0.5;
         if (this.energyAverage < 0.3) {
-
             threshold = 0.5 + (0.3 - this.energyAverage) * 2;
         }
-
 
         const now = Date.now();
 
         if (intensity > threshold) {
-
             if (intensity > this.lastIntensity + 0.05 && now - this.lastBeatTime > 50) {
                 this.kick = 1.0;
                 this.lastBeatTime = now;
@@ -145,7 +138,6 @@ export class Visualizer {
         }
         this.lastIntensity = intensity;
 
-
         let shakeX = 0;
         let shakeY = 0;
         if (this.kick > 0.1) {
@@ -154,8 +146,8 @@ export class Visualizer {
             shakeY = (Math.random() - 0.5) * shakeAmt;
         }
 
-        const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#ffffff';
-        
+        const primaryColor =
+            getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#ffffff';
 
         const particleCount = 180;
         if (this.particles.length !== particleCount) {
@@ -167,22 +159,21 @@ export class Visualizer {
                     vx: (Math.random() - 0.5) * 2,
                     vy: (Math.random() - 0.5) * 2,
                     size: Math.random() * 3 + 1,
-                    baseSize: Math.random() * 3 + 1
+                    baseSize: Math.random() * 3 + 1,
                 });
             }
         }
 
         ctx.save();
         ctx.translate(shakeX, shakeY);
-        
+
         ctx.fillStyle = primaryColor;
         ctx.strokeStyle = primaryColor;
 
         for (let i = 0; i < this.particles.length; i++) {
             let p = this.particles[i];
 
-
-            const speedMult = 1 + (intensity * 2) + this.kick * 8 * sensitivity;
+            const speedMult = 1 + intensity * 2 + this.kick * 8 * sensitivity;
             p.x += p.vx * speedMult;
             p.y += p.vy * speedMult;
 
@@ -196,9 +187,8 @@ export class Visualizer {
             if (p.y < 0) p.y = h;
             if (p.y > h) p.y = 0;
 
-
             const size = p.baseSize * (1 + intensity * 0.5 + this.kick * 0.8 * sensitivity);
-            ctx.globalAlpha = 0.4 + (intensity * 0.2) + this.kick * 0.15 * sensitivity;
+            ctx.globalAlpha = 0.4 + intensity * 0.2 + this.kick * 0.15 * sensitivity;
             ctx.beginPath();
             ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
             ctx.fill();
@@ -207,8 +197,8 @@ export class Visualizer {
                 const p2 = this.particles[j];
                 const dx = p.x - p2.x;
                 const dy = p.y - p2.y;
-                const distSq = dx*dx + dy*dy;
-                
+                const distSq = dx * dx + dy * dy;
+
                 const maxDist = 150 + intensity * 50 + this.kick * 50 * sensitivity;
                 const maxDistSq = maxDist * maxDist;
 

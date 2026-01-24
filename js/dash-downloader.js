@@ -77,7 +77,7 @@ export class DashDownloader {
         adaptationSets.sort((a, b) => {
             const getMaxBandwidth = (set) => {
                 const reps = Array.from(set.querySelectorAll('Representation'));
-                return reps.length ? Math.max(...reps.map(r => parseInt(r.getAttribute('bandwidth') || '0', 10))) : 0;
+                return reps.length ? Math.max(...reps.map((r) => parseInt(r.getAttribute('bandwidth') || '0', 10))) : 0;
             };
             return getMaxBandwidth(b) - getMaxBandwidth(a);
         });

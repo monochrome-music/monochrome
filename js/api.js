@@ -843,11 +843,11 @@ export class LosslessAPI {
         const response = await this.fetchWithRetry(`/info/?id=${id}`, { type: 'api' });
         const json = await response.json();
         const data = json.data || json;
-        
+
         let track;
         const items = Array.isArray(data) ? data : [data];
-        const found = items.find(i => (i.id == id) || (i.item && i.item.id == id));
-        
+        const found = items.find((i) => i.id == id || (i.item && i.item.id == id));
+
         if (found) {
             track = this.prepareTrack(found.item || found);
             await this.cache.set('track', cacheKey, track);

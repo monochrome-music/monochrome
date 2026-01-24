@@ -67,14 +67,16 @@ class ServerAPI {
 export async function onRequest(context) {
     const { request, params, env } = context;
     const userAgent = request.headers.get('User-Agent') || '';
-    const isBot = /discordbot|twitterbot|facebookexternalhit|bingbot|googlebot|slurp|whatsapp|pinterest|slackbot/i.test(userAgent);
+    const isBot = /discordbot|twitterbot|facebookexternalhit|bingbot|googlebot|slurp|whatsapp|pinterest|slackbot/i.test(
+        userAgent
+    );
     const albumId = params.id;
 
     if (isBot && albumId) {
         try {
             const api = new ServerAPI();
             const data = await api.getAlbumMetadata(albumId);
-            const album = data.data || data.album || data; 
+            const album = data.data || data.album || data;
             const tracks = album.items || data.tracks || [];
 
             if (album && (album.title || album.name)) {
@@ -82,9 +84,11 @@ export async function onRequest(context) {
                 const artist = album.artist?.name || 'Unknown Artist';
                 const year = album.releaseDate ? new Date(album.releaseDate).getFullYear() : '';
                 const trackCount = album.numberOfTracks || tracks.length;
-                
+
                 const description = `Album by ${artist} • ${year} • ${trackCount} Tracks\nListen on Monochrome`;
-                const imageUrl = album.cover ? api.getCoverUrl(album.cover, '1280') : 'https://monochrome.samidy.com/assets/appicon.png';
+                const imageUrl = album.cover
+                    ? api.getCoverUrl(album.cover, '1280')
+                    : 'https://monochrome.samidy.com/assets/appicon.png';
                 const pageUrl = new URL(request.url).href;
 
                 const metaHtml = `

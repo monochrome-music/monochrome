@@ -170,7 +170,10 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
         const progressBar = document.getElementById('progress-bar');
         const playerControls = document.querySelector('.player-controls');
 
-        const isTracker = player.currentTrack && (player.currentTrack.isTracker || (player.currentTrack.id && String(player.currentTrack.id).startsWith('tracker-')));
+        const isTracker =
+            player.currentTrack &&
+            (player.currentTrack.isTracker ||
+                (player.currentTrack.id && String(player.currentTrack.id).startsWith('tracker-')));
 
         if (!waveformSettings.isEnabled() || !player.currentTrack || isTracker) {
             if (progressBar) {
@@ -624,7 +627,7 @@ export async function handleTrackAction(
         if (nowPlayingLikeBtn && type === 'track' && player?.currentTrack?.id === item.id) {
             elementsToUpdate.push(nowPlayingLikeBtn);
         }
-        
+
         const fsLikeBtn = document.getElementById('fs-like-btn');
         if (fsLikeBtn && type === 'track' && player?.currentTrack?.id === item.id) {
             elementsToUpdate.push(fsLikeBtn);

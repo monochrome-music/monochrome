@@ -11,7 +11,6 @@ export function navigate(path) {
 
 export function createRouter(ui) {
     const router = async () => {
-
         if (window.location.hash && window.location.hash.length > 1) {
             const hash = window.location.hash.substring(1);
             if (hash.includes('/')) {
@@ -21,7 +20,7 @@ export function createRouter(ui) {
         }
 
         let path = window.location.pathname;
-        
+
         if (path.startsWith('/')) path = path.substring(1);
         if (path.endsWith('/')) path = path.substring(0, path.length - 1);
         if (path === '' || path === 'index.html') path = 'home';
