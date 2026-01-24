@@ -935,6 +935,10 @@ body.has-page-background .track-item:hover {
     gap: 2px var(--spacing-xl);
 }
 
+#playlist-detail-recommended .track-item {
+    grid-template-columns: 40px 1fr 80px 90px;
+}
+
 @media (max-width: 1100px) {
     #home-recommended-songs,
     #artist-detail-tracks,

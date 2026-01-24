@@ -1,35 +1,49 @@
 name: Deploy to GitHub Pages
 
 on:
-    push:
-        branches: [main]
+  push:
+    branches: [main]
 
 jobs:
-    deploy:
-        runs-on: ubuntu-latest
-        permissions:
-            contents: write # Needed to push to the gh-pages branch
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
-        steps:
-            - name: Checkout Code
-              uses: actions/checkout@v3
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
-            - name: Setup Node.js
-              uses: actions/setup-node@v3
-              with:
-                  node-version: '22'
-                  cache: 'npm'
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
 
-            - name: Install Dependencies
-              run: npm ci
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ./bun_modules
+            ./node_modules
+            ./bun.lock
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
 
-            - name: Build
-              run: npm run build
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
 
-            - name: Deploy to GitHub Pages
-              uses: peaceiris/actions-gh-pages@v3
-              with:
-                  github_token: ${{ secrets.GITHUB_TOKEN }}
-                  publish_dir: ./dist
-                  publish_branch: deployed-ver
-                  force_orphan: true
+      - name: Build project
+        run: bun run build --mode production
+        env:
+          NODE_ENV: production
+          BUN_BUILD_THREADS: $(nproc)
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: deployed-ver
+          force_orphan: true
+          keep_files: false
