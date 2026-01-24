@@ -12,11 +12,64 @@ import {
 import { sidePanelManager } from './side-panel.js';
 import { downloadQualitySettings } from './storage.js';
 
-export function initializeUIInteractions(player, api) {
+export function initializeUIInteractions(player, api, ui) {
     const sidebar = document.querySelector('.sidebar');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
     const hamburgerBtn = document.getElementById('hamburger-btn');
     const queueBtn = document.getElementById('queue-btn');
+    const libraryPage = document.getElementById('page-library');
+
+    if (libraryPage) {
+        libraryPage.addEventListener('dragstart', (e) => {
+            const playlistCard = e.target.closest('.card.user-playlist');
+            if (playlistCard) {
+                e.dataTransfer.setData('text/playlist-id', playlistCard.dataset.userPlaylistId);
+                e.dataTransfer.effectAllowed = 'move';
+            }
+        });
+
+        const handleDragOver = (e) => {
+            const folderCard = e.target.closest('.card[data-folder-id]');
+            if (folderCard && e.dataTransfer.types.includes('text/playlist-id')) {
+                e.preventDefault();
+                folderCard.classList.add('drag-over');
+            }
+        };
+
+        const handleDragLeave = (e) => {
+            const folderCard = e.target.closest('.card[data-folder-id]');
+            if (folderCard) {
+                folderCard.classList.remove('drag-over');
+            }
+        };
+
+        const handleDrop = async (e) => {
+            e.preventDefault();
+            const folderCard = e.target.closest('.card[data-folder-id]');
+            if (folderCard) {
+                folderCard.classList.remove('drag-over');
+                const playlistId = e.dataTransfer.getData('text/playlist-id');
+                const folderId = folderCard.dataset.folderId;
+
+                if (playlistId && folderId) {
+                    const { db } = await import('./db.js');
+                    const { syncManager } = await import('./accounts/pocketbase.js');
+                    const { showNotification } = await import('./downloads.js');
+                    const updatedFolder = await db.addPlaylistToFolder(folderId, playlistId);
+                    syncManager.syncUserFolder(updatedFolder, 'update');
+                    const subtitle = folderCard.querySelector('.card-subtitle');
+                    if (subtitle) {
+                        subtitle.textContent = `${updatedFolder.playlists.length} playlists`;
+                    }
+                    showNotification('Playlist added to folder');
+                }
+            }
+        };
+
+        libraryPage.addEventListener('dragover', handleDragOver);
+        libraryPage.addEventListener('dragleave', handleDragLeave);
+        libraryPage.addEventListener('drop', handleDrop);
+    }
 
     let draggedQueueIndex = null;
 
@@ -361,7 +414,45 @@ export function initializeUIInteractions(player, api) {
         if (sidePanelManager.isActive('queue')) {
             refreshQueuePanel();
         }
+        
+        const overlay = document.getElementById('fullscreen-cover-overlay');
+        if (overlay && getComputedStyle(overlay).display !== 'none') {
+            ui.updateFullscreenMetadata(player.currentTrack, player.getNextTrack());
+        }
     };
+
+    const folderPage = document.getElementById('page-folder');
+    if (folderPage) {
+        folderPage.addEventListener('dragover', (e) => {
+            if (e.dataTransfer.types.includes('text/playlist-id')) {
+                e.preventDefault();
+                folderPage.classList.add('drag-over-folder-page');
+            }
+        });
+        folderPage.addEventListener('dragleave', () => {
+            folderPage.classList.remove('drag-over-folder-page');
+        });
+        folderPage.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            folderPage.classList.remove('drag-over-folder-page');
+            const playlistId = e.dataTransfer.getData('text/playlist-id');
+            const folderId = window.location.pathname.split('/')[2];
+            if (playlistId && folderId) {
+                const { db } = await import('./db.js');
+                const { syncManager } = await import('./accounts/pocketbase.js');
+                const { showNotification } = await import('./downloads.js');
+                try {
+                    const updatedFolder = await db.addPlaylistToFolder(folderId, playlistId);
+                    syncManager.syncUserFolder(updatedFolder, 'update');
+                    window.dispatchEvent(new HashChangeEvent('hashchange'));
+                    showNotification('Playlist added to folder');
+                } catch (error) {
+                    console.error('Failed to add playlist to folder:', error);
+                    showNotification('Failed to add playlist to folder', 'error');
+                }
+            }
+        });
+    }
 
     // Search and Library tabs
     document.querySelectorAll('.search-tab').forEach((tab) => {

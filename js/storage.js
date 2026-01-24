@@ -540,6 +540,20 @@ export const downloadQualitySettings = {
     },
 };
 
+export const coverArtSizeSettings = {
+    STORAGE_KEY: 'cover-art-size',
+    getSize() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) || '1280';
+        } catch {
+            return '1280';
+        }
+    },
+    setSize(size) {
+        localStorage.setItem(this.STORAGE_KEY, size);
+    },
+};
+
 export const waveformSettings = {
     STORAGE_KEY: 'waveform-seekbar-enabled',
 
@@ -602,6 +616,38 @@ export const bulkDownloadSettings = {
 
     setForceIndividual(enabled) {
         localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+};
+
+export const visualizerSettings = {
+    SENSITIVITY_KEY: 'visualizer-sensitivity',
+    SMART_INTENSITY_KEY: 'visualizer-smart-intensity',
+
+    getSensitivity() {
+        try {
+            const val = localStorage.getItem(this.SENSITIVITY_KEY);
+            if (val === null) return 1.0; 
+            return parseFloat(val);
+        } catch {
+            return 1.0;
+        }
+    },
+
+    setSensitivity(value) {
+        localStorage.setItem(this.SENSITIVITY_KEY, value);
+    },
+
+    isSmartIntensityEnabled() {
+        try {
+            const val = localStorage.getItem(this.SMART_INTENSITY_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setSmartIntensity(enabled) {
+        localStorage.setItem(this.SMART_INTENSITY_KEY, enabled);
     },
 };
 

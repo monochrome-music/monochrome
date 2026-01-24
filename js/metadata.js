@@ -16,23 +16,28 @@ const DEFAULT_ALBUM = 'Unknown Album';
 export async function addMetadataToAudio(audioBlob, track, api, quality) {
     const extension = getExtensionForQuality(quality);
 
-    // Hi-Res FLAC from DASH is usually in an MP4 container, so we should tag it as M4A
     if (quality === 'HI_RES_LOSSLESS') {
-        const taggedBlob = await addM4aMetadata(audioBlob, track, api);
-        if (extension === 'flac') {
-            return new Blob([taggedBlob], { type: 'audio/flac' });
-        }
-        return taggedBlob;
+        return await addFlacMetadata(audioBlob, track, api);
     }
 
-    if (extension === 'flac') {
+    const buffer = await audioBlob.slice(0, 4).arrayBuffer();
+    const view = new DataView(buffer);
+    const isFlac = view.byteLength >= 4 && 
+        view.getUint8(0) === 0x66 && // f
+        view.getUint8(1) === 0x4c && // L
+        view.getUint8(2) === 0x61 && // a
+        view.getUint8(3) === 0x43;   // C
+
+        const mime = audioBlob.type;
+
+    if (mime === 'audio/flac') {
         return await addFlacMetadata(audioBlob, track, api);
-    } else if (extension === 'm4a') {
+    }
+    
+    if (mime === 'audio/mp4') {
         return await addM4aMetadata(audioBlob, track, api);
     }
-
-    // If unsupported format, return original blob
-    return audioBlob;
+    
 }
 
 /**

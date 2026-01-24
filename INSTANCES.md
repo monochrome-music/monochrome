@@ -22,3 +22,4 @@ UI:
 | QQDL | https://tidal.qqdl.site/ |
 | Arjix | https://music.arjix.dev/ |
 | Spofree | https://spo.free.nf |
+| Mappl   | https://mappl.tv/music |

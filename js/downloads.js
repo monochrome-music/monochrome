@@ -545,7 +545,7 @@ function createBulkDownloadNotification(type, name, _totalItems) {
     notifEl.dataset.bulkType = type;
     notifEl.dataset.bulkName = name;
 
-    const typeLabel = type === 'album' ? 'Album' : type === 'playlist' ? 'Playlist' : 'Discography';
+    const typeLabel = type === 'album' ? 'Album' : type === 'playlist' ? 'Playlist' : type === 'liked' ? 'Liked Tracks' : type === 'queue' ? 'Queue' : 'Discography';
 
     notifEl.innerHTML = `
         <div style="display: flex; align-items: start; gap: 0.75rem;">
@@ -681,4 +681,9 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
     } finally {
         ongoingDownloads.delete(downloadKey);
     }
+}
+
+export async function downloadLikedTracks(tracks, api, quality, lyricsManager = null) {
+    const folderName = `Liked Tracks - ${new Date().toISOString().slice(0, 10)}`;
+    await startBulkDownload(tracks, folderName, api, quality, lyricsManager, 'liked', 'Liked Tracks');
 }

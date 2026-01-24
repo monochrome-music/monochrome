@@ -1,5 +1,5 @@
 //js/utils.js
-import { qualityBadgeSettings } from './storage.js';
+import { qualityBadgeSettings, coverArtSizeSettings } from './storage.js';
 
 export const QUALITY = 'HI_RES_LOSSLESS';
 
@@ -272,12 +272,58 @@ export const formatDuration = (seconds) => {
 
 const coverCache = new Map();
 
+function resizeImageBlob(blob, size) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        const url = URL.createObjectURL(blob);
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, 0, 0, size, size);
+            canvas.toBlob((resizedBlob) => {
+                if (resizedBlob) resolve(resizedBlob);
+                else reject(new Error('Canvas toBlob failed'));
+            }, blob.type || 'image/jpeg', 0.9);
+        };
+        img.onerror = (e) => {
+            URL.revokeObjectURL(url);
+            reject(e);
+        };
+        img.src = url;
+    });
+}
+
 /**
  * Fetches and caches cover art as a Blob
  */
 export async function getCoverBlob(api, coverId) {
     if (!coverId) return null;
-    if (coverCache.has(coverId)) return coverCache.get(coverId);
+
+    let sizeStr = coverArtSizeSettings.getSize();
+
+    if (sizeStr.includes('x')) {
+        sizeStr = sizeStr.split('x')[0];
+    }
+    
+    let requestedSize = parseInt(sizeStr, 10);
+    if (isNaN(requestedSize) || requestedSize <= 0) requestedSize = 1280;
+
+    const cacheKey = `${coverId}-${requestedSize}`;
+    if (coverCache.has(cacheKey)) return coverCache.get(cacheKey);
+
+    // Tidal seems to only support these soooo 
+    const supportedSizes = [80, 160, 320, 640, 1280];
+    let fetchSize = 1280;
+    
+    const bestSize = supportedSizes.find(s => s >= requestedSize);
+    if (bestSize) {
+        fetchSize = bestSize;
+    }
 
     const fetchWithProxy = async (url) => {
         try {
@@ -290,30 +336,33 @@ export async function getCoverBlob(api, coverId) {
         return null;
     };
 
+    let blob = null;
     try {
-        const url = api.getCoverUrl(coverId, '1280');
+        const url = api.getCoverUrl(coverId, fetchSize.toString());
         // Try direct fetch first
         const response = await fetch(url);
         if (response.ok) {
-            const blob = await response.blob();
-            coverCache.set(coverId, blob);
-            return blob;
+            blob = await response.blob();
         } else {
             // If direct fetch fails (e.g. 404 from SW due to CORS), try proxy
-            const blob = await fetchWithProxy(url);
-            if (blob) {
-                coverCache.set(coverId, blob);
-                return blob;
-            }
+            blob = await fetchWithProxy(url);
         }
     } catch {
         // Network error (CORS rejection not handled by SW), try proxy
-        const url = api.getCoverUrl(coverId, '1280');
-        const blob = await fetchWithProxy(url);
-        if (blob) {
-            coverCache.set(coverId, blob);
-            return blob;
+        const url = api.getCoverUrl(coverId, fetchSize.toString());
+        blob = await fetchWithProxy(url);
+    }
+
+    if (blob) {
+        if (fetchSize !== requestedSize) {
+            try {
+                blob = await resizeImageBlob(blob, requestedSize);
+            } catch (e) {
+                console.warn('Failed to resize cover art, using original size:', e);
+            }
         }
+        coverCache.set(cacheKey, blob);
+        return blob;
     }
     return null;
 }

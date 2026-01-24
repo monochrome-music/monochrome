@@ -11,7 +11,9 @@ import {
     replayGainSettings,
     smoothScrollingSettings,
     downloadQualitySettings,
+    coverArtSizeSettings,
     qualityBadgeSettings,
+    visualizerSettings,
     bulkDownloadSettings,
 } from './storage.js';
 import { db } from './db.js';
@@ -275,6 +277,16 @@ export function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
+    // Cover Art Size setting
+    const coverArtSizeSetting = document.getElementById('cover-art-size-setting');
+    if (coverArtSizeSetting) {
+        coverArtSizeSetting.value = coverArtSizeSettings.getSize();
+
+        coverArtSizeSetting.addEventListener('change', (e) => {
+            coverArtSizeSettings.setSize(e.target.value);
+        });
+    }
+
     // Quality Badge Settings
     const showQualityBadgesToggle = document.getElementById('show-quality-badges-toggle');
     if (showQualityBadgesToggle) {
@@ -396,6 +408,42 @@ export function initializeSettings(scrobbler, player, api, ui) {
             smoothScrollingSettings.setEnabled(e.target.checked);
 
             window.dispatchEvent(new CustomEvent('smooth-scrolling-toggle', { detail: { enabled: e.target.checked } }));
+        });
+    }
+
+    // Visualizer Sensitivity
+    const visualizerSensitivitySlider = document.getElementById('visualizer-sensitivity-slider');
+    const visualizerSensitivityValue = document.getElementById('visualizer-sensitivity-value');
+    if (visualizerSensitivitySlider && visualizerSensitivityValue) {
+        const currentSensitivity = visualizerSettings.getSensitivity();
+        visualizerSensitivitySlider.value = currentSensitivity;
+        visualizerSensitivityValue.textContent = `${(currentSensitivity * 100).toFixed(0)}%`;
+
+        visualizerSensitivitySlider.addEventListener('input', (e) => {
+            const newSensitivity = parseFloat(e.target.value);
+            visualizerSettings.setSensitivity(newSensitivity);
+            visualizerSensitivityValue.textContent = `${(newSensitivity * 100).toFixed(0)}%`;
+        });
+    }
+
+    // Visualizer Smart Intensity
+    const smartIntensityToggle = document.getElementById('smart-intensity-toggle');
+    if (smartIntensityToggle) {
+        const isSmart = visualizerSettings.isSmartIntensityEnabled();
+        smartIntensityToggle.checked = isSmart;
+
+        const updateSliderState = (enabled) => {
+            if (visualizerSensitivitySlider) {
+                visualizerSensitivitySlider.disabled = enabled;
+                visualizerSensitivitySlider.parentElement.style.opacity = enabled ? '0.5' : '1';
+                visualizerSensitivitySlider.parentElement.style.pointerEvents = enabled ? 'none' : 'auto';
+            }
+        };
+        updateSliderState(isSmart);
+
+        smartIntensityToggle.addEventListener('change', (e) => {
+            visualizerSettings.setSmartIntensity(e.target.checked);
+            updateSliderState(e.target.checked);
         });
     }
 

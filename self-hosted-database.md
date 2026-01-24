@@ -39,6 +39,7 @@ firebase by default makes you add trusted domains to connect to firebases authen
 - name: `history` type: `JSON`
 - name: `library` type: `JSON`
 - name: `user_playlists` type: `JSON`
+- name: `user_folders` type: `JSON`
 - name: `deleted_playlists` type: `JSON`
 
 4. Add these fields to `public_playlists`:

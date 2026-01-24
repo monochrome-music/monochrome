@@ -16,6 +16,8 @@ export class DashDownloader {
         // 2. Generate URLs
         const urls = this.generateSegmentUrls(manifest);
 
+        const mimeType = audioSet.getAttribute('mimeType') || 'audio/mp4';
+
         // 3. Download Segments
         const chunks = [];
         let downloadedBytes = 0;
@@ -56,7 +58,7 @@ export class DashDownloader {
         }
 
         // 4. Concatenate
-        return new Blob(chunks, { type: 'audio/mp4' });
+        return new Blob(chunks, { type: mimeType });
     }
 
     parseManifest(manifestText) {
@@ -71,6 +73,15 @@ export class DashDownloader {
 
         // Prefer highest bandwidth audio adaptation set
         const adaptationSets = Array.from(period.querySelectorAll('AdaptationSet'));
+
+        adaptationSets.sort((a, b) => {
+            const getMaxBandwidth = (set) => {
+                const reps = Array.from(set.querySelectorAll('Representation'));
+                return reps.length ? Math.max(...reps.map(r => parseInt(r.getAttribute('bandwidth') || '0', 10))) : 0;
+            };
+            return getMaxBandwidth(b) - getMaxBandwidth(a);
+        });
+
         let audioSet = adaptationSets.find((as) => as.getAttribute('mimeType')?.startsWith('audio'));
 
         // Fallback: look for any adaptation set if mimeType is missing (rare)

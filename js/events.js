@@ -12,7 +12,7 @@ import {
 import { lastFMStorage, waveformSettings } from './storage.js';
 import { showNotification, downloadTrackWithMetadata } from './downloads.js';
 import { downloadQualitySettings } from './storage.js';
-import { updateTabTitle } from './router.js';
+import { updateTabTitle, navigate } from './router.js';
 import { db } from './db.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { waveformGenerator } from './waveform.js';
@@ -20,7 +20,7 @@ import { waveformGenerator } from './waveform.js';
 let currentTrackIdForWaveform = null;
 
 export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
-    const playPauseBtn = document.querySelector('.play-pause-btn');
+    const playPauseBtn = document.querySelector('.now-playing-bar .play-pause-btn');
     const nextBtn = document.getElementById('next-btn');
     const prevBtn = document.getElementById('prev-btn');
     const shuffleBtn = document.getElementById('shuffle-btn');
@@ -170,7 +170,9 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
         const progressBar = document.getElementById('progress-bar');
         const playerControls = document.querySelector('.player-controls');
 
-        if (!waveformSettings.isEnabled() || !player.currentTrack) {
+        const isTracker = player.currentTrack && (player.currentTrack.isTracker || (player.currentTrack.id && String(player.currentTrack.id).startsWith('tracker-')));
+
+        if (!waveformSettings.isEnabled() || !player.currentTrack || isTracker) {
             if (progressBar) {
                 progressBar.style.webkitMaskImage = '';
                 progressBar.style.maskImage = '';
@@ -553,7 +555,7 @@ export async function handleTrackAction(
         showNotification(`Playing next: ${item.title}`);
     } else if (action === 'track-mix') {
         if (item.mixes && item.mixes.TRACK_MIX) {
-            window.location.hash = `#mix/${item.mixes.TRACK_MIX}`;
+            navigate(`/mix/${item.mixes.TRACK_MIX}`);
         }
     } else if (action === 'play-card') {
         try {
@@ -621,6 +623,11 @@ export async function handleTrackAction(
         const nowPlayingLikeBtn = document.getElementById('now-playing-like-btn');
         if (nowPlayingLikeBtn && type === 'track' && player?.currentTrack?.id === item.id) {
             elementsToUpdate.push(nowPlayingLikeBtn);
+        }
+        
+        const fsLikeBtn = document.getElementById('fs-like-btn');
+        if (fsLikeBtn && type === 'track' && player?.currentTrack?.id === item.id) {
+            elementsToUpdate.push(fsLikeBtn);
         }
 
         elementsToUpdate.forEach((btn) => {
@@ -763,12 +770,17 @@ export async function handleTrackAction(
     } else if (action === 'go-to-artist') {
         const artistId = item.artist?.id || item.artists?.[0]?.id;
         if (artistId) {
-            window.location.hash = `#artist/${artistId}`;
+            navigate(`/artist/${artistId}`);
         }
     } else if (action === 'go-to-album') {
         if (item.album?.id) {
-            window.location.hash = `#album/${item.album.id}`;
+            navigate(`/album/${item.album.id}`);
         }
+    } else if (action === 'copy-link' || action === 'share') {
+        const url = `${window.location.origin}/track/${item.id}`;
+        navigator.clipboard.writeText(url).then(() => {
+            showNotification('Link copied to clipboard!');
+        });
     }
 }
 
@@ -801,11 +813,11 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             const action = actionBtn.dataset.action;
             const type = actionBtn.dataset.type || 'track';
 
-            let item = itemElement ? trackDataStore.get(itemElement) : null;
+            let item = itemElement ? trackDataStore.get(itemElement) : trackDataStore.get(actionBtn);
 
             // If no item from element (e.g. header buttons), try to get from hash
             if (!item && action === 'toggle-like') {
-                const id = window.location.hash.split('/')[1];
+                const id = window.location.pathname.split('/')[2];
                 if (id) {
                     try {
                         if (type === 'album') {
@@ -819,6 +831,9 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                         } else if (type === 'mix') {
                             const data = await api.getMix(id);
                             item = data.mix;
+                        } else if (type === 'track') {
+                            const data = await api.getTrack(id);
+                            item = data.track;
                         }
                     } catch (err) {
                         console.error(err);
@@ -892,7 +907,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                 if (e.target.closest('a')) return;
 
                 e.preventDefault();
-                window.location.hash = href;
+                navigate(href);
             }
         }
     });
@@ -949,7 +964,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
     document.querySelector('.now-playing-bar .title').addEventListener('click', () => {
         const track = player.currentTrack;
         if (track?.album?.id) {
-            window.location.hash = `#album/${track.album.id}`;
+            navigate(`/album/${track.album.id}`);
         }
     });
 
@@ -959,7 +974,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             e.stopPropagation();
             const artistId = link.dataset.artistId;
             if (artistId) {
-                window.location.hash = `#artist/${artistId}`;
+                navigate(`/artist/${artistId}`);
             }
             return;
         }
@@ -967,7 +982,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
         // Fallback for non-link clicks (e.g. separators) or single artist legacy
         const track = player.currentTrack;
         if (track?.artist?.id) {
-            window.location.hash = `#artist/${track.artist.id}`;
+            navigate(`/artist/${track.artist.id}`);
         }
     });
 

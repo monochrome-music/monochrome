@@ -1,10 +1,34 @@
 //router.js
 import { getTrackArtists } from './utils.js';
 
+export function navigate(path) {
+    if (path === window.location.pathname) {
+        return;
+    }
+    window.history.pushState({}, '', path);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+}
+
 export function createRouter(ui) {
     const router = async () => {
-        const path = window.location.hash.substring(1) || 'home';
-        const [page, param] = path.split('/');
+
+        if (window.location.hash && window.location.hash.length > 1) {
+            const hash = window.location.hash.substring(1);
+            if (hash.includes('/')) {
+                const newPath = hash.startsWith('/') ? hash : '/' + hash;
+                window.history.replaceState(null, '', newPath);
+            }
+        }
+
+        let path = window.location.pathname;
+        
+        if (path.startsWith('/')) path = path.substring(1);
+        if (path.endsWith('/')) path = path.substring(0, path.length - 1);
+        if (path === '' || path === 'index.html') path = 'home';
+
+        const parts = path.split('/');
+        const page = parts[0];
+        const param = parts.slice(1).join('/');
 
         switch (page) {
             case 'search':
@@ -22,8 +46,14 @@ export function createRouter(ui) {
             case 'userplaylist':
                 await ui.renderPlaylistPage(param, 'user');
                 break;
+            case 'folder':
+                await ui.renderFolderPage(param);
+                break;
             case 'mix':
                 await ui.renderMixPage(param);
+                break;
+            case 'track':
+                await ui.renderTrackPage(param);
                 break;
             case 'library':
                 await ui.renderLibraryPage();
@@ -48,8 +78,8 @@ export function updateTabTitle(player) {
         const track = player.currentTrack;
         document.title = `${track.title} • ${getTrackArtists(track)}`;
     } else {
-        const hash = window.location.hash;
-        if (hash.includes('#album/') || hash.includes('#playlist/')) {
+        const path = window.location.pathname;
+        if (path.startsWith('/album/') || path.startsWith('/playlist/') || path.startsWith('/track/')) {
             return;
         }
         document.title = 'Monochrome Music';

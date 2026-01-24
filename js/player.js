@@ -233,7 +233,8 @@ export class Player {
 
         for (const { track } of tracksToPreload) {
             if (this.preloadCache.has(track.id)) continue;
-            if (track.isLocal) continue;
+            const isTracker = track.isTracker || (track.id && String(track.id).startsWith('tracker-'));
+            if (track.isLocal || isTracker || (track.audioUrl && !track.isLocal)) continue;
             try {
                 const streamUrl = await this.api.getStreamUrl(track.id, this.quality);
 
@@ -309,7 +310,47 @@ export class Player {
         try {
             let streamUrl;
 
-            if (track.isLocal && track.file) {
+            const isTracker = track.isTracker || (track.id && String(track.id).startsWith('tracker-'));
+
+            if (isTracker || (track.audioUrl && !track.isLocal)) {
+                if (this.dashInitialized) {
+                    this.dashPlayer.reset();
+                    this.dashInitialized = false;
+                }
+                streamUrl = track.audioUrl;
+
+                if ((!streamUrl || (typeof streamUrl === 'string' && streamUrl.startsWith('blob:'))) && track.remoteUrl) {
+                    streamUrl = track.remoteUrl;
+                }
+
+                if (!streamUrl) {
+                    console.warn(`Track ${trackTitle} audio URL is missing. Skipping.`);
+                    track.isUnavailable = true;
+                    this.playNext();
+                    return;
+                }
+
+                if (isTracker && !streamUrl.startsWith('blob:') && streamUrl.startsWith('http')) {
+                    try {
+                        const response = await fetch(streamUrl);
+                        if (response.ok) {
+                            const blob = await response.blob();
+                            streamUrl = URL.createObjectURL(blob);
+                        }
+                    } catch (e) {
+                        console.warn('Failed to fetch tracker blob, trying direct link', e);
+                    }
+                }
+
+                this.currentRgValues = null;
+                this.applyReplayGain();
+
+                this.audio.src = streamUrl;
+                if (startTime > 0) {
+                    this.audio.currentTime = startTime;
+                }
+                await this.audio.play();
+            } else if (track.isLocal && track.file) {
                 if (this.dashInitialized) {
                     this.dashPlayer.reset(); // Ensure dash is off
                     this.dashInitialized = false;
@@ -401,8 +442,7 @@ export class Player {
         }
 
         if (this.repeatMode === REPEAT_MODE.ONE && !currentQueue[this.currentQueueIndex]?.isUnavailable) {
-            this.audio.currentTime = 0;
-            this.audio.play();
+            this.playTrackFromQueue();
             return;
         }
 
@@ -587,10 +627,24 @@ export class Player {
     }
 
     clearQueue() {
-        this.queue = [];
-        this.shuffledQueue = [];
-        this.originalQueueBeforeShuffle = [];
-        this.currentQueueIndex = -1;
+        if (this.currentTrack) {
+            this.queue = [this.currentTrack];
+
+            if (this.shuffleActive) {
+                this.shuffledQueue = [this.currentTrack];
+                this.originalQueueBeforeShuffle = [this.currentTrack];
+            } else {
+                this.shuffledQueue = [];
+                this.originalQueueBeforeShuffle = [];
+            }
+            this.currentQueueIndex = 0;
+        } else {
+            this.queue = [];
+            this.shuffledQueue = [];
+            this.originalQueueBeforeShuffle = [];
+            this.currentQueueIndex = -1;
+        }
+
         this.preloadCache.clear();
         this.saveQueueState();
     }

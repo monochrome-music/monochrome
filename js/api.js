@@ -835,6 +835,28 @@ export class LosslessAPI {
         return [trackStub, raw];
     }
 
+    async getTrackMetadata(id) {
+        const cacheKey = `meta_${id}`;
+        const cached = await this.cache.get('track', cacheKey);
+        if (cached) return cached;
+
+        const response = await this.fetchWithRetry(`/info/?id=${id}`, { type: 'api' });
+        const json = await response.json();
+        const data = json.data || json;
+        
+        let track;
+        const items = Array.isArray(data) ? data : [data];
+        const found = items.find(i => (i.id == id) || (i.item && i.item.id == id));
+        
+        if (found) {
+            track = this.prepareTrack(found.item || found);
+            await this.cache.set('track', cacheKey, track);
+            return track;
+        }
+
+        throw new Error('Track metadata not found');
+    }
+
     async getTrack(id, quality = 'HI_RES_LOSSLESS') {
         const cacheKey = `${id}_${quality}`;
         const cached = await this.cache.get('track', cacheKey);
@@ -992,6 +1014,10 @@ export class LosslessAPI {
     getCoverUrl(id, size = '320') {
         if (!id) {
             return `https://picsum.photos/seed/${Math.random()}/${size}`;
+        }
+
+        if (typeof id === 'string' && (id.startsWith('http') || id.startsWith('blob:') || id.startsWith('assets/'))) {
+            return id;
         }
 
         const formattedId = id.replace(/-/g, '/');

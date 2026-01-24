@@ -11,11 +11,11 @@ import { UIRenderer } from './ui.js';
 import { Player } from './player.js';
 import { LastFMScrobbler } from './lastfm.js';
 import { LyricsManager, openLyricsPanel, clearLyricsPanelSync } from './lyrics.js';
-import { createRouter, updateTabTitle } from './router.js';
+import { createRouter, updateTabTitle, navigate } from './router.js';
 import { initializeSettings } from './settings.js';
 import { initializePlayerEvents, initializeTrackInteractions, handleTrackAction } from './events.js';
 import { initializeUIInteractions } from './ui-interactions.js';
-import { downloadAlbumAsZip, downloadDiscography, downloadPlaylistAsZip } from './downloads.js';
+import { downloadAlbumAsZip, downloadDiscography, downloadPlaylistAsZip, downloadLikedTracks, showNotification } from './downloads.js';
 import { debounce, SVG_PLAY } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 import { db } from './db.js';
@@ -23,6 +23,7 @@ import { syncManager } from './accounts/pocketbase.js';
 import { registerSW } from 'virtual:pwa-register';
 import './smooth-scrolling.js';
 import { readTrackMetadata } from './metadata.js';
+import { initTracker } from './tracker.js';
 
 function initializeCasting(audioPlayer, castBtn) {
     if (!castBtn) return;
@@ -187,12 +188,106 @@ document.addEventListener('DOMContentLoaded', async () => {
     const api = new LosslessAPI(apiSettings);
 
     const audioPlayer = document.getElementById('audio-player');
+
+    // i love ios and macos!!!! webkit fucking SUCKS BULLSHIT sorry ios/macos heads yall getting lossless only
+    const ua = navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(ua) || (ua.includes('mac') && navigator.maxTouchPoints > 1);
+    const isSafari = ua.includes('safari') && !ua.includes('chrome') && !ua.includes('crios') && !ua.includes('android');
+
+    if (isIOS || isSafari) {
+        const qualitySelect = document.getElementById('streaming-quality-setting');
+        const downloadSelect = document.getElementById('download-quality-setting');
+        
+        const removeHiRes = (select) => {
+            if (!select) return;
+            const option = select.querySelector('option[value="HI_RES_LOSSLESS"]');
+            if (option) option.remove();
+        };
+
+        removeHiRes(qualitySelect);
+        removeHiRes(downloadSelect);
+
+        const currentQualitySetting = localStorage.getItem('playback-quality');
+        if (!currentQualitySetting || currentQualitySetting === 'HI_RES_LOSSLESS') {
+            localStorage.setItem('playback-quality', 'LOSSLESS');
+        }
+    }
+
     const currentQuality = localStorage.getItem('playback-quality') || 'HI_RES_LOSSLESS';
     const player = new Player(audioPlayer, api, currentQuality);
 
     const ui = new UIRenderer(api, player);
     const scrobbler = new LastFMScrobbler();
     const lyricsManager = new LyricsManager(api);
+
+    const originalRenderPlaylistPage = ui.renderPlaylistPage.bind(ui);
+    ui.renderPlaylistPage = async function (id, type) {
+        await originalRenderPlaylistPage(id, type);
+
+        if (type === 'user') {
+            try {
+                const playlist = await db.getPlaylist(id);
+                const imgElement = document.getElementById('playlist-detail-image');
+                
+                if (!imgElement) return;
+
+                let container = imgElement.parentElement;
+                let collageElement = document.getElementById('playlist-detail-collage');
+
+                if (!container.classList.contains('detail-header-cover-container')) {
+                    container = document.createElement('div');
+                    container.className = 'detail-header-cover-container';
+                    imgElement.parentNode.insertBefore(container, imgElement);
+                    container.appendChild(imgElement);
+                    
+                    collageElement = document.createElement('div');
+                    collageElement.id = 'playlist-detail-collage';
+                    collageElement.className = 'detail-header-collage';
+                    collageElement.style.display = 'none';
+                    container.appendChild(collageElement);
+                }
+
+                if (playlist && !playlist.cover && collageElement && playlist.tracks && playlist.tracks.length > 0) {
+                    const tracksWithCovers = playlist.tracks.filter((t) => t.album && t.album.cover);
+
+                    if (tracksWithCovers.length > 0) {
+                        imgElement.style.setProperty('display', 'none', 'important');
+                        collageElement.style.display = 'grid';
+                        collageElement.innerHTML = '';
+
+                        const uniqueCovers = [];
+                        const seen = new Set();
+                        for (const t of tracksWithCovers) {
+                            if (!seen.has(t.album.cover)) {
+                                seen.add(t.album.cover);
+                                uniqueCovers.push(t.album.cover);
+                                if (uniqueCovers.length >= 4) break;
+                            }
+                        }
+
+                        const images = [];
+                        for (let i = 0; i < 4; i++) {
+                            images.push(uniqueCovers[i % uniqueCovers.length]);
+                        }
+
+                        images.forEach((src) => {
+                            const img = document.createElement('img');
+                            img.src = api.getCoverUrl(src);
+                            collageElement.appendChild(img);
+                        });
+                    } else {
+                        imgElement.style.removeProperty('display');
+                        collageElement.style.display = 'none';
+                    }
+                } else if (collageElement) {
+                    imgElement.style.removeProperty('display');
+                    collageElement.style.display = 'none';
+                }
+            } catch (e) {
+                console.error('Error generating playlist cover:', e);
+            }
+        }
+    };
 
     // Check browser support for local files
     const selectLocalBtn = document.getElementById('select-local-folder-btn');
@@ -229,8 +324,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         ui,
         scrobbler
     );
-    initializeUIInteractions(player, api);
+    initializeUIInteractions(player, api, ui);
     initializeKeyboardShortcuts(player, audioPlayer);
+
+    initTracker(player, ui);
 
     const castBtn = document.getElementById('cast-btn');
     initializeCasting(audioPlayer, castBtn);
@@ -268,7 +365,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             // Default to 'album' mode - navigate to album
             if (player.currentTrack.album?.id) {
-                window.location.hash = `#album/${player.currentTrack.album.id}`;
+                navigate(`/album/${player.currentTrack.album.id}`);
             }
         }
     });
@@ -285,6 +382,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('fullscreen-cover-image')?.addEventListener('click', () => {
         ui.closeFullscreenCover();
+    });
+
+    document.getElementById('sidebar-toggle')?.addEventListener('click', () => {
+        document.body.classList.toggle('sidebar-collapsed');
+        const isCollapsed = document.body.classList.contains('sidebar-collapsed');
+        const toggleBtn = document.getElementById('sidebar-toggle');
+        if (toggleBtn) {
+            toggleBtn.innerHTML = isCollapsed 
+                ? '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>'
+                : '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>';
+        }
     });
 
     document.getElementById('nav-back')?.addEventListener('click', () => {
@@ -349,7 +457,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const btn = e.target.closest('#play-album-btn');
             if (btn.disabled) return;
 
-            const albumId = window.location.hash.split('/')[1];
+            const albumId = window.location.pathname.split('/')[2];
             if (!albumId) return;
 
             try {
@@ -368,7 +476,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const btn = e.target.closest('#download-mix-btn');
             if (btn.disabled) return;
 
-            const mixId = window.location.hash.split('#mix/')[1];
+            const mixId = window.location.pathname.split('/')[2];
             if (!mixId) return;
 
             btn.disabled = true;
@@ -392,7 +500,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const btn = e.target.closest('#download-playlist-btn');
             if (btn.disabled) return;
 
-            const playlistId = window.location.hash.split('/')[1];
+            const playlistId = window.location.pathname.split('/')[2];
             if (!playlistId) return;
 
             btn.disabled = true;
@@ -450,6 +558,37 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('playlist-name-input').focus();
         }
 
+        if (e.target.closest('#create-folder-btn')) {
+            const modal = document.getElementById('folder-modal');
+            document.getElementById('folder-name-input').value = '';
+            document.getElementById('folder-cover-input').value = '';
+            modal.classList.add('active');
+            document.getElementById('folder-name-input').focus();
+        }
+
+        if (e.target.closest('#folder-modal-save')) {
+            const name = document.getElementById('folder-name-input').value.trim();
+            const cover = document.getElementById('folder-cover-input').value.trim();
+
+            if (name) {
+                await db.createFolder(name, cover);
+                ui.renderLibraryPage();
+                document.getElementById('folder-modal').classList.remove('active');
+            }
+        }
+
+        if (e.target.closest('#folder-modal-cancel')) {
+            document.getElementById('folder-modal').classList.remove('active');
+        }
+
+        if (e.target.closest('#delete-folder-btn')) {
+            const folderId = window.location.pathname.split('/')[2];
+            if (folderId && confirm('Are you sure you want to delete this folder?')) {
+                await db.deleteFolder(folderId);
+                navigate('/library');
+            }
+        }
+
         if (e.target.closest('#playlist-modal-save')) {
             const name = document.getElementById('playlist-name-input').value.trim();
             const isPublic = document.getElementById('playlist-public-toggle')?.checked;
@@ -489,7 +628,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             syncManager.syncUserPlaylist(playlist, 'update');
                             ui.renderLibraryPage();
                             // Also update current page if we are on it
-                            if (window.location.hash === `#userplaylist/${editingId}`) {
+                            if (window.location.pathname === `/userplaylist/${editingId}`) {
                                 ui.renderPlaylistPage(editingId, 'user');
                             }
                             modal.classList.remove('active');
@@ -600,7 +739,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (shareBtn) {
                         shareBtn.style.display = playlist.isPublic ? 'flex' : 'none';
                         shareBtn.onclick = () => {
-                            const url = `${window.location.origin}${window.location.pathname}#userplaylist/${playlist.id}`;
+                            const url = `${window.location.origin}/userplaylist/${playlist.id}`;
                             navigator.clipboard.writeText(url).then(() => alert('Link copied to clipboard!'));
                         };
                     }
@@ -625,7 +764,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (e.target.closest('#edit-playlist-btn')) {
-            const playlistId = window.location.hash.split('/')[1];
+            const playlistId = window.location.pathname.split('/')[2];
             db.getPlaylist(playlistId).then((playlist) => {
                 if (playlist) {
                     const modal = document.getElementById('playlist-modal');
@@ -640,7 +779,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (shareBtn) {
                         shareBtn.style.display = playlist.isPublic ? 'flex' : 'none';
                         shareBtn.onclick = () => {
-                            const url = `${window.location.origin}${window.location.pathname}#userplaylist/${playlist.id}`;
+                            const url = `${window.location.origin}/userplaylist/${playlist.id}`;
                             navigator.clipboard.writeText(url).then(() => alert('Link copied to clipboard!'));
                         };
                     }
@@ -654,11 +793,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (e.target.closest('#delete-playlist-btn')) {
-            const playlistId = window.location.hash.split('/')[1];
+            const playlistId = window.location.pathname.split('/')[2];
             if (confirm('Are you sure you want to delete this playlist?')) {
                 db.deletePlaylist(playlistId).then(() => {
                     syncManager.syncUserPlaylist({ id: playlistId }, 'delete');
-                    window.location.hash = '#library';
+                    navigate('/library');
                 });
             }
         }
@@ -666,11 +805,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.target.closest('.remove-from-playlist-btn')) {
             e.stopPropagation();
             const btn = e.target.closest('.remove-from-playlist-btn');
-            const index = parseInt(btn.dataset.trackIndex);
-            const playlistId = window.location.hash.split('/')[1];
+            const playlistId = window.location.pathname.split('/')[2];
+            
             db.getPlaylist(playlistId).then(async (playlist) => {
-                if (playlist && playlist.tracks[index]) {
-                    const trackId = playlist.tracks[index].id;
+                let trackId = null;
+                
+                // Prefer ID if available (from sorted view)
+                if (btn.dataset.trackId) {
+                    trackId = btn.dataset.trackId;
+                } else if (btn.dataset.trackIndex) {
+                    // Fallback to index (legacy/unsorted)
+                    const index = parseInt(btn.dataset.trackIndex);
+                    if (playlist && playlist.tracks[index]) {
+                        trackId = playlist.tracks[index].id;
+                    }
+                }
+
+                if (trackId) {
                     const updatedPlaylist = await db.removeTrackFromPlaylist(playlistId, trackId);
                     syncManager.syncUserPlaylist(updatedPlaylist, 'update');
                     const scrollTop = document.querySelector('.main-content').scrollTop;
@@ -684,7 +835,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const btn = e.target.closest('#play-playlist-btn');
             if (btn.disabled) return;
 
-            const playlistId = window.location.hash.split('/')[1];
+            const playlistId = window.location.pathname.split('/')[2];
             if (!playlistId) return;
 
             try {
@@ -721,7 +872,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const btn = e.target.closest('#download-album-btn');
             if (btn.disabled) return;
 
-            const albumId = window.location.hash.split('/')[1];
+            const albumId = window.location.pathname.split('/')[2];
             if (!albumId) return;
 
             btn.disabled = true;
@@ -741,11 +892,81 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
+        if (e.target.closest('#add-album-to-playlist-btn')) {
+            const btn = e.target.closest('#add-album-to-playlist-btn');
+            if (btn.disabled) return;
+
+            const albumId = window.location.pathname.split('/')[2];
+            if (!albumId) return;
+
+            try {
+                const { tracks } = await api.getAlbum(albumId);
+
+                if (!tracks || tracks.length === 0) {
+                    showNotification('No tracks found in this album.');
+                    return;
+                }
+
+                const modal = document.getElementById('playlist-select-modal');
+                const list = document.getElementById('playlist-select-list');
+                const cancelBtn = document.getElementById('playlist-select-cancel');
+                const overlay = modal.querySelector('.modal-overlay');
+
+                const playlists = await db.getPlaylists(false);
+
+                if (playlists.length === 0) {
+                    showNotification('No playlists found. Create one first.');
+                    return;
+                }
+
+                list.innerHTML = playlists.map(p => `
+                    <div class="modal-option" data-id="${p.id}">
+                        <span>${p.name}</span>
+                    </div>
+                `).join('');
+
+                const closeModal = () => {
+                    modal.classList.remove('active');
+                    cleanup();
+                };
+
+                const handleOptionClick = async (e) => {
+                    const option = e.target.closest('.modal-option');
+                    if (!option) return;
+                    const playlistId = option.dataset.id;
+
+                    try {
+                        await db.addTracksToPlaylist(playlistId, tracks);
+                        showNotification(`Added ${tracks.length} tracks to playlist.`);
+                        closeModal();
+                    } catch (err) {
+                        console.error(err);
+                        showNotification('Failed to add tracks.');
+                    }
+                };
+
+                const cleanup = () => {
+                    cancelBtn.removeEventListener('click', closeModal);
+                    overlay.removeEventListener('click', closeModal);
+                    list.removeEventListener('click', handleOptionClick);
+                };
+
+                cancelBtn.addEventListener('click', closeModal);
+                overlay.addEventListener('click', closeModal);
+                list.addEventListener('click', handleOptionClick);
+
+                modal.classList.add('active');
+            } catch (error) {
+                console.error('Failed to prepare album for playlist:', error);
+                showNotification('Failed to load album tracks.');
+            }
+        }
+
         if (e.target.closest('#play-artist-radio-btn')) {
             const btn = e.target.closest('#play-artist-radio-btn');
             if (btn.disabled) return;
 
-            const artistId = window.location.hash.split('/')[1];
+            const artistId = window.location.pathname.split('/')[2];
             if (!artistId) return;
 
             btn.disabled = true;
@@ -833,11 +1054,36 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
+        if (e.target.closest('#download-liked-tracks-btn')) {
+            const btn = e.target.closest('#download-liked-tracks-btn');
+            if (btn.disabled) return;
+
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML =
+                '<svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg>';
+
+            try {
+                const likedTracks = await db.getFavorites('track');
+                if (likedTracks.length === 0) {
+                    alert('No liked tracks to download.');
+                    return;
+                }
+                await downloadLikedTracks(likedTracks, api, downloadQualitySettings.getQuality(), lyricsManager);
+            } catch (error) {
+                console.error('Liked tracks download failed:', error);
+                alert('Failed to download liked tracks: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        }
+
         if (e.target.closest('#download-discography-btn')) {
             const btn = e.target.closest('#download-discography-btn');
             if (btn.disabled) return;
 
-            const artistId = window.location.hash.split('/')[1];
+            const artistId = window.location.pathname.split('/')[2];
             if (!artistId) return;
 
             try {
@@ -923,7 +1169,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const performSearch = debounce((query) => {
         if (query) {
-            window.location.hash = `#search/${encodeURIComponent(query)}`;
+            navigate(`/search/${encodeURIComponent(query)}`);
         }
     }, 300);
 
@@ -938,7 +1184,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         e.preventDefault();
         const query = searchInput.value.trim();
         if (query) {
-            window.location.hash = `#search/${encodeURIComponent(query)}`;
+            navigate(`/search/${encodeURIComponent(query)}`);
         }
     });
 
@@ -952,85 +1198,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Gone offline');
     });
 
-    document.querySelector('.play-pause-btn').innerHTML = SVG_PLAY;
+    document.querySelector('.now-playing-bar .play-pause-btn').innerHTML = SVG_PLAY;
 
     const router = createRouter(ui);
 
-    // Session-based scroll positions (transient, cleared on refresh)
-    const scrollPositions = new Map();
-    const navStack = [window.location.hash];
-    let navIndex = 0;
-    let isGoingBack = false;
-
-    const updateNavButtons = () => {
-        const backBtn = document.getElementById('nav-back');
-        const fwdBtn = document.getElementById('nav-forward');
-        if (backBtn) backBtn.disabled = navIndex <= 0;
-        if (fwdBtn) fwdBtn.disabled = navIndex >= navStack.length - 1;
-    };
-
-    const handleRouter = async (e) => {
-        const hash = window.location.hash;
-
-        // 1. Update history state and determine direction
-        if (e && e.oldURL) {
-            try {
-                const url = new URL(e.oldURL);
-                const oldHash = url.hash || '#home';
-
-                // Save scroll position for the old page
-                const content = document.querySelector('.main-content');
-                if (content) {
-                    scrollPositions.set(oldHash, content.scrollTop);
-                }
-
-                if (hash !== navStack[navIndex]) {
-                    if (navIndex > 0 && hash === navStack[navIndex - 1]) {
-                        navIndex--;
-                        isGoingBack = true;
-                    } else if (navIndex < navStack.length - 1 && hash === navStack[navIndex + 1]) {
-                        navIndex++;
-                        isGoingBack = false;
-                    } else {
-                        navIndex++;
-                        navStack.splice(navIndex);
-                        navStack.push(hash);
-                        isGoingBack = false;
-                    }
-                }
-            } catch {
-                isGoingBack = false;
-            }
-        }
-
-        // 2. Render the new page
+    const handleRouteChange = async () => {
         await router();
-        updateNavButtons();
-
-        // 3. Handle scroll restoration
-        const content = document.querySelector('.main-content');
-        if (content) {
-            if (isGoingBack) {
-                const savedScroll = scrollPositions.get(hash || '#home');
-                if (savedScroll !== undefined) {
-                    setTimeout(() => {
-                        content.scrollTop = savedScroll;
-                    }, 0);
-                }
-            } else {
-                // For forward or new clicks, ensure we start at the top
-                content.scrollTop = 0;
-            }
-        }
-
-        // Reset flag
-        isGoingBack = false;
+        updateTabTitle(player);
     };
 
-    // Initial load
-    await handleRouter(null);
-    window.addEventListener('hashchange', handleRouter);
-    updateNavButtons();
+    
+    await handleRouteChange();
+
+    window.addEventListener('popstate', handleRouteChange);
+
+    document.body.addEventListener('click', (e) => {
+        const link = e.target.closest('a');
+
+        if (link && link.origin === window.location.origin && link.target !== '_blank' && !link.hasAttribute('download')) {
+            e.preventDefault();
+            navigate(link.pathname);
+        }
+    });
 
     audioPlayer.addEventListener('play', () => {
         updateTabTitle(player);
@@ -1077,13 +1266,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Listener for Pocketbase Sync updates
     window.addEventListener('library-changed', () => {
-        const hash = window.location.hash;
-        if (hash === '#library') {
+        const path = window.location.pathname;
+        if (path === '/library') {
             ui.renderLibraryPage();
-        } else if (hash === '#home' || hash === '') {
+        } else if (path === '/' || path === '/home') {
             ui.renderHomePage();
-        } else if (hash.startsWith('#userplaylist/')) {
-            const playlistId = hash.split('/')[1];
+        } else if (path.startsWith('/userplaylist/')) {
+            const playlistId = path.split('/')[2];
             const content = document.querySelector('.main-content');
             const scroll = content ? content.scrollTop : 0;
             ui.renderPlaylistPage(playlistId, 'user').then(() => {
@@ -1092,8 +1281,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
     window.addEventListener('history-changed', () => {
-        const hash = window.location.hash;
-        if (hash === '#recent') {
+        const path = window.location.pathname;
+        if (path === '/recent') {
             ui.renderRecentPage();
         }
     });
