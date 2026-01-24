@@ -12,28 +12,28 @@ class GeniusManager {
     }
 
     getToken() {
-        return "QmS9OvsS-7ifRBKx_ochIPQU7oejIS9Eo_z5iWHmCPyhwLVQID3pYTHJmJTa6z8z"; // idgaf anymore im js hardcoding this lmaooo
+        return 'QmS9OvsS-7ifRBKx_ochIPQU7oejIS9Eo_z5iWHmCPyhwLVQID3pYTHJmJTa6z8z'; // idgaf anymore im js hardcoding this lmaooo
     }
 
     async searchTrack(title, artist) {
         const cleanTitle = title.split('(')[0].split('-')[0].trim();
         const query = encodeURIComponent(`${cleanTitle} ${artist}`);
-        
+
         const url = `https://api.genius.com/search?q=${query}`;
         const token = this.getToken();
         const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
         });
 
         if (!response.ok) throw new Error('Failed to search Genius');
-        
+
         const data = await response.json();
         if (data.response.hits.length === 0) return null;
 
-        const normalize = str => str.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+        const normalize = (str) => str.toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
         const targetArtist = normalize(artist);
-        
-        const hit = data.response.hits.find(h => {
+
+        const hit = data.response.hits.find((h) => {
             const hitArtist = normalize(h.result.primary_artist.name);
             return hitArtist.includes(targetArtist) || targetArtist.includes(hitArtist);
         });
@@ -45,7 +45,7 @@ class GeniusManager {
         const token = this.getToken();
         const url = `https://api.genius.com/referents?song_id=${songId}&text_format=plain&per_page=50`;
         const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
         });
 
         if (!response.ok) throw new Error('Failed to fetch annotations');
@@ -61,7 +61,7 @@ class GeniusManager {
             this.loading = true;
             const artist = Array.isArray(track.artists) ? track.artists[0].name : track.artist.name;
             const song = await this.searchTrack(track.title, artist);
-            
+
             if (!song) {
                 this.loading = false;
                 return null;
@@ -69,7 +69,7 @@ class GeniusManager {
 
             const referents = await this.getReferents(song.id);
             const result = { song, referents };
-            
+
             this.cache.set(track.id, result);
             this.loading = false;
             return result;
@@ -82,25 +82,32 @@ class GeniusManager {
 
     findAnnotations(lineText, referents) {
         if (!referents || !lineText) return [];
-        
-        const normalize = str => str.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, '').replace(/\s+/g, ' ').trim();
+
+        const normalize = (str) =>
+            str
+                .toLowerCase()
+                .replace(/[^\p{L}\p{N}\s]/gu, '')
+                .replace(/\s+/g, ' ')
+                .trim();
         const normLine = normalize(lineText);
 
-        const getWordSet = (str) => new Set(str.split(' ').filter(w => w.length > 0));
+        const getWordSet = (str) => new Set(str.split(' ').filter((w) => w.length > 0));
         const lineWords = getWordSet(normLine);
 
-        return referents.filter(ref => {
+        return referents.filter((ref) => {
             const normFragment = normalize(ref.fragment);
-            
+
             if (normLine.includes(normFragment) || normFragment.includes(normLine)) return true;
 
             const fragmentWords = getWordSet(normFragment);
             if (fragmentWords.size === 0 || lineWords.size === 0) return false;
 
             let matchCount = 0;
-            fragmentWords.forEach(w => { if (lineWords.has(w)) matchCount++; });
+            fragmentWords.forEach((w) => {
+                if (lineWords.has(w)) matchCount++;
+            });
 
-            return (matchCount / Math.min(fragmentWords.size, lineWords.size)) > 0.6;
+            return matchCount / Math.min(fragmentWords.size, lineWords.size) > 0.6;
         });
     }
 }
@@ -454,19 +461,20 @@ export class LyricsManager {
         this.romajiObserver = new MutationObserver((mutations) => {
             // Check if any relevant mutation occurred
             const hasRelevantChange = mutations.some((mutation) => {
-
                 if (mutation.type === 'childList') {
                     let relevant = false;
                     if (mutation.addedNodes.length > 0) {
                         for (const node of mutation.addedNodes) {
-                            if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains('genius-indicator')) continue;
+                            if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains('genius-indicator'))
+                                continue;
                             relevant = true;
                             break;
                         }
                     }
                     if (!relevant && mutation.removedNodes.length > 0) {
                         for (const node of mutation.removedNodes) {
-                            if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains('genius-indicator')) continue;
+                            if (node.nodeType === Node.ELEMENT_NODE && node.classList.contains('genius-indicator'))
+                                continue;
                             relevant = true;
                             break;
                         }
@@ -628,34 +636,38 @@ export class LyricsManager {
 
         if (lineElements.length === 0) return;
 
-
-        lineElements.forEach(el => {
+        lineElements.forEach((el) => {
             el.classList.remove('genius-annotated', 'genius-multi-start', 'genius-multi-end', 'genius-multi-mid');
             delete el.__geniusAnnotations;
         });
 
+        const normalize = (str) =>
+            str
+                .toLowerCase()
+                .replace(/[^\p{L}\p{N}\s]/gu, '')
+                .replace(/\s+/g, ' ')
+                .trim();
 
-        const normalize = str => str.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, '').replace(/\s+/g, ' ').trim();
-
-        referents.forEach(ref => {
+        referents.forEach((ref) => {
             const fragment = normalize(ref.fragment);
             if (!fragment) return;
 
-
             for (let i = 0; i < lineElements.length; i++) {
-                let combinedText = "";
+                let combinedText = '';
                 let currentLines = [];
 
                 for (let j = i; j < lineElements.length; j++) {
                     const line = lineElements[j];
 
                     const lineClone = line.cloneNode(true);
-                    lineClone.querySelectorAll('.time, .timestamp, [class*="time"], .genius-indicator').forEach(n => n.remove());
-                    const text = normalize(lineClone.textContent || "");
+                    lineClone
+                        .querySelectorAll('.time, .timestamp, [class*="time"], .genius-indicator')
+                        .forEach((n) => n.remove());
+                    const text = normalize(lineClone.textContent || '');
 
                     if (!text) continue;
 
-                    if (currentLines.length > 0) combinedText += " ";
+                    if (currentLines.length > 0) combinedText += ' ';
                     combinedText += text;
                     currentLines.push(line);
 
@@ -664,7 +676,7 @@ export class LyricsManager {
                             el.classList.add('genius-annotated');
                             if (!el.__geniusAnnotations) el.__geniusAnnotations = [];
 
-                            if (!el.__geniusAnnotations.some(a => a.id === ref.id)) {
+                            if (!el.__geniusAnnotations.some((a) => a.id === ref.id)) {
                                 el.__geniusAnnotations.push(ref);
                             }
 
@@ -683,9 +695,8 @@ export class LyricsManager {
                                 el.appendChild(smiley);
                             }
                         });
-                        break; 
+                        break;
                     }
-
 
                     if (combinedText.length > fragment.length + 50) break;
                 }
@@ -754,19 +765,22 @@ export function openLyricsPanel(track, audioPlayer, lyricsManager, forceOpen = f
             geniusBtn.addEventListener('click', async () => {
                 manager.isGeniusMode = !manager.isGeniusMode;
                 const enabled = manager.isGeniusMode;
-                
+
                 geniusBtn.classList.toggle('active-genius', enabled);
                 geniusBtn.style.color = enabled ? '#ffff64' : '';
                 geniusBtn.innerHTML = enabled ? SVG_GENIUS_ACTIVE : SVG_GENIUS_INACTIVE;
 
                 if (enabled) {
-
                     try {
                         geniusBtn.style.opacity = '0.5';
                         await manager.geniusManager.getDataForTrack(track);
                         manager.currentGeniusData = manager.geniusManager.cache.get(track.id);
                         const amLyrics = sidePanelManager.panel.querySelector('am-lyrics');
-                        if (amLyrics) manager.applyGeniusAnnotations(amLyrics, manager.geniusManager.cache.get(track.id)?.referents);
+                        if (amLyrics)
+                            manager.applyGeniusAnnotations(
+                                amLyrics,
+                                manager.geniusManager.cache.get(track.id)?.referents
+                            );
                     } catch (e) {
                         alert(e.message);
                         manager.isGeniusMode = false;
@@ -776,13 +790,17 @@ export function openLyricsPanel(track, audioPlayer, lyricsManager, forceOpen = f
                         geniusBtn.style.opacity = '1';
                     }
                 } else {
-
                     const amLyrics = sidePanelManager.panel.querySelector('am-lyrics');
                     if (amLyrics) {
                         const root = amLyrics.shadowRoot || amLyrics;
                         const lineElements = Array.from(root.querySelectorAll('.genius-annotated'));
-                        lineElements.forEach(el => {
-                            el.classList.remove('genius-annotated', 'genius-multi-start', 'genius-multi-end', 'genius-multi-mid');
+                        lineElements.forEach((el) => {
+                            el.classList.remove(
+                                'genius-annotated',
+                                'genius-multi-start',
+                                'genius-multi-end',
+                                'genius-multi-mid'
+                            );
                             delete el.__geniusAnnotations;
                         });
                     }
@@ -848,18 +866,22 @@ async function renderLyricsComponent(container, track, audioPlayer, lyricsManage
             await lyricsManager.loadKuroshiro();
         }
 
-
-        lyricsManager.fetchLyrics(track.id, track).then(async () => {
-            if (lyricsManager.isGeniusMode) {
-                try {
-                    const data = await lyricsManager.geniusManager.getDataForTrack(track);
-                    if (data) {
-                        lyricsManager.currentGeniusData = data;
-                        lyricsManager.applyGeniusAnnotations(amLyrics, data.referents);
+        lyricsManager
+            .fetchLyrics(track.id, track)
+            .then(async () => {
+                if (lyricsManager.isGeniusMode) {
+                    try {
+                        const data = await lyricsManager.geniusManager.getDataForTrack(track);
+                        if (data) {
+                            lyricsManager.currentGeniusData = data;
+                            lyricsManager.applyGeniusAnnotations(amLyrics, data.referents);
+                        }
+                    } catch (e) {
+                        console.warn('Genius auto-load failed', e);
                     }
-                } catch (e) { console.warn('Genius auto-load failed', e); }
-            }
-        }).catch(e => console.warn('Background lyrics fetch failed', e));
+                }
+            })
+            .catch((e) => console.warn('Background lyrics fetch failed', e));
 
         // Wait for lyrics to appear, then do an immediate conversion
         const waitForLyrics = () => {
@@ -955,20 +977,21 @@ function setupSync(track, audioPlayer, amLyrics, lyricsManager) {
 
     const onLineClick = (e) => {
         if (e.detail && e.detail.timestamp !== undefined) {
-
             const manager = lyricsManager || sidePanelManager.panel.lyricsManager;
             if (manager && manager.isGeniusMode) {
                 const timestampSeconds = e.detail.timestamp / 1000;
-                
 
                 const lyricsData = manager.lyricsCache.get(track.id);
                 if (lyricsData && lyricsData.subtitles) {
                     const parsed = manager.parseSyncedLyrics(lyricsData.subtitles);
 
-                    const line = parsed.find(l => Math.abs(l.time - timestampSeconds) < 1.0);
-                    
+                    const line = parsed.find((l) => Math.abs(l.time - timestampSeconds) < 1.0);
+
                     if (line && line.text && manager.currentGeniusData) {
-                        const annotations = manager.geniusManager.findAnnotations(line.text, manager.currentGeniusData.referents);
+                        const annotations = manager.geniusManager.findAnnotations(
+                            line.text,
+                            manager.currentGeniusData.referents
+                        );
                         showGeniusAnnotations(annotations, line.text);
                     }
                 }
@@ -1003,13 +1026,12 @@ function setupSync(track, audioPlayer, amLyrics, lyricsManager) {
 }
 
 function showGeniusAnnotations(annotations, lineText) {
-
     const existing = document.querySelector('.genius-annotation-modal');
     if (existing) existing.remove();
 
     const modal = document.createElement('div');
     modal.className = 'genius-annotation-modal';
-    
+
     let contentHtml = `
         <div class="genius-modal-content">
             <div class="genius-header">
@@ -1026,7 +1048,7 @@ function showGeniusAnnotations(annotations, lineText) {
             </div>
         `;
     } else {
-        annotations.forEach(ann => {
+        annotations.forEach((ann) => {
             const body = ann.annotations[0].body.plain;
             contentHtml += `
                 <div class="annotation-item">
@@ -1043,7 +1065,9 @@ function showGeniusAnnotations(annotations, lineText) {
 
     modal.querySelector('.close-genius').addEventListener('click', () => modal.remove());
 
-    modal.addEventListener('click', (e) => { if(e.target === modal) modal.remove(); });
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+    });
 }
 
 export async function renderLyricsInFullscreen(track, audioPlayer, lyricsManager, container) {

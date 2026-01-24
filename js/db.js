@@ -545,7 +545,7 @@ export class MusicDatabase {
             cover: cover,
             playlists: [],
             createdAt: Date.now(),
-            updatedAt: Date.now()
+            updatedAt: Date.now(),
         };
         await this.performTransaction('user_folders', 'readwrite', (store) => store.put(folder));
         return folder;

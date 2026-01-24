@@ -685,7 +685,7 @@ export class UIRenderer {
         const nextTrackEl = document.getElementById('fullscreen-next-track');
 
         const coverUrl = this.api.getCoverUrl(track.album?.cover, '1280');
-        
+
         const fsLikeBtn = document.getElementById('fs-like-btn');
         if (fsLikeBtn) {
             this.updateLikeState(fsLikeBtn.parentElement, 'track', track.id);
@@ -787,7 +787,7 @@ export class UIRenderer {
     closeFullscreenCover() {
         const overlay = document.getElementById('fullscreen-cover-overlay');
         overlay.style.display = 'none';
-        
+
         const playerBar = document.querySelector('.now-playing-bar');
         if (playerBar) playerBar.style.removeProperty('display');
 
@@ -824,34 +824,38 @@ export class UIRenderer {
             lastPausedState = isPaused;
 
             if (isPaused) {
-                playBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
+                playBtn.innerHTML =
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
             } else {
-                playBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
+                playBtn.innerHTML =
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
             }
         };
-        
+
         updatePlayBtn();
-        
+
         playBtn.onclick = () => {
             this.player.handlePlayPause();
             updatePlayBtn();
         };
-        
+
         prevBtn.onclick = () => this.player.playPrev();
         nextBtn.onclick = () => this.player.playNext();
-        
+
         shuffleBtn.onclick = () => {
             this.player.toggleShuffle();
             shuffleBtn.classList.toggle('active', this.player.shuffleActive);
         };
-        
+
         repeatBtn.onclick = () => {
             const mode = this.player.toggleRepeat();
             repeatBtn.classList.toggle('active', mode !== 0);
             if (mode === 2) {
-                 repeatBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/><path d="M11 10h1v4"/></svg>';
+                repeatBtn.innerHTML =
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/><path d="M11 10h1v4"/></svg>';
             } else {
-                 repeatBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>';
+                repeatBtn.innerHTML =
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>';
             }
         };
 
@@ -883,26 +887,27 @@ export class UIRenderer {
         const mode = this.player.repeatMode;
         repeatBtn.classList.toggle('active', mode !== 0);
         if (mode === 2) {
-             repeatBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/><path d="M11 10h1v4"/></svg>';
+            repeatBtn.innerHTML =
+                '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/><path d="M11 10h1v4"/></svg>';
         }
 
         const update = () => {
             if (document.getElementById('fullscreen-cover-overlay').style.display === 'none') return;
-            
+
             const duration = audioPlayer.duration || 0;
             const current = audioPlayer.currentTime || 0;
-            
+
             if (duration > 0) {
                 const percent = (current / duration) * 100;
                 progressFill.style.width = `${percent}%`;
                 currentTimeEl.textContent = formatTime(current);
                 totalDurationEl.textContent = formatTime(duration);
             }
-            
+
             updatePlayBtn();
             this.fullscreenUpdateInterval = requestAnimationFrame(update);
         };
-        
+
         if (this.fullscreenUpdateInterval) cancelAnimationFrame(this.fullscreenUpdateInterval);
         this.fullscreenUpdateInterval = requestAnimationFrame(update);
     }
@@ -913,7 +918,10 @@ export class UIRenderer {
         });
 
         document.querySelectorAll('.sidebar-nav a').forEach((link) => {
-            link.classList.toggle('active', link.pathname === `/${pageId}` || (pageId === 'home' && link.pathname === '/'));
+            link.classList.toggle(
+                'active',
+                link.pathname === `/${pageId}` || (pageId === 'home' && link.pathname === '/')
+            );
         });
 
         document.querySelector('.main-content').scrollTop = 0;
@@ -939,7 +947,7 @@ export class UIRenderer {
         const yearEl = document.getElementById('track-detail-year');
         const albumSection = document.getElementById('track-album-section');
         const albumTracksContainer = document.getElementById('track-detail-album-tracks');
-        
+
         const playBtn = document.getElementById('play-track-btn');
         const lyricsBtn = document.getElementById('track-lyrics-btn');
         const shareBtn = document.getElementById('share-track-btn');
@@ -957,11 +965,11 @@ export class UIRenderer {
         try {
             const trackData = await this.api.getTrack(trackId);
             const track = trackData.track;
-            
+
             const coverUrl = this.api.getCoverUrl(track.album?.cover);
             imageEl.src = coverUrl;
             imageEl.style.backgroundColor = '';
-            
+
             this.setPageBackground(coverUrl);
             if (backgroundSettings.isEnabled() && track.album?.cover) {
                 this.extractAndApplyColor(this.api.getCoverUrl(track.album.cover, '80'));
@@ -974,7 +982,7 @@ export class UIRenderer {
 
             artistEl.innerHTML = `<a href="/artist/${track.artist.id}">${escapeHtml(track.artist.name)}</a>`;
             albumEl.innerHTML = `<a href="/album/${track.album.id}">${escapeHtml(track.album.title)}</a>`;
-            
+
             if (track.album.releaseDate) {
                 const date = new Date(track.album.releaseDate);
                 yearEl.textContent = date.getFullYear();
@@ -1004,7 +1012,7 @@ export class UIRenderer {
 
             this.updateLikeState(likeBtn, 'track', track.id);
             trackDataStore.set(likeBtn, track);
-            
+
             downloadBtn.dataset.action = 'download';
             downloadBtn.classList.add('track-action-btn');
             trackDataStore.set(downloadBtn, track);
@@ -1012,10 +1020,10 @@ export class UIRenderer {
             if (track.album.id) {
                 const albumData = await this.api.getAlbum(track.album.id);
                 const tracks = albumData.tracks;
-                
+
                 if (tracks.length > 1) {
                     albumSection.style.display = 'block';
-                    const otherTracks = tracks.filter(t => t.id !== track.id);
+                    const otherTracks = tracks.filter((t) => t.id !== track.id);
                     this.renderListWithTracks(albumTracksContainer, otherTracks, false);
                 } else {
                     albumSection.style.display = 'none';
@@ -1121,7 +1129,7 @@ export class UIRenderer {
 
         const folders = await db.getFolders();
         if (foldersContainer) {
-            foldersContainer.innerHTML = folders.map(f => this.createFolderCardHTML(f)).join('');
+            foldersContainer.innerHTML = folders.map((f) => this.createFolderCardHTML(f)).join('');
             foldersContainer.style.display = folders.length ? 'grid' : 'none';
         }
 
@@ -1965,7 +1973,7 @@ export class UIRenderer {
                             removeBtn.innerHTML =
                                 '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
                             removeBtn.dataset.trackId = currentTracks[index].id;
-                            
+
                             const menuBtn = actionsDiv.querySelector('.track-menu-btn');
                             actionsDiv.insertBefore(removeBtn, menuBtn);
                         });
@@ -1990,7 +1998,9 @@ export class UIRenderer {
                     } else if (sortType === 'added-oldest') {
                         currentTracks = [...originalTracks].sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0));
                     } else if (sortType === 'title') {
-                        currentTracks = [...originalTracks].sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+                        currentTracks = [...originalTracks].sort((a, b) =>
+                            (a.title || '').localeCompare(b.title || '')
+                        );
                     } else if (sortType === 'artist') {
                         currentTracks = [...originalTracks].sort((a, b) => {
                             const artistA = a.artist?.name || a.artists?.[0]?.name || '';
@@ -2015,7 +2025,13 @@ export class UIRenderer {
                 }
 
                 // Render Actions (Shuffle, Edit, Delete, Share, Sort)
-                this.updatePlaylistHeaderActions(playlistData, !!ownedPlaylist, tracks, false, !!ownedPlaylist ? applySort : null);
+                this.updatePlaylistHeaderActions(
+                    playlistData,
+                    !!ownedPlaylist,
+                    tracks,
+                    false,
+                    ownedPlaylist ? applySort : null
+                );
 
                 playBtn.onclick = () => {
                     this.player.setQueue(currentTracks, 0);
@@ -2137,9 +2153,11 @@ export class UIRenderer {
             if (!folder) throw new Error('Folder not found');
 
             imageEl.src = folder.cover || '/assets/folder.png';
-            imageEl.onerror = () => { imageEl.src = '/assets/folder.png'; };
+            imageEl.onerror = () => {
+                imageEl.src = '/assets/folder.png';
+            };
             imageEl.style.backgroundColor = '';
-            
+
             titleEl.textContent = folder.name;
             metaEl.textContent = `Created ${new Date(folder.createdAt).toLocaleDateString()}`;
 
@@ -2467,7 +2485,13 @@ export class UIRenderer {
         const actionsDiv = document.getElementById('page-playlist').querySelector('.detail-header-actions');
 
         // Cleanup existing dynamic buttons
-        ['shuffle-playlist-btn', 'edit-playlist-btn', 'delete-playlist-btn', 'share-playlist-btn', 'sort-playlist-btn'].forEach((id) => {
+        [
+            'shuffle-playlist-btn',
+            'edit-playlist-btn',
+            'delete-playlist-btn',
+            'share-playlist-btn',
+            'sort-playlist-btn',
+        ].forEach((id) => {
             const btn = actionsDiv.querySelector(`#${id}`);
             if (btn) btn.remove();
         });
@@ -2493,11 +2517,11 @@ export class UIRenderer {
             sortBtn.className = 'btn-secondary';
             sortBtn.innerHTML =
                 '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/></svg><span>Sort</span>';
-            
+
             sortBtn.onclick = (e) => {
                 e.stopPropagation();
                 const menu = document.getElementById('sort-menu');
-                
+
                 const rect = sortBtn.getBoundingClientRect();
                 menu.style.top = `${rect.bottom + 5}px`;
                 menu.style.left = `${rect.left}px`;
@@ -2517,7 +2541,7 @@ export class UIRenderer {
                 };
 
                 menu.onclick = handleSort;
-                
+
                 setTimeout(() => document.addEventListener('click', closeMenu), 0);
             };
             fragment.appendChild(sortBtn);
@@ -2776,7 +2800,8 @@ export class UIRenderer {
         document.body.classList.add('sidebar-collapsed');
         const toggleBtn = document.getElementById('sidebar-toggle');
         if (toggleBtn) {
-            toggleBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+            toggleBtn.innerHTML =
+                '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
         }
 
         const imageEl = document.getElementById('track-detail-image');
@@ -2788,7 +2813,7 @@ export class UIRenderer {
         const albumTracksContainer = document.getElementById('track-detail-album-tracks');
         const similarSection = document.getElementById('track-similar-section');
         const similarTracksContainer = document.getElementById('track-detail-similar-tracks');
-        
+
         const playBtn = document.getElementById('play-track-btn');
         const lyricsBtn = document.getElementById('track-lyrics-btn');
         const shareBtn = document.getElementById('share-track-btn');
@@ -2813,11 +2838,11 @@ export class UIRenderer {
 
         try {
             const track = await this.api.getTrackMetadata(trackId);
-            
+
             const coverUrl = this.api.getCoverUrl(track.album?.cover);
             imageEl.src = coverUrl;
             imageEl.style.backgroundColor = '';
-            
+
             this.setPageBackground(coverUrl);
             if (backgroundSettings.isEnabled() && track.album?.cover) {
                 this.extractAndApplyColor(this.api.getCoverUrl(track.album.cover, '80'));
@@ -2852,7 +2877,7 @@ export class UIRenderer {
                     const date = new Date(track.album.releaseDate);
                     yearEl.textContent = date.getFullYear();
                 }
-                
+
                 if (track.copyright || track.album.copyright) {
                     yearEl.textContent += ` • ${track.copyright || track.album.copyright}`;
                 }
@@ -2882,7 +2907,7 @@ export class UIRenderer {
 
             this.updateLikeState(likeBtn, 'track', track.id);
             trackDataStore.set(likeBtn, track);
-            
+
             downloadBtn.dataset.action = 'download';
             downloadBtn.classList.add('track-action-btn');
             trackDataStore.set(downloadBtn, track);
@@ -2893,7 +2918,7 @@ export class UIRenderer {
                     const tracks = albumData.tracks;
                     if (tracks.length > 1) {
                         albumSection.style.display = 'block';
-                        const otherTracks = tracks.filter(t => t.id != track.id);
+                        const otherTracks = tracks.filter((t) => t.id != track.id);
                         this.renderListWithTracks(albumTracksContainer, otherTracks, false, false, true);
                     }
                 } catch (err) {
@@ -2901,14 +2926,17 @@ export class UIRenderer {
                 }
             }
 
-            this.api.getRecommendedTracksForPlaylist([track], 5).then(similarTracks => {
-                if (similarTracks.length > 0) {
-                    this.renderListWithTracks(similarTracksContainer, similarTracks, true);
-                    similarSection.style.display = 'block';
-                } else {
-                    similarSection.style.display = 'none';
-                }
-            }).catch(() => similarSection.style.display = 'none');
+            this.api
+                .getRecommendedTracksForPlaylist([track], 5)
+                .then((similarTracks) => {
+                    if (similarTracks.length > 0) {
+                        this.renderListWithTracks(similarTracksContainer, similarTracks, true);
+                        similarSection.style.display = 'block';
+                    } else {
+                        similarSection.style.display = 'none';
+                    }
+                })
+                .catch(() => (similarSection.style.display = 'none'));
 
             document.title = `${displayTitle} - ${artistName}`;
         } catch (e) {

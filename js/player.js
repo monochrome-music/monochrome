@@ -319,7 +319,10 @@ export class Player {
                 }
                 streamUrl = track.audioUrl;
 
-                if ((!streamUrl || (typeof streamUrl === 'string' && streamUrl.startsWith('blob:'))) && track.remoteUrl) {
+                if (
+                    (!streamUrl || (typeof streamUrl === 'string' && streamUrl.startsWith('blob:'))) &&
+                    track.remoteUrl
+                ) {
                     streamUrl = track.remoteUrl;
                 }
 

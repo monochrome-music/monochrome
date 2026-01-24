@@ -2076,7 +2076,7 @@ input:checked + .slider::before {
 .fullscreen-progress-container .progress-bar {
     flex: 1;
     height: 6px;
-    background: rgba(255, 255, 255, 0.2);
+    background: rgb(255, 255, 255, 0.2);
     border-radius: 3px;
     cursor: pointer;
     position: relative;
@@ -2110,7 +2110,7 @@ input:checked + .slider::before {
 }
 
 .fullscreen-buttons button:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgb(255, 255, 255, 0.1);
     transform: scale(1.1);
 }
 
@@ -3193,7 +3193,7 @@ img[src=''] {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 6rem 2rem 2rem 2rem;
+    padding: 6rem 2rem 2rem;
     transition: flex 0.3s ease;
 }
 
@@ -3627,7 +3627,7 @@ img[src=''] {
         padding: var(--spacing-lg);
     }
 
-   .now-playing-bar {
+    .now-playing-bar {
         width: calc(96% - 160px) !important;
         left: calc(160px + 2%);
     }
@@ -4348,7 +4348,6 @@ body:has(#fullscreen-cover-overlay:not([style*='display: none'])) .now-playing-b
     text-overflow: ellipsis;
 }
 
-
 /* Genius i love genius brah!! */
 .genius-annotation-modal {
     position: fixed;
@@ -4357,7 +4356,7 @@ body:has(#fullscreen-cover-overlay:not([style*='display: none'])) .now-playing-b
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgb(0, 0, 0, 0.6);
     backdrop-filter: blur(4px);
     animation: fade-in 0.2s ease;
 }
@@ -4424,14 +4423,14 @@ body:has(#fullscreen-cover-overlay:not([style*='display: none'])) .now-playing-b
 }
 
 .genius-annotated {
-    background-color: rgba(255, 255, 100, 0.1);
+    background-color: rgb(255, 255, 100, 0.1);
     cursor: pointer;
     border-radius: 4px;
     transition: background-color 0.2s;
 }
 
 .genius-annotated:hover {
-    background-color: rgba(255, 255, 100, 0.2);
+    background-color: rgb(255, 255, 100, 0.2);
 }
 
 .genius-multi-start {
@@ -4491,7 +4490,7 @@ body.sidebar-collapsed #sidebar-toggle {
 #page-track .detail-header-image {
     width: 350px;
     height: 350px;
-    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 30px 60px rgb(0, 0, 0, 0.5);
 }
 
 #page-track .detail-header-info {
@@ -4526,11 +4525,11 @@ body.sidebar-collapsed #sidebar-toggle {
         width: 250px;
         height: 250px;
     }
+
     #page-track .detail-header-info .title {
         font-size: 2rem;
     }
 }
-
 
 .tracker-modal .track-item.loading {
     opacity: 0.7;

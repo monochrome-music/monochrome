@@ -68,7 +68,9 @@ class ServerAPI {
 export async function onRequest(context) {
     const { request, params, env } = context;
     const userAgent = request.headers.get('User-Agent') || '';
-    const isBot = /discordbot|twitterbot|facebookexternalhit|bingbot|googlebot|slurp|whatsapp|pinterest|slackbot/i.test(userAgent);
+    const isBot = /discordbot|twitterbot|facebookexternalhit|bingbot|googlebot|slurp|whatsapp|pinterest|slackbot/i.test(
+        userAgent
+    );
     const playlistId = params.id;
 
     if (isBot && playlistId) {
@@ -82,7 +84,9 @@ export async function onRequest(context) {
                 const trackCount = playlist.numberOfTracks;
                 const description = `Playlist • ${trackCount} Tracks\nListen on Monochrome`;
                 const imageId = playlist.squareImage || playlist.image;
-                const imageUrl = imageId ? api.getCoverUrl(imageId, '1080') : 'https://monochrome.samidy.com/assets/appicon.png';
+                const imageUrl = imageId
+                    ? api.getCoverUrl(imageId, '1080')
+                    : 'https://monochrome.samidy.com/assets/appicon.png';
                 const pageUrl = new URL(request.url).href;
 
                 const metaHtml = `

@@ -414,7 +414,7 @@ export function initializeUIInteractions(player, api, ui) {
         if (sidePanelManager.isActive('queue')) {
             refreshQueuePanel();
         }
-        
+
         const overlay = document.getElementById('fullscreen-cover-overlay');
         if (overlay && getComputedStyle(overlay).display !== 'none') {
             ui.updateFullscreenMetadata(player.currentTrack, player.getNextTrack());

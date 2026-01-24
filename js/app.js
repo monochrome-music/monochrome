@@ -15,7 +15,13 @@ import { createRouter, updateTabTitle, navigate } from './router.js';
 import { initializeSettings } from './settings.js';
 import { initializePlayerEvents, initializeTrackInteractions, handleTrackAction } from './events.js';
 import { initializeUIInteractions } from './ui-interactions.js';
-import { downloadAlbumAsZip, downloadDiscography, downloadPlaylistAsZip, downloadLikedTracks, showNotification } from './downloads.js';
+import {
+    downloadAlbumAsZip,
+    downloadDiscography,
+    downloadPlaylistAsZip,
+    downloadLikedTracks,
+    showNotification,
+} from './downloads.js';
 import { debounce, SVG_PLAY } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 import { db } from './db.js';
@@ -192,12 +198,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // i love ios and macos!!!! webkit fucking SUCKS BULLSHIT sorry ios/macos heads yall getting lossless only
     const ua = navigator.userAgent.toLowerCase();
     const isIOS = /iphone|ipad|ipod/.test(ua) || (ua.includes('mac') && navigator.maxTouchPoints > 1);
-    const isSafari = ua.includes('safari') && !ua.includes('chrome') && !ua.includes('crios') && !ua.includes('android');
+    const isSafari =
+        ua.includes('safari') && !ua.includes('chrome') && !ua.includes('crios') && !ua.includes('android');
 
     if (isIOS || isSafari) {
         const qualitySelect = document.getElementById('streaming-quality-setting');
         const downloadSelect = document.getElementById('download-quality-setting');
-        
+
         const removeHiRes = (select) => {
             if (!select) return;
             const option = select.querySelector('option[value="HI_RES_LOSSLESS"]');
@@ -228,7 +235,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const playlist = await db.getPlaylist(id);
                 const imgElement = document.getElementById('playlist-detail-image');
-                
+
                 if (!imgElement) return;
 
                 let container = imgElement.parentElement;
@@ -239,7 +246,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     container.className = 'detail-header-cover-container';
                     imgElement.parentNode.insertBefore(container, imgElement);
                     container.appendChild(imgElement);
-                    
+
                     collageElement = document.createElement('div');
                     collageElement.id = 'playlist-detail-collage';
                     collageElement.className = 'detail-header-collage';
@@ -389,7 +396,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isCollapsed = document.body.classList.contains('sidebar-collapsed');
         const toggleBtn = document.getElementById('sidebar-toggle');
         if (toggleBtn) {
-            toggleBtn.innerHTML = isCollapsed 
+            toggleBtn.innerHTML = isCollapsed
                 ? '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>'
                 : '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>';
         }
@@ -806,10 +813,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             e.stopPropagation();
             const btn = e.target.closest('.remove-from-playlist-btn');
             const playlistId = window.location.pathname.split('/')[2];
-            
+
             db.getPlaylist(playlistId).then(async (playlist) => {
                 let trackId = null;
-                
+
                 // Prefer ID if available (from sorted view)
                 if (btn.dataset.trackId) {
                     trackId = btn.dataset.trackId;
@@ -919,11 +926,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return;
                 }
 
-                list.innerHTML = playlists.map(p => `
+                list.innerHTML = playlists
+                    .map(
+                        (p) => `
                     <div class="modal-option" data-id="${p.id}">
                         <span>${p.name}</span>
                     </div>
-                `).join('');
+                `
+                    )
+                    .join('');
 
                 const closeModal = () => {
                     modal.classList.remove('active');
@@ -1207,7 +1218,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateTabTitle(player);
     };
 
-    
     await handleRouteChange();
 
     window.addEventListener('popstate', handleRouteChange);
@@ -1215,7 +1225,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.body.addEventListener('click', (e) => {
         const link = e.target.closest('a');
 
-        if (link && link.origin === window.location.origin && link.target !== '_blank' && !link.hasAttribute('download')) {
+        if (
+            link &&
+            link.origin === window.location.origin &&
+            link.target !== '_blank' &&
+            !link.hasAttribute('download')
+        ) {
             e.preventDefault();
             navigate(link.pathname);
         }

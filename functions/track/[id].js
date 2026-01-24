@@ -64,7 +64,7 @@ class ServerAPI {
         const json = await response.json();
         const data = json.data || json;
         const items = Array.isArray(data) ? data : [data];
-        const found = items.find(i => (i.id == id) || (i.item && i.item.id == id));
+        const found = items.find((i) => i.id == id || (i.item && i.item.id == id));
         if (found) {
             return found.item || found;
         }
@@ -87,7 +87,9 @@ class ServerAPI {
 export async function onRequest(context) {
     const { request, params, env } = context;
     const userAgent = request.headers.get('User-Agent') || '';
-    const isBot = /discordbot|twitterbot|facebookexternalhit|bingbot|googlebot|slurp|whatsapp|pinterest|slackbot/i.test(userAgent);
+    const isBot = /discordbot|twitterbot|facebookexternalhit|bingbot|googlebot|slurp|whatsapp|pinterest|slackbot/i.test(
+        userAgent
+    );
     const trackId = params.id;
 
     if (isBot && trackId) {
@@ -112,12 +114,14 @@ export async function onRequest(context) {
                     }
                 }
                 // this prob wont work im js winging it
-                const audioMeta = audioUrl ? `
+                const audioMeta = audioUrl
+                    ? `
                     <meta property="og:audio" content="${audioUrl}">
                     <meta property="og:audio:type" content="audio/mp4">
                     <meta property="og:video" content="${audioUrl}">
                     <meta property="og:video:type" content="audio/mp4">
-                ` : '';
+                `
+                    : '';
 
                 const metaHtml = `
                     <!DOCTYPE html>

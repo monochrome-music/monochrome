@@ -285,10 +285,14 @@ function resizeImageBlob(blob, size) {
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
             ctx.drawImage(img, 0, 0, size, size);
-            canvas.toBlob((resizedBlob) => {
-                if (resizedBlob) resolve(resizedBlob);
-                else reject(new Error('Canvas toBlob failed'));
-            }, blob.type || 'image/jpeg', 0.9);
+            canvas.toBlob(
+                (resizedBlob) => {
+                    if (resizedBlob) resolve(resizedBlob);
+                    else reject(new Error('Canvas toBlob failed'));
+                },
+                blob.type || 'image/jpeg',
+                0.9
+            );
         };
         img.onerror = (e) => {
             URL.revokeObjectURL(url);
@@ -309,18 +313,18 @@ export async function getCoverBlob(api, coverId) {
     if (sizeStr.includes('x')) {
         sizeStr = sizeStr.split('x')[0];
     }
-    
+
     let requestedSize = parseInt(sizeStr, 10);
     if (isNaN(requestedSize) || requestedSize <= 0) requestedSize = 1280;
 
     const cacheKey = `${coverId}-${requestedSize}`;
     if (coverCache.has(cacheKey)) return coverCache.get(cacheKey);
 
-    // Tidal seems to only support these soooo 
+    // Tidal seems to only support these soooo
     const supportedSizes = [80, 160, 320, 640, 1280];
     let fetchSize = 1280;
-    
-    const bestSize = supportedSizes.find(s => s >= requestedSize);
+
+    const bestSize = supportedSizes.find((s) => s >= requestedSize);
     if (bestSize) {
         fetchSize = bestSize;
     }
