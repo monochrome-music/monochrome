@@ -4697,7 +4697,6 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     }
 }
 
-
 @media (max-width: 480px) {
     .player-controls .buttons {
         gap: 1.25rem;
