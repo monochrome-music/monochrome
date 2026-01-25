@@ -342,6 +342,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Restore UI state for the current track (like button, theme)
     if (player.currentTrack) {
         ui.setCurrentTrack(player.currentTrack);
+
+        // DEV: Auto-open fullscreen mode if ?fullscreen=1 in URL
+        if (new URLSearchParams(window.location.search).get('fullscreen') === '1') {
+            const nextTrack = player.getNextTrack();
+            ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, audioPlayer);
+        }
     }
 
     document.querySelector('.now-playing-bar .cover').addEventListener('click', async () => {
@@ -454,6 +460,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Update Fullscreen if it's open
         const fullscreenOverlay = document.getElementById('fullscreen-cover-overlay');
         if (fullscreenOverlay && getComputedStyle(fullscreenOverlay).display !== 'none') {
+            const nextTrack = player.getNextTrack();
+            ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, audioPlayer);
+        }
+
+        // DEV: Auto-open fullscreen mode if ?fullscreen=1 in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('fullscreen') === '1' && fullscreenOverlay && getComputedStyle(fullscreenOverlay).display === 'none') {
             const nextTrack = player.getNextTrack();
             ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, audioPlayer);
         }

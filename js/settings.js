@@ -452,12 +452,14 @@ export function initializeSettings(scrobbler, player, api, ui) {
     const visualizerModeSetting = document.getElementById('visualizer-mode-setting');
     const visualizerSmartIntensitySetting = document.getElementById('visualizer-smart-intensity-setting');
     const visualizerSensitivitySetting = document.getElementById('visualizer-sensitivity-setting');
+    const visualizerPresetSetting = document.getElementById('visualizer-preset-setting');
 
     const updateVisualizerSettingsVisibility = (enabled) => {
         const display = enabled ? 'flex' : 'none';
         if (visualizerModeSetting) visualizerModeSetting.style.display = display;
         if (visualizerSmartIntensitySetting) visualizerSmartIntensitySetting.style.display = display;
         if (visualizerSensitivitySetting) visualizerSensitivitySetting.style.display = display;
+        if (visualizerPresetSetting) visualizerPresetSetting.style.display = display;
     };
 
     if (visualizerEnabledToggle) {
@@ -467,6 +469,22 @@ export function initializeSettings(scrobbler, player, api, ui) {
         visualizerEnabledToggle.addEventListener('change', (e) => {
             visualizerSettings.setEnabled(e.target.checked);
             updateVisualizerSettingsVisibility(e.target.checked);
+        });
+    }
+
+    // Visualizer Preset Select
+    const visualizerPresetSelect = document.getElementById('visualizer-preset-select');
+    if (visualizerPresetSelect) {
+        visualizerPresetSelect.value = visualizerSettings.getPreset();
+        visualizerPresetSelect.addEventListener('change', (e) => {
+            const val = e.target.value;
+            visualizerSettings.setPreset(val);
+            // Assuming 'ui' has access to 'visualizer' instance or we need to find it
+            // 'ui' is passed to initializeSettings. 
+            // In ui.js, 'visualizer' is a property of UIRenderer.
+            if (ui && ui.visualizer) {
+                ui.visualizer.setPreset(val);
+            }
         });
     }
 
