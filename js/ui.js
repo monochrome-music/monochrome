@@ -1533,10 +1533,10 @@ export class UIRenderer {
                     dateDisplay =
                         window.innerWidth > 768
                             ? releaseDate.toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                            })
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric',
+                              })
                             : year;
                 }
             }
@@ -2268,9 +2268,9 @@ export class UIRenderer {
                 <span>${artist.popularity}% popularity</span>
                 <div class="artist-tags">
                     ${(artist.artistRoles || [])
-                    .filter((role) => role.category)
-                    .map((role) => `<span class="artist-tag">${role.category}</span>`)
-                    .join('')}
+                        .filter((role) => role.category)
+                        .map((role) => `<span class="artist-tag">${role.category}</span>`)
+                        .join('')}
                 </div>
             `;
 

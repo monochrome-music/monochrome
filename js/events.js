@@ -10,12 +10,7 @@ import {
     SVG_BIN,
 } from './utils.js';
 import { lastFMStorage, waveformSettings } from './storage.js';
-import {
-    showNotification,
-    downloadTrackWithMetadata,
-    downloadAlbumAsZip,
-    downloadPlaylistAsZip,
-} from './downloads.js';
+import { showNotification, downloadTrackWithMetadata, downloadAlbumAsZip, downloadPlaylistAsZip } from './downloads.js';
 import { downloadQualitySettings } from './storage.js';
 import { updateTabTitle, navigate } from './router.js';
 import { db } from './db.js';
@@ -568,14 +563,7 @@ export async function handleTrackAction(
 
     // Collection Actions (Album, Playlist, Mix)
     const isCollection = ['album', 'playlist', 'user-playlist', 'mix'].includes(type);
-    const collectionActions = [
-        'play-card',
-        'shuffle-play-card',
-        'add-to-queue',
-        'play-next',
-        'download',
-        'start-mix',
-    ];
+    const collectionActions = ['play-card', 'shuffle-play-card', 'add-to-queue', 'play-next', 'download', 'start-mix'];
 
     if (isCollection && collectionActions.includes(action)) {
         try {
@@ -614,9 +602,21 @@ export async function handleTrackAction(
 
             if (action === 'download') {
                 if (type === 'album') {
-                    await downloadAlbumAsZip(collectionItem, tracks, api, downloadQualitySettings.getQuality(), lyricsManager);
+                    await downloadAlbumAsZip(
+                        collectionItem,
+                        tracks,
+                        api,
+                        downloadQualitySettings.getQuality(),
+                        lyricsManager
+                    );
                 } else {
-                    await downloadPlaylistAsZip(collectionItem, tracks, api, downloadQualitySettings.getQuality(), lyricsManager);
+                    await downloadPlaylistAsZip(
+                        collectionItem,
+                        tracks,
+                        api,
+                        downloadQualitySettings.getQuality(),
+                        lyricsManager
+                    );
                 }
                 return;
             }
@@ -696,8 +696,7 @@ export async function handleTrackAction(
         }
     } else if (action === 'download') {
         await downloadTrackWithMetadata(item, downloadQualitySettings.getQuality(), api, lyricsManager);
-    }
-    else if (action === 'toggle-like') {
+    } else if (action === 'toggle-like') {
         const added = await db.toggleFavorite(type, item);
         syncManager.syncLibraryItem(type, item, added);
 
@@ -809,9 +808,10 @@ export async function handleTrackAction(
                     return `
                     <div class="modal-option ${alreadyContains ? 'already-contains' : ''}" data-id="${p.id}">
                         <span>${p.name}</span>
-                        ${alreadyContains
-                            ? `<button class="remove-from-playlist-btn-modal" title="Remove from playlist" style="background: transparent; border: none; color: inherit; cursor: pointer; padding: 4px; display: flex; align-items: center;">${SVG_BIN}</button>`
-                            : ''
+                        ${
+                            alreadyContains
+                                ? `<button class="remove-from-playlist-btn-modal" title="Remove from playlist" style="background: transparent; border: none; color: inherit; cursor: pointer; padding: 4px; display: flex; align-items: center;">${SVG_BIN}</button>`
+                                : ''
                         }
                     </div>
                 `;
@@ -1106,10 +1106,22 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             }
         } else if (card) {
             e.preventDefault();
-            const type = card.dataset.albumId ? 'album' : card.dataset.playlistId ? 'playlist' : card.dataset.mixId ? 'mix' : card.dataset.href ? card.dataset.href.split('/')[1] : 'item';
+            const type = card.dataset.albumId
+                ? 'album'
+                : card.dataset.playlistId
+                  ? 'playlist'
+                  : card.dataset.mixId
+                    ? 'mix'
+                    : card.dataset.href
+                      ? card.dataset.href.split('/')[1]
+                      : 'item';
             const id = card.dataset.albumId || card.dataset.playlistId || card.dataset.mixId;
 
-            const item = trackDataStore.get(card) || { id, uuid: id, title: card.querySelector('.card-title')?.textContent };
+            const item = trackDataStore.get(card) || {
+                id,
+                uuid: id,
+                title: card.querySelector('.card-title')?.textContent,
+            };
             contextTrack = item;
             contextMenu._contextTrack = item;
             contextMenu._contextType = type.replace('userplaylist', 'user-playlist');
