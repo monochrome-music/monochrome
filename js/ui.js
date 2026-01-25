@@ -17,7 +17,7 @@ import {
     escapeHtml,
 } from './utils.js';
 import { openLyricsPanel } from './lyrics.js';
-import { recentActivityManager, backgroundSettings, cardSettings } from './storage.js';
+import { recentActivityManager, backgroundSettings, cardSettings, visualizerSettings } from './storage.js';
 import { db } from './db.js';
 import { getVibrantColorFromImage } from './vibrant-color.js';
 import { syncManager } from './accounts/pocketbase.js';
@@ -748,6 +748,11 @@ export class UIRenderer {
         overlay.style.display = 'flex';
 
         const startVisualizer = () => {
+            if (!visualizerSettings.isEnabled()) {
+                if (this.visualizer) this.visualizer.stop();
+                return;
+            }
+
             if (!this.visualizer && audioPlayer) {
                 const canvas = document.getElementById('visualizer-canvas');
                 if (canvas) {

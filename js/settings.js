@@ -447,6 +447,38 @@ export function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
+    // Visualizer Enabled Toggle
+    const visualizerEnabledToggle = document.getElementById('visualizer-enabled-toggle');
+    const visualizerModeSetting = document.getElementById('visualizer-mode-setting');
+    const visualizerSmartIntensitySetting = document.getElementById('visualizer-smart-intensity-setting');
+    const visualizerSensitivitySetting = document.getElementById('visualizer-sensitivity-setting');
+
+    const updateVisualizerSettingsVisibility = (enabled) => {
+        const display = enabled ? 'flex' : 'none';
+        if (visualizerModeSetting) visualizerModeSetting.style.display = display;
+        if (visualizerSmartIntensitySetting) visualizerSmartIntensitySetting.style.display = display;
+        if (visualizerSensitivitySetting) visualizerSensitivitySetting.style.display = display;
+    };
+
+    if (visualizerEnabledToggle) {
+        visualizerEnabledToggle.checked = visualizerSettings.isEnabled();
+        updateVisualizerSettingsVisibility(visualizerEnabledToggle.checked);
+
+        visualizerEnabledToggle.addEventListener('change', (e) => {
+            visualizerSettings.setEnabled(e.target.checked);
+            updateVisualizerSettingsVisibility(e.target.checked);
+        });
+    }
+
+    // Visualizer Mode Select
+    const visualizerModeSelect = document.getElementById('visualizer-mode-select');
+    if (visualizerModeSelect) {
+        visualizerModeSelect.value = visualizerSettings.getMode();
+        visualizerModeSelect.addEventListener('change', (e) => {
+            visualizerSettings.setMode(e.target.value);
+        });
+    }
+
     // Filename template setting
     const filenameTemplate = document.getElementById('filename-template');
     if (filenameTemplate) {

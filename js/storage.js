@@ -624,6 +624,33 @@ export const bulkDownloadSettings = {
 export const visualizerSettings = {
     SENSITIVITY_KEY: 'visualizer-sensitivity',
     SMART_INTENSITY_KEY: 'visualizer-smart-intensity',
+    ENABLED_KEY: 'visualizer-enabled',
+    MODE_KEY: 'visualizer-mode', // 'solid' or 'blended'
+
+    isEnabled() {
+        try {
+            const val = localStorage.getItem(this.ENABLED_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.ENABLED_KEY, enabled);
+    },
+
+    getMode() {
+        try {
+            return localStorage.getItem(this.MODE_KEY) || 'solid';
+        } catch {
+            return 'solid';
+        }
+    },
+
+    setMode(mode) {
+        localStorage.setItem(this.MODE_KEY, mode);
+    },
 
     getSensitivity() {
         try {
