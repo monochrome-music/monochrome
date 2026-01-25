@@ -3,7 +3,6 @@ import { escapeHtml, SVG_DOWNLOAD } from './utils.js';
 
 let artistsData = [];
 let globalPlayer = null;
-let globalUi = null;
 
 async function loadArtistsData() {
     try {
@@ -17,7 +16,7 @@ async function loadArtistsData() {
             .map((line) => {
                 try {
                     return JSON.parse(line);
-                } catch (e) {
+                } catch {
                     return null;
                 }
             })
@@ -487,9 +486,8 @@ function showEraSongs(era, artistName) {
     closeBtn.onclick = closeModal;
 }
 
-export async function initTracker(player, ui) {
+export async function initTracker(player) {
     globalPlayer = player;
-    globalUi = ui;
     await loadArtistsData();
 
     const checkAndRenderTracker = async () => {

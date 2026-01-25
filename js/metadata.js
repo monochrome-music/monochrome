@@ -1,4 +1,4 @@
-import { getExtensionForQuality, getCoverBlob } from './utils.js';
+import { getCoverBlob } from './utils.js';
 
 const VENDOR_STRING = 'Monochrome';
 const DEFAULT_TITLE = 'Unknown Title';
@@ -14,8 +14,6 @@ const DEFAULT_ALBUM = 'Unknown Album';
  * @returns {Promise<Blob>} - Audio blob with embedded metadata
  */
 export async function addMetadataToAudio(audioBlob, track, api, quality) {
-    const extension = getExtensionForQuality(quality);
-
     if (quality === 'HI_RES_LOSSLESS') {
         return await addFlacMetadata(audioBlob, track, api);
     }

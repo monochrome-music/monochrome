@@ -244,7 +244,7 @@ export class Player {
                 // Warm connection/cache
                 // For Blob URLs (DASH), this head request is not needed and can cause errors.
                 if (!streamUrl.startsWith('blob:')) {
-                    fetch(streamUrl, { method: 'HEAD', signal: this.preloadAbortController.signal }).catch(() => {});
+                    fetch(streamUrl, { method: 'HEAD', signal: this.preloadAbortController.signal }).catch(() => { });
                 }
             } catch (error) {
                 if (error.name !== 'AbortError') {
@@ -254,7 +254,7 @@ export class Player {
         }
     }
 
-    async playTrackFromQueue(startTime = 0) {
+    async playTrackFromQueue(startTime = 0, recursiveCount = 0) {
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
         if (this.currentQueueIndex < 0 || this.currentQueueIndex >= currentQueue.length) {
             return;
@@ -306,6 +306,8 @@ export class Player {
         document.title = `${trackTitle} • ${getTrackArtists(track)}`;
 
         this.updatePlayingTrackIndicator();
+        this.updateMediaSession(track);
+        this.updateMediaSessionPlaybackState();
 
         try {
             let streamUrl;
@@ -417,12 +419,13 @@ export class Player {
                 }
             }
 
-            // Update Media Session AFTER play starts to ensure metadata is captured
-            this.updateMediaSession(track);
-            this.updateMediaSessionPlaybackState();
             this.preloadNextTracks();
         } catch (error) {
             console.error(`Could not play track: ${trackTitle}`, error);
+            // Skip to next track on unexpected error
+            if (recursiveCount < currentQueue.length) {
+                setTimeout(() => this.playNext(recursiveCount + 1), 1000);
+            }
         }
     }
 
@@ -430,7 +433,7 @@ export class Player {
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
         if (index >= 0 && index < currentQueue.length) {
             this.currentQueueIndex = index;
-            this.playTrackFromQueue();
+            this.playTrackFromQueue(0, 0);
         }
     }
 
@@ -445,7 +448,7 @@ export class Player {
         }
 
         if (this.repeatMode === REPEAT_MODE.ONE && !currentQueue[this.currentQueueIndex]?.isUnavailable) {
-            this.playTrackFromQueue();
+            this.playTrackFromQueue(0, recursiveCount);
             return;
         }
 
@@ -465,7 +468,7 @@ export class Player {
             return;
         }
 
-        this.playTrackFromQueue();
+        this.playTrackFromQueue(0, recursiveCount);
     }
 
     playPrev(recursiveCount = 0) {
@@ -486,14 +489,14 @@ export class Player {
             if (currentQueue[this.currentQueueIndex].isUnavailable) {
                 return this.playPrev(recursiveCount + 1);
             }
-            this.playTrackFromQueue();
+            this.playTrackFromQueue(0, recursiveCount);
         }
     }
 
     handlePlayPause() {
         if (!this.audio.src || this.audio.error) {
             if (this.currentTrack) {
-                this.playTrackFromQueue();
+                this.playTrackFromQueue(0, 0);
             }
             return;
         }
@@ -503,7 +506,7 @@ export class Player {
                 if (e.name === 'NotAllowedError' || e.name === 'AbortError') return;
                 console.error('Play failed, reloading track:', e);
                 if (this.currentTrack) {
-                    this.playTrackFromQueue();
+                    this.playTrackFromQueue(0, 0);
                 }
             });
         } else {
@@ -571,30 +574,29 @@ export class Player {
         this.saveQueueState();
     }
 
-    addToQueue(track) {
-        this.queue.push(track);
+    addToQueue(trackOrTracks) {
+        const tracks = Array.isArray(trackOrTracks) ? trackOrTracks : [trackOrTracks];
+        this.queue.push(...tracks);
 
         if (!this.currentTrack || this.currentQueueIndex === -1) {
-            this.currentQueueIndex = this.queue.length - 1;
-            this.playTrackFromQueue();
+            this.currentQueueIndex = this.queue.length - tracks.length;
+            this.playTrackFromQueue(0, 0);
         }
         this.saveQueueState();
     }
 
-    addNextToQueue(track) {
+    addNextToQueue(trackOrTracks) {
+        const tracks = Array.isArray(trackOrTracks) ? trackOrTracks : [trackOrTracks];
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
         const insertIndex = this.currentQueueIndex + 1;
 
         // Insert after current track
-        currentQueue.splice(insertIndex, 0, track);
+        currentQueue.splice(insertIndex, 0, ...tracks);
 
         // If we are shuffling, we might want to also add it to the original queue for consistency,
         // though syncing that is tricky. The standard logic often just appends to the active queue view.
         if (this.shuffleActive) {
-            this.originalQueueBeforeShuffle.push(track); // Just append to end of main list? Or logic needed.
-            // Simplest is to just modify the active playing queue.
-        } else {
-            // In linear mode, `currentQueue` IS `this.queue`
+            this.originalQueueBeforeShuffle.push(...tracks); // Sync original queue
         }
 
         this.saveQueueState();

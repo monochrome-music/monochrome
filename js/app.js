@@ -334,7 +334,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeUIInteractions(player, api, ui);
     initializeKeyboardShortcuts(player, audioPlayer);
 
-    initTracker(player, ui);
+    initTracker(player);
 
     const castBtn = document.getElementById('cast-btn');
     initializeCasting(audioPlayer, castBtn);

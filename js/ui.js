@@ -302,16 +302,17 @@ export class UIRenderer {
             <button class="play-btn card-play-btn" data-action="play-card" data-type="${type}" data-id="${id}" title="Play">
                 ${SVG_PLAY}
             </button>
+            <button class="card-menu-btn" data-action="card-menu" data-type="${type}" data-id="${id}" title="Menu">
+                ${SVG_MENU}
+            </button>
         `
                 : '';
 
-        const cardContent =
-            type === 'artist'
-                ? `<h4 class="card-title">${title}</h4>`
-                : `<div class="card-info">
-                    <h4 class="card-title">${title}</h4>
-                    <p class="card-subtitle">${subtitle}</p>
-               </div>`;
+        const cardContent = `
+            <div class="card-info">
+                <h4 class="card-title">${title}</h4>
+                ${subtitle ? `<p class="card-subtitle">${subtitle}</p>` : ''}
+            </div>`;
 
         // In compact mode, move the play button outside the wrapper to position it on the right side of the card
         const buttonsInWrapper = !isCompact ? playBtnHTML : '';
@@ -1532,10 +1533,10 @@ export class UIRenderer {
                     dateDisplay =
                         window.innerWidth > 768
                             ? releaseDate.toLocaleDateString('en-US', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric',
-                              })
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                            })
                             : year;
                 }
             }
@@ -2233,6 +2234,14 @@ export class UIRenderer {
                         if (similar && similar.length > 0) {
                             similarContainer.innerHTML = similar.map((a) => this.createArtistCardHTML(a)).join('');
                             similarSection.style.display = 'block';
+
+                            similar.forEach((a) => {
+                                const el = similarContainer.querySelector(`[data-artist-id="${a.id}"]`);
+                                if (el) {
+                                    trackDataStore.set(el, a);
+                                    this.updateLikeState(el, 'artist', a.id);
+                                }
+                            });
                         } else {
                             similarSection.style.display = 'none';
                         }
@@ -2259,9 +2268,9 @@ export class UIRenderer {
                 <span>${artist.popularity}% popularity</span>
                 <div class="artist-tags">
                     ${(artist.artistRoles || [])
-                        .filter((role) => role.category)
-                        .map((role) => `<span class="artist-tag">${role.category}</span>`)
-                        .join('')}
+                    .filter((role) => role.category)
+                    .map((role) => `<span class="artist-tag">${role.category}</span>`)
+                    .join('')}
                 </div>
             `;
 

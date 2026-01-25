@@ -51,7 +51,7 @@ class ServerAPI {
         try {
             const response = await this.fetchWithRetry(`/playlist/${id}`);
             return await response.json();
-        } catch (e) {
+        } catch {
             // Fallback to query param style
             const response = await this.fetchWithRetry(`/playlist?id=${id}`);
             return await response.json();

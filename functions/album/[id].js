@@ -51,7 +51,7 @@ class ServerAPI {
         try {
             const response = await this.fetchWithRetry(`/album/${id}`);
             return await response.json();
-        } catch (e) {
+        } catch {
             const response = await this.fetchWithRetry(`/album?id=${id}`);
             return await response.json();
         }

@@ -735,9 +735,19 @@ body.has-page-background .track-item:hover {
 
 .card-like-btn {
     position: absolute;
-    top: 2%;
     right: 2%;
-    background: rgb(0, 0, 0, 0.25) !important;
+    top: 2%;
+}
+
+.card-menu-btn {
+    position: absolute;
+    left: 2%;
+    top: 2%;
+}
+
+.card-like-btn,
+.card-menu-btn {
+    background: rgb(0, 0, 0, 0.4) !important;
     backdrop-filter: blur(8px);
     border-radius: 50% !important;
     width: 32px !important;
@@ -752,15 +762,18 @@ body.has-page-background .track-item:hover {
     z-index: 10;
     color: white !important;
     border: none !important;
+    cursor: pointer;
 }
 
 .card:hover .card-like-btn,
+.card:hover .card-menu-btn,
 .card-like-btn.active {
     opacity: 1;
     transform: scale(1);
 }
 
-.card-like-btn:hover {
+.card-like-btn:hover,
+.card-menu-btn:hover {
     background: rgb(0, 0, 0, 0.7) !important;
     transform: scale(1.1) !important;
 }
@@ -989,6 +1002,13 @@ body.has-page-background .track-item:hover {
         white-space: normal;
 
         /* Reset in case inherited */
+    }
+
+    .album-content-layout .content-section .card-grid .card.compact {
+        display: inline-flex;
+        vertical-align: top;
+        width: 220px;
+        margin-right: var(--spacing-sm);
     }
 
     .album-content-layout .section-title {
@@ -2927,15 +2947,6 @@ input:checked + .slider::before {
 .btn-icon:hover {
     background: var(--secondary);
     color: var(--foreground);
-}
-
-/* Specific Panel Overrides if needed */
-.lyrics-panel {
-    /* Inherits side-panel */
-}
-
-.queue-panel {
-    /* Inherits side-panel */
 }
 
 /* Synced lyrics styling with Apple Music animations */
