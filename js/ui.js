@@ -942,107 +942,7 @@ export class UIRenderer {
         }
     }
 
-    async renderTrackPage(trackId) {
-        this.showPage('track');
 
-        const imageEl = document.getElementById('track-detail-image');
-        const titleEl = document.getElementById('track-detail-title');
-        const artistEl = document.getElementById('track-detail-artist');
-        const albumEl = document.getElementById('track-detail-album');
-        const yearEl = document.getElementById('track-detail-year');
-        const albumSection = document.getElementById('track-album-section');
-        const albumTracksContainer = document.getElementById('track-detail-album-tracks');
-
-        const playBtn = document.getElementById('play-track-btn');
-        const lyricsBtn = document.getElementById('track-lyrics-btn');
-        const shareBtn = document.getElementById('share-track-btn');
-        const likeBtn = document.getElementById('like-track-btn');
-        const downloadBtn = document.getElementById('download-track-btn');
-
-        imageEl.src = '';
-        imageEl.style.backgroundColor = 'var(--muted)';
-        titleEl.innerHTML = '<div class="skeleton" style="height: 48px; width: 300px; max-width: 90%;"></div>';
-        artistEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 100px;"></div>';
-        albumEl.innerHTML = '';
-        yearEl.innerHTML = '';
-        albumTracksContainer.innerHTML = this.createSkeletonTracks(5, false);
-
-        try {
-            const trackData = await this.api.getTrack(trackId);
-            const track = trackData.track;
-
-            const coverUrl = this.api.getCoverUrl(track.album?.cover);
-            imageEl.src = coverUrl;
-            imageEl.style.backgroundColor = '';
-
-            this.setPageBackground(coverUrl);
-            if (backgroundSettings.isEnabled() && track.album?.cover) {
-                this.extractAndApplyColor(this.api.getCoverUrl(track.album.cover, '80'));
-            }
-
-            const explicitBadge = hasExplicitContent(track) ? this.createExplicitBadge() : '';
-            const qualityBadge = createQualityBadgeHTML(track);
-            titleEl.innerHTML = `${escapeHtml(track.title)} ${explicitBadge} ${qualityBadge}`;
-            this.adjustTitleFontSize(titleEl, track.title);
-
-            artistEl.innerHTML = `<a href="/artist/${track.artist.id}">${escapeHtml(track.artist.name)}</a>`;
-            albumEl.innerHTML = `<a href="/album/${track.album.id}">${escapeHtml(track.album.title)}</a>`;
-
-            if (track.album.releaseDate) {
-                const date = new Date(track.album.releaseDate);
-                yearEl.textContent = date.getFullYear();
-            }
-
-            playBtn.onclick = () => {
-                this.player.setQueue([track]);
-                this.player.playTrackFromQueue();
-            };
-
-            lyricsBtn.onclick = () => {
-                if (this.player.currentTrack && this.player.currentTrack.id === track.id) {
-                    document.getElementById('toggle-lyrics-btn').click();
-                } else {
-                    this.player.setQueue([track]);
-                    this.player.playTrackFromQueue();
-                    setTimeout(() => document.getElementById('toggle-lyrics-btn').click(), 500);
-                }
-            };
-
-            shareBtn.onclick = () => {
-                const url = `${window.location.origin}/track/${track.id}`;
-                navigator.clipboard.writeText(url).then(() => {
-                    showNotification('Link copied to clipboard!');
-                });
-            };
-
-            this.updateLikeState(likeBtn, 'track', track.id);
-            trackDataStore.set(likeBtn, track);
-
-            downloadBtn.dataset.action = 'download';
-            downloadBtn.classList.add('track-action-btn');
-            trackDataStore.set(downloadBtn, track);
-
-            if (track.album.id) {
-                const albumData = await this.api.getAlbum(track.album.id);
-                const tracks = albumData.tracks;
-
-                if (tracks.length > 1) {
-                    albumSection.style.display = 'block';
-                    const otherTracks = tracks.filter((t) => t.id !== track.id);
-                    this.renderListWithTracks(albumTracksContainer, otherTracks, false);
-                } else {
-                    albumSection.style.display = 'none';
-                }
-            } else {
-                albumSection.style.display = 'none';
-            }
-
-            document.title = `${displayTitle} - ${artistName}`;
-        } catch (e) {
-            console.error(e);
-            titleEl.textContent = 'Error loading track';
-        }
-    }
 
     async renderLibraryPage() {
         this.showPage('library');
@@ -1634,10 +1534,10 @@ export class UIRenderer {
                     dateDisplay =
                         window.innerWidth > 768
                             ? releaseDate.toLocaleDateString('en-US', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric',
-                              })
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                            })
                             : year;
                 }
             }
@@ -2361,9 +2261,9 @@ export class UIRenderer {
                 <span>${artist.popularity}% popularity</span>
                 <div class="artist-tags">
                     ${(artist.artistRoles || [])
-                        .filter((role) => role.category)
-                        .map((role) => `<span class="artist-tag">${role.category}</span>`)
-                        .join('')}
+                    .filter((role) => role.category)
+                    .map((role) => `<span class="artist-tag">${role.category}</span>`)
+                    .join('')}
                 </div>
             `;
 
@@ -2843,6 +2743,8 @@ export class UIRenderer {
 
         try {
             const track = await this.api.getTrackMetadata(trackId);
+            const displayTitle = getTrackTitle(track);
+            const artistName = getTrackArtists(track);
 
             const coverUrl = this.api.getCoverUrl(track.album?.cover);
             imageEl.src = coverUrl;
@@ -2855,18 +2757,13 @@ export class UIRenderer {
 
             const explicitBadge = hasExplicitContent(track) ? this.createExplicitBadge() : '';
             const qualityBadge = createQualityBadgeHTML(track);
-            const displayTitle = getTrackTitle(track);
             titleEl.innerHTML = `${escapeHtml(displayTitle)} ${explicitBadge} ${qualityBadge}`;
             this.adjustTitleFontSize(titleEl, displayTitle);
 
-            let artistName = 'Unknown Artist';
             let artistId = null;
-
             if (track.artist) {
-                artistName = track.artist.name;
                 artistId = track.artist.id;
             } else if (track.artists && track.artists.length > 0) {
-                artistName = track.artists[0].name;
                 artistId = track.artists[0].id;
             }
 

@@ -1,5 +1,5 @@
 export class DashDownloader {
-    constructor() {}
+    constructor() { }
 
     async downloadDashStream(manifestBlobUrl, options = {}) {
         const { onProgress, signal } = options;
@@ -15,8 +15,7 @@ export class DashDownloader {
 
         // 2. Generate URLs
         const urls = this.generateSegmentUrls(manifest);
-
-        const mimeType = audioSet.getAttribute('mimeType') || 'audio/mp4';
+        const mimeType = manifest.mimeType || 'audio/mp4';
 
         // 3. Download Segments
         const chunks = [];
@@ -160,6 +159,7 @@ export class DashDownloader {
             media,
             segments,
             repId,
+            mimeType: audioSet.getAttribute('mimeType'),
         };
     }
 
