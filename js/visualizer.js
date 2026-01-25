@@ -1,5 +1,6 @@
 //js/visualizer.js
 import { visualizerSettings } from './storage.js';
+
 export class Visualizer {
     constructor(canvas, audio) {
         this.canvas = canvas;
@@ -38,6 +39,7 @@ export class Visualizer {
     }
 
     start() {
+        if (this.isActive) return;
         if (!this.audioContext) this.init();
         if (!this.analyser) return;
 
@@ -59,7 +61,10 @@ export class Visualizer {
 
     stop() {
         this.isActive = false;
-        if (this.animationId) cancelAnimationFrame(this.animationId);
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+        }
         window.removeEventListener('resize', this.resizeBound);
 
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
