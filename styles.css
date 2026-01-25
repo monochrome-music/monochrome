@@ -337,6 +337,7 @@ kbd {
     padding: var(--spacing-xl);
     scroll-behavior: smooth;
     position: relative;
+
     /* Context for background */
     padding-bottom: 160px !important;
 }
@@ -636,7 +637,6 @@ body.has-page-background .track-item:hover {
 }
 
 @keyframes pulse {
-
     0%,
     100% {
         opacity: 1;
@@ -942,7 +942,6 @@ body.has-page-background .track-item:hover {
 }
 
 @media (max-width: 1100px) {
-
     #home-recommended-songs,
     #artist-detail-tracks,
     #playlist-detail-recommended {
@@ -984,9 +983,11 @@ body.has-page-background .track-item:hover {
         display: inline-block;
         vertical-align: top;
         width: 155px;
+
         /* Fixed width to ensure consistent flow */
         margin: 0 var(--spacing-md) var(--spacing-md) 0;
         white-space: normal;
+
         /* Reset in case inherited */
     }
 
@@ -994,6 +995,7 @@ body.has-page-background .track-item:hover {
         font-size: 1.4rem;
         margin-bottom: var(--spacing-md);
         clear: none;
+
         /* Allow sitting next to float */
     }
 }
@@ -1130,6 +1132,7 @@ body.has-page-background .track-item:hover {
     border-radius: var(--radius);
     transition: all var(--transition);
     display: none;
+
     /* Controlled by data-track-actions-mode */
     align-items: center;
     justify-content: center;
@@ -1154,6 +1157,7 @@ body.has-page-background .track-item:hover {
 
 .track-actions-inline {
     display: none;
+
     /* Controlled by data-track-actions-mode */
     gap: 0.25rem;
     opacity: 0.2;
@@ -1191,6 +1195,7 @@ body.has-page-background .track-item:hover {
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+
     /* Prevent buttons from squishing */
 }
 
@@ -1528,11 +1533,11 @@ body.has-page-background .track-item:hover {
     border-radius: 50%;
 }
 
-input:checked+.slider {
+input:checked + .slider {
     background-color: var(--primary);
 }
 
-input:checked+.slider::before {
+input:checked + .slider::before {
     transform: translateX(16px);
     background-color: var(--primary-foreground);
 }
@@ -1993,7 +1998,9 @@ input:checked+.slider::before {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: opacity 0.2s, right 0.3s ease;
+    transition:
+        opacity 0.2s,
+        right 0.3s ease;
     z-index: 10;
     opacity: 0.5;
 }
@@ -2044,11 +2051,13 @@ input:checked+.slider::before {
     flex-direction: column;
     gap: 0.2rem;
     opacity: 0;
+
     /* Initially hidden for animation */
 }
 
 #fullscreen-next-track.animate-in {
     animation: fade-in 0.5s ease 0.2s forwards;
+
     /* Added forwards to keep opacity 1 */
 }
 
@@ -3047,6 +3056,7 @@ input:checked+.slider::before {
 .card.compact.user-playlist .edit-playlist-btn,
 .card.compact.user-playlist .delete-playlist-btn {
     display: none !important;
+
     /* Hide edit/delete on compact view to prevent covering image */
 }
 
@@ -3202,7 +3212,10 @@ img[src=''] {
     align-items: center;
     justify-content: center;
     padding: 6rem 2rem 2rem;
-    transition: flex 0.3s ease, padding-right 0.3s ease, margin-right 0.3s ease;
+    transition:
+        flex 0.3s ease,
+        padding-right 0.3s ease,
+        margin-right 0.3s ease;
 }
 
 .fullscreen-lyrics-toggle {
@@ -3219,7 +3232,9 @@ img[src=''] {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease, right 0.3s ease;
+    transition:
+        all 0.2s ease,
+        right 0.3s ease;
 }
 
 .fullscreen-lyrics-toggle:hover {
@@ -3655,6 +3670,7 @@ img[src=''] {
 
     #fullscreen-cover-image {
         max-height: 45vh;
+
         /* Reduce height on mobile to fit text */
         margin-bottom: 1.5rem;
     }
@@ -4620,7 +4636,10 @@ body.sidebar-collapsed #sidebar-toggle {
 
 /* Fullscreen layout shift when side panel is active */
 body:has(#side-panel.active) .fullscreen-main-view {
-    transition: flex 0.3s ease, padding-right 0.3s ease, margin-right 0.3s ease;
+    transition:
+        flex 0.3s ease,
+        padding-right 0.3s ease,
+        margin-right 0.3s ease;
 }
 
 body:has(#side-panel.active) .fullscreen-main-view {
