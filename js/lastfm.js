@@ -50,6 +50,21 @@ export class LastFMScrobbler {
         return !!this.sessionKey;
     }
 
+    _getScrobbleArtist(track) {
+        if (!track) return 'Unknown Artist';
+        let artistName = 'Unknown Artist';
+
+        if (track.artists && track.artists.length > 0) {
+            artistName = track.artists.map((a) => (typeof a === 'string' ? a : a.name || a)).join(', ');
+        } else {
+            artistName = track.artist?.name || track.artist || 'Unknown Artist';
+        }
+
+        if (typeof artistName !== 'string') artistName = 'Unknown Artist';
+
+        return artistName.replace(/, /g, ' & ');
+    }
+
     async generateSignature(params) {
         const filteredParams = { ...params };
         delete filteredParams.format;
@@ -154,7 +169,7 @@ export class LastFMScrobbler {
 
         try {
             const params = {
-                artist: track.artists?.[0]?.name || track.artist?.name || 'Unknown Artist',
+                artist: this._getScrobbleArtist(track),
                 track: track.title,
             };
 
@@ -203,7 +218,7 @@ export class LastFMScrobbler {
             const timestamp = Math.floor(Date.now() / 1000);
 
             const params = {
-                artist: this.currentTrack.artists?.[0]?.name || this.currentTrack.artist?.name || 'Unknown Artist',
+                artist: this._getScrobbleArtist(this.currentTrack),
                 track: this.currentTrack.title,
                 timestamp: timestamp,
             };
@@ -234,7 +249,7 @@ export class LastFMScrobbler {
 
         try {
             const params = {
-                artist: track.artists?.[0]?.name || track.artist?.name || 'Unknown Artist',
+                artist: this._getScrobbleArtist(track),
                 track: track.title,
             };
 
