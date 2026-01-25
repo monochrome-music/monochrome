@@ -4690,3 +4690,17 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
         display: none;
     }
 }
+
+
+@media (max-width: 480px) {
+    .player-controls .buttons {
+        gap: 1.25rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .player-controls .buttons button svg {
+        width: 25px;
+        height: 25px;
+    }
+}
