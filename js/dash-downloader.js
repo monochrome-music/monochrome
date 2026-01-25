@@ -1,5 +1,5 @@
 export class DashDownloader {
-    constructor() { }
+    constructor() {}
 
     async downloadDashStream(manifestBlobUrl, options = {}) {
         const { onProgress, signal } = options;
