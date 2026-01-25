@@ -1,11 +1,13 @@
 {
     "api": [
+        "https://api.monochrome.tf/",
         "https://tidal-api.binimum.org",
         "https://monochrome-api.samidy.com",
         "https://triton.squid.wtf",
         "https://wolf.qqdl.site"
     ],
     "streaming": [
+        "https://api.monochrome.tf/",
         "https://triton.squid.wtf",
         "https://wolf.qqdl.site",
         "https://maus.qqdl.site",
