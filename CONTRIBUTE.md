@@ -5,16 +5,17 @@ This project uses [Vite](https://vitejs.dev/) for local development and optimize
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) (Version 20+ or 22+ recommended)
+- [Bun](https://bun.sh/) (or [npm](https://www.npmjs.com/))
 
 ### Getting Started
 
 1. Install dependencies:
     ```bash
-    npm install
+    bun install
     ```
 2. Start the development server:
     ```bash
-    npm run dev
+    bun run dev
     ```
     The app will be available at `http://localhost:5173/`.
 
@@ -35,13 +36,13 @@ We use a standard stack to ensure code quality and consistency:
 
 ### Commands
 
-- **Check everything:** `npm run lint`
-- **Auto-format code:** `npm run format` (Runs Prettier)
-- **Fix JS issues:** `npm run lint:js -- --fix`
-- **Fix CSS issues:** `npm run lint:css -- --fix`
+- **Check everything:** `bun run lint`
+- **Auto-format code:** `bun run format` (Runs Prettier)
+- **Fix JS issues:** `bun run lint:js -- --fix`
+- **Fix CSS issues:** `bun run lint:css -- --fix`
 
 > [!IMPORTANT]
-> A GitHub Action automatically runs these checks on every push and pull request. Please ensure `npm run lint` passes before committing.
+> A GitHub Action automatically runs these checks on every push and pull request. Please ensure `bun run lint` passes before committing.
 
 ## Project Structure
 
