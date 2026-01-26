@@ -1533,10 +1533,10 @@ export class UIRenderer {
                     dateDisplay =
                         window.innerWidth > 768
                             ? releaseDate.toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                            })
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric',
+                              })
                             : year;
                 }
             }
@@ -2268,9 +2268,9 @@ export class UIRenderer {
                 <span>${artist.popularity}% popularity</span>
                 <div class="artist-tags">
                     ${(artist.artistRoles || [])
-                    .filter((role) => role.category)
-                    .map((role) => `<span class="artist-tag">${role.category}</span>`)
-                    .join('')}
+                        .filter((role) => role.category)
+                        .map((role) => `<span class="artist-tag">${role.category}</span>`)
+                        .join('')}
                 </div>
             `;
 
@@ -2865,9 +2865,10 @@ export class UIRenderer {
             return;
         }
 
-        historyEl.innerHTML = history
-            .map(
-                (query) => `
+        historyEl.innerHTML =
+            history
+                .map(
+                    (query) => `
             <div class="search-history-item" data-query="${escapeHtml(query)}">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="history-icon">
                     <circle cx="12" cy="12" r="10"></circle>
@@ -2879,8 +2880,8 @@ export class UIRenderer {
                 </span>
             </div>
         `
-            )
-            .join('') +
+                )
+                .join('') +
             `
             <div class="search-history-clear-all" id="clear-search-history">
                 Clear all history
