@@ -50,13 +50,25 @@ We use a standard stack to ensure code quality and consistency:
 - `index.html`: The entry point of the application.
 - `vite.config.js`: Build and PWA configuration.
 
+## Commit Messages
+
+We use conventional Formatting for our commits, and we encourage you to do the same when contributing.
+
+#### Examples
+
+- "feat(playlists): shuffle playlist"
+- "fix(metadata): Hi-res Corrupted Metadata"
+- "refactor(downloading): refactor cancelling downloads"
+- "docs(README): Capitalization Improvements"
+- "chore(packages): bump up lyrics package version due to vulnerability"
+
+A Cheatsheet For This Can Be Found [Here](https://gist.github.com/Zekfad/f51cb06ac76e2457f11c80ed705c95a3).
+
 ## Deployment
 
-Deployment is automated via **GitHub Actions**.
+Deployment is automated via **Cloudflare Pages**.
 
 > [!NOTE]
 > The project uses a relative base path (`./`) in `vite.config.js`. This allows the exact same build artifact to work on both **Cloudflare Pages** (served from root) and **GitHub Pages** (served from `/monochrome/`), provided that Hash Routing is used.
 
-1. Simply push your changes to the `main` branch.
-2. The [Deploy to GitHub Pages](.github/workflows/deploy.yml) workflow will trigger automatically.
-3. It builds the project (`npm run build`) and publishes the `dist/` folder to the `deployed-ver` branch.
+Simply push your changes to the `main` branch.
