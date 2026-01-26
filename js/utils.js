@@ -80,16 +80,6 @@ export const sanitizeForFilename = (value) => {
         .trim();
 };
 
-export const getExtensionForQuality = (quality) => {
-    switch (quality) {
-        case 'LOW':
-        case 'HIGH':
-            return 'm4a';
-        default:
-            return 'flac';
-    }
-};
-
 /**
  * Detects actual audio format from blob signature
  * @param {Blob} blob - Audio blob to analyze
@@ -130,6 +120,16 @@ export const getExtensionFromBlob = async (blob) => {
     return 'flac';
 };
 
+export const getExtensionForQuality = (quality) => {
+    switch (quality) {
+        case 'LOW':
+        case 'HIGH':
+            return 'm4a';
+        default:
+            return 'flac';
+    }
+};
+
 export const buildTrackFilename = (track, quality, extension = null) => {
     const template = localStorage.getItem('filename-template') || '{trackNumber} - {artist} - {title}';
     const ext = extension || getExtensionForQuality(quality);
@@ -143,7 +143,7 @@ export const buildTrackFilename = (track, quality, extension = null) => {
         album: track.album?.title,
     };
 
-    return formatTemplate(template, data) + '.' + ext;
+    return formatTemplate(template, data) + '.' + extension;
 };
 
 const sanitizeToken = (value) => {
