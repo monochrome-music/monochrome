@@ -25,7 +25,7 @@ export async function addMetadataToAudio(audioBlob, track, api, quality) {
         view.getUint8(0) === 0x66 && // f
         view.getUint8(1) === 0x4c && // L
         view.getUint8(2) === 0x61 && // a
-        view.getUint8(3) === 0x43;   // C
+        view.getUint8(3) === 0x43; // C
 
     if (isFlac) {
         return await addFlacMetadata(audioBlob, track, api);
@@ -37,7 +37,7 @@ export async function addMetadataToAudio(audioBlob, track, api, quality) {
         view.getUint8(4) === 0x66 && // f
         view.getUint8(5) === 0x74 && // t
         view.getUint8(6) === 0x79 && // y
-        view.getUint8(7) === 0x70;   // p
+        view.getUint8(7) === 0x70; // p
 
     if (isMp4) {
         return await addM4aMetadata(audioBlob, track, api);

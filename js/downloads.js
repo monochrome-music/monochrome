@@ -553,12 +553,12 @@ function createBulkDownloadNotification(type, name, _totalItems) {
         type === 'album'
             ? 'Album'
             : type === 'playlist'
-                ? 'Playlist'
-                : type === 'liked'
-                    ? 'Liked Tracks'
-                    : type === 'queue'
-                        ? 'Queue'
-                        : 'Discography';
+              ? 'Playlist'
+              : type === 'liked'
+                ? 'Liked Tracks'
+                : type === 'queue'
+                  ? 'Queue'
+                  : 'Discography';
 
     notifEl.innerHTML = `
         <div style="display: flex; align-items: start; gap: 0.75rem;">
