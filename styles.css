@@ -343,7 +343,11 @@ kbd {
 }
 
 /* Ensure content sits on top of background */
-.main-header,
+.main-header {
+    position: relative;
+    z-index: 100;
+}
+
 .page {
     position: relative;
     z-index: 1;
@@ -450,7 +454,7 @@ kbd {
     cursor: pointer;
 }
 
-.search-bar svg {
+.search-bar svg.search-icon {
     position: absolute;
     left: 0.75rem;
     top: 50%;
@@ -493,6 +497,7 @@ kbd {
     margin-bottom: var(--spacing-xl);
     gap: var(--spacing-md);
     position: relative;
+    z-index: 1000;
 }
 
 .navigation-controls {
@@ -573,6 +578,83 @@ body.has-page-background .track-item:hover {
     background-color: var(--track-hover-bg, var(--secondary));
 }
 
+.search-history {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius);
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 9999;
+    box-shadow: var(--shadow-xl);
+    margin-top: -1px;
+}
+
+.search-history-item {
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    transition: background var(--transition);
+}
+
+.search-history-item:hover {
+    background: var(--secondary);
+}
+
+.search-history-item .history-icon {
+    color: var(--muted-foreground);
+    opacity: 0.5;
+    flex-shrink: 0;
+}
+
+.search-history-item .query-text {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.search-history-item .delete-history-btn {
+    padding: 4px;
+    color: var(--muted-foreground);
+    opacity: 0.5;
+    transition: opacity var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.search-history-item .delete-history-btn:hover {
+    opacity: 1;
+    color: #ef4444;
+}
+
+.search-history-clear-all {
+    padding: 0.75rem 1rem;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--primary);
+    cursor: pointer;
+    border-top: 1px solid var(--border);
+    transition: background var(--transition);
+}
+
+.search-history-clear-all:hover {
+    background: var(--secondary);
+}
+
+input[type="search"]::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    display: none;
+}
+
 .page {
     display: none;
 }
@@ -637,6 +719,7 @@ body.has-page-background .track-item:hover {
 }
 
 @keyframes pulse {
+
     0%,
     100% {
         opacity: 1;
@@ -955,6 +1038,7 @@ body.has-page-background .track-item:hover {
 }
 
 @media (max-width: 1100px) {
+
     #home-recommended-songs,
     #artist-detail-tracks,
     #playlist-detail-recommended {
@@ -1080,7 +1164,8 @@ body.has-page-background .track-item:hover {
 
 .track-item.dragging {
     opacity: 0.5;
-    z-index: 1000;
+    z-index: 2000;
+    pointer-events: auto;
 }
 
 .track-number {
@@ -1553,11 +1638,11 @@ body.has-page-background .track-item:hover {
     border-radius: 50%;
 }
 
-input:checked + .slider {
+input:checked+.slider {
     background-color: var(--primary);
 }
 
-input:checked + .slider::before {
+input:checked+.slider::before {
     transform: translateX(16px);
     background-color: var(--primary-foreground);
 }
@@ -3362,8 +3447,8 @@ img[src=''] {
 /* fuck this chud ass shit bro */
 .csv-import-progress {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
+    bottom: 120px;
+    right: 3%;
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -4049,7 +4134,7 @@ img[src=''] {
     }
 
     .csv-import-progress {
-        bottom: 10px;
+        bottom: 145px;
         right: 10px;
         left: 10px;
         max-width: none;

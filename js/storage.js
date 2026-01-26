@@ -466,7 +466,8 @@ export const trackListSettings = {
 
     getMode() {
         try {
-            const mode = localStorage.getItem(this.STORAGE_KEY) || 'dropdown';
+            let mode = localStorage.getItem(this.STORAGE_KEY) || 'dropdown';
+            if (mode === 'inline') mode = 'dropdown';
             document.documentElement.setAttribute('data-track-actions-mode', mode);
             return mode;
         } catch {

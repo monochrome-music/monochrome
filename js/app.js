@@ -464,20 +464,66 @@ document.addEventListener('DOMContentLoaded', async () => {
             const btn = e.target.closest('#play-album-btn');
             if (btn.disabled) return;
 
-            const albumId = window.location.pathname.split('/')[2];
+            const pathParts = window.location.pathname.split('/');
+            const albumIndex = pathParts.indexOf('album');
+            const albumId = albumIndex !== -1 ? pathParts[albumIndex + 1] : null;
+
             if (!albumId) return;
 
             try {
                 const { tracks } = await api.getAlbum(albumId);
-                if (tracks.length > 0) {
-                    player.setQueue(tracks, 0);
-                    document.getElementById('shuffle-btn').classList.remove('active');
+                if (tracks && tracks.length > 0) {
+                    // Sort tracks by disc and track number for consistent playback
+                    const sortedTracks = [...tracks].sort((a, b) => {
+                        const discA = a.volumeNumber ?? a.discNumber ?? 1;
+                        const discB = b.volumeNumber ?? b.discNumber ?? 1;
+                        if (discA !== discB) return discA - discB;
+                        return a.trackNumber - b.trackNumber;
+                    });
+
+                    player.setQueue(sortedTracks, 0);
+                    const shuffleBtn = document.getElementById('shuffle-btn');
+                    if (shuffleBtn) shuffleBtn.classList.remove('active');
+                    player.shuffleActive = false;
                     player.playTrackFromQueue();
                 }
             } catch (error) {
                 console.error('Failed to play album:', error);
-                alert('Failed to play album: ' + error.message);
+                showNotification('Failed to play album');
             }
+        }
+
+        if (e.target.closest('#shuffle-album-btn')) {
+            const btn = e.target.closest('#shuffle-album-btn');
+            if (btn.disabled) return;
+
+            const pathParts = window.location.pathname.split('/');
+            const albumIndex = pathParts.indexOf('album');
+            const albumId = albumIndex !== -1 ? pathParts[albumIndex + 1] : null;
+
+            if (!albumId) return;
+
+            try {
+                const { tracks } = await api.getAlbum(albumId);
+                if (tracks && tracks.length > 0) {
+                    const shuffledTracks = [...tracks].sort(() => Math.random() - 0.5);
+                    player.setQueue(shuffledTracks, 0);
+                    const shuffleBtn = document.getElementById('shuffle-btn');
+                    if (shuffleBtn) shuffleBtn.classList.remove('active');
+                    player.shuffleActive = false;
+                    player.playTrackFromQueue();
+                    showNotification('Shuffling album');
+                }
+            } catch (error) {
+                console.error('Failed to shuffle album:', error);
+                showNotification('Failed to shuffle album');
+            }
+        }
+
+        if (e.target.closest('#shuffle-artist-btn')) {
+            const btn = e.target.closest('#shuffle-artist-btn');
+            if (btn.disabled) return;
+            document.getElementById('play-artist-radio-btn')?.click();
         }
         if (e.target.closest('#download-mix-btn')) {
             const btn = e.target.closest('#download-mix-btn');
@@ -1180,6 +1226,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const performSearch = debounce((query) => {
         if (query) {
+            ui.addToSearchHistory(query);
             navigate(`/search/${encodeURIComponent(query)}`);
         }
     }, 300);
@@ -1191,11 +1238,25 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    searchInput.addEventListener('focus', () => {
+        ui.renderSearchHistory();
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-bar')) {
+            const historyEl = document.getElementById('search-history');
+            if (historyEl) historyEl.style.display = 'none';
+        }
+    });
+
     searchForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const query = searchInput.value.trim();
         if (query) {
+            ui.addToSearchHistory(query);
             navigate(`/search/${encodeURIComponent(query)}`);
+            const historyEl = document.getElementById('search-history');
+            if (historyEl) historyEl.style.display = 'none';
         }
     });
 

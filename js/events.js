@@ -40,7 +40,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
         shuffleBtn.classList.add('active');
     }
 
-    if (player.repeatMode !== REPEAT_MODE.OFF) {
+    if (player.repeatMode && player.repeatMode !== REPEAT_MODE.OFF) {
         repeatBtn.classList.add('active');
         if (player.repeatMode === REPEAT_MODE.ONE) {
             repeatBtn.classList.add('repeat-one');
@@ -808,10 +808,9 @@ export async function handleTrackAction(
                     return `
                     <div class="modal-option ${alreadyContains ? 'already-contains' : ''}" data-id="${p.id}">
                         <span>${p.name}</span>
-                        ${
-                            alreadyContains
-                                ? `<button class="remove-from-playlist-btn-modal" title="Remove from playlist" style="background: transparent; border: none; color: inherit; cursor: pointer; padding: 4px; display: flex; align-items: center;">${SVG_BIN}</button>`
-                                : ''
+                        ${alreadyContains
+                            ? `<button class="remove-from-playlist-btn-modal" title="Remove from playlist" style="background: transparent; border: none; color: inherit; cursor: pointer; padding: 4px; display: flex; align-items: center;">${SVG_BIN}</button>`
+                            : ''
                         }
                     </div>
                 `;
@@ -1109,12 +1108,12 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             const type = card.dataset.albumId
                 ? 'album'
                 : card.dataset.playlistId
-                  ? 'playlist'
-                  : card.dataset.mixId
-                    ? 'mix'
-                    : card.dataset.href
-                      ? card.dataset.href.split('/')[1]
-                      : 'item';
+                    ? 'playlist'
+                    : card.dataset.mixId
+                        ? 'mix'
+                        : card.dataset.href
+                            ? card.dataset.href.split('/')[1]
+                            : 'item';
             const id = card.dataset.albumId || card.dataset.playlistId || card.dataset.mixId;
 
             const item = trackDataStore.get(card) || {
