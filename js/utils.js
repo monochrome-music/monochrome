@@ -90,9 +90,49 @@ export const getExtensionForQuality = (quality) => {
     }
 };
 
-export const buildTrackFilename = (track, quality) => {
+/**
+ * Detects actual audio format from blob signature
+ * @param {Blob} blob - Audio blob to analyze
+ * @returns {Promise<string>} - Extension: 'flac', 'm4a', or fallback based on mime
+ */
+export const getExtensionFromBlob = async (blob) => {
+    const buffer = await blob.slice(0, 12).arrayBuffer();
+    const view = new DataView(buffer);
+
+    // Check for FLAC signature: "fLaC" (0x66 0x4C 0x61 0x43)
+    if (
+        view.byteLength >= 4 &&
+        view.getUint8(0) === 0x66 && // f
+        view.getUint8(1) === 0x4c && // L
+        view.getUint8(2) === 0x61 && // a
+        view.getUint8(3) === 0x43    // C
+    ) {
+        return 'flac';
+    }
+
+    // Check for MP4/M4A signature: "ftyp" at offset 4
+    if (
+        view.byteLength >= 8 &&
+        view.getUint8(4) === 0x66 && // f
+        view.getUint8(5) === 0x74 && // t
+        view.getUint8(6) === 0x79 && // y
+        view.getUint8(7) === 0x70    // p
+    ) {
+        return 'm4a';
+    }
+
+    // Fallback to MIME type
+    const mime = blob.type;
+    if (mime === 'audio/flac') return 'flac';
+    if (mime === 'audio/mp4' || mime === 'audio/x-m4a') return 'm4a';
+
+    // Default fallback
+    return 'flac';
+};
+
+export const buildTrackFilename = (track, quality, extension = null) => {
     const template = localStorage.getItem('filename-template') || '{trackNumber} - {artist} - {title}';
-    const extension = getExtensionForQuality(quality);
+    const ext = extension || getExtensionForQuality(quality);
 
     const artistName = track.artist?.name || track.artists?.[0]?.name || 'Unknown Artist';
 
@@ -103,7 +143,7 @@ export const buildTrackFilename = (track, quality) => {
         album: track.album?.title,
     };
 
-    return formatTemplate(template, data) + '.' + extension;
+    return formatTemplate(template, data) + '.' + ext;
 };
 
 const sanitizeToken = (value) => {

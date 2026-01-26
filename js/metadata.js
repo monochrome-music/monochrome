@@ -14,28 +14,47 @@ const DEFAULT_ALBUM = 'Unknown Album';
  * @returns {Promise<Blob>} - Audio blob with embedded metadata
  */
 export async function addMetadataToAudio(audioBlob, track, api, quality) {
-    if (quality === 'HI_RES_LOSSLESS') {
-        return await addFlacMetadata(audioBlob, track, api);
-    }
-
-    const buffer = await audioBlob.slice(0, 4).arrayBuffer();
+    // Always check actual file signature, not just quality setting
+    // DASH Hi-Res streams may return fragmented MP4 instead of raw FLAC
+    const buffer = await audioBlob.slice(0, 12).arrayBuffer();
     const view = new DataView(buffer);
+
+    // Check for FLAC signature: "fLaC" (0x66 0x4C 0x61 0x43)
     const isFlac =
         view.byteLength >= 4 &&
         view.getUint8(0) === 0x66 && // f
         view.getUint8(1) === 0x4c && // L
         view.getUint8(2) === 0x61 && // a
-        view.getUint8(3) === 0x43; // C
+        view.getUint8(3) === 0x43;   // C
 
-    const mime = audioBlob.type;
-
-    if (mime === 'audio/flac') {
+    if (isFlac) {
         return await addFlacMetadata(audioBlob, track, api);
     }
 
-    if (mime === 'audio/mp4') {
+    // Check for MP4/M4A signature: "ftyp" at offset 4
+    const isMp4 =
+        view.byteLength >= 8 &&
+        view.getUint8(4) === 0x66 && // f
+        view.getUint8(5) === 0x74 && // t
+        view.getUint8(6) === 0x79 && // y
+        view.getUint8(7) === 0x70;   // p
+
+    if (isMp4) {
         return await addM4aMetadata(audioBlob, track, api);
     }
+
+    // Fallback: check MIME type from blob
+    const mime = audioBlob.type;
+    if (mime === 'audio/flac') {
+        return await addFlacMetadata(audioBlob, track, api);
+    }
+    if (mime === 'audio/mp4' || mime === 'audio/x-m4a') {
+        return await addM4aMetadata(audioBlob, track, api);
+    }
+
+    // Unknown format - return original without modification
+    console.warn(`Unknown audio format (mime: ${mime}), returning original blob`);
+    return audioBlob;
 }
 
 /**
@@ -307,6 +326,18 @@ async function addFlacMetadata(flacBlob, track, api) {
         // Parse FLAC structure
         const blocks = parseFlacBlocks(dataView);
 
+        // If parsing failed or no audio data found, return original
+        if (!blocks || blocks.length === 0 || blocks.audioDataOffset === undefined) {
+            console.warn('Failed to parse FLAC blocks, returning original');
+            return flacBlob;
+        }
+
+        // Check for STREAMINFO block (must be first, type 0)
+        if (blocks[0].type !== 0) {
+            console.warn('FLAC file missing STREAMINFO block, returning original');
+            return flacBlob;
+        }
+
         // Create or update Vorbis comment block
         const vorbisCommentBlock = createVorbisCommentBlock(track);
 
@@ -321,7 +352,27 @@ async function addFlacMetadata(flacBlob, track, api) {
         }
 
         // Rebuild FLAC file with new metadata
-        const newFlacData = rebuildFlacWithMetadata(dataView, blocks, vorbisCommentBlock, pictureBlock);
+        let newFlacData;
+        try {
+            newFlacData = rebuildFlacWithMetadata(dataView, blocks, vorbisCommentBlock, pictureBlock);
+        } catch (rebuildError) {
+            console.error('Failed to rebuild FLAC structure:', rebuildError);
+            return flacBlob;
+        }
+
+        // Validate the rebuilt file
+        const validationView = new DataView(newFlacData.buffer);
+        if (!isFlacFile(validationView)) {
+            console.error('Rebuilt FLAC has invalid signature, returning original');
+            return flacBlob;
+        }
+
+        // Validate new file has proper block structure
+        const newBlocks = parseFlacBlocks(validationView);
+        if (!newBlocks || newBlocks.length === 0 || newBlocks.audioDataOffset === undefined) {
+            console.error('Rebuilt FLAC has invalid block structure, returning original');
+            return flacBlob;
+        }
 
         return new Blob([newFlacData], { type: 'audio/flac' });
     } catch (error) {
@@ -350,14 +401,21 @@ function parseFlacBlocks(dataView) {
         const isLast = (header & 0x80) !== 0;
         const blockType = header & 0x7f;
 
+        // Block type 127 is invalid, types > 6 are reserved (except 127)
+        // Valid types: 0=STREAMINFO, 1=PADDING, 2=APPLICATION, 3=SEEKTABLE, 4=VORBIS_COMMENT, 5=CUESHEET, 6=PICTURE
+        if (blockType === 127) {
+            console.warn('Encountered invalid block type 127, stopping parse');
+            break;
+        }
+
         const blockSize =
             (dataView.getUint8(offset + 1) << 16) |
             (dataView.getUint8(offset + 2) << 8) |
             dataView.getUint8(offset + 3);
 
         // Validate block size
-        if (offset + 4 + blockSize > dataView.byteLength) {
-            console.warn('Invalid block size detected, stopping parse');
+        if (blockSize < 0 || offset + 4 + blockSize > dataView.byteLength) {
+            console.warn(`Invalid block size ${blockSize} at offset ${offset}, stopping parse`);
             break;
         }
 
@@ -376,6 +434,13 @@ function parseFlacBlocks(dataView) {
             blocks.audioDataOffset = offset;
             break;
         }
+    }
+
+    // If we didn't find the last block marker, estimate audio offset
+    if (blocks.audioDataOffset === undefined && blocks.length > 0) {
+        const lastBlock = blocks[blocks.length - 1];
+        blocks.audioDataOffset = lastBlock.headerOffset + 4 + lastBlock.size;
+        console.warn('No last-block marker found, estimated audio offset:', blocks.audioDataOffset);
     }
 
     return blocks;

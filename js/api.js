@@ -1,5 +1,5 @@
 //js/api.js
-import { RATE_LIMIT_ERROR_MESSAGE, deriveTrackQuality, delay, isTrackUnavailable } from './utils.js';
+import { RATE_LIMIT_ERROR_MESSAGE, deriveTrackQuality, delay, isTrackUnavailable, getExtensionFromBlob } from './utils.js';
 import { APICache } from './cache.js';
 import { addMetadataToAudio } from './metadata.js';
 import { DashDownloader } from './dash-downloader.js';
@@ -987,7 +987,17 @@ export class LosslessAPI {
                 blob = await addMetadataToAudio(blob, track, this, quality);
             }
 
-            this.triggerDownload(blob, filename);
+            // Detect actual format and fix filename extension if needed
+            const detectedExtension = await getExtensionFromBlob(blob);
+            let finalFilename = filename;
+
+            // Replace extension if it doesn't match detected format
+            const currentExtension = filename.split('.').pop()?.toLowerCase();
+            if (currentExtension && currentExtension !== detectedExtension) {
+                finalFilename = filename.replace(/\.[^.]+$/, `.${detectedExtension}`);
+            }
+
+            this.triggerDownload(blob, finalFilename);
         } catch (error) {
             if (error.name === 'AbortError') {
                 throw error;

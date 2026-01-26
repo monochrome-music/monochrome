@@ -8,6 +8,7 @@ import {
     formatTemplate,
     SVG_CLOSE,
     getCoverBlob,
+    getExtensionFromBlob,
 } from './utils.js';
 import { lyricsSettings, bulkDownloadSettings } from './storage.js';
 import { addMetadataToAudio } from './metadata.js';
@@ -236,10 +237,13 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
         blob = await response.blob();
     }
 
+    // Detect actual format from blob signature BEFORE adding metadata
+    const extension = await getExtensionFromBlob(blob);
+
     // Add metadata to the blob
     blob = await addMetadataToAudio(blob, enrichedTrack, api, quality);
 
-    return blob;
+    return { blob, extension };
 }
 
 function triggerDownload(blob, filename) {
@@ -261,12 +265,12 @@ async function bulkDownloadSequentially(tracks, api, quality, lyricsManager, not
         if (signal.aborted) break;
         const track = tracks[i];
         const trackTitle = getTrackTitle(track);
-        const filename = buildTrackFilename(track, quality);
 
         updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
 
         try {
-            const blob = await downloadTrackBlob(track, quality, api, null, signal);
+            const { blob, extension } = await downloadTrackBlob(track, quality, api, null, signal);
+            const filename = buildTrackFilename(track, quality, extension);
             triggerDownload(blob, filename);
 
             if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
@@ -316,12 +320,12 @@ async function bulkDownloadToZipStream(
             if (signal.aborted) break;
             const track = tracks[i];
             const trackTitle = getTrackTitle(track);
-            const filename = buildTrackFilename(track, quality);
 
             updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
 
             try {
-                const blob = await downloadTrackBlob(track, quality, api, null, signal);
+                const { blob, extension } = await downloadTrackBlob(track, quality, api, null, signal);
+                const filename = buildTrackFilename(track, quality, extension);
                 yield { name: `${folderName}/${filename}`, lastModified: new Date(), input: blob };
 
                 if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
@@ -479,9 +483,9 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
 
                         for (const track of tracks) {
                             if (signal.aborted) break;
-                            const filename = buildTrackFilename(track, quality);
                             try {
-                                const blob = await downloadTrackBlob(track, quality, api, null, signal);
+                                const { blob, extension } = await downloadTrackBlob(track, quality, api, null, signal);
+                                const filename = buildTrackFilename(track, quality, extension);
                                 yield { name: `${fullFolderPath}/${filename}`, lastModified: new Date(), input: blob };
 
                                 if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
@@ -549,12 +553,12 @@ function createBulkDownloadNotification(type, name, _totalItems) {
         type === 'album'
             ? 'Album'
             : type === 'playlist'
-              ? 'Playlist'
-              : type === 'liked'
-                ? 'Liked Tracks'
-                : type === 'queue'
-                  ? 'Queue'
-                  : 'Discography';
+                ? 'Playlist'
+                : type === 'liked'
+                    ? 'Liked Tracks'
+                    : type === 'queue'
+                        ? 'Queue'
+                        : 'Discography';
 
     notifEl.innerHTML = `
         <div style="display: flex; align-items: start; gap: 0.75rem;">
