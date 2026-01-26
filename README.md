@@ -15,7 +15,7 @@
 ### Features
 
 <ul>
-<li>High-quality lossless audio streaming</li>
+<li>High-quality Hi-Res/lossless audio streaming</li>
 <li>Lyrics support with karaoke mode</li>
 <li>Recently Played tracking for easy history access</li>
 <li>Comprehensive Personal Library for favorites</li>
@@ -28,6 +28,15 @@
 <li>Dark, minimalist interface optimized for focus</li>
 <li>Customizable themes</li>
 <li>Keyboard shortcuts for power users</li>
+<li>Accurate and unique audio visualizer</li>
+<li>Account system for cross-device syncing</li>
+<li>Genius integration for lyrics</li>
+<li>Unreleased music from <a href="https://artistgrid.cx">ArtistGrid</a></li>
+<li>Dynamic Discord Embeds</li>
+<li>Smart recommendations for new songs, albums & artists</li>
+<li>Support for local music files</li>
+<li>Playlist import from other platforms</li>
+<li>Public playlists for social sharing</li>
 </ul>
 
 ### Check it out live at: [**monochrome.samidy.com**](https://monochrome.samidy.com)
