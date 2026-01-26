@@ -1,5 +1,11 @@
 //js/api.js
-import { RATE_LIMIT_ERROR_MESSAGE, deriveTrackQuality, delay, isTrackUnavailable, getExtensionFromBlob } from './utils.js';
+import {
+    RATE_LIMIT_ERROR_MESSAGE,
+    deriveTrackQuality,
+    delay,
+    isTrackUnavailable,
+    getExtensionFromBlob,
+} from './utils.js';
 import { APICache } from './cache.js';
 import { addMetadataToAudio } from './metadata.js';
 import { DashDownloader } from './dash-downloader.js';
