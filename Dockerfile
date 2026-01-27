@@ -5,7 +5,7 @@ FROM oven/bun:canary-alpine
 WORKDIR /app
 
 # Copy package files first for caching
-COPY package.json bun.lockb ./
+COPY package.json bun.lock ./
 
 # Install all dependencies (including devDeps)
 RUN bun install
