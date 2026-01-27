@@ -20,4 +20,4 @@ RUN bun run build
 EXPOSE 4173
 
 # Run the built project
-CMD ["bun", "run", "preview"]
+CMD ["bun", "run", "preview", "--", "--host", "0.0.0.0"]
