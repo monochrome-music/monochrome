@@ -16,9 +16,6 @@ COPY . .
 # Build the project
 RUN bun run build
 
-# Remove devDependencies to shrink image
-RUN bun prune --prod
-
 # Expose Vite preview port
 EXPOSE 4173
 
