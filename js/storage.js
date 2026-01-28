@@ -627,6 +627,19 @@ export const visualizerSettings = {
     SMART_INTENSITY_KEY: 'visualizer-smart-intensity',
     ENABLED_KEY: 'visualizer-enabled',
     MODE_KEY: 'visualizer-mode', // 'solid' or 'blended'
+    PRESET_KEY: 'visualizer-preset',
+
+    getPreset() {
+        try {
+            return localStorage.getItem(this.PRESET_KEY) || 'lcd';
+        } catch {
+            return 'lcd';
+        }
+    },
+
+    setPreset(preset) {
+        localStorage.setItem(this.PRESET_KEY, preset);
+    },
 
     isEnabled() {
         try {

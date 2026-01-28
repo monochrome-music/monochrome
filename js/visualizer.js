@@ -1,23 +1,54 @@
-//js/visualizer.js
+// js/visualizer.js
 import { visualizerSettings } from './storage.js';
+import { LCDPreset } from './visualizers/lcd.js';
+import { ParticlesPreset } from './visualizers/particles.js';
+import { UnknownPleasuresPreset } from './visualizers/unknown_pleasures.js';
 
 export class Visualizer {
     constructor(canvas, audio) {
         this.canvas = canvas;
-        this.ctx = canvas.getContext('2d');
+        this.ctx = null;
         this.audio = audio;
+
         this.audioContext = null;
         this.analyser = null;
         this.source = null;
+
         this.isActive = false;
         this.animationId = null;
-        this.particles = [];
 
-        this.kick = 0;
-        this.lastIntensity = 0;
-        this.lastBeatTime = 0;
-        this.energyAverage = 0.3;
-        this.upbeatSmoother = 0;
+        this.presets = {
+            'lcd': new LCDPreset(),
+            'particles': new ParticlesPreset(),
+            'unknown-pleasures': new UnknownPleasuresPreset()
+        };
+
+        this.activePresetKey = visualizerSettings.getPreset();
+
+        // ---- AUDIO BUFFERS (REUSED) ----
+        this.bufferLength = 0;
+        this.dataArray = null;
+
+        // ---- STATS (REUSED OBJECT) ----
+        this.stats = {
+            kick: 0,
+            intensity: 0,
+            energyAverage: 0.3,
+            lastBeatTime: 0,
+            lastIntensity: 0,
+            upbeatSmoother: 0,
+            sensitivity: 0.5,
+            primaryColor: '#ffffff',
+            mode: ''
+        };
+
+        // ---- CACHED STATE ----
+        this._lastPrimaryColor = '';
+        this._resizeBound = () => this.resize();
+    }
+
+    get activePreset() {
+        return this.presets[this.activePresetKey] || this.presets['lcd'];
     }
 
     init() {
@@ -26,210 +57,185 @@ export class Visualizer {
         try {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             this.audioContext = new AudioContext();
+
             this.analyser = this.audioContext.createAnalyser();
             this.analyser.fftSize = 512;
             this.analyser.smoothingTimeConstant = 0.7;
+
+            this.bufferLength = this.analyser.frequencyBinCount;
+            this.dataArray = new Uint8Array(this.bufferLength);
 
             this.source = this.audioContext.createMediaElementSource(this.audio);
             this.source.connect(this.analyser);
             this.analyser.connect(this.audioContext.destination);
         } catch (e) {
-            console.warn('Visualizer init failed (likely CORS or already connected):', e);
+            console.warn('Visualizer init failed:', e);
+        }
+    }
+
+    initContext() {
+        if (this.ctx) return;
+
+        const preset = this.activePreset;
+        const type = preset.contextType || '2d';
+
+        if (type === 'webgl') {
+            this.ctx =
+                this.canvas.getContext('webgl2', { alpha: true, antialias: false }) ||
+                this.canvas.getContext('webgl', { alpha: true, antialias: false });
+        } else {
+            this.ctx = this.canvas.getContext('2d');
         }
     }
 
     start() {
         if (this.isActive) return;
+
+        if (!this.ctx) this.initContext();
         if (!this.audioContext) this.init();
         if (!this.analyser) return;
 
         this.isActive = true;
+
         if (this.audioContext.state === 'suspended') {
             this.audioContext.resume();
         }
 
         this.resize();
-        window.addEventListener('resize', this.resizeBound);
+        window.addEventListener('resize', this._resizeBound);
         this.canvas.style.display = 'block';
 
-        this.particles = [];
-        this.energyAverage = 0.3;
-        this.kick = 0;
-        this.upbeatSmoother = 0;
         this.animate();
     }
 
     stop() {
         this.isActive = false;
+
         if (this.animationId) {
             cancelAnimationFrame(this.animationId);
             this.animationId = null;
         }
-        window.removeEventListener('resize', this.resizeBound);
 
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        window.removeEventListener('resize', this._resizeBound);
+
+        if (this.ctx && this.ctx.clearRect) {
+            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+
         this.canvas.style.display = 'none';
     }
 
     resize() {
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+
+        if (this.canvas.width !== w) this.canvas.width = w;
+        if (this.canvas.height !== h) this.canvas.height = h;
+
+        if (this.activePreset?.resize) {
+            this.activePreset.resize(w, h);
+        }
     }
 
-    resizeBound = () => this.resize();
-
-    animate() {
+    animate = () => {
         if (!this.isActive) return;
-        this.animationId = requestAnimationFrame(() => this.animate());
+        this.animationId = requestAnimationFrame(this.animate);
 
-        const w = this.canvas.width;
-        const h = this.canvas.height;
-        const ctx = this.ctx;
+        // ===== AUDIO ANALYSIS =====
+        this.analyser.getByteFrequencyData(this.dataArray);
 
-        let sensitivity = visualizerSettings.getSensitivity();
-        const mode = visualizerSettings.getMode();
-        const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+        // Bass (first bins only — cheap)
+        let bass =
+            (this.dataArray[0] +
+                this.dataArray[1] +
+                this.dataArray[2] +
+                this.dataArray[3]) *
+            0.000980392; // 1 / (4 * 255)
 
-        if (mode === 'blended') {
-            ctx.clearRect(0, 0, w, h);
-        } else {
-            // Match background to theme if in solid mode
-            if (isDark) {
-                ctx.fillStyle = 'rgba(10, 10, 10, 0.3)';
-            } else {
-                ctx.fillStyle = 'rgba(240, 240, 240, 0.3)';
-            }
-            ctx.fillRect(0, 0, w, h);
-        }
-
-        const bufferLength = this.analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-        this.analyser.getByteFrequencyData(dataArray);
-
-        let bassSum = 0;
-        for (let i = 0; i < 4; i++) bassSum += dataArray[i];
-        const bass = bassSum / 4 / 255;
         const intensity = bass * bass;
+        const stats = this.stats;
 
-        this.energyAverage = this.energyAverage * 0.99 + intensity * 0.01;
-        this.upbeatSmoother = this.upbeatSmoother * 0.92 + intensity * 0.08;
+        stats.energyAverage = stats.energyAverage * 0.99 + intensity * 0.01;
+        stats.upbeatSmoother = stats.upbeatSmoother * 0.92 + intensity * 0.08;
 
+        // ===== SENSITIVITY =====
+        let sensitivity = visualizerSettings.getSensitivity();
         if (visualizerSettings.isSmartIntensityEnabled()) {
-            let target = 0.1;
-            if (this.energyAverage > 0.4) {
-                target = 0.7;
-            } else if (this.energyAverage > 0.2) {
-                const t = (this.energyAverage - 0.2) / 0.2;
-                target = 0.1 + t * 0.6;
-            }
-            sensitivity = target;
-        }
-
-        let threshold = 0.5;
-        if (this.energyAverage < 0.3) {
-            threshold = 0.5 + (0.3 - this.energyAverage) * 2;
-        }
-
-        const now = Date.now();
-        if (intensity > threshold) {
-            if (intensity > this.lastIntensity + 0.05 && now - this.lastBeatTime > 50) {
-                this.kick = 1.0;
-                this.lastBeatTime = now;
+            if (stats.energyAverage > 0.4) {
+                sensitivity = 0.7;
+            } else if (stats.energyAverage > 0.2) {
+                sensitivity =
+                    0.1 + ((stats.energyAverage - 0.2) / 0.2) * 0.6;
             } else {
-                if (this.upbeatSmoother > 0.6 && this.energyAverage > 0.4) {
-                    const upbeatLevel = (this.upbeatSmoother - 0.6) / 0.4;
-                    if (this.kick < upbeatLevel) {
-                        this.kick = upbeatLevel;
+                sensitivity = 0.1;
+            }
+        }
+
+        // ===== KICK DETECTION =====
+        const now = performance.now();
+        let threshold = stats.energyAverage < 0.3
+            ? 0.5 + (0.3 - stats.energyAverage) * 2
+            : 0.5;
+
+        if (intensity > threshold) {
+            if (
+                intensity > stats.lastIntensity + 0.05 &&
+                now - stats.lastBeatTime > 50
+            ) {
+                stats.kick = 1.0;
+                stats.lastBeatTime = now;
+            } else {
+                if (stats.upbeatSmoother > 0.6 && stats.energyAverage > 0.4) {
+                    const upbeatLevel = (stats.upbeatSmoother - 0.6) / 0.4;
+                    if (stats.kick < upbeatLevel) {
+                        stats.kick = upbeatLevel;
                     } else {
-                        this.kick *= 0.95;
+                        stats.kick *= 0.95;
                     }
                 } else {
-                    this.kick *= 0.9;
+                    stats.kick *= 0.9;
                 }
             }
         } else {
-            this.kick *= 0.95;
-        }
-        this.lastIntensity = intensity;
-
-        let shakeX = 0;
-        let shakeY = 0;
-        if (this.kick > 0.1) {
-            const shakeAmt = this.kick * 8 * sensitivity;
-            shakeX = (Math.random() - 0.5) * shakeAmt;
-            shakeY = (Math.random() - 0.5) * shakeAmt;
+            stats.kick *= 0.95;
         }
 
-        const primaryColor =
-            getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#ffffff';
+        stats.lastIntensity = intensity;
+        stats.intensity = intensity;
+        stats.sensitivity = sensitivity;
 
-        const particleCount = 180;
-        if (this.particles.length !== particleCount) {
-            this.particles = [];
-            for (let i = 0; i < particleCount; i++) {
-                this.particles.push({
-                    x: Math.random() * w,
-                    y: Math.random() * h,
-                    vx: (Math.random() - 0.5) * 2,
-                    vy: (Math.random() - 0.5) * 2,
-                    baseSize: Math.random() * 3 + 1,
-                });
-            }
+        // ===== COLORS (CACHED) =====
+        const color =
+            getComputedStyle(document.documentElement)
+                .getPropertyValue('--primary')
+                .trim() || '#ffffff';
+
+        if (color !== this._lastPrimaryColor) {
+            stats.primaryColor = color;
+            this._lastPrimaryColor = color;
         }
 
-        ctx.save();
-        ctx.translate(shakeX, shakeY);
+        stats.mode = visualizerSettings.getMode();
 
-        ctx.fillStyle = primaryColor;
-        ctx.strokeStyle = primaryColor;
+        // ===== DRAW =====
+        this.activePreset.draw(
+            this.ctx,
+            this.canvas,
+            this.analyser,
+            this.dataArray,
+            stats
+        );
+    };
 
-        const maxDist = 150 + intensity * 50 + this.kick * 50 * sensitivity;
-        const maxDistSq = maxDist * maxDist;
+    setPreset(key) {
+        if (!this.presets[key]) return;
 
-        for (let i = 0; i < this.particles.length; i++) {
-            let p = this.particles[i];
-
-            const speedMult = 1 + intensity * 2 + this.kick * 8 * sensitivity;
-            p.x += p.vx * speedMult;
-            p.y += p.vy * speedMult;
-
-            if (this.kick > 0.3) {
-                p.x += (Math.random() - 0.5) * this.kick * 2 * sensitivity;
-                p.y += (Math.random() - 0.5) * this.kick * 2 * sensitivity;
-            }
-
-            if (p.x < 0) p.x = w;
-            if (p.x > w) p.x = 0;
-            if (p.y < 0) p.y = h;
-            if (p.y > h) p.y = 0;
-
-            const size = p.baseSize * (1 + intensity * 0.5 + this.kick * 0.8 * sensitivity);
-            ctx.globalAlpha = 0.4 + intensity * 0.2 + this.kick * 0.15 * sensitivity;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
-            ctx.fill();
-
-            for (let j = i + 1; j < this.particles.length; j++) {
-                const p2 = this.particles[j];
-                const dx = p.x - p2.x;
-                const dy = p.y - p2.y;
-
-                // Optimization: Early exit for x distance
-                if (Math.abs(dx) > maxDist) continue;
-
-                const distSq = dx * dx + dy * dy;
-
-                if (distSq < maxDistSq) {
-                    const dist = Math.sqrt(distSq); // Still need dist for alpha/linewidth, but now we only sqrt when necessary
-                    ctx.beginPath();
-                    ctx.lineWidth = (1 - dist / maxDist) * (1 + this.kick * 1.5 * sensitivity);
-                    ctx.globalAlpha = (1 - dist / maxDist) * (0.3 + intensity * 0.2 + this.kick * 0.3 * sensitivity);
-                    ctx.moveTo(p.x, p.y);
-                    ctx.lineTo(p2.x, p2.y);
-                    ctx.stroke();
-                }
-            }
+        if (this.activePreset?.destroy) {
+            this.activePreset.destroy();
         }
-        ctx.restore();
+
+        this.activePresetKey = key;
+        this.initContext();
+        this.resize();
     }
 }
