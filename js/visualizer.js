@@ -185,7 +185,16 @@ export class Visualizer {
                 stats.kick = 1.0;
                 stats.lastBeatTime = now;
             } else {
-                stats.kick *= 0.95;
+                if (stats.upbeatSmoother > 0.6 && stats.energyAverage > 0.4) {
+                    const upbeatLevel = (stats.upbeatSmoother - 0.6) / 0.4;
+                    if (stats.kick < upbeatLevel) {
+                        stats.kick = upbeatLevel;
+                    } else {
+                        stats.kick *= 0.95;
+                    }
+                } else {
+                    stats.kick *= 0.9;
+                }
             }
         } else {
             stats.kick *= 0.95;

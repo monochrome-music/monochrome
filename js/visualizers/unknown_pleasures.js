@@ -26,7 +26,7 @@ export class UnknownPleasuresPreset {
         this.writeIndex = 0;
     }
 
-    resize() {}
+    resize() { }
     destroy() { this.history.length = 0; }
 
     _precompute() {
@@ -53,7 +53,7 @@ export class UnknownPleasuresPreset {
             const p = i / (this.historySize - 1);
 
             // === Saturation gradient (HSL-like) ===
-            const sat = 3.0 - 2*p;
+            const sat = 3.0 - 2 * p;
             const rr = (gray + (r - gray) * sat) | 0;
             const gg = (gray + (g - gray) * sat) | 0;
             const bb = (gray + (b - gray) * sat) | 0;
@@ -65,12 +65,19 @@ export class UnknownPleasuresPreset {
     }
 
     draw(ctx, canvas, analyser, dataArray, params) {
+        // Init if empty (e.g. after destroy/switch)
+        if (this.history.length === 0) {
+            this.reset();
+        }
+
         const pts = this.dataPoints;
         const len = (dataArray.length) | 0;
 
         const line = this.history[this.writeIndex];
-        for (let i = 0; i < pts; i++) {
-            line[i] = (dataArray[(this.xLookup[i] * len) | 0] / 255) * this.pLookup[i];
+        if (line) {
+            for (let i = 0; i < pts; i++) {
+                line[i] = (dataArray[(this.xLookup[i] * len) | 0] / 255) * this.pLookup[i];
+            }
         }
         this.writeIndex = (this.writeIndex + 1) % this.historySize;
 
@@ -84,9 +91,9 @@ export class UnknownPleasuresPreset {
         const size = Math.hypot(width, height) * 1.42;
 
         ctx.save();
-        ctx.translate((width+size) / 2, height / 2);
+        ctx.translate((width + size) / 2, height / 2);
         ctx.rotate(Math.PI / 6);
-        ctx.translate(-(width+size) / 2, -height / 2);
+        ctx.translate(-(width + size) / 2, -height / 2);
 
         // SINGLE shadow pass (cheap)
         ctx.shadowColor = params.primaryColor;
@@ -112,7 +119,7 @@ export class UnknownPleasuresPreset {
             const y = A + B / z;
 
             ctx.strokeStyle = this._palette[i];
-            ctx.lineWidth  = Math.max(1, 8 * scale + params.kick * 6);
+            ctx.lineWidth = Math.max(1, 8 * scale + params.kick * 6);
 
             const lw = size * scale * 1.5;
             const margin = (size - lw) * 0.5;
