@@ -183,7 +183,7 @@ export class LCDPreset {
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
 
-    resize() { }
+    resize() {}
 
     draw(ctx, canvas, analyser, dataArray, params) {
         const { width, height } = canvas;
@@ -209,13 +209,13 @@ export class LCDPreset {
         const endX = width * 0.95;
         const totalW = endX - startX;
         const maxBarH = height;
-        const startScale = 2.0;  // Left (near) - increased
-        const endScale = 0.05;   // Right (far) - decreased
+        const startScale = 2.0; // Left (near) - increased
+        const endScale = 0.05; // Right (far) - decreased
 
         // --- Apply Global Skew Transform ---
         ctx.save();
         ctx.translate(centerX, centerY);
-        ctx.transform(1, -0.08, 0.20, 1, 0, 0);
+        ctx.transform(1, -0.08, 0.2, 1, 0, 0);
         ctx.translate(-centerX, -centerY);
 
         // Shake on kick
@@ -225,7 +225,7 @@ export class LCDPreset {
         }
 
         // --- Draw Bars ---
-        const baseBarW = totalW / this.gridCols * 0.7; // Base width
+        const baseBarW = (totalW / this.gridCols) * 0.7; // Base width
 
         for (let c = 0; c < this.gridCols; c++) {
             const p = c / (this.gridCols - 1);
@@ -294,7 +294,8 @@ export class LCDPreset {
             const startBin = Math.floor(minBin * Math.pow(maxBin / minBin, p));
             const endBin = Math.max(startBin + 1, Math.floor(minBin * Math.pow(maxBin / minBin, p + 1 / center)));
 
-            let sum = 0, count = 0;
+            let sum = 0,
+                count = 0;
             for (let k = startBin; k < endBin && k < totalBins; k++) {
                 sum += dataArray[k];
                 count++;
@@ -322,14 +323,14 @@ export class LCDPreset {
 
         // Auto-gain with more headroom
         this.maxVol = Math.max(this.maxVol * this.volDecay, peakVal, 40);
-        const normFactor = (200 / this.maxVol);
+        const normFactor = 200 / this.maxVol;
 
         // Normalize and apply contrast curve
         for (let c = 0; c < this.gridCols; c++) {
             let v = (this.prevData[c] * normFactor) / 255;
 
             // Noise gate: important to scale the bars
-            const gate = 0.50
+            const gate = 0.5;
             if (v < gate) v = 0;
             else v = (v - gate) / (1 - gate);
 
@@ -365,7 +366,7 @@ export class LCDPreset {
         const r = parseInt(hex.slice(1, 3), 16);
         const g = parseInt(hex.slice(3, 5), 16);
         const b = parseInt(hex.slice(5, 7), 16);
-        const clamp = v => Math.min(255, Math.max(0, Math.round(v * factor)));
+        const clamp = (v) => Math.min(255, Math.max(0, Math.round(v * factor)));
         return `rgb(${clamp(r)},${clamp(g)},${clamp(b)})`;
     }
 

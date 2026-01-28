@@ -18,9 +18,9 @@ export class Visualizer {
         this.animationId = null;
 
         this.presets = {
-            'lcd': new LCDPreset(),
-            'particles': new ParticlesPreset(),
-            'unknown-pleasures': new UnknownPleasuresPreset()
+            lcd: new LCDPreset(),
+            particles: new ParticlesPreset(),
+            'unknown-pleasures': new UnknownPleasuresPreset(),
         };
 
         this.activePresetKey = visualizerSettings.getPreset();
@@ -39,7 +39,7 @@ export class Visualizer {
             upbeatSmoother: 0,
             sensitivity: 0.5,
             primaryColor: '#ffffff',
-            mode: ''
+            mode: '',
         };
 
         // ---- CACHED STATE ----
@@ -145,12 +145,7 @@ export class Visualizer {
         this.analyser.getByteFrequencyData(this.dataArray);
 
         // Bass (first bins only — cheap)
-        let bass =
-            (this.dataArray[0] +
-                this.dataArray[1] +
-                this.dataArray[2] +
-                this.dataArray[3]) *
-            0.000980392; // 1 / (4 * 255)
+        let bass = (this.dataArray[0] + this.dataArray[1] + this.dataArray[2] + this.dataArray[3]) * 0.000980392; // 1 / (4 * 255)
 
         const intensity = bass * bass;
         const stats = this.stats;
@@ -164,8 +159,7 @@ export class Visualizer {
             if (stats.energyAverage > 0.4) {
                 sensitivity = 0.7;
             } else if (stats.energyAverage > 0.2) {
-                sensitivity =
-                    0.1 + ((stats.energyAverage - 0.2) / 0.2) * 0.6;
+                sensitivity = 0.1 + ((stats.energyAverage - 0.2) / 0.2) * 0.6;
             } else {
                 sensitivity = 0.1;
             }
@@ -173,15 +167,10 @@ export class Visualizer {
 
         // ===== KICK DETECTION =====
         const now = performance.now();
-        let threshold = stats.energyAverage < 0.3
-            ? 0.5 + (0.3 - stats.energyAverage) * 2
-            : 0.5;
+        let threshold = stats.energyAverage < 0.3 ? 0.5 + (0.3 - stats.energyAverage) * 2 : 0.5;
 
         if (intensity > threshold) {
-            if (
-                intensity > stats.lastIntensity + 0.05 &&
-                now - stats.lastBeatTime > 50
-            ) {
+            if (intensity > stats.lastIntensity + 0.05 && now - stats.lastBeatTime > 50) {
                 stats.kick = 1.0;
                 stats.lastBeatTime = now;
             } else {
@@ -205,10 +194,7 @@ export class Visualizer {
         stats.sensitivity = sensitivity;
 
         // ===== COLORS (CACHED) =====
-        const color =
-            getComputedStyle(document.documentElement)
-                .getPropertyValue('--primary')
-                .trim() || '#ffffff';
+        const color = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#ffffff';
 
         if (color !== this._lastPrimaryColor) {
             stats.primaryColor = color;
@@ -218,13 +204,7 @@ export class Visualizer {
         stats.mode = visualizerSettings.getMode();
 
         // ===== DRAW =====
-        this.activePreset.draw(
-            this.ctx,
-            this.canvas,
-            this.analyser,
-            this.dataArray,
-            stats
-        );
+        this.activePreset.draw(this.ctx, this.canvas, this.analyser, this.dataArray, stats);
     };
 
     setPreset(key) {

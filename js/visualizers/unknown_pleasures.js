@@ -26,8 +26,10 @@ export class UnknownPleasuresPreset {
         this.writeIndex = 0;
     }
 
-    resize() { }
-    destroy() { this.history.length = 0; }
+    resize() {}
+    destroy() {
+        this.history.length = 0;
+    }
 
     _precompute() {
         const pts = this.dataPoints;
@@ -71,7 +73,7 @@ export class UnknownPleasuresPreset {
         }
 
         const pts = this.dataPoints;
-        const len = (dataArray.length) | 0;
+        const len = dataArray.length | 0;
 
         const line = this.history[this.writeIndex];
         if (line) {
@@ -129,10 +131,7 @@ export class UnknownPleasuresPreset {
             ctx.moveTo(margin, y);
 
             for (let j = 0; j < pts; j++) {
-                ctx.lineTo(
-                    margin + this.xLookup[j] * lw,
-                    y - data[j] * amp
-                );
+                ctx.lineTo(margin + this.xLookup[j] * lw, y - data[j] * amp);
             }
             ctx.stroke();
         }

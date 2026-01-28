@@ -480,7 +480,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
             const val = e.target.value;
             visualizerSettings.setPreset(val);
             // Assuming 'ui' has access to 'visualizer' instance or we need to find it
-            // 'ui' is passed to initializeSettings. 
+            // 'ui' is passed to initializeSettings.
             // In ui.js, 'visualizer' is a property of UIRenderer.
             if (ui && ui.visualizer) {
                 ui.visualizer.setPreset(val);
