@@ -26,6 +26,7 @@ export class Player {
         this.currentTrack = null;
         this.currentRgValues = null;
         this.userVolume = parseFloat(localStorage.getItem('volume') || '0.7');
+        this.isFallbackRetry = false;
 
         // Sleep timer properties
         this.sleepTimer = null;
