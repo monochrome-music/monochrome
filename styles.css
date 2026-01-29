@@ -1283,8 +1283,6 @@ input[type='search']::-webkit-search-cancel-button {
     grid-template-columns: 40px 1fr 80px 90px;
 }
 
-
-
 .detail-header {
     display: flex;
     align-items: flex-start;

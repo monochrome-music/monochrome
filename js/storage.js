@@ -461,8 +461,6 @@ export const backgroundSettings = {
     },
 };
 
-
-
 export const cardSettings = {
     COMPACT_ARTIST_KEY: 'card-compact-artist',
     COMPACT_ALBUM_KEY: 'card-compact-album',

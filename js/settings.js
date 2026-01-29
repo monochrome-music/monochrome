@@ -334,8 +334,6 @@ export function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
-
-
     // Compact Artist Toggle
     const compactArtistToggle = document.getElementById('compact-artist-toggle');
     if (compactArtistToggle) {

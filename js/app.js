@@ -1,11 +1,6 @@
 //js/app.js
 import { LosslessAPI } from './api.js';
-import {
-    apiSettings,
-    themeManager,
-    nowPlayingSettings,
-    downloadQualitySettings,
-} from './storage.js';
+import { apiSettings, themeManager, nowPlayingSettings, downloadQualitySettings } from './storage.js';
 import { UIRenderer } from './ui.js';
 import { Player } from './player.js';
 import { LastFMScrobbler } from './lastfm.js';
