@@ -2126,10 +2126,12 @@ input:checked + .slider::before {
     text-align: center;
     z-index: 1;
     max-width: 90%;
-    background: color-mix(in srgb, var(--card), transparent 80%);
+    background-color: color-mix(in srgb, var(--card) 40%, transparent);
+    backdrop-filter: blur(20px);
     padding: 0.75rem 1.5rem;
     border-radius: var(--radius);
-    border: 1px solid color-mix(in srgb, var(--card), transparent 70%);
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 32px rgb(0, 0, 0, 0.4);
 }
 
 #fullscreen-track-title {
