@@ -472,7 +472,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // DEV: Auto-open fullscreen mode if ?fullscreen=1 in URL
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('fullscreen') === '1' && fullscreenOverlay && getComputedStyle(fullscreenOverlay).display === 'none') {
+        if (
+            urlParams.get('fullscreen') === '1' &&
+            fullscreenOverlay &&
+            getComputedStyle(fullscreenOverlay).display === 'none'
+        ) {
             const nextTrack = player.getNextTrack();
             ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, audioPlayer);
         }
