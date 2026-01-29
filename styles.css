@@ -3315,7 +3315,7 @@ img[src=''] {
 .fullscreen-lyrics-toggle {
     position: absolute;
     top: 1rem;
-    right: 4rem;
+    right: 4.5rem;
     background: rgb(0, 0, 0, 0.5);
     border: none;
     color: white;
@@ -4747,7 +4747,7 @@ body:has(#side-panel.active) .fullscreen-main-view {
 }
 
 body:has(#side-panel.active) .fullscreen-lyrics-toggle {
-    right: calc(600px + 4rem);
+    right: calc(600px + 4.5rem);
 }
 
 body:has(#side-panel.active) #close-fullscreen-cover-btn {
@@ -4760,7 +4760,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     }
 
     body:has(#side-panel.active) .fullscreen-lyrics-toggle {
-        right: calc(50vw + 4rem);
+        right: calc(50vw + 4.5rem);
     }
 
     body:has(#side-panel.active) #close-fullscreen-cover-btn {
