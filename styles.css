@@ -2146,11 +2146,12 @@ input:checked + .slider::before {
     font-size: 1.25rem;
     color: color-mix(in srgb, var(--foreground), transparent 40%);
     font-weight: 500;
-    transition: color 0.2s, text-decoration 0.2s;
+    transition:
+        color 0.2s,
+        text-decoration 0.2s;
 }
 
 #fullscreen-track-artist:hover {
-    color: var(--highlight);
     color: var(--primary);
     text-decoration: underline;
     cursor: pointer;
