@@ -823,6 +823,17 @@ export class UIRenderer {
         const fsDownloadBtn = document.getElementById('fs-download-btn');
         const fsCastBtn = document.getElementById('fs-cast-btn');
         const fsQueueBtn = document.getElementById('fs-queue-btn');
+        const artistEl = document.getElementById('fullscreen-track-artist');
+
+        if (artistEl) {
+            artistEl.style.cursor = 'pointer';
+            artistEl.onclick = () => {
+                if (this.player.currentTrack && this.player.currentTrack.artist) {
+                    this.closeFullscreenCover();
+                    navigate(`/artist/${this.player.currentTrack.artist.id}`);
+                }
+            };
+        }
 
         let lastPausedState = null;
         const updatePlayBtn = () => {
