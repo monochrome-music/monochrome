@@ -224,37 +224,6 @@ export class UIRenderer {
         const actionsHTML = isUnavailable
             ? ''
             : `
-            <div class="track-actions-inline">
-                <button class="track-action-btn like-btn" data-action="toggle-like" title="Add to Liked">
-                    ${this.createHeartIcon(false)}
-                </button>
-                <button class="track-action-btn" data-action="play-next" title="Play Next">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M2 6h6" />
-                        <path d="M5 3v6" />
-                        <path d="M11 6h10" />
-                        <path d="M3 12h18" />
-                        <path d="M3 18h18" />
-                    </svg>
-                </button>
-                <button class="track-action-btn" data-action="add-to-queue" title="Add to Queue">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 6h18" />
-                        <path d="M3 12h18" />
-                        <path d="M3 18h10" />
-                        <path d="M16 18h6" />
-                        <path d="M19 15v6" />
-                    </svg>
-                </button>
-                <button class="track-action-btn" data-action="share" title="Share">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
-                    </svg>
-                </button>
-                <button class="track-action-btn" data-action="download" title="Download" ${track.isLocal ? 'style="display:none"' : ''}>
-                    ${SVG_DOWNLOAD}
-                </button>
-            </div>
             <button class="track-menu-btn" type="button" title="More options" ${track.isLocal ? 'style="display:none"' : ''}>
                 ${SVG_MENU}
             </button>
@@ -558,21 +527,22 @@ export class UIRenderer {
             .map((track, i) => this.createTrackItemHTML(track, i, showCover, hasMultipleDiscs, useTrackNumber))
             .join('');
 
+        // Bind data to elements immediately using index, avoiding selector ambiguity
+        Array.from(tempDiv.children).forEach((element, index) => {
+            const track = tracks[index];
+            if (element && track) {
+                trackDataStore.set(element, track);
+                // Async update for like button
+                this.updateLikeState(element, 'track', track.id);
+            }
+        });
+
         while (tempDiv.firstChild) {
             fragment.appendChild(tempDiv.firstChild);
         }
 
         if (!append) container.innerHTML = '';
         container.appendChild(fragment);
-
-        tracks.forEach((track) => {
-            const element = container.querySelector(`[data-track-id="${track.id}"]`);
-            if (element) {
-                trackDataStore.set(element, track);
-                // Async update for like button
-                this.updateLikeState(element, 'track', track.id);
-            }
-        });
     }
 
     setPageBackground(imageUrl) {

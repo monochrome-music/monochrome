@@ -4,7 +4,6 @@ import {
     apiSettings,
     themeManager,
     nowPlayingSettings,
-    trackListSettings,
     downloadQualitySettings,
 } from './storage.js';
 import { UIRenderer } from './ui.js';
@@ -318,7 +317,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const currentTheme = themeManager.getTheme();
     themeManager.setTheme(currentTheme);
-    trackListSettings.getMode();
 
     initializeSettings(scrobbler, player, api, ui);
     initializePlayerEvents(player, audioPlayer, scrobbler, ui);

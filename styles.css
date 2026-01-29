@@ -1234,17 +1234,11 @@ input[type='search']::-webkit-search-cancel-button {
     padding: 0.5rem;
     border-radius: var(--radius);
     transition: all var(--transition);
-    display: none;
-
-    /* Controlled by data-track-actions-mode */
+    display: flex;
     align-items: center;
     justify-content: center;
     opacity: 0;
     z-index: 10;
-}
-
-[data-track-actions-mode='dropdown'] .track-menu-btn {
-    display: flex;
 }
 
 .track-item:hover .track-menu-btn {
@@ -1258,31 +1252,7 @@ input[type='search']::-webkit-search-cancel-button {
     color: var(--foreground);
 }
 
-.track-actions-inline {
-    display: none;
-
-    /* Controlled by data-track-actions-mode */
-    gap: 0.25rem;
-    opacity: 0.2;
-    transition: opacity var(--transition);
-}
-
 .track-action-btn.active {
-    opacity: 1;
-}
-
-[data-track-actions-mode='inline'] .track-actions-inline {
-    display: flex;
-}
-
-:root[data-track-actions-mode='inline'] .track-list-header,
-:root[data-track-actions-mode='inline'] .track-item,
-:root[data-track-actions-mode='inline'] .skeleton-track,
-:root[data-track-actions-mode='inline'] #playlist-detail-tracklist .track-list-header {
-    grid-template-columns: 40px 1fr 80px 220px;
-}
-
-.track-item:hover .track-actions-inline {
     opacity: 1;
 }
 
@@ -1313,10 +1283,7 @@ input[type='search']::-webkit-search-cancel-button {
     grid-template-columns: 40px 1fr 80px 90px;
 }
 
-:root[data-track-actions-mode='inline'] .is-editable .track-list-header,
-:root[data-track-actions-mode='inline'] .is-editable .track-item {
-    grid-template-columns: 40px 1fr 80px 260px;
-}
+
 
 .detail-header {
     display: flex;

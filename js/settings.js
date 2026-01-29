@@ -5,7 +5,6 @@ import {
     nowPlayingSettings,
     lyricsSettings,
     backgroundSettings,
-    trackListSettings,
     cardSettings,
     waveformSettings,
     replayGainSettings,
@@ -335,14 +334,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
-    // Track List Actions Mode
-    const trackListActionsMode = document.getElementById('track-list-actions-mode');
-    if (trackListActionsMode) {
-        trackListActionsMode.value = trackListSettings.getMode();
-        trackListActionsMode.addEventListener('change', (e) => {
-            trackListSettings.setMode(e.target.value);
-        });
-    }
+
 
     // Compact Artist Toggle
     const compactArtistToggle = document.getElementById('compact-artist-toggle');

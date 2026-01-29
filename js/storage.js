@@ -461,25 +461,7 @@ export const backgroundSettings = {
     },
 };
 
-export const trackListSettings = {
-    STORAGE_KEY: 'track-list-actions-mode',
 
-    getMode() {
-        try {
-            let mode = localStorage.getItem(this.STORAGE_KEY) || 'dropdown';
-            if (mode === 'inline') mode = 'dropdown';
-            document.documentElement.setAttribute('data-track-actions-mode', mode);
-            return mode;
-        } catch {
-            return 'dropdown';
-        }
-    },
-
-    setMode(mode) {
-        localStorage.setItem(this.STORAGE_KEY, mode);
-        document.documentElement.setAttribute('data-track-actions-mode', mode);
-    },
-};
 
 export const cardSettings = {
     COMPACT_ARTIST_KEY: 'card-compact-artist',

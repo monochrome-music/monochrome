@@ -1052,6 +1052,8 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
 
                 contextTrack = clickedTrack;
                 if (contextTrack) {
+                    contextMenu._contextTrack = contextTrack;
+                    contextMenu._contextType = 'track';
                     await updateContextMenuLikeState(contextMenu, contextTrack);
                     const rect = menuBtn.getBoundingClientRect();
                     positionMenu(contextMenu, rect.left, rect.bottom + 5, rect);
