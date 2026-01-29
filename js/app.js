@@ -364,7 +364,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (mode === 'cover') {
             const overlay = document.getElementById('fullscreen-cover-overlay');
             if (overlay && overlay.style.display === 'flex') {
-                ui.closeFullscreenCover();
+                if (window.location.hash === '#fullscreen') {
+                    window.history.back();
+                } else {
+                    ui.closeFullscreenCover();
+                }
             } else {
                 const nextTrack = player.getNextTrack();
                 ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, audioPlayer);
@@ -384,11 +388,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.getElementById('close-fullscreen-cover-btn')?.addEventListener('click', () => {
-        ui.closeFullscreenCover();
+        if (window.location.hash === '#fullscreen') {
+            window.history.back();
+        } else {
+            ui.closeFullscreenCover();
+        }
     });
 
     document.getElementById('fullscreen-cover-image')?.addEventListener('click', () => {
-        ui.closeFullscreenCover();
+        if (window.location.hash === '#fullscreen') {
+            window.history.back();
+        } else {
+            ui.closeFullscreenCover();
+        }
     });
 
     document.getElementById('sidebar-toggle')?.addEventListener('click', () => {
@@ -454,6 +466,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Update Fullscreen if it's open
         const fullscreenOverlay = document.getElementById('fullscreen-cover-overlay');
         if (fullscreenOverlay && getComputedStyle(fullscreenOverlay).display !== 'none') {
+            const nextTrack = player.getNextTrack();
+            ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, audioPlayer);
+        }
+
+        // DEV: Auto-open fullscreen mode if ?fullscreen=1 in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('fullscreen') === '1' && fullscreenOverlay && getComputedStyle(fullscreenOverlay).display === 'none') {
             const nextTrack = player.getNextTrack();
             ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, audioPlayer);
         }
@@ -1274,7 +1293,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const router = createRouter(ui);
 
-    const handleRouteChange = async () => {
+    const handleRouteChange = async (event) => {
+        const overlay = document.getElementById('fullscreen-cover-overlay');
+        const isFullscreenOpen = overlay && getComputedStyle(overlay).display === 'flex';
+
+        if (isFullscreenOpen && window.location.hash !== '#fullscreen') {
+            ui.closeFullscreenCover();
+        }
+
+        if (event && event.state && event.state.exitTrap) {
+            showNotification('Press back again to exit');
+            setTimeout(() => {
+                if (history.state && history.state.exitTrap) {
+                    history.pushState({ app: true }, '', window.location.pathname);
+                }
+            }, 2000);
+            return;
+        }
+
         await router();
         updateTabTitle(player);
     };

@@ -711,6 +711,7 @@ export class UIRenderer {
 
     async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
         if (!track) return;
+        window.history.pushState({ fullscreen: true }, '', '#fullscreen');
         const overlay = document.getElementById('fullscreen-cover-overlay');
         const nextTrackEl = document.getElementById('fullscreen-next-track');
         const lyricsToggleBtn = document.getElementById('toggle-fullscreen-lyrics-btn');
