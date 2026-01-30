@@ -832,10 +832,7 @@ export async function handleTrackAction(
 
         const renderModal = async () => {
             const playlists = await db.getPlaylists(true);
-            if (playlists.length === 0) {
-                showNotification('No playlists yet. Create one first.');
-                return false;
-            }
+            // Removed empty check to allow creating new playlist
 
             const trackId = item.id;
             const playlistsWithTrack = new Set();
@@ -846,7 +843,11 @@ export async function handleTrackAction(
                 }
             }
 
-            list.innerHTML = playlists
+            list.innerHTML = `
+                <div class="modal-option create-new-option" style="border-bottom: 1px solid var(--border); margin-bottom: 0.5rem;">
+                    <span style="font-weight: 600; color: var(--primary);">+ Create New Playlist</span>
+                </div>
+            ` + playlists
                 .map((p) => {
                     const alreadyContains = playlistsWithTrack.has(p.id);
                     return `
@@ -876,6 +877,23 @@ export async function handleTrackAction(
             const option = e.target.closest('.modal-option');
 
             if (!option) return;
+
+            if (option.classList.contains('create-new-option')) {
+                closeModal();
+                const createModal = document.getElementById('playlist-modal');
+                document.getElementById('playlist-modal-title').textContent = 'Create Playlist';
+                document.getElementById('playlist-name-input').value = '';
+                document.getElementById('playlist-cover-input').value = '';
+                createModal.dataset.editingId = '';
+                document.getElementById('csv-import-section').style.display = 'none';
+                
+                // Pass track
+                createModal._pendingTracks = [item];
+                
+                createModal.classList.add('active');
+                document.getElementById('playlist-name-input').focus();
+                return;
+            }
 
             const playlistId = option.dataset.id;
 

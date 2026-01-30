@@ -771,6 +771,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
 
                     const cover = document.getElementById('playlist-cover-input').value.trim();
+
+                    // Check for pending tracks (from Add to Playlist -> New Playlist)
+                    const modal = document.getElementById('playlist-modal');
+                    if (modal._pendingTracks && Array.isArray(modal._pendingTracks)) {
+                        tracks = [...tracks, ...modal._pendingTracks];
+                        delete modal._pendingTracks;
+                        // Also clear CSV input if we came from there? No, keep it separate.
+                        console.log(`Added ${tracks.length} tracks (including pending)`);
+                    }
+
                     db.createPlaylist(name, tracks, cover).then(async (playlist) => {
                         await handlePublicStatus(playlist);
                         // Update DB again with isPublic flag
@@ -983,12 +993,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 const playlists = await db.getPlaylists(false);
 
-                if (playlists.length === 0) {
-                    showNotification('No playlists found. Create one first.');
-                    return;
-                }
-
-                list.innerHTML = playlists
+                list.innerHTML = `
+                    <div class="modal-option create-new-option" style="border-bottom: 1px solid var(--border); margin-bottom: 0.5rem;">
+                        <span style="font-weight: 600; color: var(--primary);">+ Create New Playlist</span>
+                    </div>
+                ` + playlists
                     .map(
                         (p) => `
                     <div class="modal-option" data-id="${p.id}">
@@ -1006,6 +1015,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const handleOptionClick = async (e) => {
                     const option = e.target.closest('.modal-option');
                     if (!option) return;
+
+                    if (option.classList.contains('create-new-option')) {
+                        closeModal();
+                        const createModal = document.getElementById('playlist-modal');
+                        document.getElementById('playlist-modal-title').textContent = 'Create Playlist';
+                        document.getElementById('playlist-name-input').value = '';
+                        document.getElementById('playlist-cover-input').value = '';
+                        createModal.dataset.editingId = '';
+                        document.getElementById('csv-import-section').style.display = 'none'; // Hide CSV for simple add
+                        
+                        // Pass tracks
+                        createModal._pendingTracks = tracks;
+                        
+                        createModal.classList.add('active');
+                        document.getElementById('playlist-name-input').focus();
+                        return;
+                    }
+
                     const playlistId = option.dataset.id;
 
                     try {
