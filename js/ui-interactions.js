@@ -8,6 +8,7 @@ import {
     getTrackTitle,
     getTrackArtists,
     escapeHtml,
+    createQualityBadgeHTML,
 } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 import { downloadQualitySettings } from './storage.js';
@@ -251,6 +252,7 @@ export function initializeUIInteractions(player, api, ui) {
                 const isPlaying = index === player.currentQueueIndex;
                 const trackTitle = getTrackTitle(track);
                 const trackArtists = getTrackArtists(track, { fallback: 'Unknown' });
+                const qualityBadge = createQualityBadgeHTML(track);
 
                 return `
                 <div class="queue-track-item ${isPlaying ? 'playing' : ''}" data-queue-index="${index}" data-track-id="${track.id}" draggable="true">
@@ -264,7 +266,7 @@ export function initializeUIInteractions(player, api, ui) {
                         <img src="${api.getCoverUrl(track.album?.cover)}"
                              class="track-item-cover" loading="lazy">
                         <div class="track-item-details">
-                            <div class="title">${escapeHtml(trackTitle)}</div>
+                            <div class="title">${escapeHtml(trackTitle)} ${qualityBadge}</div>
                             <div class="artist">${escapeHtml(trackArtists)}</div>
                         </div>
                     </div>

@@ -218,6 +218,7 @@ export class MusicDatabase {
                           vibrantColor: item.album.vibrantColor || null,
                           artist: item.album.artist || null,
                           numberOfTracks: item.album.numberOfTracks || null,
+                          mediaMetadata: item.album.mediaMetadata ? { tags: item.album.mediaMetadata.tags } : null,
                       }
                     : null,
                 copyright: item.copyright || null,
@@ -232,6 +233,8 @@ export class MusicDatabase {
                 isTracker: item.isTracker || (item.id && String(item.id).startsWith('tracker-')),
                 audioUrl: item.remoteUrl || item.audioUrl || null,
                 remoteUrl: item.remoteUrl || null,
+                audioQuality: item.audioQuality || null,
+                mediaMetadata: item.mediaMetadata ? { tags: item.mediaMetadata.tags } : null,
             };
         }
 
