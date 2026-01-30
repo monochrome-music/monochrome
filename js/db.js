@@ -85,18 +85,40 @@ export class MusicDatabase {
     async addToHistory(track) {
         const storeName = 'history_tracks';
         const minified = this._minifyItem('track', track);
-        // Use a unique timestamp even if called rapidly
-        // (though unlikely to be <1ms for playback start)
-        const entry = { ...minified, timestamp: Date.now() };
+        const timestamp = Date.now();
+        const entry = { ...minified, timestamp };
 
         const db = await this.open();
-        const transaction = db.transaction(storeName, 'readwrite');
-        const store = transaction.objectStore(storeName);
 
-        // Add new entry
-        store.put(entry);
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(storeName, 'readwrite');
+            const store = transaction.objectStore(storeName);
+            const index = store.index('timestamp');
 
-        return entry;
+            // Check the most recent entry
+            const cursorReq = index.openCursor(null, 'prev');
+
+            cursorReq.onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (cursor) {
+                    const lastTrack = cursor.value;
+                    if (lastTrack.id === track.id) {
+                        // If same track, delete the old entry so we just update the timestamp
+                        store.delete(cursor.primaryKey);
+                    }
+                }
+                // Add the new entry
+                store.put(entry);
+            };
+
+            cursorReq.onerror = (e) => {
+                // If cursor fails, just try to put (fallback)
+                store.put(entry);
+            };
+
+            transaction.oncomplete = () => resolve(entry);
+            transaction.onerror = (e) => reject(e.target.error);
+        });
     }
 
     async getHistory() {
