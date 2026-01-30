@@ -167,6 +167,10 @@ export class Player {
             shuffleActive: this.shuffleActive,
             repeatMode: this.repeatMode,
         });
+
+        if (window.renderQueueFunction) {
+            window.renderQueueFunction();
+        }
     }
 
     setupMediaSession() {
