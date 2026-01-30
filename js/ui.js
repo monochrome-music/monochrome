@@ -2511,6 +2511,13 @@ export class UIRenderer {
     }
 
     enableTrackReordering(container, tracks, playlistId, syncManager) {
+        // Clone to remove old listeners
+        const newContainer = container.cloneNode(true);
+        if (container.parentNode) {
+            container.parentNode.replaceChild(newContainer, container);
+        }
+        container = newContainer;
+
         let draggedElement = null;
         let draggedIndex = -1;
         let trackItems = Array.from(container.querySelectorAll('.track-item'));
