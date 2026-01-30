@@ -145,7 +145,8 @@ export class Visualizer {
         this.analyser.getByteFrequencyData(this.dataArray);
 
         // Bass (first bins only — cheap)
-        let bass = (this.dataArray[0] + this.dataArray[1] + this.dataArray[2] + this.dataArray[3]) * 0.000980392; // 1 / (4 * 255)
+        const volume = 10*Math.max(this.audio.volume, 0.1);
+        let bass = ((this.dataArray[0] + this.dataArray[1] + this.dataArray[2] + this.dataArray[3]) * 0.000980392) / volume;
 
         const intensity = bass * bass;
         const stats = this.stats;
