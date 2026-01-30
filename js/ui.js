@@ -665,6 +665,7 @@ export class UIRenderer {
         if (image.src !== coverUrl) {
             image.src = coverUrl;
             overlay.style.setProperty('--bg-image', `url('${coverUrl}')`);
+            this.extractAndApplyColor(coverUrl);
         }
 
         const qualityBadge = createQualityBadgeHTML(track);

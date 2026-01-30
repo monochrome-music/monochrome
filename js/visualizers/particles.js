@@ -16,11 +16,17 @@ export class ParticlesPreset {
 
     draw(ctx, canvas, analyser, dataArray, params) {
         const { width, height } = canvas;
-        const { kick, intensity, primaryColor } = params;
+        const { kick, intensity, primaryColor, mode } = params;
         const sensitivity = params.sensitivity || 1.0;
+        const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
 
         // Clear background
         ctx.clearRect(0, 0, width, height);
+
+        if (mode !== 'blended') {
+            ctx.fillStyle = isDark ? '#050505' : '#e6e6e6';
+            ctx.fillRect(0, 0, width, height);
+        }
 
         // Manage particle count
         if (this.particles.length !== this.particleCount) {

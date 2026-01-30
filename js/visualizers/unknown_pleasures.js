@@ -88,7 +88,14 @@ export class UnknownPleasuresPreset {
         }
 
         const { width, height } = canvas;
+        const { mode } = params;
+        const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
         ctx.clearRect(0, 0, width, height);
+        if (mode !== 'blended') {
+            ctx.fillStyle = isDark ? '#050505' : '#e6e6e6';
+            ctx.fillRect(0, 0, width, height);
+        }
 
         const size = Math.hypot(width, height) * 1.42;
 
