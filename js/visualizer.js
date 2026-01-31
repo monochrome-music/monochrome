@@ -149,7 +149,7 @@ export class Visualizer {
         let bass =
             ((this.dataArray[0] + this.dataArray[1] + this.dataArray[2] + this.dataArray[3]) * 0.000980392) / volume;
 
-        const intensity = bass * bass;
+        const intensity = bass * bass * 10;
         const stats = this.stats;
 
         stats.energyAverage = stats.energyAverage * 0.99 + intensity * 0.01;

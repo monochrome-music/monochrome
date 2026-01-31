@@ -219,8 +219,8 @@ export class LCDPreset {
         ctx.translate(-centerX, -centerY);
 
         // Shake on kick
-        if (!this.disableShake && kick > 0.3) {
-            const shake = kick * 15;
+        if (!this.disableShake && kick > 0.1) {
+            const shake = kick * 8;
             ctx.translate((Math.random() - 0.5) * 2 * shake, (Math.random() - 0.5) * shake);
         }
 
