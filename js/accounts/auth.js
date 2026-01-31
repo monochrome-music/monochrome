@@ -6,6 +6,7 @@ import {
     onAuthStateChanged,
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
+    sendPasswordResetEmail,
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
 export class AuthManager {
@@ -78,6 +79,21 @@ export class AuthManager {
         } catch (error) {
             console.error('Sign Up failed:', error);
             alert(`Sign Up failed: ${error.message}`);
+            throw error;
+        }
+    }
+
+    async sendPasswordReset(email) {
+        if (!auth) {
+            alert('Firebase is not configured.');
+            return;
+        }
+        try {
+            await sendPasswordResetEmail(auth, email);
+            alert(`Password reset email sent to ${email}`);
+        } catch (error) {
+            console.error('Password reset failed:', error);
+            alert(`Failed to send reset email: ${error.message}`);
             throw error;
         }
     }

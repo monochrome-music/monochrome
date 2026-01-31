@@ -1,3 +1,4 @@
+//js/accounts/pocketbase.js
 import PocketBase from 'pocketbase';
 import { db } from '../db.js';
 import { authManager } from './auth.js';

@@ -33,6 +33,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
     const passwordInput = document.getElementById('auth-password');
     const signInBtn = document.getElementById('email-signin-btn');
     const signUpBtn = document.getElementById('email-signup-btn');
+    const resetPasswordBtn = document.getElementById('reset-password-btn');
 
     if (toggleEmailBtn && authContainer && authButtonsContainer) {
         toggleEmailBtn.addEventListener('click', () => {
@@ -84,6 +85,20 @@ export function initializeSettings(scrobbler, player, api, ui) {
                 passwordInput.value = '';
             } catch {
                 // Error handled in authManager
+            }
+        });
+    }
+
+    if (resetPasswordBtn) {
+        resetPasswordBtn.addEventListener('click', async () => {
+            const email = emailInput.value;
+            if (!email) {
+                alert('Please enter your email address to reset your password.');
+                return;
+            }
+            try {
+                await authManager.sendPasswordReset(email);
+            } catch {
             }
         });
     }
