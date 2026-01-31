@@ -14,6 +14,7 @@ import {
     qualityBadgeSettings,
     visualizerSettings,
     bulkDownloadSettings,
+    playlistSettings,
 } from './storage.js';
 import { db } from './db.js';
 import { authManager } from './accounts/auth.js';
@@ -516,6 +517,55 @@ export function initializeSettings(scrobbler, player, api, ui) {
         zipFolderTemplate.value = localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist}';
         zipFolderTemplate.addEventListener('change', (e) => {
             localStorage.setItem('zip-folder-template', e.target.value);
+        });
+    }
+
+    // Playlist file generation settings
+    const generateM3UToggle = document.getElementById('generate-m3u-toggle');
+    if (generateM3UToggle) {
+        generateM3UToggle.checked = playlistSettings.shouldGenerateM3U();
+        generateM3UToggle.addEventListener('change', (e) => {
+            playlistSettings.setGenerateM3U(e.target.checked);
+        });
+    }
+
+    const generateM3U8Toggle = document.getElementById('generate-m3u8-toggle');
+    if (generateM3U8Toggle) {
+        generateM3U8Toggle.checked = playlistSettings.shouldGenerateM3U8();
+        generateM3U8Toggle.addEventListener('change', (e) => {
+            playlistSettings.setGenerateM3U8(e.target.checked);
+        });
+    }
+
+    const generateCUEtoggle = document.getElementById('generate-cue-toggle');
+    if (generateCUEtoggle) {
+        generateCUEtoggle.checked = playlistSettings.shouldGenerateCUE();
+        generateCUEtoggle.addEventListener('change', (e) => {
+            playlistSettings.setGenerateCUE(e.target.checked);
+        });
+    }
+
+    const generateNFOtoggle = document.getElementById('generate-nfo-toggle');
+    if (generateNFOtoggle) {
+        generateNFOtoggle.checked = playlistSettings.shouldGenerateNFO();
+        generateNFOtoggle.addEventListener('change', (e) => {
+            playlistSettings.setGenerateNFO(e.target.checked);
+        });
+    }
+
+    const generateJSONtoggle = document.getElementById('generate-json-toggle');
+    if (generateJSONtoggle) {
+        generateJSONtoggle.checked = playlistSettings.shouldGenerateJSON();
+        generateJSONtoggle.addEventListener('change', (e) => {
+            playlistSettings.setGenerateJSON(e.target.checked);
+        });
+    }
+
+    const relativePathsToggle = document.getElementById('relative-paths-toggle');
+    if (relativePathsToggle) {
+        relativePathsToggle.checked = playlistSettings.shouldUseRelativePaths();
+        relativePathsToggle.addEventListener('change', (e) => {
+            playlistSettings.setUseRelativePaths(e.target.checked);
         });
     }
 
