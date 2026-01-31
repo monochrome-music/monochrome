@@ -9,6 +9,10 @@ import {
 import { APICache } from './cache.js';
 import { addMetadataToAudio } from './metadata.js';
 import { DashDownloader } from './dash-downloader.js';
+import { FFmpeg } from "@ffmpeg/ffmpeg";
+import { fetchFile } from "@ffmpeg/util";
+import coreURL from "@ffmpeg/core?url";
+import wasmURL from "@ffmpeg/core/wasm?url";
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 
@@ -899,8 +903,21 @@ export class LosslessAPI {
         return streamUrl;
     }
 
+    async getWorkerBlobURL(url) {
+        const response = await fetch(url);
+        const workerScript = await response.text();
+        const blob = new Blob([workerScript], { type: 'application/javascript' });
+        return URL.createObjectURL(blob);
+    }
+
     async downloadTrack(id, quality = 'HI_RES_LOSSLESS', filename, options = {}) {
         const { onProgress, track } = options;
+
+        let convertToAAC = false;
+        if (quality === 'HIGH') {
+            convertToAAC = true;
+            quality = 'HI_RES_LOSSLESS';
+        }
 
         try {
             const lookup = await this.getTrack(id, quality);
@@ -980,6 +997,61 @@ export class LosslessAPI {
                         });
                     }
                 }
+
+                if (convertToAAC) {
+                    if (onProgress) {
+                        onProgress({
+                            stage: 'processing',
+                            message: 'Initializing converter...',
+                        });
+                    }
+
+                    const ffmpeg = new FFmpeg()
+
+                    try {
+                        await ffmpeg.load({ coreURL, wasmURL });
+                
+                        const inputData = await fetchFile(blob);
+                        ffmpeg.writeFile('input', inputData);
+
+                        if (onProgress) {
+                            onProgress({
+                                stage: 'processing',
+                                message: 'Converting to AAC...',
+                            });
+                        }
+                        
+                        // Based on https://github.com/frnnd-prz/flac2aac.sh code.
+                        await ffmpeg.exec([
+                            '-y',                             // Overwrite without asking
+                            '-i', 'input',                    // Input file
+                            '-f', 'mp4',                      // Force MP4 container
+                            '-vn',                            // Discard cover art (added later)
+                            '-c:a', 'aac',                    // Encode audio to AAC
+                            '-b:a', '320k',                   // Bitrate
+                            '-movflags', '+faststart',        // Optimize for streaming
+                            '-ac', '2',                       // Force stereo
+                            '-map_metadata', '-1',            // Strip metadata (we add it back later)
+                            'output.m4a'                      // Output filename
+                        ]);
+                
+                        const outputData = await ffmpeg.readFile('output.m4a');
+                        if (!outputData || outputData.length === 0) throw new Error("FFmpeg produced an empty file.");
+
+                        blob = new Blob([outputData.buffer], { type: 'audio/mp4' });
+                
+                        ffmpeg.deleteFile('input');
+                        ffmpeg.deleteFile('output.m4a');
+
+                        await delay(100); // Give FFmpeg some time to finalize
+                    } catch (e) {
+                        console.error("FFmpeg error:", e);
+                        throw e;
+                    } finally {
+                        await ffmpeg.terminate(); 
+                    }
+                }
+
             }
 
             // Add metadata if track information is provided

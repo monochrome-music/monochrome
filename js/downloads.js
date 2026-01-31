@@ -13,6 +13,10 @@ import {
 import { lyricsSettings, bulkDownloadSettings } from './storage.js';
 import { addMetadataToAudio } from './metadata.js';
 import { DashDownloader } from './dash-downloader.js';
+import { FFmpeg } from "@ffmpeg/ffmpeg";
+import { fetchFile } from "@ffmpeg/util";
+import coreURL from "@ffmpeg/core?url";
+import wasmURL from "@ffmpeg/core/wasm?url";
 
 const downloadTasks = new Map();
 const bulkDownloadTasks = new Map();
@@ -202,6 +206,13 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
         }
     }
 
+    let convertToAAC = false;
+    console.log('Requested quality:', quality);
+    if (quality === "HIGH") {
+        quality = "HI_RES_LOSSLESS";
+        convertToAAC = true;
+    }
+
     const lookup = await api.getTrack(track.id, quality);
     let streamUrl;
 
@@ -242,6 +253,60 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
 
     // Add metadata to the blob
     blob = await addMetadataToAudio(blob, enrichedTrack, api, quality);
+
+    if (convertToAAC) {
+        if (onProgress) {
+            onProgress({
+                stage: 'processing',
+                message: 'Initializing converter...',
+            });
+        }
+
+        const ffmpeg = new FFmpeg()
+
+        try {
+            await ffmpeg.load({ coreURL, wasmURL });
+    
+            const inputData = await fetchFile(blob);
+            ffmpeg.writeFile('input', inputData);
+
+            if (onProgress) {
+                onProgress({
+                    stage: 'processing',
+                    message: 'Converting to AAC...',
+                });
+            }
+            
+            // Based on https://github.com/frnnd-prz/flac2aac.sh code.
+            await ffmpeg.exec([
+                '-y',                             // Overwrite without asking
+                '-i', 'input',                    // Input file
+                '-f', 'mp4',                      // Force MP4 container
+                '-vn',                            // Discard cover art (added later)
+                '-c:a', 'aac',                    // Encode audio to AAC
+                '-b:a', '320k',                   // Bitrate
+                '-movflags', '+faststart',        // Optimize for streaming
+                '-ac', '2',                       // Force stereo
+                '-map_metadata', '-1',            // Strip metadata (we add it back later)
+                'output.m4a'                      // Output filename
+            ]);
+    
+            const outputData = await ffmpeg.readFile('output.m4a');
+            if (!outputData || outputData.length === 0) throw new Error("FFmpeg produced an empty file.");
+
+            blob = new Blob([outputData.buffer], { type: 'audio/mp4' });
+    
+            ffmpeg.deleteFile('input');
+            ffmpeg.deleteFile('output.m4a');
+
+            await delay(100); // Give FFmpeg some time to finalize
+        } catch (e) {
+            console.error("FFmpeg error:", e);
+            throw e;
+        } finally {
+            await ffmpeg.terminate(); 
+        }
+    }
 
     return { blob, extension };
 }

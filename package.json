@@ -43,7 +43,10 @@
         "source-map": "^0.7.4"
     },
     "dependencies": {
-        "pocketbase": "^0.26.5",
-        "dashjs": "^5.1.1"
+        "@ffmpeg/core": "^0.12.10",
+        "@ffmpeg/ffmpeg": "^0.12.15",
+        "@ffmpeg/util": "^0.12.2",
+        "dashjs": "^5.1.1",
+        "pocketbase": "^0.26.5"
     }
 }
