@@ -2523,6 +2523,10 @@ export class UIRenderer {
         let trackItems = Array.from(container.querySelectorAll('.track-item'));
 
         trackItems.forEach((item, index) => {
+            // Re-bind data to cloned elements
+            if (tracks[index]) {
+                trackDataStore.set(item, tracks[index]);
+            }
             item.draggable = true;
             item.dataset.index = index;
         });
