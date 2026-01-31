@@ -843,14 +843,16 @@ export async function handleTrackAction(
                 }
             }
 
-            list.innerHTML = `
+            list.innerHTML =
+                `
                 <div class="modal-option create-new-option" style="border-bottom: 1px solid var(--border); margin-bottom: 0.5rem;">
                     <span style="font-weight: 600; color: var(--primary);">+ Create New Playlist</span>
                 </div>
-            ` + playlists
-                .map((p) => {
-                    const alreadyContains = playlistsWithTrack.has(p.id);
-                    return `
+            ` +
+                playlists
+                    .map((p) => {
+                        const alreadyContains = playlistsWithTrack.has(p.id);
+                        return `
                     <div class="modal-option ${alreadyContains ? 'already-contains' : ''}" data-id="${p.id}">
                         <span>${p.name}</span>
                         ${
@@ -860,8 +862,8 @@ export async function handleTrackAction(
                         }
                     </div>
                 `;
-                })
-                .join('');
+                    })
+                    .join('');
             return true;
         };
 
@@ -886,10 +888,10 @@ export async function handleTrackAction(
                 document.getElementById('playlist-cover-input').value = '';
                 createModal.dataset.editingId = '';
                 document.getElementById('csv-import-section').style.display = 'none';
-                
+
                 // Pass track
                 createModal._pendingTracks = [item];
-                
+
                 createModal.classList.add('active');
                 document.getElementById('playlist-name-input').focus();
                 return;

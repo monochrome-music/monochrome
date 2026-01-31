@@ -993,19 +993,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 const playlists = await db.getPlaylists(false);
 
-                list.innerHTML = `
+                list.innerHTML =
+                    `
                     <div class="modal-option create-new-option" style="border-bottom: 1px solid var(--border); margin-bottom: 0.5rem;">
                         <span style="font-weight: 600; color: var(--primary);">+ Create New Playlist</span>
                     </div>
-                ` + playlists
-                    .map(
-                        (p) => `
+                ` +
+                    playlists
+                        .map(
+                            (p) => `
                     <div class="modal-option" data-id="${p.id}">
                         <span>${p.name}</span>
                     </div>
                 `
-                    )
-                    .join('');
+                        )
+                        .join('');
 
                 const closeModal = () => {
                     modal.classList.remove('active');
@@ -1024,10 +1026,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         document.getElementById('playlist-cover-input').value = '';
                         createModal.dataset.editingId = '';
                         document.getElementById('csv-import-section').style.display = 'none'; // Hide CSV for simple add
-                        
+
                         // Pass tracks
                         createModal._pendingTracks = tracks;
-                        
+
                         createModal.classList.add('active');
                         document.getElementById('playlist-name-input').focus();
                         return;
