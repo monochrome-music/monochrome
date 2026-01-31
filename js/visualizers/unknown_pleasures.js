@@ -14,6 +14,10 @@ export class UnknownPleasuresPreset {
         this._palette = null;
         this._paletteColor = '';
 
+        // Rotation constants (cached for performance)
+        this.rotationAngle = Math.PI / 6; // 30 degrees
+        this._cos = Math.cos(this.rotationAngle);
+        this._sin = Math.sin(this.rotationAngle);
         this.reset();
         this._precompute();
     }
@@ -97,17 +101,25 @@ export class UnknownPleasuresPreset {
             ctx.fillRect(0, 0, width, height);
         }
 
-        const size = Math.hypot(width, height) * 1.42;
+        // Compute rotated bounding box that covers the entire viewport
+        // When rotating by angle θ, a WxH rectangle needs a bounding box of:
+        // rotatedW = |W*cos(θ)| + |H*sin(θ)|
+        // rotatedH = |W*sin(θ)| + |H*cos(θ)|
+        const rotatedW = Math.abs(width * this._cos) + Math.abs(height * this._sin);
+        const rotatedH = Math.abs(width * this._sin) + Math.abs(height * this._cos);
+        const size = Math.max(rotatedW, rotatedH) * 1.15; // 15% padding for safety
 
         ctx.save();
-        ctx.translate((width + size) / 2, height / 2);
-        ctx.rotate(Math.PI / 6);
-        ctx.translate(-(width + size) / 2, -height / 2);
+        // Translate to center, rotate, then offset to position lines
+        ctx.translate(width / 2, height / 2);
+        ctx.rotate(this.rotationAngle);
+        ctx.translate(-size / 2, -size / 2);
 
         // SINGLE shadow pass (cheap)
         ctx.shadowColor = params.primaryColor;
         ctx.shadowBlur = 32 * (1 + params.kick * 2);
         ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
         ctx.shadowOffsetX = params.kick * 10;
         ctx.shadowOffsetY = params.kick * 10;
         const horizonY = size * 0.1;
