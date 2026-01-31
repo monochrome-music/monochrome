@@ -7,6 +7,9 @@ export default defineConfig({
         outDir: 'dist',
         emptyOutDir: true,
     },
+    optimizeDeps: {
+        exclude: ['@ffmpeg/core', '@ffmpeg/ffmpeg', '@ffmpeg/util'],
+    },
     plugins: [
         VitePWA({
             registerType: 'prompt',
