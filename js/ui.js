@@ -23,7 +23,15 @@ import { getVibrantColorFromImage } from './vibrant-color.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { Visualizer } from './visualizer.js';
 import { navigate } from './router.js';
-import { renderUnreleasedPage as renderUnreleasedTrackerPage, renderTrackerArtistPage as renderTrackerArtistContent, renderTrackerProjectPage as renderTrackerProjectContent, renderTrackerTrackPage as renderTrackerTrackContent, findTrackerArtistByName, getArtistUnreleasedProjects, createProjectCardHTML } from './tracker.js';
+import {
+    renderUnreleasedPage as renderUnreleasedTrackerPage,
+    renderTrackerArtistPage as renderTrackerArtistContent,
+    renderTrackerProjectPage as renderTrackerProjectContent,
+    renderTrackerTrackPage as renderTrackerTrackContent,
+    findTrackerArtistByName,
+    getArtistUnreleasedProjects,
+    createProjectCardHTML,
+} from './tracker.js';
 
 export class UIRenderer {
     constructor(api, player) {
@@ -120,7 +128,7 @@ export class UIRenderer {
                     this.updateLikeState(likeBtn.parentElement, 'track', track.id);
                 }
             }
-            
+
             // For tracker tracks: show add playlist, hide lyrics
             // For normal tracks: hide add playlist, show lyrics (unless local)
             if (addPlaylistBtn) {
@@ -2322,42 +2330,44 @@ export class UIRenderer {
                 // Initially hide the unreleased section
                 unreleasedSection.style.display = 'none';
                 loadUnreleasedSection.style.display = 'none';
-                
+
                 // Check if artist has unreleased projects
                 const trackerArtist = findTrackerArtistByName(artist.name);
                 if (trackerArtist) {
                     // Show the load button section
                     loadUnreleasedSection.style.display = 'block';
-                    
+
                     // Add click handler to load and display unreleased projects
                     loadUnreleasedBtn.onclick = async () => {
                         loadUnreleasedBtn.disabled = true;
                         loadUnreleasedBtn.textContent = 'Loading...';
-                        
+
                         try {
                             const unreleasedData = await getArtistUnreleasedProjects(artist.name);
                             if (unreleasedData && unreleasedData.eras.length > 0) {
                                 const { artist: trackerArtistData, sheetId, eras } = unreleasedData;
-                                
-                                unreleasedContainer.innerHTML = eras.map(e => {
-                                    let trackCount = 0;
-                                    if (e.data) {
-                                        Object.values(e.data).forEach((songs) => {
-                                            if (songs && songs.length) trackCount += songs.length;
-                                        });
-                                    }
-                                    return createProjectCardHTML(e, trackerArtistData, sheetId, trackCount);
-                                }).join('');
-                                
+
+                                unreleasedContainer.innerHTML = eras
+                                    .map((e) => {
+                                        let trackCount = 0;
+                                        if (e.data) {
+                                            Object.values(e.data).forEach((songs) => {
+                                                if (songs && songs.length) trackCount += songs.length;
+                                            });
+                                        }
+                                        return createProjectCardHTML(e, trackerArtistData, sheetId, trackCount);
+                                    })
+                                    .join('');
+
                                 unreleasedSection.style.display = 'block';
                                 loadUnreleasedBtn.style.display = 'none';
-                                
+
                                 // Add click handlers
                                 unreleasedContainer.querySelectorAll('.card').forEach((card) => {
                                     const eraName = decodeURIComponent(card.dataset.trackerProjectId);
-                                    const era = eras.find(e => e.name === eraName);
+                                    const era = eras.find((e) => e.name === eraName);
                                     if (!era) return;
-                                    
+
                                     card.onclick = (e) => {
                                         if (e.target.closest('.card-play-btn')) {
                                             e.stopPropagation();
@@ -2366,13 +2376,19 @@ export class UIRenderer {
                                                 Object.values(era.data).forEach((songs) => {
                                                     if (songs && songs.length) {
                                                         songs.forEach((song, index) => {
-                                                            const track = createTrackFromSong(song, era, trackerArtistData.name, eraTracks.length, sheetId);
+                                                            const track = createTrackFromSong(
+                                                                song,
+                                                                era,
+                                                                trackerArtistData.name,
+                                                                eraTracks.length,
+                                                                sheetId
+                                                            );
                                                             eraTracks.push(track);
                                                         });
                                                     }
                                                 });
                                             }
-                                            const availableTracks = eraTracks.filter(t => !t.unavailable);
+                                            const availableTracks = eraTracks.filter((t) => !t.unavailable);
                                             if (availableTracks.length > 0) {
                                                 globalPlayer.setQueue(availableTracks, 0);
                                                 globalPlayer.playTrackFromQueue();

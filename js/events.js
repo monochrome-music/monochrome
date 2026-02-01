@@ -1053,13 +1053,15 @@ export async function handleTrackAction(
         // Show detailed track info modal
         const isTracker = item.isTracker;
         let infoHTML = '';
-        
+
         if (isTracker && item.trackerInfo) {
             // Detailed unreleased/tracker track info
             const releaseDate = item.trackerInfo.releaseDate || item.streamStartDate;
             const dateDisplay = releaseDate ? new Date(releaseDate).toLocaleDateString() : 'Unknown';
-            const addedDate = item.trackerInfo.addedDate ? new Date(item.trackerInfo.addedDate).toLocaleDateString() : 'Unknown';
-            
+            const addedDate = item.trackerInfo.addedDate
+                ? new Date(item.trackerInfo.addedDate).toLocaleDateString()
+                : 'Unknown';
+
             infoHTML = `
                 <div style="padding: 1.5rem; max-width: 500px; max-height: 80vh; overflow-y: auto;">
                     <h3 style="margin-bottom: 1rem; font-size: 1.3rem; font-weight: 600;">${item.title}</h3>
@@ -1069,7 +1071,7 @@ export async function handleTrackAction(
                         </div>
                         
                         <div style="display: grid; gap: 0.5rem;">
-                            ${item.artists ? `<p><strong style="color: var(--foreground);">Artist:</strong> ${Array.isArray(item.artists) ? item.artists.map(a => a.name || a).join(', ') : item.artists}</p>` : ''}
+                            ${item.artists ? `<p><strong style="color: var(--foreground);">Artist:</strong> ${Array.isArray(item.artists) ? item.artists.map((a) => a.name || a).join(', ') : item.artists}</p>` : ''}
                             ${item.trackerInfo.artist ? `<p><strong style="color: var(--foreground);">Tracked Artist:</strong> ${item.trackerInfo.artist}</p>` : ''}
                             ${item.trackerInfo.project ? `<p><strong style="color: var(--foreground);">Project:</strong> ${item.trackerInfo.project}</p>` : ''}
                             ${item.trackerInfo.era ? `<p><strong style="color: var(--foreground);">Era:</strong> ${item.trackerInfo.era}</p>` : ''}
@@ -1083,28 +1085,40 @@ export async function handleTrackAction(
                             ${item.trackerInfo.recordingDate ? `<p><strong style="color: var(--foreground);">Recording Date:</strong> ${new Date(item.trackerInfo.recordingDate).toLocaleDateString()}</p>` : ''}
                         </div>
                         
-                        ${item.trackerInfo.description ? `
+                        ${
+                            item.trackerInfo.description
+                                ? `
                             <div style="margin-top: 1rem; padding: 0.75rem; background: var(--accent); border-radius: 8px;">
                                 <p style="color: var(--foreground); font-weight: 500; margin-bottom: 0.5rem;">Description</p>
                                 <p style="font-size: 0.85rem; line-height: 1.6;">${item.trackerInfo.description}</p>
                             </div>
-                        ` : ''}
+                        `
+                                : ''
+                        }
                         
-                        ${item.trackerInfo.notes ? `
+                        ${
+                            item.trackerInfo.notes
+                                ? `
                             <div style="margin-top: 1rem; padding: 0.75rem; background: var(--accent); border-radius: 8px;">
                                 <p style="color: var(--foreground); font-weight: 500; margin-bottom: 0.5rem;">Notes</p>
                                 <p style="font-size: 0.85rem; line-height: 1.6;">${item.trackerInfo.notes}</p>
                             </div>
-                        ` : ''}
+                        `
+                                : ''
+                        }
                         
-                        ${item.trackerInfo.sourceUrl ? `
+                        ${
+                            item.trackerInfo.sourceUrl
+                                ? `
                             <div style="margin-top: 1rem;">
                                 <p style="margin-bottom: 0.5rem;"><strong style="color: var(--foreground);">Source URL:</strong></p>
                                 <a href="${item.trackerInfo.sourceUrl}" target="_blank" style="color: var(--primary); word-break: break-all; font-size: 0.85rem; display: block; padding: 0.5rem; background: var(--accent); border-radius: 6px; text-decoration: none;">
                                     ${item.trackerInfo.sourceUrl}
                                 </a>
                             </div>
-                        ` : ''}
+                        `
+                                : ''
+                        }
                         
                         ${item.id ? `<p style="margin-top: 1rem; font-size: 0.8rem; color: var(--muted);"><strong>Track ID:</strong> ${item.id}</p>` : ''}
                     </div>
@@ -1117,7 +1131,7 @@ export async function handleTrackAction(
             const dateDisplay = releaseDate ? new Date(releaseDate).toLocaleDateString() : 'Unknown';
             const quality = item.audioQuality || 'Unknown';
             const bitrate = item.bitrate ? `${item.bitrate} kbps` : '';
-            
+
             infoHTML = `
                 <div style="padding: 1.5rem; max-width: 500px; max-height: 80vh; overflow-y: auto;">
                     <h3 style="margin-bottom: 1rem; font-size: 1.3rem; font-weight: 600;">${item.title}</h3>
@@ -1135,24 +1149,36 @@ export async function handleTrackAction(
                             <p><strong style="color: var(--foreground);">Quality:</strong> ${quality} ${bitrate ? `(${bitrate})` : ''}</p>
                         </div>
                         
-                        ${item.credits && item.credits.length > 0 ? `
+                        ${
+                            item.credits && item.credits.length > 0
+                                ? `
                             <div style="margin-top: 1rem; padding: 0.75rem; background: var(--accent); border-radius: 8px;">
                                 <p style="color: var(--foreground); font-weight: 500; margin-bottom: 0.5rem;">Credits</p>
                                 <div style="font-size: 0.85rem; line-height: 1.6;">
-                                    ${item.credits.map(c => `<p>${c.type}: ${c.name}</p>`).join('')}
+                                    ${item.credits.map((c) => `<p>${c.type}: ${c.name}</p>`).join('')}
                                 </div>
                             </div>
-                        ` : ''}
+                        `
+                                : ''
+                        }
                         
-                        ${item.composers && item.composers.length > 0 ? `
-                            <p style="margin-top: 0.5rem;"><strong style="color: var(--foreground);">Composers:</strong> ${item.composers.map(c => c.name).join(', ')}</p>
-                        ` : ''}
+                        ${
+                            item.composers && item.composers.length > 0
+                                ? `
+                            <p style="margin-top: 0.5rem;"><strong style="color: var(--foreground);">Composers:</strong> ${item.composers.map((c) => c.name).join(', ')}</p>
+                        `
+                                : ''
+                        }
                         
-                        ${item.lyrics?.text ? `
+                        ${
+                            item.lyrics?.text
+                                ? `
                             <div style="margin-top: 1rem; padding: 0.75rem; background: var(--accent); border-radius: 8px;">
                                 <p style="color: var(--foreground); font-weight: 500; margin-bottom: 0.5rem;">Has Lyrics</p>
                             </div>
-                        ` : ''}
+                        `
+                                : ''
+                        }
                         
                         ${item.id ? `<p style="margin-top: 1rem; font-size: 0.8rem; color: var(--muted);"><strong>Track ID:</strong> ${item.id}</p>` : ''}
                         ${item.album?.id ? `<p style="font-size: 0.8rem; color: var(--muted);"><strong>Album ID:</strong> ${item.album.id}</p>` : ''}
@@ -1161,11 +1187,12 @@ export async function handleTrackAction(
                 </div>
             `;
         }
-        
+
         // Create and show modal
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
-        modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 10000;';
+        modal.style.cssText =
+            'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 10000;';
         modal.innerHTML = infoHTML;
         modal.onclick = (e) => {
             if (e.target === modal) modal.remove();
@@ -1174,13 +1201,13 @@ export async function handleTrackAction(
     } else if (action === 'open-original-url') {
         // Open the original source URL for the track
         let url = null;
-        
+
         if (item.isTracker && item.trackerInfo && item.trackerInfo.sourceUrl) {
             url = item.trackerInfo.sourceUrl;
         } else if (item.remoteUrl) {
             url = item.remoteUrl;
         }
-        
+
         if (url) {
             window.open(url, '_blank');
         } else {
