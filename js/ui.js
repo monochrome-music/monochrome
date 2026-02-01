@@ -5,6 +5,8 @@ import {
     SVG_DOWNLOAD,
     SVG_MENU,
     SVG_HEART,
+    SVG_VOLUME,
+    SVG_MUTE,
     formatTime,
     createPlaceholder,
     trackDataStore,
@@ -898,6 +900,87 @@ export class UIRenderer {
         if (mode === 2) {
             repeatBtn.innerHTML =
                 '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/><path d="M11 10h1v4"/></svg>';
+        }
+
+        // Fullscreen volume controls
+        const fsVolumeBtn = document.getElementById('fs-volume-btn');
+        const fsVolumeBar = document.getElementById('fs-volume-bar');
+        const fsVolumeFill = document.getElementById('fs-volume-fill');
+
+        if (fsVolumeBtn && fsVolumeBar && fsVolumeFill) {
+            const updateFsVolumeUI = () => {
+                const { muted } = audioPlayer;
+                const volume = this.player.userVolume;
+                fsVolumeBtn.innerHTML = muted || volume === 0 ? SVG_MUTE : SVG_VOLUME;
+                fsVolumeBtn.classList.toggle('muted', muted || volume === 0);
+                const effectiveVolume = muted ? 0 : volume * 100;
+                fsVolumeFill.style.setProperty('--fs-volume-level', `${effectiveVolume}%`);
+                fsVolumeFill.style.width = `${effectiveVolume}%`;
+            };
+
+            fsVolumeBtn.onclick = () => {
+                audioPlayer.muted = !audioPlayer.muted;
+                localStorage.setItem('muted', audioPlayer.muted);
+                updateFsVolumeUI();
+            };
+
+            const setFsVolume = (e) => {
+                const rect = fsVolumeBar.getBoundingClientRect();
+                const position = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                const newVolume = position;
+                this.player.setVolume(newVolume);
+                if (audioPlayer.muted && newVolume > 0) {
+                    audioPlayer.muted = false;
+                    localStorage.setItem('muted', false);
+                }
+                updateFsVolumeUI();
+            };
+
+            let isAdjustingFsVolume = false;
+
+            fsVolumeBar.addEventListener('mousedown', (e) => {
+                isAdjustingFsVolume = true;
+                setFsVolume(e);
+            });
+
+            fsVolumeBar.addEventListener(
+                'touchstart',
+                (e) => {
+                    e.preventDefault();
+                    isAdjustingFsVolume = true;
+                    const touch = e.touches[0];
+                    setFsVolume({ clientX: touch.clientX });
+                },
+                { passive: false }
+            );
+
+            document.addEventListener('mousemove', (e) => {
+                if (isAdjustingFsVolume) {
+                    setFsVolume(e);
+                }
+            });
+
+            document.addEventListener(
+                'touchmove',
+                (e) => {
+                    if (isAdjustingFsVolume) {
+                        const touch = e.touches[0];
+                        setFsVolume({ clientX: touch.clientX });
+                    }
+                },
+                { passive: false }
+            );
+
+            document.addEventListener('mouseup', () => {
+                isAdjustingFsVolume = false;
+            });
+
+            document.addEventListener('touchend', () => {
+                isAdjustingFsVolume = false;
+            });
+
+            audioPlayer.addEventListener('volumechange', updateFsVolumeUI);
+            updateFsVolumeUI();
         }
 
         const update = () => {

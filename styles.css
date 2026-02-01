@@ -2230,6 +2230,90 @@ input:checked + .slider::before {
     color: var(--primary);
 }
 
+.fullscreen-volume-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.fs-volume-btn {
+    background: transparent;
+    border: none;
+    color: var(--foreground);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    width: 40px;
+    height: 40px;
+}
+
+.fs-volume-btn:hover {
+    background: rgb(255, 255, 255, 0.1);
+    transform: scale(1.1);
+}
+
+.fs-volume-btn.muted {
+    color: var(--muted-foreground);
+}
+
+.fs-volume-bar {
+    width: 150px;
+    height: 6px;
+    background-color: rgb(255, 255, 255, 0.2);
+    border-radius: 3px;
+    cursor: pointer;
+    position: relative;
+    transition: height 0.2s ease;
+}
+
+.fs-volume-bar:hover {
+    height: 8px;
+}
+
+.fs-volume-fill {
+    height: 100%;
+    background-color: var(--foreground);
+    border-radius: 3px;
+    width: var(--fs-volume-level, 70%);
+    transition: width 0.1s ease;
+    position: relative;
+    pointer-events: none;
+}
+
+.fs-volume-bar:hover .fs-volume-fill {
+    background-color: var(--highlight);
+}
+
+.fs-volume-bar:hover .fs-volume-fill::after,
+.fs-volume-bar:active .fs-volume-fill::after {
+    content: '';
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    background-color: var(--highlight);
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgb(0, 0, 0, 0.3);
+}
+
+@media (max-width: 768px) {
+    .fullscreen-volume-container {
+        gap: 0.75rem;
+    }
+
+    .fs-volume-bar {
+        width: 120px;
+    }
+}
+
 .fullscreen-actions {
     display: flex;
     gap: 1rem;
