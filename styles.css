@@ -2,21 +2,41 @@
 :root {
     color-scheme: light dark;
 
-    --spacing-xs: 0.4rem;
+    /* Spacing */
+    --spacing-xs: 0.25rem;
     --spacing-sm: 0.5rem;
     --spacing-md: 1rem;
     --spacing-lg: 1.5rem;
     --spacing-xl: 2rem;
     --spacing-2xl: 3rem;
-    --radius: 0.5rem;
-    --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    --shadow-sm: 0 4px 12px rgb(0, 0, 0, 0.15);
-    --shadow-md: 0 6px 16px rgb(0, 0, 0, 0.2);
-    --shadow-lg: 0 10px 30px rgb(0, 0, 0, 0.5);
-    --shadow-xl: 0 20px 60px rgb(0, 0, 0, 0.8);
-    --cover-filter: blur(50px) brightness(0.4);
+    --spacing-3xl: 4rem;
+
+    /* Layout */
+    --radius: 0.75rem;
+    /* Slightly more rounded for modern feel */
+    --radius-sm: 0.5rem;
+    --radius-full: 9999px;
     --player-bar-height-desktop: 90px;
     --player-bar-height-mobile: 130px;
+
+    /* Animations & Transitions */
+    --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-elastic: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --transition: var(--transition-normal);
+    /* Fallback */
+
+    /* Shadows (layered for depth) */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+    --shadow-glow: 0 0 15px var(--highlight-rgb);
+
+    --cover-filter: blur(50px) brightness(0.4);
 }
 
 :root[data-theme='monochrome'] {
@@ -397,18 +417,22 @@ kbd {
     width: calc(96% - 190px) !important;
     left: calc(190px + 2%);
     bottom: 15px !important;
-    border-radius: 16px;
+    border-radius: var(--radius);
+    /* Standardized radius */
     position: fixed !important;
     background-color: color-mix(in srgb, var(--card) 85%, transparent);
     backdrop-filter: blur(20px);
     border: 1px solid var(--border);
-    box-shadow: 0 8px 32px rgb(0, 0, 0, 0.4);
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-2xl);
+    /* Standardized shadow */
+    transition: all var(--transition-normal) var(--ease-out-back);
     height: var(--player-bar-height-desktop);
+    animation: slide-up var(--transition-slow) var(--ease-out-back);
 }
 
 :root[data-theme='light'] .now-playing-bar {
     background-color: color-mix(in srgb, var(--card) 80%, transparent);
+    border-color: rgba(0, 0, 0, 0.1);
 }
 
 .sidebar-logo {
@@ -450,7 +474,7 @@ kbd {
     border-radius: var(--radius);
     color: var(--muted-foreground);
     font-weight: 500;
-    transition: all var(--transition);
+    transition: background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
     cursor: pointer;
 }
 
@@ -468,6 +492,8 @@ kbd {
 .sidebar-nav .nav-item a:hover {
     background-color: var(--secondary);
     color: var(--foreground);
+    transform: translateX(4px);
+    /* Slide effect */
 }
 
 .sidebar-nav .nav-item a.active {
@@ -511,18 +537,21 @@ kbd {
     height: 32px;
     border-radius: 50%;
     background-color: var(--card);
-    border: none;
+    border: 1px solid var(--border);
+    /* Better definition */
     color: var(--foreground);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: transform var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
+    box-shadow: var(--shadow-sm);
 }
 
 .nav-btn:hover {
     background-color: var(--secondary);
-    transform: scale(1.05);
+    transform: scale(1.1);
+    box-shadow: var(--shadow-md);
 }
 
 .nav-btn:disabled {
@@ -562,12 +591,13 @@ kbd {
     border-radius: var(--radius);
     color: var(--foreground);
     font-size: 1rem;
-    transition: border-color var(--transition);
+    transition: box-shadow var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast);
 }
 
 .search-bar input:focus {
     outline: none;
     border-color: var(--ring);
+    box-shadow: 0 0 0 3px rgba(var(--highlight-rgb), 0.2);
 }
 
 body.has-page-background .search-bar input {
@@ -576,6 +606,7 @@ body.has-page-background .search-bar input {
 
 body.has-page-background .track-item:hover {
     background-color: var(--track-hover-bg, var(--secondary));
+    transform: scale(1.005);
 }
 
 .search-history {
@@ -592,6 +623,8 @@ body.has-page-background .track-item:hover {
     z-index: 9999;
     box-shadow: var(--shadow-xl);
     margin-top: -1px;
+    animation: slide-up var(--transition-fast) var(--ease-out-back);
+    transform-origin: top;
 }
 
 .search-history-item {
@@ -661,13 +694,23 @@ input[type='search']::-webkit-search-cancel-button {
 
 .page.active {
     display: block;
-    animation: fade-in 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: fade-in-slide-up var(--transition-normal) var(--ease-out-back);
 }
 
 @keyframes fade-in {
     from {
         opacity: 0;
-        transform: translateY(4px);
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fade-in-slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
     }
 
     to {
@@ -688,10 +731,26 @@ input[type='search']::-webkit-search-cancel-button {
     }
 }
 
+@keyframes pop-in {
+    0% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    70% {
+        transform: scale(1.02);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
 @keyframes slide-in {
     from {
         opacity: 0;
-        transform: translateX(100%);
+        transform: translateX(20px);
     }
 
     to {
@@ -708,7 +767,7 @@ input[type='search']::-webkit-search-cancel-button {
 
     to {
         opacity: 0;
-        transform: translateX(100%);
+        transform: translateX(20px);
     }
 }
 
@@ -719,6 +778,7 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 @keyframes pulse {
+
     0%,
     100% {
         opacity: 1;
@@ -726,6 +786,24 @@ input[type='search']::-webkit-search-cancel-button {
 
     50% {
         opacity: 0.5;
+    }
+}
+
+@keyframes heart-beat {
+    0% {
+        transform: scale(1);
+    }
+
+    25% {
+        transform: scale(1.2);
+    }
+
+    50% {
+        transform: scale(0.95);
+    }
+
+    100% {
+        transform: scale(1);
     }
 }
 
@@ -769,11 +847,21 @@ input[type='search']::-webkit-search-cancel-button {
     font-size: 1rem;
     font-weight: 500;
     border-bottom: 2px solid transparent;
-    transition: all var(--transition);
+    /* Keep layout stable */
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    transition: color var(--transition-fast), background-color var(--transition-fast), transform var(--transition-fast);
+    position: relative;
+    /* For Pseudo-elements if needed later */
 }
 
 .search-tab:hover {
     color: var(--foreground);
+    background-color: rgba(var(--highlight-rgb), 0.05);
+    /* Subtle highlight */
+}
+
+.search-tab:active {
+    transform: translateY(1px);
 }
 
 .search-tab.active {
@@ -787,7 +875,8 @@ input[type='search']::-webkit-search-cancel-button {
 
 .search-tab-content.active {
     display: block;
-    animation: fade-in 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: fade-in-slide-up 0.4s var(--ease-out-back);
+    /* Use standardized animation */
 }
 
 .card-grid {
@@ -799,20 +888,48 @@ input[type='search']::-webkit-search-cancel-button {
 .card {
     display: block;
     background-color: var(--card);
+    padding: var(--spacing-md);
     border-radius: var(--radius);
-    padding: 1rem;
-    transition: all var(--transition);
+    transition: transform var(--transition-normal), box-shadow var(--transition-normal), background-color var(--transition-normal);
+    position: relative;
+    border: 1px solid transparent;
 }
 
 .card:hover {
     background-color: var(--secondary);
-    transform: translateY(-2px);
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--border);
 }
 
+/* Card Image wrapper interactions */
 .card-image-wrapper {
     position: relative;
+    margin-bottom: var(--spacing-md);
+    border-radius: var(--radius);
+    /* Ensure images inherit standard radius */
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+    transition: box-shadow var(--transition-normal);
+    aspect-ratio: 1;
+    /* Enforce square aspect ratio */
+}
+
+.card:hover .card-image-wrapper {
+    box-shadow: var(--shadow-xl);
+}
+
+.card-image {
     width: 100%;
-    margin-bottom: 1rem;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--radius);
+    transition: transform var(--transition-slow);
+}
+
+.card:hover .card-image {
+    transform: scale(1.05);
+    /* Subtle zoom */
 }
 
 .card-like-btn {
@@ -828,7 +945,9 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 .card-like-btn,
-.card-menu-btn {
+.card-menu-btn,
+.edit-playlist-btn,
+.delete-playlist-btn {
     background: rgb(0, 0, 0, 0.4) !important;
     backdrop-filter: blur(8px);
     border-radius: 50% !important;
@@ -840,82 +959,52 @@ input[type='search']::-webkit-search-cancel-button {
     justify-content: center;
     opacity: 0;
     transform: scale(0.8);
-    transition: all 0.2s ease !important;
+    transition: transform var(--transition-fast), opacity var(--transition-fast), background-color var(--transition-fast) !important;
     z-index: 10;
     color: white !important;
-    border: none !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
     cursor: pointer;
 }
 
 .card:hover .card-like-btn,
 .card:hover .card-menu-btn,
-.card-like-btn.active {
-    opacity: 1;
-    transform: scale(1);
-}
-
-.card-like-btn:hover,
-.card-menu-btn:hover {
-    background: rgb(0, 0, 0, 0.7) !important;
-    transform: scale(1.1) !important;
-}
-
-.card-like-btn.active {
-    color: #ef4444 !important;
-}
-
-.edit-playlist-btn,
-.delete-playlist-btn {
-    position: absolute;
-    top: 2%;
-    background: rgb(0, 0, 0, 0.5) !important;
-    backdrop-filter: blur(8px);
-    border-radius: 50% !important;
-    width: 32px !important;
-    height: 32px !important;
-    padding: 0 !important;
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transform: scale(0.8);
-    transition: all 0.2s ease !important;
-    z-index: 10;
-    color: white !important;
-    border: none !important;
-    cursor: pointer;
-}
-
-.edit-playlist-btn {
-    right: 2%;
-}
-
-.delete-playlist-btn {
-    left: 2%;
-}
-
+.card-like-btn.active,
 .card:hover .edit-playlist-btn,
 .card:hover .delete-playlist-btn {
     opacity: 1;
     transform: scale(1);
+    transition-delay: 0.05s;
+    /* Slight delay for staggered feel */
 }
 
+.card-like-btn:hover,
+.card-menu-btn:hover,
 .edit-playlist-btn:hover,
 .delete-playlist-btn:hover {
-    background: rgb(0, 0, 0, 0.8) !important;
-    transform: scale(1.1) !important;
+    background: rgb(0, 0, 0, 0.7) !important;
+    transform: scale(1.1) rotate(5deg) !important;
+    /* Playful rotation */
+    border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.card-like-btn.active {
+    color: #ef4444 !important;
+}
+
+.edit-playlist-btn {
+    position: absolute;
+    top: 2%;
+    right: 2%;
+}
+
+.delete-playlist-btn {
+    position: absolute;
+    top: 2%;
+    left: 2%;
 }
 
 .delete-playlist-btn:hover {
     color: #ef4444 !important;
-}
-
-.card-image {
-    width: 100%;
-    aspect-ratio: 1/1;
-    background-color: var(--muted);
-    border-radius: calc(var(--radius) - 4px);
-    object-fit: cover;
 }
 
 .card-collage {
@@ -1037,6 +1126,7 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 @media (max-width: 1100px) {
+
     #home-recommended-songs,
     #artist-detail-tracks,
     #playlist-detail-recommended {
@@ -1122,20 +1212,28 @@ input[type='search']::-webkit-search-cancel-button {
     padding-right: 1.5rem;
 }
 
+/* Track Item Standardization */
 .track-item {
     display: grid;
-    grid-template-columns: 40px 1fr 80px 48px;
-    align-items: center;
+    grid-template-columns: 40px 1fr 60px 40px;
     gap: var(--spacing-md);
-    padding: var(--spacing-sm);
-    border-radius: var(--radius);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-sm);
+    align-items: center;
+    transition: background-color var(--transition-fast), transform var(--transition-fast);
     cursor: pointer;
-    transition: all var(--transition);
-    position: relative;
+    border: 1px solid transparent;
 }
 
 .track-item:hover {
     background-color: var(--secondary);
+    transform: scale(1.005);
+    /* Micro interaction */
+}
+
+/* Add active state for click feedback */
+.track-item:active {
+    transform: scale(0.99);
 }
 
 .track-item.playing {
@@ -1409,37 +1507,47 @@ input[type='search']::-webkit-search-cancel-button {
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    padding: 0.875rem 1.75rem;
+    padding: 0.75rem 1.5rem;
+    /* Adjusted for consistency */
     background-color: var(--primary);
     color: var(--primary-foreground);
     border: none;
-    border-radius: 2rem;
+    border-radius: var(--radius-full);
     font-weight: 600;
     font-size: 0.95rem;
     cursor: pointer;
-    transition: all var(--transition);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast), filter var(--transition-fast);
     box-shadow: var(--shadow-sm);
     -webkit-tap-highlight-color: transparent;
+    position: relative;
+    overflow: hidden;
 }
 
 .btn-primary:hover {
-    transform: scale(1.05);
-    box-shadow: var(--shadow-md);
-    filter: brightness(0.9);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-glow);
+    filter: brightness(1.1);
+    /* Brighter instead of darker */
 }
 
 .btn-primary:active {
-    transform: scale(0.98);
+    transform: scale(0.96) translateY(0);
 }
 
 .btn-primary:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
+    box-shadow: none;
 }
 
 .btn-primary svg {
     flex-shrink: 0;
+    transition: transform var(--transition-fast);
+}
+
+.btn-primary:hover svg {
+    transform: scale(1.1);
 }
 
 .btn-secondary {
@@ -1585,8 +1693,10 @@ input[type='search']::-webkit-search-cancel-button {
     cursor: pointer;
     inset: 0;
     background-color: var(--secondary);
-    transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color var(--transition-normal);
     border-radius: 24px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+    /* Inner shadow for depth */
 }
 
 .slider::before {
@@ -1597,17 +1707,29 @@ input[type='search']::-webkit-search-cancel-button {
     left: 4px;
     bottom: 4px;
     background-color: var(--foreground);
-    transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform var(--transition-spring, 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275));
+    /* Spring animation */
     border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-input:checked + .slider {
+input:checked+.slider {
     background-color: var(--primary);
 }
 
-input:checked + .slider::before {
+input:checked+.slider::before {
     transform: translateX(16px);
     background-color: var(--primary-foreground);
+    box-shadow: -2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.toggle-switch:hover .slider::before {
+    transform: scale(1.1);
+    /* Hover scale effect */
+}
+
+input:checked+.toggle-switch:hover .slider::before {
+    transform: translateX(16px) scale(1.1);
 }
 
 .track-info {
@@ -1658,11 +1780,14 @@ input:checked + .slider::before {
     overflow: hidden;
     text-overflow: ellipsis;
     cursor: pointer;
-    transition: color var(--transition);
+    transition: color var(--transition-fast), transform var(--transition-fast);
+    display: inline-block;
+    /* Allow transform */
 }
 
 .track-info .details .artist:hover {
     color: var(--highlight);
+    transform: translateX(2px);
 }
 
 .player-controls {
@@ -1688,7 +1813,7 @@ input:checked + .slider::before {
     border: none;
     color: var(--muted-foreground);
     cursor: pointer;
-    transition: all var(--transition);
+    transition: transform var(--transition-fast), color var(--transition-fast), background-color var(--transition-fast);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1697,6 +1822,16 @@ input:checked + .slider::before {
     border-radius: 50%;
     position: relative;
     -webkit-tap-highlight-color: transparent;
+}
+
+.player-controls .buttons button:hover {
+    transform: scale(1.1);
+    /* Pop effect */
+}
+
+.player-controls .buttons button:active {
+    transform: scale(0.9);
+    /* Press effect */
 }
 
 @media (hover: hover) {
@@ -1948,44 +2083,31 @@ input:checked + .slider::before {
     list-style: none;
 }
 
-#context-menu li {
-    padding: 0.5rem 0.75rem;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: background-color var(--transition);
-    font-size: 0.9rem;
-}
-
-#context-menu li:hover {
-    background-color: var(--secondary);
-}
-
-#sort-menu {
-    display: none;
-    position: fixed;
-    background-color: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 0.5rem;
-    box-shadow: var(--shadow-lg);
-    z-index: 3000;
-    min-width: 180px;
-}
-
-#sort-menu ul {
-    list-style: none;
-}
-
+#context-menu li,
 #sort-menu li {
     padding: 0.5rem 0.75rem;
     cursor: pointer;
     border-radius: 4px;
-    transition: background-color var(--transition);
+    transition: background-color var(--transition-fast), transform var(--transition-fast);
+    /* Add transform */
     font-size: 0.9rem;
+    display: flex;
+    /* Ensure spacing if icons are added */
+    align-items: center;
 }
 
+#context-menu li:hover,
 #sort-menu li:hover {
     background-color: var(--secondary);
+    transform: translateX(4px);
+    /* Slide interaction */
+    color: var(--foreground);
+}
+
+#context-menu,
+#sort-menu {
+    transform-origin: top left;
+    animation: scale-in var(--transition-fast) var(--ease-out-back);
 }
 
 #queue-modal-overlay {
@@ -2205,12 +2327,17 @@ input:checked + .slider::before {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
+    transition: transform var(--transition-fast), background-color var(--transition-fast);
 }
 
 .fullscreen-buttons button:hover {
     background: rgb(255, 255, 255, 0.1);
-    transform: scale(1.1);
+    transform: scale(1.15) rotate(0deg);
+    /* Slight rotation on some icons could be cool, but sticking to scale */
+}
+
+.fullscreen-buttons button:active {
+    transform: scale(0.95);
 }
 
 .fullscreen-buttons #fs-play-pause-btn {
@@ -2482,7 +2609,8 @@ input:checked + .slider::before {
 .skeleton {
     background: linear-gradient(90deg, var(--secondary) 0%, var(--muted) 50%, var(--secondary) 100%);
     background-size: 200% 100%;
-    animation: skeleton-loading 1.5s ease-in-out infinite;
+    animation: skeleton-loading 2s infinite ease-in-out;
+    /* Slower, smoother pulse */
     border-radius: var(--radius);
 }
 
@@ -2610,12 +2738,13 @@ input:checked + .slider::before {
     align-items: center;
     justify-content: center;
     border-radius: 4px;
-    transition: all var(--transition);
+    transition: transform var(--transition-fast), color var(--transition-fast), background-color var(--transition-fast);
 }
 
 #api-instance-list li button:hover {
     color: var(--foreground);
     background-color: var(--muted);
+    transform: scale(1.15);
 }
 
 #api-instance-list li button:disabled {
@@ -2736,6 +2865,17 @@ input:checked + .slider::before {
     left: 0;
     color: var(--highlight);
     font-weight: bold;
+    transition: transform var(--transition-spring);
+}
+
+.about-features li:hover::before {
+    transform: scale(1.3) rotate(15deg);
+}
+
+.about-features li:hover {
+    color: var(--highlight);
+    transform: translateX(4px);
+    transition: transform var(--transition-fast), color var(--transition-fast);
 }
 
 .about-tech p {
@@ -4851,4 +4991,80 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
         width: 25px;
         height: 25px;
     }
+}
+
+/* =========================================
+   Global Design System Standardization
+   ========================================= */
+
+/* Scrollbars */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: var(--radius-full);
+    border: 2px solid var(--background);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--input);
+}
+
+/* Selection */
+::selection {
+    background: var(--primary);
+    color: var(--primary-foreground);
+}
+
+/* Inputs & Form Elements */
+input,
+select,
+textarea {
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px rgba(var(--highlight-rgb), 0.2);
+}
+
+/* Modals */
+.modal.active {
+    backdrop-filter: blur(4px);
+    background: rgba(0, 0, 0, 0.6);
+    transition: opacity var(--transition-normal);
+}
+
+.modal.active .modal-content {
+    animation: pop-in var(--transition-normal) var(--ease-out-back);
+    box-shadow: var(--shadow-2xl);
+    border: 1px solid var(--border);
+}
+
+/* Micro-animations for Interactive Elements */
+.nav-item a {
+    position: relative;
+    overflow: hidden;
+}
+
+.nav-item a:active {
+    transform: scale(0.97);
+}
+
+/* Heart Icon Animation */
+.heart-icon.filled {
+    animation: heart-beat 0.4s var(--ease-elastic);
+    fill: #ef4444;
+    /* Standardize heart red */
+    stroke: #ef4444;
 }
