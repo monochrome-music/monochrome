@@ -3,6 +3,7 @@ import { visualizerSettings } from './storage.js';
 import { LCDPreset } from './visualizers/lcd.js';
 import { ParticlesPreset } from './visualizers/particles.js';
 import { UnknownPleasuresPreset } from './visualizers/unknown_pleasures.js';
+import { equalizer } from './equalizer.js';
 
 export class Visualizer {
     constructor(canvas, audio) {
@@ -45,6 +46,11 @@ export class Visualizer {
         // ---- CACHED STATE ----
         this._lastPrimaryColor = '';
         this._resizeBound = () => this.resize();
+
+        // Listen for EQ toggle events to reconnect audio graph
+        window.addEventListener('equalizer-toggle', () => {
+            this._reconnectAudioGraph();
+        });
     }
 
     get activePreset() {
@@ -66,11 +72,71 @@ export class Visualizer {
             this.dataArray = new Uint8Array(this.bufferLength);
 
             this.source = this.audioContext.createMediaElementSource(this.audio);
-            this.source.connect(this.analyser);
-            this.analyser.connect(this.audioContext.destination);
+
+            // Initialize equalizer with shared context
+            equalizer.init(this.audioContext, this.source, this.audio);
+
+            // Connect audio graph with EQ if enabled
+            this._reconnectAudioGraph();
         } catch (e) {
             console.warn('Visualizer init failed:', e);
         }
+    }
+
+    /**
+     * Reconnect the audio graph based on EQ state
+     * Audio chain: source -> [EQ filters] -> analyser -> destination
+     */
+    _reconnectAudioGraph() {
+        if (!this.source || !this.analyser || !this.audioContext) return;
+
+        try {
+            // Disconnect the source from its current connections
+            this.source.disconnect();
+
+            if (equalizer.isActive()) {
+                // Route through EQ: source -> EQ -> analyser -> destination
+                const eqInput = equalizer.getInputNode();
+                const eqOutput = equalizer.getOutputNode();
+
+                if (eqInput && eqOutput) {
+                    this.source.connect(eqInput);
+                    eqOutput.connect(this.analyser);
+                    this.analyser.connect(this.audioContext.destination);
+                    console.log('[Audio] EQ enabled in audio chain');
+                } else {
+                    // Fallback if EQ nodes aren't ready
+                    this.source.connect(this.analyser);
+                    this.analyser.connect(this.audioContext.destination);
+                }
+            } else {
+                // Bypass EQ: source -> analyser -> destination
+                this.source.connect(this.analyser);
+                this.analyser.connect(this.audioContext.destination);
+                console.log('[Audio] EQ bypassed');
+            }
+        } catch (e) {
+            console.warn('[Audio] Failed to reconnect audio graph:', e);
+            // Attempt simple reconnect as fallback
+            try {
+                this.source.connect(this.analyser);
+                this.analyser.connect(this.audioContext.destination);
+            } catch { }
+        }
+    }
+
+    /**
+     * Get the shared AudioContext for external use
+     */
+    getAudioContext() {
+        return this.audioContext;
+    }
+
+    /**
+     * Get the source node
+     */
+    getSourceNode() {
+        return this.source;
     }
 
     initContext() {

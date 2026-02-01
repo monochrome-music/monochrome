@@ -757,6 +757,61 @@ export const visualizerSettings = {
     },
 };
 
+export const equalizerSettings = {
+    ENABLED_KEY: 'equalizer-enabled',
+    GAINS_KEY: 'equalizer-gains',
+    PRESET_KEY: 'equalizer-preset',
+
+    isEnabled() {
+        try {
+            // Disabled by default
+            return localStorage.getItem(this.ENABLED_KEY) === 'true';
+        } catch {
+            return false;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.ENABLED_KEY, enabled ? 'true' : 'false');
+    },
+
+    getGains() {
+        try {
+            const stored = localStorage.getItem(this.GAINS_KEY);
+            if (stored) {
+                const gains = JSON.parse(stored);
+                if (Array.isArray(gains) && gains.length === 16) {
+                    return gains;
+                }
+            }
+        } catch { }
+        // Return flat EQ (all zeros) by default
+        return new Array(16).fill(0);
+    },
+
+    setGains(gains) {
+        try {
+            if (Array.isArray(gains) && gains.length === 16) {
+                localStorage.setItem(this.GAINS_KEY, JSON.stringify(gains));
+            }
+        } catch (e) {
+            console.warn('[EQ] Failed to save gains:', e);
+        }
+    },
+
+    getPreset() {
+        try {
+            return localStorage.getItem(this.PRESET_KEY) || 'flat';
+        } catch {
+            return 'flat';
+        }
+    },
+
+    setPreset(preset) {
+        localStorage.setItem(this.PRESET_KEY, preset);
+    },
+};
+
 export const queueManager = {
     STORAGE_KEY: 'monochrome-queue',
 

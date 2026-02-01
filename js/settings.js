@@ -15,7 +15,9 @@ import {
     visualizerSettings,
     bulkDownloadSettings,
     playlistSettings,
+    equalizerSettings,
 } from './storage.js';
+import { audioContextManager, EQ_PRESETS } from './audio-context.js';
 import { db } from './db.js';
 import { authManager } from './accounts/auth.js';
 import { syncManager } from './accounts/pocketbase.js';
@@ -99,7 +101,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
             }
             try {
                 await authManager.sendPasswordReset(email);
-            } catch {}
+            } catch { }
         });
     }
 
@@ -337,6 +339,142 @@ export function initializeSettings(scrobbler, player, api, ui) {
         replayGainPreamp.addEventListener('change', (e) => {
             replayGainSettings.setPreamp(parseFloat(e.target.value) || 3);
             player.applyReplayGain();
+        });
+    }
+
+    // ========================================
+    // 16-Band Equalizer Settings
+    // ========================================
+    const eqToggle = document.getElementById('equalizer-enabled-toggle');
+    const eqContainer = document.getElementById('equalizer-container');
+    const eqPresetSelect = document.getElementById('equalizer-preset-select');
+    const eqResetBtn = document.getElementById('equalizer-reset-btn');
+    const eqBands = document.querySelectorAll('.eq-band');
+
+    /**
+     * Update the visual display of a band value
+     */
+    const updateBandValueDisplay = (bandEl, value) => {
+        const valueEl = bandEl.querySelector('.eq-value');
+        if (!valueEl) return;
+
+        const displayValue = value > 0 ? `+${value}` : value.toString();
+        valueEl.textContent = displayValue;
+
+        // Add color classes based on value
+        valueEl.classList.remove('positive', 'negative');
+        if (value > 0) {
+            valueEl.classList.add('positive');
+        } else if (value < 0) {
+            valueEl.classList.add('negative');
+        }
+    };
+
+    /**
+     * Update all band sliders and displays from an array of gains
+     */
+    const updateAllBandUI = (gains) => {
+        eqBands.forEach((bandEl, index) => {
+            const slider = bandEl.querySelector('.eq-slider');
+            if (slider && gains[index] !== undefined) {
+                slider.value = gains[index];
+                updateBandValueDisplay(bandEl, gains[index]);
+            }
+        });
+    };
+
+    /**
+     * Toggle EQ container visibility
+     */
+    const updateEQContainerVisibility = (enabled) => {
+        if (eqContainer) {
+            eqContainer.style.display = enabled ? 'block' : 'none';
+        }
+    };
+
+    // Initialize EQ toggle
+    if (eqToggle) {
+        const isEnabled = equalizerSettings.isEnabled();
+        eqToggle.checked = isEnabled;
+        updateEQContainerVisibility(isEnabled);
+
+        eqToggle.addEventListener('change', (e) => {
+            const enabled = e.target.checked;
+            audioContextManager.toggleEQ(enabled);
+            updateEQContainerVisibility(enabled);
+        });
+    }
+
+    // Initialize preset selector
+    if (eqPresetSelect) {
+        eqPresetSelect.value = equalizerSettings.getPreset();
+
+        eqPresetSelect.addEventListener('change', (e) => {
+            const presetKey = e.target.value;
+            const preset = EQ_PRESETS[presetKey];
+
+            if (preset) {
+                audioContextManager.applyPreset(presetKey);
+                updateAllBandUI(preset.gains);
+            }
+        });
+    }
+
+    // Initialize reset button
+    if (eqResetBtn) {
+        eqResetBtn.addEventListener('click', () => {
+            audioContextManager.reset();
+            updateAllBandUI(new Array(16).fill(0));
+            if (eqPresetSelect) {
+                eqPresetSelect.value = 'flat';
+            }
+        });
+    }
+
+    // Initialize all band sliders
+    if (eqBands.length > 0) {
+        const savedGains = equalizerSettings.getGains();
+
+        eqBands.forEach((bandEl) => {
+            const bandIndex = parseInt(bandEl.dataset.band, 10);
+            const slider = bandEl.querySelector('.eq-slider');
+
+            if (slider && !isNaN(bandIndex)) {
+                // Set initial value from saved settings
+                const initialGain = savedGains[bandIndex] ?? 0;
+                slider.value = initialGain;
+                updateBandValueDisplay(bandEl, initialGain);
+
+                // Handle slider input
+                slider.addEventListener('input', (e) => {
+                    const gain = parseFloat(e.target.value);
+                    audioContextManager.setBandGain(bandIndex, gain);
+                    updateBandValueDisplay(bandEl, gain);
+
+                    // When manually adjusting, switch preset to 'flat' (custom)
+                    // to indicate the user has made custom changes
+                    if (eqPresetSelect && eqPresetSelect.value !== 'flat') {
+                        // Check if current gains still match the selected preset
+                        const currentPreset = EQ_PRESETS[eqPresetSelect.value];
+                        if (currentPreset) {
+                            const currentGains = audioContextManager.getGains();
+                            const matches = currentPreset.gains.every(
+                                (g, i) => Math.abs(g - currentGains[i]) < 0.01
+                            );
+                            if (!matches) {
+                                // Don't change the select, but the preset will save as 'custom'
+                            }
+                        }
+                    }
+                });
+
+                // Double-click to reset individual band to 0
+                slider.addEventListener('dblclick', () => {
+                    slider.value = 0;
+                    audioContextManager.setBandGain(bandIndex, 0);
+                    updateBandValueDisplay(bandEl, 0);
+                });
+            }
         });
     }
 
