@@ -52,17 +52,29 @@ export class LastFMScrobbler {
 
     _getScrobbleArtist(track) {
         if (!track) return 'Unknown Artist';
+
+        // Get the primary artist name
         let artistName = 'Unknown Artist';
 
-        if (track.artists && track.artists.length > 0) {
-            artistName = track.artists.map((a) => (typeof a === 'string' ? a : a.name || a)).join(', ');
-        } else {
-            artistName = track.artist?.name || track.artist || 'Unknown Artist';
+        if (track.artist?.name) {
+            artistName = track.artist.name;
+        } else if (typeof track.artist === 'string') {
+            artistName = track.artist;
+        } else if (track.artists && track.artists.length > 0) {
+            // Only use the FIRST artist (main artist)
+            const first = track.artists[0];
+            artistName = typeof first === 'string' ? first : first.name || 'Unknown Artist';
         }
 
-        if (typeof artistName !== 'string') artistName = 'Unknown Artist';
+        if (typeof artistName !== 'string') return 'Unknown Artist';
 
-        return artistName.replace(/, /g, ' & ');
+        // Strip featured artists: split on &, feat., ft., featuring, with, etc.
+        // Only keep the part BEFORE these indicators
+        artistName = artistName
+            .split(/\s*[&]\s*|\s+feat\.?\s+|\s+ft\.?\s+|\s+featuring\s+|\s+with\s+|\s+x\s+/i)[0]
+            .trim();
+
+        return artistName || 'Unknown Artist';
     }
 
     async generateSignature(params) {
