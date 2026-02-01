@@ -842,6 +842,35 @@ export const queueManager = {
     },
 };
 
+export const listenBrainzSettings = {
+    ENABLED_KEY: 'listenbrainz-enabled',
+    TOKEN_KEY: 'listenbrainz-token',
+
+    isEnabled() {
+        try {
+            return localStorage.getItem(this.ENABLED_KEY) === 'true';
+        } catch {
+            return false;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.ENABLED_KEY, enabled ? 'true' : 'false');
+    },
+
+    getToken() {
+        try {
+            return localStorage.getItem(this.TOKEN_KEY) || '';
+        } catch {
+            return '';
+        }
+    },
+
+    setToken(token) {
+        localStorage.setItem(this.TOKEN_KEY, token);
+    },
+};
+
 // System theme listener
 if (typeof window !== 'undefined' && window.matchMedia) {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {

@@ -3,7 +3,7 @@ import { LosslessAPI } from './api.js';
 import { apiSettings, themeManager, nowPlayingSettings, downloadQualitySettings } from './storage.js';
 import { UIRenderer } from './ui.js';
 import { Player } from './player.js';
-import { LastFMScrobbler } from './lastfm.js';
+import { MultiScrobbler } from './multi-scrobbler.js';
 import { LyricsManager, openLyricsPanel, clearLyricsPanelSync } from './lyrics.js';
 import { createRouter, updateTabTitle, navigate } from './router.js';
 import { initializeSettings } from './settings.js';
@@ -218,7 +218,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const player = new Player(audioPlayer, api, currentQuality);
 
     const ui = new UIRenderer(api, player);
-    const scrobbler = new LastFMScrobbler();
+    const scrobbler = new MultiScrobbler();
     const lyricsManager = new LyricsManager(api);
 
     const originalRenderPlaylistPage = ui.renderPlaylistPage.bind(ui);

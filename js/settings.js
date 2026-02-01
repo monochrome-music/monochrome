@@ -16,6 +16,7 @@ import {
     bulkDownloadSettings,
     playlistSettings,
     equalizerSettings,
+    listenBrainzSettings,
 } from './storage.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
 import { db } from './db.js';
@@ -113,8 +114,8 @@ export function initializeSettings(scrobbler, player, api, ui) {
     const lastfmLoveSetting = document.getElementById('lastfm-love-setting');
 
     function updateLastFMUI() {
-        if (scrobbler.isAuthenticated()) {
-            lastfmStatus.textContent = `Connected as ${scrobbler.username}`;
+        if (scrobbler.lastfm.isAuthenticated()) {
+            lastfmStatus.textContent = `Connected as ${scrobbler.lastfm.username}`;
             lastfmConnectBtn.textContent = 'Disconnect';
             lastfmConnectBtn.classList.add('danger');
             lastfmToggleSetting.style.display = 'flex';
@@ -133,9 +134,9 @@ export function initializeSettings(scrobbler, player, api, ui) {
     updateLastFMUI();
 
     lastfmConnectBtn?.addEventListener('click', async () => {
-        if (scrobbler.isAuthenticated()) {
+        if (scrobbler.lastfm.isAuthenticated()) {
             if (confirm('Disconnect from Last.fm?')) {
-                scrobbler.disconnect();
+                scrobbler.lastfm.disconnect();
                 updateLastFMUI();
             }
             return;
@@ -146,7 +147,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
         lastfmConnectBtn.textContent = 'Opening Last.fm...';
 
         try {
-            const { token, url } = await scrobbler.getAuthUrl();
+            const { token, url } = await scrobbler.lastfm.getAuthUrl();
 
             if (authWindow) {
                 authWindow.location.href = url;
@@ -175,7 +176,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
                 }
 
                 try {
-                    const result = await scrobbler.completeAuthentication(token);
+                    const result = await scrobbler.lastfm.completeAuthentication(token);
 
                     if (result.success) {
                         clearInterval(checkAuth);
@@ -199,13 +200,51 @@ export function initializeSettings(scrobbler, player, api, ui) {
         }
     });
 
-    lastfmToggle?.addEventListener('change', (e) => {
-        lastFMStorage.setEnabled(e.target.checked);
-    });
+    // Last.fm Toggles
+    if (lastfmToggle) {
+        lastfmToggle.addEventListener('change', (e) => {
+            lastFMStorage.setEnabled(e.target.checked);
+        });
+    }
 
-    lastfmLoveToggle?.addEventListener('change', (e) => {
-        lastFMStorage.setLoveOnLike(e.target.checked);
-    });
+    if (lastfmLoveToggle) {
+        lastfmLoveToggle.addEventListener('change', (e) => {
+            lastFMStorage.setLoveOnLike(e.target.checked);
+        });
+    }
+
+    // ========================================
+    // ListenBrainz Settings
+    // ========================================
+    const lbToggle = document.getElementById('listenbrainz-enabled-toggle');
+    const lbTokenSetting = document.getElementById('listenbrainz-token-setting');
+    const lbTokenInput = document.getElementById('listenbrainz-token-input');
+
+    const updateListenBrainzUI = () => {
+        const isEnabled = listenBrainzSettings.isEnabled();
+        if (lbToggle) lbToggle.checked = isEnabled;
+        if (lbTokenSetting) lbTokenSetting.style.display = isEnabled ? 'flex' : 'none';
+        if (lbTokenInput) lbTokenInput.value = listenBrainzSettings.getToken();
+    };
+
+    updateListenBrainzUI();
+
+    if (lbToggle) {
+        lbToggle.addEventListener('change', (e) => {
+            const enabled = e.target.checked;
+            listenBrainzSettings.setEnabled(enabled);
+            updateListenBrainzUI();
+        });
+    }
+
+    if (lbTokenInput) {
+        lbTokenInput.addEventListener('change', (e) => {
+            listenBrainzSettings.setToken(e.target.value.trim());
+        });
+    }
+
+
+
 
     // Theme picker
     const themePicker = document.getElementById('theme-picker');

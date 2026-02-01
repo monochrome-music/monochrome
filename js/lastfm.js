@@ -1,4 +1,6 @@
 //js/lastfm.js
+import { lastFMStorage } from './storage.js';
+
 export class LastFMScrobbler {
     constructor() {
         this.API_KEY = '0ecf01914957b40c17030db822845a76';
@@ -47,7 +49,7 @@ export class LastFMScrobbler {
     }
 
     isAuthenticated() {
-        return !!this.sessionKey;
+        return !!this.sessionKey && lastFMStorage.isEnabled();
     }
 
     _getScrobbleArtist(track) {

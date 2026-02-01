@@ -61,7 +61,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
 
         if (player.currentTrack) {
             // Scrobble
-            if (scrobbler.isAuthenticated() && lastFMStorage.isEnabled()) {
+            if (scrobbler.isAuthenticated()) {
                 scrobbler.updateNowPlaying(player.currentTrack);
             }
 
