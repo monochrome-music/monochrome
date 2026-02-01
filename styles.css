@@ -13,6 +13,7 @@
 
     /* Layout */
     --radius: 0.75rem;
+
     /* Slightly more rounded for modern feel */
     --radius-sm: 0.5rem;
     --radius-full: 9999px;
@@ -26,6 +27,7 @@
     --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
     --ease-elastic: cubic-bezier(0.68, -0.55, 0.265, 1.55);
     --transition: var(--transition-normal);
+
     /* Fallback */
 
     /* Shadows (layered for depth) */
@@ -35,7 +37,6 @@
     --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
     --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
     --shadow-glow: 0 0 15px var(--highlight-rgb);
-
     --cover-filter: blur(50px) brightness(0.4);
 }
 
@@ -418,12 +419,14 @@ kbd {
     left: calc(190px + 2%);
     bottom: 15px !important;
     border-radius: var(--radius);
+
     /* Standardized radius */
     position: fixed !important;
     background-color: color-mix(in srgb, var(--card) 85%, transparent);
     backdrop-filter: blur(20px);
     border: 1px solid var(--border);
     box-shadow: var(--shadow-2xl);
+
     /* Standardized shadow */
     transition: all var(--transition-normal) var(--ease-out-back);
     height: var(--player-bar-height-desktop);
@@ -432,7 +435,7 @@ kbd {
 
 :root[data-theme='light'] .now-playing-bar {
     background-color: color-mix(in srgb, var(--card) 80%, transparent);
-    border-color: rgba(0, 0, 0, 0.1);
+    border-color: rgb(0, 0, 0, 0.1);
 }
 
 .sidebar-logo {
@@ -474,7 +477,10 @@ kbd {
     border-radius: var(--radius);
     color: var(--muted-foreground);
     font-weight: 500;
-    transition: background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+    transition:
+        background-color var(--transition-fast),
+        color var(--transition-fast),
+        transform var(--transition-fast);
     cursor: pointer;
 }
 
@@ -493,6 +499,7 @@ kbd {
     background-color: var(--secondary);
     color: var(--foreground);
     transform: translateX(4px);
+
     /* Slide effect */
 }
 
@@ -538,13 +545,17 @@ kbd {
     border-radius: 50%;
     background-color: var(--card);
     border: 1px solid var(--border);
+
     /* Better definition */
     color: var(--foreground);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: transform var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
+    transition:
+        transform var(--transition-fast),
+        background-color var(--transition-fast),
+        box-shadow var(--transition-fast);
     box-shadow: var(--shadow-sm);
 }
 
@@ -591,13 +602,16 @@ kbd {
     border-radius: var(--radius);
     color: var(--foreground);
     font-size: 1rem;
-    transition: box-shadow var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast);
+    transition:
+        box-shadow var(--transition-fast),
+        border-color var(--transition-fast),
+        background-color var(--transition-fast);
 }
 
 .search-bar input:focus {
     outline: none;
     border-color: var(--ring);
-    box-shadow: 0 0 0 3px rgba(var(--highlight-rgb), 0.2);
+    box-shadow: 0 0 0 3px rgb(var(--highlight-rgb), 0.2);
 }
 
 body.has-page-background .search-bar input {
@@ -778,7 +792,6 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 @keyframes pulse {
-
     0%,
     100% {
         opacity: 1;
@@ -847,16 +860,22 @@ input[type='search']::-webkit-search-cancel-button {
     font-size: 1rem;
     font-weight: 500;
     border-bottom: 2px solid transparent;
+
     /* Keep layout stable */
     border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-    transition: color var(--transition-fast), background-color var(--transition-fast), transform var(--transition-fast);
+    transition:
+        color var(--transition-fast),
+        background-color var(--transition-fast),
+        transform var(--transition-fast);
     position: relative;
+
     /* For Pseudo-elements if needed later */
 }
 
 .search-tab:hover {
     color: var(--foreground);
-    background-color: rgba(var(--highlight-rgb), 0.05);
+    background-color: rgb(var(--highlight-rgb), 0.05);
+
     /* Subtle highlight */
 }
 
@@ -876,6 +895,7 @@ input[type='search']::-webkit-search-cancel-button {
 .search-tab-content.active {
     display: block;
     animation: fade-in-slide-up 0.4s var(--ease-out-back);
+
     /* Use standardized animation */
 }
 
@@ -890,7 +910,10 @@ input[type='search']::-webkit-search-cancel-button {
     background-color: var(--card);
     padding: var(--spacing-md);
     border-radius: var(--radius);
-    transition: transform var(--transition-normal), box-shadow var(--transition-normal), background-color var(--transition-normal);
+    transition:
+        transform var(--transition-normal),
+        box-shadow var(--transition-normal),
+        background-color var(--transition-normal);
     position: relative;
     border: 1px solid transparent;
 }
@@ -907,11 +930,13 @@ input[type='search']::-webkit-search-cancel-button {
     position: relative;
     margin-bottom: var(--spacing-md);
     border-radius: var(--radius);
+
     /* Ensure images inherit standard radius */
     overflow: hidden;
     box-shadow: var(--shadow-md);
     transition: box-shadow var(--transition-normal);
     aspect-ratio: 1;
+
     /* Enforce square aspect ratio */
 }
 
@@ -929,6 +954,7 @@ input[type='search']::-webkit-search-cancel-button {
 
 .card:hover .card-image {
     transform: scale(1.05);
+
     /* Subtle zoom */
 }
 
@@ -959,10 +985,13 @@ input[type='search']::-webkit-search-cancel-button {
     justify-content: center;
     opacity: 0;
     transform: scale(0.8);
-    transition: transform var(--transition-fast), opacity var(--transition-fast), background-color var(--transition-fast) !important;
+    transition:
+        transform var(--transition-fast),
+        opacity var(--transition-fast),
+        background-color var(--transition-fast) !important;
     z-index: 10;
     color: white !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgb(255, 255, 255, 0.1) !important;
     cursor: pointer;
 }
 
@@ -974,6 +1003,7 @@ input[type='search']::-webkit-search-cancel-button {
     opacity: 1;
     transform: scale(1);
     transition-delay: 0.05s;
+
     /* Slight delay for staggered feel */
 }
 
@@ -983,8 +1013,9 @@ input[type='search']::-webkit-search-cancel-button {
 .delete-playlist-btn:hover {
     background: rgb(0, 0, 0, 0.7) !important;
     transform: scale(1.1) rotate(5deg) !important;
+
     /* Playful rotation */
-    border-color: rgba(255, 255, 255, 0.3) !important;
+    border-color: rgb(255, 255, 255, 0.3) !important;
 }
 
 .card-like-btn.active {
@@ -1126,7 +1157,6 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 @media (max-width: 1100px) {
-
     #home-recommended-songs,
     #artist-detail-tracks,
     #playlist-detail-recommended {
@@ -1220,7 +1250,9 @@ input[type='search']::-webkit-search-cancel-button {
     padding: var(--spacing-sm) var(--spacing-md);
     border-radius: var(--radius-sm);
     align-items: center;
-    transition: background-color var(--transition-fast), transform var(--transition-fast);
+    transition:
+        background-color var(--transition-fast),
+        transform var(--transition-fast);
     cursor: pointer;
     border: 1px solid transparent;
 }
@@ -1228,6 +1260,7 @@ input[type='search']::-webkit-search-cancel-button {
 .track-item:hover {
     background-color: var(--secondary);
     transform: scale(1.005);
+
     /* Micro interaction */
 }
 
@@ -1508,6 +1541,7 @@ input[type='search']::-webkit-search-cancel-button {
     justify-content: center;
     gap: 0.5rem;
     padding: 0.75rem 1.5rem;
+
     /* Adjusted for consistency */
     background-color: var(--primary);
     color: var(--primary-foreground);
@@ -1516,7 +1550,10 @@ input[type='search']::-webkit-search-cancel-button {
     font-weight: 600;
     font-size: 0.95rem;
     cursor: pointer;
-    transition: transform var(--transition-fast), box-shadow var(--transition-fast), filter var(--transition-fast);
+    transition:
+        transform var(--transition-fast),
+        box-shadow var(--transition-fast),
+        filter var(--transition-fast);
     box-shadow: var(--shadow-sm);
     -webkit-tap-highlight-color: transparent;
     position: relative;
@@ -1527,6 +1564,7 @@ input[type='search']::-webkit-search-cancel-button {
     transform: translateY(-1px);
     box-shadow: var(--shadow-glow);
     filter: brightness(1.1);
+
     /* Brighter instead of darker */
 }
 
@@ -1695,7 +1733,8 @@ input[type='search']::-webkit-search-cancel-button {
     background-color: var(--secondary);
     transition: background-color var(--transition-normal);
     border-radius: 24px;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: inset 0 2px 4px rgb(0, 0, 0, 0.1);
+
     /* Inner shadow for depth */
 }
 
@@ -1708,27 +1747,29 @@ input[type='search']::-webkit-search-cancel-button {
     bottom: 4px;
     background-color: var(--foreground);
     transition: transform var(--transition-spring, 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275));
+
     /* Spring animation */
     border-radius: 50%;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 4px rgb(0, 0, 0, 0.2);
 }
 
-input:checked+.slider {
+input:checked + .slider {
     background-color: var(--primary);
 }
 
-input:checked+.slider::before {
+input:checked + .slider::before {
     transform: translateX(16px);
     background-color: var(--primary-foreground);
-    box-shadow: -2px 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: -2px 2px 4px rgb(0, 0, 0, 0.1);
 }
 
 .toggle-switch:hover .slider::before {
     transform: scale(1.1);
+
     /* Hover scale effect */
 }
 
-input:checked+.toggle-switch:hover .slider::before {
+input:checked + .toggle-switch:hover .slider::before {
     transform: translateX(16px) scale(1.1);
 }
 
@@ -1780,8 +1821,11 @@ input:checked+.toggle-switch:hover .slider::before {
     overflow: hidden;
     text-overflow: ellipsis;
     cursor: pointer;
-    transition: color var(--transition-fast), transform var(--transition-fast);
+    transition:
+        color var(--transition-fast),
+        transform var(--transition-fast);
     display: inline-block;
+
     /* Allow transform */
 }
 
@@ -1813,7 +1857,10 @@ input:checked+.toggle-switch:hover .slider::before {
     border: none;
     color: var(--muted-foreground);
     cursor: pointer;
-    transition: transform var(--transition-fast), color var(--transition-fast), background-color var(--transition-fast);
+    transition:
+        transform var(--transition-fast),
+        color var(--transition-fast),
+        background-color var(--transition-fast);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1826,11 +1873,13 @@ input:checked+.toggle-switch:hover .slider::before {
 
 .player-controls .buttons button:hover {
     transform: scale(1.1);
+
     /* Pop effect */
 }
 
 .player-controls .buttons button:active {
     transform: scale(0.9);
+
     /* Press effect */
 }
 
@@ -2088,10 +2137,14 @@ input:checked+.toggle-switch:hover .slider::before {
     padding: 0.5rem 0.75rem;
     cursor: pointer;
     border-radius: 4px;
-    transition: background-color var(--transition-fast), transform var(--transition-fast);
+    transition:
+        background-color var(--transition-fast),
+        transform var(--transition-fast);
+
     /* Add transform */
     font-size: 0.9rem;
     display: flex;
+
     /* Ensure spacing if icons are added */
     align-items: center;
 }
@@ -2100,6 +2153,7 @@ input:checked+.toggle-switch:hover .slider::before {
 #sort-menu li:hover {
     background-color: var(--secondary);
     transform: translateX(4px);
+
     /* Slide interaction */
     color: var(--foreground);
 }
@@ -2327,12 +2381,15 @@ input:checked+.toggle-switch:hover .slider::before {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform var(--transition-fast), background-color var(--transition-fast);
+    transition:
+        transform var(--transition-fast),
+        background-color var(--transition-fast);
 }
 
 .fullscreen-buttons button:hover {
     background: rgb(255, 255, 255, 0.1);
     transform: scale(1.15) rotate(0deg);
+
     /* Slight rotation on some icons could be cool, but sticking to scale */
 }
 
@@ -2610,6 +2667,7 @@ input:checked+.toggle-switch:hover .slider::before {
     background: linear-gradient(90deg, var(--secondary) 0%, var(--muted) 50%, var(--secondary) 100%);
     background-size: 200% 100%;
     animation: skeleton-loading 2s infinite ease-in-out;
+
     /* Slower, smoother pulse */
     border-radius: var(--radius);
 }
@@ -2738,7 +2796,10 @@ input:checked+.toggle-switch:hover .slider::before {
     align-items: center;
     justify-content: center;
     border-radius: 4px;
-    transition: transform var(--transition-fast), color var(--transition-fast), background-color var(--transition-fast);
+    transition:
+        transform var(--transition-fast),
+        color var(--transition-fast),
+        background-color var(--transition-fast);
 }
 
 #api-instance-list li button:hover {
@@ -2875,7 +2936,9 @@ input:checked+.toggle-switch:hover .slider::before {
 .about-features li:hover {
     color: var(--highlight);
     transform: translateX(4px);
-    transition: transform var(--transition-fast), color var(--transition-fast);
+    transition:
+        transform var(--transition-fast),
+        color var(--transition-fast);
 }
 
 .about-tech p {
@@ -5027,7 +5090,10 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 input,
 select,
 textarea {
-    transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+    transition:
+        border-color var(--transition-fast),
+        box-shadow var(--transition-fast),
+        background-color var(--transition-fast);
 }
 
 input:focus,
@@ -5035,13 +5101,13 @@ select:focus,
 textarea:focus {
     outline: none;
     border-color: var(--ring);
-    box-shadow: 0 0 0 3px rgba(var(--highlight-rgb), 0.2);
+    box-shadow: 0 0 0 3px rgb(var(--highlight-rgb), 0.2);
 }
 
 /* Modals */
 .modal.active {
     backdrop-filter: blur(4px);
-    background: rgba(0, 0, 0, 0.6);
+    background: rgb(0, 0, 0, 0.6);
     transition: opacity var(--transition-normal);
 }
 
@@ -5065,6 +5131,7 @@ textarea:focus {
 .heart-icon.filled {
     animation: heart-beat 0.4s var(--ease-elastic);
     fill: #ef4444;
+
     /* Standardize heart red */
     stroke: #ef4444;
 }
@@ -5076,10 +5143,10 @@ textarea:focus {
 .equalizer-container {
     margin-top: var(--spacing-md);
     padding: var(--spacing-lg);
-    background: linear-gradient(145deg, var(--card), rgba(var(--highlight-rgb), 0.03));
+    background: linear-gradient(145deg, var(--card), rgb(var(--highlight-rgb), 0.03));
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.05);
+    box-shadow: inset 0 1px 1px rgb(255, 255, 255, 0.05);
 }
 
 .equalizer-header {
@@ -5110,7 +5177,9 @@ textarea:focus {
     color: var(--foreground);
     font-size: 0.9rem;
     cursor: pointer;
-    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    transition:
+        border-color var(--transition-fast),
+        box-shadow var(--transition-fast);
 }
 
 .equalizer-preset-row select:hover {
@@ -5120,7 +5189,7 @@ textarea:focus {
 .equalizer-preset-row select:focus {
     outline: none;
     border-color: var(--ring);
-    box-shadow: 0 0 0 3px rgba(var(--highlight-rgb), 0.2);
+    box-shadow: 0 0 0 3px rgb(var(--highlight-rgb), 0.2);
 }
 
 #equalizer-reset-btn {
@@ -5184,7 +5253,7 @@ textarea:focus {
 
 /* Vertical slider styling */
 .eq-slider {
-    -webkit-appearance: none;
+    appearance: none;
     appearance: none;
     writing-mode: vertical-lr;
     direction: rtl;
@@ -5214,7 +5283,7 @@ textarea:focus {
 
 /* Thumb */
 .eq-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
+    appearance: none;
     appearance: none;
     width: 18px;
     height: 18px;
@@ -5223,9 +5292,11 @@ textarea:focus {
     cursor: grab;
     margin-left: -6px;
     box-shadow:
-        0 2px 8px rgba(0, 0, 0, 0.3),
-        inset 0 1px 2px rgba(255, 255, 255, 0.3);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+        0 2px 8px rgb(0, 0, 0, 0.3),
+        inset 0 1px 2px rgb(255, 255, 255, 0.3);
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
     border: 2px solid var(--background);
 }
 
@@ -5236,24 +5307,26 @@ textarea:focus {
     border-radius: 50%;
     cursor: grab;
     box-shadow:
-        0 2px 8px rgba(0, 0, 0, 0.3),
-        inset 0 1px 2px rgba(255, 255, 255, 0.3);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+        0 2px 8px rgb(0, 0, 0, 0.3),
+        inset 0 1px 2px rgb(255, 255, 255, 0.3);
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
     border: 2px solid var(--background);
 }
 
 .eq-slider::-webkit-slider-thumb:hover {
     transform: scale(1.15);
     box-shadow:
-        0 4px 12px rgba(var(--highlight-rgb), 0.4),
-        inset 0 1px 2px rgba(255, 255, 255, 0.3);
+        0 4px 12px rgb(var(--highlight-rgb), 0.4),
+        inset 0 1px 2px rgb(255, 255, 255, 0.3);
 }
 
 .eq-slider::-moz-range-thumb:hover {
     transform: scale(1.15);
     box-shadow:
-        0 4px 12px rgba(var(--highlight-rgb), 0.4),
-        inset 0 1px 2px rgba(255, 255, 255, 0.3);
+        0 4px 12px rgb(var(--highlight-rgb), 0.4),
+        inset 0 1px 2px rgb(255, 255, 255, 0.3);
 }
 
 .eq-slider::-webkit-slider-thumb:active {
@@ -5272,14 +5345,14 @@ textarea:focus {
 
 .eq-slider:focus::-webkit-slider-thumb {
     box-shadow:
-        0 0 0 4px rgba(var(--highlight-rgb), 0.3),
-        0 2px 8px rgba(0, 0, 0, 0.3);
+        0 0 0 4px rgb(var(--highlight-rgb), 0.3),
+        0 2px 8px rgb(0, 0, 0, 0.3);
 }
 
 .eq-slider:focus::-moz-range-thumb {
     box-shadow:
-        0 0 0 4px rgba(var(--highlight-rgb), 0.3),
-        0 2px 8px rgba(0, 0, 0, 0.3);
+        0 0 0 4px rgb(var(--highlight-rgb), 0.3),
+        0 2px 8px rgb(0, 0, 0, 0.3);
 }
 
 .eq-value {
@@ -5291,17 +5364,19 @@ textarea:focus {
     padding: 2px 4px;
     background: var(--input);
     border-radius: var(--radius-sm);
-    transition: color 0.2s ease, background 0.2s ease;
+    transition:
+        color 0.2s ease,
+        background 0.2s ease;
 }
 
 .eq-value.positive {
     color: var(--highlight);
-    background: rgba(var(--highlight-rgb), 0.15);
+    background: rgb(var(--highlight-rgb), 0.15);
 }
 
 .eq-value.negative {
     color: #ef4444;
-    background: rgba(239, 68, 68, 0.15);
+    background: rgb(239, 68, 68, 0.15);
 }
 
 .eq-freq {

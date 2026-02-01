@@ -121,7 +121,7 @@ export class Visualizer {
             try {
                 this.source.connect(this.analyser);
                 this.analyser.connect(this.audioContext.destination);
-            } catch { }
+            } catch {}
         }
     }
 

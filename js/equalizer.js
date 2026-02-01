@@ -4,83 +4,94 @@
 import { equalizerSettings } from './storage.js';
 
 // Standard 16-band ISO center frequencies (Hz)
-const EQ_FREQUENCIES = [
-    25, 40, 63, 100, 160, 250, 400, 630,
-    1000, 1600, 2500, 4000, 6300, 10000, 16000, 20000
-];
+const EQ_FREQUENCIES = [25, 40, 63, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000, 16000, 20000];
 
 // Frequency labels for UI display
 const FREQUENCY_LABELS = [
-    '25', '40', '63', '100', '160', '250', '400', '630',
-    '1K', '1.6K', '2.5K', '4K', '6.3K', '10K', '16K', '20K'
+    '25',
+    '40',
+    '63',
+    '100',
+    '160',
+    '250',
+    '400',
+    '630',
+    '1K',
+    '1.6K',
+    '2.5K',
+    '4K',
+    '6.3K',
+    '10K',
+    '16K',
+    '20K',
 ];
 
 // EQ Presets (gain values in dB for each of the 16 bands)
 const EQ_PRESETS = {
     flat: {
         name: 'Flat',
-        gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     },
     bass_boost: {
         name: 'Bass Boost',
-        gains: [6, 5, 4.5, 4, 3, 2, 1, 0.5, 0, 0, 0, 0, 0, 0, 0, 0]
+        gains: [6, 5, 4.5, 4, 3, 2, 1, 0.5, 0, 0, 0, 0, 0, 0, 0, 0],
     },
     bass_reducer: {
         name: 'Bass Reducer',
-        gains: [-6, -5, -4, -3, -2, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        gains: [-6, -5, -4, -3, -2, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     },
     treble_boost: {
         name: 'Treble Boost',
-        gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 5.5, 6]
+        gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 5.5, 6],
     },
     treble_reducer: {
         name: 'Treble Reducer',
-        gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -2, -3, -4, -5, -5.5, -6]
+        gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -2, -3, -4, -5, -5.5, -6],
     },
     vocal_boost: {
         name: 'Vocal Boost',
-        gains: [-2, -1, 0, 0, 1, 2, 3, 4, 4, 3, 2, 1, 0, 0, -1, -2]
+        gains: [-2, -1, 0, 0, 1, 2, 3, 4, 4, 3, 2, 1, 0, 0, -1, -2],
     },
     loudness: {
         name: 'Loudness',
-        gains: [5, 4, 3, 1, 0, -1, -1, 0, 0, 1, 2, 3, 4, 4.5, 4, 3]
+        gains: [5, 4, 3, 1, 0, -1, -1, 0, 0, 1, 2, 3, 4, 4.5, 4, 3],
     },
     rock: {
         name: 'Rock',
-        gains: [4, 3.5, 3, 2, -1, -2, -1, 1, 2, 3, 3.5, 4, 4, 3, 2, 1]
+        gains: [4, 3.5, 3, 2, -1, -2, -1, 1, 2, 3, 3.5, 4, 4, 3, 2, 1],
     },
     pop: {
         name: 'Pop',
-        gains: [-1, 0, 1, 2, 3, 3, 2, 1, 0, 1, 2, 2, 2, 2, 1, 0]
+        gains: [-1, 0, 1, 2, 3, 3, 2, 1, 0, 1, 2, 2, 2, 2, 1, 0],
     },
     classical: {
         name: 'Classical',
-        gains: [3, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 3, 2]
+        gains: [3, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 3, 2],
     },
     jazz: {
         name: 'Jazz',
-        gains: [3, 2, 1, 1, -1, -1, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2]
+        gains: [3, 2, 1, 1, -1, -1, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2],
     },
     electronic: {
         name: 'Electronic',
-        gains: [4, 3.5, 3, 1, 0, -1, 0, 1, 2, 3, 3, 2, 2, 3, 4, 3.5]
+        gains: [4, 3.5, 3, 1, 0, -1, 0, 1, 2, 3, 3, 2, 2, 3, 4, 3.5],
     },
     hip_hop: {
         name: 'Hip-Hop',
-        gains: [5, 4.5, 4, 3, 1, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2]
+        gains: [5, 4.5, 4, 3, 1, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2],
     },
     r_and_b: {
         name: 'R&B',
-        gains: [3, 5, 4, 2, 1, 0, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1]
+        gains: [3, 5, 4, 2, 1, 0, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1],
     },
     acoustic: {
         name: 'Acoustic',
-        gains: [3, 2, 1, 1, 2, 2, 1, 0, 0, 1, 1, 2, 3, 3, 2, 1]
+        gains: [3, 2, 1, 1, 2, 2, 1, 0, 0, 1, 1, 2, 3, 3, 2, 1],
     },
     podcast: {
         name: 'Podcast / Speech',
-        gains: [-3, -2, -1, 0, 1, 2, 3, 4, 4, 3, 2, 1, 0, -1, -2, -3]
-    }
+        gains: [-3, -2, -1, 0, 1, 2, 3, 4, 4, 3, 2, 1, 0, -1, -2, -3],
+    },
 };
 
 export class Equalizer {
@@ -227,9 +238,11 @@ export class Equalizer {
         }
 
         // Dispatch event for visualizer to reconnect
-        window.dispatchEvent(new CustomEvent('equalizer-toggle', {
-            detail: { enabled }
-        }));
+        window.dispatchEvent(
+            new CustomEvent('equalizer-toggle', {
+                detail: { enabled },
+            })
+        );
 
         return this.isEnabled;
     }
@@ -338,12 +351,18 @@ export class Equalizer {
      * Destroy the equalizer
      */
     destroy() {
-        this.filters.forEach(filter => {
-            try { filter.disconnect(); } catch { }
+        this.filters.forEach((filter) => {
+            try {
+                filter.disconnect();
+            } catch {}
         });
 
-        try { this.inputNode?.disconnect(); } catch { }
-        try { this.outputNode?.disconnect(); } catch { }
+        try {
+            this.inputNode?.disconnect();
+        } catch {}
+        try {
+            this.outputNode?.disconnect();
+        } catch {}
 
         this.filters = [];
         this.inputNode = null;

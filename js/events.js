@@ -618,10 +618,11 @@ export async function showAddToPlaylistModal(track) {
                     return `
                 <div class="modal-option ${alreadyContains ? 'already-contains' : ''}" data-id="${p.id}">
                     <span>${p.name}</span>
-                    ${alreadyContains
+                    ${
+                        alreadyContains
                             ? `<button class="remove-from-playlist-btn-modal" title="Remove from playlist" style="background: transparent; border: none; color: inherit; cursor: pointer; padding: 4px; display: flex; align-items: center;">${SVG_BIN}</button>`
                             : ''
-                        }
+                    }
                 </div>
             `;
                 })
@@ -968,10 +969,11 @@ export async function handleTrackAction(
                         return `
                     <div class="modal-option ${alreadyContains ? 'already-contains' : ''}" data-id="${p.id}">
                         <span>${p.name}</span>
-                        ${alreadyContains
+                        ${
+                            alreadyContains
                                 ? `<button class="remove-from-playlist-btn-modal" title="Remove from playlist" style="background: transparent; border: none; color: inherit; cursor: pointer; padding: 4px; display: flex; align-items: center;">${SVG_BIN}</button>`
                                 : ''
-                            }
+                        }
                     </div>
                 `;
                     })
@@ -1090,28 +1092,31 @@ export async function handleTrackAction(
                             ${item.trackerInfo.recordingDate ? `<p><strong style="color: var(--foreground);">Recording Date:</strong> ${new Date(item.trackerInfo.recordingDate).toLocaleDateString()}</p>` : ''}
                         </div>
                         
-                        ${item.trackerInfo.description
-                    ? `
+                        ${
+                            item.trackerInfo.description
+                                ? `
                             <div style="margin-top: 1rem; padding: 0.75rem; background: var(--accent); border-radius: 8px;">
                                 <p style="color: var(--foreground); font-weight: 500; margin-bottom: 0.5rem;">Description</p>
                                 <p style="font-size: 0.85rem; line-height: 1.6;">${item.trackerInfo.description}</p>
                             </div>
                         `
-                    : ''
-                }
+                                : ''
+                        }
                         
-                        ${item.trackerInfo.notes
-                    ? `
+                        ${
+                            item.trackerInfo.notes
+                                ? `
                             <div style="margin-top: 1rem; padding: 0.75rem; background: var(--accent); border-radius: 8px;">
                                 <p style="color: var(--foreground); font-weight: 500; margin-bottom: 0.5rem;">Notes</p>
                                 <p style="font-size: 0.85rem; line-height: 1.6;">${item.trackerInfo.notes}</p>
                             </div>
                         `
-                    : ''
-                }
+                                : ''
+                        }
                         
-                        ${item.trackerInfo.sourceUrl
-                    ? `
+                        ${
+                            item.trackerInfo.sourceUrl
+                                ? `
                             <div style="margin-top: 1rem;">
                                 <p style="margin-bottom: 0.5rem;"><strong style="color: var(--foreground);">Source URL:</strong></p>
                                 <a href="${item.trackerInfo.sourceUrl}" target="_blank" style="color: var(--primary); word-break: break-all; font-size: 0.85rem; display: block; padding: 0.5rem; background: var(--accent); border-radius: 6px; text-decoration: none;">
@@ -1119,8 +1124,8 @@ export async function handleTrackAction(
                                 </a>
                             </div>
                         `
-                    : ''
-                }
+                                : ''
+                        }
                         
                         ${item.id ? `<p style="margin-top: 1rem; font-size: 0.8rem; color: var(--muted);"><strong>Track ID:</strong> ${item.id}</p>` : ''}
                     </div>
@@ -1151,8 +1156,9 @@ export async function handleTrackAction(
                             <p><strong style="color: var(--foreground);">Quality:</strong> ${quality} ${bitrate ? `(${bitrate})` : ''}</p>
                         </div>
                         
-                        ${item.credits && item.credits.length > 0
-                    ? `
+                        ${
+                            item.credits && item.credits.length > 0
+                                ? `
                             <div style="margin-top: 1rem; padding: 0.75rem; background: var(--accent); border-radius: 8px;">
                                 <p style="color: var(--foreground); font-weight: 500; margin-bottom: 0.5rem;">Credits</p>
                                 <div style="font-size: 0.85rem; line-height: 1.6;">
@@ -1160,24 +1166,26 @@ export async function handleTrackAction(
                                 </div>
                             </div>
                         `
-                    : ''
-                }
+                                : ''
+                        }
                         
-                        ${item.composers && item.composers.length > 0
-                    ? `
+                        ${
+                            item.composers && item.composers.length > 0
+                                ? `
                             <p style="margin-top: 0.5rem;"><strong style="color: var(--foreground);">Composers:</strong> ${item.composers.map((c) => c.name).join(', ')}</p>
                         `
-                    : ''
-                }
+                                : ''
+                        }
                         
-                        ${item.lyrics?.text
-                    ? `
+                        ${
+                            item.lyrics?.text
+                                ? `
                             <div style="margin-top: 1rem; padding: 0.75rem; background: var(--accent); border-radius: 8px;">
                                 <p style="color: var(--foreground); font-weight: 500; margin-bottom: 0.5rem;">Has Lyrics</p>
                             </div>
                         `
-                    : ''
-                }
+                                : ''
+                        }
                         
                         ${item.id ? `<p style="margin-top: 1rem; font-size: 0.8rem; color: var(--muted);"><strong>Track ID:</strong> ${item.id}</p>` : ''}
                         ${item.album?.id ? `<p style="font-size: 0.8rem; color: var(--muted);"><strong>Album ID:</strong> ${item.album.id}</p>` : ''}
@@ -1452,12 +1460,12 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             const type = card.dataset.albumId
                 ? 'album'
                 : card.dataset.playlistId
-                    ? 'playlist'
-                    : card.dataset.mixId
-                        ? 'mix'
-                        : card.dataset.href
-                            ? card.dataset.href.split('/')[1]
-                            : 'item';
+                  ? 'playlist'
+                  : card.dataset.mixId
+                    ? 'mix'
+                    : card.dataset.href
+                      ? card.dataset.href.split('/')[1]
+                      : 'item';
             const id = card.dataset.albumId || card.dataset.playlistId || card.dataset.mixId;
 
             const item = trackDataStore.get(card) || {

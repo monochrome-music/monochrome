@@ -102,7 +102,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
             }
             try {
                 await authManager.sendPasswordReset(email);
-            } catch { }
+            } catch {}
         });
     }
 
@@ -242,9 +242,6 @@ export function initializeSettings(scrobbler, player, api, ui) {
             listenBrainzSettings.setToken(e.target.value.trim());
         });
     }
-
-
-
 
     // Theme picker
     const themePicker = document.getElementById('theme-picker');
@@ -497,9 +494,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
                         const currentPreset = EQ_PRESETS[eqPresetSelect.value];
                         if (currentPreset) {
                             const currentGains = audioContextManager.getGains();
-                            const matches = currentPreset.gains.every(
-                                (g, i) => Math.abs(g - currentGains[i]) < 0.01
-                            );
+                            const matches = currentPreset.gains.every((g, i) => Math.abs(g - currentGains[i]) < 0.01);
                             if (!matches) {
                                 // Don't change the select, but the preset will save as 'custom'
                             }

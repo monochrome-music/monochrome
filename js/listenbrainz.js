@@ -1,4 +1,3 @@
-
 import { listenBrainzSettings } from './storage.js';
 
 export class ListenBrainzScrobbler {
@@ -46,7 +45,7 @@ export class ListenBrainzScrobbler {
             additional_info: {
                 submission_client: 'Monochrome',
                 submission_client_version: '1.0.0',
-            }
+            },
         };
 
         if (track.album?.title) {
@@ -77,7 +76,7 @@ export class ListenBrainzScrobbler {
         const payload = [
             {
                 track_metadata: metadata,
-            }
+            },
         ];
 
         if (timestamp) {
@@ -86,17 +85,17 @@ export class ListenBrainzScrobbler {
 
         const body = {
             listen_type: listenType,
-            payload: payload
+            payload: payload,
         };
 
         try {
             const response = await fetch(`${this.API_URL}/submit-listens`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Token ${this.getToken()}`,
-                    'Content-Type': 'application/json'
+                    Authorization: `Token ${this.getToken()}`,
+                    'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(body)
+                body: JSON.stringify(body),
             });
 
             if (!response.ok) {

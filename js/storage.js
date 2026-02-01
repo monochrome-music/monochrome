@@ -784,7 +784,7 @@ export const equalizerSettings = {
                     return gains;
                 }
             }
-        } catch { }
+        } catch {}
         // Return flat EQ (all zeros) by default
         return new Array(16).fill(0);
     },

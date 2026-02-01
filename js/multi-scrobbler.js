@@ -1,4 +1,3 @@
-
 import { LastFMScrobbler } from './lastfm.js';
 import { ListenBrainzScrobbler } from './listenbrainz.js';
 
