@@ -274,7 +274,16 @@ export const getTrackArtists = (track = {}, { fallback = 'Unknown Artist' } = {}
 export const getTrackArtistsHTML = (track = {}, { fallback = 'Unknown Artist' } = {}) => {
     if (track?.artists?.length) {
         return track.artists
-            .map((artist) => `<span class="artist-link" data-artist-id="${artist.id}">${artist.name}</span>`)
+            .map((artist) => {
+                // Check if this is a tracker/unreleased track
+                const isTracker = track.isTracker || (track.id && String(track.id).startsWith('tracker-'));
+                if (isTracker && track.trackerInfo?.sheetId) {
+                    // For tracker tracks, link to the tracker artist page
+                    return `<span class="artist-link tracker-artist-link" data-tracker-sheet-id="${track.trackerInfo.sheetId}">${artist.name}</span>`;
+                }
+                // For normal tracks, use the artist ID
+                return `<span class="artist-link" data-artist-id="${artist.id}">${artist.name}</span>`;
+            })
             .join(', ');
     }
 

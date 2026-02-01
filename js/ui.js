@@ -23,6 +23,7 @@ import { getVibrantColorFromImage } from './vibrant-color.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { Visualizer } from './visualizer.js';
 import { navigate } from './router.js';
+import { renderUnreleasedPage as renderUnreleasedTrackerPage, renderTrackerArtistPage as renderTrackerArtistContent, renderTrackerProjectPage as renderTrackerProjectContent, renderTrackerTrackPage as renderTrackerTrackContent, findTrackerArtistByName, getArtistUnreleasedProjects, createProjectCardHTML } from './tracker.js';
 
 export class UIRenderer {
     constructor(api, player) {
@@ -109,31 +110,42 @@ export class UIRenderer {
         if (track) {
             const isLocal = track.isLocal;
             const isTracker = track.isTracker || (track.id && String(track.id).startsWith('tracker-'));
-            const shouldHide = isLocal || isTracker;
+            const shouldHideLikes = isLocal || isTracker;
 
             if (likeBtn) {
-                if (shouldHide) {
+                if (shouldHideLikes) {
                     likeBtn.style.display = 'none';
                 } else {
                     likeBtn.style.display = 'flex';
                     this.updateLikeState(likeBtn.parentElement, 'track', track.id);
                 }
             }
+            
+            // For tracker tracks: show add playlist, hide lyrics
+            // For normal tracks: hide add playlist, show lyrics (unless local)
             if (addPlaylistBtn) {
-                if (shouldHide) addPlaylistBtn.style.setProperty('display', 'none', 'important');
-                else addPlaylistBtn.style.removeProperty('display');
+                if (isTracker) {
+                    addPlaylistBtn.style.removeProperty('display');
+                    addPlaylistBtn.style.display = 'flex';
+                } else {
+                    addPlaylistBtn.style.setProperty('display', 'none', 'important');
+                }
             }
             if (mobileAddPlaylistBtn) {
-                if (shouldHide) mobileAddPlaylistBtn.style.setProperty('display', 'none', 'important');
-                else mobileAddPlaylistBtn.style.removeProperty('display');
+                if (isTracker) {
+                    mobileAddPlaylistBtn.style.removeProperty('display');
+                    mobileAddPlaylistBtn.style.display = 'flex';
+                } else {
+                    mobileAddPlaylistBtn.style.setProperty('display', 'none', 'important');
+                }
             }
             if (lyricsBtn) {
-                if (isLocal) lyricsBtn.style.display = 'none';
+                if (isLocal || isTracker) lyricsBtn.style.display = 'none';
                 else lyricsBtn.style.removeProperty('display');
             }
 
             if (fsLikeBtn) {
-                if (shouldHide) {
+                if (shouldHideLikes) {
                     fsLikeBtn.style.display = 'none';
                 } else {
                     fsLikeBtn.style.display = 'flex';
@@ -141,7 +153,7 @@ export class UIRenderer {
                 }
             }
             if (fsAddPlaylistBtn) {
-                if (shouldHide) fsAddPlaylistBtn.style.display = 'none';
+                if (shouldHideLikes) fsAddPlaylistBtn.style.display = 'none';
                 else fsAddPlaylistBtn.style.display = 'flex';
             }
         } else {
@@ -2192,6 +2204,8 @@ export class UIRenderer {
         albumsContainer.innerHTML = this.createSkeletonCards(6, false);
         if (epsContainer) epsContainer.innerHTML = this.createSkeletonCards(6, false);
         if (epsSection) epsSection.style.display = 'none';
+        const loadUnreleasedSection = document.getElementById('artist-section-load-unreleased');
+        if (loadUnreleasedSection) loadUnreleasedSection.style.display = 'none';
         if (similarContainer) similarContainer.innerHTML = this.createSkeletonCards(6, true);
         if (similarSection) similarSection.style.display = 'block';
 
@@ -2299,6 +2313,89 @@ export class UIRenderer {
                 }
             });
 
+            // Check for unreleased projects
+            const unreleasedSection = document.getElementById('artist-section-unreleased');
+            const unreleasedContainer = document.getElementById('artist-detail-unreleased');
+            const loadUnreleasedBtn = document.getElementById('load-unreleased-btn');
+            const loadUnreleasedSection = document.getElementById('artist-section-load-unreleased');
+            if (unreleasedSection && unreleasedContainer && loadUnreleasedBtn && loadUnreleasedSection) {
+                // Initially hide the unreleased section
+                unreleasedSection.style.display = 'none';
+                loadUnreleasedSection.style.display = 'none';
+                
+                // Check if artist has unreleased projects
+                const trackerArtist = findTrackerArtistByName(artist.name);
+                if (trackerArtist) {
+                    // Show the load button section
+                    loadUnreleasedSection.style.display = 'block';
+                    
+                    // Add click handler to load and display unreleased projects
+                    loadUnreleasedBtn.onclick = async () => {
+                        loadUnreleasedBtn.disabled = true;
+                        loadUnreleasedBtn.textContent = 'Loading...';
+                        
+                        try {
+                            const unreleasedData = await getArtistUnreleasedProjects(artist.name);
+                            if (unreleasedData && unreleasedData.eras.length > 0) {
+                                const { artist: trackerArtistData, sheetId, eras } = unreleasedData;
+                                
+                                unreleasedContainer.innerHTML = eras.map(e => {
+                                    let trackCount = 0;
+                                    if (e.data) {
+                                        Object.values(e.data).forEach((songs) => {
+                                            if (songs && songs.length) trackCount += songs.length;
+                                        });
+                                    }
+                                    return createProjectCardHTML(e, trackerArtistData, sheetId, trackCount);
+                                }).join('');
+                                
+                                unreleasedSection.style.display = 'block';
+                                loadUnreleasedBtn.style.display = 'none';
+                                
+                                // Add click handlers
+                                unreleasedContainer.querySelectorAll('.card').forEach((card) => {
+                                    const eraName = decodeURIComponent(card.dataset.trackerProjectId);
+                                    const era = eras.find(e => e.name === eraName);
+                                    if (!era) return;
+                                    
+                                    card.onclick = (e) => {
+                                        if (e.target.closest('.card-play-btn')) {
+                                            e.stopPropagation();
+                                            let eraTracks = [];
+                                            if (era.data) {
+                                                Object.values(era.data).forEach((songs) => {
+                                                    if (songs && songs.length) {
+                                                        songs.forEach((song, index) => {
+                                                            const track = createTrackFromSong(song, era, trackerArtistData.name, eraTracks.length, sheetId);
+                                                            eraTracks.push(track);
+                                                        });
+                                                    }
+                                                });
+                                            }
+                                            const availableTracks = eraTracks.filter(t => !t.unavailable);
+                                            if (availableTracks.length > 0) {
+                                                globalPlayer.setQueue(availableTracks, 0);
+                                                globalPlayer.playTrackFromQueue();
+                                            }
+                                        } else if (e.target.closest('.card-menu-btn')) {
+                                            e.stopPropagation();
+                                        } else {
+                                            navigate(`/unreleased/${sheetId}/${encodeURIComponent(era.name)}`);
+                                        }
+                                    };
+                                });
+                            } else {
+                                loadUnreleasedBtn.textContent = 'No unreleased projects';
+                            }
+                        } catch (error) {
+                            console.error('Failed to load unreleased projects:', error);
+                            loadUnreleasedBtn.textContent = 'Failed to load';
+                            loadUnreleasedBtn.disabled = false;
+                        }
+                    };
+                }
+            }
+
             recentActivityManager.addArtist(artist);
 
             document.title = artist.name;
@@ -2374,6 +2471,30 @@ export class UIRenderer {
             console.error('Failed to load history:', error);
             container.innerHTML = createPlaceholder('Failed to load history.');
         }
+    }
+
+    async renderUnreleasedPage() {
+        this.showPage('unreleased');
+        const container = document.getElementById('unreleased-content');
+        await renderUnreleasedTrackerPage(container);
+    }
+
+    async renderTrackerArtistPage(sheetId) {
+        this.showPage('tracker-artist');
+        const container = document.getElementById('tracker-artist-projects-container');
+        await renderTrackerArtistContent(sheetId, container);
+    }
+
+    async renderTrackerProjectPage(sheetId, projectName) {
+        this.showPage('album'); // Use album page template
+        const container = document.getElementById('album-detail-tracklist');
+        await renderTrackerProjectContent(sheetId, projectName, container, this);
+    }
+
+    async renderTrackerTrackPage(trackId) {
+        this.showPage('album'); // Use album page template
+        const container = document.getElementById('album-detail-tracklist');
+        await renderTrackerTrackContent(trackId, container, this);
     }
 
     updatePlaylistHeaderActions(playlist, isOwned, tracks, showShare = false, onSort = null) {

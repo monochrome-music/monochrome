@@ -180,9 +180,10 @@ export class LastFMScrobbler {
         this.clearScrobbleTimer();
 
         try {
+            const scrobbleTitle = track.cleanTitle || track.title;
             const params = {
                 artist: this._getScrobbleArtist(track),
-                track: track.title,
+                track: scrobbleTitle,
             };
 
             if (track.album?.title) {
@@ -199,7 +200,7 @@ export class LastFMScrobbler {
 
             await this.makeRequest('track.updateNowPlaying', params, true);
 
-            console.log('Now playing updated:', track.title);
+            console.log('Now playing updated:', scrobbleTitle);
 
             this.scrobbleThreshold = Math.min(track.duration / 2, 240);
             this.scheduleScrobble(this.scrobbleThreshold * 1000);
@@ -228,10 +229,11 @@ export class LastFMScrobbler {
 
         try {
             const timestamp = Math.floor(Date.now() / 1000);
+            const scrobbleTitle = this.currentTrack.cleanTitle || this.currentTrack.title;
 
             const params = {
                 artist: this._getScrobbleArtist(this.currentTrack),
-                track: this.currentTrack.title,
+                track: scrobbleTitle,
                 timestamp: timestamp,
             };
 
@@ -250,7 +252,7 @@ export class LastFMScrobbler {
             await this.makeRequest('track.scrobble', params, true);
 
             this.hasScrobbled = true;
-            console.log('Scrobbled:', this.currentTrack.title);
+            console.log('Scrobbled:', this.currentTrack.cleanTitle || this.currentTrack.title);
         } catch (error) {
             console.error('Failed to scrobble:', error);
         }

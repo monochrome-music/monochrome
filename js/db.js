@@ -231,6 +231,7 @@ export class MusicDatabase {
                 // Keep mix info
                 mixes: item.mixes || null,
                 isTracker: item.isTracker || (item.id && String(item.id).startsWith('tracker-')),
+                trackerInfo: item.trackerInfo || null,
                 audioUrl: item.remoteUrl || item.audioUrl || null,
                 remoteUrl: item.remoteUrl || null,
                 audioQuality: item.audioQuality || null,

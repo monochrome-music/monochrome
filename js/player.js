@@ -356,6 +356,32 @@ export class Player {
                 this.applyReplayGain();
 
                 this.audio.src = streamUrl;
+                
+                // Wait for audio to be ready before playing (prevents restart issues with blob URLs)
+                if (isTracker) {
+                    await new Promise((resolve, reject) => {
+                        const onCanPlay = () => {
+                            this.audio.removeEventListener('canplay', onCanPlay);
+                            this.audio.removeEventListener('error', onError);
+                            resolve();
+                        };
+                        const onError = (e) => {
+                            this.audio.removeEventListener('canplay', onCanPlay);
+                            this.audio.removeEventListener('error', onError);
+                            reject(e);
+                        };
+                        this.audio.addEventListener('canplay', onCanPlay);
+                        this.audio.addEventListener('error', onError);
+                        
+                        // Timeout after 10 seconds
+                        setTimeout(() => {
+                            this.audio.removeEventListener('canplay', onCanPlay);
+                            this.audio.removeEventListener('error', onError);
+                            reject(new Error('Timeout waiting for audio to load'));
+                        }, 10000);
+                    });
+                }
+                
                 if (startTime > 0) {
                     this.audio.currentTime = startTime;
                 }

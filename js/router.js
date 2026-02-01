@@ -52,13 +52,31 @@ export function createRouter(ui) {
                 await ui.renderMixPage(param);
                 break;
             case 'track':
-                await ui.renderTrackPage(param);
+                if (param.startsWith('tracker-')) {
+                    await ui.renderTrackerTrackPage(param);
+                } else {
+                    await ui.renderTrackPage(param);
+                }
                 break;
             case 'library':
                 await ui.renderLibraryPage();
                 break;
             case 'recent':
                 await ui.renderRecentPage();
+                break;
+            case 'unreleased':
+                if (param) {
+                    const parts = param.split('/');
+                    const sheetId = parts[0];
+                    const projectName = parts[1] ? decodeURIComponent(parts[1]) : null;
+                    if (projectName) {
+                        await ui.renderTrackerProjectPage(sheetId, projectName);
+                    } else {
+                        await ui.renderTrackerArtistPage(sheetId);
+                    }
+                } else {
+                    await ui.renderUnreleasedPage();
+                }
                 break;
             case 'home':
                 await ui.renderHomePage();

@@ -45,6 +45,8 @@
                 <li data-action="go-to-artist" data-type-filter="track,album">Go to artist</li>
                 <li data-action="go-to-album" data-type-filter="track">Go to album</li>
                 <li data-action="copy-link">Copy link</li>
+                <li data-action="track-info" data-type-filter="track">Track Info</li>
+                <li data-action="open-original-url" data-type-filter="track">Open Original URL</li>
                 <li data-action="download">Download</li>
             </ul>
         </div>
@@ -796,6 +798,27 @@
                                 </a>
                             </li>
                             <li class="nav-item">
+                                <a href="/unreleased">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="24"
+                                        height="24"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <rect x="3" y="3" width="7" height="7" />
+                                        <rect x="14" y="3" width="7" height="7" />
+                                        <rect x="14" y="14" width="7" height="7" />
+                                        <rect x="3" y="14" width="7" height="7" />
+                                    </svg>
+                                    <span>Unreleased</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
                                 <a href="/settings">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -1338,6 +1361,35 @@
                     <div class="track-list" id="recent-tracks-container"></div>
                 </div>
 
+                <div id="page-unreleased" class="page">
+                    <div id="unreleased-content" style="padding: 1rem 0;"></div>
+                </div>
+
+                <div id="page-tracker-artist" class="page">
+                    <header class="detail-header">
+                        <img
+                            id="tracker-artist-detail-image"
+                            src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                            alt=""
+                            class="detail-header-image artist"
+                        />
+                        <div class="detail-header-info">
+                            <div class="type">Unreleased Artist</div>
+                            <h1 class="title" id="tracker-artist-detail-name"></h1>
+                            <div class="meta" id="tracker-artist-detail-meta"></div>
+                            <div class="detail-header-actions">
+                                <button id="play-tracker-artist-btn" class="btn-primary">
+                                    <span>Shuffle Play</span>
+                                </button>
+                                <button id="download-tracker-artist-btn" class="btn-primary">
+                                    <span>Download All</span>
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+                    <div id="tracker-artist-projects-container"></div>
+                </div>
+
                 <div id="page-album" class="page">
                     <header class="detail-header">
                         <img
@@ -1704,11 +1756,13 @@
                         <h2 class="section-title">EPs and Singles</h2>
                         <div class="card-grid" id="artist-detail-eps"></div>
                     </section>
-                    <div
-                        id="artist-tracker-section"
-                        class="content-section"
-                        style="display: none; margin-top: 2rem"
-                    ></div>
+                    <section class="content-section" id="artist-section-load-unreleased" style="display: none; margin: 1.5rem 0;">
+                        <button id="load-unreleased-btn" class="btn-primary">Load Unreleased Projects</button>
+                    </section>
+                    <section class="content-section" id="artist-section-unreleased" style="display: none">
+                        <h2 class="section-title">Unreleased Music</h2>
+                        <div class="card-grid" id="artist-detail-unreleased"></div>
+                    </section>
                     <section class="content-section" id="artist-section-similar" style="display: none">
                         <h2 class="section-title">Similar Artists</h2>
                         <div class="card-grid" id="artist-detail-similar"></div>
@@ -2429,7 +2483,7 @@
                             </a>
                         </div>
                         <div class="about-footer">
-                            <p class="version">Version 2.1.0</p>
+                            <p class="version">Version 2.2.0</p>
                             <p class="disclaimer">
                                 This is an independent client and is not affiliated with or endorsed by TIDAL or any
                                 music streaming service.
