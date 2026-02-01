@@ -31,6 +31,7 @@
 <li>Accurate and unique audio visualizer</li>
 <li>Account system for cross-device syncing</li>
 <li>Genius integration for lyrics</li>
+<li>Last.fm and ListenBrainz integration for scrobbling</li>
 <li>Unreleased music from <a href="https://artistgrid.cx">ArtistGrid</a></li>
 <li>Dynamic Discord Embeds</li>
 <li>Smart recommendations for new songs, albums & artists</li>
@@ -39,7 +40,7 @@
 <li>Public playlists for social sharing</li>
 </ul>
 
-### Check it out live at: [**monochrome.samidy.com**](https://monochrome.samidy.com)
+### Check it out live at: [**monochrome.tf**](https://monochrome.tf)
 
 <br>
 
