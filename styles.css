@@ -5254,7 +5254,6 @@ textarea:focus {
 /* Vertical slider styling */
 .eq-slider {
     appearance: none;
-    appearance: none;
     writing-mode: vertical-lr;
     direction: rtl;
     width: 8px;
@@ -5283,7 +5282,6 @@ textarea:focus {
 
 /* Thumb */
 .eq-slider::-webkit-slider-thumb {
-    appearance: none;
     appearance: none;
     width: 18px;
     height: 18px;
