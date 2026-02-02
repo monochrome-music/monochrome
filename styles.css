@@ -1824,9 +1824,8 @@ input:checked + .slider::before {
     transition:
         color var(--transition-fast),
         transform var(--transition-fast);
-    display: inline-block;
-
-    /* Allow transform */
+    display: block;
+    max-width: 100%;
 }
 
 .track-info .details .artist:hover {
