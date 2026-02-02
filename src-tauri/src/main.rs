@@ -12,7 +12,7 @@ use tauri::menu::{MenuBuilder, MenuItemBuilder};
 use tauri::image::Image;
 use tauri::tray::{TrayIconBuilder, MouseButton, MouseButtonState};
 use tauri_plugin_notification::NotificationExt;
-use tauri_plugin_global_shortcut::GlobalShortcutExt;
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 use tauri_plugin_dialog::DialogExt;
 use std::path::PathBuf;
 use std::fs;
@@ -217,8 +217,10 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            let _ = app.global_shortcut().on_shortcut("MediaPlayPause", |app, _shortcut, _event| {
-                let _ = app.emit("media-toggle", ());
+            let _ = app.global_shortcut().on_shortcut("MediaPlayPause", |app, _shortcut, event| {
+                if event.state == ShortcutState::Released {
+                    let _ = app.emit("media-toggle", ());
+                }
             });
 
             let window = WebviewWindowBuilder::new(
