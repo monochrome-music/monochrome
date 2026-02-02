@@ -704,7 +704,9 @@ export class UIRenderer {
 
     async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
         if (!track) return;
-        window.history.pushState({ fullscreen: true }, '', '#fullscreen');
+        if (window.location.hash !== '#fullscreen') {
+            window.history.pushState({ fullscreen: true }, '', '#fullscreen');
+        }
         const overlay = document.getElementById('fullscreen-cover-overlay');
         const nextTrackEl = document.getElementById('fullscreen-next-track');
         const lyricsToggleBtn = document.getElementById('toggle-fullscreen-lyrics-btn');
@@ -1619,10 +1621,10 @@ export class UIRenderer {
                     dateDisplay =
                         window.innerWidth > 768
                             ? releaseDate.toLocaleDateString('en-US', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric',
-                              })
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                            })
                             : year;
                 }
             }
@@ -2356,9 +2358,9 @@ export class UIRenderer {
                 <span>${artist.popularity}% popularity</span>
                 <div class="artist-tags">
                     ${(artist.artistRoles || [])
-                        .filter((role) => role.category)
-                        .map((role) => `<span class="artist-tag">${role.category}</span>`)
-                        .join('')}
+                    .filter((role) => role.category)
+                    .map((role) => `<span class="artist-tag">${role.category}</span>`)
+                    .join('')}
                 </div>
             `;
 

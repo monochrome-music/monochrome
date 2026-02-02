@@ -2,8 +2,8 @@
 import { visualizerSettings } from './storage.js';
 import { LCDPreset } from './visualizers/lcd.js';
 import { ParticlesPreset } from './visualizers/particles.js';
-import { UnknownPleasuresPreset } from './visualizers/unknown_pleasures.js';
-import { equalizer } from './equalizer.js';
+import { UnknownPleasuresWebGL } from './visualizers/unknown_pleasures_webgl.js';
+import { audioContextManager } from './audio-context.js';
 
 export class Visualizer {
     constructor(canvas, audio) {
@@ -13,7 +13,6 @@ export class Visualizer {
 
         this.audioContext = null;
         this.analyser = null;
-        this.source = null;
 
         this.isActive = false;
         this.animationId = null;
@@ -21,7 +20,7 @@ export class Visualizer {
         this.presets = {
             lcd: new LCDPreset(),
             particles: new ParticlesPreset(),
-            'unknown-pleasures': new UnknownPleasuresPreset(),
+            'unknown-pleasures': new UnknownPleasuresWebGL(),
         };
 
         this.activePresetKey = visualizerSettings.getPreset();
@@ -46,11 +45,6 @@ export class Visualizer {
         // ---- CACHED STATE ----
         this._lastPrimaryColor = '';
         this._resizeBound = () => this.resize();
-
-        // Listen for EQ toggle events to reconnect audio graph
-        window.addEventListener('equalizer-toggle', () => {
-            this._reconnectAudioGraph();
-        });
     }
 
     get activePreset() {
@@ -58,70 +52,17 @@ export class Visualizer {
     }
 
     init() {
-        if (this.audioContext) return;
+        // Ensure shared audio context is initialized
+        if (!audioContextManager.isReady()) {
+            audioContextManager.init(this.audio);
+        }
 
-        try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            this.audioContext = new AudioContext();
+        this.audioContext = audioContextManager.getAudioContext();
+        this.analyser = audioContextManager.getAnalyser();
 
-            this.analyser = this.audioContext.createAnalyser();
-            this.analyser.fftSize = 512;
-            this.analyser.smoothingTimeConstant = 0.7;
-
+        if (this.analyser) {
             this.bufferLength = this.analyser.frequencyBinCount;
             this.dataArray = new Uint8Array(this.bufferLength);
-
-            this.source = this.audioContext.createMediaElementSource(this.audio);
-
-            // Initialize equalizer with shared context
-            equalizer.init(this.audioContext, this.source, this.audio);
-
-            // Connect audio graph with EQ if enabled
-            this._reconnectAudioGraph();
-        } catch (e) {
-            console.warn('Visualizer init failed:', e);
-        }
-    }
-
-    /**
-     * Reconnect the audio graph based on EQ state
-     * Audio chain: source -> [EQ filters] -> analyser -> destination
-     */
-    _reconnectAudioGraph() {
-        if (!this.source || !this.analyser || !this.audioContext) return;
-
-        try {
-            // Disconnect the source from its current connections
-            this.source.disconnect();
-
-            if (equalizer.isActive()) {
-                // Route through EQ: source -> EQ -> analyser -> destination
-                const eqInput = equalizer.getInputNode();
-                const eqOutput = equalizer.getOutputNode();
-
-                if (eqInput && eqOutput) {
-                    this.source.connect(eqInput);
-                    eqOutput.connect(this.analyser);
-                    this.analyser.connect(this.audioContext.destination);
-                    console.log('[Audio] EQ enabled in audio chain');
-                } else {
-                    // Fallback if EQ nodes aren't ready
-                    this.source.connect(this.analyser);
-                    this.analyser.connect(this.audioContext.destination);
-                }
-            } else {
-                // Bypass EQ: source -> analyser -> destination
-                this.source.connect(this.analyser);
-                this.analyser.connect(this.audioContext.destination);
-                console.log('[Audio] EQ bypassed');
-            }
-        } catch (e) {
-            console.warn('[Audio] Failed to reconnect audio graph:', e);
-            // Attempt simple reconnect as fallback
-            try {
-                this.source.connect(this.analyser);
-                this.analyser.connect(this.audioContext.destination);
-            } catch {}
         }
     }
 
@@ -136,30 +77,61 @@ export class Visualizer {
      * Get the source node
      */
     getSourceNode() {
-        return this.source;
+        return audioContextManager.source;
     }
 
     initContext() {
-        if (this.ctx) return;
-
         const preset = this.activePreset;
         const type = preset.contextType || '2d';
+        const currentType = this._currentContextType;
+
+        // If context type changed, we need to recreate the canvas
+        // (you can't get a different context type from the same canvas)
+        if (this.ctx && currentType !== type) {
+            // Clone and replace canvas to get fresh context
+            const parent = this.canvas.parentElement;
+            const newCanvas = this.canvas.cloneNode(true);
+            parent.replaceChild(newCanvas, this.canvas);
+            this.canvas = newCanvas;
+            this.ctx = null;
+        }
+
+        if (this.ctx) return;
 
         if (type === 'webgl') {
             this.ctx =
-                this.canvas.getContext('webgl2', { alpha: true, antialias: false }) ||
-                this.canvas.getContext('webgl', { alpha: true, antialias: false });
+                this.canvas.getContext('webgl2', {
+                    alpha: true,
+                    antialias: true,
+                    preserveDrawingBuffer: true,
+                    premultipliedAlpha: false,
+                }) ||
+                this.canvas.getContext('webgl', {
+                    alpha: true,
+                    antialias: true,
+                    preserveDrawingBuffer: true,
+                    premultipliedAlpha: false,
+                });
         } else {
             this.ctx = this.canvas.getContext('2d');
         }
+
+        this._currentContextType = type;
     }
 
     start() {
         if (this.isActive) return;
 
-        if (!this.ctx) this.initContext();
-        if (!this.audioContext) this.init();
-        if (!this.analyser) return;
+        if (!this.ctx) {
+            this.initContext();
+        }
+        if (!this.audioContext) {
+            this.init();
+        }
+
+        if (!this.analyser) {
+            return;
+        }
 
         this.isActive = true;
 
@@ -237,8 +209,9 @@ export class Visualizer {
         const now = performance.now();
         let threshold = stats.energyAverage < 0.3 ? 0.5 + (0.3 - stats.energyAverage) * 2 : 0.5;
 
-        if (intensity > threshold) {
-            if (intensity > stats.lastIntensity + 0.05 && now - stats.lastBeatTime > 50) {
+        // Lower threshold for more responsive kick
+        if (intensity > threshold * 0.7) {
+            if (intensity > stats.lastIntensity + 0.03 && now - stats.lastBeatTime > 50) {
                 stats.kick = 1.0;
                 stats.lastBeatTime = now;
             } else {
