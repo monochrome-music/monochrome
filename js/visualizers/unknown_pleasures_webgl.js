@@ -8,7 +8,6 @@
  */
 
 export class UnknownPleasuresWebGL {
-
     // Propagation speed: controls how fast waves propagate between lines
     // Higher = faster propagation (1.0 = default, 0.5 = slower, 2.0 = faster)
     static PROPAGATION_SPEED = 0.7;
@@ -43,7 +42,6 @@ export class UnknownPleasuresWebGL {
         this.rotationAngle = Math.PI / 6;
         this._cos = Math.cos(this.rotationAngle);
         this._sin = Math.sin(this.rotationAngle);
-
 
         // Propagation timing
         this._propagationAccum = 0;
@@ -356,7 +354,6 @@ export class UnknownPleasuresWebGL {
 
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.blurFinalTexture, 0);
 
-
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
 
@@ -485,7 +482,6 @@ export class UnknownPleasuresWebGL {
         if (this.history.length === 0) {
             this.reset();
         }
-
 
         // Update history with propagation speed control
         // Higher PROPAGATION_SPEED = faster wave propagation
@@ -715,5 +711,4 @@ export class UnknownPleasuresWebGL {
         gl.vertexAttribPointer(this.composite_a_position, 2, gl.FLOAT, false, 0, 0);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
     }
-
 }
