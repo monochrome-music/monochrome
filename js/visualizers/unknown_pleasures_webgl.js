@@ -8,8 +8,6 @@
  */
 
 export class UnknownPleasuresWebGL {
-    // Debug mode - set to true to enable debug overlay and fake audio
-    static DEBUG = false;
 
     // Propagation speed: controls how fast waves propagate between lines
     // Higher = faster propagation (1.0 = default, 0.5 = slower, 2.0 = faster)
@@ -46,10 +44,6 @@ export class UnknownPleasuresWebGL {
         this._cos = Math.cos(this.rotationAngle);
         this._sin = Math.sin(this.rotationAngle);
 
-        // Debug timing
-        this._lastFrameTime = 0;
-        this._frameTime = 16.67;
-        this._fakeAudioTime = 0;
 
         // Propagation timing
         this._propagationAccum = 0;
@@ -362,19 +356,6 @@ export class UnknownPleasuresWebGL {
 
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.blurFinalTexture, 0);
 
-        // Check framebuffer status
-        const checkFB = (name, fb) => {
-            gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-            const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-            if (status !== gl.FRAMEBUFFER_COMPLETE) {
-                console.error(`Framebuffer ${name} incomplete: ${status}`);
-            } else {
-                console.log(`Framebuffer ${name} OK`);
-            }
-        };
-        checkFB('scene', this.framebuffer);
-        checkFB('blur', this.blurFramebuffer);
-        checkFB('blurFinal', this.blurFinalFramebuffer);
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
@@ -505,11 +486,6 @@ export class UnknownPleasuresWebGL {
             this.reset();
         }
 
-        // Generate fake audio in debug mode
-        if (UnknownPleasuresWebGL.DEBUG) {
-            this._fakeAudioTime = performance.now() / 1000;
-            this.generateFakeAudioData(dataArray, this._fakeAudioTime);
-        }
 
         // Update history with propagation speed control
         // Higher PROPAGATION_SPEED = faster wave propagation
@@ -738,51 +714,6 @@ export class UnknownPleasuresWebGL {
         gl.enableVertexAttribArray(this.composite_a_position);
         gl.vertexAttribPointer(this.composite_a_position, 2, gl.FLOAT, false, 0, 0);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-        // Debug timing
-        if (UnknownPleasuresWebGL.DEBUG) {
-            const now = performance.now();
-            this._frameTime = this._frameTime * 0.9 + (now - this._lastFrameTime) * 0.1;
-            this._lastFrameTime = now;
-            if (Math.random() < 0.02) {
-                console.log(`WebGL FPS: ${(1000 / this._frameTime).toFixed(1)}`);
-            }
-        }
     }
 
-    generateFakeAudioData(dataArray, time) {
-        const len = dataArray.length;
-        for (let i = 0; i < len; i++) {
-            const freq = i / len;
-            const bass = Math.max(0, 1 - freq * 3) * 180;
-            const mid = Math.sin(freq * 12 + time * 3) * 40;
-            const beat = Math.sin(time * 8) * 0.5 + 0.5;
-            const variation = Math.sin(time * 2 + i * 0.3) * 25 * beat;
-            dataArray[i] = Math.max(0, Math.min(255, bass + mid + variation));
-        }
-    }
-
-    captureReference() {
-        const canvas = document.getElementById('visualizer-canvas');
-        if (!canvas) {
-            console.error('Visualizer canvas not found');
-            return;
-        }
-        const link = document.createElement('a');
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        link.download = `unknown-pleasures-webgl-${canvas.width}x${canvas.height}-${timestamp}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        console.log(`Captured: ${link.download}`);
-    }
-
-    enableDebug() {
-        UnknownPleasuresWebGL.DEBUG = true;
-        console.log('WebGL Debug mode enabled.');
-    }
-
-    disableDebug() {
-        UnknownPleasuresWebGL.DEBUG = false;
-        console.log('WebGL Debug mode disabled.');
-    }
 }
