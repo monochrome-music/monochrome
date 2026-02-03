@@ -98,6 +98,17 @@ class AudioContextManager {
         if (this.isInitialized) return;
         if (!audioElement) return;
 
+        // Detect iOS - skip Web Audio initialization on iOS to avoid lock screen audio issues
+        // iOS suspends AudioContext when screen locks, and MediaSession controls don't count
+        // as user gestures to resume it, causing audio to play silently
+        const ua = navigator.userAgent.toLowerCase();
+        const isIOS = /iphone|ipad|ipod/.test(ua) || (ua.includes('mac') && navigator.maxTouchPoints > 1);
+        if (isIOS) {
+            console.log('[AudioContext] Skipping Web Audio initialization on iOS for lock screen compatibility');
+            this.isInitialized = true; // Mark as initialized to prevent repeated attempts
+            return;
+        }
+
         try {
             this.audio = audioElement;
 
@@ -177,11 +188,28 @@ class AudioContextManager {
 
     /**
      * Resume audio context (required after user interaction)
+     * @returns {Promise<boolean>} - Returns true if context is running
      */
-    resume() {
-        if (this.audioContext && this.audioContext.state === 'suspended') {
-            this.audioContext.resume();
+    async resume() {
+        if (!this.audioContext) return false;
+
+        console.log('[AudioContext] Current state:', this.audioContext.state);
+
+        if (this.audioContext.state === 'suspended') {
+            try {
+                await this.audioContext.resume();
+                console.log('[AudioContext] Resumed successfully, state:', this.audioContext.state);
+            } catch (e) {
+                console.warn('[AudioContext] Failed to resume:', e);
+            }
         }
+
+        // Ensure graph is connected after resuming (iOS may disconnect when suspended)
+        if (this.isInitialized && this.audioContext.state === 'running') {
+            this._connectGraph();
+        }
+
+        return this.audioContext.state === 'running';
     }
 
     /**
