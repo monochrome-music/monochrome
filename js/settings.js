@@ -12,6 +12,7 @@ import {
     downloadQualitySettings,
     coverArtSizeSettings,
     qualityBadgeSettings,
+    trackDateSettings,
     visualizerSettings,
     bulkDownloadSettings,
     playlistSettings,
@@ -348,6 +349,15 @@ export function initializeSettings(scrobbler, player, api, ui) {
             // Re-render to reflect changes
             ui.renderLibraryPage();
             if (window.renderQueueFunction) window.renderQueueFunction();
+        });
+    }
+
+    // Track Date Settings
+    const useAlbumReleaseYearToggle = document.getElementById('use-album-release-year-toggle');
+    if (useAlbumReleaseYearToggle) {
+        useAlbumReleaseYearToggle.checked = trackDateSettings.useAlbumYear();
+        useAlbumReleaseYearToggle.addEventListener('change', (e) => {
+            trackDateSettings.setUseAlbumYear(e.target.checked);
         });
     }
 

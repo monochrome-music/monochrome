@@ -6,6 +6,7 @@ import {
     isTrackUnavailable,
     getExtensionFromBlob,
 } from './utils.js';
+import { trackDateSettings } from './storage.js';
 import { APICache } from './cache.js';
 import { addMetadataToAudio } from './metadata.js';
 import { DashDownloader } from './dash-downloader.js';
@@ -174,6 +175,8 @@ export class LosslessAPI {
     }
 
     async enrichTracksWithAlbumDates(tracks) {
+        if (!trackDateSettings.useAlbumYear()) return tracks;
+
         const albumIdsToFetch = [];
         for (const track of tracks) {
             if (!track.album?.releaseDate && track.album?.id && !albumIdsToFetch.includes(track.album.id)) {

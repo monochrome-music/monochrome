@@ -9,7 +9,7 @@ import {
     getTrackYearDisplay,
     createQualityBadgeHTML,
 } from './utils.js';
-import { queueManager, replayGainSettings } from './storage.js';
+import { queueManager, replayGainSettings, trackDateSettings } from './storage.js';
 
 export class Player {
     constructor(audioElement, api, quality = 'HI_RES_LOSSLESS') {
@@ -717,6 +717,8 @@ export class Player {
     }
 
     loadAlbumYear(track, trackArtistsHTML, artistEl) {
+        if (!trackDateSettings.useAlbumYear()) return;
+
         this.api
             .getAlbum(track.album.id)
             .then(({ album }) => {
