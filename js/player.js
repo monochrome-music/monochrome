@@ -6,6 +6,7 @@ import {
     getTrackArtists,
     getTrackTitle,
     getTrackArtistsHTML,
+    getTrackYearDisplay,
     createQualityBadgeHTML,
 } from './utils.js';
 import { queueManager, replayGainSettings } from './storage.js';
@@ -112,15 +113,7 @@ export class Player {
                 const track = this.currentTrack;
                 const trackTitle = getTrackTitle(track);
                 const trackArtistsHTML = getTrackArtistsHTML(track);
-
-                let yearDisplay = '';
-                const releaseDate = track.album?.releaseDate || track.streamStartDate;
-                if (releaseDate) {
-                    const date = new Date(releaseDate);
-                    if (!isNaN(date.getTime())) {
-                        yearDisplay = ` • ${date.getFullYear()}`;
-                    }
-                }
+                const yearDisplay = getTrackYearDisplay(track);
 
                 const coverEl = document.querySelector('.now-playing-bar .cover');
                 const titleEl = document.querySelector('.now-playing-bar .title');
@@ -143,6 +136,11 @@ export class Player {
                     }
                 }
                 if (artistEl) artistEl.innerHTML = trackArtistsHTML + yearDisplay;
+
+                // Fetch album release date in background if missing
+                if (!yearDisplay && track.album?.id) {
+                    this.loadAlbumYear(track, trackArtistsHTML, artistEl);
+                }
 
                 const mixBtn = document.getElementById('now-playing-mix-btn');
                 if (mixBtn) {
@@ -278,19 +276,10 @@ export class Player {
 
         const trackTitle = getTrackTitle(track);
         const trackArtistsHTML = getTrackArtistsHTML(track);
-
-        let yearDisplay = '';
-        const releaseDate = track.album?.releaseDate || track.streamStartDate;
-        if (releaseDate) {
-            const date = new Date(releaseDate);
-            if (!isNaN(date.getTime())) {
-                yearDisplay = ` • ${date.getFullYear()}`;
-            }
-        }
+        const yearDisplay = getTrackYearDisplay(track);
 
         document.querySelector('.now-playing-bar .cover').src = this.api.getCoverUrl(track.album?.cover);
-        const qualityBadge = createQualityBadgeHTML(track);
-        document.querySelector('.now-playing-bar .title').innerHTML = `${trackTitle} ${qualityBadge}`;
+        document.querySelector('.now-playing-bar .title').innerHTML = `${trackTitle} ${createQualityBadgeHTML(track)}`;
         const albumEl = document.querySelector('.now-playing-bar .album');
         if (albumEl) {
             const albumTitle = track.album?.title || '';
@@ -302,7 +291,13 @@ export class Player {
                 albumEl.style.display = 'none';
             }
         }
-        document.querySelector('.now-playing-bar .artist').innerHTML = trackArtistsHTML + yearDisplay;
+        const artistEl = document.querySelector('.now-playing-bar .artist');
+        artistEl.innerHTML = trackArtistsHTML + yearDisplay;
+
+        // Fetch album release date in background if missing
+        if (!yearDisplay && track.album?.id) {
+            this.loadAlbumYear(track, trackArtistsHTML, artistEl);
+        }
 
         const mixBtn = document.getElementById('now-playing-mix-btn');
         if (mixBtn) {
@@ -719,6 +714,18 @@ export class Player {
             return currentQueue[0];
         }
         return null;
+    }
+
+    loadAlbumYear(track, trackArtistsHTML, artistEl) {
+        this.api.getAlbum(track.album.id).then(({ album }) => {
+            if (album?.releaseDate && this.currentTrack?.id === track.id) {
+                track.album.releaseDate = album.releaseDate;
+                const year = new Date(album.releaseDate).getFullYear();
+                if (!isNaN(year) && artistEl) {
+                    artistEl.innerHTML = `${trackArtistsHTML} • ${year}`;
+                }
+            }
+        }).catch(() => {});
     }
 
     updatePlayingTrackIndicator() {

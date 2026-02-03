@@ -66,6 +66,13 @@ export const formatTime = (seconds) => {
     return `${m}:${String(s).padStart(2, '0')}`;
 };
 
+export const getTrackYearDisplay = (track) => {
+    const releaseDate = track?.album?.releaseDate || track?.streamStartDate;
+    if (!releaseDate) return '';
+    const date = new Date(releaseDate);
+    return isNaN(date.getTime()) ? '' : ` • ${date.getFullYear()}`;
+};
+
 export const createPlaceholder = (text, isLoading = false) => {
     return `<div class="placeholder-text ${isLoading ? 'loading' : ''}">${text}</div>`;
 };

@@ -13,6 +13,7 @@ import {
     hasExplicitContent,
     getTrackArtists,
     getTrackTitle,
+    getTrackYearDisplay,
     createQualityBadgeHTML,
     calculateTotalDuration,
     formatDuration,
@@ -234,14 +235,7 @@ export class UIRenderer {
             showCover = false;
         }
 
-        let yearDisplay = '';
-        const releaseDate = track.album?.releaseDate || track.streamStartDate;
-        if (releaseDate) {
-            const date = new Date(releaseDate);
-            if (!isNaN(date.getTime())) {
-                yearDisplay = ` • ${date.getFullYear()}`;
-            }
-        }
+        const yearDisplay = getTrackYearDisplay(track);
 
         const actionsHTML = isUnavailable
             ? ''
