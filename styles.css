@@ -889,7 +889,6 @@ input[type='search']::-webkit-search-cancel-button {
 
     /* Use standardized animation */
 }
-
 /* Settings Tabs */
 .settings-tabs {
     display: flex;
@@ -910,9 +909,9 @@ input[type='search']::-webkit-search-cancel-button {
     border-bottom: 2px solid transparent;
     border-radius: var(--radius-sm) var(--radius-sm) 0 0;
     transition:
-        color var(--transition-fast),
-        background-color var(--transition-fast),
-        transform var(--transition-fast);
+            color var(--transition-fast),
+            background-color var(--transition-fast),
+            transform var(--transition-fast);
     position: relative;
 }
 
@@ -937,6 +936,105 @@ input[type='search']::-webkit-search-cancel-button {
 .settings-tab-content.active {
     display: block;
     animation: fade-in-slide-up 0.4s var(--ease-out-back);
+}
+
+/* Search All Results */
+.search-all-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.search-all-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+    text-decoration: none;
+    color: inherit;
+}
+
+.search-all-item:hover {
+    background-color: var(--accent);
+}
+
+.search-all-item-image {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+    flex-shrink: 0;
+    background-color: var(--muted);
+}
+
+.search-all-item-image.artist {
+    border-radius: 50%;
+}
+
+.search-all-item-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.search-all-item-title {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.search-all-item-subtitle {
+    font-size: 0.85rem;
+    color: var(--muted-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.search-all-item-type {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    background-color: var(--muted);
+    color: var(--muted-foreground);
+    flex-shrink: 0;
+}
+
+.search-all-item-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.search-all-item:hover .search-all-item-actions {
+    opacity: 1;
+}
+
+.search-all-section {
+    margin-bottom: var(--spacing-lg);
+}
+
+.search-all-section-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted-foreground);
+    margin-bottom: var(--spacing-sm);
+    padding-left: var(--spacing-md);
 }
 
 .card-grid {
@@ -3303,38 +3401,6 @@ input:checked + .slider::before {
 .panel-controls {
     display: flex;
     gap: 0.5rem;
-}
-
-/* Lyrics timing adjustment controls */
-.lyrics-timing-controls {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    margin-right: auto;
-    padding-right: 0.5rem;
-    border-right: 1px solid var(--border);
-}
-
-.lyrics-timing-display {
-    font-family: monospace;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--foreground);
-    min-width: 3.5rem;
-    text-align: center;
-    user-select: none;
-    cursor: default;
-}
-
-.lyrics-timing-controls .btn-icon {
-    padding: 0.4rem;
-    width: 28px;
-    height: 28px;
-}
-
-.lyrics-timing-controls .btn-icon:hover {
-    background: var(--secondary);
-    color: var(--primary);
 }
 
 .panel-content {

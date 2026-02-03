@@ -1367,6 +1367,28 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             return;
         }
 
+        // Handle search "All" result items
+        const searchAllItem = e.target.closest('.search-all-item');
+        if (searchAllItem && !e.target.closest('.like-btn')) {
+            e.preventDefault();
+            const itemType = searchAllItem.dataset.type;
+            const href = searchAllItem.getAttribute('href');
+
+            if (itemType === 'track') {
+                // For tracks, play directly
+                const track = trackDataStore.get(searchAllItem);
+                if (track) {
+                    player.setQueue([track], 0);
+                    document.getElementById('shuffle-btn').classList.remove('active');
+                    player.playTrackFromQueue();
+                }
+            } else if (href) {
+                // For other types, navigate
+                navigate(href);
+            }
+            return;
+        }
+
         const trackItem = e.target.closest('.track-item');
         if (trackItem && trackItem.classList.contains('unavailable')) {
             return;
@@ -1404,6 +1426,22 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
     });
 
     mainContent.addEventListener('contextmenu', async (e) => {
+        // Handle search "All" items context menu
+        const searchAllItem = e.target.closest('.search-all-item');
+        if (searchAllItem) {
+            const item = trackDataStore.get(searchAllItem);
+            const itemType = searchAllItem.dataset.type;
+            if (item && itemType) {
+                e.preventDefault();
+                contextTrack = item;
+                contextMenu._contextTrack = item;
+                contextMenu._contextType = itemType;
+                await updateContextMenuLikeState(contextMenu, item);
+                positionMenu(contextMenu, e.pageX, e.pageY);
+            }
+            return;
+        }
+
         const trackItem = e.target.closest('.track-item, .queue-track-item');
         if (trackItem) {
             e.preventDefault();
