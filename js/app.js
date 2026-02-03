@@ -1437,11 +1437,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                         if (track) {
                             if (albumItem) {
-                                let label = 'Album';
+                                let label = 'album';
                                 const albumType = track.album?.type?.toUpperCase();
                                 const trackCount = track.album?.numberOfTracks;
 
-                                if (albumType === 'SINGLE' || trackCount === 1) label = 'Single';
+                                if (albumType === 'SINGLE' || trackCount === 1) label = 'single';
                                 else if (albumType === 'EP') label = 'EP';
                                 else if (trackCount && trackCount <= 6) label = 'EP';
 
