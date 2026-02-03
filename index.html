@@ -1915,783 +1915,843 @@
 
                 <div id="page-settings" class="page">
                     <h2 class="section-title">Settings</h2>
-                    <div class="settings-list">
-                        <div class="settings-group">
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Theme</span>
-                                    <span class="description">Choose your preferred color scheme</span>
-                                </div>
-                            </div>
-                            <div class="theme-picker" id="theme-picker">
-                                <div class="theme-option" data-theme="system">System</div>
-                                <div class="theme-option" data-theme="light">Light</div>
-                                <div class="theme-option" data-theme="dark">Dark</div>
-                                <div class="theme-option" data-theme="monochrome">Black</div>
-                                <div class="theme-option" data-theme="ocean">Ocean</div>
-                                <div class="theme-option" data-theme="purple">Purple</div>
-                                <div class="theme-option" data-theme="forest">Forest</div>
-                                <div class="theme-option" data-theme="mocha">Mocha</div>
-                                <div class="theme-option" data-theme="machiatto">Machiatto</div>
-                                <div class="theme-option" data-theme="frappe">Frappé</div>
-                                <div class="theme-option" data-theme="latte">Latte</div>
-                                <div class="theme-option" data-theme="custom">Custom</div>
-                            </div>
-                            <div class="custom-theme-editor" id="custom-theme-editor">
-                                <h4>Custom Theme</h4>
-                                <div class="theme-color-grid" id="theme-color-grid"></div>
-                                <div class="theme-actions">
-                                    <button class="btn-secondary" id="apply-custom-theme">Apply Theme</button>
-                                    <button class="btn-secondary" id="reset-custom-theme">Reset</button>
-                                </div>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Waveform Seekbar</span>
-                                    <span class="description"
-                                        >Show a visual waveform of the track in the progress bar (Experimental)</span
-                                    >
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="waveform-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Smooth Scrolling</span>
-                                    <span class="description"
-                                        >Provides a smoother scrolling experience with Lenis (Experimental)</span
-                                    >
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="smooth-scrolling-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Album Cover Background</span>
-                                    <span class="description"
-                                        >Use the album cover as a blurred background on album pages and as primary
-                                        color</span
-                                    >
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="album-background-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Full-screen Visualizer</span>
-                                    <span class="description">Enable particle visualizer in full-screen mode</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="visualizer-enabled-toggle" checked />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item" id="visualizer-preset-setting">
-                                <div class="info">
-                                    <span class="label">Visualizer Style</span>
-                                    <span class="description">Select the visualization style</span>
-                                </div>
-                                <select id="visualizer-preset-select">
-                                    <option value="lcd">LCD Pixels</option>
-                                    <option value="particles">Particles</option>
-                                    <option value="unknown-pleasures">Unknown Pleasures</option>
-                                </select>
-                            </div>
-                            <div class="setting-item" id="visualizer-mode-setting">
-                                <div class="info">
-                                    <span class="label">Visualizer Mode</span>
-                                    <span class="description"
-                                        >Choose how the visualizer is displayed in full-screen</span
-                                    >
-                                </div>
-                                <select id="visualizer-mode-select">
-                                    <option value="solid">Solid Background</option>
-                                    <option value="blended">Blended on Cover Art</option>
-                                </select>
-                            </div>
-                            <div class="setting-item" id="visualizer-smart-intensity-setting">
-                                <div class="info">
-                                    <span class="label">Smart Intensity Switching</span>
-                                    <span class="description"
-                                        >Automatically adjust visualizer intensity based on song energy</span
-                                    >
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="smart-intensity-toggle" checked />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item" id="visualizer-sensitivity-setting">
-                                <div class="info">
-                                    <span class="label">Visualizer Sensitivity</span>
-                                    <span class="description"
-                                        >Adjust the intensity of the visualizer effects.
-                                        <strong
-                                            >Warning: High sensitivity may cause flashing lights and rapid motion, which
-                                            can trigger seizures in people with photosensitive epilepsy.</strong
-                                        ></span
-                                    >
-                                </div>
-                                <div style="display: flex; align-items: center; gap: 10px">
-                                    <input
-                                        type="range"
-                                        id="visualizer-sensitivity-slider"
-                                        min="0.1"
-                                        max="2.0"
-                                        step="0.1"
-                                        value="0.6"
-                                        style="width: 100px"
-                                    />
-                                    <span
-                                        id="visualizer-sensitivity-value"
-                                        style="font-size: 0.9rem; min-width: 3em; text-align: right"
-                                        >60%</span
-                                    >
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="settings-group">
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">ListenBrainz Scrobbling</span>
-                                    <span class="description"
-                                        >Submit listens to ListenBrainz (requires User Token)</span
-                                    >
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="listenbrainz-enabled-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item" id="listenbrainz-token-setting" style="display: none">
-                                <div class="info">
-                                    <span class="label">User Token</span>
-                                    <span class="description">Found on your ListenBrainz profile page</span>
-                                </div>
-                                <input
-                                    type="password"
-                                    id="listenbrainz-token-input"
-                                    placeholder="Enter Token"
-                                    class="template-input"
-                                    style="width: 250px"
-                                />
-                            </div>
-                        </div>
-
-                        <div class="settings-group">
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Last.fm Scrobbling</span>
-                                    <span class="description" id="lastfm-status"
-                                        >Connect your Last.fm account to scrobble tracks</span
-                                    >
-                                </div>
-                                <div id="lastfm-controls">
-                                    <button id="lastfm-connect-btn" class="btn-secondary">Connect Last.fm</button>
-                                </div>
-                            </div>
-
-                            <div class="setting-item" id="lastfm-toggle-setting" style="display: none">
-                                <div class="info">
-                                    <span class="label">Enable Scrobbling</span>
-                                    <span class="description">Automatically scrobble played tracks</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="lastfm-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-
-                            <div class="setting-item" id="lastfm-love-setting" style="display: none">
-                                <div class="info">
-                                    <span class="label">Love on Like</span>
-                                    <span class="description"
-                                        >Automatically 'love' tracks on Last.fm when you like them</span
-                                    >
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="lastfm-love-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="settings-group">
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Streaming Quality</span>
-                                    <span class="description">Quality for streaming playback</span>
-                                </div>
-                                <select id="streaming-quality-setting">
-                                    <option value="HI_RES_LOSSLESS">Hi-Res FLAC (24-bit)</option>
-                                    <option value="LOSSLESS">FLAC (Lossless)</option>
-                                    <option value="HIGH">AAC 320kbps</option>
-                                    <option value="LOW">AAC 96kbps</option>
-                                </select>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Download Quality</span>
-                                    <span class="description">Quality for track downloads</span>
-                                </div>
-                                <select id="download-quality-setting">
-                                    <option value="HI_RES_LOSSLESS">Hi-Res FLAC (24-bit)</option>
-                                    <option value="LOSSLESS">FLAC (Lossless)</option>
-                                    <option value="HIGH">AAC 320kbps</option>
-                                    <option value="LOW">AAC 96kbps</option>
-                                </select>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Cover Art Size</span>
-                                    <span class="description">Size for downloaded/embedded cover art</span>
-                                </div>
-                                <input
-                                    type="text"
-                                    id="cover-art-size-setting"
-                                    class="template-input"
-                                    style="width: 120px; text-align: right"
-                                    placeholder="1280x1280"
-                                />
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Show Quality Badges</span>
-                                    <span class="description">Display "HD" badge for Hi-Res tracks</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="show-quality-badges-toggle" checked />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Gapless Playback</span>
-                                    <span class="description">Play audio without interruption between tracks</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" checked />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">ReplayGain Mode</span>
-                                    <span class="description">Normalize volume across tracks</span>
-                                </div>
-                                <select id="replay-gain-mode">
-                                    <option value="off">Off</option>
-                                    <option value="track">Track</option>
-                                    <option value="album">Album</option>
-                                </select>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">ReplayGain Pre-Amp</span>
-                                    <span class="description">Adjust gain manually (dB)</span>
-                                </div>
-                                <input type="number" id="replay-gain-preamp" value="3" step="0.5" style="width: 80px" />
-                            </div>
-
-                            <!-- 16-Band Equalizer -->
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Equalizer</span>
-                                    <span class="description">16-band parametric equalizer for fine audio control</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="equalizer-enabled-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-
-                            <div class="equalizer-container" id="equalizer-container" style="display: none">
-                                <div class="equalizer-header">
-                                    <div class="equalizer-preset-row">
-                                        <label for="equalizer-preset-select">Preset</label>
-                                        <select id="equalizer-preset-select">
-                                            <option value="flat">Flat</option>
-                                            <option value="bass_boost">Bass Boost</option>
-                                            <option value="bass_reducer">Bass Reducer</option>
-                                            <option value="treble_boost">Treble Boost</option>
-                                            <option value="treble_reducer">Treble Reducer</option>
-                                            <option value="vocal_boost">Vocal Boost</option>
-                                            <option value="loudness">Loudness</option>
-                                            <option value="rock">Rock</option>
-                                            <option value="pop">Pop</option>
-                                            <option value="classical">Classical</option>
-                                            <option value="jazz">Jazz</option>
-                                            <option value="electronic">Electronic</option>
-                                            <option value="hip_hop">Hip-Hop</option>
-                                            <option value="r_and_b">R&B</option>
-                                            <option value="acoustic">Acoustic</option>
-                                            <option value="podcast">Podcast / Speech</option>
-                                        </select>
-                                        <button id="equalizer-reset-btn" class="btn-secondary" title="Reset to Flat">
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="16"
-                                                height="16"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                stroke-width="2"
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                            >
-                                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                                                <path d="M3 3v5h5" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div class="equalizer-bands" id="equalizer-bands">
-                                    <!-- Bands will be dynamically generated by JavaScript -->
-                                    <div class="eq-band" data-band="0">
-                                        <input
-                                            type="range"
-                                            class="eq-slider"
-                                            min="-30"
-                                            max="30"
-                                            step="0.5"
-                                            value="0"
-                                            orient="vertical"
-                                        />
-                                        <span class="eq-value">0</span>
-                                        <span class="eq-freq">25</span>
-                                    </div>
-                                    <div class="eq-band" data-band="1">
-                                        <input
-                                            type="range"
-                                            class="eq-slider"
-                                            min="-30"
-                                            max="30"
-                                            step="0.5"
-                                            value="0"
-                                            orient="vertical"
-                                        />
-                                        <span class="eq-value">0</span>
-                                        <span class="eq-freq">40</span>
-                                    </div>
-                                    <div class="eq-band" data-band="2">
-                                        <input
-                                            type="range"
-                                            class="eq-slider"
-                                            min="-30"
-                                            max="30"
-                                            step="0.5"
-                                            value="0"
-                                            orient="vertical"
-                                        />
-                                        <span class="eq-value">0</span>
-                                        <span class="eq-freq">63</span>
-                                    </div>
-                                    <div class="eq-band" data-band="3">
-                                        <input
-                                            type="range"
-                                            class="eq-slider"
-                                            min="-30"
-                                            max="30"
-                                            step="0.5"
-                                            value="0"
-                                            orient="vertical"
-                                        />
-                                        <span class="eq-value">0</span>
-                                        <span class="eq-freq">100</span>
-                                    </div>
-                                    <div class="eq-band" data-band="4">
-                                        <input
-                                            type="range"
-                                            class="eq-slider"
-                                            min="-30"
-                                            max="30"
-                                            step="0.5"
-                                            value="0"
-                                            orient="vertical"
-                                        />
-                                        <span class="eq-value">0</span>
-                                        <span class="eq-freq">160</span>
-                                    </div>
-                                    <div class="eq-band" data-band="5">
-                                        <input
-                                            type="range"
-                                            class="eq-slider"
-                                            min="-30"
-                                            max="30"
-                                            step="0.5"
-                                            value="0"
-                                            orient="vertical"
-                                        />
-                                        <span class="eq-value">0</span>
-                                        <span class="eq-freq">250</span>
-                                    </div>
-                                    <div class="eq-band" data-band="6">
-                                        <input
-                                            type="range"
-                                            class="eq-slider"
-                                            min="-30"
-                                            max="30"
-                                            step="0.5"
-                                            value="0"
-                                            orient="vertical"
-                                        />
-                                        <span class="eq-value">0</span>
-                                        <span class="eq-freq">400</span>
-                                    </div>
-                                    <div class="eq-band" data-band="7">
-                                        <input
-                                            type="range"
-                                            class="eq-slider"
-                                            min="-30"
-                                            max="30"
-                                            step="0.5"
-                                            value="0"
-                                            orient="vertical"
-                                        />
-                                        <span class="eq-value">0</span>
-                                        <span class="eq-freq">630</span>
-                                    </div>
-                                    <div class="eq-band" data-band="8">
-                                        <input
-                                            type="range"
-                                            class="eq-slider"
-                                            min="-30"
-                                            max="30"
-                                            step="0.5"
-                                            value="0"
-                                            orient="vertical"
-                                        />
-                                        <span class="eq-value">0</span>
-                                        <span class="eq-freq">1K</span>
-                                    </div>
-                                    <div class="eq-band" data-band="9">
-                                        <input
-                                            type="range"
-                                            class="eq-slider"
-                                            min="-30"
-                                            max="30"
-                                            step="0.5"
-                                            value="0"
-                                            orient="vertical"
-                                        />
-                                        <span class="eq-value">0</span>
-                                        <span class="eq-freq">1.6K</span>
-                                    </div>
-                                    <div class="eq-band" data-band="10">
-                                        <input
-                                            type="range"
-                                            class="eq-slider"
-                                            min="-30"
-                                            max="30"
-                                            step="0.5"
-                                            value="0"
-                                            orient="vertical"
-                                        />
-                                        <span class="eq-value">0</span>
-                                        <span class="eq-freq">2.5K</span>
-                                    </div>
-                                    <div class="eq-band" data-band="11">
-                                        <input
-                                            type="range"
-                                            class="eq-slider"
-                                            min="-30"
-                                            max="30"
-                                            step="0.5"
-                                            value="0"
-                                            orient="vertical"
-                                        />
-                                        <span class="eq-value">0</span>
-                                        <span class="eq-freq">4K</span>
-                                    </div>
-                                    <div class="eq-band" data-band="12">
-                                        <input
-                                            type="range"
-                                            class="eq-slider"
-                                            min="-30"
-                                            max="30"
-                                            step="0.5"
-                                            value="0"
-                                            orient="vertical"
-                                        />
-                                        <span class="eq-value">0</span>
-                                        <span class="eq-freq">6.3K</span>
-                                    </div>
-                                    <div class="eq-band" data-band="13">
-                                        <input
-                                            type="range"
-                                            class="eq-slider"
-                                            min="-30"
-                                            max="30"
-                                            step="0.5"
-                                            value="0"
-                                            orient="vertical"
-                                        />
-                                        <span class="eq-value">0</span>
-                                        <span class="eq-freq">10K</span>
-                                    </div>
-                                    <div class="eq-band" data-band="14">
-                                        <input
-                                            type="range"
-                                            class="eq-slider"
-                                            min="-30"
-                                            max="30"
-                                            step="0.5"
-                                            value="0"
-                                            orient="vertical"
-                                        />
-                                        <span class="eq-value">0</span>
-                                        <span class="eq-freq">16K</span>
-                                    </div>
-                                    <div class="eq-band" data-band="15">
-                                        <input
-                                            type="range"
-                                            class="eq-slider"
-                                            min="-30"
-                                            max="30"
-                                            step="0.5"
-                                            value="0"
-                                            orient="vertical"
-                                        />
-                                        <span class="eq-value">0</span>
-                                        <span class="eq-freq">20K</span>
-                                    </div>
-                                </div>
-
-                                <div class="equalizer-scale">
-                                    <span>+30 dB</span>
-                                    <span>0 dB</span>
-                                    <span>-30 dB</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="settings-group">
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Now Playing View Mode</span>
-                                    <span class="description">Choose what shows when you click the album art</span>
-                                </div>
-                                <select id="now-playing-mode">
-                                    <option value="album">Show Album</option>
-                                    <option value="cover">Fullscreen Mode</option>
-                                    <option value="lyrics">Lyrics Panel</option>
-                                </select>
-                            </div>
-
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Compact Artists</span>
-                                    <span class="description">Show artist cards in a compact, horizontal layout</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="compact-artist-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Compact Albums</span>
-                                    <span class="description">Show album cards in a compact, horizontal layout</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="compact-album-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="settings-group">
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Zipped Bulk Downloads</span>
-                                    <span class="description"
-                                        >Download multiple tracks as a single ZIP file (requires browser support)</span
-                                    >
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="zipped-bulk-downloads-toggle" checked />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Download Lyrics</span>
-                                    <span class="description">Include .lrc files when downloading tracks/albums</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="download-lyrics-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Romaji Lyrics</span>
-                                    <span class="description"
-                                        >Convert Japanese lyrics to Romaji (Latin characters)</span
-                                    >
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="romaji-lyrics-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Filename Template</span>
-                                    <span class="description"
-                                        >Customize download filenames. Available: {trackNumber}, {artist}, {title},
-                                        {album}</span
-                                    >
-                                </div>
-                                <input
-                                    type="text"
-                                    id="filename-template"
-                                    class="template-input"
-                                    placeholder="{trackNumber} - {artist} - {title}"
-                                />
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">ZIP Folder Template</span>
-                                    <span class="description"
-                                        >Customize album folder names. Available: {albumTitle}, {albumArtist},
-                                        {year}</span
-                                    >
-                                </div>
-                                <input
-                                    type="text"
-                                    id="zip-folder-template"
-                                    class="template-input"
-                                    placeholder="{albumTitle} - {albumArtist} - monochrome.tf"
-                                />
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Generate M3U</span>
-                                    <span class="description">Include M3U playlist files in downloads</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="generate-m3u-toggle" checked />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Generate M3U8</span>
-                                    <span class="description">Include extended M3U8 playlist files in downloads</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="generate-m3u8-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Generate CUE</span>
-                                    <span class="description"
-                                        >Include CUE sheets for gapless playback in downloads</span
-                                    >
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="generate-cue-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Generate NFO</span>
-                                    <span class="description">Include NFO files for media center compatibility</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="generate-nfo-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Generate JSON</span>
-                                    <span class="description">Include JSON files with rich metadata</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="generate-json-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Relative Paths</span>
-                                    <span class="description">Use relative paths in playlist files</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="relative-paths-toggle" checked />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="settings-group">
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Keyboard Shortcuts</span>
-                                    <span class="description">View available keyboard shortcuts</span>
-                                </div>
-                                <button id="show-shortcuts-btn" class="btn-secondary">Show Shortcuts</button>
-                            </div>
-                            <div class="setting-item" id="install-app-setting" style="display: none">
-                                <div class="info">
-                                    <span class="label">Install App</span>
-                                    <span class="description">Install Monochrome as an app on your device</span>
-                                </div>
-                                <button id="manual-install-btn" class="btn-secondary">Install</button>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Cache</span>
-                                    <span class="description" id="cache-info"
-                                        >Stores API responses to reduce requests</span
-                                    >
-                                </div>
-                                <button id="clear-cache-btn" class="btn-secondary">Clear Cache</button>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Backup & Restore</span>
-                                    <span class="description">Export or import your library and history as JSON</span>
-                                </div>
-                                <div style="display: flex; gap: 0.5rem">
-                                    <button id="export-library-btn" class="btn-secondary">Export</button>
-                                    <button id="import-library-btn" class="btn-secondary">Import</button>
-                                    <input type="file" id="import-library-input" style="display: none" accept=".json" />
-                                </div>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">ADVANCED: Custom Database/Auth</span>
-                                    <span class="description">Configure custom PocketBase and Firebase instances</span>
-                                </div>
-                                <button id="custom-db-btn" class="btn-secondary">Configure</button>
-                            </div>
-                            <div id="api-instance-manager">
-                                <div class="setting-item" style="padding-bottom: 1rem; border: none">
+                    <div class="settings-tabs">
+                        <button class="settings-tab active" data-tab="appearance">Appearance</button>
+                        <button class="settings-tab" data-tab="scrobbling">Scrobbling</button>
+                        <button class="settings-tab" data-tab="audio">Audio</button>
+                        <button class="settings-tab" data-tab="interface">Interface</button>
+                        <button class="settings-tab" data-tab="downloads">Downloads</button>
+                        <button class="settings-tab" data-tab="system">System</button>
+                    </div>
+                    <div class="settings-tab-content active" id="settings-tab-appearance">
+                        <div class="settings-list">
+                            <div class="settings-group">
+                                <div class="setting-item">
                                     <div class="info">
-                                        <span class="label">API Instances</span>
+                                        <span class="label">Theme</span>
+                                        <span class="description">Choose your preferred color scheme</span>
+                                    </div>
+                                </div>
+                                <div class="theme-picker" id="theme-picker">
+                                    <div class="theme-option" data-theme="system">System</div>
+                                    <div class="theme-option" data-theme="light">Light</div>
+                                    <div class="theme-option" data-theme="dark">Dark</div>
+                                    <div class="theme-option" data-theme="monochrome">Black</div>
+                                    <div class="theme-option" data-theme="ocean">Ocean</div>
+                                    <div class="theme-option" data-theme="purple">Purple</div>
+                                    <div class="theme-option" data-theme="forest">Forest</div>
+                                    <div class="theme-option" data-theme="mocha">Mocha</div>
+                                    <div class="theme-option" data-theme="machiatto">Machiatto</div>
+                                    <div class="theme-option" data-theme="frappe">Frappé</div>
+                                    <div class="theme-option" data-theme="latte">Latte</div>
+                                    <div class="theme-option" data-theme="custom">Custom</div>
+                                </div>
+                                <div class="custom-theme-editor" id="custom-theme-editor">
+                                    <h4>Custom Theme</h4>
+                                    <div class="theme-color-grid" id="theme-color-grid"></div>
+                                    <div class="theme-actions">
+                                        <button class="btn-secondary" id="apply-custom-theme">Apply Theme</button>
+                                        <button class="btn-secondary" id="reset-custom-theme">Reset</button>
+                                    </div>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Waveform Seekbar</span>
                                         <span class="description"
-                                            >Manage and prioritize API instances. Automatically sorted by speed.</span
+                                            >Show a visual waveform of the track in the progress bar
+                                            (Experimental)</span
                                         >
                                     </div>
-                                    <button id="refresh-speed-test-btn" class="btn-secondary">
-                                        Refresh Speed Test
-                                    </button>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="waveform-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
                                 </div>
-                                <ul id="api-instance-list"></ul>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Smooth Scrolling</span>
+                                        <span class="description"
+                                            >Provides a smoother scrolling experience with Lenis (Experimental)</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="smooth-scrolling-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Album Cover Background</span>
+                                        <span class="description"
+                                            >Use the album cover as a blurred background on album pages and as primary
+                                            color</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="album-background-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Full-screen Visualizer</span>
+                                        <span class="description">Enable particle visualizer in full-screen mode</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="visualizer-enabled-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item" id="visualizer-preset-setting">
+                                    <div class="info">
+                                        <span class="label">Visualizer Style</span>
+                                        <span class="description">Select the visualization style</span>
+                                    </div>
+                                    <select id="visualizer-preset-select">
+                                        <option value="lcd">LCD Pixels</option>
+                                        <option value="particles">Particles</option>
+                                        <option value="unknown-pleasures">Unknown Pleasures</option>
+                                    </select>
+                                </div>
+                                <div class="setting-item" id="visualizer-mode-setting">
+                                    <div class="info">
+                                        <span class="label">Visualizer Mode</span>
+                                        <span class="description"
+                                            >Choose how the visualizer is displayed in full-screen</span
+                                        >
+                                    </div>
+                                    <select id="visualizer-mode-select">
+                                        <option value="solid">Solid Background</option>
+                                        <option value="blended">Blended on Cover Art</option>
+                                    </select>
+                                </div>
+                                <div class="setting-item" id="visualizer-smart-intensity-setting">
+                                    <div class="info">
+                                        <span class="label">Smart Intensity Switching</span>
+                                        <span class="description"
+                                            >Automatically adjust visualizer intensity based on song energy</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="smart-intensity-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item" id="visualizer-sensitivity-setting">
+                                    <div class="info">
+                                        <span class="label">Visualizer Sensitivity</span>
+                                        <span class="description"
+                                            >Adjust the intensity of the visualizer effects.
+                                            <strong
+                                                >Warning: High sensitivity may cause flashing lights and rapid motion,
+                                                which can trigger seizures in people with photosensitive
+                                                epilepsy.</strong
+                                            ></span
+                                        >
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 10px">
+                                        <input
+                                            type="range"
+                                            id="visualizer-sensitivity-slider"
+                                            min="0.1"
+                                            max="2.0"
+                                            step="0.1"
+                                            value="0.6"
+                                            style="width: 100px"
+                                        />
+                                        <span
+                                            id="visualizer-sensitivity-value"
+                                            style="font-size: 0.9rem; min-width: 3em; text-align: right"
+                                            >60%</span
+                                        >
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-tab-content" id="settings-tab-scrobbling">
+                        <div class="settings-list">
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">ListenBrainz Scrobbling</span>
+                                        <span class="description"
+                                            >Submit listens to ListenBrainz (requires User Token)</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="listenbrainz-enabled-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item" id="listenbrainz-token-setting" style="display: none">
+                                    <div class="info">
+                                        <span class="label">User Token</span>
+                                        <span class="description">Found on your ListenBrainz profile page</span>
+                                    </div>
+                                    <input
+                                        type="password"
+                                        id="listenbrainz-token-input"
+                                        placeholder="Enter Token"
+                                        class="template-input"
+                                        style="width: 250px"
+                                    />
+                                </div>
+                            </div>
+
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Last.fm Scrobbling</span>
+                                        <span class="description" id="lastfm-status"
+                                            >Connect your Last.fm account to scrobble tracks</span
+                                        >
+                                    </div>
+                                    <div id="lastfm-controls">
+                                        <button id="lastfm-connect-btn" class="btn-secondary">Connect Last.fm</button>
+                                    </div>
+                                </div>
+
+                                <div class="setting-item" id="lastfm-toggle-setting" style="display: none">
+                                    <div class="info">
+                                        <span class="label">Enable Scrobbling</span>
+                                        <span class="description">Automatically scrobble played tracks</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="lastfm-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+
+                                <div class="setting-item" id="lastfm-love-setting" style="display: none">
+                                    <div class="info">
+                                        <span class="label">Love on Like</span>
+                                        <span class="description"
+                                            >Automatically 'love' tracks on Last.fm when you like them</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="lastfm-love-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-tab-content" id="settings-tab-audio">
+                        <div class="settings-list">
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Streaming Quality</span>
+                                        <span class="description">Quality for streaming playback</span>
+                                    </div>
+                                    <select id="streaming-quality-setting">
+                                        <option value="HI_RES_LOSSLESS">Hi-Res FLAC (24-bit)</option>
+                                        <option value="LOSSLESS">FLAC (Lossless)</option>
+                                        <option value="HIGH">AAC 320kbps</option>
+                                        <option value="LOW">AAC 96kbps</option>
+                                    </select>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Download Quality</span>
+                                        <span class="description">Quality for track downloads</span>
+                                    </div>
+                                    <select id="download-quality-setting">
+                                        <option value="HI_RES_LOSSLESS">Hi-Res FLAC (24-bit)</option>
+                                        <option value="LOSSLESS">FLAC (Lossless)</option>
+                                        <option value="HIGH">AAC 320kbps</option>
+                                        <option value="LOW">AAC 96kbps</option>
+                                    </select>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Cover Art Size</span>
+                                        <span class="description">Size for downloaded/embedded cover art</span>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        id="cover-art-size-setting"
+                                        class="template-input"
+                                        style="width: 120px; text-align: right"
+                                        placeholder="1280x1280"
+                                    />
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Show Quality Badges</span>
+                                        <span class="description">Display "HD" badge for Hi-Res tracks</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="show-quality-badges-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Gapless Playback</span>
+                                        <span class="description">Play audio without interruption between tracks</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">ReplayGain Mode</span>
+                                        <span class="description">Normalize volume across tracks</span>
+                                    </div>
+                                    <select id="replay-gain-mode">
+                                        <option value="off">Off</option>
+                                        <option value="track">Track</option>
+                                        <option value="album">Album</option>
+                                    </select>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">ReplayGain Pre-Amp</span>
+                                        <span class="description">Adjust gain manually (dB)</span>
+                                    </div>
+                                    <input
+                                        type="number"
+                                        id="replay-gain-preamp"
+                                        value="3"
+                                        step="0.5"
+                                        style="width: 80px"
+                                    />
+                                </div>
+
+                                <!-- 16-Band Equalizer -->
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Equalizer</span>
+                                        <span class="description"
+                                            >16-band parametric equalizer for fine audio control</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="equalizer-enabled-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+
+                                <div class="equalizer-container" id="equalizer-container" style="display: none">
+                                    <div class="equalizer-header">
+                                        <div class="equalizer-preset-row">
+                                            <label for="equalizer-preset-select">Preset</label>
+                                            <select id="equalizer-preset-select">
+                                                <option value="flat">Flat</option>
+                                                <option value="bass_boost">Bass Boost</option>
+                                                <option value="bass_reducer">Bass Reducer</option>
+                                                <option value="treble_boost">Treble Boost</option>
+                                                <option value="treble_reducer">Treble Reducer</option>
+                                                <option value="vocal_boost">Vocal Boost</option>
+                                                <option value="loudness">Loudness</option>
+                                                <option value="rock">Rock</option>
+                                                <option value="pop">Pop</option>
+                                                <option value="classical">Classical</option>
+                                                <option value="jazz">Jazz</option>
+                                                <option value="electronic">Electronic</option>
+                                                <option value="hip_hop">Hip-Hop</option>
+                                                <option value="r_and_b">R&B</option>
+                                                <option value="acoustic">Acoustic</option>
+                                                <option value="podcast">Podcast / Speech</option>
+                                            </select>
+                                            <button
+                                                id="equalizer-reset-btn"
+                                                class="btn-secondary"
+                                                title="Reset to Flat"
+                                            >
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    width="16"
+                                                    height="16"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    stroke-width="2"
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                >
+                                                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                                                    <path d="M3 3v5h5" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="equalizer-bands" id="equalizer-bands">
+                                        <!-- Bands will be dynamically generated by JavaScript -->
+                                        <div class="eq-band" data-band="0">
+                                            <input
+                                                type="range"
+                                                class="eq-slider"
+                                                min="-30"
+                                                max="30"
+                                                step="0.5"
+                                                value="0"
+                                                orient="vertical"
+                                            />
+                                            <span class="eq-value">0</span>
+                                            <span class="eq-freq">25</span>
+                                        </div>
+                                        <div class="eq-band" data-band="1">
+                                            <input
+                                                type="range"
+                                                class="eq-slider"
+                                                min="-30"
+                                                max="30"
+                                                step="0.5"
+                                                value="0"
+                                                orient="vertical"
+                                            />
+                                            <span class="eq-value">0</span>
+                                            <span class="eq-freq">40</span>
+                                        </div>
+                                        <div class="eq-band" data-band="2">
+                                            <input
+                                                type="range"
+                                                class="eq-slider"
+                                                min="-30"
+                                                max="30"
+                                                step="0.5"
+                                                value="0"
+                                                orient="vertical"
+                                            />
+                                            <span class="eq-value">0</span>
+                                            <span class="eq-freq">63</span>
+                                        </div>
+                                        <div class="eq-band" data-band="3">
+                                            <input
+                                                type="range"
+                                                class="eq-slider"
+                                                min="-30"
+                                                max="30"
+                                                step="0.5"
+                                                value="0"
+                                                orient="vertical"
+                                            />
+                                            <span class="eq-value">0</span>
+                                            <span class="eq-freq">100</span>
+                                        </div>
+                                        <div class="eq-band" data-band="4">
+                                            <input
+                                                type="range"
+                                                class="eq-slider"
+                                                min="-30"
+                                                max="30"
+                                                step="0.5"
+                                                value="0"
+                                                orient="vertical"
+                                            />
+                                            <span class="eq-value">0</span>
+                                            <span class="eq-freq">160</span>
+                                        </div>
+                                        <div class="eq-band" data-band="5">
+                                            <input
+                                                type="range"
+                                                class="eq-slider"
+                                                min="-30"
+                                                max="30"
+                                                step="0.5"
+                                                value="0"
+                                                orient="vertical"
+                                            />
+                                            <span class="eq-value">0</span>
+                                            <span class="eq-freq">250</span>
+                                        </div>
+                                        <div class="eq-band" data-band="6">
+                                            <input
+                                                type="range"
+                                                class="eq-slider"
+                                                min="-30"
+                                                max="30"
+                                                step="0.5"
+                                                value="0"
+                                                orient="vertical"
+                                            />
+                                            <span class="eq-value">0</span>
+                                            <span class="eq-freq">400</span>
+                                        </div>
+                                        <div class="eq-band" data-band="7">
+                                            <input
+                                                type="range"
+                                                class="eq-slider"
+                                                min="-30"
+                                                max="30"
+                                                step="0.5"
+                                                value="0"
+                                                orient="vertical"
+                                            />
+                                            <span class="eq-value">0</span>
+                                            <span class="eq-freq">630</span>
+                                        </div>
+                                        <div class="eq-band" data-band="8">
+                                            <input
+                                                type="range"
+                                                class="eq-slider"
+                                                min="-30"
+                                                max="30"
+                                                step="0.5"
+                                                value="0"
+                                                orient="vertical"
+                                            />
+                                            <span class="eq-value">0</span>
+                                            <span class="eq-freq">1K</span>
+                                        </div>
+                                        <div class="eq-band" data-band="9">
+                                            <input
+                                                type="range"
+                                                class="eq-slider"
+                                                min="-30"
+                                                max="30"
+                                                step="0.5"
+                                                value="0"
+                                                orient="vertical"
+                                            />
+                                            <span class="eq-value">0</span>
+                                            <span class="eq-freq">1.6K</span>
+                                        </div>
+                                        <div class="eq-band" data-band="10">
+                                            <input
+                                                type="range"
+                                                class="eq-slider"
+                                                min="-30"
+                                                max="30"
+                                                step="0.5"
+                                                value="0"
+                                                orient="vertical"
+                                            />
+                                            <span class="eq-value">0</span>
+                                            <span class="eq-freq">2.5K</span>
+                                        </div>
+                                        <div class="eq-band" data-band="11">
+                                            <input
+                                                type="range"
+                                                class="eq-slider"
+                                                min="-30"
+                                                max="30"
+                                                step="0.5"
+                                                value="0"
+                                                orient="vertical"
+                                            />
+                                            <span class="eq-value">0</span>
+                                            <span class="eq-freq">4K</span>
+                                        </div>
+                                        <div class="eq-band" data-band="12">
+                                            <input
+                                                type="range"
+                                                class="eq-slider"
+                                                min="-30"
+                                                max="30"
+                                                step="0.5"
+                                                value="0"
+                                                orient="vertical"
+                                            />
+                                            <span class="eq-value">0</span>
+                                            <span class="eq-freq">6.3K</span>
+                                        </div>
+                                        <div class="eq-band" data-band="13">
+                                            <input
+                                                type="range"
+                                                class="eq-slider"
+                                                min="-30"
+                                                max="30"
+                                                step="0.5"
+                                                value="0"
+                                                orient="vertical"
+                                            />
+                                            <span class="eq-value">0</span>
+                                            <span class="eq-freq">10K</span>
+                                        </div>
+                                        <div class="eq-band" data-band="14">
+                                            <input
+                                                type="range"
+                                                class="eq-slider"
+                                                min="-30"
+                                                max="30"
+                                                step="0.5"
+                                                value="0"
+                                                orient="vertical"
+                                            />
+                                            <span class="eq-value">0</span>
+                                            <span class="eq-freq">16K</span>
+                                        </div>
+                                        <div class="eq-band" data-band="15">
+                                            <input
+                                                type="range"
+                                                class="eq-slider"
+                                                min="-30"
+                                                max="30"
+                                                step="0.5"
+                                                value="0"
+                                                orient="vertical"
+                                            />
+                                            <span class="eq-value">0</span>
+                                            <span class="eq-freq">20K</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="equalizer-scale">
+                                        <span>+30 dB</span>
+                                        <span>0 dB</span>
+                                        <span>-30 dB</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-tab-content" id="settings-tab-interface">
+                        <div class="settings-list">
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Now Playing View Mode</span>
+                                        <span class="description">Choose what shows when you click the album art</span>
+                                    </div>
+                                    <select id="now-playing-mode">
+                                        <option value="album">Show Album</option>
+                                        <option value="cover">Fullscreen Mode</option>
+                                        <option value="lyrics">Lyrics Panel</option>
+                                    </select>
+                                </div>
+
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Compact Artists</span>
+                                        <span class="description"
+                                            >Show artist cards in a compact, horizontal layout</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="compact-artist-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Compact Albums</span>
+                                        <span class="description"
+                                            >Show album cards in a compact, horizontal layout</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="compact-album-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-tab-content" id="settings-tab-downloads">
+                        <div class="settings-list">
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Zipped Bulk Downloads</span>
+                                        <span class="description"
+                                            >Download multiple tracks as a single ZIP file (requires browser
+                                            support)</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="zipped-bulk-downloads-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Download Lyrics</span>
+                                        <span class="description"
+                                            >Include .lrc files when downloading tracks/albums</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="download-lyrics-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Romaji Lyrics</span>
+                                        <span class="description"
+                                            >Convert Japanese lyrics to Romaji (Latin characters)</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="romaji-lyrics-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Filename Template</span>
+                                        <span class="description"
+                                            >Customize download filenames. Available: {trackNumber}, {artist}, {title},
+                                            {album}</span
+                                        >
+                                    </div>
+                                    <input
+                                        type="text"
+                                        id="filename-template"
+                                        class="template-input"
+                                        placeholder="{trackNumber} - {artist} - {title}"
+                                    />
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">ZIP Folder Template</span>
+                                        <span class="description"
+                                            >Customize album folder names. Available: {albumTitle}, {albumArtist},
+                                            {year}</span
+                                        >
+                                    </div>
+                                    <input
+                                        type="text"
+                                        id="zip-folder-template"
+                                        class="template-input"
+                                        placeholder="{albumTitle} - {albumArtist} - monochrome.tf"
+                                    />
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Generate M3U</span>
+                                        <span class="description">Include M3U playlist files in downloads</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="generate-m3u-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Generate M3U8</span>
+                                        <span class="description"
+                                            >Include extended M3U8 playlist files in downloads</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="generate-m3u8-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Generate CUE</span>
+                                        <span class="description"
+                                            >Include CUE sheets for gapless playback in downloads</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="generate-cue-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Generate NFO</span>
+                                        <span class="description"
+                                            >Include NFO files for media center compatibility</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="generate-nfo-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Generate JSON</span>
+                                        <span class="description">Include JSON files with rich metadata</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="generate-json-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Relative Paths</span>
+                                        <span class="description">Use relative paths in playlist files</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="relative-paths-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="settings-tab-content" id="settings-tab-system">
+                        <div class="settings-list">
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Keyboard Shortcuts</span>
+                                        <span class="description">View available keyboard shortcuts</span>
+                                    </div>
+                                    <button id="show-shortcuts-btn" class="btn-secondary">Show Shortcuts</button>
+                                </div>
+                                <div class="setting-item" id="install-app-setting" style="display: none">
+                                    <div class="info">
+                                        <span class="label">Install App</span>
+                                        <span class="description">Install Monochrome as an app on your device</span>
+                                    </div>
+                                    <button id="manual-install-btn" class="btn-secondary">Install</button>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Cache</span>
+                                        <span class="description" id="cache-info"
+                                            >Stores API responses to reduce requests</span
+                                        >
+                                    </div>
+                                    <button id="clear-cache-btn" class="btn-secondary">Clear Cache</button>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Backup & Restore</span>
+                                        <span class="description"
+                                            >Export or import your library and history as JSON</span
+                                        >
+                                    </div>
+                                    <div style="display: flex; gap: 0.5rem">
+                                        <button id="export-library-btn" class="btn-secondary">Export</button>
+                                        <button id="import-library-btn" class="btn-secondary">Import</button>
+                                        <input
+                                            type="file"
+                                            id="import-library-input"
+                                            style="display: none"
+                                            accept=".json"
+                                        />
+                                    </div>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">ADVANCED: Custom Database/Auth</span>
+                                        <span class="description"
+                                            >Configure custom PocketBase and Firebase instances</span
+                                        >
+                                    </div>
+                                    <button id="custom-db-btn" class="btn-secondary">Configure</button>
+                                </div>
+                                <div id="api-instance-manager">
+                                    <div class="setting-item" style="padding-bottom: 1rem; border: none">
+                                        <div class="info">
+                                            <span class="label">API Instances</span>
+                                            <span class="description"
+                                                >Manage and prioritize API instances. Automatically sorted by
+                                                speed.</span
+                                            >
+                                        </div>
+                                        <button id="refresh-speed-test-btn" class="btn-secondary">
+                                            Refresh Speed Test
+                                        </button>
+                                    </div>
+                                    <ul id="api-instance-list"></ul>
+                                </div>
                             </div>
                         </div>
                     </div>
