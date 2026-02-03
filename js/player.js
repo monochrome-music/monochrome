@@ -717,15 +717,18 @@ export class Player {
     }
 
     loadAlbumYear(track, trackArtistsHTML, artistEl) {
-        this.api.getAlbum(track.album.id).then(({ album }) => {
-            if (album?.releaseDate && this.currentTrack?.id === track.id) {
-                track.album.releaseDate = album.releaseDate;
-                const year = new Date(album.releaseDate).getFullYear();
-                if (!isNaN(year) && artistEl) {
-                    artistEl.innerHTML = `${trackArtistsHTML} • ${year}`;
+        this.api
+            .getAlbum(track.album.id)
+            .then(({ album }) => {
+                if (album?.releaseDate && this.currentTrack?.id === track.id) {
+                    track.album.releaseDate = album.releaseDate;
+                    const year = new Date(album.releaseDate).getFullYear();
+                    if (!isNaN(year) && artistEl) {
+                        artistEl.innerHTML = `${trackArtistsHTML} • ${year}`;
+                    }
                 }
-            }
-        }).catch(() => {});
+            })
+            .catch(() => {});
     }
 
     updatePlayingTrackIndicator() {
