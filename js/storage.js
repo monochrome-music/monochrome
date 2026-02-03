@@ -958,6 +958,171 @@ export const homePageSettings = {
     },
 };
 
+export const sidebarSectionSettings = {
+    SHOW_HOME_KEY: 'sidebar-show-home',
+    SHOW_LIBRARY_KEY: 'sidebar-show-library',
+    SHOW_RECENT_KEY: 'sidebar-show-recent',
+    SHOW_UNRELEASED_KEY: 'sidebar-show-unreleased',
+    SHOW_DONATE_KEY: 'sidebar-show-donate',
+    SHOW_SETTINGS_KEY: 'sidebar-show-settings',
+    SHOW_ACCOUNT_KEY: 'sidebar-show-account',
+    SHOW_ABOUT_KEY: 'sidebar-show-about',
+    SHOW_DOWNLOAD_KEY: 'sidebar-show-download',
+    SHOW_DISCORD_KEY: 'sidebar-show-discord',
+
+    shouldShowHome() {
+        try {
+            const val = localStorage.getItem(this.SHOW_HOME_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowHome(enabled) {
+        localStorage.setItem(this.SHOW_HOME_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldShowLibrary() {
+        try {
+            const val = localStorage.getItem(this.SHOW_LIBRARY_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowLibrary(enabled) {
+        localStorage.setItem(this.SHOW_LIBRARY_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldShowRecent() {
+        try {
+            const val = localStorage.getItem(this.SHOW_RECENT_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowRecent(enabled) {
+        localStorage.setItem(this.SHOW_RECENT_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldShowUnreleased() {
+        try {
+            const val = localStorage.getItem(this.SHOW_UNRELEASED_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowUnreleased(enabled) {
+        localStorage.setItem(this.SHOW_UNRELEASED_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldShowDonate() {
+        try {
+            const val = localStorage.getItem(this.SHOW_DONATE_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowDonate(enabled) {
+        localStorage.setItem(this.SHOW_DONATE_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldShowSettings() {
+        try {
+            const val = localStorage.getItem(this.SHOW_SETTINGS_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowSettings(enabled) {
+        localStorage.setItem(this.SHOW_SETTINGS_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldShowAccount() {
+        try {
+            const val = localStorage.getItem(this.SHOW_ACCOUNT_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowAccount(enabled) {
+        localStorage.setItem(this.SHOW_ACCOUNT_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldShowAbout() {
+        try {
+            const val = localStorage.getItem(this.SHOW_ABOUT_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowAbout(enabled) {
+        localStorage.setItem(this.SHOW_ABOUT_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldShowDownload() {
+        try {
+            const val = localStorage.getItem(this.SHOW_DOWNLOAD_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowDownload(enabled) {
+        localStorage.setItem(this.SHOW_DOWNLOAD_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldShowDiscord() {
+        try {
+            const val = localStorage.getItem(this.SHOW_DISCORD_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowDiscord(enabled) {
+        localStorage.setItem(this.SHOW_DISCORD_KEY, enabled ? 'true' : 'false');
+    },
+
+    applySidebarVisibility() {
+        const items = [
+            { id: 'sidebar-nav-home', check: this.shouldShowHome() },
+            { id: 'sidebar-nav-library', check: this.shouldShowLibrary() },
+            { id: 'sidebar-nav-recent', check: this.shouldShowRecent() },
+            { id: 'sidebar-nav-unreleased', check: this.shouldShowUnreleased() },
+            { id: 'sidebar-nav-donate', check: this.shouldShowDonate() },
+            { id: 'sidebar-nav-settings', check: this.shouldShowSettings() },
+            { id: 'sidebar-nav-account', check: this.shouldShowAccount() },
+            { id: 'sidebar-nav-about', check: this.shouldShowAbout() },
+            { id: 'sidebar-nav-download', check: this.shouldShowDownload() },
+            { id: 'sidebar-nav-discord', check: this.shouldShowDiscord() },
+        ];
+
+        items.forEach(({ id, check }) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.style.display = check ? '' : 'none';
+            }
+        });
+    },
+};
+
 // System theme listener
 if (typeof window !== 'undefined' && window.matchMedia) {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {

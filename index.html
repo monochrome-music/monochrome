@@ -755,7 +755,7 @@
                     </div>
                     <nav class="sidebar-nav main">
                         <ul>
-                            <li class="nav-item">
+                            <li class="nav-item" id="sidebar-nav-home">
                                 <a href="/">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -777,7 +777,7 @@
                                     <span>Home</span>
                                 </a>
                             </li>
-                            <li class="nav-item">
+                            <li class="nav-item" id="sidebar-nav-library">
                                 <a href="/library">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -798,7 +798,7 @@
                                     <span>Library</span>
                                 </a>
                             </li>
-                            <li class="nav-item">
+                            <li class="nav-item" id="sidebar-nav-recent">
                                 <a href="/recent">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -818,7 +818,7 @@
                                     <span>Recent</span>
                                 </a>
                             </li>
-                            <li class="nav-item">
+                            <li class="nav-item" id="sidebar-nav-unreleased">
                                 <a href="/unreleased">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -839,7 +839,7 @@
                                     <span>Unreleased</span>
                                 </a>
                             </li>
-                            <li class="nav-item">
+                            <li class="nav-item" id="sidebar-nav-donate">
                                 <a href="https://pally.gg/p/monochrome" target="_blank" rel="noopener noreferrer">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -864,7 +864,7 @@
                                     <span>Donate</span>
                                 </a>
                             </li>
-                            <li class="nav-item">
+                            <li class="nav-item" id="sidebar-nav-settings">
                                 <a href="/settings">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -885,7 +885,7 @@
                                     <span>Settings</span>
                                 </a>
                             </li>
-                            <li class="nav-item">
+                            <li class="nav-item" id="sidebar-nav-account">
                                 <a href="/account">
                                     <svg
                                         width="24"
@@ -923,7 +923,7 @@
                     </nav>
                     <nav class="sidebar-nav">
                         <ul>
-                            <li class="nav-item">
+                            <li class="nav-item" id="sidebar-nav-about">
                                 <a href="/about">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -944,7 +944,7 @@
                                     <span>About</span>
                                 </a>
                             </li>
-                            <li class="nav-item">
+                            <li class="nav-item" id="sidebar-nav-download">
                                 <a href="/download">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -964,7 +964,7 @@
                                     <span>Download</span>
                                 </a>
                             </li>
-                            <li class="nav-item">
+                            <li class="nav-item" id="sidebar-nav-discord">
                                 <a href="https://monochrome.samidy.com/discord" target="_blank">
                                     <svg
                                         width="64px"
@@ -2146,6 +2146,111 @@
                                 </div>
                                 <label class="toggle-switch">
                                     <input type="checkbox" id="show-jump-back-in-toggle" checked />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="settings-group">
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Show Home in Sidebar</span>
+                                    <span class="description">Display the Home link in the sidebar navigation</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="sidebar-show-home-toggle" checked />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Show Library in Sidebar</span>
+                                    <span class="description">Display the Library link in the sidebar navigation</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="sidebar-show-library-toggle" checked />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Show Recent in Sidebar</span>
+                                    <span class="description">Display the Recent link in the sidebar navigation</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="sidebar-show-recent-toggle" checked />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Show Unreleased in Sidebar</span>
+                                    <span class="description"
+                                        >Display the Unreleased link in the sidebar navigation</span
+                                    >
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="sidebar-show-unreleased-toggle" checked />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Show Donate in Sidebar</span>
+                                    <span class="description">Display the Donate link in the sidebar navigation</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="sidebar-show-donate-toggle" checked />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Show Settings in Sidebar</span>
+                                    <span class="description">Display the Settings link in the sidebar navigation</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="sidebar-show-settings-toggle" checked />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Show Account in Sidebar</span>
+                                    <span class="description">Display the Account link in the sidebar navigation</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="sidebar-show-account-toggle" checked />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Show About in Sidebar</span>
+                                    <span class="description">Display the About link in the sidebar navigation</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="sidebar-show-about-toggle" checked />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Show Download in Sidebar</span>
+                                    <span class="description">Display the Download link in the sidebar navigation</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="sidebar-show-download-toggle" checked />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Show Discord in Sidebar</span>
+                                    <span class="description">Display the Discord link in the sidebar navigation</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="sidebar-show-discord-toggle" checked />
                                     <span class="slider"></span>
                                 </label>
                             </div>

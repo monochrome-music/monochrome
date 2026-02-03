@@ -18,6 +18,7 @@ import {
     equalizerSettings,
     listenBrainzSettings,
     homePageSettings,
+    sidebarSectionSettings,
 } from './storage.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
 import { db } from './db.js';
@@ -707,6 +708,100 @@ export function initializeSettings(scrobbler, player, api, ui) {
             homePageSettings.setShowJumpBackIn(e.target.checked);
         });
     }
+
+    // Sidebar Section Toggles
+    const sidebarShowHomeToggle = document.getElementById('sidebar-show-home-toggle');
+    if (sidebarShowHomeToggle) {
+        sidebarShowHomeToggle.checked = sidebarSectionSettings.shouldShowHome();
+        sidebarShowHomeToggle.addEventListener('change', (e) => {
+            sidebarSectionSettings.setShowHome(e.target.checked);
+            sidebarSectionSettings.applySidebarVisibility();
+        });
+    }
+
+    const sidebarShowLibraryToggle = document.getElementById('sidebar-show-library-toggle');
+    if (sidebarShowLibraryToggle) {
+        sidebarShowLibraryToggle.checked = sidebarSectionSettings.shouldShowLibrary();
+        sidebarShowLibraryToggle.addEventListener('change', (e) => {
+            sidebarSectionSettings.setShowLibrary(e.target.checked);
+            sidebarSectionSettings.applySidebarVisibility();
+        });
+    }
+
+    const sidebarShowRecentToggle = document.getElementById('sidebar-show-recent-toggle');
+    if (sidebarShowRecentToggle) {
+        sidebarShowRecentToggle.checked = sidebarSectionSettings.shouldShowRecent();
+        sidebarShowRecentToggle.addEventListener('change', (e) => {
+            sidebarSectionSettings.setShowRecent(e.target.checked);
+            sidebarSectionSettings.applySidebarVisibility();
+        });
+    }
+
+    const sidebarShowUnreleasedToggle = document.getElementById('sidebar-show-unreleased-toggle');
+    if (sidebarShowUnreleasedToggle) {
+        sidebarShowUnreleasedToggle.checked = sidebarSectionSettings.shouldShowUnreleased();
+        sidebarShowUnreleasedToggle.addEventListener('change', (e) => {
+            sidebarSectionSettings.setShowUnreleased(e.target.checked);
+            sidebarSectionSettings.applySidebarVisibility();
+        });
+    }
+
+    const sidebarShowDonateToggle = document.getElementById('sidebar-show-donate-toggle');
+    if (sidebarShowDonateToggle) {
+        sidebarShowDonateToggle.checked = sidebarSectionSettings.shouldShowDonate();
+        sidebarShowDonateToggle.addEventListener('change', (e) => {
+            sidebarSectionSettings.setShowDonate(e.target.checked);
+            sidebarSectionSettings.applySidebarVisibility();
+        });
+    }
+
+    const sidebarShowSettingsToggle = document.getElementById('sidebar-show-settings-toggle');
+    if (sidebarShowSettingsToggle) {
+        sidebarShowSettingsToggle.checked = sidebarSectionSettings.shouldShowSettings();
+        sidebarShowSettingsToggle.addEventListener('change', (e) => {
+            sidebarSectionSettings.setShowSettings(e.target.checked);
+            sidebarSectionSettings.applySidebarVisibility();
+        });
+    }
+
+    const sidebarShowAccountToggle = document.getElementById('sidebar-show-account-toggle');
+    if (sidebarShowAccountToggle) {
+        sidebarShowAccountToggle.checked = sidebarSectionSettings.shouldShowAccount();
+        sidebarShowAccountToggle.addEventListener('change', (e) => {
+            sidebarSectionSettings.setShowAccount(e.target.checked);
+            sidebarSectionSettings.applySidebarVisibility();
+        });
+    }
+
+    const sidebarShowAboutToggle = document.getElementById('sidebar-show-about-toggle');
+    if (sidebarShowAboutToggle) {
+        sidebarShowAboutToggle.checked = sidebarSectionSettings.shouldShowAbout();
+        sidebarShowAboutToggle.addEventListener('change', (e) => {
+            sidebarSectionSettings.setShowAbout(e.target.checked);
+            sidebarSectionSettings.applySidebarVisibility();
+        });
+    }
+
+    const sidebarShowDownloadToggle = document.getElementById('sidebar-show-download-toggle');
+    if (sidebarShowDownloadToggle) {
+        sidebarShowDownloadToggle.checked = sidebarSectionSettings.shouldShowDownload();
+        sidebarShowDownloadToggle.addEventListener('change', (e) => {
+            sidebarSectionSettings.setShowDownload(e.target.checked);
+            sidebarSectionSettings.applySidebarVisibility();
+        });
+    }
+
+    const sidebarShowDiscordToggle = document.getElementById('sidebar-show-discord-toggle');
+    if (sidebarShowDiscordToggle) {
+        sidebarShowDiscordToggle.checked = sidebarSectionSettings.shouldShowDiscord();
+        sidebarShowDiscordToggle.addEventListener('change', (e) => {
+            sidebarSectionSettings.setShowDiscord(e.target.checked);
+            sidebarSectionSettings.applySidebarVisibility();
+        });
+    }
+
+    // Apply sidebar visibility on initialization
+    sidebarSectionSettings.applySidebarVisibility();
 
     // Filename template setting
     const filenameTemplate = document.getElementById('filename-template');
