@@ -98,6 +98,24 @@ const syncManager = {
                 });
                 return JSON.parse(recovered);
             } catch {
+                try {
+                    // Python-style fallback (Single quotes, True/False, None)
+                    // This handles data that was incorrectly serialized as Python repr string
+                    if (str.includes("'") || str.includes('True') || str.includes('False')) {
+                        const jsFriendly = str
+                            .replace(/\bTrue\b/g, 'true')
+                            .replace(/\bFalse\b/g, 'false')
+                            .replace(/\bNone\b/g, 'null');
+
+                        // Basic safety check: ensure it looks like a structure and doesn't contain obvious code vectors
+                        if ((jsFriendly.trim().startsWith('[') || jsFriendly.trim().startsWith('{')) &&
+                            !jsFriendly.match(/function|=>|window|document|alert|eval/)) {
+                            return (new Function('return ' + jsFriendly))();
+                        }
+                    }
+                } catch (e) {
+                    // Ignore fallback error
+                }
                 return fallback;
             }
         }
@@ -146,14 +164,14 @@ const syncManager = {
                 artists: item.artists?.map((a) => ({ id: a.id, name: a.name || null })) || [],
                 album: item.album
                     ? {
-                          id: item.album.id,
-                          title: item.album.title || null,
-                          cover: item.album.cover || null,
-                          releaseDate: item.album.releaseDate || null,
-                          vibrantColor: item.album.vibrantColor || null,
-                          artist: item.album.artist || null,
-                          numberOfTracks: item.album.numberOfTracks || null,
-                      }
+                        id: item.album.id,
+                        title: item.album.title || null,
+                        cover: item.album.cover || null,
+                        releaseDate: item.album.releaseDate || null,
+                        vibrantColor: item.album.vibrantColor || null,
+                        artist: item.album.artist || null,
+                        numberOfTracks: item.album.numberOfTracks || null,
+                    }
                     : null,
                 copyright: item.copyright || null,
                 isrc: item.isrc || null,
@@ -174,8 +192,8 @@ const syncManager = {
                 artist: item.artist
                     ? { name: item.artist.name || null, id: item.artist.id }
                     : item.artists?.[0]
-                      ? { name: item.artists[0].name || null, id: item.artists[0].id }
-                      : null,
+                        ? { name: item.artists[0].name || null, id: item.artists[0].id }
+                        : null,
                 type: item.type || null,
                 numberOfTracks: item.numberOfTracks || null,
             };
@@ -361,7 +379,7 @@ const syncManager = {
             image: playlist.cover,
             cover: playlist.cover,
             playlist_cover: playlist.cover,
-            tracks: playlist.tracks,
+            tracks: JSON.stringify(playlist.tracks || []),
             isPublic: true,
             data: {
                 title: playlist.name,
