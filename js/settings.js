@@ -17,6 +17,7 @@ import {
     playlistSettings,
     equalizerSettings,
     listenBrainzSettings,
+    homePageSettings,
 } from './storage.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
 import { db } from './db.js';
@@ -671,6 +672,39 @@ export function initializeSettings(scrobbler, player, api, ui) {
         visualizerModeSelect.value = visualizerSettings.getMode();
         visualizerModeSelect.addEventListener('change', (e) => {
             visualizerSettings.setMode(e.target.value);
+        });
+    }
+
+    // Home Page Section Toggles
+    const showRecommendedSongsToggle = document.getElementById('show-recommended-songs-toggle');
+    if (showRecommendedSongsToggle) {
+        showRecommendedSongsToggle.checked = homePageSettings.shouldShowRecommendedSongs();
+        showRecommendedSongsToggle.addEventListener('change', (e) => {
+            homePageSettings.setShowRecommendedSongs(e.target.checked);
+        });
+    }
+
+    const showRecommendedAlbumsToggle = document.getElementById('show-recommended-albums-toggle');
+    if (showRecommendedAlbumsToggle) {
+        showRecommendedAlbumsToggle.checked = homePageSettings.shouldShowRecommendedAlbums();
+        showRecommendedAlbumsToggle.addEventListener('change', (e) => {
+            homePageSettings.setShowRecommendedAlbums(e.target.checked);
+        });
+    }
+
+    const showRecommendedArtistsToggle = document.getElementById('show-recommended-artists-toggle');
+    if (showRecommendedArtistsToggle) {
+        showRecommendedArtistsToggle.checked = homePageSettings.shouldShowRecommendedArtists();
+        showRecommendedArtistsToggle.addEventListener('change', (e) => {
+            homePageSettings.setShowRecommendedArtists(e.target.checked);
+        });
+    }
+
+    const showJumpBackInToggle = document.getElementById('show-jump-back-in-toggle');
+    if (showJumpBackInToggle) {
+        showJumpBackInToggle.checked = homePageSettings.shouldShowJumpBackIn();
+        showJumpBackInToggle.addEventListener('change', (e) => {
+            homePageSettings.setShowJumpBackIn(e.target.checked);
         });
     }
 

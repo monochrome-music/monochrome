@@ -19,7 +19,13 @@ import {
     escapeHtml,
 } from './utils.js';
 import { openLyricsPanel } from './lyrics.js';
-import { recentActivityManager, backgroundSettings, cardSettings, visualizerSettings } from './storage.js';
+import {
+    recentActivityManager,
+    backgroundSettings,
+    cardSettings,
+    visualizerSettings,
+    homePageSettings,
+} from './storage.js';
 import { db } from './db.js';
 import { getVibrantColorFromImage } from './vibrant-color.js';
 import { syncManager } from './accounts/pocketbase.js';
@@ -1253,6 +1259,15 @@ export class UIRenderer {
 
     async renderHomeSongs(forceRefresh = false) {
         const songsContainer = document.getElementById('home-recommended-songs');
+        const section = songsContainer?.closest('.content-section');
+
+        if (!homePageSettings.shouldShowRecommendedSongs()) {
+            if (section) section.style.display = 'none';
+            return;
+        }
+
+        if (section) section.style.display = '';
+
         if (songsContainer) {
             if (forceRefresh) songsContainer.innerHTML = this.createSkeletonTracks(5, true);
             else if (songsContainer.children.length > 0 && !songsContainer.querySelector('.skeleton')) return; // Already loaded
@@ -1278,6 +1293,15 @@ export class UIRenderer {
 
     async renderHomeAlbums(forceRefresh = false) {
         const albumsContainer = document.getElementById('home-recommended-albums');
+        const section = albumsContainer?.closest('.content-section');
+
+        if (!homePageSettings.shouldShowRecommendedAlbums()) {
+            if (section) section.style.display = 'none';
+            return;
+        }
+
+        if (section) section.style.display = '';
+
         if (albumsContainer) {
             if (forceRefresh) albumsContainer.innerHTML = this.createSkeletonCards(6);
             else if (albumsContainer.children.length > 0 && !albumsContainer.querySelector('.skeleton')) return;
@@ -1316,6 +1340,15 @@ export class UIRenderer {
 
     async renderHomeArtists(forceRefresh = false) {
         const artistsContainer = document.getElementById('home-recommended-artists');
+        const section = artistsContainer?.closest('.content-section');
+
+        if (!homePageSettings.shouldShowRecommendedArtists()) {
+            if (section) section.style.display = 'none';
+            return;
+        }
+
+        if (section) section.style.display = '';
+
         if (artistsContainer) {
             if (forceRefresh) artistsContainer.innerHTML = this.createSkeletonCards(6, true);
             else if (artistsContainer.children.length > 0 && !artistsContainer.querySelector('.skeleton')) return;
@@ -1358,6 +1391,15 @@ export class UIRenderer {
 
     renderHomeRecent() {
         const recentContainer = document.getElementById('home-recent-mixed');
+        const section = recentContainer?.closest('.content-section');
+
+        if (!homePageSettings.shouldShowJumpBackIn()) {
+            if (section) section.style.display = 'none';
+            return;
+        }
+
+        if (section) section.style.display = '';
+
         if (recentContainer) {
             const recents = recentActivityManager.getRecents();
             const items = [];
