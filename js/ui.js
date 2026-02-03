@@ -2511,10 +2511,16 @@ export class UIRenderer {
     async renderRecentPage() {
         this.showPage('recent');
         const container = document.getElementById('recent-tracks-container');
+        const clearBtn = document.getElementById('clear-history-btn');
         container.innerHTML = this.createSkeletonTracks(10, true);
 
         try {
             const history = await db.getHistory();
+
+            // Show/hide clear button based on whether there's history
+            if (clearBtn) {
+                clearBtn.style.display = history.length > 0 ? 'flex' : 'none';
+            }
 
             if (history.length === 0) {
                 container.innerHTML = createPlaceholder("You haven't played any tracks yet.");
@@ -2568,9 +2574,26 @@ export class UIRenderer {
                     container.appendChild(tempContainer.firstChild);
                 }
             }
+
+            // Setup clear button handler
+            if (clearBtn) {
+                clearBtn.onclick = async () => {
+                    if (confirm('Clear all recently played tracks? This cannot be undone.')) {
+                        try {
+                            await db.clearHistory();
+                            container.innerHTML = createPlaceholder("You haven't played any tracks yet.");
+                            clearBtn.style.display = 'none';
+                        } catch (err) {
+                            console.error('Failed to clear history:', err);
+                            alert('Failed to clear history');
+                        }
+                    }
+                };
+            }
         } catch (error) {
             console.error('Failed to load history:', error);
             container.innerHTML = createPlaceholder('Failed to load history.');
+            if (clearBtn) clearBtn.style.display = 'none';
         }
     }
 

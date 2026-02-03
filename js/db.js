@@ -138,6 +138,19 @@ export class MusicDatabase {
         });
     }
 
+    async clearHistory() {
+        const storeName = 'history_tracks';
+        const db = await this.open();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(storeName, 'readwrite');
+            const store = transaction.objectStore(storeName);
+            const request = store.clear();
+
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    }
+
     // Favorites API
     async toggleFavorite(type, item) {
         const plural = type === 'mix' ? 'mixes' : `${type}s`;
