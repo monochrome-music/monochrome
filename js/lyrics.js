@@ -133,6 +133,40 @@ export class LyricsManager {
         this.geniusManager = new GeniusManager();
         this.isGeniusMode = false;
         this.currentGeniusData = null;
+        this.timingOffset = 0; // Offset in milliseconds (positive = delay lyrics, negative = advance lyrics)
+    }
+
+    // Get timing offset for current track
+    getTimingOffset(trackId) {
+        try {
+            const key = `lyrics-offset-${trackId}`;
+            const stored = localStorage.getItem(key);
+            return stored ? parseInt(stored, 10) : 0;
+        } catch {
+            return 0;
+        }
+    }
+
+    // Set timing offset for current track
+    setTimingOffset(trackId, offsetMs) {
+        try {
+            const key = `lyrics-offset-${trackId}`;
+            localStorage.setItem(key, offsetMs.toString());
+        } catch (e) {
+            console.warn('Failed to save lyrics timing offset:', e);
+        }
+    }
+
+    // Reset timing offset for current track
+    resetTimingOffset(trackId) {
+        this.setTimingOffset(trackId, 0);
+    }
+
+    // Get formatted offset display string
+    getOffsetDisplayString(offsetMs) {
+        const sign = offsetMs >= 0 ? '+' : '';
+        const seconds = Math.abs(offsetMs) / 1000;
+        return `${sign}${seconds.toFixed(1)}s`;
     }
 
     // Load Kuroshiro from CDN (npm package uses Node.js path which doesn't work in browser)
@@ -715,15 +749,38 @@ export function openLyricsPanel(track, audioPlayer, lyricsManager, forceOpen = f
         });
     }
 
+    // Load saved timing offset for this track
+    manager.timingOffset = manager.getTimingOffset(track.id);
+
     const renderControls = (container) => {
         const isRomajiMode = manager.getRomajiMode();
         manager.isRomajiMode = isRomajiMode;
         const isGeniusMode = manager.isGeniusMode;
+        const offsetDisplay = manager.getOffsetDisplayString(manager.timingOffset);
 
         container.innerHTML = `
             <button id="close-side-panel-btn" class="btn-icon" title="Close">
                 ${SVG_CLOSE}
             </button>
+            <div class="lyrics-timing-controls">
+                <button id="lyrics-timing-minus-btn" class="btn-icon" title="Decrease delay (lyrics earlier) -0.5s">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14"/>
+                    </svg>
+                </button>
+                <span id="lyrics-timing-display" class="lyrics-timing-display" title="Current timing offset">${offsetDisplay}</span>
+                <button id="lyrics-timing-plus-btn" class="btn-icon" title="Increase delay (lyrics later) +0.5s">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M5 12h14M12 5v14"/>
+                    </svg>
+                </button>
+                <button id="lyrics-timing-reset-btn" class="btn-icon" title="Reset timing offset">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                        <path d="M3 3v5h5"/>
+                    </svg>
+                </button>
+            </div>
             <button id="romaji-toggle-btn" class="btn-icon" title="Toggle Romaji (Japanese to Latin)" data-enabled="${isRomajiMode}" style="color: ${isRomajiMode ? 'var(--primary)' : ''}">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
@@ -738,6 +795,32 @@ export function openLyricsPanel(track, audioPlayer, lyricsManager, forceOpen = f
         container.querySelector('#close-side-panel-btn').addEventListener('click', () => {
             sidePanelManager.close();
             clearLyricsPanelSync(audioPlayer, sidePanelManager.panel);
+        });
+
+        // Timing adjustment controls
+        const updateTimingDisplay = () => {
+            const display = container.querySelector('#lyrics-timing-display');
+            if (display) {
+                display.textContent = manager.getOffsetDisplayString(manager.timingOffset);
+            }
+        };
+
+        container.querySelector('#lyrics-timing-minus-btn')?.addEventListener('click', () => {
+            manager.timingOffset -= 500; // Decrease by 0.5 seconds
+            manager.setTimingOffset(track.id, manager.timingOffset);
+            updateTimingDisplay();
+        });
+
+        container.querySelector('#lyrics-timing-plus-btn')?.addEventListener('click', () => {
+            manager.timingOffset += 500; // Increase by 0.5 seconds
+            manager.setTimingOffset(track.id, manager.timingOffset);
+            updateTimingDisplay();
+        });
+
+        container.querySelector('#lyrics-timing-reset-btn')?.addEventListener('click', () => {
+            manager.timingOffset = 0;
+            manager.resetTimingOffset(track.id);
+            updateTimingDisplay();
         });
 
         // Romaji toggle button handler
@@ -945,11 +1028,17 @@ function setupSync(track, audioPlayer, amLyrics, lyricsManager) {
     let lastTimestamp = performance.now();
     let animationFrameId = null;
 
+    // Get timing offset from lyrics manager (in milliseconds)
+    const getTimingOffset = () => {
+        return lyricsManager?.timingOffset || 0;
+    };
+
     const updateTime = () => {
         const currentMs = audioPlayer.currentTime * 1000;
         baseTimeMs = currentMs;
         lastTimestamp = performance.now();
-        amLyrics.currentTime = currentMs;
+        // Apply timing offset: positive offset delays lyrics, negative advances them
+        amLyrics.currentTime = currentMs - getTimingOffset();
     };
 
     const tick = () => {
@@ -957,7 +1046,8 @@ function setupSync(track, audioPlayer, amLyrics, lyricsManager) {
             const now = performance.now();
             const elapsed = now - lastTimestamp;
             const nextMs = baseTimeMs + elapsed;
-            amLyrics.currentTime = nextMs;
+            // Apply timing offset: positive offset delays lyrics, negative advances them
+            amLyrics.currentTime = nextMs - getTimingOffset();
             animationFrameId = requestAnimationFrame(tick);
         }
     };
