@@ -1,4 +1,4 @@
-import { sanitizeForFilename, formatTemplate } from './utils.js';
+import { sanitizeForFilename } from './utils.js';
 
 /**
  * Generates M3U playlist content

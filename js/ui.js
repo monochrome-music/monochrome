@@ -33,6 +33,7 @@ import {
     findTrackerArtistByName,
     getArtistUnreleasedProjects,
     createProjectCardHTML,
+    createTrackFromSong,
 } from './tracker.js';
 
 export class UIRenderer {
@@ -2448,6 +2449,7 @@ export class UIRenderer {
                                 loadUnreleasedBtn.style.display = 'none';
 
                                 // Add click handlers
+                                const player = this.player;
                                 unreleasedContainer.querySelectorAll('.card').forEach((card) => {
                                     const eraName = decodeURIComponent(card.dataset.trackerProjectId);
                                     const era = eras.find((e) => e.name === eraName);
@@ -2460,7 +2462,7 @@ export class UIRenderer {
                                             if (era.data) {
                                                 Object.values(era.data).forEach((songs) => {
                                                     if (songs && songs.length) {
-                                                        songs.forEach((song, index) => {
+                                                        songs.forEach((song) => {
                                                             const track = createTrackFromSong(
                                                                 song,
                                                                 era,
@@ -2475,8 +2477,8 @@ export class UIRenderer {
                                             }
                                             const availableTracks = eraTracks.filter((t) => !t.unavailable);
                                             if (availableTracks.length > 0) {
-                                                globalPlayer.setQueue(availableTracks, 0);
-                                                globalPlayer.playTrackFromQueue();
+                                                player.setQueue(availableTracks, 0);
+                                                player.playTrackFromQueue();
                                             }
                                         } else if (e.target.closest('.card-menu-btn')) {
                                             e.stopPropagation();

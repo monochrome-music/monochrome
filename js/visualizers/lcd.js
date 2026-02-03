@@ -187,7 +187,7 @@ export class LCDPreset {
 
     draw(ctx, canvas, analyser, dataArray, params) {
         const { width, height } = canvas;
-        const { kick, intensity, primaryColor, mode } = params;
+        const { kick, primaryColor, mode } = params;
 
         this.primaryColor = primaryColor;
         const isDark = document.documentElement.getAttribute('data-theme') !== 'light';

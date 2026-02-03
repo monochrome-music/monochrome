@@ -164,7 +164,7 @@ export class Equalizer {
      * Calculate Q factor for each band
      * Using constant-Q design for consistent bandwidth
      */
-    _calculateQ(index) {
+    _calculateQ(_index) {
         // For 16-band 1/2 octave spacing, Q ≈ 2.87
         // Slightly lower Q for smoother response
         return 2.5;
@@ -354,15 +354,21 @@ export class Equalizer {
         this.filters.forEach((filter) => {
             try {
                 filter.disconnect();
-            } catch {}
+            } catch {
+                /* ignore */
+            }
         });
 
         try {
             this.inputNode?.disconnect();
-        } catch {}
+        } catch {
+            /* ignore */
+        }
         try {
             this.outputNode?.disconnect();
-        } catch {}
+        } catch {
+            /* ignore */
+        }
 
         this.filters = [];
         this.inputNode = null;

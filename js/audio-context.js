@@ -171,7 +171,9 @@ class AudioContextManager {
             // Fallback: direct connection
             try {
                 this.source.connect(this.audioContext.destination);
-            } catch {}
+            } catch {
+                /* ignore */
+            }
         }
     }
 

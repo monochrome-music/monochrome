@@ -13,7 +13,7 @@ const DEFAULT_ALBUM = 'Unknown Album';
  * @param {string} quality - Audio quality
  * @returns {Promise<Blob>} - Audio blob with embedded metadata
  */
-export async function addMetadataToAudio(audioBlob, track, api, quality) {
+export async function addMetadataToAudio(audioBlob, track, api, _quality) {
     // Always check actual file signature, not just quality setting
     // DASH Hi-Res streams may return fragmented MP4 instead of raw FLAC
     const buffer = await audioBlob.slice(0, 12).arrayBuffer();

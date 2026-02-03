@@ -363,17 +363,6 @@ kbd {
     padding-bottom: 160px !important;
 }
 
-/* Ensure content sits on top of background */
-.main-header {
-    position: relative;
-    z-index: 100;
-}
-
-.page {
-    position: relative;
-    z-index: 1;
-}
-
 #page-background {
     position: absolute;
     top: 0;
@@ -704,6 +693,8 @@ input[type='search']::-webkit-search-cancel-button {
 
 .page {
     display: none;
+    position: relative;
+    z-index: 1;
 }
 
 .page.active {
@@ -1103,6 +1094,8 @@ input[type='search']::-webkit-search-cancel-button {
 .heart-icon.filled {
     color: #ef4444;
     fill: #ef4444;
+    stroke: #ef4444;
+    animation: heart-beat 0.4s var(--ease-elastic);
 }
 
 .track-item:hover .like-btn {
@@ -1878,8 +1871,8 @@ input:checked + .slider::before {
 
 .player-controls .buttons button:active {
     transform: scale(0.9);
-
-    /* Press effect */
+    color: var(--foreground);
+    background-color: var(--secondary);
 }
 
 @media (hover: hover) {
@@ -1887,11 +1880,6 @@ input:checked + .slider::before {
         color: var(--foreground);
         background-color: var(--secondary);
     }
-}
-
-.player-controls .buttons button:active {
-    color: var(--foreground);
-    background-color: var(--secondary);
 }
 
 .player-controls .buttons button.active {
@@ -3614,6 +3602,9 @@ img[src=''] {
 
 .modal.active {
     display: flex;
+    backdrop-filter: blur(4px);
+    background: rgb(0, 0, 0, 0.6);
+    transition: opacity var(--transition-normal);
 }
 
 .modal-overlay {
@@ -5002,9 +4993,6 @@ body:has(#side-panel.active) .fullscreen-main-view {
         flex 0.3s ease,
         padding-right 0.3s ease,
         margin-right 0.3s ease;
-}
-
-body:has(#side-panel.active) .fullscreen-main-view {
     padding-right: 600px;
 }
 
@@ -5103,13 +5091,6 @@ textarea:focus {
     box-shadow: 0 0 0 3px rgb(var(--highlight-rgb), 0.2);
 }
 
-/* Modals */
-.modal.active {
-    backdrop-filter: blur(4px);
-    background: rgb(0, 0, 0, 0.6);
-    transition: opacity var(--transition-normal);
-}
-
 .modal.active .modal-content {
     animation: pop-in var(--transition-normal) var(--ease-out-back);
     box-shadow: var(--shadow-2xl);
@@ -5124,15 +5105,6 @@ textarea:focus {
 
 .nav-item a:active {
     transform: scale(0.97);
-}
-
-/* Heart Icon Animation */
-.heart-icon.filled {
-    animation: heart-beat 0.4s var(--ease-elastic);
-    fill: #ef4444;
-
-    /* Standardize heart red */
-    stroke: #ef4444;
 }
 
 /* =========================================
