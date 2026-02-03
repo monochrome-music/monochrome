@@ -10,6 +10,7 @@ import {
     createQualityBadgeHTML,
 } from './utils.js';
 import { queueManager, replayGainSettings, trackDateSettings } from './storage.js';
+import { audioContextManager } from './audio-context.js';
 
 export class Player {
     constructor(audioElement, api, quality = 'HI_RES_LOSSLESS') {
@@ -50,6 +51,17 @@ export class Player {
 
         window.addEventListener('beforeunload', () => {
             this.saveQueueState();
+        });
+
+        // Handle visibility change for iOS - AudioContext gets suspended when screen locks
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && !this.audio.paused) {
+                // Ensure audio context is resumed when user returns to the app
+                if (!audioContextManager.isReady()) {
+                    audioContextManager.init(this.audio);
+                }
+                audioContextManager.resume();
+            }
         });
     }
 
@@ -174,19 +186,42 @@ export class Player {
     setupMediaSession() {
         if (!('mediaSession' in navigator)) return;
 
-        navigator.mediaSession.setActionHandler('play', () => {
-            this.audio.play().catch(console.error);
+        navigator.mediaSession.setActionHandler('play', async () => {
+            // Initialize and resume audio context first (required for iOS lock screen)
+            // Must happen before audio.play() or audio won't route through Web Audio
+            if (!audioContextManager.isReady()) {
+                audioContextManager.init(this.audio);
+            }
+            await audioContextManager.resume();
+
+            try {
+                await this.audio.play();
+            } catch (e) {
+                console.error('MediaSession play failed:', e);
+                // If play fails, try to handle it like a regular play/pause
+                this.handlePlayPause();
+            }
         });
 
         navigator.mediaSession.setActionHandler('pause', () => {
             this.audio.pause();
         });
 
-        navigator.mediaSession.setActionHandler('previoustrack', () => {
+        navigator.mediaSession.setActionHandler('previoustrack', async () => {
+            // Ensure audio context is active for iOS lock screen controls
+            if (!audioContextManager.isReady()) {
+                audioContextManager.init(this.audio);
+            }
+            await audioContextManager.resume();
             this.playPrev();
         });
 
-        navigator.mediaSession.setActionHandler('nexttrack', () => {
+        navigator.mediaSession.setActionHandler('nexttrack', async () => {
+            // Ensure audio context is active for iOS lock screen controls
+            if (!audioContextManager.isReady()) {
+                audioContextManager.init(this.audio);
+            }
+            await audioContextManager.resume();
             this.playNext();
         });
 
