@@ -143,7 +143,7 @@ export const buildTrackFilename = (track, quality, extension = null) => {
         album: track.album?.title,
     };
 
-    return formatTemplate(template, data) + '.' + extension;
+    return formatTemplate(template, data) + '.' + ext;
 };
 
 const sanitizeToken = (value) => {

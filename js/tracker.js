@@ -1,5 +1,5 @@
 //js/tracker.js
-import { escapeHtml, SVG_DOWNLOAD, SVG_MENU, SVG_PLAY, trackDataStore, formatTime, SVG_HEART } from './utils.js';
+import { escapeHtml, SVG_MENU, SVG_PLAY, trackDataStore, formatTime, SVG_HEART } from './utils.js';
 import { navigate } from './router.js';
 
 let artistsData = [];
@@ -22,8 +22,8 @@ function cleanSongTitle(title) {
     if (!title) return '';
     // Remove (prod. ...), (produced by ...), [prod. ...], etc.
     return title
-        .replace(/\s*[\(\[]\s*prod\.?\s+[^\)\]]+[\)\]]/gi, '')
-        .replace(/\s*[\(\[]\s*produced\s+by\s+[^\)\]]+[\)\]]/gi, '')
+        .replace(/\s*[([]\s*prod\.?\s+[^)\]]+[)\]]/gi, '')
+        .replace(/\s*[([]\s*produced\s+by\s+[^)\]]+[)\]]/gi, '')
         .replace(/\s+/g, ' ')
         .trim();
 }
@@ -134,7 +134,7 @@ function getDirectUrl(rawUrl) {
 }
 
 // Convert tracker song to standard track format
-function createTrackFromSong(song, era, artistName, index, sheetId = '') {
+export function createTrackFromSong(song, era, artistName, index, sheetId = '') {
     const isValidUrl = (u) => u && typeof u === 'string' && u.trim().length > 0;
     const rawUrl = (isValidUrl(song.url) ? song.url : null) || (song.urls ? song.urls.find(isValidUrl) : null);
     const directUrl = getDirectUrl(rawUrl);
@@ -325,7 +325,7 @@ export async function renderTrackerArtistPage(sheetId, container) {
                 if (era.data) {
                     Object.values(era.data).forEach((songs) => {
                         if (songs && songs.length) {
-                            songs.forEach((song, index) => {
+                            songs.forEach((song) => {
                                 const track = createTrackFromSong(song, era, artist.name, allTracks.length, sheetId);
                                 allTracks.push(track);
                             });
@@ -406,7 +406,7 @@ export async function renderTrackerArtistPage(sheetId, container) {
                 if (era.data) {
                     Object.values(era.data).forEach((songs) => {
                         if (songs && songs.length) {
-                            songs.forEach((song, index) => {
+                            songs.forEach((song) => {
                                 const track = createTrackFromSong(song, era, artist.name, eraTracks.length, sheetId);
                                 eraTracks.push(track);
                             });
@@ -498,7 +498,7 @@ export async function renderTrackerArtistPage(sheetId, container) {
 }
 
 // Render individual tracker project page
-export async function renderTrackerProjectPage(sheetId, projectName, container, ui) {
+export async function renderTrackerProjectPage(sheetId, projectName, container, _ui) {
     if (!artistsData.length) {
         await loadArtistsData();
     }
@@ -526,7 +526,7 @@ export async function renderTrackerProjectPage(sheetId, projectName, container, 
     if (era.data) {
         Object.values(era.data).forEach((songs) => {
             if (songs && songs.length) {
-                songs.forEach((song, index) => {
+                songs.forEach((song) => {
                     const track = createTrackFromSong(song, era, artist.name, eraTracks.length, sheetId);
                     eraTracks.push(track);
                 });
@@ -645,13 +645,6 @@ export async function renderTrackerProjectPage(sheetId, projectName, container, 
                 const era = trackerData.eras[eraName];
                 if (!era) return;
 
-                let trackCount = 0;
-                if (era.data) {
-                    Object.values(era.data).forEach((songs) => {
-                        if (songs && songs.length) trackCount += songs.length;
-                    });
-                }
-
                 card.onclick = (e) => {
                     if (e.target.closest('.card-play-btn')) {
                         e.stopPropagation();
@@ -659,7 +652,7 @@ export async function renderTrackerProjectPage(sheetId, projectName, container, 
                         if (era.data) {
                             Object.values(era.data).forEach((songs) => {
                                 if (songs && songs.length) {
-                                    songs.forEach((song, index) => {
+                                    songs.forEach((song) => {
                                         const track = createTrackFromSong(
                                             song,
                                             era,
@@ -797,7 +790,7 @@ export async function renderUnreleasedPage(container) {
 }
 
 // Render track page for unreleased songs
-export async function renderTrackerTrackPage(trackId, container, ui) {
+export async function renderTrackerTrackPage(trackId, container, _ui) {
     // Parse track ID: tracker-{sheetId}-{eraName}-{index}
     const parts = trackId.split('-');
     if (parts.length < 4) {
@@ -834,17 +827,15 @@ export async function renderTrackerTrackPage(trackId, container, ui) {
 
     // Find the specific track
     let currentTrack = null;
-    let currentIndex = 0;
     let allTracks = [];
 
     Object.values(era.data).forEach((songs) => {
         if (songs && songs.length) {
-            songs.forEach((song, idx) => {
+            songs.forEach((song) => {
                 const track = createTrackFromSong(song, era, artist.name, allTracks.length, sheetId);
                 allTracks.push(track);
                 if (allTracks.length - 1 === trackIndex) {
                     currentTrack = track;
-                    currentIndex = allTracks.length - 1;
                 }
             });
         }

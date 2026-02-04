@@ -104,7 +104,9 @@ export function initializeSettings(scrobbler, player, api, ui) {
             }
             try {
                 await authManager.sendPasswordReset(email);
-            } catch {}
+            } catch {
+                /* ignore */
+            }
         });
     }
 

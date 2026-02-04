@@ -111,7 +111,7 @@ export class MusicDatabase {
                 store.put(entry);
             };
 
-            cursorReq.onerror = (e) => {
+            cursorReq.onerror = (_e) => {
                 // If cursor fails, just try to put (fallback)
                 store.put(entry);
             };

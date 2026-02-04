@@ -5,7 +5,7 @@ export class ParticlesPreset {
         this.particleCount = 180;
     }
 
-    resize(width, height) {
+    resize(_width, _height) {
         // Particles don't need explicit resize logic unless we want to respawn them,
         // but current logic handles boundaries in draw loop.
     }
