@@ -55,6 +55,7 @@ export const apiSettings = {
             this.defaultInstances = {
                 api: [
                     'https://ediddy.monochrome.tf',
+                    'https://arran.monochrome.tf',
                     'https://api.monochrome.tf',
                     'https://triton.squid.wtf',
                     'https://wolf.qqdl.site',
@@ -69,6 +70,7 @@ export const apiSettings = {
                 ],
                 streaming: [
                     'https://ediddy.monochrome.tf',
+                    'https://arran.monochrome.tf',
                     'https://triton.squid.wtf',
                     'https://wolf.qqdl.site',
                     'https://maus.qqdl.site',

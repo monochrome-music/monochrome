@@ -1,5 +1,6 @@
 {
     "api": [
+        "https://arran.monochrome.tf",
         "https://ediddy.monochrome.tf/",
         "https://api.monochrome.tf/",
         "https://tidal-api.binimum.org",
@@ -14,6 +15,7 @@
         "https://tidal.kinoplus.online"
     ],
     "streaming": [
+        "https://arran.monochrome.tf",
         "https://ediddy.monochrome.tf/",
         "https://api.monochrome.tf/",
         "https://triton.squid.wtf",
