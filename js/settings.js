@@ -20,6 +20,7 @@ import {
     listenBrainzSettings,
     homePageSettings,
     sidebarSectionSettings,
+    searchSettings,
 } from './storage.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
 import { db } from './db.js';
@@ -685,6 +686,24 @@ export function initializeSettings(scrobbler, player, api, ui) {
         visualizerModeSelect.value = visualizerSettings.getMode();
         visualizerModeSelect.addEventListener('change', (e) => {
             visualizerSettings.setMode(e.target.value);
+        });
+    }
+
+    // Search Relevance Weight Slider
+    const searchRelevanceSlider = document.getElementById('search-relevance-slider');
+    const searchRelevanceValue = document.getElementById('search-relevance-value');
+    const searchPopularityValue = document.getElementById('search-popularity-value');
+    if (searchRelevanceSlider && searchRelevanceValue && searchPopularityValue) {
+        const currentWeight = searchSettings.getRelevanceWeight();
+        searchRelevanceSlider.value = currentWeight;
+        searchRelevanceValue.textContent = Math.round(currentWeight * 100);
+        searchPopularityValue.textContent = Math.round((1 - currentWeight) * 100);
+
+        searchRelevanceSlider.addEventListener('input', (e) => {
+            const newWeight = parseFloat(e.target.value);
+            searchSettings.setRelevanceWeight(newWeight);
+            searchRelevanceValue.textContent = Math.round(newWeight * 100);
+            searchPopularityValue.textContent = Math.round((1 - newWeight) * 100);
         });
     }
 

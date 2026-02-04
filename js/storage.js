@@ -841,6 +841,24 @@ export const equalizerSettings = {
     },
 };
 
+export const searchSettings = {
+    RELEVANCE_WEIGHT_KEY: 'search-relevance-weight',
+
+    getRelevanceWeight() {
+        try {
+            const val = localStorage.getItem(this.RELEVANCE_WEIGHT_KEY);
+            if (val === null) return 0.7; // Default: 70% relevance, 30% popularity
+            return parseFloat(val);
+        } catch {
+            return 0.7;
+        }
+    },
+
+    setRelevanceWeight(value) {
+        localStorage.setItem(this.RELEVANCE_WEIGHT_KEY, value);
+    },
+};
+
 export const sidebarSettings = {
     STORAGE_KEY: 'monochrome-sidebar-collapsed',
 

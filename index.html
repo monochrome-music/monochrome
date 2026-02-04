@@ -2289,6 +2289,51 @@
                                     </label>
                                 </div>
                             </div>
+
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Search Results Balance</span>
+                                        <span class="description"
+                                            >Adjust the balance between relevance and popularity in search results</span
+                                        >
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 10px">
+                                        <span style="font-size: 0.85rem; color: var(--muted-foreground); min-width: 80px"
+                                            >Relevance</span
+                                        >
+                                        <input
+                                            type="range"
+                                            id="search-relevance-slider"
+                                            min="0"
+                                            max="1"
+                                            step="0.05"
+                                            value="0.7"
+                                            style="flex: 1; min-width: 100px"
+                                        />
+                                        <span style="font-size: 0.85rem; color: var(--muted-foreground); min-width: 80px"
+                                            >Popularity</span
+                                        >
+                                    </div>
+                                    <div
+                                        style="
+                                            display: flex;
+                                            justify-content: center;
+                                            gap: 1rem;
+                                            margin-top: 0.5rem;
+                                            font-size: 0.85rem;
+                                        "
+                                    >
+                                        <span
+                                            ><strong id="search-relevance-value">70</strong>% relevance</span
+                                        >
+                                        <span>•</span>
+                                        <span
+                                            ><strong id="search-popularity-value">30</strong>% popularity</span
+                                        >
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="settings-tab-content" id="settings-tab-scrobbling">
