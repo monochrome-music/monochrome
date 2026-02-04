@@ -26,6 +26,7 @@ import {
     cardSettings,
     visualizerSettings,
     homePageSettings,
+    searchSettings,
 } from './storage.js';
 import { db } from './db.js';
 import { getVibrantColorFromImage } from './vibrant-color.js';
@@ -1489,15 +1490,174 @@ export class UIRenderer {
         return items.filter((item) => !favoriteIds.has(item.id));
     }
 
+    /**
+     * Calculate relevance score based on text matching
+     * @param {Object} item - The search result item
+     * @param {string} type - Type of item (track, artist, album, playlist)
+     * @param {string} query - The search query
+     * @returns {number} Relevance score (0-100)
+     */
+    calculateSearchRelevance(item, type, query) {
+        const normalizedQuery = query.toLowerCase().trim();
+        let primaryText = '';
+        let secondaryText = '';
+
+        // Extract text to match based on type
+        switch (type) {
+            case 'track':
+                primaryText = (getTrackTitle(item) || '').toLowerCase();
+                secondaryText = (getTrackArtists(item) || '').toLowerCase();
+                break;
+            case 'artist':
+                primaryText = (item.name || '').toLowerCase();
+                break;
+            case 'album':
+                primaryText = (item.title || '').toLowerCase();
+                secondaryText = (item.artist?.name || '').toLowerCase();
+                break;
+            case 'playlist':
+                primaryText = (item.title || '').toLowerCase();
+                break;
+        }
+
+        let score = 0;
+
+        // Check primary text match
+        if (primaryText === normalizedQuery) {
+            score = 100; // Exact match
+        } else if (primaryText.startsWith(normalizedQuery)) {
+            score = 80; // Starts with query
+        } else if (primaryText.includes(` ${normalizedQuery} `) || primaryText.includes(` ${normalizedQuery}`)) {
+            score = 60; // Whole word match
+        } else if (primaryText.includes(normalizedQuery)) {
+            score = 40; // Contains query
+        }
+
+        // Bonus points for secondary text match (artist name for tracks/albums)
+        if (secondaryText) {
+            if (secondaryText === normalizedQuery) {
+                score += 20;
+            } else if (secondaryText.startsWith(normalizedQuery)) {
+                score += 15;
+            } else if (secondaryText.includes(normalizedQuery)) {
+                score += 10;
+            }
+        }
+
+        return Math.min(score, 100);
+    }
+
+    /**
+     * Combine relevance and popularity into a final search score
+     * @param {Object} item - The search result item
+     * @param {string} type - Type of item
+     * @param {string} query - The search query
+     * @param {number} maxPopularity - Maximum popularity value for normalization
+     * @returns {number} Combined score
+     */
+    calculateSearchScore(item, type, query, maxPopularity) {
+        const relevance = this.calculateSearchRelevance(item, type, query);
+        const popularity = item.popularity || 0;
+        const normalizedPopularity = maxPopularity > 0 ? (popularity / maxPopularity) * 100 : 0;
+
+        const relevanceWeight = searchSettings.getRelevanceWeight();
+        return relevance * relevanceWeight + normalizedPopularity * (1 - relevanceWeight);
+    }
+
+    /**
+     * Get configuration for a search item based on its type
+     * @param {Object} item - The search result item
+     * @param {string} type - Type of item
+     * @returns {Object} Configuration object with imageUrl, title, subtitle, etc.
+     */
+    getSearchItemConfig(item, type) {
+        const configs = {
+            track: {
+                imageUrl: this.api.getCoverUrl(item.album?.cover || item.album?.id),
+                title: getTrackTitle(item),
+                subtitle: getTrackArtists(item),
+                href: `/album/${item.album?.id}`,
+                dataAttr: `data-track-id="${item.id}"`,
+                imageClass: '',
+                badges: [hasExplicitContent(item) && this.createExplicitBadge(), createQualityBadgeHTML(item)],
+                typeLabel: 'Track',
+            },
+            artist: {
+                imageUrl: this.api.getArtistPictureUrl(item.picture),
+                title: item.name,
+                subtitle: 'Artist',
+                href: `/artist/${item.id}`,
+                dataAttr: `data-artist-id="${item.id}"`,
+                imageClass: ' artist',
+                badges: [],
+                typeLabel: 'Artist',
+            },
+            album: {
+                imageUrl: this.api.getCoverUrl(item.cover || item.id),
+                title: item.title,
+                subtitle:
+                    (item.artist?.name || '') +
+                    (item.releaseDate
+                        ? (() => {
+                              const year = new Date(item.releaseDate).getFullYear();
+                              return !isNaN(year) ? ` • ${year}` : '';
+                          })()
+                        : ''),
+                href: `/album/${item.id}`,
+                dataAttr: `data-album-id="${item.id}"`,
+                imageClass: '',
+                badges: [hasExplicitContent(item) && this.createExplicitBadge(), createQualityBadgeHTML(item)],
+                typeLabel: 'Album',
+            },
+            playlist: {
+                imageUrl: this.api.getCoverUrl(item.squareImage || item.image || item.uuid),
+                title: item.title,
+                subtitle: `${item.numberOfTracks || 0} tracks`,
+                href: `/playlist/${item.uuid}`,
+                dataAttr: `data-playlist-id="${item.uuid}"`,
+                imageClass: '',
+                badges: [],
+                typeLabel: 'Playlist',
+            },
+        };
+
+        return configs[type];
+    }
+
+    /**
+     * Create HTML for a unified search result item
+     * @param {Object} item - The search result item
+     * @param {string} type - Type of item
+     * @returns {string} HTML string
+     */
+    createSearchAllItemHTML(item, type) {
+        const config = this.getSearchItemConfig(item, type);
+        const badges = config.badges.filter(Boolean).join('');
+
+        return `
+            <a class="search-all-item" href="${config.href}" ${config.dataAttr} data-type="${type}">
+                <img src="${config.imageUrl}" alt="" class="search-all-item-image${config.imageClass}" loading="lazy">
+                <div class="search-all-item-info">
+                    <div class="search-all-item-title">${escapeHtml(config.title)} ${badges}</div>
+                    <div class="search-all-item-subtitle">${escapeHtml(config.subtitle)}</div>
+                </div>
+                <span class="search-all-item-type">${config.typeLabel}</span>
+            </a>
+        `;
+    }
+
     async renderSearchPage(query) {
         this.showPage('search');
         document.getElementById('search-results-title').textContent = `Search Results for "${query}"`;
 
+        const allContainer = document.getElementById('search-all-container');
         const tracksContainer = document.getElementById('search-tracks-container');
         const artistsContainer = document.getElementById('search-artists-container');
         const albumsContainer = document.getElementById('search-albums-container');
         const playlistsContainer = document.getElementById('search-playlists-container');
 
+        // Show loading skeletons
+        if (allContainer) allContainer.innerHTML = this.createSkeletonTracks(10, true);
         tracksContainer.innerHTML = this.createSkeletonTracks(8, true);
         artistsContainer.innerHTML = this.createSkeletonCards(6, true);
         albumsContainer.innerHTML = this.createSkeletonCards(6, false);
@@ -1510,13 +1670,15 @@ export class UIRenderer {
         const signal = this.searchAbortController.signal;
 
         try {
-            // Optimize: Only make 2 API calls (tracks and playlists), extract artists/albums from tracks
-            const [tracksResult, playlistsResult] = await Promise.all([
+            // Make 3 API calls for complete search all results (extract only artists from tracks)
+            const [tracksResult, albumsResult, playlistsResult] = await Promise.all([
                 this.api.searchTracks(query, { signal }),
+                this.api.searchAlbums(query, { signal }),
                 this.api.searchPlaylists(query, { signal }),
             ]);
 
             let finalTracks = tracksResult.items;
+            let finalAlbums = albumsResult.items;
             let finalPlaylists = playlistsResult.items;
 
             // Extract artists from tracks
@@ -1535,14 +1697,78 @@ export class UIRenderer {
             });
             let finalArtists = Array.from(artistMap.values());
 
-            // Extract albums from tracks
-            const albumMap = new Map();
-            finalTracks.forEach((track) => {
-                if (track.album && !albumMap.has(track.album.id)) {
-                    albumMap.set(track.album.id, track.album);
+            // Fallback: extract albums from tracks if no direct album results
+            if (finalAlbums.length === 0 && finalTracks.length > 0) {
+                const albumMap = new Map();
+                finalTracks.forEach((track) => {
+                    if (track.album && !albumMap.has(track.album.id)) {
+                        albumMap.set(track.album.id, track.album);
+                    }
+                });
+                finalAlbums = Array.from(albumMap.values());
+            }
+
+            // Render "All" tab - sorted by relevance and popularity
+            if (allContainer) {
+                // Combine all results
+                const allResults = [
+                    ...finalArtists.map((item) => ({ item, type: 'artist' })),
+                    ...finalAlbums.map((item) => ({ item, type: 'album' })),
+                    ...finalTracks.map((item) => ({ item, type: 'track' })),
+                    ...finalPlaylists.map((item) => ({ item, type: 'playlist' })),
+                ];
+
+                // Find max popularity for normalization
+                const maxPopularity = Math.max(...allResults.map(({ item }) => item.popularity || 0), 1);
+
+                // Calculate search score for each item and sort
+                const scoredResults = allResults
+                    .map(({ item, type }) => ({
+                        item,
+                        type,
+                        score: this.calculateSearchScore(item, type, query, maxPopularity),
+                    }))
+                    .sort((a, b) => b.score - a.score)
+                    .slice(0, 25);
+
+                if (scoredResults.length > 0) {
+                    allContainer.innerHTML = scoredResults
+                        .map(({ item, type }) => this.createSearchAllItemHTML(item, type))
+                        .join('');
+
+                    // Bind data for interactions
+                    scoredResults.forEach(({ item, type }) => {
+                        let selector, likeId;
+                        switch (type) {
+                            case 'track':
+                                selector = `[data-track-id="${item.id}"]`;
+                                likeId = item.id;
+                                break;
+                            case 'artist':
+                                selector = `[data-artist-id="${item.id}"]`;
+                                likeId = item.id;
+                                break;
+                            case 'album':
+                                selector = `[data-album-id="${item.id}"]`;
+                                likeId = item.id;
+                                break;
+                            case 'playlist':
+                                selector = `[data-playlist-id="${item.uuid}"]`;
+                                likeId = item.uuid;
+                                break;
+                        }
+                        const el = allContainer.querySelector(selector);
+                        if (el) {
+                            trackDataStore.set(el, item);
+                            this.updateLikeState(el, type, likeId);
+                        }
+                    });
+                } else {
+                    allContainer.innerHTML = createPlaceholder('No results found.');
                 }
-            });
-            let finalAlbums = Array.from(albumMap.values());
+            }
+
+            // Render individual tabs
 
             if (finalTracks.length) {
                 this.renderListWithTracks(tracksContainer, finalTracks, true);
@@ -1589,6 +1815,7 @@ export class UIRenderer {
             if (error.name === 'AbortError') return;
             console.error('Search failed:', error);
             const errorMsg = createPlaceholder(`Error during search. ${error.message}`);
+            if (allContainer) allContainer.innerHTML = errorMsg;
             tracksContainer.innerHTML = errorMsg;
             artistsContainer.innerHTML = errorMsg;
             albumsContainer.innerHTML = errorMsg;
