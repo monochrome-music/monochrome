@@ -19,7 +19,13 @@ import {
     escapeHtml,
 } from './utils.js';
 import { openLyricsPanel } from './lyrics.js';
-import { recentActivityManager, backgroundSettings, cardSettings, visualizerSettings } from './storage.js';
+import {
+    recentActivityManager,
+    backgroundSettings,
+    cardSettings,
+    visualizerSettings,
+    homePageSettings,
+} from './storage.js';
 import { db } from './db.js';
 import { getVibrantColorFromImage } from './vibrant-color.js';
 import { syncManager } from './accounts/pocketbase.js';
@@ -1254,6 +1260,15 @@ export class UIRenderer {
 
     async renderHomeSongs(forceRefresh = false) {
         const songsContainer = document.getElementById('home-recommended-songs');
+        const section = songsContainer?.closest('.content-section');
+
+        if (!homePageSettings.shouldShowRecommendedSongs()) {
+            if (section) section.style.display = 'none';
+            return;
+        }
+
+        if (section) section.style.display = '';
+
         if (songsContainer) {
             if (forceRefresh) songsContainer.innerHTML = this.createSkeletonTracks(5, true);
             else if (songsContainer.children.length > 0 && !songsContainer.querySelector('.skeleton')) return; // Already loaded
@@ -1279,6 +1294,15 @@ export class UIRenderer {
 
     async renderHomeAlbums(forceRefresh = false) {
         const albumsContainer = document.getElementById('home-recommended-albums');
+        const section = albumsContainer?.closest('.content-section');
+
+        if (!homePageSettings.shouldShowRecommendedAlbums()) {
+            if (section) section.style.display = 'none';
+            return;
+        }
+
+        if (section) section.style.display = '';
+
         if (albumsContainer) {
             if (forceRefresh) albumsContainer.innerHTML = this.createSkeletonCards(6);
             else if (albumsContainer.children.length > 0 && !albumsContainer.querySelector('.skeleton')) return;
@@ -1317,6 +1341,15 @@ export class UIRenderer {
 
     async renderHomeArtists(forceRefresh = false) {
         const artistsContainer = document.getElementById('home-recommended-artists');
+        const section = artistsContainer?.closest('.content-section');
+
+        if (!homePageSettings.shouldShowRecommendedArtists()) {
+            if (section) section.style.display = 'none';
+            return;
+        }
+
+        if (section) section.style.display = '';
+
         if (artistsContainer) {
             if (forceRefresh) artistsContainer.innerHTML = this.createSkeletonCards(6, true);
             else if (artistsContainer.children.length > 0 && !artistsContainer.querySelector('.skeleton')) return;
@@ -1359,6 +1392,15 @@ export class UIRenderer {
 
     renderHomeRecent() {
         const recentContainer = document.getElementById('home-recent-mixed');
+        const section = recentContainer?.closest('.content-section');
+
+        if (!homePageSettings.shouldShowJumpBackIn()) {
+            if (section) section.style.display = 'none';
+            return;
+        }
+
+        if (section) section.style.display = '';
+
         if (recentContainer) {
             const recents = recentActivityManager.getRecents();
             const items = [];
@@ -2513,10 +2555,16 @@ export class UIRenderer {
     async renderRecentPage() {
         this.showPage('recent');
         const container = document.getElementById('recent-tracks-container');
+        const clearBtn = document.getElementById('clear-history-btn');
         container.innerHTML = this.createSkeletonTracks(10, true);
 
         try {
             const history = await db.getHistory();
+
+            // Show/hide clear button based on whether there's history
+            if (clearBtn) {
+                clearBtn.style.display = history.length > 0 ? 'flex' : 'none';
+            }
 
             if (history.length === 0) {
                 container.innerHTML = createPlaceholder("You haven't played any tracks yet.");
@@ -2570,9 +2618,26 @@ export class UIRenderer {
                     container.appendChild(tempContainer.firstChild);
                 }
             }
+
+            // Setup clear button handler
+            if (clearBtn) {
+                clearBtn.onclick = async () => {
+                    if (confirm('Clear all recently played tracks? This cannot be undone.')) {
+                        try {
+                            await db.clearHistory();
+                            container.innerHTML = createPlaceholder("You haven't played any tracks yet.");
+                            clearBtn.style.display = 'none';
+                        } catch (err) {
+                            console.error('Failed to clear history:', err);
+                            alert('Failed to clear history');
+                        }
+                    }
+                };
+            }
         } catch (error) {
             console.error('Failed to load history:', error);
             container.innerHTML = createPlaceholder('Failed to load history.');
+            if (clearBtn) clearBtn.style.display = 'none';
         }
     }
 

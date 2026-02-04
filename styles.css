@@ -3305,6 +3305,38 @@ input:checked + .slider::before {
     gap: 0.5rem;
 }
 
+/* Lyrics timing adjustment controls */
+.lyrics-timing-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-right: auto;
+    padding-right: 0.5rem;
+    border-right: 1px solid var(--border);
+}
+
+.lyrics-timing-display {
+    font-family: monospace;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--foreground);
+    min-width: 3.5rem;
+    text-align: center;
+    user-select: none;
+    cursor: default;
+}
+
+.lyrics-timing-controls .btn-icon {
+    padding: 0.4rem;
+    width: 28px;
+    height: 28px;
+}
+
+.lyrics-timing-controls .btn-icon:hover {
+    background: var(--secondary);
+    color: var(--primary);
+}
+
 .panel-content {
     flex: 1;
     overflow-y: auto;

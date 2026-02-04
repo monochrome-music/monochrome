@@ -814,6 +814,34 @@ export const equalizerSettings = {
     },
 };
 
+export const sidebarSettings = {
+    STORAGE_KEY: 'monochrome-sidebar-collapsed',
+
+    isCollapsed() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) === 'true';
+        } catch {
+            return false;
+        }
+    },
+
+    setCollapsed(collapsed) {
+        localStorage.setItem(this.STORAGE_KEY, collapsed ? 'true' : 'false');
+    },
+
+    restoreState() {
+        const isCollapsed = this.isCollapsed();
+        if (isCollapsed) {
+            document.body.classList.add('sidebar-collapsed');
+            const toggleBtn = document.getElementById('sidebar-toggle');
+            if (toggleBtn) {
+                toggleBtn.innerHTML =
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+            }
+        }
+    },
+};
+
 export const queueManager = {
     STORAGE_KEY: 'monochrome-queue',
 
@@ -870,6 +898,230 @@ export const listenBrainzSettings = {
 
     setToken(token) {
         localStorage.setItem(this.TOKEN_KEY, token);
+    },
+};
+
+export const homePageSettings = {
+    SHOW_RECOMMENDED_SONGS_KEY: 'home-show-recommended-songs',
+    SHOW_RECOMMENDED_ALBUMS_KEY: 'home-show-recommended-albums',
+    SHOW_RECOMMENDED_ARTISTS_KEY: 'home-show-recommended-artists',
+    SHOW_JUMP_BACK_IN_KEY: 'home-show-jump-back-in',
+
+    shouldShowRecommendedSongs() {
+        try {
+            const val = localStorage.getItem(this.SHOW_RECOMMENDED_SONGS_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowRecommendedSongs(enabled) {
+        localStorage.setItem(this.SHOW_RECOMMENDED_SONGS_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldShowRecommendedAlbums() {
+        try {
+            const val = localStorage.getItem(this.SHOW_RECOMMENDED_ALBUMS_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowRecommendedAlbums(enabled) {
+        localStorage.setItem(this.SHOW_RECOMMENDED_ALBUMS_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldShowRecommendedArtists() {
+        try {
+            const val = localStorage.getItem(this.SHOW_RECOMMENDED_ARTISTS_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowRecommendedArtists(enabled) {
+        localStorage.setItem(this.SHOW_RECOMMENDED_ARTISTS_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldShowJumpBackIn() {
+        try {
+            const val = localStorage.getItem(this.SHOW_JUMP_BACK_IN_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowJumpBackIn(enabled) {
+        localStorage.setItem(this.SHOW_JUMP_BACK_IN_KEY, enabled ? 'true' : 'false');
+    },
+};
+
+export const sidebarSectionSettings = {
+    SHOW_HOME_KEY: 'sidebar-show-home',
+    SHOW_LIBRARY_KEY: 'sidebar-show-library',
+    SHOW_RECENT_KEY: 'sidebar-show-recent',
+    SHOW_UNRELEASED_KEY: 'sidebar-show-unreleased',
+    SHOW_DONATE_KEY: 'sidebar-show-donate',
+    SHOW_SETTINGS_KEY: 'sidebar-show-settings',
+    SHOW_ACCOUNT_KEY: 'sidebar-show-account',
+    SHOW_ABOUT_KEY: 'sidebar-show-about',
+    SHOW_DOWNLOAD_KEY: 'sidebar-show-download',
+    SHOW_DISCORD_KEY: 'sidebar-show-discord',
+
+    shouldShowHome() {
+        try {
+            const val = localStorage.getItem(this.SHOW_HOME_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowHome(enabled) {
+        localStorage.setItem(this.SHOW_HOME_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldShowLibrary() {
+        try {
+            const val = localStorage.getItem(this.SHOW_LIBRARY_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowLibrary(enabled) {
+        localStorage.setItem(this.SHOW_LIBRARY_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldShowRecent() {
+        try {
+            const val = localStorage.getItem(this.SHOW_RECENT_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowRecent(enabled) {
+        localStorage.setItem(this.SHOW_RECENT_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldShowUnreleased() {
+        try {
+            const val = localStorage.getItem(this.SHOW_UNRELEASED_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowUnreleased(enabled) {
+        localStorage.setItem(this.SHOW_UNRELEASED_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldShowDonate() {
+        try {
+            const val = localStorage.getItem(this.SHOW_DONATE_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowDonate(enabled) {
+        localStorage.setItem(this.SHOW_DONATE_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldShowSettings() {
+        try {
+            const val = localStorage.getItem(this.SHOW_SETTINGS_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowSettings(enabled) {
+        localStorage.setItem(this.SHOW_SETTINGS_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldShowAccount() {
+        try {
+            const val = localStorage.getItem(this.SHOW_ACCOUNT_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowAccount(enabled) {
+        localStorage.setItem(this.SHOW_ACCOUNT_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldShowAbout() {
+        try {
+            const val = localStorage.getItem(this.SHOW_ABOUT_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowAbout(enabled) {
+        localStorage.setItem(this.SHOW_ABOUT_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldShowDownload() {
+        try {
+            const val = localStorage.getItem(this.SHOW_DOWNLOAD_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowDownload(enabled) {
+        localStorage.setItem(this.SHOW_DOWNLOAD_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldShowDiscord() {
+        try {
+            const val = localStorage.getItem(this.SHOW_DISCORD_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowDiscord(enabled) {
+        localStorage.setItem(this.SHOW_DISCORD_KEY, enabled ? 'true' : 'false');
+    },
+
+    applySidebarVisibility() {
+        const items = [
+            { id: 'sidebar-nav-home', check: this.shouldShowHome() },
+            { id: 'sidebar-nav-library', check: this.shouldShowLibrary() },
+            { id: 'sidebar-nav-recent', check: this.shouldShowRecent() },
+            { id: 'sidebar-nav-unreleased', check: this.shouldShowUnreleased() },
+            { id: 'sidebar-nav-donate', check: this.shouldShowDonate() },
+            { id: 'sidebar-nav-settings', check: this.shouldShowSettings() },
+            { id: 'sidebar-nav-account', check: this.shouldShowAccount() },
+            { id: 'sidebar-nav-about', check: this.shouldShowAbout() },
+            { id: 'sidebar-nav-download', check: this.shouldShowDownload() },
+            { id: 'sidebar-nav-discord', check: this.shouldShowDiscord() },
+        ];
+
+        items.forEach(({ id, check }) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.style.display = check ? '' : 'none';
+            }
+        });
     },
 };
 

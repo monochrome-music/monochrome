@@ -98,6 +98,26 @@ const syncManager = {
                 });
                 return JSON.parse(recovered);
             } catch {
+                try {
+                    // Python-style fallback (Single quotes, True/False, None)
+                    // This handles data that was incorrectly serialized as Python repr string
+                    if (str.includes("'") || str.includes('True') || str.includes('False')) {
+                        const jsFriendly = str
+                            .replace(/\bTrue\b/g, 'true')
+                            .replace(/\bFalse\b/g, 'false')
+                            .replace(/\bNone\b/g, 'null');
+
+                        // Basic safety check: ensure it looks like a structure and doesn't contain obvious code vectors
+                        if (
+                            (jsFriendly.trim().startsWith('[') || jsFriendly.trim().startsWith('{')) &&
+                            !jsFriendly.match(/function|=>|window|document|alert|eval/)
+                        ) {
+                            return new Function('return ' + jsFriendly)();
+                        }
+                    }
+                } catch (e) {
+                    // Ignore fallback error
+                }
                 return fallback;
             }
         }
@@ -361,7 +381,7 @@ const syncManager = {
             image: playlist.cover,
             cover: playlist.cover,
             playlist_cover: playlist.cover,
-            tracks: playlist.tracks,
+            tracks: JSON.stringify(playlist.tracks || []),
             isPublic: true,
             data: {
                 title: playlist.name,
