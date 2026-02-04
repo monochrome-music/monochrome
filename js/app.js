@@ -1276,7 +1276,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const performSearch = debounce((query) => {
         if (query) {
-            ui.addToSearchHistory(query);
             navigate(`/search/${encodeURIComponent(query)}`);
         }
     }, 300);
@@ -1285,6 +1284,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const query = e.target.value.trim();
         if (query.length > 2) {
             performSearch(query);
+        }
+    });
+
+    searchInput.addEventListener('change', (e) => {
+        const query = e.target.value.trim();
+        if (query.length > 2) {
+            ui.addToSearchHistory(query);
         }
     });
 
@@ -1932,6 +1938,5 @@ function showKeyboardShortcuts() {
     };
 
     modal.addEventListener('click', handleClose);
-
     modal.classList.add('active');
 }
