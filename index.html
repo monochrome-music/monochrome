@@ -1964,11 +1964,20 @@
 
                 <div id="page-settings" class="page">
                     <h2 class="section-title">Settings</h2>
-                    <div class="settings-list">
-                        <div class="settings-group">
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Theme</span>
+                    <div class="settings-tabs">
+                        <button class="settings-tab active" data-tab="appearance">Appearance</button>
+                        <button class="settings-tab" data-tab="interface">Interface</button>
+                        <button class="settings-tab" data-tab="scrobbling">Scrobbling</button>
+                        <button class="settings-tab" data-tab="audio">Audio</button>
+                        <button class="settings-tab" data-tab="downloads">Downloads</button>
+                        <button class="settings-tab" data-tab="system">System</button>
+                    </div>
+                    <div class="settings-tab-content active" id="settings-tab-appearance">
+                        <div class="settings-list">
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Theme</span>
                                     <span class="description">Choose your preferred color scheme</span>
                                 </div>
                             </div>
@@ -2105,7 +2114,10 @@
                                 </div>
                             </div>
                         </div>
-
+                    </div>
+                </div>
+                <div class="settings-tab-content" id="settings-tab-interface">
+                    <div class="settings-list">
                         <div class="settings-group">
                             <div class="setting-item">
                                 <div class="info">
@@ -2255,7 +2267,10 @@
                                 </label>
                             </div>
                         </div>
-
+                    </div>
+                </div>
+                <div class="settings-tab-content" id="settings-tab-scrobbling">
+                    <div class="settings-list">
                         <div class="settings-group">
                             <div class="setting-item">
                                 <div class="info">
@@ -2321,7 +2336,10 @@
                                 </label>
                             </div>
                         </div>
-
+                    </div>
+                </div>
+                <div class="settings-tab-content" id="settings-tab-audio">
+                    <div class="settings-list">
                         <div class="settings-group">
                             <div class="setting-item">
                                 <div class="info">
@@ -2718,7 +2736,10 @@
                                 </label>
                             </div>
                         </div>
-
+                    </div>
+                </div>
+                <div class="settings-tab-content" id="settings-tab-downloads">
+                    <div class="settings-list">
                         <div class="settings-group">
                             <div class="setting-item">
                                 <div class="info">
@@ -2847,7 +2868,10 @@
                                 </label>
                             </div>
                         </div>
-
+                    </div>
+                </div>
+                <div class="settings-tab-content" id="settings-tab-system">
+                    <div class="settings-list">
                         <div class="settings-group">
                             <div class="setting-item">
                                 <div class="info">
@@ -2906,6 +2930,7 @@
                             </div>
                         </div>
                     </div>
+                </div>
                 </div>
 
                 <div id="page-about" class="page">
