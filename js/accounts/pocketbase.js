@@ -4,7 +4,11 @@ import { db } from '../db.js';
 import { authManager } from './auth.js';
 
 const PUBLIC_COLLECTION = 'public_playlists';
-const POCKETBASE_URL = 'https://monodb.samidy.com';
+const DEFAULT_POCKETBASE_URL = 'https://monodb.samidy.com';
+const POCKETBASE_URL = localStorage.getItem('monochrome-pocketbase-url') || DEFAULT_POCKETBASE_URL;
+
+console.log('[PocketBase] Using URL:', POCKETBASE_URL);
+
 const pb = new PocketBase(POCKETBASE_URL);
 pb.autoCancellation(false);
 
@@ -115,8 +119,8 @@ const syncManager = {
                             return new Function('return ' + jsFriendly)();
                         }
                     }
-                } catch {
-                    // Ignore fallback error
+                } catch (error) {
+                    console.log(error);// Ignore fallback error
                 }
                 return fallback;
             }
@@ -562,6 +566,8 @@ const syncManager = {
                     window.dispatchEvent(new CustomEvent('library-changed'));
                     window.dispatchEvent(new CustomEvent('history-changed'));
                     window.dispatchEvent(new HashChangeEvent('hashchange'));
+
+                    console.log('[PocketBase] ✓ Sync completed successfully');
                 }
             } catch (error) {
                 console.error('Error during PocketBase sync!', error);
