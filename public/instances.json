@@ -1,7 +1,11 @@
 {
     "api": [
+        "https://ayohh.monochrome.tf",
+        "https://seangreengoat.monochrome.tf",
+        "https://esdee.monochrome.tf",
+        "https://2jewish.monochrome.tf",
+        "https://ediddy.monochrome.tf",
         "https://arran.monochrome.tf",
-        "https://ediddy.monochrome.tf/",
         "https://api.monochrome.tf/",
         "https://tidal-api.binimum.org",
         "https://monochrome-api.samidy.com",
@@ -15,8 +19,12 @@
         "https://tidal.kinoplus.online"
     ],
     "streaming": [
+        "https://ayohh.monochrome.tf",
+        "https://seangreengoat.monochrome.tf",
+        "https://esdee.monochrome.tf",
+        "https://2jewish.monochrome.tf",
+        "https://ediddy.monochrome.tf",
         "https://arran.monochrome.tf",
-        "https://ediddy.monochrome.tf/",
         "https://api.monochrome.tf/",
         "https://triton.squid.wtf",
         "https://wolf.qqdl.site",

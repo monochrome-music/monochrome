@@ -54,6 +54,10 @@ export const apiSettings = {
             console.error('Failed to load instances from GitHub:', error);
             this.defaultInstances = {
                 api: [
+                    'https://ayohh.monochrome.tf',
+                    'https://seangreengoat.monochrome.tf',
+                    'https://esdee.monochrome.tf',
+                    'https://2jewish.monochrome.tf',
                     'https://ediddy.monochrome.tf',
                     'https://arran.monochrome.tf',
                     'https://api.monochrome.tf',
@@ -69,6 +73,10 @@ export const apiSettings = {
                     'https://vogel.qqdl.site',
                 ],
                 streaming: [
+                    'https://ayohh.monochrome.tf',
+                    'https://seangreengoat.monochrome.tf',
+                    'https://esdee.monochrome.tf',
+                    'https://2jewish.monochrome.tf',
                     'https://ediddy.monochrome.tf',
                     'https://arran.monochrome.tf',
                     'https://triton.squid.wtf',
