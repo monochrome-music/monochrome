@@ -54,7 +54,8 @@ export const apiSettings = {
             console.error('Failed to load instances from GitHub:', error);
             this.defaultInstances = {
                 api: [
-                    'https://api.monochrome.tf/',
+                    'https://ediddy.monochrome.tf',
+                    'https://api.monochrome.tf',
                     'https://triton.squid.wtf',
                     'https://wolf.qqdl.site',
                     'https://tidal-api.binimum.org',
@@ -67,7 +68,8 @@ export const apiSettings = {
                     'https://vogel.qqdl.site',
                 ],
                 streaming: [
-                    'https://api.monochrome.tf/',
+                    'https://ediddy.monochrome.tf'
+                    'https://api.monochrome.tf',
                     'https://triton.squid.wtf',
                     'https://wolf.qqdl.site',
                     'https://maus.qqdl.site',
