@@ -6,6 +6,7 @@ import {
     isTrackUnavailable,
     getExtensionFromBlob,
 } from './utils.js';
+import { trackDateSettings } from './storage.js';
 import { APICache } from './cache.js';
 import { addMetadataToAudio } from './metadata.js';
 import { DashDownloader } from './dash-downloader.js';
@@ -173,6 +174,36 @@ export class LosslessAPI {
         return artist;
     }
 
+    async enrichTracksWithAlbumDates(tracks) {
+        if (!trackDateSettings.useAlbumYear()) return tracks;
+
+        const albumIdsToFetch = [];
+        for (const track of tracks) {
+            if (!track.album?.releaseDate && track.album?.id && !albumIdsToFetch.includes(track.album.id)) {
+                albumIdsToFetch.push(track.album.id);
+            }
+        }
+
+        if (albumIdsToFetch.length === 0) return tracks;
+
+        const albumDateMap = new Map();
+        const results = await Promise.allSettled(albumIdsToFetch.map((id) => this.getAlbum(id)));
+
+        for (let i = 0; i < results.length; i++) {
+            const result = results[i];
+            if (result.status === 'fulfilled' && result.value.album?.releaseDate) {
+                albumDateMap.set(albumIdsToFetch[i], result.value.album.releaseDate);
+            }
+        }
+
+        return tracks.map((track) => {
+            if (!track.album?.releaseDate && track.album?.id && albumDateMap.has(track.album.id)) {
+                return { ...track, album: { ...track.album, releaseDate: albumDateMap.get(track.album.id) } };
+            }
+            return track;
+        });
+    }
+
     parseTrackLookup(data) {
         const entries = Array.isArray(data) ? data : [data];
         let track, info, originalTrackUrl;
@@ -272,9 +303,11 @@ export class LosslessAPI {
             const response = await this.fetchWithRetry(`/search/?s=${encodeURIComponent(query)}`, options);
             const data = await response.json();
             const normalized = this.normalizeSearchResponse(data, 'tracks');
+            const preparedTracks = normalized.items.map((t) => this.prepareTrack(t));
+            const enrichedTracks = await this.enrichTracksWithAlbumDates(preparedTracks);
             const result = {
                 ...normalized,
-                items: normalized.items.map((t) => this.prepareTrack(t)),
+                items: enrichedTracks,
             };
 
             await this.cache.set('search_tracks', query, result);
@@ -466,6 +499,16 @@ export class LosslessAPI {
             }
         }
 
+        // Enrich tracks with album releaseDate if available
+        if (album?.releaseDate) {
+            tracks = tracks.map((track) => {
+                if (track.album && !track.album.releaseDate) {
+                    return { ...track, album: { ...track.album, releaseDate: album.releaseDate } };
+                }
+                return track;
+            });
+        }
+
         const result = { album, tracks };
 
         await this.cache.set('album', id, result);
@@ -572,6 +615,9 @@ export class LosslessAPI {
             }
         }
 
+        // Enrich tracks with album release dates
+        tracks = await this.enrichTracksWithAlbumDates(tracks);
+
         const result = { playlist, tracks };
 
         await this.cache.set('playlist', id, result);
@@ -592,7 +638,10 @@ export class LosslessAPI {
             throw new Error('Mix metadata not found');
         }
 
-        const tracks = items.map((i) => this.prepareTrack(i.item || i));
+        let tracks = items.map((i) => this.prepareTrack(i.item || i));
+
+        // Enrich tracks with album release dates
+        tracks = await this.enrichTracksWithAlbumDates(tracks);
 
         const mix = {
             id: mixData.id,
@@ -689,9 +738,12 @@ export class LosslessAPI {
         const eps = allReleases.filter((a) => a.type === 'EP' || a.type === 'SINGLE');
         const albums = allReleases.filter((a) => !eps.includes(a));
 
-        const tracks = Array.from(trackMap.values())
+        const topTracks = Array.from(trackMap.values())
             .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
             .slice(0, 15);
+
+        // Enrich tracks with album release dates
+        const tracks = await this.enrichTracksWithAlbumDates(topTracks);
 
         const result = { ...artist, albums, eps, tracks };
 

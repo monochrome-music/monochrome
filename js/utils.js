@@ -1,5 +1,5 @@
 //js/utils.js
-import { qualityBadgeSettings, coverArtSizeSettings } from './storage.js';
+import { qualityBadgeSettings, coverArtSizeSettings, trackDateSettings } from './storage.js';
 
 export const QUALITY = 'HI_RES_LOSSLESS';
 
@@ -64,6 +64,16 @@ export const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
     const s = Math.floor(seconds % 60);
     return `${m}:${String(s).padStart(2, '0')}`;
+};
+
+export const getTrackYearDisplay = (track) => {
+    const useAlbumYear = trackDateSettings.useAlbumYear();
+    const releaseDate = useAlbumYear
+        ? track?.album?.releaseDate || track?.streamStartDate
+        : track?.streamStartDate || track?.album?.releaseDate;
+    if (!releaseDate) return '';
+    const date = new Date(releaseDate);
+    return isNaN(date.getTime()) ? '' : ` • ${date.getFullYear()}`;
 };
 
 export const createPlaceholder = (text, isLoading = false) => {

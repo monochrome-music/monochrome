@@ -586,6 +586,23 @@ export const qualityBadgeSettings = {
     },
 };
 
+export const trackDateSettings = {
+    STORAGE_KEY: 'use-album-release-year',
+
+    useAlbumYear() {
+        try {
+            const val = localStorage.getItem(this.STORAGE_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setUseAlbumYear(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+};
+
 export const bulkDownloadSettings = {
     STORAGE_KEY: 'force-individual-downloads',
 
