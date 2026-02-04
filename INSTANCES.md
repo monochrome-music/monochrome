@@ -10,9 +10,9 @@ This document lists public instances of Monochrome that you can use. Instances a
 
 The official Monochrome instance maintained by the core team:
 
-| URL                                                    | Status      | Notes            |
-| ------------------------------------------------------ | ----------- | ---------------- |
-| [monochrome.tf](https://monochrome.tf)                 |  Official | Primary instance |
+| URL                                                    | Status   | Notes            |
+| ------------------------------------------------------ | -------- | ---------------- |
+| [monochrome.tf](https://monochrome.tf)                 | Official | Primary instance |
 | [monochrome.samidy.com](https://monochrome.samidy.com) | Official | Secondary mirror |
 
 ---
@@ -61,7 +61,7 @@ To check the current status of instances:
 2. Check if the page loads correctly
 3. Try playing a track to verify API connectivity
 
->  **Note:** Community instances may have varying uptime and performance. If one doesn't work, try another.
+> **Note:** Community instances may have varying uptime and performance. If one doesn't work, try another.
 
 ---
 

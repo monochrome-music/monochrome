@@ -85,13 +85,13 @@
 - Dynamic Discord Embeds
 - Multiple API instance support with failover
 
-###  Power User Features
+### Power User Features
 
 - Keyboard shortcuts for power users
 
 ---
 
-##  Quick Start
+## Quick Start
 
 ### Live Instance
 
@@ -103,7 +103,7 @@ For alternative instances, check [INSTANCES.md](INSTANCES.md).
 
 ---
 
-##  Installation
+## Installation
 
 ### Prerequisites
 
@@ -148,7 +148,7 @@ npm run build
 
 ---
 
-##  Usage
+## Usage
 
 ### Basic Usage
 
@@ -181,7 +181,8 @@ To sync your library, history, and playlists across devices:
 
 ---
 
-##  Contributing
+## Contributing
+
 We welcome contributions from the community! Please see our [Contributing Guide](CONTRIBUTE.md) for:
 
 - Setting up your development environment

@@ -300,4 +300,4 @@ bun run build
 - Focus on constructive feedback
 - Respect different viewpoints and experiences
 
-Thank you for contributing to Monochrome! 
+Thank you for contributing to Monochrome!
