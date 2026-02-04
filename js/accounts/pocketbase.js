@@ -115,7 +115,7 @@ const syncManager = {
                             return new Function('return ' + jsFriendly)();
                         }
                     }
-                } catch (e) {
+                } catch {
                     // Ignore fallback error
                 }
                 return fallback;
