@@ -1088,7 +1088,7 @@ export class LosslessAPI {
             return id;
         }
 
-        const formattedId = id.replace(/-/g, '/');
+        const formattedId = String(id).replace(/-/g, '/');
         return `https://resources.tidal.com/images/${formattedId}/${size}x${size}.jpg`;
     }
 
@@ -1101,7 +1101,7 @@ export class LosslessAPI {
             return id;
         }
 
-        const formattedId = id.replace(/-/g, '/');
+        const formattedId = String(id).replace(/-/g, '/');
         return `https://resources.tidal.com/images/${formattedId}/${size}x${size}.jpg`;
     }
 
