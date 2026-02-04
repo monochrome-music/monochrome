@@ -68,8 +68,7 @@ export const apiSettings = {
                     'https://vogel.qqdl.site',
                 ],
                 streaming: [
-                    'https://ediddy.monochrome.tf'
-                    'https://api.monochrome.tf',
+                    'https://ediddy.monochrome.tf',
                     'https://triton.squid.wtf',
                     'https://wolf.qqdl.site',
                     'https://maus.qqdl.site',
