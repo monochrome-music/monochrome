@@ -304,10 +304,10 @@ export class LosslessAPI {
             const data = await response.json();
             const normalized = this.normalizeSearchResponse(data, 'tracks');
             const preparedTracks = normalized.items.map((t) => this.prepareTrack(t));
-            const enrichedTracks = await this.enrichTracksWithAlbumDates(preparedTracks);
+            // Note: Skipping enrichTracksWithAlbumDates for search results to avoid excessive album API calls
             const result = {
                 ...normalized,
-                items: enrichedTracks,
+                items: preparedTracks,
             };
 
             await this.cache.set('search_tracks', query, result);

@@ -1510,44 +1510,39 @@ export class UIRenderer {
         const signal = this.searchAbortController.signal;
 
         try {
-            const [tracksResult, artistsResult, albumsResult, playlistsResult] = await Promise.all([
+            // Optimize: Only make 2 API calls (tracks and playlists), extract artists/albums from tracks
+            const [tracksResult, playlistsResult] = await Promise.all([
                 this.api.searchTracks(query, { signal }),
-                this.api.searchArtists(query, { signal }),
-                this.api.searchAlbums(query, { signal }),
                 this.api.searchPlaylists(query, { signal }),
             ]);
 
             let finalTracks = tracksResult.items;
-            let finalArtists = artistsResult.items;
-            let finalAlbums = albumsResult.items;
             let finalPlaylists = playlistsResult.items;
 
-            if (finalArtists.length === 0 && finalTracks.length > 0) {
-                const artistMap = new Map();
-                finalTracks.forEach((track) => {
-                    if (track.artist && !artistMap.has(track.artist.id)) {
-                        artistMap.set(track.artist.id, track.artist);
-                    }
-                    if (track.artists) {
-                        track.artists.forEach((artist) => {
-                            if (!artistMap.has(artist.id)) {
-                                artistMap.set(artist.id, artist);
-                            }
-                        });
-                    }
-                });
-                finalArtists = Array.from(artistMap.values());
-            }
+            // Extract artists from tracks
+            const artistMap = new Map();
+            finalTracks.forEach((track) => {
+                if (track.artist && !artistMap.has(track.artist.id)) {
+                    artistMap.set(track.artist.id, track.artist);
+                }
+                if (track.artists) {
+                    track.artists.forEach((artist) => {
+                        if (!artistMap.has(artist.id)) {
+                            artistMap.set(artist.id, artist);
+                        }
+                    });
+                }
+            });
+            let finalArtists = Array.from(artistMap.values());
 
-            if (finalAlbums.length === 0 && finalTracks.length > 0) {
-                const albumMap = new Map();
-                finalTracks.forEach((track) => {
-                    if (track.album && !albumMap.has(track.album.id)) {
-                        albumMap.set(track.album.id, track.album);
-                    }
-                });
-                finalAlbums = Array.from(albumMap.values());
-            }
+            // Extract albums from tracks
+            const albumMap = new Map();
+            finalTracks.forEach((track) => {
+                if (track.album && !albumMap.has(track.album.id)) {
+                    albumMap.set(track.album.id, track.album);
+                }
+            });
+            let finalAlbums = Array.from(albumMap.values());
 
             if (finalTracks.length) {
                 this.renderListWithTracks(tracksContainer, finalTracks, true);
@@ -1658,10 +1653,10 @@ export class UIRenderer {
                     dateDisplay =
                         window.innerWidth > 768
                             ? releaseDate.toLocaleDateString('en-US', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric',
-                              })
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                            })
                             : year;
                 }
             }
@@ -2395,9 +2390,9 @@ export class UIRenderer {
                 <span>${artist.popularity}% popularity</span>
                 <div class="artist-tags">
                     ${(artist.artistRoles || [])
-                        .filter((role) => role.category)
-                        .map((role) => `<span class="artist-tag">${role.category}</span>`)
-                        .join('')}
+                    .filter((role) => role.category)
+                    .map((role) => `<span class="artist-tag">${role.category}</span>`)
+                    .join('')}
                 </div>
             `;
 

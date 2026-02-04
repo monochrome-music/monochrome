@@ -215,33 +215,26 @@ export const apiSettings = {
         const targetUrls = instancesObj[type] || instancesObj.api || [];
         if (targetUrls.length === 0) return [];
 
+        // Use cached speed results to sort if available, but DON'T run new speed tests
+        // Speed tests should only run explicitly via refreshSpeedTests() to avoid
+        // mass /track API calls when playing a song
         const speedCache = this.getCachedSpeedTests();
-        // Construct cache key based on type
         const getCacheKey = (u) => (type === 'streaming' ? `${u}#streaming` : u);
 
-        const urlsToTest = targetUrls.filter((url) => !speedCache.speeds[getCacheKey(url)]);
+        // Sort by cached speeds if we have any cached data
+        const hasCachedData = targetUrls.some((url) => speedCache.speeds[getCacheKey(url)]);
 
-        if (urlsToTest.length > 0) {
-            const results = await this.testSpecificUrls(urlsToTest, type);
-            this.updateSpeedCache(results);
-            Object.assign(speedCache, this.getCachedSpeedTests());
-        }
-
-        const sortList = (list) => {
-            return [...list].sort((a, b) => {
+        if (hasCachedData) {
+            const sortedList = [...targetUrls].sort((a, b) => {
                 const speedA = speedCache.speeds[getCacheKey(a)]?.speed ?? Infinity;
                 const speedB = speedCache.speeds[getCacheKey(b)]?.speed ?? Infinity;
                 return speedA - speedB;
             });
-        };
+            return sortedList;
+        }
 
-        const sortedList = sortList(targetUrls);
-
-        // Persist the sorted order
-        instancesObj[type] = sortedList;
-        this.saveInstances(instancesObj);
-
-        return sortedList;
+        // No cached data - return in default order without testing
+        return targetUrls;
     },
 
     async refreshSpeedTests() {
