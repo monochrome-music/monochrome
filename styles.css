@@ -890,55 +890,6 @@ input[type='search']::-webkit-search-cancel-button {
     /* Use standardized animation */
 }
 
-/* Settings Tabs */
-.settings-tabs {
-    display: flex;
-    gap: var(--spacing-xs);
-    margin-bottom: var(--spacing-lg);
-    border-bottom: 1px solid var(--border);
-    flex-wrap: wrap;
-}
-
-.settings-tab {
-    background: transparent;
-    border: none;
-    color: var(--muted-foreground);
-    padding: var(--spacing-sm) var(--spacing-lg);
-    cursor: pointer;
-    font-size: 1rem;
-    font-weight: 500;
-    border-bottom: 2px solid transparent;
-    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
-    transition:
-        color var(--transition-fast),
-        background-color var(--transition-fast),
-        transform var(--transition-fast);
-    position: relative;
-}
-
-.settings-tab:hover {
-    color: var(--foreground);
-    background-color: rgb(var(--highlight-rgb), 0.05);
-}
-
-.settings-tab:active {
-    transform: translateY(1px);
-}
-
-.settings-tab.active {
-    color: var(--foreground);
-    border-bottom-color: var(--highlight);
-}
-
-.settings-tab-content {
-    display: none;
-}
-
-.settings-tab-content.active {
-    display: block;
-    animation: fade-in-slide-up 0.4s var(--ease-out-back);
-}
-
 .card-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));

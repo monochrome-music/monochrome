@@ -473,19 +473,6 @@ export function initializeUIInteractions(player, api, ui) {
         });
     });
 
-    // Settings tabs
-    document.querySelectorAll('.settings-tab').forEach((tab) => {
-        tab.addEventListener('click', () => {
-            document.querySelectorAll('.settings-tab').forEach((t) => t.classList.remove('active'));
-            document.querySelectorAll('.settings-tab-content').forEach((c) => c.classList.remove('active'));
-
-            tab.classList.add('active');
-
-            const contentId = `settings-tab-${tab.dataset.tab}`;
-            document.getElementById(contentId)?.classList.add('active');
-        });
-    });
-
     // Tooltip for truncated text
     let tooltipEl = document.getElementById('custom-tooltip');
     if (!tooltipEl) {
