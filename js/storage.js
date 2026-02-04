@@ -1,6 +1,6 @@
 //storage.js
 export const apiSettings = {
-    STORAGE_KEY: 'monochrome-api-instances-v4',
+    STORAGE_KEY: 'monochrome-api-instances-v5',
     INSTANCES_URL: 'instances.json',
     SPEED_TEST_CACHE_KEY: 'monochrome-instance-speeds',
     SPEED_TEST_CACHE_DURATION: 1000 * 60 * 60,
@@ -59,6 +59,12 @@ export const apiSettings = {
                     'https://wolf.qqdl.site',
                     'https://tidal-api.binimum.org',
                     'https://monochrome-api.samidy.com',
+                    'https://hifi-one.spotisaver.net',
+                    'https://hifi-two.spotisaver.net',
+                    'https://maus.qqdl.site',
+                    'https://tidal.kinoplus.online',
+                    'https://hund.qqdl.site',
+                    'https://vogel.qqdl.site',
                 ],
                 streaming: [
                     'https://api.monochrome.tf/',

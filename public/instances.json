@@ -4,7 +4,13 @@
         "https://tidal-api.binimum.org",
         "https://monochrome-api.samidy.com",
         "https://triton.squid.wtf",
-        "https://wolf.qqdl.site"
+        "https://wolf.qqdl.site",
+        "https://hifi-one.spotisaver.net",
+        "https://hifi-two.spotisaver.net",
+        "https://maus.qqdl.site",
+        "https://vogel.qqdl.site",
+        "https://hund.qqdl.site",
+        "https://tidal.kinoplus.online"
     ],
     "streaming": [
         "https://api.monochrome.tf/",
