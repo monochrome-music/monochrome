@@ -6,46 +6,198 @@
 
 <h1 align="center">Monochrome</h1>
 
-### **Monochrome** is an open-source, privacy-respecting, ad-free [TIDAL](https://tidal.com) web UI, built on top of [Hi-Fi](https://github.com/sachinsenal0x64/hifi).
+<p align="center">
+  <strong>An open-source, privacy-respecting, ad-free music app.</strong>
+</p>
 
-<br>
+<p align="center">
+  <a href="https://monochrome.tf">Live Demo</a> •
+  <a href="https://pally.gg/p/monochrome">Donate</a> •
+  <a href="#features">Features</a> •
+  <a href="#installation">Installation</a> •
+  <a href="#usage">Usage</a> •
+  <a href="#self-hosting">Self-Hosting</a> •
+  <a href="CONTRIBUTE.md">Contributing</a>
+</p>
 
-[<img src="https://files.catbox.moe/tpgxii.png" alt="Monochrome UI" width="800">](https://monochrome.samidy.com/#album/413189044)
+<p align="center">
+  <a href="https://github.com/SamidyFR/monochrome/stargazers">
+    <img src="https://img.shields.io/github/stars/SamidyFR/monochrome?style=for-the-badge&color=ffffff&labelColor=000000" alt="GitHub stars">
+  </a>
+  <a href="https://github.com/SamidyFR/monochrome/forks">
+    <img src="https://img.shields.io/github/forks/SamidyFR/monochrome?style=for-the-badge&color=ffffff&labelColor=000000" alt="GitHub forks">
+  </a>
+  <a href="https://github.com/SamidyFR/monochrome/issues">
+    <img src="https://img.shields.io/github/issues/SamidyFR/monochrome?style=for-the-badge&color=ffffff&labelColor=000000" alt="GitHub issues">
+  </a>
+</p>
 
-### Features
+---
 
-<ul>
-<li>High-quality Hi-Res/lossless audio streaming</li>
-<li>Lyrics support with karaoke mode</li>
-<li>Recently Played tracking for easy history access</li>
-<li>Comprehensive Personal Library for favorites</li>
-<li>Intelligent API caching for improved performance</li>
-<li>Offline-capable Progressive Web App (PWA)</li>
-<li>Media Session API integration for system controls</li>
-<li>Queue management with shuffle and repeat modes</li>
-<li>Track downloads with automatic metadata embedding</li>
-<li>Multiple API instance support with failover</li>
-<li>Dark, minimalist interface optimized for focus</li>
-<li>Customizable themes</li>
-<li>Keyboard shortcuts for power users</li>
-<li>Accurate and unique audio visualizer</li>
-<li>Account system for cross-device syncing</li>
-<li>Genius integration for lyrics</li>
-<li>Last.fm and ListenBrainz integration for scrobbling</li>
-<li>Unreleased music from <a href="https://artistgrid.cx">ArtistGrid</a></li>
-<li>Dynamic Discord Embeds</li>
-<li>Smart recommendations for new songs, albums & artists</li>
-<li>Support for local music files</li>
-<li>Playlist import from other platforms</li>
-<li>Public playlists for social sharing</li>
-</ul>
+## What is Monochrome?
 
-### Check it out live at: [**monochrome.tf**](https://monochrome.tf)
+**Monochrome** is an open-source, privacy-respecting, ad-free [TIDAL](https://tidal.com) web UI, built on top of [Hi-Fi](https://github.com/binimum/hifi-api). It provides a beautiful, minimalist interface for streaming high-quality music without the clutter of traditional streaming platforms.
 
-<br>
+<p align="center">
+  <a href="https://monochrome.samidy.com/#album/413189044">
+    <img src="https://files.catbox.moe/tpgxii.png" alt="Monochrome UI" width="800">
+  </a>
+</p>
 
-[![GitHub stars](https://img.shields.io/github/stars/SamidyFR/monochrome?style=for-the-badge&color=ffffff&labelColor=000000)](https://github.com/SamidyFR/monochrome/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/SamidyFR/monochrome?style=for-the-badge&color=ffffff&labelColor=000000)](https://github.com/SamidyFR/monochrome/forks)
-[![GitHub issues](https://img.shields.io/github/issues/SamidyFR/monochrome?style=for-the-badge&color=ffffff&labelColor=000000)](https://github.com/SamidyFR/monochrome/issues)
+---
 
-[<img src="https://github.com/monochrome-music/monochrome/blob/main/assets/asseenonfmhy880x310.png?raw=true" alt="As seen on FMHY" height="50">](https://fmhy.net/audio#streaming-sites)
+## Features
+
+### Audio Quality
+
+- High-quality Hi-Res/lossless audio streaming
+- Support for local music files
+- Intelligent API caching for improved performance
+
+### Interface
+
+- Dark, minimalist interface optimized for focus
+- Customizable themes
+- Accurate and unique audio visualizer
+- Offline-capable Progressive Web App (PWA)
+- Media Session API integration for system controls
+
+### Library & Organization
+
+- Recently Played tracking for easy history access
+- Comprehensive Personal Library for favorites
+- Queue management with shuffle and repeat modes
+- Playlist import from other platforms
+- Public playlists for social sharing
+- Smart recommendations for new songs, albums & artists
+
+### Lyrics & Metadata
+
+- Lyrics support with karaoke mode
+- Genius integration for lyrics
+- Track downloads with automatic metadata embedding
+
+### Integrations
+
+- Account system for cross-device syncing
+- Last.fm and ListenBrainz integration for scrobbling
+- Unreleased music from [ArtistGrid](https://artistgrid.cx)
+- Dynamic Discord Embeds
+- Multiple API instance support with failover
+
+###  Power User Features
+
+- Keyboard shortcuts for power users
+
+---
+
+##  Quick Start
+
+### Live Instance
+
+The easiest way to try Monochrome is through our official instance:
+
+**[monochrome.tf](https://monochrome.tf)**
+
+For alternative instances, check [INSTANCES.md](INSTANCES.md).
+
+---
+
+##  Installation
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (Version 20+ or 22+ recommended)
+- [Bun](https://bun.sh/) or [npm](https://www.npmjs.com/)
+
+### Local Development
+
+1. **Clone the repository:**
+
+    ```bash
+    git clone https://github.com/SamidyFR/monochrome.git
+    cd monochrome
+    ```
+
+2. **Install dependencies:**
+
+    ```bash
+    bun install
+    # or
+    npm install
+    ```
+
+3. **Start the development server:**
+
+    ```bash
+    bun run dev
+    # or
+    npm run dev
+    ```
+
+4. **Open your browser:**
+   Navigate to `http://localhost:5173/`
+
+### Building for Production
+
+```bash
+bun run build
+# or
+npm run build
+```
+
+---
+
+##  Usage
+
+### Basic Usage
+
+1. Visit the [live instance](https://monochrome.tf) or your local development server
+2. Search for your favorite artists, albums, or tracks
+3. Click play to start streaming
+4. Use the media controls to manage playback, queue, and volume
+
+### Keyboard Shortcuts
+
+| Shortcut | Action         |
+| -------- | -------------- |
+| `Space`  | Play/Pause     |
+| `→`      | Next track     |
+| `←`      | Previous track |
+| `↑`      | Volume up      |
+| `↓`      | Volume down    |
+| `M`      | Mute/Unmute    |
+| `L`      | Toggle lyrics  |
+| `F`      | Fullscreen     |
+| `/`      | Focus search   |
+
+### Account Features
+
+To sync your library, history, and playlists across devices:
+
+1. Click the profile icon in the top right
+2. Sign in with Google or Email
+3. Your data will automatically sync across all devices
+
+---
+
+##  Contributing
+We welcome contributions from the community! Please see our [Contributing Guide](CONTRIBUTE.md) for:
+
+- Setting up your development environment
+- Code style and linting
+- Project structure
+- Commit message conventions
+- Deployment information
+
+---
+
+<p align="center">
+  <a href="https://fmhy.net/audio#streaming-sites">
+    <img src="https://github.com/monochrome-music/monochrome/blob/main/assets/asseenonfmhy880x310.png?raw=true" alt="As seen on FMHY" height="50">
+  </a>
+</p>
+
+<p align="center">
+  Made with ❤️ by the Monochrome team
+</p>
