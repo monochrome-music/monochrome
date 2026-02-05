@@ -685,8 +685,13 @@ export class Player {
         const tracks = Array.isArray(trackOrTracks) ? trackOrTracks : [trackOrTracks];
         this.queue.push(...tracks);
 
+        if (this.shuffleActive) {
+            this.shuffledQueue.push(...tracks);
+            this.originalQueueBeforeShuffle.push(...tracks);
+        }
+
         if (!this.currentTrack || this.currentQueueIndex === -1) {
-            this.currentQueueIndex = this.queue.length - tracks.length;
+            this.currentQueueIndex = this.getCurrentQueue().length - tracks.length;
             this.playTrackFromQueue(0, 0);
         }
         this.saveQueueState();
