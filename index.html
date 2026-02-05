@@ -2007,6 +2007,45 @@
 
                 <div id="page-settings" class="page">
                     <h2 class="section-title">Settings</h2>
+                    <form
+                        class="track-list-search-container settings-search-container"
+                        onsubmit="return false;"
+                        style="margin: 1rem 0"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            class="search-icon"
+                        >
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input
+                            type="search"
+                            id="settings-search-input"
+                            placeholder="Search settings..."
+                            class="track-list-search-input"
+                            autocomplete="off"
+                            autocorrect="off"
+                            autocapitalize="off"
+                            spellcheck="false"
+                        />
+                        <button
+                            type="button"
+                            class="search-clear-btn btn-icon"
+                            title="Clear search"
+                            style="display: none"
+                        >
+                            ×
+                        </button>
+                    </form>
                     <div class="settings-tabs">
                         <button class="settings-tab active" data-tab="appearance">Appearance</button>
                         <button class="settings-tab" data-tab="interface">Interface</button>
@@ -3729,7 +3768,6 @@
                 </div>
             </footer>
         </div>
-        <script src="https://unpkg.com/@studio-freight/lenis"></script>
         <script src="https://cdn.jsdelivr.net/npm/pocketbase@0.21.3/dist/pocketbase.umd.js"></script>
         <script type="module" src="/js/app.js"></script>
     </body>

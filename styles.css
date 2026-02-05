@@ -2418,6 +2418,11 @@ input:checked + .slider::before {
     border-radius: 3px;
     cursor: pointer;
     position: relative;
+    transition: height 0.2s ease;
+}
+
+.fullscreen-progress-container .progress-bar:hover {
+    height: 8px;
 }
 
 .fullscreen-progress-container .progress-fill {
@@ -2425,6 +2430,27 @@ input:checked + .slider::before {
     background: var(--foreground);
     border-radius: 3px;
     width: 0%;
+    transition: width 0.1s ease;
+    position: relative;
+    pointer-events: none;
+}
+
+.fullscreen-progress-container .progress-bar:hover .progress-fill {
+    background: var(--highlight);
+}
+
+.fullscreen-progress-container .progress-bar:hover .progress-fill::after,
+.fullscreen-progress-container .progress-bar:active .progress-fill::after {
+    content: '';
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    background-color: var(--highlight);
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgb(0, 0, 0, 0.3);
 }
 
 .fullscreen-buttons {

@@ -943,11 +943,90 @@ export class UIRenderer {
             }
         };
 
-        progressBar.onclick = (e) => {
-            const rect = progressBar.getBoundingClientRect();
-            const pos = (e.clientX - rect.left) / rect.width;
-            audioPlayer.currentTime = pos * audioPlayer.duration;
+        // Progress bar with drag support
+        let isFsSeeking = false;
+        let wasFsPlaying = false;
+        let lastFsSeekPosition = 0;
+
+        const updateFsSeekUI = (position) => {
+            if (!isNaN(audioPlayer.duration)) {
+                progressFill.style.width = `${position * 100}%`;
+                if (currentTimeEl) {
+                    currentTimeEl.textContent = formatTime(position * audioPlayer.duration);
+                }
+            }
         };
+
+        progressBar.addEventListener('mousedown', (e) => {
+            isFsSeeking = true;
+            wasFsPlaying = !audioPlayer.paused;
+            if (wasFsPlaying) audioPlayer.pause();
+
+            const rect = progressBar.getBoundingClientRect();
+            const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+            lastFsSeekPosition = pos;
+            updateFsSeekUI(pos);
+        });
+
+        progressBar.addEventListener(
+            'touchstart',
+            (e) => {
+                e.preventDefault();
+                isFsSeeking = true;
+                wasFsPlaying = !audioPlayer.paused;
+                if (wasFsPlaying) audioPlayer.pause();
+
+                const touch = e.touches[0];
+                const rect = progressBar.getBoundingClientRect();
+                const pos = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
+                lastFsSeekPosition = pos;
+                updateFsSeekUI(pos);
+            },
+            { passive: false }
+        );
+
+        document.addEventListener('mousemove', (e) => {
+            if (isFsSeeking) {
+                const rect = progressBar.getBoundingClientRect();
+                const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                lastFsSeekPosition = pos;
+                updateFsSeekUI(pos);
+            }
+        });
+
+        document.addEventListener(
+            'touchmove',
+            (e) => {
+                if (isFsSeeking) {
+                    const touch = e.touches[0];
+                    const rect = progressBar.getBoundingClientRect();
+                    const pos = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
+                    lastFsSeekPosition = pos;
+                    updateFsSeekUI(pos);
+                }
+            },
+            { passive: false }
+        );
+
+        document.addEventListener('mouseup', () => {
+            if (isFsSeeking) {
+                if (!isNaN(audioPlayer.duration)) {
+                    audioPlayer.currentTime = lastFsSeekPosition * audioPlayer.duration;
+                    if (wasFsPlaying) audioPlayer.play();
+                }
+                isFsSeeking = false;
+            }
+        });
+
+        document.addEventListener('touchend', () => {
+            if (isFsSeeking) {
+                if (!isNaN(audioPlayer.duration)) {
+                    audioPlayer.currentTime = lastFsSeekPosition * audioPlayer.duration;
+                    if (wasFsPlaying) audioPlayer.play();
+                }
+                isFsSeeking = false;
+            }
+        });
 
         if (fsLikeBtn) {
             fsLikeBtn.onclick = () => document.getElementById('now-playing-like-btn')?.click();
@@ -1063,9 +1142,12 @@ export class UIRenderer {
             const current = audioPlayer.currentTime || 0;
 
             if (duration > 0) {
-                const percent = (current / duration) * 100;
-                progressFill.style.width = `${percent}%`;
-                currentTimeEl.textContent = formatTime(current);
+                // Only update progress if not currently seeking (user is dragging)
+                if (!isFsSeeking) {
+                    const percent = (current / duration) * 100;
+                    progressFill.style.width = `${percent}%`;
+                    currentTimeEl.textContent = formatTime(current);
+                }
                 totalDurationEl.textContent = formatTime(duration);
             }
 

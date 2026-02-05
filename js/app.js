@@ -6,24 +6,48 @@ import { Player } from './player.js';
 import { MultiScrobbler } from './multi-scrobbler.js';
 import { LyricsManager, openLyricsPanel, clearLyricsPanelSync } from './lyrics.js';
 import { createRouter, updateTabTitle, navigate } from './router.js';
-import { initializeSettings } from './settings.js';
 import { initializePlayerEvents, initializeTrackInteractions, handleTrackAction } from './events.js';
 import { initializeUIInteractions } from './ui-interactions.js';
-import {
-    downloadAlbumAsZip,
-    downloadDiscography,
-    downloadPlaylistAsZip,
-    downloadLikedTracks,
-    showNotification,
-} from './downloads.js';
 import { debounce, SVG_PLAY } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 import { db } from './db.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { registerSW } from 'virtual:pwa-register';
 import './smooth-scrolling.js';
-import { readTrackMetadata } from './metadata.js';
-import { initTracker } from './tracker.js';
+
+// Lazy-loaded modules
+let settingsModule = null;
+let downloadsModule = null;
+let trackerModule = null;
+let metadataModule = null;
+
+async function loadSettingsModule() {
+    if (!settingsModule) {
+        settingsModule = await import('./settings.js');
+    }
+    return settingsModule;
+}
+
+async function loadDownloadsModule() {
+    if (!downloadsModule) {
+        downloadsModule = await import('./downloads.js');
+    }
+    return downloadsModule;
+}
+
+async function loadTrackerModule() {
+    if (!trackerModule) {
+        trackerModule = await import('./tracker.js');
+    }
+    return trackerModule;
+}
+
+async function loadMetadataModule() {
+    if (!metadataModule) {
+        metadataModule = await import('./metadata.js');
+    }
+    return metadataModule;
+}
 
 function initializeCasting(audioPlayer, castBtn) {
     if (!castBtn) return;
@@ -305,10 +329,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // Pre-load Kuroshiro for romaji conversion in background (always load so it's ready instantly)
-    lyricsManager.loadKuroshiro().catch((err) => {
-        console.warn('Failed to pre-load Kuroshiro:', err);
-    });
+    // Kuroshiro is now loaded on-demand only when needed for Asian text with Romaji mode enabled
 
     const currentTheme = themeManager.getTheme();
     themeManager.setTheme(currentTheme);
@@ -316,7 +337,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Restore sidebar state
     sidebarSettings.restoreState();
 
+    // Load settings module and initialize
+    const { initializeSettings } = await loadSettingsModule();
     initializeSettings(scrobbler, player, api, ui);
+
     initializePlayerEvents(player, audioPlayer, scrobbler, ui);
     initializeTrackInteractions(
         player,
@@ -330,6 +354,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeUIInteractions(player, api, ui);
     initializeKeyboardShortcuts(player, audioPlayer);
 
+    // Load tracker module
+    const { initTracker } = await loadTrackerModule();
     initTracker(player);
 
     const castBtn = document.getElementById('cast-btn');
@@ -510,6 +536,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             } catch (error) {
                 console.error('Failed to play album:', error);
+                const { showNotification } = await loadDownloadsModule();
                 showNotification('Failed to play album');
             }
         }
@@ -533,10 +560,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (shuffleBtn) shuffleBtn.classList.remove('active');
                     player.shuffleActive = false;
                     player.playTrackFromQueue();
+                    const { showNotification } = await loadDownloadsModule();
                     showNotification('Shuffling album');
                 }
             } catch (error) {
                 console.error('Failed to shuffle album:', error);
+                const { showNotification } = await loadDownloadsModule();
                 showNotification('Failed to shuffle album');
             }
         }
@@ -560,6 +589,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             try {
                 const { mix, tracks } = await api.getMix(mixId);
+                const { downloadPlaylistAsZip } = await loadDownloadsModule();
                 await downloadPlaylistAsZip(mix, tracks, api, downloadQualitySettings.getQuality(), lyricsManager);
             } catch (error) {
                 console.error('Mix download failed:', error);
@@ -603,6 +633,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     tracks = data.tracks;
                 }
 
+                const { downloadPlaylistAsZip } = await loadDownloadsModule();
                 await downloadPlaylistAsZip(playlist, tracks, api, downloadQualitySettings.getQuality(), lyricsManager);
             } catch (error) {
                 console.error('Playlist download failed:', error);
@@ -966,6 +997,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             try {
                 const { album, tracks } = await api.getAlbum(albumId);
+                const { downloadAlbumAsZip } = await loadDownloadsModule();
                 await downloadAlbumAsZip(album, tracks, api, downloadQualitySettings.getQuality(), lyricsManager);
             } catch (error) {
                 console.error('Album download failed:', error);
@@ -987,6 +1019,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const { tracks } = await api.getAlbum(albumId);
 
                 if (!tracks || tracks.length === 0) {
+                    const { showNotification } = await loadDownloadsModule();
                     showNotification('No tracks found in this album.');
                     return;
                 }
@@ -1044,10 +1077,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     try {
                         await db.addTracksToPlaylist(playlistId, tracks);
+                        const { showNotification } = await loadDownloadsModule();
                         showNotification(`Added ${tracks.length} tracks to playlist.`);
                         closeModal();
                     } catch (err) {
                         console.error(err);
+                        const { showNotification } = await loadDownloadsModule();
                         showNotification('Failed to add tracks.');
                     }
                 };
@@ -1065,6 +1100,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 modal.classList.add('active');
             } catch (error) {
                 console.error('Failed to prepare album for playlist:', error);
+                const { showNotification } = await loadDownloadsModule();
                 showNotification('Failed to load album tracks.');
             }
         }
@@ -1176,6 +1212,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     alert('No liked tracks to download.');
                     return;
                 }
+                const { downloadLikedTracks } = await loadDownloadsModule();
                 await downloadLikedTracks(likedTracks, api, downloadQualitySettings.getQuality(), lyricsManager);
             } catch (error) {
                 console.error('Liked tracks download failed:', error);
@@ -1235,6 +1272,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 name.endsWith('.ogg')
                             ) {
                                 const file = await entry.getFile();
+                                const { readTrackMetadata } = await loadMetadataModule();
                                 const metadata = await readTrackMetadata(file);
                                 metadata.id = `local-${idCounter++}-${file.name}`;
                                 tracks.push(metadata);
@@ -1342,6 +1380,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (event && event.state && event.state.exitTrap) {
+            const { showNotification } = await loadDownloadsModule();
             showNotification('Press back again to exit');
             setTimeout(() => {
                 if (history.state && history.state.exitTrap) {
@@ -1908,6 +1947,7 @@ function showDiscographyDownloadModal(artist, api, quality, lyricsManager, trigg
             '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Downloading...</span>';
 
         try {
+            const { downloadDiscography } = await loadDownloadsModule();
             await downloadDiscography(artist, selectedReleases, api, quality, lyricsManager);
         } catch (error) {
             console.error('Discography download failed:', error);

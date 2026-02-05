@@ -3,6 +3,24 @@ import { getTrackTitle, getTrackArtists, buildTrackFilename, SVG_CLOSE } from '.
 import { sidePanelManager } from './side-panel.js';
 
 const SVG_GENIUS_ACTIVE = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 24c6.627 0 12-5.373 12-12S18.627 0 12 0 0 5.373 0 12s5.373 12 12 12z" fill="#ffff64"/><path d="M6.3 6.3h11.4v11.4H6.3z" fill="#000"/></svg>`;
+
+// Check if text contains Japanese, Chinese, or Korean characters
+function containsAsianText(text) {
+    if (!text) return false;
+    // Japanese: Hiragana (3040-309F), Katakana (30A0-30FF), Kanji (4E00-9FFF, 3400-4DBF)
+    // Chinese: CJK Unified Ideographs (4E00-9FFF, 3400-4DBF)
+    // Korean: Hangul (AC00-D7AF, 1100-11FF, 3130-318F)
+    const asianRegex = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\u3400-\u4DBF\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/;
+    return asianRegex.test(text);
+}
+
+// Check if track has Asian text in title or artist names
+function trackHasAsianText(track) {
+    if (!track) return false;
+    const title = track.title || '';
+    const artist = getTrackArtists(track) || '';
+    return containsAsianText(title) || containsAsianText(artist);
+}
 const SVG_GENIUS_INACTIVE = `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="opacity: 0.7;"><path d="M12 24c6.627 0 12-5.373 12-12S18.627 0 12 0 0 5.373 0 12s5.373 12 12 12z" /><path d="M6.3 6.3h11.4v11.4H6.3z" fill="var(--card)"/></svg>`;
 
 class GeniusManager {
@@ -287,6 +305,11 @@ export class LyricsManager {
         // Check cache first
         if (this.romajiTextCache.has(text)) {
             return this.romajiTextCache.get(text);
+        }
+
+        // Only process if text contains Asian characters
+        if (!containsAsianText(text)) {
+            return text;
         }
 
         // Make sure Kuroshiro is loaded
@@ -742,8 +765,9 @@ export class LyricsManager {
 export function openLyricsPanel(track, audioPlayer, lyricsManager, forceOpen = false) {
     const manager = lyricsManager || new LyricsManager();
 
-    // Load Kuroshiro in background if needed
-    if (!manager.kuroshiroLoaded && !manager.kuroshiroLoading) {
+    // Load Kuroshiro in background only if track has Asian text and Romaji mode is enabled
+    const isRomajiMode = manager.getRomajiMode();
+    if (isRomajiMode && trackHasAsianText(track) && !manager.kuroshiroLoaded && !manager.kuroshiroLoading) {
         manager.loadKuroshiro().catch((err) => {
             console.warn('Failed to load Kuroshiro for Romaji conversion:', err);
         });
@@ -944,8 +968,8 @@ async function renderLyricsComponent(container, track, audioPlayer, lyricsManage
         // This is critical - observer must be running before lyrics arrive from LRCLIB
         lyricsManager.setupLyricsObserver(amLyrics);
 
-        // If Romaji mode is enabled, ensure Kuroshiro is ready
-        if (lyricsManager.isRomajiMode && !lyricsManager.kuroshiroLoaded) {
+        // If Romaji mode is enabled and track has Asian text, ensure Kuroshiro is ready
+        if (lyricsManager.isRomajiMode && trackHasAsianText(track) && !lyricsManager.kuroshiroLoaded) {
             await lyricsManager.loadKuroshiro();
         }
 

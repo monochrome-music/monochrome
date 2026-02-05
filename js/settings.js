@@ -1237,4 +1237,105 @@ export function initializeSettings(scrobbler, player, api, ui) {
             }
         });
     }
+
+    // Settings Search functionality
+    setupSettingsSearch();
+}
+
+function setupSettingsSearch() {
+    const searchInput = document.getElementById('settings-search-input');
+    if (!searchInput) return;
+
+    // Setup clear button
+    const clearBtn = searchInput.parentElement.querySelector('.search-clear-btn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            searchInput.dispatchEvent(new Event('input'));
+            searchInput.focus();
+        });
+    }
+
+    // Show/hide clear button based on input
+    const updateClearButton = () => {
+        if (clearBtn) {
+            clearBtn.style.display = searchInput.value ? 'flex' : 'none';
+        }
+    };
+
+    searchInput.addEventListener('input', () => {
+        updateClearButton();
+        filterSettings(searchInput.value.toLowerCase().trim());
+    });
+
+    searchInput.addEventListener('focus', updateClearButton);
+}
+
+function filterSettings(query) {
+    const settingsPage = document.getElementById('page-settings');
+    if (!settingsPage) return;
+
+    const allTabContents = settingsPage.querySelectorAll('.settings-tab-content');
+    const allTabs = settingsPage.querySelectorAll('.settings-tab');
+
+    if (!query) {
+        // Reset: show active tab only
+        allTabContents.forEach((content) => {
+            content.classList.remove('active');
+        });
+        allTabs.forEach((tab) => {
+            tab.classList.remove('active');
+        });
+
+        // Restore first tab as active
+        const firstTab = allTabs[0];
+        const firstContent = allTabContents[0];
+        if (firstTab && firstContent) {
+            firstTab.classList.add('active');
+            firstContent.classList.add('active');
+        }
+
+        // Show all settings groups and items
+        const allGroups = settingsPage.querySelectorAll('.settings-group');
+        const allItems = settingsPage.querySelectorAll('.setting-item');
+        allGroups.forEach((group) => (group.style.display = ''));
+        allItems.forEach((item) => (item.style.display = ''));
+        return;
+    }
+
+    // When searching, show all tabs' content
+    allTabContents.forEach((content) => {
+        content.classList.add('active');
+    });
+    allTabs.forEach((tab) => {
+        tab.classList.remove('active');
+    });
+
+    // Search through all settings
+    const allGroups = settingsPage.querySelectorAll('.settings-group');
+
+    allGroups.forEach((group) => {
+        const items = group.querySelectorAll('.setting-item');
+        let hasMatch = false;
+
+        items.forEach((item) => {
+            const label = item.querySelector('.label');
+            const description = item.querySelector('.description');
+
+            const labelText = label?.textContent?.toLowerCase() || '';
+            const descriptionText = description?.textContent?.toLowerCase() || '';
+
+            const matches = labelText.includes(query) || descriptionText.includes(query);
+
+            if (matches) {
+                item.style.display = '';
+                hasMatch = true;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        // Show/hide group based on whether it has any visible items
+        group.style.display = hasMatch ? '' : 'none';
+    });
 }

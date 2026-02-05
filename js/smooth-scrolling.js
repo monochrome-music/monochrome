@@ -1,13 +1,53 @@
 //js/smooth-scrolling.js
-/* global Lenis */
 import { smoothScrollingSettings } from './storage.js';
 
 let lenis = null;
+let lenisLoaded = false;
+let lenisLoading = false;
 
-function initializeSmoothScrolling() {
+async function loadLenisScript() {
+    if (lenisLoaded) return true;
+    if (lenisLoading) {
+        return new Promise((resolve) => {
+            const checkLoaded = setInterval(() => {
+                if (!lenisLoading) {
+                    clearInterval(checkLoaded);
+                    resolve(lenisLoaded);
+                }
+            }, 100);
+        });
+    }
+
+    lenisLoading = true;
+
+    try {
+        await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/@studio-freight/lenis';
+            script.onload = resolve;
+            script.onerror = reject;
+            document.head.appendChild(script);
+        });
+
+        lenisLoaded = true;
+        lenisLoading = false;
+        console.log('✓ Lenis loaded successfully');
+        return true;
+    } catch (error) {
+        console.error('✗ Failed to load Lenis:', error);
+        lenisLoaded = false;
+        lenisLoading = false;
+        return false;
+    }
+}
+
+async function initializeSmoothScrolling() {
     if (lenis) return; // Already initialized
 
-    lenis = new Lenis({
+    const loaded = await loadLenisScript();
+    if (!loaded) return;
+
+    lenis = new window.Lenis({
         wrapper: document.querySelector('.main-content'),
         content: document.querySelector('.main-content'),
         lerp: 0.1,
@@ -18,8 +58,10 @@ function initializeSmoothScrolling() {
     });
 
     function raf(time) {
-        lenis.raf(time);
-        requestAnimationFrame(raf);
+        if (lenis) {
+            lenis.raf(time);
+            requestAnimationFrame(raf);
+        }
     }
 
     requestAnimationFrame(raf);
@@ -32,18 +74,18 @@ function destroySmoothScrolling() {
     }
 }
 
-function setupSmoothScrolling() {
+async function setupSmoothScrolling() {
     // Check if smooth scrolling is enabled
     const smoothScrollingEnabled = smoothScrollingSettings.isEnabled();
 
     if (smoothScrollingEnabled) {
-        initializeSmoothScrolling();
+        await initializeSmoothScrolling();
     }
 
     // Listen for toggle changes
-    window.addEventListener('smooth-scrolling-toggle', function (e) {
+    window.addEventListener('smooth-scrolling-toggle', async function (e) {
         if (e.detail.enabled) {
-            initializeSmoothScrolling();
+            await initializeSmoothScrolling();
         } else {
             destroySmoothScrolling();
         }
