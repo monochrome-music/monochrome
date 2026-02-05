@@ -175,7 +175,7 @@ npm run build
 
 To sync your library, history, and playlists across devices:
 
-1. Click the profile icon in the top right
+1. In the left sidebar, click on `Account`
 2. Sign in with Google or Email
 3. Your data will automatically sync across all devices
 
