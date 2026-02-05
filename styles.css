@@ -585,7 +585,7 @@ kbd {
 
 .search-bar input {
     width: 100%;
-    padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+    padding: 0.75rem 2.5rem 0.75rem 2.5rem;
     background-color: var(--input);
     border: 1px solid var(--border);
     border-radius: var(--radius);
@@ -595,6 +595,17 @@ kbd {
         box-shadow var(--transition-fast),
         border-color var(--transition-fast),
         background-color var(--transition-fast);
+}
+
+/* Clear button for search inputs */
+.search-clear-btn {
+    position: absolute;
+    right: 0.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.5rem;
+    line-height: 1;
+    z-index: 1;
 }
 
 .search-bar input:focus {
@@ -5519,11 +5530,12 @@ textarea:focus {
 /* Track List Search */
 .track-list-search-container {
     margin: 1rem 0;
+    position: relative;
 }
 
 .track-list-search-input {
     width: 100%;
-    padding: 0.75rem 1rem;
+    padding: 0.75rem 2.5rem 0.75rem 1rem;
     background-color: var(--input);
     border: 1px solid var(--border);
     border-radius: var(--radius);

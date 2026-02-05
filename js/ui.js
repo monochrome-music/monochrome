@@ -539,6 +539,33 @@ export class UIRenderer {
             .join('')}</div>`;
     }
 
+    setupSearchClearButton(inputElement, clearBtnSelector = '.search-clear-btn') {
+        if (!inputElement) return;
+
+        const clearBtn = inputElement.parentElement?.querySelector(clearBtnSelector);
+        if (!clearBtn) return;
+
+        // Remove old listener if exists
+        const oldListener = clearBtn._clearListener;
+        if (oldListener) clearBtn.removeEventListener('click', oldListener);
+
+        // Toggle visibility based on input value
+        const toggleVisibility = () => {
+            clearBtn.style.display = inputElement.value.trim() ? 'flex' : 'none';
+        };
+
+        // Clear input on click
+        const clearListener = () => {
+            inputElement.value = '';
+            inputElement.dispatchEvent(new Event('input'));
+            inputElement.focus();
+        };
+
+        inputElement.addEventListener('input', toggleVisibility);
+        clearBtn._clearListener = clearListener;
+        clearBtn.addEventListener('click', clearListener);
+    }
+
     setupTracklistSearch(
         searchInputId = 'track-list-search-input',
         tracklistContainerId = 'playlist-detail-tracklist'
@@ -547,6 +574,9 @@ export class UIRenderer {
         const tracklistContainer = document.getElementById(tracklistContainerId);
 
         if (!searchInput || !tracklistContainer) return;
+
+        // Setup clear button
+        this.setupSearchClearButton(searchInput);
 
         // Remove previous listener if exists
         const oldListener = searchInput._searchListener;

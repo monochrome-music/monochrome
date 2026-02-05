@@ -1274,6 +1274,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const searchForm = document.getElementById('search-form');
     const searchInput = document.getElementById('search-input');
 
+    // Setup clear button for search bar
+    ui.setupSearchClearButton(searchInput);
+
     const performSearch = debounce((query) => {
         if (query) {
             navigate(`/search/${encodeURIComponent(query)}`);
