@@ -1,20 +1,18 @@
 {
-  "name": "Alpine Bun Dev Container",
-  "image": "alpine:latest",
-  "postCreateCommand": "apk add --no-cache git nodejs npm && bun --version",
-  "features": {
-    "ghcr.io/shyim/devcontainers-features/bun:0": {},
-    "ghcr.io/devcontainer-config/features/dot-config:3": {}
-  },
-  "customizations": {
-    "vscode": {
-      "settings": {
-        "terminal.integrated.sendKeybindingsToShell": true,
-        "workbench.colorTheme": "Lilac"
-      },
-      "extensions": [
-        "shubham-saudolla.lilac"
-      ]
+    "name": "Alpine Bun Dev Container",
+    "image": "alpine:latest",
+    "postCreateCommand": "apk add --no-cache git nodejs npm && bun --version",
+    "features": {
+        "ghcr.io/shyim/devcontainers-features/bun:0": {},
+        "ghcr.io/devcontainer-config/features/dot-config:3": {}
+    },
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "terminal.integrated.sendKeybindingsToShell": true,
+                "workbench.colorTheme": "Lilac"
+            },
+            "extensions": ["shubham-saudolla.lilac"]
+        }
     }
-  }
 }
