@@ -2,7 +2,6 @@
 
 This document lists public instances of Monochrome that you can use. Instances are community-hosted versions of Monochrome that provide access to the application.
 
-> 💡 **Tip:** If you want to self-host your own instance, see our [Self-Hosting Guide](self-hosted-database.md).
 
 ---
 
