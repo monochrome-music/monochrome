@@ -10,7 +10,7 @@ import {
     SVG_BIN,
     getTrackArtists,
 } from './utils.js';
-import { lastFMStorage, waveformSettings } from './storage.js';
+import { lastFMStorage, libreFmSettings, waveformSettings } from './storage.js';
 import { showNotification, downloadTrackWithMetadata, downloadAlbumAsZip, downloadPlaylistAsZip } from './downloads.js';
 import { downloadQualitySettings } from './storage.js';
 import { updateTabTitle, navigate } from './router.js';
@@ -858,8 +858,13 @@ export async function handleTrackAction(
         const added = await db.toggleFavorite(type, item);
         syncManager.syncLibraryItem(type, item, added);
 
-        if (added && type === 'track' && scrobbler && lastFMStorage.isEnabled() && lastFMStorage.shouldLoveOnLike()) {
-            scrobbler.loveTrack(item);
+        if (added && type === 'track' && scrobbler) {
+            if (lastFMStorage.isEnabled() && lastFMStorage.shouldLoveOnLike()) {
+                scrobbler.loveTrack(item);
+            }
+            if (libreFmSettings.isEnabled() && libreFmSettings.shouldLoveOnLike()) {
+                scrobbler.loveTrack(item);
+            }
         }
 
         // Update all instances of this item's like button on the page
