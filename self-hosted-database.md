@@ -105,19 +105,19 @@ Set the API rules for both collections to allow read/write access:
 
 **DB_users API Rules:**
 
-- List/Search Rule: `@request.auth.id != ""`
-- View Rule: `@request.auth.id != ""`
-- Create Rule: `@request.auth.id != ""`
-- Update Rule: `@request.auth.id != ""`
-- Delete Rule: `@request.auth.id != ""`
+- List/Search Rule: `firebase_id = @request.query.f_id`
+- View Rule: `firebase_id = @request.query.f_id`
+- Create Rule: `firebase_id = @request.query.f_id`
+- Update Rule: `firebase_id = @request.query.f_id`
+- Delete Rule: `firebase_id = @request.query.f_id`
 
 **public_playlists API Rules:**
 
-- List/Search Rule: `true`
-- View Rule: `true`
-- Create Rule: `@request.auth.id != ""`
-- Update Rule: `@request.auth.id != ""`
-- Delete Rule: `@request.auth.id != ""`
+- List/Search Rule: `uuid = @request.query.p_id`
+- View Rule: `id != ""`
+- Create Rule: `firebase_id = @request.query.f_id`
+- Update Rule: `uid = @request.query.f_id`
+- Delete Rule: `uid = @request.query.f_id`
 
 ---
 
