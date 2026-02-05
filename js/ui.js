@@ -539,7 +539,10 @@ export class UIRenderer {
             .join('')}</div>`;
     }
 
-    setupTracklistSearch(searchInputId = 'track-list-search-input', tracklistContainerId = 'playlist-detail-tracklist') {
+    setupTracklistSearch(
+        searchInputId = 'track-list-search-input',
+        tracklistContainerId = 'playlist-detail-tracklist'
+    ) {
         const searchInput = document.getElementById(searchInputId);
         const tracklistContainer = document.getElementById(tracklistContainerId);
 
