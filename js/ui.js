@@ -540,6 +540,46 @@ export class UIRenderer {
             .join('')}</div>`;
     }
 
+    setupTracklistSearch(
+        searchInputId = 'track-list-search-input',
+        tracklistContainerId = 'playlist-detail-tracklist'
+    ) {
+        const searchInput = document.getElementById(searchInputId);
+        const tracklistContainer = document.getElementById(tracklistContainerId);
+
+        if (!searchInput || !tracklistContainer) return;
+
+        // Remove previous listener if exists
+        const oldListener = searchInput._searchListener;
+        if (oldListener) {
+            searchInput.removeEventListener('input', oldListener);
+        }
+
+        // Create new listener
+        const listener = () => {
+            const query = searchInput.value.toLowerCase().trim();
+            const trackItems = tracklistContainer.querySelectorAll('.track-item');
+
+            trackItems.forEach((item) => {
+                const trackData = trackDataStore.get(item);
+                if (!trackData) {
+                    item.style.display = '';
+                    return;
+                }
+
+                const title = (trackData.title || '').toLowerCase();
+                const artist = (trackData.artist?.name || trackData.artists?.[0]?.name || '').toLowerCase();
+                const album = (trackData.album?.title || '').toLowerCase();
+
+                const matches = title.includes(query) || artist.includes(query) || album.includes(query);
+                item.style.display = matches ? '' : 'none';
+            });
+        };
+
+        searchInput._searchListener = listener;
+        searchInput.addEventListener('input', listener);
+    }
+
     renderListWithTracks(container, tracks, showCover, append = false, useTrackNumber = false) {
         const fragment = document.createDocumentFragment();
         const tempDiv = document.createElement('div');
@@ -2312,6 +2352,9 @@ export class UIRenderer {
                     isUserPlaylist: true,
                 });
                 document.title = `${playlistData.name || playlistData.title} - Monochrome`;
+
+                // Setup playlist search
+                this.setupTracklistSearch();
             } else {
                 // If source was explicitly 'user' and we didn't find it, fail.
                 if (source === 'user') {
@@ -2381,6 +2424,9 @@ export class UIRenderer {
                 recentActivityManager.addPlaylist(playlist);
                 document.title = playlist.title || 'Artist Mix';
             }
+
+            // Setup playlist search
+            this.setupTracklistSearch();
         } catch (error) {
             console.error('Failed to load playlist:', error);
             tracklistContainer.innerHTML = createPlaceholder(`Could not load playlist details. ${error.message}`);

@@ -4,7 +4,11 @@ import { db } from '../db.js';
 import { authManager } from './auth.js';
 
 const PUBLIC_COLLECTION = 'public_playlists';
-const POCKETBASE_URL = 'https://monodb.samidy.com';
+const DEFAULT_POCKETBASE_URL = 'https://monodb.samidy.com';
+const POCKETBASE_URL = localStorage.getItem('monochrome-pocketbase-url') || DEFAULT_POCKETBASE_URL;
+
+console.log('[PocketBase] Using URL:', POCKETBASE_URL);
+
 const pb = new PocketBase(POCKETBASE_URL);
 pb.autoCancellation(false);
 
@@ -14,10 +18,8 @@ const syncManager = {
     _isSyncing: false,
 
     async _getUserRecord(uid) {
-        if (!uid) {
-            console.warn('_getUserRecord called with no UID.');
-            return null;
-        }
+        if (!uid) return null;
+
         if (this._userRecordCache && this._userRecordCache.firebase_id === uid) {
             return this._userRecordCache;
         }
@@ -42,11 +44,11 @@ const syncManager = {
                     this._userRecordCache = newRecord;
                     return newRecord;
                 } catch (createError) {
-                    console.error('Failed to create user record in PocketBase:', createError);
+                    console.error('[PocketBase] Failed to create user:', createError);
                     return null;
                 }
             }
-            console.error('Failed to get user record from PocketBase:', error);
+            console.error('[PocketBase] Failed to get user:', error);
             return null;
         }
     },
@@ -115,8 +117,8 @@ const syncManager = {
                             return new Function('return ' + jsFriendly)();
                         }
                     }
-                } catch {
-                    // Ignore fallback error
+                } catch (error) {
+                    console.log(error); // Ignore fallback error
                 }
                 return fallback;
             }
@@ -562,9 +564,11 @@ const syncManager = {
                     window.dispatchEvent(new CustomEvent('library-changed'));
                     window.dispatchEvent(new CustomEvent('history-changed'));
                     window.dispatchEvent(new HashChangeEvent('hashchange'));
+
+                    console.log('[PocketBase] ✓ Sync completed');
                 }
             } catch (error) {
-                console.error('Error during PocketBase sync!', error);
+                console.error('[PocketBase] Sync error:', error);
             } finally {
                 this._isSyncing = false;
             }

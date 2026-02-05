@@ -5556,3 +5556,31 @@ textarea:focus {
         min-width: 30px;
     }
 }
+
+/* Track List Search */
+.track-list-search-container {
+    margin: 1rem 0;
+}
+
+.track-list-search-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background-color: var(--input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-size: 0.95rem;
+    transition:
+        box-shadow var(--transition-fast),
+        border-color var(--transition-fast);
+}
+
+.track-list-search-input:focus {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px rgb(var(--highlight-rgb) / 0.2);
+}
+
+.track-list-search-input::placeholder {
+    color: var(--muted-foreground);
+}

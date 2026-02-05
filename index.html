@@ -1646,6 +1646,14 @@
                             </div>
                         </div>
                     </header>
+                    <div class="track-list-search-container">
+                        <input
+                            type="text"
+                            id="track-list-search-input"
+                            placeholder="Search tracks..."
+                            class="track-list-search-input"
+                        />
+                    </div>
                     <div id="playlist-detail-tracklist" class="track-list"></div>
 
                     <section
@@ -2362,6 +2370,19 @@
                                         style="width: 250px"
                                     />
                                 </div>
+                                <div class="setting-item" id="listenbrainz-custom-url-setting" style="display: none">
+                                    <div class="info">
+                                        <span class="label">Custom API URL (Optional)</span>
+                                        <span class="description">Leave empty to use official ListenBrainz server</span>
+                                    </div>
+                                    <input
+                                        type="url"
+                                        id="listenbrainz-custom-url-input"
+                                        placeholder="https://api.listenbrainz.org/1"
+                                        class="template-input"
+                                        style="width: 250px"
+                                    />
+                                </div>
                             </div>
 
                             <div class="settings-group">
@@ -2397,6 +2418,83 @@
                                     </div>
                                     <label class="toggle-switch">
                                         <input type="checkbox" id="lastfm-love-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Maloja Scrobbling</span>
+                                        <span class="description">Submit listens to a self-hosted Maloja server</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="maloja-enabled-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item" id="maloja-token-setting" style="display: none">
+                                    <div class="info">
+                                        <span class="label">API Key</span>
+                                        <span class="description">Found in your Maloja settings</span>
+                                    </div>
+                                    <input
+                                        type="password"
+                                        id="maloja-token-input"
+                                        placeholder="Enter API Key"
+                                        class="template-input"
+                                        style="width: 250px"
+                                    />
+                                </div>
+                                <div class="setting-item" id="maloja-custom-url-setting" style="display: none">
+                                    <div class="info">
+                                        <span class="label">Maloja Server URL</span>
+                                        <span class="description">Your Maloja instance URL</span>
+                                    </div>
+                                    <input
+                                        type="url"
+                                        id="maloja-custom-url-input"
+                                        placeholder="https://maloja.example.com"
+                                        class="template-input"
+                                        style="width: 250px"
+                                    />
+                                </div>
+                            </div>
+
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Libre.fm Scrobbling</span>
+                                        <span class="description" id="librefm-status"
+                                            >Connect your Libre.fm account to scrobble tracks</span
+                                        >
+                                    </div>
+                                    <div id="librefm-controls">
+                                        <button id="librefm-connect-btn" class="btn-secondary">Connect Libre.fm</button>
+                                    </div>
+                                </div>
+
+                                <div class="setting-item" id="librefm-toggle-setting" style="display: none">
+                                    <div class="info">
+                                        <span class="label">Enable Scrobbling</span>
+                                        <span class="description">Automatically scrobble played tracks</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="librefm-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+
+                                <div class="setting-item" id="librefm-love-setting" style="display: none">
+                                    <div class="info">
+                                        <span class="label">Love on Like</span>
+                                        <span class="description"
+                                            >Automatically 'love' tracks on Libre.fm when you like them</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="librefm-love-toggle" />
                                         <span class="slider"></span>
                                     </label>
                                 </div>

@@ -2,11 +2,16 @@ import { listenBrainzSettings } from './storage.js';
 
 export class ListenBrainzScrobbler {
     constructor() {
-        this.API_URL = 'https://api.listenbrainz.org/1';
+        this.DEFAULT_API_URL = 'https://api.listenbrainz.org/1';
         this.currentTrack = null;
         this.scrobbleTimer = null;
         this.scrobbleThreshold = 0;
         this.hasScrobbled = false;
+    }
+
+    getApiUrl() {
+        const customUrl = listenBrainzSettings.getCustomUrl();
+        return customUrl || this.DEFAULT_API_URL;
     }
 
     isEnabled() {
@@ -89,7 +94,8 @@ export class ListenBrainzScrobbler {
         };
 
         try {
-            const response = await fetch(`${this.API_URL}/submit-listens`, {
+            const apiUrl = this.getApiUrl();
+            const response = await fetch(`${apiUrl}/submit-listens`, {
                 method: 'POST',
                 headers: {
                     Authorization: `Token ${this.getToken()}`,

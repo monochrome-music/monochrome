@@ -18,6 +18,8 @@ import {
     playlistSettings,
     equalizerSettings,
     listenBrainzSettings,
+    malojaSettings,
+    libreFmSettings,
     homePageSettings,
     sidebarSectionSettings,
     searchSettings,
@@ -224,13 +226,17 @@ export function initializeSettings(scrobbler, player, api, ui) {
     // ========================================
     const lbToggle = document.getElementById('listenbrainz-enabled-toggle');
     const lbTokenSetting = document.getElementById('listenbrainz-token-setting');
+    const lbCustomUrlSetting = document.getElementById('listenbrainz-custom-url-setting');
     const lbTokenInput = document.getElementById('listenbrainz-token-input');
+    const lbCustomUrlInput = document.getElementById('listenbrainz-custom-url-input');
 
     const updateListenBrainzUI = () => {
         const isEnabled = listenBrainzSettings.isEnabled();
         if (lbToggle) lbToggle.checked = isEnabled;
         if (lbTokenSetting) lbTokenSetting.style.display = isEnabled ? 'flex' : 'none';
+        if (lbCustomUrlSetting) lbCustomUrlSetting.style.display = isEnabled ? 'flex' : 'none';
         if (lbTokenInput) lbTokenInput.value = listenBrainzSettings.getToken();
+        if (lbCustomUrlInput) lbCustomUrlInput.value = listenBrainzSettings.getCustomUrl();
     };
 
     updateListenBrainzUI();
@@ -247,6 +253,164 @@ export function initializeSettings(scrobbler, player, api, ui) {
         lbTokenInput.addEventListener('change', (e) => {
             listenBrainzSettings.setToken(e.target.value.trim());
         });
+    }
+
+    if (lbCustomUrlInput) {
+        lbCustomUrlInput.addEventListener('change', (e) => {
+            listenBrainzSettings.setCustomUrl(e.target.value.trim());
+        });
+    }
+
+    // ========================================
+    // Maloja Settings
+    // ========================================
+    const malojaToggle = document.getElementById('maloja-enabled-toggle');
+    const malojaTokenSetting = document.getElementById('maloja-token-setting');
+    const malojaCustomUrlSetting = document.getElementById('maloja-custom-url-setting');
+    const malojaTokenInput = document.getElementById('maloja-token-input');
+    const malojaCustomUrlInput = document.getElementById('maloja-custom-url-input');
+
+    const updateMalojaUI = () => {
+        const isEnabled = malojaSettings.isEnabled();
+        if (malojaToggle) malojaToggle.checked = isEnabled;
+        if (malojaTokenSetting) malojaTokenSetting.style.display = isEnabled ? 'flex' : 'none';
+        if (malojaCustomUrlSetting) malojaCustomUrlSetting.style.display = isEnabled ? 'flex' : 'none';
+        if (malojaTokenInput) malojaTokenInput.value = malojaSettings.getToken();
+        if (malojaCustomUrlInput) malojaCustomUrlInput.value = malojaSettings.getCustomUrl();
+    };
+
+    updateMalojaUI();
+
+    if (malojaToggle) {
+        malojaToggle.addEventListener('change', (e) => {
+            const enabled = e.target.checked;
+            malojaSettings.setEnabled(enabled);
+            updateMalojaUI();
+        });
+    }
+
+    if (malojaTokenInput) {
+        malojaTokenInput.addEventListener('change', (e) => {
+            malojaSettings.setToken(e.target.value.trim());
+        });
+    }
+
+    if (malojaCustomUrlInput) {
+        malojaCustomUrlInput.addEventListener('change', (e) => {
+            malojaSettings.setCustomUrl(e.target.value.trim());
+        });
+    }
+
+    // ========================================
+    // Libre.fm Settings
+    // ========================================
+    const librefmConnectBtn = document.getElementById('librefm-connect-btn');
+    const librefmStatus = document.getElementById('librefm-status');
+    const librefmToggle = document.getElementById('librefm-toggle');
+    const librefmToggleSetting = document.getElementById('librefm-toggle-setting');
+    const librefmLoveToggle = document.getElementById('librefm-love-toggle');
+    const librefmLoveSetting = document.getElementById('librefm-love-setting');
+
+    function updateLibreFmUI() {
+        if (scrobbler.librefm.isAuthenticated()) {
+            librefmStatus.textContent = `Connected as ${scrobbler.librefm.username}`;
+            librefmConnectBtn.textContent = 'Disconnect';
+            librefmConnectBtn.classList.add('danger');
+            librefmToggleSetting.style.display = 'flex';
+            librefmLoveSetting.style.display = 'flex';
+            librefmToggle.checked = libreFmSettings.isEnabled();
+            librefmLoveToggle.checked = libreFmSettings.shouldLoveOnLike();
+        } else {
+            librefmStatus.textContent = 'Connect your Libre.fm account to scrobble tracks';
+            librefmConnectBtn.textContent = 'Connect Libre.fm';
+            librefmConnectBtn.classList.remove('danger');
+            librefmToggleSetting.style.display = 'none';
+            librefmLoveSetting.style.display = 'none';
+        }
+    }
+
+    if (librefmConnectBtn) {
+        updateLibreFmUI();
+
+        librefmConnectBtn.addEventListener('click', async () => {
+            if (scrobbler.librefm.isAuthenticated()) {
+                if (confirm('Disconnect from Libre.fm?')) {
+                    scrobbler.librefm.disconnect();
+                    updateLibreFmUI();
+                }
+                return;
+            }
+
+            const authWindow = window.open('', '_blank');
+            librefmConnectBtn.disabled = true;
+            librefmConnectBtn.textContent = 'Opening Libre.fm...';
+
+            try {
+                const { token, url } = await scrobbler.librefm.getAuthUrl();
+
+                if (authWindow) {
+                    authWindow.location.href = url;
+                } else {
+                    alert('Popup blocked! Please allow popups.');
+                    librefmConnectBtn.textContent = 'Connect Libre.fm';
+                    librefmConnectBtn.disabled = false;
+                    return;
+                }
+
+                librefmConnectBtn.textContent = 'Waiting for authorization...';
+
+                let attempts = 0;
+                const maxAttempts = 30;
+
+                const checkAuth = setInterval(async () => {
+                    attempts++;
+
+                    if (attempts > maxAttempts) {
+                        clearInterval(checkAuth);
+                        librefmConnectBtn.textContent = 'Connect Libre.fm';
+                        librefmConnectBtn.disabled = false;
+                        if (authWindow && !authWindow.closed) authWindow.close();
+                        alert('Authorization timed out. Please try again.');
+                        return;
+                    }
+
+                    try {
+                        const result = await scrobbler.librefm.completeAuthentication(token);
+
+                        if (result.success) {
+                            clearInterval(checkAuth);
+                            if (authWindow && !authWindow.closed) authWindow.close();
+                            updateLibreFmUI();
+                            librefmConnectBtn.disabled = false;
+                            libreFmSettings.setEnabled(true);
+                            librefmToggle.checked = true;
+                            alert(`Successfully connected to Libre.fm as ${result.username}!`);
+                        }
+                    } catch {
+                        // Still waiting
+                    }
+                }, 2000);
+            } catch (error) {
+                console.error('Libre.fm connection failed:', error);
+                alert('Failed to connect to Libre.fm: ' + error.message);
+                librefmConnectBtn.textContent = 'Connect Libre.fm';
+                librefmConnectBtn.disabled = false;
+                if (authWindow && !authWindow.closed) authWindow.close();
+            }
+        });
+
+        // Libre.fm Toggles
+        if (librefmToggle) {
+            librefmToggle.addEventListener('change', (e) => {
+                libreFmSettings.setEnabled(e.target.checked);
+            });
+        }
+
+        if (librefmLoveToggle) {
+            librefmLoveToggle.addEventListener('change', (e) => {
+                libreFmSettings.setLoveOnLike(e.target.checked);
+            });
+        }
     }
 
     // Theme picker
