@@ -1,0 +1,22 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/alpine
+{
+  "name": "Alpine Bun Dev Container",
+  "image": "mcr.microsoft.com/devcontainers/base:alpine-3.22",
+  "features": {
+    "ghcr.io/shyim/devcontainers-features/bun:0": {},
+    "ghcr.io/devcontainer-config/features/dot-config:3": {}
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.sendKeybindingsToShell": true,
+        "workbench.colorTheme": "Lilac"
+      },
+      "extensions": [
+        "shubham-saudolla.lilac"
+      ]
+    }
+  },
+  "postCreateCommand": "bun --version"
+}
