@@ -1073,6 +1073,14 @@
                             autocapitalize="off"
                             spellcheck="false"
                         />
+                        <button
+                            type="button"
+                            class="search-clear-btn btn-icon"
+                            title="Clear search"
+                            style="display: none"
+                        >
+                            &times;
+                        </button>
                         <div id="search-history" class="search-history" style="display: none"></div>
                     </form>
                 </header>
@@ -1642,14 +1650,41 @@
                             </div>
                         </div>
                     </header>
-                    <div class="track-list-search-container">
+                    <form class="track-list-search-container" onsubmit="return false;">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            class="search-icon"
+                        >
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
                         <input
-                            type="text"
+                            type="search"
                             id="track-list-search-input"
                             placeholder="Search tracks..."
                             class="track-list-search-input"
+                            autocomplete="off"
+                            autocorrect="off"
+                            autocapitalize="off"
+                            spellcheck="false"
                         />
-                    </div>
+                        <button
+                            type="button"
+                            class="search-clear-btn btn-icon"
+                            title="Clear search"
+                            style="display: none"
+                        >
+                            &times;
+                        </button>
+                    </form>
                     <div id="playlist-detail-tracklist" class="track-list"></div>
 
                     <section

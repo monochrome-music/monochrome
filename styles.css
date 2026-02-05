@@ -474,14 +474,8 @@ kbd {
 }
 
 .search-bar svg.search-icon {
-    position: absolute;
-    left: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--muted-foreground);
     width: 20px;
     height: 20px;
-    pointer-events: none;
 }
 
 .sidebar-nav .nav-item a:hover {
@@ -576,20 +570,11 @@ kbd {
 }
 
 .search-bar {
-    position: relative;
     width: 80%;
     max-width: 100%;
-    display: flex;
-    align-items: center;
 }
 
 .search-bar input {
-    width: 100%;
-    padding: 0.75rem 0.75rem 0.75rem 2.5rem;
-    background-color: var(--input);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--foreground);
     font-size: 1rem;
     transition:
         box-shadow var(--transition-fast),
@@ -597,10 +582,52 @@ kbd {
         background-color var(--transition-fast);
 }
 
-.search-bar input:focus {
+/* Shared search bar styles */
+.search-bar,
+.track-list-search-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-bar svg.search-icon,
+.track-list-search-container svg.search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted-foreground);
+    pointer-events: none;
+}
+
+.search-bar input,
+.track-list-search-input {
+    width: 100%;
+    padding: 0.75rem 2.5rem;
+    background-color: var(--input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    transition:
+        box-shadow var(--transition-fast),
+        border-color var(--transition-fast);
+}
+
+.search-bar input:focus,
+.track-list-search-input:focus {
     outline: none;
     border-color: var(--ring);
-    box-shadow: 0 0 0 3px rgb(var(--highlight-rgb), 0.2);
+    box-shadow: 0 0 0 3px rgb(var(--highlight-rgb) / 0.2);
+}
+
+.search-clear-btn {
+    position: absolute;
+    right: 0.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.5rem;
+    line-height: 1;
+    z-index: 1;
 }
 
 body.has-page-background .search-bar input {
@@ -5522,24 +5549,5 @@ textarea:focus {
 }
 
 .track-list-search-input {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    background-color: var(--input);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    color: var(--foreground);
     font-size: 0.95rem;
-    transition:
-        box-shadow var(--transition-fast),
-        border-color var(--transition-fast);
-}
-
-.track-list-search-input:focus {
-    outline: none;
-    border-color: var(--ring);
-    box-shadow: 0 0 0 3px rgb(var(--highlight-rgb) / 0.2);
-}
-
-.track-list-search-input::placeholder {
-    color: var(--muted-foreground);
 }
