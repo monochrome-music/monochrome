@@ -195,7 +195,7 @@ We welcome contributions from the community! Please see our [Contributing Guide]
 
 <p align="center">
   <a href="https://fmhy.net/audio#streaming-sites">
-    <img src="https://github.com/monochrome-music/monochrome/blob/main/assets/asseenonfmhy880x310.png?raw=true" alt="As seen on FMHY" height="50">
+    <img src="https://raw.githubusercontent.com/monochrome-music/monochrome/refs/heads/main/public/assets/asseenonfmhy880x310.png" alt="As seen on FMHY" height="50">
   </a>
 </p>
 
