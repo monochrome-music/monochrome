@@ -2179,7 +2179,8 @@ input:checked + .slider::before {
     pointer-events: none;
 }
 
-#context-menu {
+#context-menu,
+#sort-menu {
     display: none;
     position: fixed;
     background-color: var(--card);
@@ -2191,7 +2192,8 @@ input:checked + .slider::before {
     min-width: 160px;
 }
 
-#context-menu ul {
+#context-menu ul,
+#sort-menu ul {
     list-style: none;
 }
 
