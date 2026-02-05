@@ -118,7 +118,7 @@ const syncManager = {
                         }
                     }
                 } catch (error) {
-                    console.log(error);// Ignore fallback error
+                    console.log(error); // Ignore fallback error
                 }
                 return fallback;
             }
