@@ -1091,6 +1091,15 @@ export class UIRenderer {
 
         document.querySelector('.main-content').scrollTop = 0;
 
+        // Reset track list search when leaving playlist page
+        if (pageId !== 'playlist') {
+            const trackListSearchInput = document.getElementById('track-list-search-input');
+            if (trackListSearchInput && trackListSearchInput.value) {
+                trackListSearchInput.value = '';
+                trackListSearchInput.dispatchEvent(new Event('input'));
+            }
+        }
+
         // Clear background and color if not on album, artist, playlist, or mix page
         if (!['album', 'artist', 'playlist', 'mix'].includes(pageId)) {
             this.setPageBackground(null);
