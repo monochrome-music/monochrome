@@ -2188,6 +2188,17 @@ export class UIRenderer {
                             const artistB = b.artist?.name || b.artists?.[0]?.name || '';
                             return artistA.localeCompare(artistB);
                         });
+                    } else if (sortType === 'album') {
+                        currentTracks = [...originalTracks].sort((a, b) => {
+                            const albumA = a.album?.title || '';
+                            const albumB = b.album?.title || '';
+                            const albumCompare = albumA.localeCompare(albumB);
+                            if (albumCompare !== 0) return albumCompare;
+                            // If same album, sort by track number
+                            const trackNumA = a.trackNumber || a.position || 0;
+                            const trackNumB = b.trackNumber || b.position || 0;
+                            return trackNumA - trackNumB;
+                        });
                     }
                     renderTracks();
                 };
@@ -2276,16 +2287,61 @@ export class UIRenderer {
                 metaEl.textContent = `${playlist.numberOfTracks} tracks • ${formatDuration(totalDuration)}`;
                 descEl.textContent = playlist.description || '';
 
-                tracklistContainer.innerHTML = `
-                    <div class="track-list-header">
-                        <span style="width: 40px; text-align: center;">#</span>
-                        <span>Title</span>
-                        <span class="duration-header">Duration</span>
-                        <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
-                    </div>
-                `;
+                const originalTracks = [...tracks];
+                let currentTracks = [...tracks];
+                let currentSort = 'custom';
 
-                this.renderListWithTracks(tracklistContainer, tracks, true, true);
+                const renderTracks = () => {
+                    tracklistContainer.innerHTML = `
+                        <div class="track-list-header">
+                            <span style="width: 40px; text-align: center;">#</span>
+                            <span>Title</span>
+                            <span class="duration-header">Duration</span>
+                            <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
+                        </div>
+                    `;
+                    this.renderListWithTracks(tracklistContainer, currentTracks, true, true);
+                };
+
+                const applySort = (sortType) => {
+                    currentSort = sortType;
+                    if (sortType === 'custom') {
+                        currentTracks = [...originalTracks];
+                    } else if (sortType === 'added-newest') {
+                        currentTracks = [...originalTracks].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+                    } else if (sortType === 'added-oldest') {
+                        currentTracks = [...originalTracks].sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0));
+                    } else if (sortType === 'title') {
+                        currentTracks = [...originalTracks].sort((a, b) =>
+                            (a.title || '').localeCompare(b.title || '')
+                        );
+                    } else if (sortType === 'artist') {
+                        currentTracks = [...originalTracks].sort((a, b) => {
+                            const artistA = a.artist?.name || a.artists?.[0]?.name || '';
+                            const artistB = b.artist?.name || b.artists?.[0]?.name || '';
+                            return artistA.localeCompare(artistB);
+                        });
+                    } else if (sortType === 'album') {
+                        currentTracks = [...originalTracks].sort((a, b) => {
+                            const albumA = a.album?.title || '';
+                            const albumB = b.album?.title || '';
+                            const albumCompare = albumA.localeCompare(albumB);
+                            if (albumCompare !== 0) return albumCompare;
+                            // If same album, sort by track number
+                            const trackNumA = a.trackNumber || a.position || 0;
+                            const trackNumB = b.trackNumber || b.position || 0;
+                            return trackNumA - trackNumB;
+                        });
+                    }
+                    renderTracks();
+                };
+
+                renderTracks();
+
+                playBtn.onclick = () => {
+                    this.player.setQueue(currentTracks, 0);
+                    this.player.playTrackFromQueue();
+                };
 
                 // Update header like button
                 const playlistLikeBtn = document.getElementById('like-playlist-btn');
@@ -2308,8 +2364,8 @@ export class UIRenderer {
                     recommendedSection.style.display = 'none';
                 }
 
-                // Render Actions (Shuffle + Share)
-                this.updatePlaylistHeaderActions(playlist, false, tracks, false);
+                // Render Actions (Shuffle + Sort + Share)
+                this.updatePlaylistHeaderActions(playlist, false, currentTracks, false, applySort);
 
                 recentActivityManager.addPlaylist(playlist);
                 document.title = playlist.title || 'Artist Mix';
@@ -2847,6 +2903,7 @@ export class UIRenderer {
         };
         fragment.appendChild(shuffleBtn);
 
+        // Sort button (always available if onSort is provided)
         if (onSort) {
             const sortBtn = document.createElement('button');
             sortBtn.id = 'sort-playlist-btn';
@@ -2857,6 +2914,13 @@ export class UIRenderer {
             sortBtn.onclick = (e) => {
                 e.stopPropagation();
                 const menu = document.getElementById('sort-menu');
+
+                // Check if any track has addedAt data
+                const hasAddedDate = tracks.some((t) => t.addedAt);
+                const dateOptions = menu.querySelectorAll('.requires-added-date');
+                dateOptions.forEach((opt) => {
+                    opt.style.display = hasAddedDate ? '' : 'none';
+                });
 
                 const rect = sortBtn.getBoundingClientRect();
                 menu.style.top = `${rect.bottom + 5}px`;
