@@ -1,6 +1,6 @@
 //storage.js
 export const apiSettings = {
-    STORAGE_KEY: 'monochrome-api-instances-v5',
+    STORAGE_KEY: 'monochrome-api-instances-v6',
     INSTANCES_URL: 'instances.json',
     SPEED_TEST_CACHE_KEY: 'monochrome-instance-speeds',
     SPEED_TEST_CACHE_DURATION: 1000 * 60 * 60,
