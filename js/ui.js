@@ -1091,15 +1091,6 @@ export class UIRenderer {
 
         document.querySelector('.main-content').scrollTop = 0;
 
-        // Reset track list search when leaving playlist page
-        if (pageId !== 'playlist') {
-            const trackListSearchInput = document.getElementById('track-list-search-input');
-            if (trackListSearchInput && trackListSearchInput.value) {
-                trackListSearchInput.value = '';
-                trackListSearchInput.dispatchEvent(new Event('input'));
-            }
-        }
-
         // Clear background and color if not on album, artist, playlist, or mix page
         if (!['album', 'artist', 'playlist', 'mix'].includes(pageId)) {
             this.setPageBackground(null);
@@ -1983,6 +1974,11 @@ export class UIRenderer {
 
     async renderPlaylistPage(playlistId, source = null) {
         this.showPage('playlist');
+
+        // Reset search input for new playlist
+        const searchInput = document.getElementById('track-list-search-input');
+        if (searchInput) searchInput.value = '';
+
         const imageEl = document.getElementById('playlist-detail-image');
         const titleEl = document.getElementById('playlist-detail-title');
         const metaEl = document.getElementById('playlist-detail-meta');
