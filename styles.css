@@ -5531,11 +5531,22 @@ textarea:focus {
 .track-list-search-container {
     margin: 1rem 0;
     position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.track-list-search-container svg.search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted-foreground);
+    pointer-events: none;
 }
 
 .track-list-search-input {
     width: 100%;
-    padding: 0.75rem 2.5rem 0.75rem 1rem;
+    padding: 0.75rem 2.5rem 0.75rem 2.5rem;
     background-color: var(--input);
     border: 1px solid var(--border);
     border-radius: var(--radius);
