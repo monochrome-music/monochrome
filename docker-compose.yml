@@ -1,0 +1,71 @@
+services:
+    # Production frontend -- always runs
+    monochrome:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: monochrome
+        ports:
+            - '${MONOCHROME_PORT:-3000}:4173'
+        restart: unless-stopped
+        networks:
+            - monochrome-network
+        healthcheck:
+            test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:4173/']
+            interval: 30s
+            timeout: 3s
+            retries: 3
+            start_period: 5s
+
+    # PocketBase backend -- only starts with: docker compose --profile pocketbase up -d
+    pocketbase:
+        image: ghcr.io/muchobien/pocketbase:latest
+        container_name: monochrome-pocketbase
+        profiles:
+            - pocketbase
+        restart: unless-stopped
+        environment:
+            PB_ADMIN_EMAIL: ${PB_ADMIN_EMAIL:-admin@example.com}
+            PB_ADMIN_PASSWORD: ${PB_ADMIN_PASSWORD:-changeme}
+            TZ: ${TZ:-UTC}
+        ports:
+            - '${POCKETBASE_PORT:-8090}:8090'
+        volumes:
+            - pb_data:/pb_data
+            - pb_public:/pb_public
+            - pb_hooks:/pb_hooks
+        command: serve --http=0.0.0.0:8090
+        healthcheck:
+            test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8090/api/health']
+            interval: 30s
+            timeout: 10s
+            retries: 3
+            start_period: 30s
+        networks:
+            - monochrome-network
+
+    # Development server -- only starts with: docker compose --profile dev up -d
+    monochrome-dev:
+        build:
+            context: .
+            dockerfile: Dockerfile.dev
+        container_name: monochrome-dev
+        profiles:
+            - dev
+        ports:
+            - '${MONOCHROME_DEV_PORT:-5173}:5173'
+        volumes:
+            - .:/app
+            - /app/node_modules
+        command: npm run dev -- --host 0.0.0.0
+        networks:
+            - monochrome-network
+
+networks:
+    monochrome-network:
+        driver: bridge
+
+volumes:
+    pb_data:
+    pb_public:
+    pb_hooks:

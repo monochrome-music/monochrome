@@ -107,12 +107,26 @@ For alternative instances, check [INSTANCES.md](INSTANCES.md).
 
 NOTE: Accounts wont work on self-hosted instances.
 
-### Prerequisites
+### Option 1: Docker (Recommended)
+
+```bash
+git clone https://github.com/monochrome-music/monochrome.git
+cd monochrome
+docker compose up -d
+```
+
+Visit `http://localhost:3000`
+
+For PocketBase, development mode, and advanced setups, see [DOCKER.md](DOCKER.md).
+
+### Option 2: Manual Installation
+
+#### Prerequisites
 
 - [Node.js](https://nodejs.org/) (Version 20+ or 22+ recommended)
 - [Bun](https://bun.sh/) or [npm](https://www.npmjs.com/)
 
-### Local Development
+#### Local Development
 
 1. **Clone the repository:**
 
@@ -140,7 +154,7 @@ NOTE: Accounts wont work on self-hosted instances.
 4. **Open your browser:**
    Navigate to `http://localhost:5173/`
 
-### Building for Production
+#### Building for Production
 
 ```bash
 bun run build
