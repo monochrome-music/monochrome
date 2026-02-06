@@ -1,0 +1,15 @@
+# Development Dockerfile for hot-reloading
+FROM oven/bun:canary-alpine
+
+WORKDIR /app
+
+# Copy package files first for caching
+COPY package.json bun.lock ./
+
+# Install dependencies
+RUN bun install
+
+# Expose Vite dev server port
+EXPOSE 5173
+
+CMD ["bun", "run", "dev", "--", "--host", "0.0.0.0"]
