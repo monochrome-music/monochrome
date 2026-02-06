@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://monochrome.samidy.com">
+  <a href="https://monochrome.tf">
     <img src="https://github.com/SamidyFR/monochrome/blob/main/public/assets/512.png?raw=true" alt="Monochrome Logo" width="150px">
   </a>
 </p>
@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://monochrome.tf">Live Demo</a> •
+  <a href="https://monochrome.tf">Website</a> •
   <a href="https://pally.gg/p/monochrome">Donate</a> •
   <a href="#features">Features</a> •
   <a href="#installation">Installation</a> •
@@ -39,7 +39,7 @@
 **Monochrome** is an open-source, privacy-respecting, ad-free [TIDAL](https://tidal.com) web UI, built on top of [Hi-Fi](https://github.com/binimum/hifi-api). It provides a beautiful, minimalist interface for streaming high-quality music without the clutter of traditional streaming platforms.
 
 <p align="center">
-  <a href="https://monochrome.samidy.com/#album/413189044">
+  <a href="https://monochrome.tf/#album/413189044">
     <img src="https://files.catbox.moe/tpgxii.png" alt="Monochrome UI" width="800">
   </a>
 </p>
@@ -95,7 +95,7 @@
 
 ### Live Instance
 
-The easiest way to try Monochrome is through our official instance:
+Our Recommended way to use monochrome is through our official instance:
 
 **[monochrome.tf](https://monochrome.tf)**
 
@@ -103,7 +103,9 @@ For alternative instances, check [INSTANCES.md](INSTANCES.md).
 
 ---
 
-## Installation
+## Self-Hosting
+
+NOTE: Accounts wont work on self-hosted instances.
 
 ### Prerequisites
 
@@ -152,7 +154,7 @@ npm run build
 
 ### Basic Usage
 
-1. Visit the [live instance](https://monochrome.tf) or your local development server
+1. Visit the [Website](https://monochrome.tf) or your local development server
 2. Search for your favorite artists, albums, or tracks
 3. Click play to start streaming
 4. Use the media controls to manage playback, queue, and volume
@@ -175,7 +177,7 @@ npm run build
 
 To sync your library, history, and playlists across devices:
 
-1. Click the profile icon in the top right
+1. Click the "Accounts" Section
 2. Sign in with Google or Email
 3. Your data will automatically sync across all devices
 

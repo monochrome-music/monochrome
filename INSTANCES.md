@@ -38,6 +38,8 @@ Monochrome uses the Hi-Fi API under the hood. These are available API endpoints 
 | Provider          | URL                                 | Notes                                                      |
 | ----------------- | ----------------------------------- | ---------------------------------------------------------- |
 | **Monochrome**    | `https://monochrome-api.samidy.com` | Official API - [See Note](https://rentry.co/monochromeapi) |
+|                   | `https://api.monochrome.tf`         | Official API                                               |
+|                   | `https://arran.monochrome.tf`       | Official API                                               |
 | **squid.wtf**     | `https://triton.squid.wtf`          | Community hosted                                           |
 | **Lucida (QQDL)** | `https://wolf.qqdl.site`            | Community hosted                                           |
 |                   | `https://maus.qqdl.site`            | Community hosted                                           |
