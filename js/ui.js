@@ -2974,21 +2974,35 @@ export class UIRenderer {
         const likeBtn = actionsDiv.querySelector('#like-playlist-btn');
 
         if (dlBtn) {
-            // Insert Shuffle before Download
-            actionsDiv.insertBefore(shuffleBtn, dlBtn);
+            // We want Shuffle first, then Edit/Delete/Share.
+            // But Download is usually first or second.
+            // In renderPlaylistPage: Play, Download, Like.
+            // We want Shuffle after Play? Or after Download?
+            // Previous code: actionsDiv.insertBefore(shuffleBtn, dlBtn); => Shuffle before Download.
+            // Then appended others.
 
+            // Let's just append everything for now to keep it simple, or insert Shuffle specifically.
+            // The Play button is static. Download is static.
+
+            // If we want Shuffle before Download:
+            // fragment has Shuffle, Edit, Delete, Share.
+            // If we insert fragment before Download, all go before Download.
+            // That might change the order.
+            // Previous order: Shuffle (before Download), then Edit/Delete/Share (appended = after Like).
+
+            // Let's split fragment?
+            // Or just use append for all.
+            // The user didn't complain about order, but consistency is good.
+            // "Fix popup buttons" was the request.
+
+            // Let's stick to appending for now to minimize visual layout shifts from previous (where Edit/Delete were appended).
+            // Shuffle was inserted before Download.
+            actionsDiv.insertBefore(shuffleBtn, dlBtn);
             // Insert Sort after Download, before Like
-            if (sortBtn) {
-                if (likeBtn) {
-                    actionsDiv.insertBefore(sortBtn, likeBtn);
-                } else {
-                    // If no Like button, insert Sort after Download
-                    if (dlBtn.nextSibling) {
-                        actionsDiv.insertBefore(sortBtn, dlBtn.nextSibling);
-                    } else {
-                        actionsDiv.appendChild(sortBtn);
-                    }
-                }
+            if (sortBtn && likeBtn) {
+                actionsDiv.insertBefore(sortBtn, likeBtn);
+            } else if (sortBtn) {
+                actionsDiv.appendChild(sortBtn);
             }
 
             // Append Edit/Delete/Share buttons after Like
