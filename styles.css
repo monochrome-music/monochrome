@@ -2190,6 +2190,8 @@ input:checked + .slider::before {
     box-shadow: var(--shadow-lg);
     z-index: 3000;
     min-width: 160px;
+    transform-origin: top left;
+    animation: scale-in var(--transition-fast) var(--ease-out-back);
 }
 
 #context-menu ul,
@@ -2225,12 +2227,6 @@ input:checked + .slider::before {
 
     /* Slide interaction */
     color: var(--foreground);
-}
-
-#context-menu,
-#sort-menu {
-    transform-origin: top left;
-    animation: scale-in var(--transition-fast) var(--ease-out-back);
 }
 
 #queue-modal-overlay {
