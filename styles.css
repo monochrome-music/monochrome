@@ -2179,7 +2179,8 @@ input:checked + .slider::before {
     pointer-events: none;
 }
 
-#context-menu {
+#context-menu,
+#sort-menu {
     display: none;
     position: fixed;
     background-color: var(--card);
@@ -2189,15 +2190,19 @@ input:checked + .slider::before {
     box-shadow: var(--shadow-lg);
     z-index: 3000;
     min-width: 160px;
+    transform-origin: top left;
+    animation: scale-in var(--transition-fast) var(--ease-out-back);
 }
 
-#context-menu ul {
+#context-menu ul,
+#sort-menu ul {
     list-style: none;
 }
 
 #context-menu li,
 #sort-menu li {
     padding: 0.5rem 0.75rem;
+    margin-right: 8px;
     cursor: pointer;
     border-radius: 4px;
     transition:
@@ -2212,6 +2217,10 @@ input:checked + .slider::before {
     align-items: center;
 }
 
+#sort-menu li.sort-active {
+    font-weight: bold;
+}
+
 #context-menu li:hover,
 #sort-menu li:hover {
     background-color: var(--secondary);
@@ -2219,12 +2228,6 @@ input:checked + .slider::before {
 
     /* Slide interaction */
     color: var(--foreground);
-}
-
-#context-menu,
-#sort-menu {
-    transform-origin: top left;
-    animation: scale-in var(--transition-fast) var(--ease-out-back);
 }
 
 #queue-modal-overlay {
