@@ -2161,8 +2161,10 @@ export class UIRenderer {
                 descEl.textContent = playlistData.description || '';
 
                 const originalTracks = [...tracks];
-                let currentTracks = [...tracks];
-                currentSort = 'custom';
+                // Default sort: first available option (Playlist Order if no addedAt, else Date Added Newest)
+                const hasAddedDate = tracks.some((t) => t.addedAt);
+                currentSort = hasAddedDate ? 'added-newest' : 'custom';
+                let currentTracks = sortTracks(originalTracks, currentSort);
 
                 const renderTracks = () => {
                     // Re-fetch container each time because enableTrackReordering clones it

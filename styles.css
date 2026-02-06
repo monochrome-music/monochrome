@@ -2202,6 +2202,7 @@ input:checked + .slider::before {
 #context-menu li,
 #sort-menu li {
     padding: 0.5rem 0.75rem;
+    margin-right: 8px;
     cursor: pointer;
     border-radius: 4px;
     transition:
