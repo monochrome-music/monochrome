@@ -1,5 +1,5 @@
-# Use Bun canary on Alpine
-FROM oven/bun:canary-alpine
+# Use Bun on Alpine
+FROM oven/bun:latest-alpine
 
 # Set working directory
 WORKDIR /app

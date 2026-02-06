@@ -1,5 +1,5 @@
 # Development Dockerfile for hot-reloading
-FROM oven/bun:canary-alpine
+FROM oven/bun:latest-alpine
 
 WORKDIR /app
 
