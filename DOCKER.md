@@ -39,24 +39,24 @@ Visit `http://localhost:5173` (hot-reload enabled)
 
 Docker Compose [profiles](https://docs.docker.com/compose/how-tos/profiles/) control which services start. A service with no profile always runs. A service with a profile only runs when that profile is activated.
 
-| Command | What starts |
-|---------|-------------|
-| `docker compose up -d` | Monochrome |
-| `docker compose --profile pocketbase up -d` | Monochrome + PocketBase |
-| `docker compose --profile dev up -d` | Monochrome + Dev server |
+| Command                                                   | What starts                          |
+| --------------------------------------------------------- | ------------------------------------ |
+| `docker compose up -d`                                    | Monochrome                           |
+| `docker compose --profile pocketbase up -d`               | Monochrome + PocketBase              |
+| `docker compose --profile dev up -d`                      | Monochrome + Dev server              |
 | `docker compose --profile dev --profile pocketbase up -d` | Monochrome + Dev server + PocketBase |
 
 In `docker-compose.yml`, it looks like this:
 
 ```yaml
 services:
-  monochrome:                         # no profile -- always starts
+    monochrome: # no profile -- always starts
 
-  pocketbase:
-    profiles: ["pocketbase"]          # opt-in
+    pocketbase:
+        profiles: ['pocketbase'] # opt-in
 
-  monochrome-dev:
-    profiles: ["dev"]                 # opt-in
+    monochrome-dev:
+        profiles: ['dev'] # opt-in
 ```
 
 ### Override File
@@ -72,19 +72,19 @@ The override file does not exist in the upstream repo, don't search it!
 ```yaml
 # docker-compose.override.yml
 services:
-  pocketbase:
-    labels:
-      - traefik.enable=true
-      - traefik.http.routers.pocketbase.rule=Host(`pocketbase.example.com`)
-      - traefik.http.routers.pocketbase.entrypoints=websecure
-      - traefik.http.routers.pocketbase.tls.certresolver=letsencrypt
-      - traefik.http.services.pocketbase.loadbalancer.server.port=8090
-    networks:
-      - proxy-network
+    pocketbase:
+        labels:
+            - traefik.enable=true
+            - traefik.http.routers.pocketbase.rule=Host(`pocketbase.example.com`)
+            - traefik.http.routers.pocketbase.entrypoints=websecure
+            - traefik.http.routers.pocketbase.tls.certresolver=letsencrypt
+            - traefik.http.services.pocketbase.loadbalancer.server.port=8090
+        networks:
+            - proxy-network
 
 networks:
-  proxy-network:
-    external: true
+    proxy-network:
+        external: true
 ```
 
 **Example** -- adding a custom service in your fork:
@@ -92,13 +92,13 @@ networks:
 ```yaml
 # docker-compose.override.yml
 services:
-  my-custom-api:
-    image: my-api:latest
-    restart: unless-stopped
-    ports:
-      - "4000:4000"
-    networks:
-      - monochrome-network
+    my-custom-api:
+        image: my-api:latest
+        restart: unless-stopped
+        ports:
+            - '4000:4000'
+        networks:
+            - monochrome-network
 ```
 
 Override files can extend existing services (add labels, env vars, networks) and define entirely new services. See the [Docker docs](https://docs.docker.com/compose/how-tos/multiple-compose-files/merge/) for the full merge behavior.
@@ -116,10 +116,10 @@ Portainer can deploy directly from your GitHub fork with auto-updates on push.
 3. Compose path: `docker-compose.yml`
 4. If your fork has a `docker-compose.override.yml`, Portainer loads it automatically
 5. Under **Environment variables**, add:
-   - `COMPOSE_PROFILES=pocketbase` (to enable PocketBase -- omit if not needed)
-   - `PB_ADMIN_EMAIL=your@email.com`
-   - `PB_ADMIN_PASSWORD=your_secure_password`
-   - Any other variables from `.env.example`
+    - `COMPOSE_PROFILES=pocketbase` (to enable PocketBase -- omit if not needed)
+    - `PB_ADMIN_EMAIL=your@email.com`
+    - `PB_ADMIN_PASSWORD=your_secure_password`
+    - Any other variables from `.env.example`
 6. Enable **GitOps updates** to auto-redeploy on push
 
 > **Tip:** `COMPOSE_PROFILES` is a built-in Docker Compose variable. Setting it to `pocketbase` is equivalent to passing `--profile pocketbase` on the command line.
@@ -176,12 +176,12 @@ Node.js Alpine image with source code mounted as a volume for hot-reload.
 
 ### Files
 
-| File | Purpose | In upstream repo |
-|------|---------|:---:|
-| `docker-compose.yml` | All services with profiles | Yes |
-| `docker-compose.override.yml` | Fork-specific customizations | No |
-| `.env.example` | Environment variable template | Yes |
-| `.env` | Your local configuration | No |
-| `Dockerfile` | Production build | Yes |
-| `Dockerfile.dev` | Development build | Yes |
-| `.dockerignore` | Build context exclusions | Yes |
+| File                          | Purpose                       | In upstream repo |
+| ----------------------------- | ----------------------------- | :--------------: |
+| `docker-compose.yml`          | All services with profiles    |       Yes        |
+| `docker-compose.override.yml` | Fork-specific customizations  |        No        |
+| `.env.example`                | Environment variable template |       Yes        |
+| `.env`                        | Your local configuration      |        No        |
+| `Dockerfile`                  | Production build              |       Yes        |
+| `Dockerfile.dev`              | Development build             |       Yes        |
+| `.dockerignore`               | Build context exclusions      |       Yes        |

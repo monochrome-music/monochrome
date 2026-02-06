@@ -120,6 +120,7 @@ Visit `http://localhost:3000`
 For PocketBase, development mode, and advanced setups, see [DOCKER.md](DOCKER.md).
 
 ### Option 2: Manual Installation
+
 #### Prerequisites
 
 - [Node.js](https://nodejs.org/) (Version 20+ or 22+ recommended)
