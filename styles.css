@@ -2214,6 +2214,10 @@ input:checked + .slider::before {
     align-items: center;
 }
 
+#sort-menu li.sort-active {
+    font-weight: bold;
+}
+
 #context-menu li:hover,
 #sort-menu li:hover {
     background-color: var(--secondary);
