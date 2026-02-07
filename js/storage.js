@@ -54,6 +54,7 @@ export const apiSettings = {
             console.error('Failed to load instances from GitHub:', error);
             this.defaultInstances = {
                 api: [
+                    'https://us-west.monochrome.tf',
                     'https://arran.monochrome.tf',
                     'https://api.monochrome.tf',
                     'https://triton.squid.wtf',
