@@ -514,7 +514,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         ui.setCurrentTrack(player.currentTrack);
 
         // Update Media Session with new track
-        updateMediaMetadata(player.currentTrack);
+        player.updateMediaSession(player.currentTrack);
 
         const currentTrackId = player.currentTrack.id;
         if (currentTrackId === previousTrackId) return;
