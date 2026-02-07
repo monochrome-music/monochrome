@@ -54,6 +54,7 @@ export const apiSettings = {
             console.error('Failed to load instances from GitHub:', error);
             this.defaultInstances = {
                 api: [
+                    'https://eu-central.monochrome.tf',
                     'https://us-west.monochrome.tf',
                     'https://arran.monochrome.tf',
                     'https://api.monochrome.tf',
@@ -180,7 +181,7 @@ export const apiSettings = {
         return results;
     },
 
-    async getInstances(type = 'api') {
+    async getInstances(type = 'api', sortBySpeed = false) {
         let instancesObj;
 
         const stored = localStorage.getItem(this.STORAGE_KEY);
@@ -218,6 +219,12 @@ export const apiSettings = {
             Object.assign(speedCache, this.getCachedSpeedTests());
         }
 
+        // Default: return instances in their stored/manual order (respects manual reordering)
+        // Only sort by speed when explicitly requested (e.g., refresh speed test)
+        if (!sortBySpeed) {
+            return targetUrls;
+        }
+
         const sortList = (list) => {
             return [...list].sort((a, b) => {
                 const speedA = speedCache.speeds[getCacheKey(a)]?.speed ?? Infinity;
@@ -253,7 +260,7 @@ export const apiSettings = {
         this.updateSpeedCache(allResults);
 
         // Return API instances for the UI to render (default view)
-        return this.getInstances('api');
+        return this.getInstances('api', true);
     },
     saveInstances(instances, type) {
         if (type) {

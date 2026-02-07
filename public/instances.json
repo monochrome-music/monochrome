@@ -1,5 +1,6 @@
 {
     "api": [
+        "https://eu-central.monochrome.tf",
         "https://us-west.monochrome.tf",
         "https://arran.monochrome.tf",
         "https://api.monochrome.tf/",
