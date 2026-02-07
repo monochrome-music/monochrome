@@ -1,0 +1,41 @@
+{
+    "applicationId": "com.monochrome.app",
+    "applicationName": "Monochrome",
+    "applicationIcon": "public/assets/512.png",
+    "author": "Monochrome",
+    "description": "Lossless music streaming",
+    "version": "1.0.0",
+    "defaultMode": "window",
+    "documentRoot": "public/",
+    "url": "https://monochrome.tf",
+    "enableServer": false,
+    "enableNativeAPI": true,
+    "tokenSecurity": "one-time",
+    "modes": {
+        "window": {
+            "title": "Monochrome",
+            "icon": "public/assets/512.png",
+            "width": 1280,
+            "height": 800,
+            "minWidth": 800,
+            "minHeight": 600,
+            "center": true,
+            "resizable": true,
+            "hidden": false,
+            "borderless": false,
+            "enableInspector": true,
+            "openInspectorOnStartup": false,
+            "exitProcessOnClose": true
+        }
+    },
+    "cli": {
+        "binaryName": "Monochrome",
+        "resourcesPath": "public/",
+        "binaryVersion": "6.5.0",
+        "clientVersion": "6.5.0"
+    },
+    "nativeAllowList": [
+        "app.exit",
+        "window.*"
+    ]
+}

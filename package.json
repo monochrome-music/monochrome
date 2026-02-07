@@ -28,6 +28,7 @@
     },
     "homepage": "https://github.com/SamidyFR/monochrome#readme",
     "devDependencies": {
+        "@neutralinojs/neu": "^11.7.0",
         "eslint": "^9.39.2",
         "eslint-config-prettier": "^10.1.8",
         "globals": "^17.0.0",
@@ -44,6 +45,7 @@
         "source-map": "^0.7.4"
     },
     "dependencies": {
+        "@neutralinojs/lib": "^6.5.0",
         "cookie-session": "^2.1.0",
         "jose": "^6.0.11",
         "butterchurn": "^2.6.7",

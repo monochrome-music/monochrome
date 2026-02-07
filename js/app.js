@@ -378,6 +378,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     const { initTracker } = await loadTrackerModule();
     initTracker(player);
 
+    // Initialize desktop environment (Neutralino)
+    if (window.Neutralino) {
+        await (async () => {
+            console.log('Initializing Neutralino desktop environment (Lite Mode)...');
+            try {
+                await Neutralino.init();
+                Neutralino.events.on('windowClose', () => {
+                    Neutralino.app.exit();
+                });
+                console.log('Desktop environment initialized');
+            } catch (error) {
+                console.error('Failed to initialize desktop environment:', error);
+            }
+        })();
+    }
+
     const castBtn = document.getElementById('cast-btn');
     initializeCasting(audioPlayer, castBtn);
 
@@ -496,6 +512,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Update UI with current track info for theme
         ui.setCurrentTrack(player.currentTrack);
+
+        // Update Media Session with new track
+        updateMediaMetadata(player.currentTrack);
 
         const currentTrackId = player.currentTrack.id;
         if (currentTrackId === previousTrackId) return;
