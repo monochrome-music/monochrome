@@ -821,7 +821,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         await handlePublicStatus(playlist);
                         // Update DB again with isPublic flag
                         await db.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
-                        syncManager.syncUserPlaylist(playlist, 'create');
+                        await syncManager.syncUserPlaylist(playlist, 'create');
                         ui.renderLibraryPage();
                         modal.classList.remove('active');
                     });
@@ -1077,6 +1077,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     try {
                         await db.addTracksToPlaylist(playlistId, tracks);
+                        const updatedPlaylist = await db.getPlaylist(playlistId);
+                        await syncManager.syncUserPlaylist(updatedPlaylist, 'update');
                         const { showNotification } = await loadDownloadsModule();
                         showNotification(`Added ${tracks.length} tracks to playlist.`);
                         closeModal();
