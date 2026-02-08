@@ -42,6 +42,8 @@ import {
     createProjectCardHTML,
     createTrackFromSong,
 } from './tracker.js';
+const savedFont = localStorage.getItem('monochrome-font');
+if (savedFont) document.documentElement.style.setProperty('--font-family', savedFont);
 
 function sortTracks(tracks, sortType) {
     if (sortType === 'custom') return [...tracks];
