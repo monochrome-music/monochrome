@@ -1432,6 +1432,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         showKeyboardShortcuts();
     });
 
+    // Font Settings
+    const fontSelect = document.getElementById('font-select');
+    if (fontSelect) {
+        const savedFont = localStorage.getItem('monochrome-font');
+        if (savedFont) {
+            fontSelect.value = savedFont;
+        }
+        fontSelect.addEventListener('change', (e) => {
+            const font = e.target.value;
+            document.documentElement.style.setProperty('--font-family', font);
+            localStorage.setItem('monochrome-font', font);
+        });
+    }
+
     // Listener for Pocketbase Sync updates
     window.addEventListener('library-changed', () => {
         const path = window.location.pathname;

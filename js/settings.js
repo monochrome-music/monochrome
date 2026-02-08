@@ -1054,7 +1054,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
         btn.disabled = true;
 
         try {
-            await api.settings.refreshSpeedTests();
+            await api.settings.refreshInstances();
             ui.renderApiSettings();
             btn.textContent = 'Done!';
             setTimeout(() => {
