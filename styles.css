@@ -280,7 +280,7 @@ html {
 body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: Inter, sans-serif;
+    font-family: var(--font-family, 'Inter', sans-serif);
     overflow: hidden;
     transition:
         background-color 0.3s ease,
@@ -1881,6 +1881,12 @@ input:checked + .slider::before {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    cursor: pointer;
+    transition: color var(--transition);
+}
+
+.track-info .details .album:hover {
+    color: var(--highlight);
 }
 
 .track-info .details .artist {
