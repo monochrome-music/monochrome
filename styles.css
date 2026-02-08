@@ -4356,7 +4356,9 @@ img[src=''] {
     }
 
     .player-controls .buttons {
-        gap: var(--spacing-md);
+        justify-content: center;
+        gap: var(--spacing-lg);
+        padding: 0 15%;
     }
 
     .player-controls .buttons button {
