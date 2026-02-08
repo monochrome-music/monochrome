@@ -1,4 +1,4 @@
-import { listenBrainzSettings } from './storage.js';
+import { listenBrainzSettings, lastFMStorage } from './storage.js';
 
 export class ListenBrainzScrobbler {
     constructor() {
@@ -7,6 +7,7 @@ export class ListenBrainzScrobbler {
         this.scrobbleTimer = null;
         this.scrobbleThreshold = 0;
         this.hasScrobbled = false;
+        this.isScrobbling = false;
     }
 
     getApiUrl() {
@@ -120,12 +121,17 @@ export class ListenBrainzScrobbler {
         if (!this.isEnabled()) return;
 
         this.currentTrack = track;
-        this.hasScrobbled = false;
+        // Only reset hasScrobbled if we're not currently in the middle of scrobbling
+        // to prevent race conditions that could cause double scrobbles
+        if (!this.isScrobbling) {
+            this.hasScrobbled = false;
+        }
         this.clearScrobbleTimer();
 
         await this.submitListen('playing_now', track);
 
-        this.scrobbleThreshold = Math.min(track.duration / 2, 240);
+        const scrobblePercentage = lastFMStorage.getScrobblePercentage() / 100;
+        this.scrobbleThreshold = Math.min(track.duration * scrobblePercentage, 240);
         this.scheduleScrobble(this.scrobbleThreshold * 1000);
     }
 
@@ -146,9 +152,15 @@ export class ListenBrainzScrobbler {
     async scrobbleCurrentTrack() {
         if (!this.isEnabled() || !this.currentTrack || this.hasScrobbled) return;
 
-        const timestamp = Math.floor(Date.now() / 1000);
-        await this.submitListen('single', this.currentTrack, timestamp);
-        this.hasScrobbled = true;
+        this.isScrobbling = true;
+
+        try {
+            const timestamp = Math.floor(Date.now() / 1000);
+            await this.submitListen('single', this.currentTrack, timestamp);
+            this.hasScrobbled = true;
+        } finally {
+            this.isScrobbling = false;
+        }
     }
 
     onTrackChange(track) {

@@ -221,6 +221,40 @@ export function initializeSettings(scrobbler, player, api, ui) {
     }
 
     // ========================================
+    // Global Scrobble Settings
+    // ========================================
+    const scrobblePercentageSlider = document.getElementById('scrobble-percentage-slider');
+    const scrobblePercentageInput = document.getElementById('scrobble-percentage-input');
+
+    if (scrobblePercentageSlider && scrobblePercentageInput) {
+        const percentage = lastFMStorage.getScrobblePercentage();
+        scrobblePercentageSlider.value = percentage;
+        scrobblePercentageInput.value = percentage;
+
+        scrobblePercentageSlider.addEventListener('input', (e) => {
+            const newPercentage = parseInt(e.target.value, 10);
+            scrobblePercentageInput.value = newPercentage;
+            lastFMStorage.setScrobblePercentage(newPercentage);
+        });
+
+        scrobblePercentageInput.addEventListener('change', (e) => {
+            let newPercentage = parseInt(e.target.value, 10);
+            newPercentage = Math.max(1, Math.min(100, newPercentage || 75));
+            scrobblePercentageSlider.value = newPercentage;
+            scrobblePercentageInput.value = newPercentage;
+            lastFMStorage.setScrobblePercentage(newPercentage);
+        });
+
+        scrobblePercentageInput.addEventListener('input', (e) => {
+            let newPercentage = parseInt(e.target.value, 10);
+            if (!isNaN(newPercentage) && newPercentage >= 1 && newPercentage <= 100) {
+                scrobblePercentageSlider.value = newPercentage;
+                lastFMStorage.setScrobblePercentage(newPercentage);
+            }
+        });
+    }
+
+    // ========================================
     // ListenBrainz Settings
     // ========================================
     const lbToggle = document.getElementById('listenbrainz-enabled-toggle');

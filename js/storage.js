@@ -279,6 +279,10 @@ export const themeManager = {
 };
 
 export const lastFMStorage = {
+    STORAGE_KEY: 'lastfm-enabled',
+    LOVE_ON_LIKE_KEY: 'lastfm-love-on-like',
+    SCROBBLE_PERCENTAGE_KEY: 'lastfm-scrobble-percentage',
+
     isEnabled() {
         try {
             return localStorage.getItem(this.STORAGE_KEY) === 'true';
@@ -301,6 +305,20 @@ export const lastFMStorage = {
 
     setLoveOnLike(enabled) {
         localStorage.setItem(this.LOVE_ON_LIKE_KEY, enabled ? 'true' : 'false');
+    },
+
+    getScrobblePercentage() {
+        try {
+            const value = localStorage.getItem(this.SCROBBLE_PERCENTAGE_KEY);
+            return value ? parseInt(value, 10) : 75;
+        } catch {
+            return 75;
+        }
+    },
+
+    setScrobblePercentage(percentage) {
+        const validPercentage = Math.max(1, Math.min(100, parseInt(percentage, 10) || 75));
+        localStorage.setItem(this.SCROBBLE_PERCENTAGE_KEY, validPercentage.toString());
     },
 };
 

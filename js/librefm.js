@@ -1,4 +1,4 @@
-import { libreFmSettings } from './storage.js';
+import { libreFmSettings, lastFMStorage } from './storage.js';
 
 export class LibreFmScrobbler {
     constructor() {
@@ -12,6 +12,7 @@ export class LibreFmScrobbler {
         this.scrobbleTimer = null;
         this.scrobbleThreshold = 0;
         this.hasScrobbled = false;
+        this.isScrobbling = false;
 
         this.loadSession();
     }
@@ -174,7 +175,11 @@ export class LibreFmScrobbler {
         if (!this.isAuthenticated()) return;
 
         this.currentTrack = track;
-        this.hasScrobbled = false;
+        // Only reset hasScrobbled if we're not currently in the middle of scrobbling
+        // to prevent race conditions that could cause double scrobbles
+        if (!this.isScrobbling) {
+            this.hasScrobbled = false;
+        }
         this.clearScrobbleTimer();
 
         try {
@@ -200,7 +205,8 @@ export class LibreFmScrobbler {
 
             console.log('[Libre.fm] Now playing updated:', scrobbleTitle);
 
-            this.scrobbleThreshold = Math.min(track.duration / 2, 240);
+            const scrobblePercentage = lastFMStorage.getScrobblePercentage() / 100;
+            this.scrobbleThreshold = Math.min(track.duration * scrobblePercentage, 240);
             this.scheduleScrobble(this.scrobbleThreshold * 1000);
         } catch (error) {
             console.error('[Libre.fm] Failed to update now playing:', error);
@@ -224,6 +230,8 @@ export class LibreFmScrobbler {
 
     async scrobbleCurrentTrack() {
         if (!this.isAuthenticated() || !this.currentTrack || this.hasScrobbled) return;
+
+        this.isScrobbling = true;
 
         try {
             const timestamp = Math.floor(Date.now() / 1000);
@@ -253,6 +261,8 @@ export class LibreFmScrobbler {
             console.log('[Libre.fm] Scrobbled:', this.currentTrack.cleanTitle || this.currentTrack.title);
         } catch (error) {
             console.error('[Libre.fm] Failed to scrobble:', error);
+        } finally {
+            this.isScrobbling = false;
         }
     }
 

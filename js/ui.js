@@ -566,10 +566,10 @@ export class UIRenderer {
     }
 
     createSkeletonCards(count = 6, isArtist = false) {
-        return `<div class="card-grid">${Array(count)
+        return Array(count)
             .fill(0)
             .map(() => this.createSkeletonCard(isArtist))
-            .join('')}</div>`;
+            .join('');
     }
 
     setupSearchClearButton(inputElement, clearBtnSelector = '.search-clear-btn') {

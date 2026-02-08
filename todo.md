@@ -2,9 +2,6 @@
 
 Sorted by ease of implementation (easiest to hardest):
 
-- [x] Album click navigation: Clicking on the album in the player bar navigates to the album page (default behavior - can be changed in settings)
-- [ ] Fix button overlap: Next track and casting buttons overlap on some screen resolutions
-- [ ] Reduce API calls: Minimize unnecessary API calls throughout the app
 - [ ] Editor's Picks: Create a JSON file of curated album IDs with metadata for the home screen. Include an option to disable in settings to avoid extra API calls.
 
 - [ ] Update notifications: Add ability to show the update popup in settings, with an option to automatically update (enabled by default)
