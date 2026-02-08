@@ -3158,27 +3158,15 @@ export class UIRenderer {
         const container = document.getElementById('api-instance-list');
         Promise.all([this.api.settings.getInstances('api'), this.api.settings.getInstances('streaming')]).then(
             ([apiInstances, streamingInstances]) => {
-                const cachedData = this.api.settings.getCachedSpeedTests();
-                const speeds = cachedData?.speeds || {};
-
                 const renderGroup = (instances, type) => {
                     if (!instances || instances.length === 0) return '';
 
                     const listHtml = instances
                         .map((url, index) => {
-                            const cacheKey = type === 'streaming' ? `${url}#streaming` : url;
-                            const speedInfo = speeds[cacheKey];
-                            const speedText = speedInfo
-                                ? speedInfo.speed === Infinity || typeof speedInfo.speed !== 'number'
-                                    ? `<span style="color: var(--muted-foreground); font-size: 0.8rem;">Failed</span>`
-                                    : `<span style="color: var(--muted-foreground); font-size: 0.8rem;">${speedInfo.speed.toFixed(0)}ms</span>`
-                                : '';
-
                             return `
                         <li data-index="${index}" data-type="${type}">
                             <div style="flex: 1; min-width: 0;">
                                 <div class="instance-url">${url}</div>
-                                ${speedText}
                             </div>
                             <div class="controls">
                                 <button class="move-up" title="Move Up" ${index === 0 ? 'disabled' : ''}>
