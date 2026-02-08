@@ -1521,6 +1521,13 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
         }
     });
 
+    document.querySelector('.now-playing-bar .album').addEventListener('click', () => {
+        const track = player.currentTrack;
+        if (track?.album?.id) {
+            navigate(`/album/${track.album.id}`);
+        }
+    });
+
     document.querySelector('.now-playing-bar .artist').addEventListener('click', (e) => {
         const link = e.target.closest('.artist-link');
         if (link) {

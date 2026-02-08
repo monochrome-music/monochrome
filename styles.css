@@ -1881,6 +1881,12 @@ input:checked + .slider::before {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    cursor: pointer;
+    transition: color var(--transition);
+}
+
+.track-info .details .album:hover {
+    color: var(--highlight);
 }
 
 .track-info .details .artist {
