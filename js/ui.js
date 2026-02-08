@@ -1519,6 +1519,27 @@ export class UIRenderer {
         }
     }
 
+    createTrackCardHTML(track) {
+        const explicitBadge = hasExplicitContent(track) ? this.createExplicitBadge() : '';
+        const qualityBadge = createQualityBadgeHTML(track);
+        const isCompact = cardSettings.isCompactAlbum();
+
+        return this.createBaseCardHTML({
+            type: 'track',
+            id: track.id,
+            href: `/track/${track.id}`,
+            title: `${escapeHtml(getTrackTitle(track))} ${explicitBadge} ${qualityBadge}`,
+            subtitle: escapeHtml(getTrackArtists(track)),
+            imageHTML: `<img src="${this.api.getCoverUrl(track.album?.cover)}" alt="${escapeHtml(track.title)}" class="card-image" loading="lazy">`,
+            actionButtonsHTML: `
+                <button class="like-btn card-like-btn" data-action="toggle-like" data-type="track" title="Add to Liked">
+                    ${this.createHeartIcon(false)}
+                </button>
+            `,
+            isCompact,
+        });
+    }
+
     async renderHomeEditorsPicks(forceRefresh = false) {
         const picksContainer = document.getElementById('home-editors-picks');
         const section = document.getElementById('home-editors-picks-section');
@@ -1538,32 +1559,52 @@ export class UIRenderer {
                 const response = await fetch('/editors-picks.json');
                 if (!response.ok) throw new Error("Failed to load editor's picks");
 
-                const data = await response.json();
-                const albumIds = data.albums || [];
+                const items = await response.json();
 
-                if (albumIds.length === 0) {
+                if (!Array.isArray(items) || items.length === 0) {
                     picksContainer.innerHTML = createPlaceholder("No editor's picks available.");
                     return;
                 }
 
-                // Fetch album details
-                const albums = [];
-                for (const albumId of albumIds.slice(0, 12)) {
+                // Fetch details for each item
+                const cardsHTML = [];
+                const itemsToStore = [];
+
+                for (const item of items.slice(0, 12)) {
                     try {
-                        const result = await this.api.getAlbum(albumId);
-                        if (result && result.album) albums.push(result.album);
+                        if (item.type === 'album') {
+                            const result = await this.api.getAlbum(item.id);
+                            if (result && result.album) {
+                                cardsHTML.push(this.createAlbumCardHTML(result.album));
+                                itemsToStore.push({ el: null, data: result.album, type: 'album' });
+                            }
+                        } else if (item.type === 'artist') {
+                            const artist = await this.api.getArtist(item.id);
+                            if (artist) {
+                                cardsHTML.push(this.createArtistCardHTML(artist));
+                                itemsToStore.push({ el: null, data: artist, type: 'artist' });
+                            }
+                        } else if (item.type === 'track') {
+                            const track = await this.api.getTrackMetadata(item.id);
+                            if (track) {
+                                cardsHTML.push(this.createTrackCardHTML(track));
+                                itemsToStore.push({ el: null, data: track, type: 'track' });
+                            }
+                        }
                     } catch (e) {
-                        console.warn(`Failed to load album ${albumId}:`, e);
+                        console.warn(`Failed to load ${item.type} ${item.id}:`, e);
                     }
                 }
 
-                if (albums.length > 0) {
-                    picksContainer.innerHTML = albums.map((a) => this.createAlbumCardHTML(a)).join('');
-                    albums.forEach((a) => {
-                        const el = picksContainer.querySelector(`[data-album-id="${a.id}"]`);
+                if (cardsHTML.length > 0) {
+                    picksContainer.innerHTML = cardsHTML.join('');
+                    itemsToStore.forEach((item, index) => {
+                        const type = item.type;
+                        const id = item.data.id;
+                        const el = picksContainer.querySelector(`[data-${type}-id="${id}"]`);
                         if (el) {
-                            trackDataStore.set(el, a);
-                            this.updateLikeState(el, 'album', a.id);
+                            trackDataStore.set(el, item.data);
+                            this.updateLikeState(el, type, id);
                         }
                     });
                 } else {

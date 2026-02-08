@@ -1,5 +1,5 @@
-{
-    "name": "Editor's Picks",
-    "description": "Curated selection of standout albums handpicked by the monochrome team",
-    "albums": ["4527433", "90502209"]
-}
+[
+    { "type": "album", "id": "4527433" },
+    { "type": "album", "id": "90502209" },
+    { "type": "track", "id": "279082605" }
+]
