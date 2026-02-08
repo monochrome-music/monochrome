@@ -4099,7 +4099,8 @@ img[src=''] {
 
 @media (min-width: 769px) and (max-width: 1024px) {
     .now-playing-bar {
-        grid-template-columns: minmax(150px, 1fr) 0.8fr auto;
+        grid-template-columns: minmax(150px, 1fr) 1fr auto;
+        gap: var(--spacing-md);
         padding: var(--spacing-md);
     }
 
