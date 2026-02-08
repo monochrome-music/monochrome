@@ -48,7 +48,7 @@ export class LosslessAPI {
 
         const maxTotalAttempts = instances.length * 2; // Allow some retries across instances
         let lastError = null;
-        let instanceIndex = 0;
+        let instanceIndex = Math.floor(Math.random() * instances.length);
 
         for (let attempt = 1; attempt <= maxTotalAttempts; attempt++) {
             const baseUrl = instances[instanceIndex % instances.length];
@@ -174,7 +174,7 @@ export class LosslessAPI {
         return artist;
     }
 
-    async enrichTracksWithAlbumDates(tracks) {
+    async enrichTracksWithAlbumDates(tracks, maxRequests = 20) {
         if (!trackDateSettings.useAlbumYear()) return tracks;
 
         const albumIdsToFetch = [];
@@ -186,13 +186,26 @@ export class LosslessAPI {
 
         if (albumIdsToFetch.length === 0) return tracks;
 
-        const albumDateMap = new Map();
-        const results = await Promise.allSettled(albumIdsToFetch.map((id) => this.getAlbum(id)));
+        // Limit the number of albums to fetch to prevent spamming
+        const limitedIds = albumIdsToFetch.slice(0, maxRequests);
+        if (albumIdsToFetch.length > maxRequests) {
+            console.warn(`[Enrich] Too many albums to fetch (${albumIdsToFetch.length}). limiting to ${maxRequests}.`);
+        }
 
-        for (let i = 0; i < results.length; i++) {
-            const result = results[i];
-            if (result.status === 'fulfilled' && result.value.album?.releaseDate) {
-                albumDateMap.set(albumIdsToFetch[i], result.value.album.releaseDate);
+        const albumDateMap = new Map();
+        
+        // Chunk requests to avoid spamming
+        const chunkSize = 5;
+        for (let i = 0; i < limitedIds.length; i += chunkSize) {
+            const chunk = limitedIds.slice(i, i + chunkSize);
+            const results = await Promise.allSettled(chunk.map((id) => this.getAlbum(id)));
+
+            for (let j = 0; j < results.length; j++) {
+                const result = results[j];
+                const id = chunk[j];
+                if (result.status === 'fulfilled' && result.value.album?.releaseDate) {
+                    albumDateMap.set(id, result.value.album.releaseDate);
+                }
             }
         }
 
@@ -304,10 +317,11 @@ export class LosslessAPI {
             const data = await response.json();
             const normalized = this.normalizeSearchResponse(data, 'tracks');
             const preparedTracks = normalized.items.map((t) => this.prepareTrack(t));
-            const enrichedTracks = await this.enrichTracksWithAlbumDates(preparedTracks);
+            // Skip enrichment for search to be fast and lightweight
+            // const enrichedTracks = await this.enrichTracksWithAlbumDates(preparedTracks);
             const result = {
                 ...normalized,
-                items: enrichedTracks,
+                items: preparedTracks,
             };
 
             await this.cache.set('search_tracks', query, result);
@@ -616,7 +630,8 @@ export class LosslessAPI {
         }
 
         // Enrich tracks with album release dates
-        tracks = await this.enrichTracksWithAlbumDates(tracks);
+        // Removed to reduce API load. Playlists can be very large.
+        // tracks = await this.enrichTracksWithAlbumDates(tracks);
 
         const result = { playlist, tracks };
 
@@ -641,7 +656,8 @@ export class LosslessAPI {
         let tracks = items.map((i) => this.prepareTrack(i.item || i));
 
         // Enrich tracks with album release dates
-        tracks = await this.enrichTracksWithAlbumDates(tracks);
+        // Limited to reduce API load
+        tracks = await this.enrichTracksWithAlbumDates(tracks, 10);
 
         const mix = {
             id: mixData.id,
@@ -657,8 +673,9 @@ export class LosslessAPI {
         return result;
     }
 
-    async getArtist(artistId) {
-        const cached = await this.cache.get('artist', artistId);
+    async getArtist(artistId, options = {}) {
+        const cacheKey = options.lightweight ? `artist_${artistId}_light` : `artist_${artistId}`;
+        const cached = await this.cache.get('artist', cacheKey);
         if (cached) return cached;
 
         const [primaryResponse, contentResponse] = await Promise.all([
@@ -709,25 +726,27 @@ export class LosslessAPI {
 
         entries.forEach((entry) => scan(entry));
 
-        // Attempt to find more albums/EPs via search since the direct feed might be limited
-        try {
-            const searchResults = await this.searchAlbums(artist.name);
-            if (searchResults && searchResults.items) {
-                const numericArtistId = Number(artistId);
+        if (!options.lightweight) {
+            // Attempt to find more albums/EPs via search since the direct feed might be limited
+            try {
+                const searchResults = await this.searchAlbums(artist.name);
+                if (searchResults && searchResults.items) {
+                    const numericArtistId = Number(artistId);
 
-                for (const item of searchResults.items) {
-                    const itemArtistId = item.artist?.id;
-                    const matchesArtist =
-                        itemArtistId === numericArtistId ||
-                        (Array.isArray(item.artists) && item.artists.some((a) => a.id === numericArtistId));
+                    for (const item of searchResults.items) {
+                        const itemArtistId = item.artist?.id;
+                        const matchesArtist =
+                            itemArtistId === numericArtistId ||
+                            (Array.isArray(item.artists) && item.artists.some((a) => a.id === numericArtistId));
 
-                    if (matchesArtist && !albumMap.has(item.id)) {
-                        albumMap.set(item.id, item);
+                        if (matchesArtist && !albumMap.has(item.id)) {
+                            albumMap.set(item.id, item);
+                        }
                     }
                 }
+            } catch (e) {
+                console.warn('Failed to fetch additional albums via search:', e);
             }
-        } catch (e) {
-            console.warn('Failed to fetch additional albums via search:', e);
         }
 
         const rawReleases = Array.from(albumMap.values());
@@ -743,11 +762,11 @@ export class LosslessAPI {
             .slice(0, 15);
 
         // Enrich tracks with album release dates
-        const tracks = await this.enrichTracksWithAlbumDates(topTracks);
+        const tracks = options.lightweight ? topTracks : await this.enrichTracksWithAlbumDates(topTracks);
 
         const result = { ...artist, albums, eps, tracks };
 
-        await this.cache.set('artist', artistId, result);
+        await this.cache.set('artist', cacheKey, result);
         return result;
     }
 
@@ -851,23 +870,32 @@ export class LosslessAPI {
         const artistsToProcess = artists.slice(0, Math.min(5, artists.length));
         console.log(`Processing ${artistsToProcess.length} artists for recommendations`);
 
-        for (const artist of artistsToProcess) {
+        const artistPromises = artistsToProcess.map(async (artist) => {
             try {
                 console.log(`Fetching tracks for artist: ${artist.name} (ID: ${artist.id})`);
-                const artistData = await this.getArtist(artist.id);
+                const artistData = await this.getArtist(artist.id, { lightweight: true });
                 if (artistData && artistData.tracks && artistData.tracks.length > 0) {
                     const newTracks = artistData.tracks.filter((track) => !seenTrackIds.has(track.id)).slice(0, 4);
 
                     console.log(`Found ${newTracks.length} new tracks from ${artist.name}`);
-                    recommendedTracks.push(...newTracks);
-                    seenTrackIds.add(...newTracks.map((t) => t.id));
+                    return newTracks;
                 } else {
                     console.warn(`No tracks found for artist ${artist.name}`);
+                    return [];
                 }
             } catch (e) {
                 console.warn(`Failed to get tracks for artist ${artist.name}:`, e);
+                return [];
             }
-        }
+        });
+
+        const results = await Promise.all(artistPromises);
+        results.forEach((tracks) => {
+            if (tracks.length > 0) {
+                recommendedTracks.push(...tracks);
+                seenTrackIds.add(...tracks.map((t) => t.id));
+            }
+        });
 
         console.log(`Total recommended tracks found: ${recommendedTracks.length}`);
 
