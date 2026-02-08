@@ -1414,6 +1414,7 @@ export class UIRenderer {
 
         this.renderHomeSongs();
         this.renderHomeAlbums();
+        this.renderHomeEditorsPicks();
         this.renderHomeArtists();
         this.renderHomeRecent();
     }
@@ -1514,6 +1515,63 @@ export class UIRenderer {
             } catch (e) {
                 console.error(e);
                 albumsContainer.innerHTML = createPlaceholder('Failed to load album recommendations.');
+            }
+        }
+    }
+
+    async renderHomeEditorsPicks(forceRefresh = false) {
+        const picksContainer = document.getElementById('home-editors-picks');
+        const section = document.getElementById('home-editors-picks-section');
+
+        if (!homePageSettings.shouldShowEditorsPicks()) {
+            if (section) section.style.display = 'none';
+            return;
+        }
+
+        if (section) section.style.display = '';
+
+        if (picksContainer) {
+            if (forceRefresh) picksContainer.innerHTML = this.createSkeletonCards(6);
+            else if (picksContainer.children.length > 0 && !picksContainer.querySelector('.skeleton')) return;
+
+            try {
+                const response = await fetch('/editors-picks.json');
+                if (!response.ok) throw new Error("Failed to load editor's picks");
+
+                const data = await response.json();
+                const albumIds = data.albums || [];
+
+                if (albumIds.length === 0) {
+                    picksContainer.innerHTML = createPlaceholder("No editor's picks available.");
+                    return;
+                }
+
+                // Fetch album details
+                const albums = [];
+                for (const albumId of albumIds.slice(0, 12)) {
+                    try {
+                        const result = await this.api.getAlbum(albumId);
+                        if (result && result.album) albums.push(result.album);
+                    } catch (e) {
+                        console.warn(`Failed to load album ${albumId}:`, e);
+                    }
+                }
+
+                if (albums.length > 0) {
+                    picksContainer.innerHTML = albums.map((a) => this.createAlbumCardHTML(a)).join('');
+                    albums.forEach((a) => {
+                        const el = picksContainer.querySelector(`[data-album-id="${a.id}"]`);
+                        if (el) {
+                            trackDataStore.set(el, a);
+                            this.updateLikeState(el, 'album', a.id);
+                        }
+                    });
+                } else {
+                    picksContainer.innerHTML = createPlaceholder("No editor's picks available.");
+                }
+            } catch (e) {
+                console.error("Failed to load editor's picks:", e);
+                picksContainer.innerHTML = createPlaceholder("Failed to load editor's picks.");
             }
         }
     }

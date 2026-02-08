@@ -919,6 +919,14 @@ export function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
+    const showEditorsPicksToggle = document.getElementById('show-editors-picks-toggle');
+    if (showEditorsPicksToggle) {
+        showEditorsPicksToggle.checked = homePageSettings.shouldShowEditorsPicks();
+        showEditorsPicksToggle.addEventListener('change', (e) => {
+            homePageSettings.setShowEditorsPicks(e.target.checked);
+        });
+    }
+
     // Sidebar Section Toggles
     const sidebarShowHomeToggle = document.getElementById('sidebar-show-home-toggle');
     if (sidebarShowHomeToggle) {

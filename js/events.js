@@ -1067,6 +1067,15 @@ export async function handleTrackAction(
         navigator.clipboard.writeText(url).then(() => {
             showNotification('Link copied to clipboard!');
         });
+    } else if (action === 'open-in-new-tab') {
+        // Use stored href from card if available, otherwise construct URL
+        const contextMenu = document.getElementById('context-menu');
+        const storedHref = contextMenu?._contextHref;
+        const url = storedHref
+            ? `${window.location.origin}${storedHref}`
+            : `${window.location.origin}/track/${item.id || item.uuid}`;
+
+        window.open(url, '_blank');
     } else if (action === 'track-info') {
         // Show detailed track info modal
         const isTracker = item.isTracker;

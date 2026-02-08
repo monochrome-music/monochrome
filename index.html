@@ -45,6 +45,7 @@
                 <li data-action="go-to-artist" data-type-filter="track,album">Go to artist</li>
                 <li data-action="go-to-album" data-type-filter="track">Go to album</li>
                 <li data-action="copy-link">Copy link</li>
+                <li data-action="open-in-new-tab">Open in new tab</li>
                 <li data-action="track-info" data-type-filter="track">Track info</li>
                 <li data-action="open-original-url" data-type-filter="track">Open original URL</li>
                 <li data-action="download">Download</li>
@@ -1164,6 +1165,19 @@
                             </div>
                             <div class="card-grid" id="home-recommended-albums"></div>
                         </section>
+                        <section class="content-section" id="home-editors-picks-section">
+                            <div
+                                style="
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: space-between;
+                                    margin-bottom: 1rem;
+                                "
+                            >
+                                <h2 class="section-title" style="margin-bottom: 0">Editor's Picks</h2>
+                            </div>
+                            <div class="card-grid" id="home-editors-picks"></div>
+                        </section>
                         <section class="content-section">
                             <div
                                 style="
@@ -2264,6 +2278,18 @@
                                     </div>
                                     <label class="toggle-switch">
                                         <input type="checkbox" id="show-jump-back-in-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Show Editor's Picks</span>
+                                        <span class="description"
+                                            >Display curated album selections on the home page</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="show-editors-picks-toggle" checked />
                                         <span class="slider"></span>
                                     </label>
                                 </div>

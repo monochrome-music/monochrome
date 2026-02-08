@@ -2,8 +2,6 @@
 
 Sorted by ease of implementation (easiest to hardest):
 
-- [ ] Editor's Picks: Create a JSON file of curated album IDs with metadata for the home screen. Include an option to disable in settings to avoid extra API calls.
-
 - [ ] Update notifications: Add ability to show the update popup in settings, with an option to automatically update (enabled by default)
 - [ ] Volume curve option: Add setting to switch between exponential and linear volume scaling
 - [ ] Custom fonts: Allow users to change fonts in settings or add custom fonts from Google Fonts or direct links

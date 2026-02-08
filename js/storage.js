@@ -969,6 +969,21 @@ export const homePageSettings = {
     setShowJumpBackIn(enabled) {
         localStorage.setItem(this.SHOW_JUMP_BACK_IN_KEY, enabled ? 'true' : 'false');
     },
+
+    SHOW_EDITORS_PICKS_KEY: 'home-show-editors-picks',
+
+    shouldShowEditorsPicks() {
+        try {
+            const val = localStorage.getItem(this.SHOW_EDITORS_PICKS_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowEditorsPicks(enabled) {
+        localStorage.setItem(this.SHOW_EDITORS_PICKS_KEY, enabled ? 'true' : 'false');
+    },
 };
 
 export const sidebarSectionSettings = {
