@@ -1057,7 +1057,13 @@ export async function handleTrackAction(
             navigate(`/album/${item.album.id}`);
         }
     } else if (action === 'copy-link' || action === 'share') {
-        const url = `${window.location.origin}/track/${item.id}`;
+        // Use stored href from card if available, otherwise construct URL
+        const contextMenu = document.getElementById('context-menu');
+        const storedHref = contextMenu?._contextHref;
+        const url = storedHref
+            ? `${window.location.origin}${storedHref}`
+            : `${window.location.origin}/track/${item.id || item.uuid}`;
+
         navigator.clipboard.writeText(url).then(() => {
             showNotification('Link copied to clipboard!');
         });
@@ -1481,6 +1487,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             contextTrack = item;
             contextMenu._contextTrack = item;
             contextMenu._contextType = type.replace('userplaylist', 'user-playlist');
+            contextMenu._contextHref = card.dataset.href;
 
             await updateContextMenuLikeState(contextMenu, item);
             positionMenu(contextMenu, e.pageX, e.pageY);

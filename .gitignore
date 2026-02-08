@@ -3,3 +3,6 @@ dist
 .DS_Store
 *.local
 .vite
+
+# Docker
+.env

@@ -1428,31 +1428,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         },
     });
 
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-
-        // Show the manual install button in settings
-        const installSetting = document.getElementById('install-app-setting');
-        if (installSetting) installSetting.style.display = 'flex';
-
-        if (!localStorage.getItem('installPromptDismissed')) {
-            showInstallPrompt(deferredPrompt);
-        }
-    });
-
-    document.getElementById('manual-install-btn')?.addEventListener('click', async () => {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            console.log(`User response to install prompt: ${outcome}`);
-            deferredPrompt = null;
-            const installSetting = document.getElementById('install-app-setting');
-            if (installSetting) installSetting.style.display = 'none';
-        }
-    });
-
     document.getElementById('show-shortcuts-btn')?.addEventListener('click', () => {
         showKeyboardShortcuts();
     });
@@ -1537,37 +1512,6 @@ function showUpdateNotification(updateCallback) {
         } else {
             window.location.reload();
         }
-    });
-}
-
-function showInstallPrompt(deferredPrompt) {
-    if (!deferredPrompt) return;
-
-    const notification = document.createElement('div');
-    notification.className = 'install-prompt';
-    notification.innerHTML = `
-        <div>
-            <strong>Install Monochrome</strong>
-            <p>Install this app for a better experience.</p>
-        </div>
-        <div style="display: flex; gap: 0.5rem;">
-            <button class="btn-primary" id="install-btn">Install</button>
-            <button class="btn-secondary" id="dismiss-install">Dismiss</button>
-        </div>
-    `;
-    document.body.appendChild(notification);
-
-    document.getElementById('install-btn').addEventListener('click', async () => {
-        notification.remove();
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        console.log(`User response to install prompt: ${outcome}`);
-        deferredPrompt = null;
-    });
-
-    document.getElementById('dismiss-install').addEventListener('click', () => {
-        notification.remove();
-        localStorage.setItem('installPromptDismissed', 'true');
     });
 }
 

@@ -54,6 +54,8 @@ export const apiSettings = {
             console.error('Failed to load instances from GitHub:', error);
             this.defaultInstances = {
                 api: [
+                    'https://eu-central.monochrome.tf',
+                    'https://us-west.monochrome.tf',
                     'https://arran.monochrome.tf',
                     'https://api.monochrome.tf',
                     'https://triton.squid.wtf',
@@ -179,7 +181,7 @@ export const apiSettings = {
         return results;
     },
 
-    async getInstances(type = 'api') {
+    async getInstances(type = 'api', sortBySpeed = false) {
         let instancesObj;
 
         const stored = localStorage.getItem(this.STORAGE_KEY);
@@ -205,26 +207,39 @@ export const apiSettings = {
         const targetUrls = instancesObj[type] || instancesObj.api || [];
         if (targetUrls.length === 0) return [];
 
-        // Use cached speed results to sort if available, but DON'T run new speed tests
-        // Speed tests should only run explicitly via refreshSpeedTests() to avoid
-        // mass /track API calls when playing a song
         const speedCache = this.getCachedSpeedTests();
+        // Construct cache key based on type
         const getCacheKey = (u) => (type === 'streaming' ? `${u}#streaming` : u);
 
-        // Sort by cached speeds if we have any cached data
-        const hasCachedData = targetUrls.some((url) => speedCache.speeds[getCacheKey(url)]);
+        const urlsToTest = targetUrls.filter((url) => !speedCache.speeds[getCacheKey(url)]);
 
-        if (hasCachedData) {
-            const sortedList = [...targetUrls].sort((a, b) => {
+        if (urlsToTest.length > 0) {
+            const results = await this.testSpecificUrls(urlsToTest, type);
+            this.updateSpeedCache(results);
+            Object.assign(speedCache, this.getCachedSpeedTests());
+        }
+
+        // Default: return instances in their stored/manual order (respects manual reordering)
+        // Only sort by speed when explicitly requested (e.g., refresh speed test)
+        if (!sortBySpeed) {
+            return targetUrls;
+        }
+
+        const sortList = (list) => {
+            return [...list].sort((a, b) => {
                 const speedA = speedCache.speeds[getCacheKey(a)]?.speed ?? Infinity;
                 const speedB = speedCache.speeds[getCacheKey(b)]?.speed ?? Infinity;
                 return speedA - speedB;
             });
-            return sortedList;
-        }
+        };
 
-        // No cached data - return in default order without testing
-        return targetUrls;
+        const sortedList = sortList(targetUrls);
+
+        // Persist the sorted order
+        instancesObj[type] = sortedList;
+        this.saveInstances(instancesObj);
+
+        return sortedList;
     },
 
     async refreshSpeedTests() {
@@ -245,7 +260,7 @@ export const apiSettings = {
         this.updateSpeedCache(allResults);
 
         // Return API instances for the UI to render (default view)
-        return this.getInstances('api');
+        return this.getInstances('api', true);
     },
     saveInstances(instances, type) {
         if (type) {

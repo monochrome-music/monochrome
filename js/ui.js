@@ -43,6 +43,37 @@ import {
     createTrackFromSong,
 } from './tracker.js';
 
+function sortTracks(tracks, sortType) {
+    if (sortType === 'custom') return [...tracks];
+    const sorted = [...tracks];
+    switch (sortType) {
+        case 'added-newest':
+            return sorted.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+        case 'added-oldest':
+            return sorted.sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0));
+        case 'title':
+            return sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+        case 'artist':
+            return sorted.sort((a, b) => {
+                const artistA = a.artist?.name || a.artists?.[0]?.name || '';
+                const artistB = b.artist?.name || b.artists?.[0]?.name || '';
+                return artistA.localeCompare(artistB);
+            });
+        case 'album':
+            return sorted.sort((a, b) => {
+                const albumA = a.album?.title || '';
+                const albumB = b.album?.title || '';
+                const albumCompare = albumA.localeCompare(albumB);
+                if (albumCompare !== 0) return albumCompare;
+                const trackNumA = a.trackNumber || a.position || 0;
+                const trackNumB = b.trackNumber || b.position || 0;
+                return trackNumA - trackNumB;
+            });
+        default:
+            return sorted;
+    }
+}
+
 export class UIRenderer {
     constructor(api, player) {
         this.api = api;
@@ -1662,39 +1693,44 @@ export class UIRenderer {
         const signal = this.searchAbortController.signal;
 
         try {
-            // Optimize: Only make 2 API calls (tracks and playlists), extract artists/albums from tracks
-            const [tracksResult, playlistsResult] = await Promise.all([
+            const [tracksResult, artistsResult, albumsResult, playlistsResult] = await Promise.all([
                 this.api.searchTracks(query, { signal }),
+                this.api.searchArtists(query, { signal }),
+                this.api.searchAlbums(query, { signal }),
                 this.api.searchPlaylists(query, { signal }),
             ]);
 
             let finalTracks = tracksResult.items;
+            let finalArtists = artistsResult.items;
+            let finalAlbums = albumsResult.items;
             let finalPlaylists = playlistsResult.items;
 
-            // Extract artists from tracks
-            const artistMap = new Map();
-            finalTracks.forEach((track) => {
-                if (track.artist && !artistMap.has(track.artist.id)) {
-                    artistMap.set(track.artist.id, track.artist);
-                }
-                if (track.artists) {
-                    track.artists.forEach((artist) => {
-                        if (!artistMap.has(artist.id)) {
-                            artistMap.set(artist.id, artist);
-                        }
-                    });
-                }
-            });
-            let finalArtists = Array.from(artistMap.values());
+            if (finalArtists.length === 0 && finalTracks.length > 0) {
+                const artistMap = new Map();
+                finalTracks.forEach((track) => {
+                    if (track.artist && !artistMap.has(track.artist.id)) {
+                        artistMap.set(track.artist.id, track.artist);
+                    }
+                    if (track.artists) {
+                        track.artists.forEach((artist) => {
+                            if (!artistMap.has(artist.id)) {
+                                artistMap.set(artist.id, artist);
+                            }
+                        });
+                    }
+                });
+                finalArtists = Array.from(artistMap.values());
+            }
 
-            // Extract albums from tracks
-            const albumMap = new Map();
-            finalTracks.forEach((track) => {
-                if (track.album && !albumMap.has(track.album.id)) {
-                    albumMap.set(track.album.id, track.album);
-                }
-            });
-            let finalAlbums = Array.from(albumMap.values());
+            if (finalAlbums.length === 0 && finalTracks.length > 0) {
+                const albumMap = new Map();
+                finalTracks.forEach((track) => {
+                    if (track.album && !albumMap.has(track.album.id)) {
+                        albumMap.set(track.album.id, track.album);
+                    }
+                });
+                finalAlbums = Array.from(albumMap.values());
+            }
 
             if (finalTracks.length) {
                 this.renderListWithTracks(tracksContainer, finalTracks, true);
@@ -2130,10 +2166,15 @@ export class UIRenderer {
                 descEl.textContent = playlistData.description || '';
 
                 const originalTracks = [...tracks];
-                let currentTracks = [...tracks];
+                // Default sort: first available option (Playlist Order if no addedAt, else Date Added Newest)
+                const hasAddedDate = tracks.some((t) => t.addedAt);
+                currentSort = hasAddedDate ? 'added-newest' : 'custom';
+                let currentTracks = sortTracks(originalTracks, currentSort);
 
                 const renderTracks = () => {
-                    tracklistContainer.innerHTML = `
+                    // Re-fetch container each time because enableTrackReordering clones it
+                    const container = document.getElementById('playlist-detail-tracklist');
+                    container.innerHTML = `
                         <div class="track-list-header">
                             <span style="width: 40px; text-align: center;">#</span>
                             <span>Title</span>
@@ -2141,11 +2182,11 @@ export class UIRenderer {
                             <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
                         </div>
                     `;
-                    this.renderListWithTracks(tracklistContainer, currentTracks, true, true);
+                    this.renderListWithTracks(container, currentTracks, true, true);
 
                     // Add remove buttons and enable reordering ONLY IF OWNED
                     if (ownedPlaylist) {
-                        const trackItems = tracklistContainer.querySelectorAll('.track-item');
+                        const trackItems = container.querySelectorAll('.track-item');
                         trackItems.forEach((item, index) => {
                             const actionsDiv = item.querySelector('.track-item-actions');
                             const removeBtn = document.createElement('button');
@@ -2160,35 +2201,19 @@ export class UIRenderer {
                         });
 
                         if (currentSort === 'custom') {
-                            tracklistContainer.classList.add('is-editable');
-                            this.enableTrackReordering(tracklistContainer, currentTracks, playlistId, syncManager);
+                            container.classList.add('is-editable');
+                            this.enableTrackReordering(container, currentTracks, playlistId, syncManager);
                         } else {
-                            tracklistContainer.classList.remove('is-editable');
+                            container.classList.remove('is-editable');
                         }
                     } else {
-                        tracklistContainer.classList.remove('is-editable');
+                        container.classList.remove('is-editable');
                     }
                 };
 
                 const applySort = (sortType) => {
                     currentSort = sortType;
-                    if (sortType === 'custom') {
-                        currentTracks = [...originalTracks];
-                    } else if (sortType === 'added-newest') {
-                        currentTracks = [...originalTracks].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
-                    } else if (sortType === 'added-oldest') {
-                        currentTracks = [...originalTracks].sort((a, b) => (a.addedAt || 0) - (b.addedAt || 0));
-                    } else if (sortType === 'title') {
-                        currentTracks = [...originalTracks].sort((a, b) =>
-                            (a.title || '').localeCompare(b.title || '')
-                        );
-                    } else if (sortType === 'artist') {
-                        currentTracks = [...originalTracks].sort((a, b) => {
-                            const artistA = a.artist?.name || a.artists?.[0]?.name || '';
-                            const artistB = b.artist?.name || b.artists?.[0]?.name || '';
-                            return artistA.localeCompare(artistB);
-                        });
-                    }
+                    currentTracks = sortTracks(originalTracks, sortType);
                     renderTracks();
                 };
 
@@ -2205,13 +2230,14 @@ export class UIRenderer {
                     this.loadRecommendedSongsForPlaylist(tracks);
                 }
 
-                // Render Actions (Shuffle, Edit, Delete, Share, Sort)
+                // Render Actions (Sort, Shuffle, Edit, Delete, Share)
                 this.updatePlaylistHeaderActions(
                     playlistData,
                     !!ownedPlaylist,
-                    tracks,
+                    currentTracks,
                     false,
-                    ownedPlaylist ? applySort : null
+                    applySort,
+                    () => currentSort
                 );
 
                 playBtn.onclick = () => {
@@ -2276,16 +2302,34 @@ export class UIRenderer {
                 metaEl.textContent = `${playlist.numberOfTracks} tracks • ${formatDuration(totalDuration)}`;
                 descEl.textContent = playlist.description || '';
 
-                tracklistContainer.innerHTML = `
-                    <div class="track-list-header">
-                        <span style="width: 40px; text-align: center;">#</span>
-                        <span>Title</span>
-                        <span class="duration-header">Duration</span>
-                        <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
-                    </div>
-                `;
+                const originalTracks = [...tracks];
+                let currentTracks = [...tracks];
+                let currentSort = 'custom';
 
-                this.renderListWithTracks(tracklistContainer, tracks, true, true);
+                const renderTracks = () => {
+                    tracklistContainer.innerHTML = `
+                        <div class="track-list-header">
+                            <span style="width: 40px; text-align: center;">#</span>
+                            <span>Title</span>
+                            <span class="duration-header">Duration</span>
+                            <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
+                        </div>
+                    `;
+                    this.renderListWithTracks(tracklistContainer, currentTracks, true, true);
+                };
+
+                const applySort = (sortType) => {
+                    currentSort = sortType;
+                    currentTracks = sortTracks(originalTracks, sortType);
+                    renderTracks();
+                };
+
+                renderTracks();
+
+                playBtn.onclick = () => {
+                    this.player.setQueue(currentTracks, 0);
+                    this.player.playTrackFromQueue();
+                };
 
                 // Update header like button
                 const playlistLikeBtn = document.getElementById('like-playlist-btn');
@@ -2308,8 +2352,8 @@ export class UIRenderer {
                     recommendedSection.style.display = 'none';
                 }
 
-                // Render Actions (Shuffle + Share)
-                this.updatePlaylistHeaderActions(playlist, false, tracks, false);
+                // Render Actions (Shuffle + Sort + Share)
+                this.updatePlaylistHeaderActions(playlist, false, currentTracks, false, applySort, () => currentSort);
 
                 recentActivityManager.addPlaylist(playlist);
                 document.title = playlist.title || 'Artist Mix';
@@ -2817,7 +2861,7 @@ export class UIRenderer {
         await renderTrackerTrackContent(trackId, container, this);
     }
 
-    updatePlaylistHeaderActions(playlist, isOwned, tracks, showShare = false, onSort = null) {
+    updatePlaylistHeaderActions(playlist, isOwned, tracks, showShare = false, onSort = null, getCurrentSort = null) {
         const actionsDiv = document.getElementById('page-playlist').querySelector('.detail-header-actions');
 
         // Cleanup existing dynamic buttons
@@ -2845,10 +2889,11 @@ export class UIRenderer {
             this.player.setQueue(shuffledTracks, 0);
             this.player.playTrackFromQueue();
         };
-        fragment.appendChild(shuffleBtn);
 
+        // Sort button (always available if onSort is provided)
+        let sortBtn = null;
         if (onSort) {
-            const sortBtn = document.createElement('button');
+            sortBtn = document.createElement('button');
             sortBtn.id = 'sort-playlist-btn';
             sortBtn.className = 'btn-secondary';
             sortBtn.innerHTML =
@@ -2857,6 +2902,21 @@ export class UIRenderer {
             sortBtn.onclick = (e) => {
                 e.stopPropagation();
                 const menu = document.getElementById('sort-menu');
+
+                // Show "Date Added" if tracks have addedAt, otherwise show "Playlist Order"
+                const hasAddedDate = tracks.some((t) => t.addedAt);
+                menu.querySelectorAll('.requires-added-date').forEach((opt) => {
+                    opt.style.display = hasAddedDate ? '' : 'none';
+                });
+                menu.querySelectorAll('.requires-custom-order').forEach((opt) => {
+                    opt.style.display = hasAddedDate ? 'none' : '';
+                });
+
+                // Highlight current sort option
+                const currentSortType = getCurrentSort ? getCurrentSort() : 'custom';
+                menu.querySelectorAll('li').forEach((opt) => {
+                    opt.classList.toggle('sort-active', opt.dataset.sort === currentSortType);
+                });
 
                 const rect = sortBtn.getBoundingClientRect();
                 menu.style.top = `${rect.bottom + 5}px`;
@@ -2880,7 +2940,6 @@ export class UIRenderer {
 
                 setTimeout(() => document.addEventListener('click', closeMenu), 0);
             };
-            fragment.appendChild(sortBtn);
         }
 
         // Edit/Delete (Owned Only)
@@ -2915,8 +2974,10 @@ export class UIRenderer {
             fragment.appendChild(shareBtn);
         }
 
-        // Insert before Download button if possible, else append
+        // Insert buttons in the correct order: Play, Shuffle, Download, Sort, Like, Edit/Delete/Share
         const dlBtn = actionsDiv.querySelector('#download-playlist-btn');
+        const likeBtn = actionsDiv.querySelector('#like-playlist-btn');
+
         if (dlBtn) {
             // We want Shuffle first, then Edit/Delete/Share.
             // But Download is usually first or second.
@@ -2942,12 +3003,24 @@ export class UIRenderer {
             // Let's stick to appending for now to minimize visual layout shifts from previous (where Edit/Delete were appended).
             // Shuffle was inserted before Download.
             actionsDiv.insertBefore(shuffleBtn, dlBtn);
-            // Append the rest
+            // Insert Sort after Download, before Like
+            if (sortBtn && likeBtn) {
+                actionsDiv.insertBefore(sortBtn, likeBtn);
+            } else if (sortBtn) {
+                actionsDiv.appendChild(sortBtn);
+            }
+
+            // Append Edit/Delete/Share buttons after Like
             while (fragment.firstChild) {
                 actionsDiv.appendChild(fragment.firstChild);
             }
         } else {
-            actionsDiv.appendChild(fragment);
+            // If no Download button, just append everything
+            actionsDiv.appendChild(shuffleBtn);
+            if (sortBtn) actionsDiv.appendChild(sortBtn);
+            while (fragment.firstChild) {
+                actionsDiv.appendChild(fragment.firstChild);
+            }
         }
     }
 
