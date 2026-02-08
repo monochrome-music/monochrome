@@ -86,7 +86,6 @@ export const apiSettings = {
         }
     },
 
-
     async getInstances(type = 'api', sortBySpeed = false) {
         let instancesObj;
 
@@ -118,7 +117,7 @@ export const apiSettings = {
 
     async refreshInstances() {
         const instances = await this.loadInstancesFromGitHub();
-        
+
         const shuffle = (array) => {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -130,7 +129,7 @@ export const apiSettings = {
         if (instances.api && instances.api.length) {
             instances.api = shuffle([...instances.api]);
         }
-        
+
         if (instances.streaming && instances.streaming.length) {
             instances.streaming = shuffle([...instances.streaming]);
         }

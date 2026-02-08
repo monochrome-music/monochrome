@@ -193,7 +193,7 @@ export class LosslessAPI {
         }
 
         const albumDateMap = new Map();
-        
+
         // Chunk requests to avoid spamming
         const chunkSize = 5;
         for (let i = 0; i < limitedIds.length; i += chunkSize) {
