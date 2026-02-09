@@ -1,0 +1,96 @@
+name: Desktop Build
+
+on:
+  push:
+    branches: [main, neutralino]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows
+            binary_source: Monochrome-win_x64.exe
+            binary_dest: Monochrome.exe
+            archive_ext: zip
+          - os: ubuntu-latest
+            platform: linux
+            binary_source: Monochrome-linux_x64
+            binary_dest: Monochrome
+            archive_ext: tar.gz
+          - os: macos-latest
+            platform: macos
+            binary_source: Monochrome-mac_universal
+            binary_dest: Monochrome
+            archive_ext: tar.gz
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Download Neutralino binaries
+        run: npx neu update
+
+      - name: Build application
+        run: npm run build
+
+      - name: Prepare Release
+        run: |
+          mkdir release
+          cp dist/Monochrome/resources.neu release/
+          cp neutralino.config.json release/
+          cp -r extensions release/
+          cp dist/Monochrome/${{ matrix.binary_source }} release/${{ matrix.binary_dest }}
+        shell: bash
+
+      - name: Set Permissions (Linux/macOS)
+        if: matrix.platform != 'windows'
+        run: chmod +x release/${{ matrix.binary_dest }}
+
+      # Upload the uncompressed directory as the workflow artifact.
+      # GitHub will zip this automatically when downloaded, avoiding "zip inside zip".
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Monochrome-${{ matrix.platform }}
+          path: release/
+          retention-days: 30
+
+      # Create an archive specifically for the GitHub Release (tags only)
+      - name: Create Release Archive (Windows)
+        if: startsWith(github.ref, 'refs/tags/v') && matrix.platform == 'windows'
+        run: |
+          Compress-Archive -Path release/* -DestinationPath monochrome-${{ matrix.platform }}-x64.zip
+        shell: pwsh
+
+      - name: Create Release Archive (Linux/macOS)
+        if: startsWith(github.ref, 'refs/tags/v') && matrix.platform != 'windows'
+        run: |
+          cd release
+          tar -czf ../monochrome-${{ matrix.platform }}-x64.tar.gz *
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: monochrome-${{ matrix.platform }}-x64.${{ matrix.archive_ext }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

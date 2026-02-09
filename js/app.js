@@ -13,7 +13,14 @@ import { sidePanelManager } from './side-panel.js';
 import { db } from './db.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { registerSW } from 'virtual:pwa-register';
+import { initializeDiscordRPC } from './discord-rpc.js';
+import * as Neutralino from '@neutralinojs/lib';
 import './smooth-scrolling.js';
+
+// Assign Neutralino to window for global access
+if (typeof window !== 'undefined') {
+    window.Neutralino = Neutralino;
+}
 
 // Lazy-loaded modules
 let settingsModule = null;
@@ -378,6 +385,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     const { initTracker } = await loadTrackerModule();
     initTracker(player);
 
+    // Initialize desktop environment (Neutralino)
+    if (window.Neutralino) {
+        console.log('Initializing Neutralino desktop environment (Lite Mode)...');
+        try {
+            Neutralino.init();
+            
+            // Register events immediately
+            Neutralino.events.on('windowClose', () => {
+                Neutralino.app.exit();
+            });
+
+            // Start RPC immediately after init
+            initializeDiscordRPC(player);
+        } catch (error) {
+            console.error('Failed to initialize desktop environment:', error);
+        }
+    }
+
     const castBtn = document.getElementById('cast-btn');
     initializeCasting(audioPlayer, castBtn);
 
@@ -496,6 +521,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Update UI with current track info for theme
         ui.setCurrentTrack(player.currentTrack);
+
+        // Update Media Session with new track
+        player.updateMediaSession(player.currentTrack);
 
         const currentTrackId = player.currentTrack.id;
         if (currentTrackId === previousTrackId) return;

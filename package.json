@@ -6,7 +6,7 @@
     "main": "sw.js",
     "scripts": {
         "dev": "vite",
-        "build": "vite build",
+        "build": "vite build && npx neu build",
         "preview": "vite preview",
         "start": "vite preview",
         "lint:js": "eslint .",
@@ -28,6 +28,7 @@
     },
     "homepage": "https://github.com/SamidyFR/monochrome#readme",
     "devDependencies": {
+        "@neutralinojs/neu": "^11.7.0",
         "eslint": "^9.39.2",
         "eslint-config-prettier": "^10.1.8",
         "globals": "^17.0.0",
@@ -37,6 +38,7 @@
         "stylelint-config-standard": "^39.0.1",
         "stylelint-config-standard-scss": "^16.0.0",
         "vite": "^7.3.0",
+        "vite-plugin-neutralino": "^1.0.3",
         "vite-plugin-pwa": "^1.2.0"
     },
     "overrides": {
@@ -44,6 +46,7 @@
         "source-map": "^0.7.4"
     },
     "dependencies": {
+        "@neutralinojs/lib": "^6.5.0",
         "cookie-session": "^2.1.0",
         "jose": "^6.0.11",
         "butterchurn": "^2.6.7",

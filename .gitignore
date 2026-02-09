@@ -6,3 +6,12 @@ dist
 
 # Docker
 .env
+
+# Neutralino
+.tmp/
+bin/
+*.log
+.storage/
+auth_storage/
+
+www
