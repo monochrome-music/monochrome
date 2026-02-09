@@ -191,10 +191,10 @@ export function initializeSettings(scrobbler, player, api, ui) {
                     if (result.success) {
                         clearInterval(checkAuth);
                         if (authWindow && !authWindow.closed) authWindow.close();
-                        updateLastFMUI();
-                        lastfmConnectBtn.disabled = false;
                         lastFMStorage.setEnabled(true);
                         lastfmToggle.checked = true;
+                        updateLastFMUI();
+                        lastfmConnectBtn.disabled = false;
                         alert(`Successfully connected to Last.fm as ${result.username}!`);
                     }
                 } catch {
@@ -416,10 +416,10 @@ export function initializeSettings(scrobbler, player, api, ui) {
                         if (result.success) {
                             clearInterval(checkAuth);
                             if (authWindow && !authWindow.closed) authWindow.close();
-                            updateLibreFmUI();
-                            librefmConnectBtn.disabled = false;
                             libreFmSettings.setEnabled(true);
                             librefmToggle.checked = true;
+                            updateLibreFmUI();
+                            librefmConnectBtn.disabled = false;
                             alert(`Successfully connected to Libre.fm as ${result.username}!`);
                         }
                     } catch {
