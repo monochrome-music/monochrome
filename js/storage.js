@@ -1215,6 +1215,19 @@ export const sidebarSectionSettings = {
     SHOW_ABOUT_KEY: 'sidebar-show-about',
     SHOW_DOWNLOAD_KEY: 'sidebar-show-download',
     SHOW_DISCORD_KEY: 'sidebar-show-discord',
+    ORDER_KEY: 'sidebar-menu-order',
+    DEFAULT_ORDER: [
+        'sidebar-nav-home',
+        'sidebar-nav-library',
+        'sidebar-nav-recent',
+        'sidebar-nav-unreleased',
+        'sidebar-nav-donate',
+        'sidebar-nav-settings',
+        'sidebar-nav-account',
+        'sidebar-nav-about',
+        'sidebar-nav-download',
+        'sidebar-nav-discord',
+    ],
 
     shouldShowHome() {
         try {
@@ -1282,16 +1295,15 @@ export const sidebarSectionSettings = {
     },
 
     shouldShowSettings() {
-        try {
-            const val = localStorage.getItem(this.SHOW_SETTINGS_KEY);
-            return val === null ? true : val === 'true';
-        } catch {
-            return true;
-        }
+        return true;
     },
 
     setShowSettings(enabled) {
-        localStorage.setItem(this.SHOW_SETTINGS_KEY, enabled ? 'true' : 'false');
+        if (enabled) {
+            localStorage.setItem(this.SHOW_SETTINGS_KEY, 'true');
+        } else {
+            localStorage.removeItem(this.SHOW_SETTINGS_KEY);
+        }
     },
 
     shouldShowAccount() {
@@ -1346,7 +1358,69 @@ export const sidebarSectionSettings = {
         localStorage.setItem(this.SHOW_DISCORD_KEY, enabled ? 'true' : 'false');
     },
 
+    normalizeOrder(order) {
+        const baseOrder = this.DEFAULT_ORDER;
+        const safeOrder = Array.isArray(order) ? order.filter((id) => baseOrder.includes(id)) : [];
+        const uniqueOrder = [...new Set(safeOrder)];
+        const missing = baseOrder.filter((id) => !uniqueOrder.includes(id));
+        return [...uniqueOrder, ...missing];
+    },
+
+    getOrder() {
+        try {
+            const stored = localStorage.getItem(this.ORDER_KEY);
+            if (stored) {
+                return this.normalizeOrder(JSON.parse(stored));
+            }
+        } catch {
+            // ignore
+        }
+        return this.normalizeOrder([]);
+    },
+
+    setOrder(order) {
+        const normalized = this.normalizeOrder(order);
+        localStorage.setItem(this.ORDER_KEY, JSON.stringify(normalized));
+    },
+
+    applySidebarOrder() {
+        const lists = document.querySelectorAll('.sidebar-nav ul');
+        const primaryList = lists[0];
+        if (!primaryList) return;
+        const secondaryList = lists[1];
+
+        const order = this.getOrder();
+        const secondaryCount = secondaryList ? secondaryList.children.length : 0;
+        const splitIndex = secondaryCount ? Math.max(0, order.length - secondaryCount) : order.length;
+        const primaryOrder = order.slice(0, splitIndex);
+        const secondaryOrder = order.slice(splitIndex);
+
+        primaryOrder.forEach((id) => {
+            const item = document.getElementById(id);
+            if (item) {
+                primaryList.appendChild(item);
+            }
+        });
+
+        if (secondaryList) {
+            secondaryOrder.forEach((id) => {
+                const item = document.getElementById(id);
+                if (item) {
+                    secondaryList.appendChild(item);
+                }
+            });
+        } else {
+            secondaryOrder.forEach((id) => {
+                const item = document.getElementById(id);
+                if (item) {
+                    primaryList.appendChild(item);
+                }
+            });
+        }
+    },
+
     applySidebarVisibility() {
+        this.applySidebarOrder();
         const items = [
             { id: 'sidebar-nav-home', check: this.shouldShowHome() },
             { id: 'sidebar-nav-library', check: this.shouldShowLibrary() },
