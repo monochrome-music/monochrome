@@ -9,7 +9,13 @@ import {
     getTrackYearDisplay,
     createQualityBadgeHTML,
 } from './utils.js';
-import { queueManager, replayGainSettings, trackDateSettings, exponentialVolumeSettings } from './storage.js';
+import {
+    queueManager,
+    replayGainSettings,
+    trackDateSettings,
+    exponentialVolumeSettings,
+    audioEffectsSettings,
+} from './storage.js';
 import { audioContextManager } from './audio-context.js';
 
 export class Player {
@@ -107,6 +113,56 @@ export class Player {
 
         // Apply to audio element
         this.audio.volume = Math.max(0, Math.min(1, effectiveVolume));
+    }
+
+    applyAudioEffects() {
+        const speed = audioEffectsSettings.getSpeed();
+        const pitchShift = audioEffectsSettings.getPitch();
+        const preservePitch = audioEffectsSettings.getPreservePitch();
+
+        // Calculate pitch rate: 2^(semitones/12)
+        const pitchRate = Math.pow(2, pitchShift / 12);
+
+        // When preservePitch is enabled, playbackRate only affects speed
+        // When disabled, playbackRate affects both speed and pitch
+        // To shift pitch without changing speed (when preservePitch is off),
+        // we need to compensate the speed
+        if (preservePitch) {
+            // Pitch is preserved, playbackRate controls speed only
+            if (this.audio.playbackRate !== speed) {
+                this.audio.playbackRate = speed;
+            }
+        } else {
+            // playbackRate affects both speed and pitch
+            // Combine speed and pitch: finalRate = speed * pitchRate
+            const finalRate = speed * pitchRate;
+            if (this.audio.playbackRate !== finalRate) {
+                this.audio.playbackRate = finalRate;
+            }
+        }
+
+        // Apply pitch preservation setting
+        if (this.audio.preservesPitch !== preservePitch) {
+            this.audio.preservesPitch = preservePitch;
+        }
+    }
+
+    setPlaybackSpeed(speed) {
+        const validSpeed = Math.max(0.5, Math.min(2.0, parseFloat(speed) || 1.0));
+        audioEffectsSettings.setSpeed(validSpeed);
+        this.applyAudioEffects();
+    }
+
+    setPitchShift(semitones) {
+        const validPitch = Math.max(-12, Math.min(12, parseInt(semitones, 10) || 0));
+        audioEffectsSettings.setPitch(validPitch);
+        // For now, pitch shift is informational only
+        // Full implementation would require Web Audio API pitch shifting
+    }
+
+    setPreservePitch(enabled) {
+        audioEffectsSettings.setPreservePitch(enabled);
+        this.applyAudioEffects();
     }
 
     loadQueueState() {
@@ -387,6 +443,7 @@ export class Player {
 
                 this.currentRgValues = null;
                 this.applyReplayGain();
+                this.applyAudioEffects();
 
                 this.audio.src = streamUrl;
 
@@ -425,6 +482,7 @@ export class Player {
                 streamUrl = URL.createObjectURL(track.file);
                 this.currentRgValues = null; // No replaygain for local files yet
                 this.applyReplayGain();
+                this.applyAudioEffects();
 
                 this.audio.src = streamUrl;
 

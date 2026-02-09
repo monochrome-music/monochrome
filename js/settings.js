@@ -26,6 +26,7 @@ import {
     fontSettings,
     monoAudioSettings,
     exponentialVolumeSettings,
+    audioEffectsSettings,
 } from './storage.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
 import { getButterchurnPresets } from './visualizers/butterchurn.js';
@@ -783,6 +784,43 @@ export function initializeSettings(scrobbler, player, api, ui) {
             exponentialVolumeSettings.setEnabled(e.target.checked);
             // Re-apply current volume to use new curve
             player.applyReplayGain();
+        });
+    }
+
+    // ========================================
+    // Audio Effects (Playback Speed & Pitch)
+    // ========================================
+    const playbackSpeedSlider = document.getElementById('playback-speed-slider');
+    const playbackSpeedValue = document.getElementById('playback-speed-value');
+    if (playbackSpeedSlider && playbackSpeedValue) {
+        playbackSpeedSlider.value = audioEffectsSettings.getSpeed();
+        playbackSpeedValue.textContent = playbackSpeedSlider.value + 'x';
+
+        playbackSpeedSlider.addEventListener('input', (e) => {
+            const speed = e.target.value;
+            playbackSpeedValue.textContent = speed + 'x';
+            player.setPlaybackSpeed(speed);
+        });
+    }
+
+    const pitchShiftSlider = document.getElementById('pitch-shift-slider');
+    const pitchShiftValue = document.getElementById('pitch-shift-value');
+    if (pitchShiftSlider && pitchShiftValue) {
+        pitchShiftSlider.value = audioEffectsSettings.getPitch();
+        pitchShiftValue.textContent = (pitchShiftSlider.value > 0 ? '+' : '') + pitchShiftSlider.value;
+
+        pitchShiftSlider.addEventListener('input', (e) => {
+            const pitch = e.target.value;
+            pitchShiftValue.textContent = (pitch > 0 ? '+' : '') + pitch;
+            player.setPitchShift(pitch);
+        });
+    }
+
+    const preservePitchToggle = document.getElementById('preserve-pitch-toggle');
+    if (preservePitchToggle) {
+        preservePitchToggle.checked = audioEffectsSettings.getPreservePitch();
+        preservePitchToggle.addEventListener('change', (e) => {
+            player.setPreservePitch(e.target.checked);
         });
     }
 

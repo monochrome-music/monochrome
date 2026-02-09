@@ -895,6 +895,55 @@ export const exponentialVolumeSettings = {
     },
 };
 
+export const audioEffectsSettings = {
+    SPEED_KEY: 'audio-effects-speed',
+    PITCH_KEY: 'audio-effects-pitch',
+    PRESERVE_PITCH_KEY: 'audio-effects-preserve-pitch',
+
+    // Playback speed (0.5 to 2.0, default 1.0)
+    getSpeed() {
+        try {
+            const val = parseFloat(localStorage.getItem(this.SPEED_KEY));
+            return isNaN(val) ? 1.0 : Math.max(0.5, Math.min(2.0, val));
+        } catch {
+            return 1.0;
+        }
+    },
+
+    setSpeed(speed) {
+        const validSpeed = Math.max(0.5, Math.min(2.0, parseFloat(speed) || 1.0));
+        localStorage.setItem(this.SPEED_KEY, validSpeed.toString());
+    },
+
+    // Pitch shift (-12 to +12 semitones, default 0)
+    getPitch() {
+        try {
+            const val = parseInt(localStorage.getItem(this.PITCH_KEY), 10);
+            return isNaN(val) ? 0 : Math.max(-12, Math.min(12, val));
+        } catch {
+            return 0;
+        }
+    },
+
+    setPitch(pitch) {
+        const validPitch = Math.max(-12, Math.min(12, parseInt(pitch, 10) || 0));
+        localStorage.setItem(this.PITCH_KEY, validPitch.toString());
+    },
+
+    // Preserve pitch when changing speed (default true)
+    getPreservePitch() {
+        try {
+            return localStorage.getItem(this.PRESERVE_PITCH_KEY) !== 'false';
+        } catch {
+            return true;
+        }
+    },
+
+    setPreservePitch(enabled) {
+        localStorage.setItem(this.PRESERVE_PITCH_KEY, enabled ? 'true' : 'false');
+    },
+};
+
 export const sidebarSettings = {
     STORAGE_KEY: 'monochrome-sidebar-collapsed',
 

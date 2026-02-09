@@ -3082,6 +3082,70 @@
                                     </label>
                                 </div>
 
+                                <!-- Playback Speed Control -->
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Playback Speed</span>
+                                        <span class="description">Adjust playback speed (0.5x - 2.0x)</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 12px">
+                                        <input
+                                            type="range"
+                                            id="playback-speed-slider"
+                                            min="0.5"
+                                            max="2.0"
+                                            step="0.1"
+                                            value="1.0"
+                                            style="width: 150px"
+                                        />
+                                        <span
+                                            id="playback-speed-value"
+                                            style="min-width: 50px; text-align: right; font-family: var(--font-family)"
+                                            >1.0x</span
+                                        >
+                                    </div>
+                                </div>
+
+                                <!-- Pitch Shift Control -->
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Pitch Shift</span>
+                                        <span class="description"
+                                            >Shift pitch up or down (-12 to +12 semitones). Note: Disable "Preserve
+                                            Pitch" to hear the effect</span
+                                        >
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 12px">
+                                        <input
+                                            type="range"
+                                            id="pitch-shift-slider"
+                                            min="-12"
+                                            max="12"
+                                            step="1"
+                                            value="0"
+                                            style="width: 150px"
+                                        />
+                                        <span
+                                            id="pitch-shift-value"
+                                            style="min-width: 50px; text-align: right; font-family: var(--font-family)"
+                                            >0</span
+                                        >
+                                    </div>
+                                </div>
+
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Preserve Pitch</span>
+                                        <span class="description"
+                                            >Keep original pitch when changing playback speed</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="preserve-pitch-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+
                                 <!-- 16-Band Equalizer -->
                                 <div class="setting-item">
                                     <div class="info">
@@ -3655,7 +3719,7 @@
                                     flex-wrap: wrap;
                                 "
                             >
-                                <a href="https://pally.gg/p/monochrome">
+                                <a href="https://ko-fi.com/monochromemusic">
                                     <button id="donate-btn" class="btn-secondary">Donate to Monochrome</button>
                                 </a>
                             </div>
@@ -3930,7 +3994,9 @@
                             If Monochrome has been useful to you and you're able to, consider making a donation. <br />
                             It helps pay for the domain, and you get to support us :)
                         </p>
-                        <button id="donate-btn-page" class="btn-secondary">Donate to Monochrome</button>
+                        <a href="https://ko-fi.com/monochromemusic">
+                            <button id="donate-btn-page" class="btn-secondary">Donate to Monochrome</button>
+                        </a>
                     </div>
                 </div>
             </main>
