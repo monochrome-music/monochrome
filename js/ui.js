@@ -2327,11 +2327,13 @@ export class UIRenderer {
                             actionsDiv.insertBefore(removeBtn, menuBtn);
                         });
 
+                        // Always add is-editable class for owned playlists to fix layout
+                        // This expands the grid columns to accommodate the remove button
+                        container.classList.add('is-editable');
+
+                        // Only enable drag-and-drop reordering in custom sort mode
                         if (currentSort === 'custom') {
-                            container.classList.add('is-editable');
                             this.enableTrackReordering(container, currentTracks, playlistId, syncManager);
-                        } else {
-                            container.classList.remove('is-editable');
                         }
                     } else {
                         container.classList.remove('is-editable');
@@ -3030,13 +3032,10 @@ export class UIRenderer {
                 e.stopPropagation();
                 const menu = document.getElementById('sort-menu');
 
-                // Show "Date Added" if tracks have addedAt, otherwise show "Playlist Order"
+                // Show "Date Added" options only if tracks have addedAt
                 const hasAddedDate = tracks.some((t) => t.addedAt);
                 menu.querySelectorAll('.requires-added-date').forEach((opt) => {
                     opt.style.display = hasAddedDate ? '' : 'none';
-                });
-                menu.querySelectorAll('.requires-custom-order').forEach((opt) => {
-                    opt.style.display = hasAddedDate ? 'none' : '';
                 });
 
                 // Highlight current sort option
