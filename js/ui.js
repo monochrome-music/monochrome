@@ -1585,36 +1585,89 @@ export class UIRenderer {
                 const response = await fetch('/editors-picks.json');
                 if (!response.ok) throw new Error("Failed to load editor's picks");
 
-                const items = await response.json();
+                let items = await response.json();
 
                 if (!Array.isArray(items) || items.length === 0) {
                     picksContainer.innerHTML = createPlaceholder("No editor's picks available.");
                     return;
                 }
 
-                // Fetch details for each item
+                // Shuffle items if enabled
+                if (homePageSettings.shouldShuffleEditorsPicks()) {
+                    items = [...items].sort(() => Math.random() - 0.5);
+                }
+
+                // Use cached metadata or fetch details for each item
                 const cardsHTML = [];
                 const itemsToStore = [];
 
                 for (const item of items.slice(0, 12)) {
                     try {
                         if (item.type === 'album') {
-                            const result = await this.api.getAlbum(item.id);
-                            if (result && result.album) {
-                                cardsHTML.push(this.createAlbumCardHTML(result.album));
-                                itemsToStore.push({ el: null, data: result.album, type: 'album' });
+                            // Check if we have cached metadata
+                            if (item.title && item.artist) {
+                                // Use cached data directly
+                                const album = {
+                                    id: item.id,
+                                    title: item.title,
+                                    artist: item.artist,
+                                    releaseDate: item.releaseDate,
+                                    cover: item.cover,
+                                    explicit: item.explicit,
+                                    audioQuality: item.audioQuality,
+                                    mediaMetadata: item.mediaMetadata,
+                                    type: 'ALBUM',
+                                };
+                                cardsHTML.push(this.createAlbumCardHTML(album));
+                                itemsToStore.push({ el: null, data: album, type: 'album' });
+                            } else {
+                                // Fall back to API call for legacy format
+                                const result = await this.api.getAlbum(item.id);
+                                if (result && result.album) {
+                                    cardsHTML.push(this.createAlbumCardHTML(result.album));
+                                    itemsToStore.push({ el: null, data: result.album, type: 'album' });
+                                }
                             }
                         } else if (item.type === 'artist') {
-                            const artist = await this.api.getArtist(item.id);
-                            if (artist) {
+                            if (item.name && item.picture) {
+                                // Use cached data directly
+                                const artist = {
+                                    id: item.id,
+                                    name: item.name,
+                                    picture: item.picture,
+                                };
                                 cardsHTML.push(this.createArtistCardHTML(artist));
                                 itemsToStore.push({ el: null, data: artist, type: 'artist' });
+                            } else {
+                                // Fall back to API call
+                                const artist = await this.api.getArtist(item.id);
+                                if (artist) {
+                                    cardsHTML.push(this.createArtistCardHTML(artist));
+                                    itemsToStore.push({ el: null, data: artist, type: 'artist' });
+                                }
                             }
                         } else if (item.type === 'track') {
-                            const track = await this.api.getTrackMetadata(item.id);
-                            if (track) {
+                            if (item.title && item.album) {
+                                // Use cached data directly
+                                const track = {
+                                    id: item.id,
+                                    title: item.title,
+                                    artist: item.artist,
+                                    album: item.album,
+                                    explicit: item.explicit,
+                                    audioQuality: item.audioQuality,
+                                    mediaMetadata: item.mediaMetadata,
+                                    duration: item.duration,
+                                };
                                 cardsHTML.push(this.createTrackCardHTML(track));
                                 itemsToStore.push({ el: null, data: track, type: 'track' });
+                            } else {
+                                // Fall back to API call
+                                const track = await this.api.getTrackMetadata(item.id);
+                                if (track) {
+                                    cardsHTML.push(this.createTrackCardHTML(track));
+                                    itemsToStore.push({ el: null, data: track, type: 'track' });
+                                }
                             }
                         }
                     } catch (e) {

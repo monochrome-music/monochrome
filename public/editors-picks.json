@@ -1,11 +1,112 @@
 [
-    { "type": "album", "id": "4527433" },
-    { "type": "album", "id": "413189044" },
-    { "type": "album", "id": "488297983" },
-    { "type": "album", "id": "90502209" },
-    { "type": "album", "id": "447277344" },
-    { "type": "album", "id": "490209783" },
-    { "type": "track", "id": "279082605" },
-    { "type": "album", "id": "380211863" },
-    { "type": "album", "id": "4644639003" }
+    {
+        "type": "album",
+        "id": 4527433,
+        "title": "Flockaveli",
+        "artist": { "id": 3654061, "name": "Waka Flocka Flame" },
+        "releaseDate": "2010-10-05",
+        "cover": "05702b51-45cf-4157-b9ed-dd7ca7e7b7b3",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 90502209,
+        "title": "NASIR",
+        "artist": { "id": 1003, "name": "Nas" },
+        "releaseDate": "2018-06-15",
+        "cover": "503ea6b2-0829-438e-8e4e-9a988154b3bc",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 413189044,
+        "title": "Jump Out",
+        "artist": { "id": 27836827, "name": "OsamaSon" },
+        "releaseDate": "2025-01-24",
+        "cover": "ec4a4ef2-69fe-4d3c-aaba-05dc2d546e84",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 209061256,
+        "title": "Super Tecmo Bo",
+        "artist": { "id": 4839917, "name": "Boldy James" },
+        "releaseDate": "2021-12-17",
+        "cover": "f58ca804-1da7-4953-a26d-2b3258310db5",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 488297983,
+        "title": "So Much Country 'Till We Get There",
+        "artist": { "id": 51427239, "name": "Westside Cowboy" },
+        "releaseDate": "2026-01-23",
+        "cover": "dd9d4f23-1517-4a76-8e3f-31e341dcd525",
+        "explicit": false,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 447277344,
+        "title": "REST IN BASS",
+        "artist": { "id": 50418386, "name": "Che" },
+        "releaseDate": "2025-07-18",
+        "cover": "d1397066-72ed-4481-b508-77f7c7a03073",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 490209783,
+        "title": "My Ghosts Go Ghost",
+        "artist": { "id": 39920098, "name": "By Storm" },
+        "releaseDate": "2026-01-30",
+        "cover": "bc470b88-3583-4853-976e-593855672322",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 279082597,
+        "title": "Noktifer's Symphony",
+        "artist": { "id": 22055243, "name": "axxturel" },
+        "releaseDate": "2020-11-17",
+        "cover": "a886acd8-b915-4a77-9c1f-eecf7fa6091c",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 380211863,
+        "title": "Sayso Says",
+        "artist": { "id": 50418386, "name": "Che" },
+        "releaseDate": "2024-08-30",
+        "cover": "917c7e0f-3ebb-471e-9c88-fcdf6a9f21a5",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 464463900,
+        "title": "A-Rhythm Absolute",
+        "artist": { "id": 30049790, "name": "Sunday Mourners" },
+        "releaseDate": "2026-01-16",
+        "cover": "d04e2ed8-f6d7-43c0-bcb2-fb99d3de0d5d",
+        "explicit": false,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
+    }
 ]
