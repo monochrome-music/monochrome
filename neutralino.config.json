@@ -6,10 +6,11 @@
     "description": "Lossless music streaming",
     "version": "1.0.0",
     "defaultMode": "window",
-    "documentRoot": "public/",
+    "documentRoot": "www/",
     "url": "https://monochrome.tf",
-    "enableServer": false,
+    "enableServer": true,
     "enableNativeAPI": true,
+    "enableExtensions": true,
     "tokenSecurity": "one-time",
     "modes": {
         "window": {
@@ -28,14 +29,25 @@
             "exitProcessOnClose": true
         }
     },
+    "port": 5050,
     "cli": {
         "binaryName": "Monochrome",
-        "resourcesPath": "public/",
+        "resourcesPath": "www/",
         "binaryVersion": "6.5.0",
         "clientVersion": "6.5.0"
     },
+    "extensions": [
+        {
+            "id": "js.neutralino.discordrpc",
+            "commandLinux": "python3 \"${NL_PATH}/extensions/js.neutralino.discordrpc/bridge.py\"",
+            "commandMac": "python3 \"${NL_PATH}/extensions/js.neutralino.discordrpc/bridge.py\"",
+            "commandWindows": "powershell.exe -ExecutionPolicy Bypass -File \"${NL_PATH}/extensions/js.neutralino.discordrpc/bridge.ps1\""
+        }
+    ],
     "nativeAllowList": [
         "app.exit",
-        "window.*"
+        "window.*",
+        "extensions.*",
+        "events.*"
     ]
 }

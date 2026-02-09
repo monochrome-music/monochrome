@@ -1,14 +1,16 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import neutralino from 'vite-plugin-neutralino';
 import authGatePlugin from './vite-plugin-auth-gate.js';
 
 export default defineConfig({
     base: './',
     build: {
-        outDir: 'dist',
+        outDir: 'www',
         emptyOutDir: true,
     },
     plugins: [
+        neutralino(),
         authGatePlugin(),
         VitePWA({
             registerType: 'prompt',

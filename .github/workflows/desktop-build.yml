@@ -41,21 +41,23 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
-      - name: Install Neutralino CLI
-        run: npm install -g @neutralinojs/neu
+      - name: Install dependencies
+        run: npm install
 
       - name: Download Neutralino binaries
-        run: neu update
+        run: npx neu update
 
       - name: Build application
-        run: neu build
+        run: npm run build
 
       - name: Prepare Release
         run: |
           mkdir release
           cp dist/Monochrome/resources.neu release/
           cp neutralino.config.json release/
+          cp -r extensions release/
           cp dist/Monochrome/${{ matrix.binary_source }} release/${{ matrix.binary_dest }}
         shell: bash
 

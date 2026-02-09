@@ -13,7 +13,14 @@ import { sidePanelManager } from './side-panel.js';
 import { db } from './db.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { registerSW } from 'virtual:pwa-register';
+import { initializeDiscordRPC } from './discord-rpc.js';
+import * as Neutralino from '@neutralinojs/lib';
 import './smooth-scrolling.js';
+
+// Assign Neutralino to window for global access
+if (typeof window !== 'undefined') {
+    window.Neutralino = Neutralino;
+}
 
 // Lazy-loaded modules
 let settingsModule = null;
@@ -380,18 +387,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Initialize desktop environment (Neutralino)
     if (window.Neutralino) {
-        await (async () => {
-            console.log('Initializing Neutralino desktop environment (Lite Mode)...');
-            try {
-                await Neutralino.init();
-                Neutralino.events.on('windowClose', () => {
-                    Neutralino.app.exit();
-                });
-                console.log('Desktop environment initialized');
-            } catch (error) {
-                console.error('Failed to initialize desktop environment:', error);
-            }
-        })();
+        console.log('Initializing Neutralino desktop environment (Lite Mode)...');
+        try {
+            Neutralino.init();
+            
+            // Register events immediately
+            Neutralino.events.on('windowClose', () => {
+                Neutralino.app.exit();
+            });
+
+            // Start RPC immediately after init
+            initializeDiscordRPC(player);
+        } catch (error) {
+            console.error('Failed to initialize desktop environment:', error);
+        }
     }
 
     const castBtn = document.getElementById('cast-btn');

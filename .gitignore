@@ -13,3 +13,5 @@ bin/
 *.log
 .storage/
 auth_storage/
+
+www
