@@ -1362,11 +1362,9 @@ export function initializeSettings(scrobbler, player, api, ui) {
 
     const sidebarShowSettingsToggle = document.getElementById('sidebar-show-settings-toggle');
     if (sidebarShowSettingsToggle) {
-        sidebarShowSettingsToggle.checked = sidebarSectionSettings.shouldShowSettings();
-        sidebarShowSettingsToggle.addEventListener('change', (e) => {
-            sidebarSectionSettings.setShowSettings(e.target.checked);
-            sidebarSectionSettings.applySidebarVisibility();
-        });
+        sidebarShowSettingsToggle.checked = true;
+        sidebarShowSettingsToggle.disabled = true;
+        sidebarSectionSettings.setShowSettings(true);
     }
 
     const sidebarShowAccountToggle = document.getElementById('sidebar-show-account-toggle');
@@ -1407,6 +1405,102 @@ export function initializeSettings(scrobbler, player, api, ui) {
 
     // Apply sidebar visibility on initialization
     sidebarSectionSettings.applySidebarVisibility();
+
+    const sidebarSettingsGroup = sidebarShowHomeToggle?.closest('.settings-group');
+    if (sidebarSettingsGroup) {
+        const toggleIdFromSidebarId = (sidebarId) =>
+            sidebarId ? sidebarId.replace('sidebar-nav-', 'sidebar-show-') + '-toggle' : '';
+
+        const sidebarOrderConfig = sidebarSectionSettings.DEFAULT_ORDER.map((sidebarId) => ({
+            sidebarId,
+            toggleId: toggleIdFromSidebarId(sidebarId),
+        }));
+
+        sidebarOrderConfig.forEach(({ toggleId, sidebarId }) => {
+            const toggle = document.getElementById(toggleId);
+            const item = toggle?.closest('.setting-item');
+            if (!item) return;
+            item.dataset.sidebarId = sidebarId;
+            item.classList.add('sidebar-setting-item');
+            item.draggable = true;
+        });
+
+        const getSidebarItems = () =>
+            Array.from(sidebarSettingsGroup.querySelectorAll('.sidebar-setting-item[data-sidebar-id]'));
+
+        const applySidebarSettingsOrder = () => {
+            const order = sidebarSectionSettings.getOrder();
+            const itemMap = new Map(getSidebarItems().map((item) => [item.dataset.sidebarId, item]));
+
+            order.forEach((id) => {
+                const item = itemMap.get(id);
+                if (item) {
+                    sidebarSettingsGroup.appendChild(item);
+                }
+            });
+        };
+
+        applySidebarSettingsOrder();
+
+        let draggedItem = null;
+
+        const saveSidebarOrder = () => {
+            const order = getSidebarItems().map((item) => item.dataset.sidebarId);
+            sidebarSectionSettings.setOrder(order);
+            sidebarSectionSettings.applySidebarVisibility();
+        };
+
+        const handleDragStart = (e) => {
+            const item = e.target.closest('.sidebar-setting-item');
+            if (!item) return;
+            draggedItem = item;
+            draggedItem.classList.add('dragging');
+            if (e.dataTransfer) {
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', item.dataset.sidebarId || '');
+            }
+        };
+
+        const handleDragEnd = () => {
+            if (!draggedItem) return;
+            draggedItem.classList.remove('dragging');
+            draggedItem = null;
+            saveSidebarOrder();
+        };
+
+        const getDragAfterElement = (container, y) => {
+            const draggableElements = [...container.querySelectorAll('.sidebar-setting-item:not(.dragging)')];
+
+            return draggableElements.reduce(
+                (closest, child) => {
+                    const box = child.getBoundingClientRect();
+                    const offset = y - box.top - box.height / 2;
+                    if (offset < 0 && offset > closest.offset) {
+                        return { offset, element: child };
+                    }
+                    return closest;
+                },
+                { offset: Number.NEGATIVE_INFINITY }
+            ).element;
+        };
+
+        const handleDragOver = (e) => {
+            e.preventDefault();
+            if (!draggedItem) return;
+            const afterElement = getDragAfterElement(sidebarSettingsGroup, e.clientY);
+            if (afterElement === draggedItem) return;
+            if (afterElement) {
+                sidebarSettingsGroup.insertBefore(draggedItem, afterElement);
+            } else {
+                sidebarSettingsGroup.appendChild(draggedItem);
+            }
+        };
+
+        sidebarSettingsGroup.addEventListener('dragstart', handleDragStart);
+        sidebarSettingsGroup.addEventListener('dragend', handleDragEnd);
+        sidebarSettingsGroup.addEventListener('dragover', handleDragOver);
+        sidebarSettingsGroup.addEventListener('drop', (e) => e.preventDefault());
+    }
 
     // Filename template setting
     const filenameTemplate = document.getElementById('filename-template');
