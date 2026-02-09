@@ -1,7 +1,7 @@
 // js/audio-context.js
 // Shared Audio Context Manager - handles EQ and provides context for visualizer
 
-import { equalizerSettings } from './storage.js';
+import { equalizerSettings, monoAudioSettings } from './storage.js';
 
 // Standard 16-band ISO center frequencies (Hz)
 const EQ_FREQUENCIES = [25, 40, 63, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000, 16000, 20000];
@@ -83,6 +83,8 @@ class AudioContextManager {
         this.outputNode = null;
         this.isInitialized = false;
         this.isEQEnabled = false;
+        this.isMonoAudioEnabled = false;
+        this.monoMergerNode = null;
         this.currentGains = new Array(16).fill(0);
         this.audio = null;
 
@@ -168,13 +170,16 @@ class AudioContextManager {
             this.outputNode = this.audioContext.createGain();
             this.outputNode.gain.value = 1;
 
+            // Create mono audio merger node
+            this.monoMergerNode = this.audioContext.createChannelMerger(2);
+
             // Connect filter chain: filter[0] -> filter[1] -> ... -> filter[15] -> outputNode
             for (let i = 0; i < this.filters.length - 1; i++) {
                 this.filters[i].connect(this.filters[i + 1]);
             }
             this.filters[this.filters.length - 1].connect(this.outputNode);
 
-            // Connect the audio graph based on EQ state
+            // Connect the audio graph based on EQ and mono state
             this._connectGraph();
 
             this.isInitialized = true;
@@ -185,7 +190,7 @@ class AudioContextManager {
     }
 
     /**
-     * Connect the audio graph based on EQ enabled state
+     * Connect the audio graph based on EQ and mono audio state
      */
     _connectGraph() {
         if (!this.source || !this.audioContext) return;
@@ -194,6 +199,13 @@ class AudioContextManager {
             // Disconnect everything first
             this.source.disconnect();
             this.outputNode.disconnect();
+            if (this.monoMergerNode) {
+                try {
+                    this.monoMergerNode.disconnect();
+                } catch (e) {
+                    // Ignore if not connected
+                }
+            }
 
             // Only disconnect destination from analyser to preserve other taps (like Butterchurn)
             try {
@@ -202,15 +214,34 @@ class AudioContextManager {
                 // Ignore if not connected
             }
 
+            let lastNode = this.source;
+
+            // Apply mono audio if enabled
+            if (this.isMonoAudioEnabled && this.monoMergerNode) {
+                // Create a gain node to mix channels before the merger
+                const monoGain = this.audioContext.createGain();
+                monoGain.gain.value = 0.5; // Reduce volume to prevent clipping when mixing
+
+                // Connect source to mono gain
+                this.source.connect(monoGain);
+
+                // Connect mono gain to both inputs of the merger
+                monoGain.connect(this.monoMergerNode, 0, 0);
+                monoGain.connect(this.monoMergerNode, 0, 1);
+
+                lastNode = this.monoMergerNode;
+                console.log('[AudioContext] Mono audio enabled');
+            }
+
             if (this.isEQEnabled && this.filters.length > 0) {
-                // EQ enabled: source -> EQ filters -> output -> analyser -> destination
-                this.source.connect(this.filters[0]);
+                // EQ enabled: lastNode -> EQ filters -> output -> analyser -> destination
+                lastNode.connect(this.filters[0]);
                 this.outputNode.connect(this.analyser);
                 this.analyser.connect(this.audioContext.destination);
                 console.log('[AudioContext] EQ connected');
             } else {
-                // EQ disabled: source -> analyser -> destination
-                this.source.connect(this.analyser);
+                // EQ disabled: lastNode -> analyser -> destination
+                lastNode.connect(this.analyser);
                 this.analyser.connect(this.audioContext.destination);
                 console.log('[AudioContext] EQ bypassed');
             }
@@ -304,6 +335,27 @@ class AudioContextManager {
     }
 
     /**
+     * Toggle mono audio on/off
+     */
+    toggleMonoAudio(enabled) {
+        this.isMonoAudioEnabled = enabled;
+        monoAudioSettings.setEnabled(enabled);
+
+        if (this.isInitialized) {
+            this._connectGraph();
+        }
+
+        return this.isMonoAudioEnabled;
+    }
+
+    /**
+     * Check if mono audio is active
+     */
+    isMonoAudioActive() {
+        return this.isInitialized && this.isMonoAudioEnabled;
+    }
+
+    /**
      * Set gain for a specific band
      */
     setBandGain(bandIndex, gainDb) {
@@ -372,6 +424,7 @@ class AudioContextManager {
     _loadSettings() {
         this.isEQEnabled = equalizerSettings.isEnabled();
         this.currentGains = equalizerSettings.getGains();
+        this.isMonoAudioEnabled = monoAudioSettings.isEnabled();
     }
 }
 

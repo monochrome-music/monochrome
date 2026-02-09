@@ -24,6 +24,7 @@ import {
     homePageSettings,
     sidebarSectionSettings,
     fontSettings,
+    monoAudioSettings,
 } from './storage.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
 import { getButterchurnPresets } from './visualizers/butterchurn.js';
@@ -687,6 +688,17 @@ export function initializeSettings(scrobbler, player, api, ui) {
         replayGainPreamp.addEventListener('change', (e) => {
             replayGainSettings.setPreamp(parseFloat(e.target.value) || 3);
             player.applyReplayGain();
+        });
+    }
+
+    // Mono Audio Toggle
+    const monoAudioToggle = document.getElementById('mono-audio-toggle');
+    if (monoAudioToggle) {
+        monoAudioToggle.checked = monoAudioSettings.isEnabled();
+        monoAudioToggle.addEventListener('change', (e) => {
+            const enabled = e.target.checked;
+            monoAudioSettings.setEnabled(enabled);
+            audioContextManager.toggleMonoAudio(enabled);
         });
     }
 
