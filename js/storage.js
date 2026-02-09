@@ -635,6 +635,7 @@ export const visualizerSettings = {
     ENABLED_KEY: 'visualizer-enabled',
     MODE_KEY: 'visualizer-mode', // 'solid' or 'blended'
     PRESET_KEY: 'visualizer-preset',
+    BUTTERCHURN_CYCLE_KEY: 'butterchurn-cycle-duration',
 
     getPreset() {
         try {
@@ -698,6 +699,20 @@ export const visualizerSettings = {
 
     setSmartIntensity(enabled) {
         localStorage.setItem(this.SMART_INTENSITY_KEY, enabled);
+    },
+
+    // Butterchurn preset cycle duration in seconds (0 = disabled)
+    getButterchurnCycleDuration() {
+        try {
+            const val = localStorage.getItem(this.BUTTERCHURN_CYCLE_KEY);
+            return val ? parseInt(val, 10) : 30;
+        } catch {
+            return 30;
+        }
+    },
+
+    setButterchurnCycleDuration(seconds) {
+        localStorage.setItem(this.BUTTERCHURN_CYCLE_KEY, seconds.toString());
     },
 };
 

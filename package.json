@@ -43,7 +43,9 @@
         "source-map": "^0.7.4"
     },
     "dependencies": {
-        "pocketbase": "^0.26.5",
-        "dashjs": "^5.1.1"
+        "butterchurn": "^2.6.7",
+        "butterchurn-presets": "^2.4.7",
+        "dashjs": "^5.1.1",
+        "pocketbase": "^0.26.5"
     }
 }

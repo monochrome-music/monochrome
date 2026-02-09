@@ -3,6 +3,7 @@ import { visualizerSettings } from './storage.js';
 import { LCDPreset } from './visualizers/lcd.js';
 import { ParticlesPreset } from './visualizers/particles.js';
 import { UnknownPleasuresWebGL } from './visualizers/unknown_pleasures_webgl.js';
+import { ButterchurnPreset } from './visualizers/butterchurn.js';
 import { audioContextManager } from './audio-context.js';
 
 export class Visualizer {
@@ -21,6 +22,7 @@ export class Visualizer {
             lcd: new LCDPreset(),
             particles: new ParticlesPreset(),
             'unknown-pleasures': new UnknownPleasuresWebGL(),
+            butterchurn: new ButterchurnPreset(),
         };
 
         this.activePresetKey = visualizerSettings.getPreset();
@@ -137,6 +139,15 @@ export class Visualizer {
 
         if (this.audioContext.state === 'suspended') {
             this.audioContext.resume();
+        }
+
+        // Initialize Butterchurn if it's the active preset
+        if (this.activePresetKey === 'butterchurn' && this.activePreset.lazyInit) {
+            this.activePreset.lazyInit(
+                this.canvas,
+                this.audioContext,
+                audioContextManager.source
+            );
         }
 
         this.resize();
@@ -258,5 +269,14 @@ export class Visualizer {
         this.activePresetKey = key;
         this.initContext();
         this.resize();
+
+        // Initialize Butterchurn if switching to it
+        if (key === 'butterchurn' && this.presets[key].lazyInit && this.audioContext) {
+            this.presets[key].lazyInit(
+                this.canvas,
+                this.audioContext,
+                audioContextManager.source
+            );
+        }
     }
 }
