@@ -377,6 +377,7 @@ const syncManager = {
         const data = {
             uuid: playlist.id,
             uid: uid,
+            firebase_id: uid,
             title: playlist.name,
             name: playlist.name,
             playlist_name: playlist.name,
@@ -398,9 +399,9 @@ const syncManager = {
             });
 
             if (existing.items.length > 0) {
-                await this.pb.collection(PUBLIC_COLLECTION).update(existing.items[0].id, data);
+                await this.pb.collection(PUBLIC_COLLECTION).update(existing.items[0].id, data, { f_id: uid });
             } else {
-                await this.pb.collection(PUBLIC_COLLECTION).create(data);
+                await this.pb.collection(PUBLIC_COLLECTION).create(data, { f_id: uid });
             }
         } catch (error) {
             console.error('Failed to publish playlist:', error);
@@ -412,13 +413,13 @@ const syncManager = {
         if (!uid) return;
 
         try {
-            const existing = await this.pb.collection('public_playlists').getList(1, 1, {
+            const existing = await this.pb.collection(PUBLIC_COLLECTION).getList(1, 1, {
                 filter: `uuid="${uuid}"`,
                 p_id: uuid,
             });
 
             if (existing.items && existing.items.length > 0) {
-                await this.pb.collection('public_playlists').delete(existing.items[0].id, { p_id: uuid });
+                await this.pb.collection(PUBLIC_COLLECTION).delete(existing.items[0].id, { p_id: uuid, f_id: uid });
             }
         } catch (error) {
             console.error('Failed to unpublish playlist:', error);
