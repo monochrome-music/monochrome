@@ -237,7 +237,7 @@ export const themeManager = {
 
         if (theme === 'system') {
             const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'white');
+            document.documentElement.setAttribute('data-theme', isDark ? 'monochrome' : 'white');
         } else {
             document.documentElement.setAttribute('data-theme', theme);
         }
@@ -1172,7 +1172,7 @@ export const sidebarSectionSettings = {
 if (typeof window !== 'undefined' && window.matchMedia) {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
         if (themeManager.getTheme() === 'system') {
-            document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'white');
+            document.documentElement.setAttribute('data-theme', e.matches ? 'monochrome' : 'white');
         }
     });
 }
