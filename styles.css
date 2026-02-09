@@ -2,6 +2,9 @@
 :root {
     color-scheme: light dark;
 
+    /* Font - default to Inter for instant render, JS will override if needed */
+    --font-family: 'Inter', sans-serif;
+
     /* Spacing */
     --spacing-xs: 0.25rem;
     --spacing-sm: 0.5rem;
@@ -268,7 +271,7 @@
     margin: 0;
     padding: 0;
     -webkit-tap-highlight-color: transparent;
-    font-family: var(--font-family, 'IBM Plex Mono', monospace) !important;
+    font-family: var(--font-family, 'Inter', sans-serif) !important;
 }
 
 html {

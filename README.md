@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="https://monochrome.tf">Website</a> •
-  <a href="https://pally.gg/p/monochrome">Donate</a> •
+  <a href="https://ko-fi.com/monochromemusic">Donate</a> •
   <a href="#features">Features</a> •
   <a href="#installation">Installation</a> •
   <a href="#usage">Usage</a> •
