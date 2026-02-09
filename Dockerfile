@@ -7,7 +7,7 @@ WORKDIR /app
 RUN apk add --no-cache wget
 
 # Copy package files first for caching
-COPY package.json ./
+COPY package.json package-lock.json ./
 
 # Install dependencies
 RUN npm install

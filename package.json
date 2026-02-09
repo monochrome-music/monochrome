@@ -8,6 +8,7 @@
         "dev": "vite",
         "build": "vite build",
         "preview": "vite preview",
+        "start": "vite preview",
         "lint:js": "eslint .",
         "lint:css": "stylelint \"**/*.css\"",
         "lint:html": "htmlhint \"**/*.html\" --ignore=\"dist/**,legacy/**,node_modules/**\"",
@@ -43,6 +44,8 @@
         "source-map": "^0.7.4"
     },
     "dependencies": {
+        "cookie-session": "^2.1.0",
+        "jose": "^6.0.11",
         "butterchurn": "^2.6.7",
         "butterchurn-presets": "^2.4.7",
         "dashjs": "^5.1.1",

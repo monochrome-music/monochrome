@@ -1700,19 +1700,35 @@ export function initializeSettings(scrobbler, player, api, ui) {
     const customDbCancelBtn = document.getElementById('custom-db-cancel');
 
     if (customDbBtn && customDbModal) {
+        const fbFromEnv = !!window.__FIREBASE_CONFIG__;
+        const pbFromEnv = !!window.__POCKETBASE_URL__;
+
+        // Hide entire setting if both are server-configured
+        if (fbFromEnv && pbFromEnv) {
+            const settingItem = customDbBtn.closest('.setting-item');
+            if (settingItem) settingItem.style.display = 'none';
+        }
+
+        // Hide individual fields in the modal
+        if (pbFromEnv && customPbUrlInput) customPbUrlInput.closest('div[style]').style.display = 'none';
+        if (fbFromEnv && customFirebaseConfigInput)
+            customFirebaseConfigInput.closest('div[style]').style.display = 'none';
+
         customDbBtn.addEventListener('click', () => {
             const pbUrl = localStorage.getItem('monochrome-pocketbase-url') || '';
             const fbConfig = localStorage.getItem('monochrome-firebase-config');
 
-            customPbUrlInput.value = pbUrl;
-            if (fbConfig) {
-                try {
-                    customFirebaseConfigInput.value = JSON.stringify(JSON.parse(fbConfig), null, 2);
-                } catch {
-                    customFirebaseConfigInput.value = fbConfig;
+            if (!pbFromEnv) customPbUrlInput.value = pbUrl;
+            if (!fbFromEnv) {
+                if (fbConfig) {
+                    try {
+                        customFirebaseConfigInput.value = JSON.stringify(JSON.parse(fbConfig), null, 2);
+                    } catch {
+                        customFirebaseConfigInput.value = fbConfig;
+                    }
+                } else {
+                    customFirebaseConfigInput.value = '';
                 }
-            } else {
-                customFirebaseConfigInput.value = '';
             }
 
             customDbModal.classList.add('active');

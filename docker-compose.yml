@@ -7,11 +7,18 @@ services:
         container_name: monochrome
         ports:
             - '${MONOCHROME_PORT:-3000}:4173'
+        environment:
+            AUTH_ENABLED: ${AUTH_ENABLED:-false}
+            AUTH_SECRET: ${AUTH_SECRET:-}
+            FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-monochrome-database}
+            FIREBASE_CONFIG: ${FIREBASE_CONFIG:-}
+            POCKETBASE_URL: ${POCKETBASE_URL:-}
+            SESSION_MAX_AGE: ${SESSION_MAX_AGE:-604800000}
         restart: unless-stopped
         networks:
             - monochrome-network
         healthcheck:
-            test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:4173/']
+            test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:4173/health']
             interval: 30s
             timeout: 3s
             retries: 3
