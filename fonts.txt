@@ -1,0 +1,603 @@
+Tidal fonts:
+
+:root {
+  --square-sans-text: "Square Sans Text VF", "Square Sans Text", helvetica, arial, sans-serif;
+  --square-sans-display: "Square Sans Display VF", "Square Sans Display", helvetica, arial, sans-serif;
+  --square-sans-mono: "Square Sans Mono VF", "Square Sans Mono", ui-monospace, menlo, "Courier New", monospace;
+}
+
+/* ===== SQUARE SANS TEXT ====== */
+
+/* Regular */
+@font-face {
+  font-family: "Square Sans Text";
+  src:
+    url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-Regular.woff2") format("woff2"),
+    url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-Regular.woff") format("woff"),
+    url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Italic */
+@font-face {
+  font-family: "Square Sans Text";
+  src:
+    url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-Italic.woff2") format("woff2"),
+    url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-Italic.woff") format("woff"),
+    url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Medium */
+@font-face {
+  font-family: "Square Sans Text";
+  src:
+    url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-Medium.woff2") format("woff2"),
+    url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-Medium.woff") format("woff"),
+    url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Medium Italic */
+@font-face {
+  font-family: "Square Sans Text";
+  src:
+    url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-MediumItalic.woff2") format("woff2"),
+    url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-MediumItalic.woff") format("woff"),
+    url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-MediumItalic.ttf") format("truetype");
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Semibold */
+@font-face {
+  font-family: "Square Sans Text";
+  src:
+    url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-SemiBold.woff2") format("woff2"),
+    url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-SemiBold.woff") format("woff"),
+    url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Semibold Italic */
+@font-face {
+  font-family: "Square Sans Text";
+  src:
+    url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-SemiBoldItalic.woff2") format("woff2"),
+    url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-SemiBoldItalic.woff") format("woff"),
+    url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-SemiBoldItalic.ttf") format("truetype");
+  font-weight: 600;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Bold */
+@font-face {
+  font-family: "Square Sans Text";
+  src:
+    url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-Bold.woff2") format("woff2"),
+    url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-Bold.woff") format("woff"),
+    url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Bold Italic */
+@font-face {
+  font-family: "Square Sans Text";
+  src:
+    url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-BoldItalic.woff2") format("woff2"),
+    url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-BoldItalic.woff") format("woff"),
+    url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-BoldItalic.ttf") format("truetype");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Variable Upright */
+@supports (font-variation-settings: normal) {
+  @font-face {
+    font-family: "Square Sans Text VF";
+    src:
+      url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-VF.woff2") format("woff2 supports variations"),
+      url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-VF.woff2") format("woff2-variations");
+    font-weight: 400 700;
+    font-style: normal;
+    font-display: swap;
+  }
+}
+
+/* Variable Italic */
+@supports (font-variation-settings: normal) {
+  @font-face {
+    font-family: "Square Sans Text VF";
+    src:
+      url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-Italic-VF.woff2") format("woff2 supports variations"),
+      url("https://square-fonts-production-f.squarecdn.com/square-text/SquareSansText-Italic-VF.woff2") format("woff2-variations");
+    font-weight: 400 700;
+    font-style: italic;
+    font-display: swap;
+  }
+}
+
+/* ===== SQUARE SANS MONO ====== */
+
+/* Regular */
+@font-face {
+  font-family: "Square Sans Mono";
+  src:
+    url("https://square-fonts-production-f.squarecdn.com/square-mono/SquareSansMono-Regular.woff2") format("woff2"),
+    url("https://square-fonts-production-f.squarecdn.com/square-mono/SquareSansMono-Regular.woff") format("woff"),
+    url("https://square-fonts-production-f.squarecdn.com/square-mono/SquareSansMono-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Medium */
+@font-face {
+  font-family: "Square Sans Mono";
+  src:
+    url("https://square-fonts-production-f.squarecdn.com/square-mono/SquareSansMono-Medium.woff2") format("woff2"),
+    url("https://square-fonts-production-f.squarecdn.com/square-mono/SquareSansMono-Medium.woff") format("woff"),
+    url("https://square-fonts-production-f.squarecdn.com/square-mono/SquareSansMono-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Semibold */
+@font-face {
+  font-family: "Square Sans Mono";
+  src:
+    url("https://square-fonts-production-f.squarecdn.com/square-mono/SquareSansMono-SemiBold.woff2") format("woff2"),
+    url("https://square-fonts-production-f.squarecdn.com/square-mono/SquareSansMono-SemiBold.woff") format("woff"),
+    url("https://square-fonts-production-f.squarecdn.com/square-mono/SquareSansMono-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Bold */
+@font-face {
+  font-family: "Square Sans Mono";
+  src:
+    url("https://square-fonts-production-f.squarecdn.com/square-mono/SquareSansMono-Bold.woff2") format("woff2"),
+    url("https://square-fonts-production-f.squarecdn.com/square-mono/SquareSansMono-Bold.woff") format("woff"),
+    url("https://square-fonts-production-f.squarecdn.com/square-mono/SquareSansMono-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Variable */
+@supports (font-variation-settings: normal) {
+  @font-face {
+    font-family: "Square Sans Mono VF";
+    src:
+      url("https://square-fonts-production-f.squarecdn.com/square-mono/SquareSansMono-VF.woff2") format("woff2 supports variations"),
+      url("https://square-fonts-production-f.squarecdn.com/square-mono/SquareSansMono-VF.woff2") format("woff2-variations");
+    font-weight: 400 700;
+    font-style: normal;
+    font-display: swap;
+  }
+}
+
+/* ===== SQUARE SANS DISPLAY ====== */
+
+/* Regular */
+@font-face {
+  font-family: "Square Sans Display";
+  src:
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-Regular.woff2") format("woff2"),
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-Regular.woff") format("woff"),
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Regular Condensed */
+@font-face {
+  font-family: "Square Sans Display";
+  src:
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-RegularCondensed.woff2") format("woff2"),
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-RegularCondensed.woff") format("woff"),
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-RegularCondensed.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-stretch: 75%;
+  font-display: swap;
+}
+
+/* Regular Expanded */
+@font-face {
+  font-family: "Square Sans Display";
+  src:
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-RegularExpanded.woff2") format("woff2"),
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-RegularExpanded.woff") format("woff"),
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-RegularExpanded.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-stretch: 125%;
+  font-display: swap;
+}
+
+/* Medium */
+@font-face {
+  font-family: "Square Sans Display";
+  src:
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-Medium.woff2") format("woff2"),
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-Medium.woff") format("woff"),
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Medium Condensed */
+@font-face {
+  font-family: "Square Sans Display";
+  src:
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-MediumCondensed.woff2") format("woff2"),
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-MediumCondensed.woff") format("woff"),
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-MediumCondensed.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-stretch: 75%;
+  font-display: swap;
+}
+
+/* Medium Expanded */
+@font-face {
+  font-family: "Square Sans Display";
+  src:
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-MediumExpanded.woff2") format("woff2"),
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-MediumExpanded.woff") format("woff"),
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-MediumExpanded.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-stretch: 125%;
+  font-display: swap;
+}
+
+/* Bold */
+@font-face {
+  font-family: "Square Sans Display";
+  src:
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-Bold.woff2") format("woff2"),
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-Bold.woff") format("woff"),
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Bold Condensed */
+@font-face {
+  font-family: "Square Sans Display";
+  src:
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-BoldCondensed.woff2") format("woff2"),
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-BoldCondensed.woff") format("woff"),
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-BoldCondensed.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-stretch: 25%;
+  font-display: swap;
+}
+
+/* Bold Expanded */
+@font-face {
+  font-family: "Square Sans Display";
+  src:
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-BoldExpanded.woff2") format("woff2"),
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-BoldExpanded.woff") format("woff")
+    url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-BoldExpanded.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-stretch: 125%;
+  font-display: swap;
+}
+
+/* Variable */
+@supports (font-variation-settings: normal) {
+  @font-face {
+    font-family: "Square Sans Display VF";
+    src:
+      url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-VF.woff2") format("woff2 supports variations"),
+      url("https://square-fonts-production-f.squarecdn.com/square-display/SquareSansDisplay-VF.woff2") format("woff2-variations");
+    font-weight: 400 700;
+    font-stretch: 75% 125%;
+    font-style: normal;
+    font-display: swap;
+  }
+}
+
+spotify fonts:
+@font-face {
+    font-family: CircularSp-Deva;
+    font-weight: 800;
+    font-display: swap;
+    unicode-range: U+0,U+D,U+20,U+A0,U+A4,U+B6-B7,U+901-97F,U+200C-200E,U+FFFF;
+    src: url(https://encore.scdn.co/fonts/CircularSp-Deva-Black-574b12f3ca1769e18083e8398295c38b.woff2)format("woff2"),url(https://encore.scdn.co/fonts/CircularSp-Deva-Black-f1dca2ee660273063af0316d4b7da438.woff)format("woff")
+}
+
+@font-face {
+    font-family: CircularSp-Deva;
+    font-weight: 700;
+    font-display: swap;
+    unicode-range: U+0,U+D,U+20,U+A0,U+A4,U+B6-B7,U+901-97F,U+200C-200E,U+FFFF;
+    src: url(https://encore.scdn.co/fonts/CircularSp-Deva-Bold-82d3b8d301ab9dcad4f2eb1dea88e141.woff2)format("woff2"),url(https://encore.scdn.co/fonts/CircularSp-Deva-Bold-a218ed3bd8e480245847933a79f4ebfb.woff)format("woff")
+}
+
+@font-face {
+    font-family: CircularSp-Deva;
+    font-weight: 400;
+    font-display: swap;
+    unicode-range: U+0,U+D,U+20,U+A0,U+A4,U+B6-B7,U+901-97F,U+200C-200E,U+FFFF;
+    src: url(https://encore.scdn.co/fonts/CircularSp-Deva-Book-e8ee3298dd8cb0bae68e3ed19375a5ec.woff2)format("woff2"),url(https://encore.scdn.co/fonts/CircularSp-Deva-Book-e1dc3d746b24723f8d3dadb314b97705.woff)format("woff")
+}
+
+@font-face {
+    font-family: CircularSp-Grek;
+    font-weight: 800;
+    font-display: swap;
+    unicode-range: U+0,U+D,U+20,U+A0,U+A4,U+B6-B7,U+375,U+37A,U+384,U+386,U+388-38A,U+38C,U+38E-3A1,U+3A3-3CF,U+3D7,U+2126,U+FFFF;
+    src: url(https://encore.scdn.co/fonts/CircularSp-Grek-Black-4674b11f16a27c4b655bd8e95ddd0738.woff2)format("woff2"),url(https://encore.scdn.co/fonts/CircularSp-Grek-Black-49883536c1a3bfc688235ce40572731d.woff)format("woff")
+}
+
+@font-face {
+    font-family: CircularSp-Grek;
+    font-weight: 700;
+    font-display: swap;
+    unicode-range: U+0,U+D,U+20,U+A0,U+A4,U+B6-B7,U+375,U+37A,U+384,U+386,U+388-38A,U+38C,U+38E-3A1,U+3A3-3CF,U+3D7,U+2126,U+FFFF;
+    src: url(https://encore.scdn.co/fonts/CircularSp-Grek-Bold-d182d2d11e63b291cd25492352c02164.woff2)format("woff2"),url(https://encore.scdn.co/fonts/CircularSp-Grek-Bold-53bb923248ba22cf5554bbe5f434c5c8.woff)format("woff")
+}
+
+@font-face {
+    font-family: CircularSp-Grek;
+    font-weight: 400;
+    font-display: swap;
+    unicode-range: U+0,U+D,U+20,U+A0,U+A4,U+B6-B7,U+375,U+37A,U+384,U+386,U+388-38A,U+38C,U+38E-3A1,U+3A3-3CF,U+3D7,U+2126,U+FFFF;
+    src: url(https://encore.scdn.co/fonts/CircularSp-Grek-Book-6eb8fae993f5ae2fc4415a8c00e6ca61.woff2)format("woff2"),url(https://encore.scdn.co/fonts/CircularSp-Grek-Book-c9de2c0741586c1ab7b6e95541fc7807.woff)format("woff")
+}
+
+@font-face {
+    font-family: CircularSp-Arab;
+    font-weight: 800;
+    font-display: swap;
+    unicode-range: U+0,U+D,U+20,U+A0,U+A4,U+B6-B7,U+1C4-1C6,U+1F1-1F3,U+2BB-2BC,U+600-603,U+60B-60C,U+610,U+61B,U+61F,U+621-63A,U+640-659,U+660-671,U+679-681,U+683-68A,U+68C-68D,U+68F,U+691,U+693,U+696,U+698-69A,U+6A1,U+6A4,U+6A6,U+6A9-6AB,U+6AF,U+6B1,U+6B3,U+6BA-6BC,U+6BE,U+6C0-6C3,U+6CC-6CD,U+6D0,U+6D2-6D5,U+6F0-6F9,U+6FD-6FE,U+2002-2003,U+2009,U+200C-200F,U+25CC,U+FB50-FB85,U+FB88-FBBB,U+FBBD-FBC1,U+FBE4-FBE9,U+FBFC-FBFF,U+FC48,U+FC5E-FC63,U+FD3E-FD3F,U+FDF2,U+FDFC,U+FE80-FEFC,U+FFFF;
+    src: url(https://encore.scdn.co/fonts/CircularSp-Arab-Black-53e88b4713d4e3ea79ef92c8c0895fdb.woff2)format("woff2"),url(https://encore.scdn.co/fonts/CircularSp-Arab-Black-9dda323448d48d7e6cabf84d2df7dc11.woff)format("woff")
+}
+
+@font-face {
+    font-family: CircularSp-Arab;
+    font-weight: 700;
+    font-display: swap;
+    unicode-range: U+0,U+D,U+20,U+A0,U+A4,U+B6-B7,U+1C4-1C6,U+1F1-1F3,U+2BB-2BC,U+600-603,U+60B-60C,U+610,U+61B,U+61F,U+621-63A,U+640-659,U+660-671,U+679-681,U+683-68A,U+68C-68D,U+68F,U+691,U+693,U+696,U+698-69A,U+6A1,U+6A4,U+6A6,U+6A9-6AB,U+6AF,U+6B1,U+6B3,U+6BA-6BC,U+6BE,U+6C0-6C3,U+6CC-6CD,U+6D0,U+6D2-6D5,U+6F0-6F9,U+6FD-6FE,U+2002-2003,U+2009,U+200C-200F,U+25CC,U+FB50-FB85,U+FB88-FBBB,U+FBBD-FBC1,U+FBE4-FBE9,U+FBFC-FBFF,U+FC48,U+FC5E-FC63,U+FD3E-FD3F,U+FDF2,U+FDFC,U+FE80-FEFC,U+FFFF;
+    src: url(https://encore.scdn.co/fonts/CircularSp-Arab-Bold-e63e85e77e5b2a6fbc639717a915f006.woff2)format("woff2"),url(https://encore.scdn.co/fonts/CircularSp-Arab-Bold-47ca0fd648a183136981f28d0218cef6.woff)format("woff")
+}
+
+@font-face {
+    font-family: CircularSp-Arab;
+    font-weight: 400;
+    font-display: swap;
+    unicode-range: U+0,U+D,U+20,U+A0,U+A4,U+B6-B7,U+1C4-1C6,U+1F1-1F3,U+2BB-2BC,U+600-603,U+60B-60C,U+610,U+61B,U+61F,U+621-63A,U+640-659,U+660-671,U+679-681,U+683-68A,U+68C-68D,U+68F,U+691,U+693,U+696,U+698-69A,U+6A1,U+6A4,U+6A6,U+6A9-6AB,U+6AF,U+6B1,U+6B3,U+6BA-6BC,U+6BE,U+6C0-6C3,U+6CC-6CD,U+6D0,U+6D2-6D5,U+6F0-6F9,U+6FD-6FE,U+2002-2003,U+2009,U+200C-200F,U+25CC,U+FB50-FB85,U+FB88-FBBB,U+FBBD-FBC1,U+FBE4-FBE9,U+FBFC-FBFF,U+FC48,U+FC5E-FC63,U+FD3E-FD3F,U+FDF2,U+FDFC,U+FE80-FEFC,U+FFFF;
+    src: url(https://encore.scdn.co/fonts/CircularSp-Arab-Book-ca3a6ec0431abf3a75bc7a417e33c396.woff2)format("woff2"),url(https://encore.scdn.co/fonts/CircularSp-Arab-Book-1cd31794cbdd53724469ba03e8573dba.woff)format("woff")
+}
+
+@font-face {
+    font-family: CircularSp-Cyrl;
+    font-weight: 800;
+    font-display: swap;
+    unicode-range: U+0,U+D,U+20,U+A0,U+A4,U+B6-B7,U+400-45F,U+462-463,U+472-475,U+490-493,U+49A-49B,U+4A2-4A3,U+4AE-4B3,U+4BA-4BB,U+4D8-4D9,U+4E8-4E9,U+FFFF;
+    src: url(https://encore.scdn.co/fonts/CircularSp-Cyrl-Black-a68f6f038e225c51fc50bd4935a3b540.woff2)format("woff2"),url(https://encore.scdn.co/fonts/CircularSp-Cyrl-Black-b4305d9bf82554f631d2636c3ef90c54.woff)format("woff")
+}
+
+@font-face {
+    font-family: CircularSp-Cyrl;
+    font-weight: 700;
+    font-display: swap;
+    unicode-range: U+0,U+D,U+20,U+A0,U+A4,U+B6-B7,U+400-45F,U+462-463,U+472-475,U+490-493,U+49A-49B,U+4A2-4A3,U+4AE-4B3,U+4BA-4BB,U+4D8-4D9,U+4E8-4E9,U+FFFF;
+    src: url(https://encore.scdn.co/fonts/CircularSp-Cyrl-Bold-d894d6c282e70d9bfbc4de10121eeb58.woff2)format("woff2"),url(https://encore.scdn.co/fonts/CircularSp-Cyrl-Bold-7e54bccaf45728c472079785d5cd4519.woff)format("woff")
+}
+
+@font-face {
+    font-family: CircularSp-Cyrl;
+    font-weight: 400;
+    font-display: swap;
+    unicode-range: U+0,U+D,U+20,U+A0,U+A4,U+B6-B7,U+400-45F,U+462-463,U+472-475,U+490-493,U+49A-49B,U+4A2-4A3,U+4AE-4B3,U+4BA-4BB,U+4D8-4D9,U+4E8-4E9,U+FFFF;
+    src: url(https://encore.scdn.co/fonts/CircularSp-Cyrl-Book-4c957473ac07ef93bf5378b9d00d270b.woff2)format("woff2"),url(https://encore.scdn.co/fonts/CircularSp-Cyrl-Book-6f078f781ee313e298ad8997fd1ffe3d.woff)format("woff")
+}
+
+@font-face {
+    font-family: CircularSp-Hebr;
+    font-weight: 800;
+    font-display: swap;
+    unicode-range: U+0,U+D,U+20,U+30-39,U+A0,U+A4,U+B6-B7,U+1C4-1C6,U+1F1-1F3,U+2BB-2BC,U+5B0-5C4,U+5D0-5EA,U+5F0-5F4,U+200E-200F,U+20AA,U+FB2A-FB36,U+FB38-FB3C,U+FB3E,U+FB40-FB41,U+FB43-FB44,U+FB46-FB4F,U+FFFF;
+    src: url(https://encore.scdn.co/fonts/CircularSp-Hebr-Black-a9978d19a63d2b5d2ca3747e046625c4.woff2)format("woff2"),url(https://encore.scdn.co/fonts/CircularSp-Hebr-Black-f52613a9d541248805af1d0bb33102f8.woff)format("woff")
+}
+
+@font-face {
+    font-family: CircularSp-Hebr;
+    font-weight: 700;
+    font-display: swap;
+    unicode-range: U+0,U+D,U+20,U+30-39,U+A0,U+A4,U+B6-B7,U+1C4-1C6,U+1F1-1F3,U+2BB-2BC,U+5B0-5C4,U+5D0-5EA,U+5F0-5F4,U+200E-200F,U+20AA,U+FB2A-FB36,U+FB38-FB3C,U+FB3E,U+FB40-FB41,U+FB43-FB44,U+FB46-FB4F,U+FFFF;
+    src: url(https://encore.scdn.co/fonts/CircularSp-Hebr-Bold-672823043332466e211b6f8ac0b7da7c.woff2)format("woff2"),url(https://encore.scdn.co/fonts/CircularSp-Hebr-Bold-caa03e4cb8690e726ef1625c7d91a7a5.woff)format("woff")
+}
+
+@font-face {
+    font-family: CircularSp-Hebr;
+    font-weight: 400;
+    font-display: swap;
+    unicode-range: U+0,U+D,U+20,U+30-39,U+A0,U+A4,U+B6-B7,U+1C4-1C6,U+1F1-1F3,U+2BB-2BC,U+5B0-5C4,U+5D0-5EA,U+5F0-5F4,U+200E-200F,U+20AA,U+FB2A-FB36,U+FB38-FB3C,U+FB3E,U+FB40-FB41,U+FB43-FB44,U+FB46-FB4F,U+FFFF;
+    src: url(https://encore.scdn.co/fonts/CircularSp-Hebr-Book-bd691543176c385b089f6986ddf58c5f.woff2)format("woff2"),url(https://encore.scdn.co/fonts/CircularSp-Hebr-Book-d8209975eafc81a9499df8401a339ddd.woff)format("woff")
+}
+
+@font-face {
+    font-family: SpotifyMixUI;
+    font-weight: 700;
+    font-display: swap;
+    unicode-range: U+20-7E,U+A0-AC,U+AE-137,U+139-148,U+14A-17E,U+18F,U+1A0-1A1,U+1AF-1B0,U+1CD-1D4,U+1E6-1E7,U+1F4-1F5,U+1FA-1FF,U+218-21B,U+226-227,U+232-233,U+237,U+259,U+2BC,U+2C6-2C7,U+2D8-2DD,U+300-304,U+306-30C,U+312,U+31B,U+323,U+326-328,U+335-338,U+E3F,U+1E0C-1E0D,U+1E20-1E21,U+1E24-1E25,U+1E36-1E37,U+1E44-1E45,U+1E56-1E57,U+1E62-1E63,U+1E6C-1E6D,U+1E80-1E85,U+1E8A-1E8D,U+1E92-1E93,U+1E9E,U+1EA0-1EF9,U+2002-2003,U+2009-200A,U+2010-2011,U+2013-2015,U+2018-201A,U+201C-201E,U+2020-2022,U+2026,U+2030,U+2032-2033,U+2039-203A,U+2044,U+2070,U+2074-2079,U+2080-2089,U+20A6,U+20A9-20AA,U+20AC,U+20B4,U+20B8-20BA,U+20BD,U+20BF,U+2113,U+2116-2117,U+2122,U+2126,U+2160-2169,U+216C-216F,U+2190-2193,U+2196-2199,U+2202,U+2206,U+220F,U+2211-2212,U+2215,U+221A,U+221E,U+222B,U+2248,U+2260,U+2264-2265,U+FB01-FB02,U+FFFF;
+    src: url(https://encore.scdn.co/fonts/SpotifyMixUI-Bold-4264b799009b1db5c491778b1bc8e5b7.woff2)format("woff2"),url(https://encore.scdn.co/fonts/SpotifyMixUI-Bold-05392dabcaa9fab302f9ddc047b15752.woff)format("woff")
+}
+
+@font-face {
+    font-family: SpotifyMixUI;
+    font-weight: 400;
+    font-display: swap;
+    unicode-range: U+20-7E,U+A0-AC,U+AE-137,U+139-148,U+14A-17E,U+18F,U+1A0-1A1,U+1AF-1B0,U+1CD-1D4,U+1E6-1E7,U+1F4-1F5,U+1FA-1FF,U+218-21B,U+226-227,U+232-233,U+237,U+259,U+2BC,U+2C6-2C7,U+2D8-2DD,U+300-304,U+306-30C,U+312,U+31B,U+323,U+326-328,U+335-338,U+E3F,U+1E0C-1E0D,U+1E20-1E21,U+1E24-1E25,U+1E36-1E37,U+1E44-1E45,U+1E56-1E57,U+1E62-1E63,U+1E6C-1E6D,U+1E80-1E85,U+1E8A-1E8D,U+1E92-1E93,U+1E9E,U+1EA0-1EF9,U+2002-2003,U+2009-200A,U+2010-2011,U+2013-2015,U+2018-201A,U+201C-201E,U+2020-2022,U+2026,U+2030,U+2032-2033,U+2039-203A,U+2044,U+2070,U+2074-2079,U+2080-2089,U+20A6,U+20A9-20AA,U+20AC,U+20B4,U+20B8-20BA,U+20BD,U+20BF,U+2113,U+2116-2117,U+2122,U+2126,U+2160-2169,U+216C-216F,U+2190-2193,U+2196-2199,U+2202,U+2206,U+220F,U+2211-2212,U+2215,U+221A,U+221E,U+222B,U+2248,U+2260,U+2264-2265,U+FB01-FB02,U+FFFF;
+    src: url(https://encore.scdn.co/fonts/SpotifyMixUI-Regular-cc3b1de388efa4cbca6c75cebc24585e.woff2)format("woff2"),url(https://encore.scdn.co/fonts/SpotifyMixUI-Regular-b342a41ec78025c361c018e5d355ab21.woff)format("woff")
+}
+
+@font-face {
+    font-family: SpotifyMixUITitle;
+    font-weight: 800;
+    font-display: swap;
+    unicode-range: U+20-7E,U+A0-AC,U+AE-137,U+139-148,U+14A-17E,U+18F,U+1A0-1A1,U+1AF-1B0,U+1CD-1D4,U+1E6-1E7,U+1F4-1F5,U+1FA-1FF,U+218-21B,U+226-227,U+232-233,U+237,U+259,U+2BC,U+2C6-2C7,U+2D8-2DD,U+300-304,U+306-30C,U+312,U+31B,U+323,U+326-328,U+335-338,U+E3F,U+1E0C-1E0D,U+1E20-1E21,U+1E24-1E25,U+1E36-1E37,U+1E44-1E45,U+1E56-1E57,U+1E62-1E63,U+1E6C-1E6D,U+1E80-1E85,U+1E8A-1E8D,U+1E92-1E93,U+1E9E,U+1EA0-1EF9,U+2002-2003,U+2009-200A,U+2010-2011,U+2013-2015,U+2018-201A,U+201C-201E,U+2020-2022,U+2026,U+2030,U+2032-2033,U+2039-203A,U+2044,U+2070,U+2074-2079,U+2080-2089,U+20A6,U+20A9-20AA,U+20AC,U+20B4,U+20B8-20BA,U+20BD,U+20BF,U+2113,U+2116-2117,U+2122,U+2126,U+2160-2169,U+216C-216F,U+2190-2193,U+2196-2199,U+2202,U+2206,U+220F,U+2211-2212,U+2215,U+221A,U+221E,U+222B,U+2248,U+2260,U+2264-2265,U+FB01-FB02,U+FFFF;
+    src: url(https://encore.scdn.co/fonts/SpotifyMixUITitleVariable-8769ccfde3379b7ebcadd9529b49d0cc.woff2)format("woff2 supports variations"),url(https://encore.scdn.co/fonts/SpotifyMixUITitleVariable-8769ccfde3379b7ebcadd9529b49d0cc.woff2)format("woff2-variations"),url(https://encore.scdn.co/fonts/SpotifyMixUITitle-Extrabold-ba6c73cd7f82c81e49cf2204017803ed.woff2)format("woff2"),url(https://encore.scdn.co/fonts/SpotifyMixUITitle-Extrabold-dd06104c9de7463b60455a65171cab06.woff)format("woff")
+}
+
+@font-face {
+    font-family: SpotifyMixUITitle;
+    font-weight: 700;
+    font-display: swap;
+    unicode-range: U+20-7E,U+A0-AC,U+AE-137,U+139-148,U+14A-17E,U+18F,U+1A0-1A1,U+1AF-1B0,U+1CD-1D4,U+1E6-1E7,U+1F4-1F5,U+1FA-1FF,U+218-21B,U+226-227,U+232-233,U+237,U+259,U+2BC,U+2C6-2C7,U+2D8-2DD,U+300-304,U+306-30C,U+312,U+31B,U+323,U+326-328,U+335-338,U+E3F,U+1E0C-1E0D,U+1E20-1E21,U+1E24-1E25,U+1E36-1E37,U+1E44-1E45,U+1E56-1E57,U+1E62-1E63,U+1E6C-1E6D,U+1E80-1E85,U+1E8A-1E8D,U+1E92-1E93,U+1E9E,U+1EA0-1EF9,U+2002-2003,U+2009-200A,U+2010-2011,U+2013-2015,U+2018-201A,U+201C-201E,U+2020-2022,U+2026,U+2030,U+2032-2033,U+2039-203A,U+2044,U+2070,U+2074-2079,U+2080-2089,U+20A6,U+20A9-20AA,U+20AC,U+20B4,U+20B8-20BA,U+20BD,U+20BF,U+2113,U+2116-2117,U+2122,U+2126,U+2160-2169,U+216C-216F,U+2190-2193,U+2196-2199,U+2202,U+2206,U+220F,U+2211-2212,U+2215,U+221A,U+221E,U+222B,U+2248,U+2260,U+2264-2265,U+FB01-FB02,U+FFFF;
+    src: url(https://encore.scdn.co/fonts/SpotifyMixUITitleVariable-8769ccfde3379b7ebcadd9529b49d0cc.woff2)format("woff2 supports variations"),url(https://encore.scdn.co/fonts/SpotifyMixUITitleVariable-8769ccfde3379b7ebcadd9529b49d0cc.woff2)format("woff2-variations"),url(https://encore.scdn.co/fonts/SpotifyMixUITitle-Bold-37290f1de77f297fcc26d71e9afcf43f.woff2)format("woff2"),url(https://encore.scdn.co/fonts/SpotifyMixUITitle-Bold-72703891d365729cfcfa9788c8904a4d.woff)format("woff")
+}
+
+@font-face {
+    font-family: SpotifyMixUITitleVariable;
+    font-weight: 100 1000;
+    font-display: swap;
+    unicode-range: U+20-7E,U+A0-AC,U+AE-137,U+139-148,U+14A-17E,U+18F,U+1A0-1A1,U+1AF-1B0,U+1CD-1D4,U+1E6-1E7,U+1F4-1F5,U+1FA-1FF,U+218-21B,U+226-227,U+232-233,U+237,U+259,U+2BC,U+2C6-2C7,U+2D8-2DD,U+300-304,U+306-30C,U+312,U+31B,U+323,U+326-328,U+335-338,U+E3F,U+1E0C-1E0D,U+1E20-1E21,U+1E24-1E25,U+1E36-1E37,U+1E44-1E45,U+1E56-1E57,U+1E62-1E63,U+1E6C-1E6D,U+1E80-1E85,U+1E8A-1E8D,U+1E92-1E93,U+1E9E,U+1EA0-1EF9,U+2002-2003,U+2009-200A,U+2010-2011,U+2013-2015,U+2018-201A,U+201C-201E,U+2020-2022,U+2026,U+2030,U+2032-2033,U+2039-203A,U+2044,U+2070,U+2074-2079,U+2080-2089,U+20A6,U+20A9-20AA,U+20AC,U+20B4,U+20B8-20BA,U+20BD,U+20BF,U+2113,U+2116-2117,U+2122,U+2126,U+2160-2169,U+216C-216F,U+2190-2193,U+2196-2199,U+2202,U+2206,U+220F,U+2211-2212,U+2215,U+221A,U+221E,U+222B,U+2248,U+2260,U+2264-2265,U+FB01-FB02,U+FFFF;
+    src: url(https://encore.scdn.co/fonts/SpotifyMixUITitleVariable-8769ccfde3379b7ebcadd9529b49d0cc.woff2)format("woff2 supports variations"),url(https://encore.scdn.co/fonts/SpotifyMixUITitleVariable-8769ccfde3379b7ebcadd9529b49d0cc.woff2)format("woff2-variations"),url(https://encore.scdn.co/fonts/SpotifyMixUITitleVariable-8769ccfde3379b7ebcadd9529b49d0cc.woff2)format("woff2"),url(https://encore.scdn.co/fonts/SpotifyMixUITitleVariable-280d4cad9e19d3b0d7c7dd08bb600771.woff)format("woff");
+    font-stretch: 50 150
+}
+
+@layer fonts {
+    html {
+        --fallback-fonts: Helvetica Neue,helvetica,arial,Hiragino Sans,Hiragino Kaku Gothic ProN,Meiryo,MS Gothic
+    }
+
+    html[lang=zh-TW] {
+        --fallback-fonts: Helvetica Neue,helvetica,arial,Microsoft JhengHei,PingFang TC,Lantinghei TC,Hiragino Sans,Hiragino Kaku Gothic ProN,Meiryo,MS Gothic
+    }
+
+    html[lang=zh-CN] {
+        --fallback-fonts: Helvetica Neue,helvetica,arial,Microsoft YaHei,PingFang SC,Lantinghei SC,Hiragino Sans,Hiragino Kaku Gothic ProN,Meiryo,MS Gothic
+    }
+
+    html[lang=zh-HK] {
+        --fallback-fonts: Helvetica Neue,helvetica,arial,Microsoft JhengHei,PingFang HK,Lantinghei HK,Microsoft JhengHei,PingFang TC,Lantinghei TC,Hiragino Sans,Hiragino Kaku Gothic ProN,Meiryo,MS Gothic
+    }
+
+    body,button,select,input,textarea {
+        font-family: var(--encore-body-font-stack,var(--fallback-fonts,sans-serif)),sans-serif
+    }
+
+    .circular-sp-vietnamese,.circular-sp-vietnamese button,.circular-sp-vietnamese select,.circular-sp-vietnamese input,.circular-sp-vietnamese textarea {
+        font-family: var(--encore-body-font-stack)
+    }
+
+    body {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale
+    }
+}
+
+
+
+
+apple music fonts: 
+@font-face {
+    font-display: swap;
+    font-family: Locale Switcher;
+    font-style: normal;
+    font-weight: 400;
+    src: local("Apple SD Gothic Neo Regular"),local("AppleSDGothicNeo-Regular"),url(/assets/fonts/locale-switcher/AppleSDGothicNeo-Regular-subset.woff2) format("woff2");
+    unicode-range: U+ad6d,U+b300,U+bbf8,U+bbfc,U+c5b4,U+d55c
+}
+
+@font-face {
+    font-display: swap;
+    font-family: Locale Switcher;
+    font-style: normal;
+    font-weight: 400;
+    src: url(/assets/fonts/locale-switcher/ArabicUIText-Regular-subset.woff2) format("woff2");
+    unicode-range: U+20,U+627-62a,U+62d,U+62f,U+631,U+639,U+644,U+645,U+648,U+64a
+}
+
+@font-face {
+    font-display: swap;
+    font-family: Locale Switcher;
+    font-style: normal;
+    font-weight: 400;
+    src: local("Arial Hebrew"),local("ArialHebrew"),url(/assets/fonts/locale-switcher/ArialHebrew-subset.woff2) format("woff2");
+    unicode-range: U+5d0,U+5d9,U+5dc,U+5e8,U+5e9
+}
+
+@font-face {
+    font-display: swap;
+    font-family: Locale Switcher;
+    font-style: normal;
+    font-weight: 400;
+    src: local("Hiragino Sans W4"),local("HiraginoSans-W4"),url(/assets/fonts/locale-switcher/HiraginoSans-W4-subset.woff2) format("woff2");
+    unicode-range: U+65e5,U+672c
+}
+
+@font-face {
+    font-display: swap;
+    font-family: Locale Switcher PingFang HK;
+    font-style: normal;
+    font-weight: 400;
+    src: local("PingFang HK Regular"),local("PingFangHK-Regular"),url(/assets/fonts/locale-switcher/PingFangHK-Regular-subset.woff2) format("woff2");
+    unicode-range: U+20,U+4e2d,U+4f53,U+53f0,U+570b,U+5927,U+6587,U+6e2f,U+6fb3,U+7063,U+7b80,U+7c21,U+7e41,U+7f8e,U+9580,U+9678,U+9999,U+9ad4
+}
+
+@font-face {
+    font-display: swap;
+    font-family: Locale Switcher PingFang SC;
+    font-style: normal;
+    font-weight: 400;
+    src: local("PingFang SC Regular"),local("PingFangSC-Regular"),url(/assets/fonts/locale-switcher/PingFangSC-Regular-subset.woff2) format("woff2");
+    unicode-range: U+20,U+4e2d,U+4f53,U+53f0,U+570b,U+5927,U+6587,U+6e2f,U+6fb3,U+7063,U+7b80,U+7c21,U+7e41,U+7f8e,U+9580,U+9678,U+9999,U+9ad4
+}
+
+@font-face {
+    font-display: swap;
+    font-family: Locale Switcher PingFang TC;
+    font-style: normal;
+    font-weight: 400;
+    src: local("PingFang TC Regular"),local("PingFangTC-Regular"),url(/assets/fonts/locale-switcher/PingFangTC-Regular-subset.woff2) format("woff2");
+    unicode-range: U+20,U+4e2d,U+4f53,U+53f0,U+570b,U+5927,U+6587,U+6e2f,U+6fb3,U+7063,U+7b80,U+7c21,U+7e41,U+7f8e,U+9580,U+9678,U+9999,U+9ad4
+}
+
+@font-face {
+    font-display: swap;
+    font-family: Locale Switcher;
+    font-style: normal;
+    font-weight: 400;
+    src: local("Kohinoor Devanagari Regular"),local("KohinoorDevanagari-Regular"),url(/assets/fonts/locale-switcher/KohinoorDevanagari-Regular-subset.woff2) format("woff2");
+    unicode-range: U+924,U+92d,U+930,U+93e
+}
+
+@font-face {
+    font-display: swap;
+    font-family: Locale Switcher;
+    font-style: normal;
+    font-weight: 400;
+    src: local("Thonburi"),local("Thonburi"),url(/assets/fonts/locale-switcher/ThonburiPro-Regular-subset.woff2) format("woff2");
+    unicode-range: U+e17,U+e22,U+e44
+}
+
