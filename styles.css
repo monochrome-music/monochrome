@@ -4596,6 +4596,35 @@ img[src=''] {
         gap: var(--spacing-md);
     }
 
+    .setting-item:has(.toggle-switch) {
+        flex-direction: row;
+        align-items: center;
+        width: 100%;
+    }
+
+    .setting-item:has(.toggle-switch) .info {
+        width: auto;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .setting-item:has(.toggle-switch) .label {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .setting-item:has(.toggle-switch) .description {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+    }
+
+    .setting-item:has(.toggle-switch) .toggle-switch {
+        margin-left: auto;
+    }
+
     .setting-item .info {
         width: 100%;
     }

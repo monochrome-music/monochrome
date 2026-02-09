@@ -1406,22 +1406,18 @@ export function initializeSettings(scrobbler, player, api, ui) {
     // Apply sidebar visibility on initialization
     sidebarSectionSettings.applySidebarVisibility();
 
-    const sidebarOrderConfig = [
-        { toggle: sidebarShowHomeToggle, sidebarId: 'sidebar-nav-home' },
-        { toggle: sidebarShowLibraryToggle, sidebarId: 'sidebar-nav-library' },
-        { toggle: sidebarShowRecentToggle, sidebarId: 'sidebar-nav-recent' },
-        { toggle: sidebarShowUnreleasedToggle, sidebarId: 'sidebar-nav-unreleased' },
-        { toggle: sidebarShowDonateToggle, sidebarId: 'sidebar-nav-donate' },
-        { toggle: sidebarShowSettingsToggle, sidebarId: 'sidebar-nav-settings' },
-        { toggle: sidebarShowAccountToggle, sidebarId: 'sidebar-nav-account' },
-        { toggle: sidebarShowAboutToggle, sidebarId: 'sidebar-nav-about' },
-        { toggle: sidebarShowDownloadToggle, sidebarId: 'sidebar-nav-download' },
-        { toggle: sidebarShowDiscordToggle, sidebarId: 'sidebar-nav-discord' },
-    ];
-
     const sidebarSettingsGroup = sidebarShowHomeToggle?.closest('.settings-group');
     if (sidebarSettingsGroup) {
-        sidebarOrderConfig.forEach(({ toggle, sidebarId }) => {
+        const toggleIdFromSidebarId = (sidebarId) =>
+            sidebarId ? sidebarId.replace('sidebar-nav-', 'sidebar-show-') + '-toggle' : '';
+
+        const sidebarOrderConfig = sidebarSectionSettings.DEFAULT_ORDER.map((sidebarId) => ({
+            sidebarId,
+            toggleId: toggleIdFromSidebarId(sidebarId),
+        }));
+
+        sidebarOrderConfig.forEach(({ toggleId, sidebarId }) => {
+            const toggle = document.getElementById(toggleId);
             const item = toggle?.closest('.setting-item');
             if (!item) return;
             item.dataset.sidebarId = sidebarId;
