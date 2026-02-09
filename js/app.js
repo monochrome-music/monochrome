@@ -208,6 +208,26 @@ function hideOfflineNotification() {
     }
 }
 
+async function disablePwaForAuthGate() {
+    if (!('serviceWorker' in navigator)) return;
+
+    try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((registration) => registration.unregister()));
+    } catch (error) {
+        console.warn('Failed to unregister service workers:', error);
+    }
+
+    if ('caches' in window) {
+        try {
+            const cacheKeys = await caches.keys();
+            await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+        } catch (error) {
+            console.warn('Failed to clear caches:', error);
+        }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     const api = new LosslessAPI(apiSettings);
 
@@ -1419,14 +1439,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // PWA Update Logic
-    const updateSW = registerSW({
-        onNeedRefresh() {
-            showUpdateNotification(() => updateSW(true));
-        },
-        onOfflineReady() {
-            console.log('App ready to work offline');
-        },
-    });
+    if (window.__AUTH_GATE__) {
+        disablePwaForAuthGate();
+    } else {
+        const updateSW = registerSW({
+            onNeedRefresh() {
+                showUpdateNotification(() => updateSW(true));
+            },
+            onOfflineReady() {
+                console.log('App ready to work offline');
+            },
+        });
+    }
 
     document.getElementById('show-shortcuts-btn')?.addEventListener('click', () => {
         showKeyboardShortcuts();

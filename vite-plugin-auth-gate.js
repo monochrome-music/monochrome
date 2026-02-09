@@ -123,6 +123,7 @@ export default function authGatePlugin() {
                         }
                         if (loginHtml) {
                             res.setHeader('Content-Type', 'text/html');
+                            res.setHeader('Cache-Control', 'no-store');
                             res.end(loginHtml);
                         } else {
                             res.statusCode = 404;
@@ -182,6 +183,7 @@ export default function authGatePlugin() {
                     const ext = extname(url);
                     if ((!ext || ext === '.html') && indexHtml) {
                         res.setHeader('Content-Type', 'text/html');
+                        res.setHeader('Cache-Control', 'no-store');
                         res.end(indexHtml);
                         return;
                     }
