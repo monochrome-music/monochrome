@@ -146,7 +146,7 @@ export class Visualizer {
             this.activePreset.lazyInit(
                 this.canvas,
                 this.audioContext,
-                audioContextManager.source
+                this.analyser
             );
         }
 
@@ -275,7 +275,7 @@ export class Visualizer {
             this.presets[key].lazyInit(
                 this.canvas,
                 this.audioContext,
-                audioContextManager.source
+                this.analyser
             );
         }
     }

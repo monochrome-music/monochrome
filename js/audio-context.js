@@ -163,7 +163,13 @@ class AudioContextManager {
             // Disconnect everything first
             this.source.disconnect();
             this.outputNode.disconnect();
-            this.analyser.disconnect();
+
+            // Only disconnect destination from analyser to preserve other taps (like Butterchurn)
+            try {
+                this.analyser.disconnect(this.audioContext.destination);
+            } catch (e) {
+                // Ignore if not connected
+            }
 
             if (this.isEQEnabled && this.filters.length > 0) {
                 // EQ enabled: source -> EQ filters -> output -> analyser -> destination

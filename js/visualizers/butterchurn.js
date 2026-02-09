@@ -3,7 +3,6 @@
  * WebGL-based audio visualization using the Butterchurn library
  */
 import butterchurn from 'butterchurn';
-import butterchurnPresets from 'butterchurn-presets';
 import { visualizerSettings } from '../storage.js';
 
 export class ButterchurnPreset {
@@ -14,15 +13,65 @@ export class ButterchurnPreset {
         this.visualizer = null;
         this.canvas = null;
         this.audioContext = null;
-        this.presets = null;
-        this.presetKeys = [];
         this.currentPresetIndex = 0;
         this.lastPresetChange = 0;
         this.isInitialized = false;
 
+        this.presets = {};
+        this.presetKeys = [];
+        this.isLoadingPresets = false;
+
         // Transition settings
         this.blendProgress = 0;
         this.blendDuration = 2.7; // seconds for preset transitions
+
+        // Load presets asynchronously
+        this.loadPresets();
+    }
+
+    /**
+     * Load presets dynamically to avoid blocking main bundle
+     */
+    async loadPresets() {
+        if (this.isLoadingPresets) return;
+        this.isLoadingPresets = true;
+
+        try {
+            const module = await import('butterchurn-presets');
+            const presets = module.default.getPresets();
+
+            this.presets = presets;
+            this.presetKeys = Object.keys(this.presets);
+
+            // Filter to get a good selection of presets
+            this.presetKeys = this.presetKeys.filter(key => {
+                const skipPatterns = ['flexi', 'empty', 'test', '_'];
+                return !skipPatterns.some(pattern => key.toLowerCase().includes(pattern));
+            });
+
+            if (this.presetKeys.length === 0) {
+                this.presetKeys = Object.keys(this.presets);
+            }
+
+            // Shuffle presets for variety
+            this.shufflePresets();
+
+            console.log('[Butterchurn] Presets loaded:', this.presetKeys.length);
+
+            // Notify system that presets are ready
+            window.dispatchEvent(new CustomEvent('butterchurn-presets-loaded'));
+
+            // If initialized (visualizer ready), load a preset immediately
+            if (this.isInitialized && this.visualizer) {
+                this.loadNextPreset();
+            }
+        } catch (e) {
+            console.error('[Butterchurn] Failed to load presets:', e);
+            this.presets = {};
+            this.presetKeys = [];
+        } finally {
+            this.isLoadingPresets = false;
+        }
     }
 
     /**
@@ -43,24 +92,6 @@ export class ButterchurnPreset {
             this.canvas = canvas;
             this.audioContext = audioContext;
 
-            // Load presets
-            this.presets = butterchurnPresets.getPresets();
-            this.presetKeys = Object.keys(this.presets);
-
-            // Filter to get a good selection of presets (some are better than others)
-            this.presetKeys = this.presetKeys.filter(key => {
-                // Skip some problematic or less visually appealing presets
-                const skipPatterns = ['flexi', 'empty', 'test', '_'];
-                return !skipPatterns.some(pattern => key.toLowerCase().includes(pattern));
-            });
-
-            if (this.presetKeys.length === 0) {
-                this.presetKeys = Object.keys(this.presets);
-            }
-
-            // Shuffle presets for variety
-            this.shufflePresets();
-
             // Create Butterchurn visualizer
             this.visualizer = butterchurn.createVisualizer(audioContext, canvas, {
                 width: canvas.width,
@@ -75,7 +106,7 @@ export class ButterchurnPreset {
             }
 
             // Load initial preset
-            this.loadRandomPreset();
+            this.loadNextPreset();
 
             this.lastPresetChange = performance.now();
             this.isInitialized = true;
@@ -97,25 +128,40 @@ export class ButterchurnPreset {
     }
 
     /**
-     * Load a random preset with smooth transition
+     * Load next preset based on settings (sequential or random)
      */
-    loadRandomPreset() {
+    loadNextPreset() {
         if (!this.visualizer || this.presetKeys.length === 0) return;
 
-        this.currentPresetIndex = (this.currentPresetIndex + 1) % this.presetKeys.length;
+        // If cycle enabled is false, don't change preset automatically unless forced (e.g. init or manual next)
+        // But here we are just loading 'a' preset.
+        // The cycling logic is in draw().
+
+        // Wait, loadNextPreset is general.
+        // Let's check settings inside loadNextPreset?
+        // No, loadNextPreset is an action. It should just do it.
+        // The caller decides when.
+
+        const randomize = visualizerSettings.isButterchurnRandomizeEnabled();
+
+        if (randomize) {
+            this.currentPresetIndex = Math.floor(Math.random() * this.presetKeys.length);
+        } else {
+            this.currentPresetIndex = (this.currentPresetIndex + 1) % this.presetKeys.length;
+        }
+
         const presetKey = this.presetKeys[this.currentPresetIndex];
         const preset = this.presets[presetKey];
 
         if (preset) {
             try {
                 this.visualizer.loadPreset(preset, this.blendDuration);
-                console.log('[Butterchurn] Loaded preset:', presetKey);
+                // console.log('[Butterchurn] Loaded preset:', presetKey);
             } catch (error) {
                 console.warn('[Butterchurn] Failed to load preset:', presetKey, error);
                 // Try next preset
                 if (this.presetKeys.length > 1) {
-                    this.presetKeys.splice(this.currentPresetIndex, 1);
-                    this.loadRandomPreset();
+                    this.loadNextPreset();
                 }
             }
         }
@@ -131,6 +177,12 @@ export class ButterchurnPreset {
         if (preset) {
             this.visualizer.loadPreset(preset, this.blendDuration);
             console.log('[Butterchurn] Loaded preset:', presetName);
+
+            // Update current index if found
+            const index = this.presetKeys.indexOf(presetName);
+            if (index !== -1) {
+                this.currentPresetIndex = index;
+            }
         }
     }
 
@@ -149,10 +201,10 @@ export class ButterchurnPreset {
     }
 
     /**
-     * Skip to next preset
+     * Skip to next preset (manually triggered)
      */
     nextPreset() {
-        this.loadRandomPreset();
+        this.loadNextPreset();
         this.lastPresetChange = performance.now();
     }
 
@@ -180,11 +232,14 @@ export class ButterchurnPreset {
         const { mode } = params;
         const now = performance.now();
 
-        // Auto-cycle presets (if cycle duration > 0)
-        const cycleDuration = this.getPresetDuration();
-        if (cycleDuration > 0 && now - this.lastPresetChange > cycleDuration) {
-            this.loadRandomPreset();
-            this.lastPresetChange = now;
+        // Auto-cycle presets
+        const isCycleEnabled = visualizerSettings.isButterchurnCycleEnabled();
+        if (isCycleEnabled) {
+            const cycleDuration = this.getPresetDuration();
+            if (cycleDuration > 0 && now - this.lastPresetChange > cycleDuration) {
+                this.loadNextPreset();
+                this.lastPresetChange = now;
+            }
         }
 
         // Render the visualization

@@ -701,7 +701,7 @@ export const visualizerSettings = {
         localStorage.setItem(this.SMART_INTENSITY_KEY, enabled);
     },
 
-    // Butterchurn preset cycle duration in seconds (0 = disabled)
+    // Butterchurn preset cycle duration in seconds
     getButterchurnCycleDuration() {
         try {
             const val = localStorage.getItem(this.BUTTERCHURN_CYCLE_KEY);
@@ -713,6 +713,32 @@ export const visualizerSettings = {
 
     setButterchurnCycleDuration(seconds) {
         localStorage.setItem(this.BUTTERCHURN_CYCLE_KEY, seconds.toString());
+    },
+
+    // Butterchurn cycle enabled
+    isButterchurnCycleEnabled() {
+        try {
+            return localStorage.getItem('butterchurn-cycle-enabled') !== 'false';
+        } catch {
+            return true;
+        }
+    },
+
+    setButterchurnCycleEnabled(enabled) {
+        localStorage.setItem('butterchurn-cycle-enabled', enabled);
+    },
+
+    // Butterchurn randomize preset
+    isButterchurnRandomizeEnabled() {
+        try {
+            return localStorage.getItem('butterchurn-randomize-enabled') !== 'false';
+        } catch {
+            return true;
+        }
+    },
+
+    setButterchurnRandomizeEnabled(enabled) {
+        localStorage.setItem('butterchurn-randomize-enabled', enabled);
     },
 };
 

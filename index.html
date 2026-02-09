@@ -1600,6 +1600,44 @@
                                         style="font-size: 0.9rem; min-width: 3em; text-align: right">60%</span>
                                 </div>
                             </div>
+                            <!-- Butterchurn Settings -->
+                            <div class="setting-item" id="butterchurn-cycle-setting" style="display: none">
+                                <div class="info">
+                                    <span class="label">Cycle Presets</span>
+                                    <span class="description">Automatically change visualizer presets</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="butterchurn-cycle-toggle" />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-item" id="butterchurn-specific-preset-setting" style="display: none">
+                                <div class="info">
+                                    <span class="label">Current Preset</span>
+                                    <span class="description">Select a specific Butterchurn preset</span>
+                                </div>
+                                <select id="butterchurn-specific-preset-select" style="width: 200px">
+                                    <option value="">Loading...</option>
+                                </select>
+                            </div>
+                            <div class="setting-item" id="butterchurn-duration-setting" style="display: none">
+                                <div class="info">
+                                    <span class="label">Cycle Duration</span>
+                                    <span class="description">Seconds between preset changes</span>
+                                </div>
+                                <input type="number" id="butterchurn-duration-input" min="5" max="300" value="30"
+                                    class="template-input" style="width: 80px" />
+                            </div>
+                            <div class="setting-item" id="butterchurn-randomize-setting" style="display: none">
+                                <div class="info">
+                                    <span class="label">Randomize Presets</span>
+                                    <span class="description">Select next preset randomly instead of sequentially</span>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="butterchurn-randomize-toggle" />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
                         </div>
                     </div>
                 </div>

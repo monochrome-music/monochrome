@@ -857,6 +857,62 @@ export function initializeSettings(scrobbler, player, api, ui) {
     const visualizerSmartIntensitySetting = document.getElementById('visualizer-smart-intensity-setting');
     const visualizerSensitivitySetting = document.getElementById('visualizer-sensitivity-setting');
     const visualizerPresetSetting = document.getElementById('visualizer-preset-setting');
+    const visualizerPresetSelect = document.getElementById('visualizer-preset-select');
+
+    // Butterchurn Settings Elements
+    const butterchurnCycleSetting = document.getElementById('butterchurn-cycle-setting');
+    const butterchurnDurationSetting = document.getElementById('butterchurn-duration-setting');
+    const butterchurnRandomizeSetting = document.getElementById('butterchurn-randomize-setting');
+    const butterchurnSpecificPresetSetting = document.getElementById('butterchurn-specific-preset-setting');
+    const butterchurnSpecificPresetSelect = document.getElementById('butterchurn-specific-preset-select');
+    const butterchurnCycleToggle = document.getElementById('butterchurn-cycle-toggle');
+    const butterchurnDurationInput = document.getElementById('butterchurn-duration-input');
+    const butterchurnRandomizeToggle = document.getElementById('butterchurn-randomize-toggle');
+
+    const updateButterchurnSettingsVisibility = () => {
+        const isEnabled = visualizerEnabledToggle ? visualizerEnabledToggle.checked : false;
+        const isButterchurn = visualizerPresetSelect ? visualizerPresetSelect.value === 'butterchurn' : false;
+        const show = isEnabled && isButterchurn;
+
+        if (butterchurnCycleSetting) butterchurnCycleSetting.style.display = show ? 'flex' : 'none';
+        if (butterchurnSpecificPresetSetting) butterchurnSpecificPresetSetting.style.display = show ? 'flex' : 'none';
+
+        // Cycle duration and randomize only show if cycle is enabled
+        const isCycleEnabled = butterchurnCycleToggle ? butterchurnCycleToggle.checked : false;
+        const showSubSettings = show && isCycleEnabled;
+
+        if (butterchurnDurationSetting) butterchurnDurationSetting.style.display = showSubSettings ? 'flex' : 'none';
+        if (butterchurnRandomizeSetting) butterchurnRandomizeSetting.style.display = showSubSettings ? 'flex' : 'none';
+
+        // Populate preset list if visible
+        if (show && ui && ui.visualizer && ui.visualizer.presets['butterchurn']) {
+            const preset = ui.visualizer.presets['butterchurn'];
+            const select = butterchurnSpecificPresetSelect;
+
+            // Only populate if needed (to avoid resetting selection or heavy DOM ops)
+            if (select && select.options.length <= 1 && preset.getPresetNames && preset.getPresetNames().length > 0) {
+                const names = preset.getPresetNames();
+                select.innerHTML = '';
+                names.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    option.textContent = name;
+                    select.appendChild(option);
+                });
+
+                // Select current
+                if (preset.getCurrentPresetName) {
+                    select.value = preset.getCurrentPresetName();
+                }
+            } else if (select && preset.getCurrentPresetName) {
+                // Just update selection if list already populated
+                const current = preset.getCurrentPresetName();
+                if (select.value !== current) {
+                    select.value = current;
+                }
+            }
+        }
+    };
 
     const updateVisualizerSettingsVisibility = (enabled) => {
         const display = enabled ? 'flex' : 'none';
@@ -864,10 +920,19 @@ export function initializeSettings(scrobbler, player, api, ui) {
         if (visualizerSmartIntensitySetting) visualizerSmartIntensitySetting.style.display = display;
         if (visualizerSensitivitySetting) visualizerSensitivitySetting.style.display = display;
         if (visualizerPresetSetting) visualizerPresetSetting.style.display = display;
+
+        // Also update Butterchurn specific visibility
+        updateButterchurnSettingsVisibility();
     };
+
+    // Initialize preset select value early so visibility logic works correctly on load
+    if (visualizerPresetSelect) {
+        visualizerPresetSelect.value = visualizerSettings.getPreset();
+    }
 
     if (visualizerEnabledToggle) {
         visualizerEnabledToggle.checked = visualizerSettings.isEnabled();
+
         updateVisualizerSettingsVisibility(visualizerEnabledToggle.checked);
 
         visualizerEnabledToggle.addEventListener('change', (e) => {
@@ -877,20 +942,56 @@ export function initializeSettings(scrobbler, player, api, ui) {
     }
 
     // Visualizer Preset Select
-    const visualizerPresetSelect = document.getElementById('visualizer-preset-select');
     if (visualizerPresetSelect) {
-        visualizerPresetSelect.value = visualizerSettings.getPreset();
+        // value set above
         visualizerPresetSelect.addEventListener('change', (e) => {
             const val = e.target.value;
             visualizerSettings.setPreset(val);
-            // Assuming 'ui' has access to 'visualizer' instance or we need to find it
-            // 'ui' is passed to initializeSettings.
-            // In ui.js, 'visualizer' is a property of UIRenderer.
             if (ui && ui.visualizer) {
                 ui.visualizer.setPreset(val);
             }
+            updateButterchurnSettingsVisibility();
         });
     }
+
+    if (butterchurnCycleToggle) {
+        butterchurnCycleToggle.checked = visualizerSettings.isButterchurnCycleEnabled();
+        butterchurnCycleToggle.addEventListener('change', (e) => {
+            visualizerSettings.setButterchurnCycleEnabled(e.target.checked);
+            updateButterchurnSettingsVisibility();
+        });
+    }
+
+    if (butterchurnDurationInput) {
+        butterchurnDurationInput.value = visualizerSettings.getButterchurnCycleDuration();
+        butterchurnDurationInput.addEventListener('change', (e) => {
+            let val = parseInt(e.target.value, 10);
+            if (isNaN(val) || val < 5) val = 5;
+            if (val > 300) val = 300;
+            e.target.value = val;
+            visualizerSettings.setButterchurnCycleDuration(val);
+        });
+    }
+
+    if (butterchurnRandomizeToggle) {
+        butterchurnRandomizeToggle.checked = visualizerSettings.isButterchurnRandomizeEnabled();
+        butterchurnRandomizeToggle.addEventListener('change', (e) => {
+            visualizerSettings.setButterchurnRandomizeEnabled(e.target.checked);
+        });
+    }
+
+    if (butterchurnSpecificPresetSelect) {
+        butterchurnSpecificPresetSelect.addEventListener('change', (e) => {
+            if (ui && ui.visualizer && ui.visualizer.presets['butterchurn']) {
+                ui.visualizer.presets['butterchurn'].loadPreset(e.target.value);
+            }
+        });
+    }
+
+    // Refresh settings when presets are loaded asynchronously
+    window.addEventListener('butterchurn-presets-loaded', () => {
+        updateButterchurnSettingsVisibility();
+    });
 
     // Visualizer Mode Select
     const visualizerModeSelect = document.getElementById('visualizer-mode-select');
