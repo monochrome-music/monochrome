@@ -1,64 +1,44 @@
 /**
  * Butterchurn (Milkdrop) Visualizer Preset
  * WebGL-based audio visualization using the Butterchurn library
- * Uses same loading logic as bc-demo.html - loads presets as global scripts
  */
 import butterchurn from 'butterchurn';
+import butterchurnPresets from 'butterchurn-presets';
 import { visualizerSettings } from '../storage.js';
 import { audioContextManager } from '../audio-context.js';
 
 // Module-level preset cache - loads immediately when this file is imported
 let cachedPresets = null;
 let cachedPresetKeys = [];
-let isLoading = false;
 let loadCallbacks = [];
 
 /**
- * Load presets at module level so they're available immediately
+ * Load presets at module level using static import
  */
 function loadPresetsModule() {
-    if (cachedPresets || isLoading) return;
-    isLoading = true;
-
-    // Check if already loaded in global
-    if (window.butterchurnPresets) {
-        processPresetsModule();
-        return;
-    }
-
-    // Load presets script like bc-demo.html does
-    const script = document.createElement('script');
-    script.src = '/node_modules/butterchurn-presets/lib/butterchurnPresets.min.js';
-    script.onload = () => {
-        console.log('[Butterchurn] Presets script loaded');
-        processPresetsModule();
-    };
-    script.onerror = (e) => {
-        console.error('[Butterchurn] Failed to load presets script:', e);
-        isLoading = false;
-    };
-    document.head.appendChild(script);
-}
-
-/**
- * Process loaded presets at module level
- */
-function processPresetsModule() {
     try {
-        const presetsModule = window.butterchurnPresets;
-        if (!presetsModule) {
-            console.error('[Butterchurn] butterchurnPresets not found on window');
-            isLoading = false;
+        console.log('[Butterchurn] Loading presets module, export type:', typeof butterchurnPresets);
+
+        // The module has a static getPresets method
+        if (typeof butterchurnPresets.getPresets !== 'function') {
+            console.error(
+                '[Butterchurn] butterchurnPresets.getPresets is not a function:',
+                typeof butterchurnPresets.getPresets
+            );
             return;
         }
 
-        const allPresets =
-            typeof presetsModule.getPresets === 'function'
-                ? presetsModule.getPresets()
-                : presetsModule.default || presetsModule;
-
+        const allPresets = butterchurnPresets.getPresets();
         cachedPresets = allPresets || {};
         cachedPresetKeys = Object.keys(cachedPresets);
+
+        // Filter out unwanted presets
+        const skipPatterns = ['flexi', 'empty', 'test', '_'];
+        cachedPresetKeys = cachedPresetKeys.filter((key) => {
+            return !skipPatterns.some((pattern) => key.toLowerCase().includes(pattern));
+        });
+
+        // Sort alphabetically
         cachedPresetKeys.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 
         console.log('[Butterchurn] Module-level presets loaded:', cachedPresetKeys.length);
@@ -70,11 +50,9 @@ function processPresetsModule() {
         // Dispatch global event
         window.dispatchEvent(new CustomEvent('butterchurn-presets-loaded'));
     } catch (e) {
-        console.error('[Butterchurn] Failed to process presets:', e);
+        console.error('[Butterchurn] Failed to load presets:', e);
         cachedPresets = {};
         cachedPresetKeys = [];
-    } finally {
-        isLoading = false;
     }
 }
 
@@ -114,7 +92,6 @@ export class ButterchurnPreset {
         // Use cached presets if available
         this.presets = cachedPresets || {};
         this.presetKeys = cachedPresetKeys || [];
-        this.isLoadingPresets = isLoading;
 
         // Transition settings
         this.blendProgress = 0;
@@ -125,7 +102,6 @@ export class ButterchurnPreset {
             onButterchurnPresetsLoaded((presets, keys) => {
                 this.presets = presets;
                 this.presetKeys = keys;
-                this.isLoadingPresets = false;
 
                 // Notify system that presets are ready (for settings dropdown)
                 window.dispatchEvent(new CustomEvent('butterchurn-presets-loaded'));
