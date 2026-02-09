@@ -122,6 +122,13 @@ export function initializeSettings(scrobbler, player, api, ui) {
     const lastfmToggleSetting = document.getElementById('lastfm-toggle-setting');
     const lastfmLoveToggle = document.getElementById('lastfm-love-toggle');
     const lastfmLoveSetting = document.getElementById('lastfm-love-setting');
+    const lastfmCustomCredsToggle = document.getElementById('lastfm-custom-creds-toggle');
+    const lastfmCustomCredsToggleSetting = document.getElementById('lastfm-custom-creds-toggle-setting');
+    const lastfmCustomCredsSetting = document.getElementById('lastfm-custom-creds-setting');
+    const lastfmCustomApiKey = document.getElementById('lastfm-custom-api-key');
+    const lastfmCustomApiSecret = document.getElementById('lastfm-custom-api-secret');
+    const lastfmSaveCustomCreds = document.getElementById('lastfm-save-custom-creds');
+    const lastfmClearCustomCreds = document.getElementById('lastfm-clear-custom-creds');
 
     function updateLastFMUI() {
         if (scrobbler.lastfm.isAuthenticated()) {
@@ -132,12 +139,30 @@ export function initializeSettings(scrobbler, player, api, ui) {
             lastfmLoveSetting.style.display = 'flex';
             lastfmToggle.checked = lastFMStorage.isEnabled();
             lastfmLoveToggle.checked = lastFMStorage.shouldLoveOnLike();
+            lastfmCustomCredsToggleSetting.style.display = 'flex';
+            lastfmCustomCredsToggle.checked = lastFMStorage.useCustomCredentials();
+            updateCustomCredsUI();
         } else {
             lastfmStatus.textContent = 'Connect your Last.fm account to scrobble tracks';
             lastfmConnectBtn.textContent = 'Connect Last.fm';
             lastfmConnectBtn.classList.remove('danger');
             lastfmToggleSetting.style.display = 'none';
             lastfmLoveSetting.style.display = 'none';
+            lastfmCustomCredsToggleSetting.style.display = 'none';
+            lastfmCustomCredsSetting.style.display = 'none';
+        }
+    }
+
+    function updateCustomCredsUI() {
+        const useCustom = lastFMStorage.useCustomCredentials();
+        lastfmCustomCredsSetting.style.display = useCustom ? 'flex' : 'none';
+
+        if (useCustom) {
+            lastfmCustomApiKey.value = lastFMStorage.getCustomApiKey();
+            lastfmCustomApiSecret.value = lastFMStorage.getCustomApiSecret();
+
+            const hasCreds = lastFMStorage.getCustomApiKey() && lastFMStorage.getCustomApiSecret();
+            lastfmClearCustomCreds.style.display = hasCreds ? 'inline-block' : 'none';
         }
     }
 
@@ -220,6 +245,78 @@ export function initializeSettings(scrobbler, player, api, ui) {
     if (lastfmLoveToggle) {
         lastfmLoveToggle.addEventListener('change', (e) => {
             lastFMStorage.setLoveOnLike(e.target.checked);
+        });
+    }
+
+    // Custom Credentials Toggle
+    if (lastfmCustomCredsToggle) {
+        lastfmCustomCredsToggle.addEventListener('change', (e) => {
+            lastFMStorage.setUseCustomCredentials(e.target.checked);
+            updateCustomCredsUI();
+
+            // Reload credentials in the scrobbler
+            scrobbler.lastfm.reloadCredentials();
+
+            // If credentials are being disabled, clear any existing session
+            if (!e.target.checked && scrobbler.lastfm.isAuthenticated()) {
+                scrobbler.lastfm.disconnect();
+                updateLastFMUI();
+                alert('Switched to default API credentials. Please reconnect to Last.fm.');
+            }
+        });
+    }
+
+    // Save Custom Credentials
+    if (lastfmSaveCustomCreds) {
+        lastfmSaveCustomCreds.addEventListener('click', () => {
+            const apiKey = lastfmCustomApiKey.value.trim();
+            const apiSecret = lastfmCustomApiSecret.value.trim();
+
+            if (!apiKey || !apiSecret) {
+                alert('Please enter both API Key and API Secret');
+                return;
+            }
+
+            lastFMStorage.setCustomApiKey(apiKey);
+            lastFMStorage.setCustomApiSecret(apiSecret);
+
+            // Reload credentials
+            scrobbler.lastfm.reloadCredentials();
+
+            updateCustomCredsUI();
+            alert('Custom API credentials saved! Please reconnect to Last.fm to use them.');
+
+            // Disconnect current session if authenticated
+            if (scrobbler.lastfm.isAuthenticated()) {
+                scrobbler.lastfm.disconnect();
+                updateLastFMUI();
+            }
+        });
+    }
+
+    // Clear Custom Credentials
+    if (lastfmClearCustomCreds) {
+        lastfmClearCustomCreds.addEventListener('click', () => {
+            if (confirm('Clear custom API credentials?')) {
+                lastFMStorage.clearCustomCredentials();
+                lastfmCustomApiKey.value = '';
+                lastfmCustomApiSecret.value = '';
+                lastfmCustomCredsToggle.checked = false;
+
+                // Reload credentials
+                scrobbler.lastfm.reloadCredentials();
+
+                updateCustomCredsUI();
+
+                // Disconnect current session if authenticated
+                if (scrobbler.lastfm.isAuthenticated()) {
+                    scrobbler.lastfm.disconnect();
+                    updateLastFMUI();
+                    alert(
+                        'Custom credentials cleared. Switched to default API credentials. Please reconnect to Last.fm.'
+                    );
+                }
+            }
         });
     }
 

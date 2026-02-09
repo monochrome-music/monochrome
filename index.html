@@ -2620,6 +2620,65 @@
                                         <span class="slider"></span>
                                     </label>
                                 </div>
+
+                                <div class="setting-item" id="lastfm-custom-creds-toggle-setting" style="display: none">
+                                    <div class="info">
+                                        <span class="label">Use Custom API Credentials</span>
+                                        <span class="description">Use your own Last.fm API key and secret</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="lastfm-custom-creds-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+
+                                <div class="setting-item" id="lastfm-custom-creds-setting" style="display: none">
+                                    <div class="info" style="flex: 1; min-width: 0">
+                                        <span class="label">Custom API Credentials</span>
+                                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px">
+                                            <input
+                                                type="text"
+                                                id="lastfm-custom-api-key"
+                                                placeholder="API Key"
+                                                style="
+                                                    padding: 8px;
+                                                    border-radius: 4px;
+                                                    border: 1px solid var(--border);
+                                                    background: var(--background);
+                                                    color: var(--foreground);
+                                                "
+                                            />
+                                            <input
+                                                type="password"
+                                                id="lastfm-custom-api-secret"
+                                                placeholder="API Secret"
+                                                style="
+                                                    padding: 8px;
+                                                    border-radius: 4px;
+                                                    border: 1px solid var(--border);
+                                                    background: var(--background);
+                                                    color: var(--foreground);
+                                                "
+                                            />
+                                            <div style="display: flex; gap: 8px; margin-top: 4px">
+                                                <button
+                                                    id="lastfm-save-custom-creds"
+                                                    class="btn-secondary"
+                                                    style="padding: 6px 12px; font-size: 0.85rem"
+                                                >
+                                                    Save Credentials
+                                                </button>
+                                                <button
+                                                    id="lastfm-clear-custom-creds"
+                                                    class="btn-secondary danger"
+                                                    style="padding: 6px 12px; font-size: 0.85rem; display: none"
+                                                >
+                                                    Clear
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="settings-group">

@@ -282,6 +282,9 @@ export const lastFMStorage = {
     STORAGE_KEY: 'lastfm-enabled',
     LOVE_ON_LIKE_KEY: 'lastfm-love-on-like',
     SCROBBLE_PERCENTAGE_KEY: 'lastfm-scrobble-percentage',
+    CUSTOM_API_KEY: 'lastfm-custom-api-key',
+    CUSTOM_API_SECRET: 'lastfm-custom-api-secret',
+    USE_CUSTOM_CREDENTIALS_KEY: 'lastfm-use-custom-credentials',
 
     isEnabled() {
         try {
@@ -319,6 +322,48 @@ export const lastFMStorage = {
     setScrobblePercentage(percentage) {
         const validPercentage = Math.max(1, Math.min(100, parseInt(percentage, 10) || 75));
         localStorage.setItem(this.SCROBBLE_PERCENTAGE_KEY, validPercentage.toString());
+    },
+
+    useCustomCredentials() {
+        try {
+            return localStorage.getItem(this.USE_CUSTOM_CREDENTIALS_KEY) === 'true';
+        } catch {
+            return false;
+        }
+    },
+
+    setUseCustomCredentials(enabled) {
+        localStorage.setItem(this.USE_CUSTOM_CREDENTIALS_KEY, enabled ? 'true' : 'false');
+    },
+
+    getCustomApiKey() {
+        try {
+            return localStorage.getItem(this.CUSTOM_API_KEY) || '';
+        } catch {
+            return '';
+        }
+    },
+
+    setCustomApiKey(key) {
+        localStorage.setItem(this.CUSTOM_API_KEY, key);
+    },
+
+    getCustomApiSecret() {
+        try {
+            return localStorage.getItem(this.CUSTOM_API_SECRET) || '';
+        } catch {
+            return '';
+        }
+    },
+
+    setCustomApiSecret(secret) {
+        localStorage.setItem(this.CUSTOM_API_SECRET, secret);
+    },
+
+    clearCustomCredentials() {
+        localStorage.removeItem(this.CUSTOM_API_KEY);
+        localStorage.removeItem(this.CUSTOM_API_SECRET);
+        localStorage.removeItem(this.USE_CUSTOM_CREDENTIALS_KEY);
     },
 };
 

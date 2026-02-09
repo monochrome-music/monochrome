@@ -3,8 +3,8 @@ import { lastFMStorage } from './storage.js';
 
 export class LastFMScrobbler {
     constructor() {
-        this.API_KEY = '85214f5abbc730e78770f27784b9bdf7';
-        this.API_SECRET = '2c2c37fd86739191860db810dd063292';
+        this.DEFAULT_API_KEY = '85214f5abbc730e78770f27784b9bdf7';
+        this.DEFAULT_API_SECRET = '2c2c37fd86739191860db810dd063292';
         this.API_URL = 'https://ws.audioscrobbler.com/2.0/';
 
         this.sessionKey = null;
@@ -15,7 +15,22 @@ export class LastFMScrobbler {
         this.hasScrobbled = false;
         this.isScrobbling = false;
 
+        this.loadCredentials();
         this.loadSession();
+    }
+
+    loadCredentials() {
+        if (lastFMStorage.useCustomCredentials()) {
+            this.API_KEY = lastFMStorage.getCustomApiKey() || this.DEFAULT_API_KEY;
+            this.API_SECRET = lastFMStorage.getCustomApiSecret() || this.DEFAULT_API_SECRET;
+        } else {
+            this.API_KEY = this.DEFAULT_API_KEY;
+            this.API_SECRET = this.DEFAULT_API_SECRET;
+        }
+    }
+
+    reloadCredentials() {
+        this.loadCredentials();
     }
 
     loadSession() {
