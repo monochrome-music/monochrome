@@ -190,6 +190,55 @@ export class LastFMScrobbler {
         }
     }
 
+    async authenticateWithCredentials(username, password) {
+        try {
+            const params = {
+                username: username,
+                password: password,
+                api_key: this.API_KEY,
+                method: 'auth.getMobileSession',
+            };
+
+            const signature = await this.generateSignature(params);
+
+            const formData = new URLSearchParams({
+                username: username,
+                password: password,
+                api_key: this.API_KEY,
+                method: 'auth.getMobileSession',
+                api_sig: signature,
+                format: 'json',
+            });
+
+            const response = await fetch(this.API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: formData,
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                throw new Error(data.message || 'Last.fm authentication error');
+            }
+
+            if (data.session) {
+                this.saveSession(data.session.key, data.session.name);
+                return {
+                    success: true,
+                    username: data.session.name,
+                };
+            }
+
+            throw new Error('No session returned');
+        } catch (error) {
+            console.error('Mobile authentication failed:', error);
+            throw error;
+        }
+    }
+
     async updateNowPlaying(track) {
         if (!this.isAuthenticated()) return;
 

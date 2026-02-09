@@ -2595,6 +2595,169 @@
                                     <div id="lastfm-controls">
                                         <button id="lastfm-connect-btn" class="btn-secondary">Connect Last.fm</button>
                                     </div>
+                                    <div id="lastfm-credential-auth" style="display: none; margin-top: 12px">
+                                        <div id="lastfm-credential-form" style="display: none">
+                                            <p style="margin: 0 0 8px 0; font-size: 0.85rem; color: var(--muted)">
+                                                Enter your Last.fm credentials:
+                                            </p>
+                                            <input
+                                                type="text"
+                                                id="lastfm-username"
+                                                placeholder="Username"
+                                                style="
+                                                    padding: 8px;
+                                                    border-radius: 4px;
+                                                    border: 1px solid var(--border);
+                                                    background: var(--background);
+                                                    color: var(--foreground);
+                                                    width: 100%;
+                                                    margin-bottom: 8px;
+                                                "
+                                            />
+                                            <input
+                                                type="password"
+                                                id="lastfm-password"
+                                                placeholder="Password"
+                                                style="
+                                                    padding: 8px;
+                                                    border-radius: 4px;
+                                                    border: 1px solid var(--border);
+                                                    background: var(--background);
+                                                    color: var(--foreground);
+                                                    width: 100%;
+                                                    margin-bottom: 8px;
+                                                "
+                                            />
+                                            <div style="display: flex; gap: 8px">
+                                                <button
+                                                    id="lastfm-login-credentials"
+                                                    class="btn-secondary"
+                                                    style="padding: 6px 12px; font-size: 0.85rem; flex: 1"
+                                                >
+                                                    Login
+                                                </button>
+                                                <button
+                                                    id="lastfm-use-oauth"
+                                                    class="btn-secondary"
+                                                    style="padding: 6px 12px; font-size: 0.85rem; flex: 1"
+                                                >
+                                                    Use OAuth Instead
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="lastfm-credential-auth" style="display: none; margin-top: 12px">
+                                        <div style="display: flex; flex-direction: column; gap: 8px">
+                                            <div id="lastfm-credential-toggle-container">
+                                                <button
+                                                    id="lastfm-show-credential-auth"
+                                                    class="btn-secondary"
+                                                    style="padding: 6px 12px; font-size: 0.85rem; width: 100%"
+                                                >
+                                                    Login with Username/Password
+                                                </button>
+                                            </div>
+                                            <div id="lastfm-credential-form" style="display: none">
+                                                <input
+                                                    type="text"
+                                                    id="lastfm-username"
+                                                    placeholder="Last.fm Username"
+                                                    style="
+                                                        padding: 8px;
+                                                        border-radius: 4px;
+                                                        border: 1px solid var(--border);
+                                                        background: var(--background);
+                                                        color: var(--foreground);
+                                                        width: 100%;
+                                                        margin-bottom: 8px;
+                                                    "
+                                                />
+                                                <input
+                                                    type="password"
+                                                    id="lastfm-password"
+                                                    placeholder="Last.fm Password"
+                                                    style="
+                                                        padding: 8px;
+                                                        border-radius: 4px;
+                                                        border: 1px solid var(--border);
+                                                        background: var(--background);
+                                                        color: var(--foreground);
+                                                        width: 100%;
+                                                        margin-bottom: 8px;
+                                                    "
+                                                />
+                                                <div style="display: flex; gap: 8px">
+                                                    <button
+                                                        id="lastfm-login-credentials"
+                                                        class="btn-secondary"
+                                                        style="padding: 6px 12px; font-size: 0.85rem; flex: 1"
+                                                    >
+                                                        Login
+                                                    </button>
+                                                    <button
+                                                        id="lastfm-use-oauth"
+                                                        class="btn-secondary"
+                                                        style="padding: 6px 12px; font-size: 0.85rem; flex: 1"
+                                                    >
+                                                        Use OAuth
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="lastfm-credential-auth" style="margin-top: 12px; display: none">
+                                        <div style="display: flex; flex-direction: column; gap: 8px">
+                                            <input
+                                                type="text"
+                                                id="lastfm-username"
+                                                placeholder="Last.fm Username"
+                                                style="
+                                                    padding: 8px;
+                                                    border-radius: 4px;
+                                                    border: 1px solid var(--border);
+                                                    background: var(--background);
+                                                    color: var(--foreground);
+                                                "
+                                            />
+                                            <input
+                                                type="password"
+                                                id="lastfm-password"
+                                                placeholder="Last.fm Password"
+                                                style="
+                                                    padding: 8px;
+                                                    border-radius: 4px;
+                                                    border: 1px solid var(--border);
+                                                    background: var(--background);
+                                                    color: var(--foreground);
+                                                "
+                                            />
+                                            <div style="display: flex; gap: 8px; margin-top: 4px">
+                                                <button
+                                                    id="lastfm-login-credentials"
+                                                    class="btn-secondary"
+                                                    style="padding: 6px 12px; font-size: 0.85rem"
+                                                >
+                                                    Login with Credentials
+                                                </button>
+                                                <button
+                                                    id="lastfm-use-oauth"
+                                                    class="btn-secondary"
+                                                    style="padding: 6px 12px; font-size: 0.85rem"
+                                                >
+                                                    Use OAuth Instead
+                                                </button>
+                                            </div>
+                                            <div style="display: flex; gap: 8px; margin-top: 4px">
+                                                <button
+                                                    id="lastfm-show-credential-auth"
+                                                    class="btn-secondary"
+                                                    style="padding: 6px 12px; font-size: 0.85rem"
+                                                >
+                                                    Login with Username/Password
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div class="setting-item" id="lastfm-toggle-setting" style="display: none">

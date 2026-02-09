@@ -130,6 +130,12 @@ export function initializeSettings(scrobbler, player, api, ui) {
     const lastfmCustomApiSecret = document.getElementById('lastfm-custom-api-secret');
     const lastfmSaveCustomCreds = document.getElementById('lastfm-save-custom-creds');
     const lastfmClearCustomCreds = document.getElementById('lastfm-clear-custom-creds');
+    const lastfmCredentialAuth = document.getElementById('lastfm-credential-auth');
+    const lastfmCredentialForm = document.getElementById('lastfm-credential-form');
+    const lastfmUsernameInput = document.getElementById('lastfm-username');
+    const lastfmPasswordInput = document.getElementById('lastfm-password');
+    const lastfmLoginCredentialsBtn = document.getElementById('lastfm-login-credentials');
+    const lastfmUseOAuthBtn = document.getElementById('lastfm-use-oauth');
 
     function updateLastFMUI() {
         if (scrobbler.lastfm.isAuthenticated()) {
@@ -143,6 +149,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
             lastfmCustomCredsToggleSetting.style.display = 'flex';
             lastfmCustomCredsToggle.checked = lastFMStorage.useCustomCredentials();
             updateCustomCredsUI();
+            hideCredentialAuth();
         } else {
             lastfmStatus.textContent = 'Connect your Last.fm account to scrobble tracks';
             lastfmConnectBtn.textContent = 'Connect Last.fm';
@@ -151,7 +158,23 @@ export function initializeSettings(scrobbler, player, api, ui) {
             lastfmLoveSetting.style.display = 'none';
             lastfmCustomCredsToggleSetting.style.display = 'none';
             lastfmCustomCredsSetting.style.display = 'none';
+            // Hide credential auth by default - only show on OAuth failure
+            hideCredentialAuth();
         }
+    }
+
+    function showCredentialAuth() {
+        if (lastfmCredentialAuth) lastfmCredentialAuth.style.display = 'block';
+        if (lastfmCredentialForm) lastfmCredentialForm.style.display = 'block';
+        // Focus on username field
+        if (lastfmUsernameInput) lastfmUsernameInput.focus();
+    }
+
+    function hideCredentialAuth() {
+        if (lastfmCredentialAuth) lastfmCredentialAuth.style.display = 'none';
+        if (lastfmCredentialForm) lastfmCredentialForm.style.display = 'none';
+        if (lastfmUsernameInput) lastfmUsernameInput.value = '';
+        if (lastfmPasswordInput) lastfmPasswordInput.value = '';
     }
 
     function updateCustomCredsUI() {
@@ -197,17 +220,22 @@ export function initializeSettings(scrobbler, player, api, ui) {
             lastfmConnectBtn.textContent = 'Waiting for authorization...';
 
             let attempts = 0;
-            const maxAttempts = 30;
+            const maxAttempts = 5;
 
             const checkAuth = setInterval(async () => {
                 attempts++;
 
                 if (attempts > maxAttempts) {
                     clearInterval(checkAuth);
+                    if (authWindow && !authWindow.closed) authWindow.close();
                     lastfmConnectBtn.textContent = 'Connect Last.fm';
                     lastfmConnectBtn.disabled = false;
-                    if (authWindow && !authWindow.closed) authWindow.close();
-                    alert('Authorization timed out. Please try again.');
+                    // Ask user if they want to use credentials instead
+                    if (
+                        confirm('Authorization timed out. Would you like to login with username and password instead?')
+                    ) {
+                        showCredentialAuth();
+                    }
                     return;
                 }
 
@@ -229,10 +257,13 @@ export function initializeSettings(scrobbler, player, api, ui) {
             }, 2000);
         } catch (error) {
             console.error('Last.fm connection failed:', error);
-            alert('Failed to connect to Last.fm: ' + error.message);
+            if (authWindow && !authWindow.closed) authWindow.close();
             lastfmConnectBtn.textContent = 'Connect Last.fm';
             lastfmConnectBtn.disabled = false;
-            if (authWindow && !authWindow.closed) authWindow.close();
+            // Ask user if they want to use credentials instead
+            if (confirm('Failed to connect to Last.fm. Would you like to login with username and password instead?')) {
+                showCredentialAuth();
+            }
         }
     });
 
@@ -318,6 +349,47 @@ export function initializeSettings(scrobbler, player, api, ui) {
                     );
                 }
             }
+        });
+    }
+
+    // Last.fm Credential Auth - Login with credentials
+    if (lastfmLoginCredentialsBtn) {
+        lastfmLoginCredentialsBtn.addEventListener('click', async () => {
+            const username = lastfmUsernameInput?.value?.trim();
+            const password = lastfmPasswordInput?.value;
+
+            if (!username || !password) {
+                alert('Please enter both username and password.');
+                return;
+            }
+
+            lastfmLoginCredentialsBtn.disabled = true;
+            lastfmLoginCredentialsBtn.textContent = 'Logging in...';
+
+            try {
+                const result = await scrobbler.lastfm.authenticateWithCredentials(username, password);
+                if (result.success) {
+                    lastFMStorage.setEnabled(true);
+                    lastfmToggle.checked = true;
+                    updateLastFMUI();
+                    // Clear password for security
+                    if (lastfmPasswordInput) lastfmPasswordInput.value = '';
+                    alert(`Successfully connected to Last.fm as ${result.username}!`);
+                }
+            } catch (error) {
+                console.error('Last.fm credential login failed:', error);
+                alert('Failed to login: ' + error.message);
+            } finally {
+                lastfmLoginCredentialsBtn.disabled = false;
+                lastfmLoginCredentialsBtn.textContent = 'Login';
+            }
+        });
+    }
+
+    // Last.fm Credential Auth - Switch back to OAuth
+    if (lastfmUseOAuthBtn) {
+        lastfmUseOAuthBtn.addEventListener('click', () => {
+            hideCredentialAuth();
         });
     }
 
