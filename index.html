@@ -2646,21 +2646,21 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div id="lastfm-credential-auth" style="display: none; margin-top: 12px">
+                                    <div id="lastfm-credential-auth-secondary" style="display: none; margin-top: 12px">
                                         <div style="display: flex; flex-direction: column; gap: 8px">
-                                            <div id="lastfm-credential-toggle-container">
+                                            <div id="lastfm-credential-toggle-container-secondary">
                                                 <button
-                                                    id="lastfm-show-credential-auth"
+                                                    id="lastfm-show-credential-auth-secondary"
                                                     class="btn-secondary"
                                                     style="padding: 6px 12px; font-size: 0.85rem; width: 100%"
                                                 >
                                                     Login with Username/Password
                                                 </button>
                                             </div>
-                                            <div id="lastfm-credential-form" style="display: none">
+                                            <div id="lastfm-credential-form-secondary" style="display: none">
                                                 <input
                                                     type="text"
-                                                    id="lastfm-username"
+                                                    id="lastfm-username-secondary"
                                                     placeholder="Last.fm Username"
                                                     style="
                                                         padding: 8px;
@@ -2674,7 +2674,7 @@
                                                 />
                                                 <input
                                                     type="password"
-                                                    id="lastfm-password"
+                                                    id="lastfm-password-secondary"
                                                     placeholder="Last.fm Password"
                                                     style="
                                                         padding: 8px;
@@ -2688,14 +2688,14 @@
                                                 />
                                                 <div style="display: flex; gap: 8px">
                                                     <button
-                                                        id="lastfm-login-credentials"
+                                                        id="lastfm-login-credentials-secondary"
                                                         class="btn-secondary"
                                                         style="padding: 6px 12px; font-size: 0.85rem; flex: 1"
                                                     >
                                                         Login
                                                     </button>
                                                     <button
-                                                        id="lastfm-use-oauth"
+                                                        id="lastfm-use-oauth-secondary"
                                                         class="btn-secondary"
                                                         style="padding: 6px 12px; font-size: 0.85rem; flex: 1"
                                                     >
@@ -2705,11 +2705,11 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div id="lastfm-credential-auth" style="margin-top: 12px; display: none">
+                                    <div id="lastfm-credential-auth-alt" style="margin-top: 12px; display: none">
                                         <div style="display: flex; flex-direction: column; gap: 8px">
                                             <input
                                                 type="text"
-                                                id="lastfm-username"
+                                                id="lastfm-username-alt"
                                                 placeholder="Last.fm Username"
                                                 style="
                                                     padding: 8px;
@@ -2721,7 +2721,7 @@
                                             />
                                             <input
                                                 type="password"
-                                                id="lastfm-password"
+                                                id="lastfm-password-alt"
                                                 placeholder="Last.fm Password"
                                                 style="
                                                     padding: 8px;
@@ -2733,14 +2733,14 @@
                                             />
                                             <div style="display: flex; gap: 8px; margin-top: 4px">
                                                 <button
-                                                    id="lastfm-login-credentials"
+                                                    id="lastfm-login-credentials-alt"
                                                     class="btn-secondary"
                                                     style="padding: 6px 12px; font-size: 0.85rem"
                                                 >
                                                     Login with Credentials
                                                 </button>
                                                 <button
-                                                    id="lastfm-use-oauth"
+                                                    id="lastfm-use-oauth-alt"
                                                     class="btn-secondary"
                                                     style="padding: 6px 12px; font-size: 0.85rem"
                                                 >
@@ -2749,7 +2749,7 @@
                                             </div>
                                             <div style="display: flex; gap: 8px; margin-top: 4px">
                                                 <button
-                                                    id="lastfm-show-credential-auth"
+                                                    id="lastfm-show-credential-auth-alt"
                                                     class="btn-secondary"
                                                     style="padding: 6px 12px; font-size: 0.85rem"
                                                 >
@@ -3066,6 +3066,18 @@
                                     </div>
                                     <label class="toggle-switch">
                                         <input type="checkbox" id="mono-audio-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Exponential Volume</span>
+                                        <span class="description"
+                                            >Use logarithmic volume curve for finer low-volume control</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="exponential-volume-toggle" />
                                         <span class="slider"></span>
                                     </label>
                                 </div>

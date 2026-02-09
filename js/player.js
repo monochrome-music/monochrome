@@ -9,7 +9,7 @@ import {
     getTrackYearDisplay,
     createQualityBadgeHTML,
 } from './utils.js';
-import { queueManager, replayGainSettings, trackDateSettings } from './storage.js';
+import { queueManager, replayGainSettings, trackDateSettings, exponentialVolumeSettings } from './storage.js';
 import { audioContextManager } from './audio-context.js';
 
 export class Player {
@@ -99,8 +99,11 @@ export class Player {
             scale = 1.0 / peak;
         }
 
+        // Apply exponential volume curve if enabled
+        const curvedVolume = exponentialVolumeSettings.applyCurve(this.userVolume);
+
         // Calculate effective volume
-        const effectiveVolume = this.userVolume * scale;
+        const effectiveVolume = curvedVolume * scale;
 
         // Apply to audio element
         this.audio.volume = Math.max(0, Math.min(1, effectiveVolume));

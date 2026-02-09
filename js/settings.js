@@ -25,6 +25,7 @@ import {
     sidebarSectionSettings,
     fontSettings,
     monoAudioSettings,
+    exponentialVolumeSettings,
 } from './storage.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
 import { getButterchurnPresets } from './visualizers/butterchurn.js';
@@ -771,6 +772,17 @@ export function initializeSettings(scrobbler, player, api, ui) {
             const enabled = e.target.checked;
             monoAudioSettings.setEnabled(enabled);
             audioContextManager.toggleMonoAudio(enabled);
+        });
+    }
+
+    // Exponential Volume Toggle
+    const exponentialVolumeToggle = document.getElementById('exponential-volume-toggle');
+    if (exponentialVolumeToggle) {
+        exponentialVolumeToggle.checked = exponentialVolumeSettings.isEnabled();
+        exponentialVolumeToggle.addEventListener('change', (e) => {
+            exponentialVolumeSettings.setEnabled(e.target.checked);
+            // Re-apply current volume to use new curve
+            player.applyReplayGain();
         });
     }
 

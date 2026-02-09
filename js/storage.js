@@ -860,6 +860,41 @@ export const monoAudioSettings = {
     },
 };
 
+export const exponentialVolumeSettings = {
+    STORAGE_KEY: 'exponential-volume-enabled',
+
+    isEnabled() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) === 'true';
+        } catch {
+            return false;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+
+    // Apply exponential curve to linear volume (0-1)
+    // Uses a power curve: output = input^3 for more natural volume control
+    applyCurve(linearVolume) {
+        if (!this.isEnabled()) {
+            return linearVolume;
+        }
+        // Exponential curve: cubed for much finer low-volume control
+        // This creates a more dramatic difference that you'll actually notice
+        return Math.pow(linearVolume, 3);
+    },
+
+    // Convert from perceived volume back to linear for UI
+    inverseCurve(perceivedVolume) {
+        if (!this.isEnabled()) {
+            return perceivedVolume;
+        }
+        return Math.cbrt(perceivedVolume);
+    },
+};
+
 export const sidebarSettings = {
     STORAGE_KEY: 'monochrome-sidebar-collapsed',
 
