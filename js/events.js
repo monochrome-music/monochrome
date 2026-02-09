@@ -649,6 +649,7 @@ export async function showAddToPlaylistModal(track) {
             document.getElementById('playlist-modal-title').textContent = 'Create Playlist';
             document.getElementById('playlist-name-input').value = '';
             document.getElementById('playlist-cover-input').value = '';
+            document.getElementById('playlist-description-input').value = '';
             createModal.dataset.editingId = '';
             document.getElementById('csv-import-section').style.display = 'none';
 
@@ -1005,6 +1006,7 @@ export async function handleTrackAction(
                 document.getElementById('playlist-modal-title').textContent = 'Create Playlist';
                 document.getElementById('playlist-name-input').value = '';
                 document.getElementById('playlist-cover-input').value = '';
+                document.getElementById('playlist-description-input').value = '';
                 createModal.dataset.editingId = '';
                 document.getElementById('csv-import-section').style.display = 'none';
 

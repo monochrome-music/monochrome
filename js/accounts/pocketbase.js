@@ -348,11 +348,17 @@ const syncManager = {
             }
             if (!finalTitle) finalTitle = 'Untitled Playlist';
 
+            let finalDescription = record.description || '';
+            if (!finalDescription && extraData && typeof extraData === 'object') {
+                finalDescription = extraData.description || '';
+            }
+
             return {
                 ...record,
                 id: record.uuid,
                 name: finalTitle,
                 title: finalTitle,
+                description: finalDescription,
                 cover: finalCover,
                 image: finalCover,
                 tracks: tracks,
@@ -384,11 +390,13 @@ const syncManager = {
             image: playlist.cover,
             cover: playlist.cover,
             playlist_cover: playlist.cover,
+            description: playlist.description || '',
             tracks: JSON.stringify(playlist.tracks || []),
             isPublic: true,
             data: {
                 title: playlist.name,
                 cover: playlist.cover,
+                description: playlist.description || '',
             },
         };
 

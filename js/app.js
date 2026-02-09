@@ -649,6 +649,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('playlist-modal-title').textContent = 'Create Playlist';
             document.getElementById('playlist-name-input').value = '';
             document.getElementById('playlist-cover-input').value = '';
+            document.getElementById('playlist-description-input').value = '';
             modal.dataset.editingId = '';
             document.getElementById('csv-import-section').style.display = 'block';
             document.getElementById('csv-file-input').value = '';
@@ -696,6 +697,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (e.target.closest('#playlist-modal-save')) {
             const name = document.getElementById('playlist-name-input').value.trim();
+            const description = document.getElementById('playlist-description-input').value.trim();
             const isPublic = document.getElementById('playlist-public-toggle')?.checked;
 
             if (name) {
@@ -728,6 +730,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if (playlist) {
                             playlist.name = name;
                             playlist.cover = cover;
+                            playlist.description = description;
                             await handlePublicStatus(playlist);
                             await db.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
                             syncManager.syncUserPlaylist(playlist, 'update');
@@ -817,7 +820,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         console.log(`Added ${tracks.length} tracks (including pending)`);
                     }
 
-                    db.createPlaylist(name, tracks, cover).then(async (playlist) => {
+                    db.createPlaylist(name, tracks, cover, description).then(async (playlist) => {
                         await handlePublicStatus(playlist);
                         // Update DB again with isPublic flag
                         await db.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
@@ -842,6 +845,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     document.getElementById('playlist-modal-title').textContent = 'Edit Playlist';
                     document.getElementById('playlist-name-input').value = playlist.name;
                     document.getElementById('playlist-cover-input').value = playlist.cover || '';
+                    document.getElementById('playlist-description-input').value = playlist.description || '';
 
                     // Set Public Toggle
                     const publicToggle = document.getElementById('playlist-public-toggle');
@@ -886,6 +890,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     document.getElementById('playlist-modal-title').textContent = 'Edit Playlist';
                     document.getElementById('playlist-name-input').value = playlist.name;
                     document.getElementById('playlist-cover-input').value = playlist.cover || '';
+                    document.getElementById('playlist-description-input').value = playlist.description || '';
 
                     const publicToggle = document.getElementById('playlist-public-toggle');
                     const shareBtn = document.getElementById('playlist-share-btn');

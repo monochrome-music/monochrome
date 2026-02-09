@@ -12,23 +12,31 @@ export async function onRequest(context) {
 
     if (isBot && playlistId) {
         try {
-            let pbUrl = `https://monodb.samidy.com/api/collections/user_playlists/records/${playlistId}`;
+            // Try public_playlists collection first (for shared playlists)
+            let pbUrl = `https://monodb.samidy.com/api/collections/public_playlists/records?filter=(uuid='${playlistId}')`;
             let response = await fetch(pbUrl);
 
+            // Fall back to user_playlists for private/owned playlists
             if (!response.ok) {
-                pbUrl = `https://monodb.samidy.com/api/collections/public_playlists/records?filter=(uuid='${playlistId}')`;
+                pbUrl = `https://monodb.samidy.com/api/collections/user_playlists/records/${playlistId}`;
                 response = await fetch(pbUrl);
             }
 
             if (response.ok) {
                 let playlist = await response.json();
-                if (playlist.items && Array.isArray(playlist.items) && playlist.items.length > 0) {
-                    playlist = playlist.items[0];
+
+                // Handle public_playlists response (returns { items: [...] })
+                if (playlist.items && Array.isArray(playlist.items)) {
+                    if (playlist.items.length > 0) {
+                        playlist = playlist.items[0];
+                    } else {
+                        throw new Error('Playlist not found');
+                    }
                 }
 
                 if (!playlist) throw new Error('Playlist not found');
 
-                const title = playlist.name || playlist.title || 'User Playlist';
+                const title = playlist.name || playlist.title || playlist.playlist_name || 'User Playlist';
                 let tracks = [];
                 try {
                     tracks = Array.isArray(playlist.tracks)
@@ -41,14 +49,18 @@ export async function onRequest(context) {
                 }
 
                 const trackCount = tracks.length;
-                const description = `User Playlist • ${trackCount} Tracks\nListen on Monochrome`;
+                const playlistDescription = playlist.description || '';
+                const description = playlistDescription
+                    ? `${playlistDescription}\n${trackCount} Tracks • Listen on Monochrome`
+                    : `User Playlist • ${trackCount} Tracks\nListen on Monochrome`;
 
                 let imageUrl = 'https://monochrome.samidy.com/assets/appicon.png';
-                if (playlist.cover) {
-                    if (playlist.cover.startsWith('http')) {
-                        imageUrl = playlist.cover;
+                const coverUrl = playlist.cover || playlist.image || playlist.playlist_cover || '';
+                if (coverUrl) {
+                    if (coverUrl.startsWith('http')) {
+                        imageUrl = coverUrl;
                     } else {
-                        imageUrl = `https://monodb.samidy.com/api/files/${playlist.collectionId}/${playlist.id}/${playlist.cover}`;
+                        imageUrl = `https://monodb.samidy.com/api/files/${playlist.collectionId}/${playlist.id}/${coverUrl}`;
                     }
                 } else if (
                     tracks.length > 0 &&

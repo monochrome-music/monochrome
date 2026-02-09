@@ -466,13 +466,14 @@ export class MusicDatabase {
     }
 
     // User Playlists API
-    async createPlaylist(name, tracks = [], cover = '') {
+    async createPlaylist(name, tracks = [], cover = '', description = '') {
         const id = crypto.randomUUID();
         const playlist = {
             id: id,
             name: name,
             tracks: tracks.map((t) => this._minifyItem('track', { ...t, addedAt: Date.now() })),
             cover: cover,
+            description: description,
             createdAt: Date.now(),
             updatedAt: Date.now(),
             numberOfTracks: tracks.length,
@@ -664,6 +665,18 @@ export class MusicDatabase {
         playlist.name = newName;
         playlist.updatedAt = Date.now();
         await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
+        return playlist;
+    }
+
+    async updatePlaylistDescription(playlistId, newDescription) {
+        const playlist = await this.performTransaction('user_playlists', 'readonly', (store) => store.get(playlistId));
+        if (!playlist) throw new Error('Playlist not found');
+        playlist.description = newDescription;
+        playlist.updatedAt = Date.now();
+        await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
+
+        this._dispatchPlaylistSync('update', playlist);
+
         return playlist;
     }
 
