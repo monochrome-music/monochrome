@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import authGatePlugin from './vite-plugin-auth-gate.js';
 
 export default defineConfig({
     base: './',
@@ -8,6 +9,7 @@ export default defineConfig({
         emptyOutDir: true,
     },
     plugins: [
+        authGatePlugin(),
         VitePWA({
             registerType: 'prompt',
             workbox: {

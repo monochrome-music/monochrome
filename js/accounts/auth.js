@@ -103,7 +103,14 @@ export class AuthManager {
 
         try {
             await firebaseSignOut(auth);
-            // The onAuthStateChanged listener will handle the rest
+            if (window.__AUTH_GATE__) {
+                try {
+                    await fetch('/api/auth/logout', { method: 'POST' });
+                } catch (_) {
+                    // Server endpoint may not exist in dev mode
+                }
+                window.location.href = '/login';
+            }
         } catch (error) {
             console.error('Logout failed:', error);
             throw error;
@@ -118,6 +125,39 @@ export class AuthManager {
         const emailToggleBtn = document.getElementById('toggle-email-auth-btn');
 
         if (!connectBtn) return; // UI might not be rendered yet
+
+        // Auth gate active: strip down to status + sign out only
+        if (window.__AUTH_GATE__) {
+            connectBtn.textContent = 'Sign Out';
+            connectBtn.classList.add('danger');
+            connectBtn.onclick = () => this.signOut();
+            if (clearDataBtn) clearDataBtn.style.display = 'none';
+            if (emailContainer) emailContainer.style.display = 'none';
+            if (emailToggleBtn) emailToggleBtn.style.display = 'none';
+            if (statusText) statusText.textContent = user ? `Signed in as ${user.email}` : 'Signed in';
+
+            // Account page: clean up unnecessary text
+            const accountPage = document.getElementById('page-account');
+            if (accountPage) {
+                const title = accountPage.querySelector('.section-title');
+                if (title) title.textContent = 'Account';
+                // Hide description + privacy paragraphs, keep only status
+                accountPage.querySelectorAll('.account-content > p, .account-content > div').forEach((el) => {
+                    if (el.id !== 'firebase-status' && el.id !== 'auth-buttons-container') {
+                        el.style.display = 'none';
+                    }
+                });
+            }
+
+            // Settings page: hide custom DB/Auth config
+            const customDbBtn = document.getElementById('custom-db-btn');
+            if (customDbBtn) {
+                const settingItem = customDbBtn.closest('.setting-item');
+                if (settingItem) settingItem.style.display = 'none';
+            }
+
+            return;
+        }
 
         if (user) {
             connectBtn.textContent = 'Sign Out';

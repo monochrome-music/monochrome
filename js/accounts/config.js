@@ -30,8 +30,9 @@ function getStoredConfig() {
 }
 
 // Attempt to initialize on load
+// Priority: server-injected env (auth gate) > localStorage > default
 const storedConfig = getStoredConfig();
-const config = storedConfig || DEFAULT_CONFIG;
+const config = window.__FIREBASE_CONFIG__ || storedConfig || DEFAULT_CONFIG;
 
 if (config) {
     try {
