@@ -23,9 +23,11 @@ import { openLyricsPanel } from './lyrics.js';
 import {
     recentActivityManager,
     backgroundSettings,
+    dynamicColorSettings,
     cardSettings,
     visualizerSettings,
     homePageSettings,
+    fontSettings,
 } from './storage.js';
 import { db } from './db.js';
 import { getVibrantColorFromImage } from './vibrant-color.js';
@@ -42,7 +44,6 @@ import {
     createProjectCardHTML,
     createTrackFromSong,
 } from './tracker.js';
-import { fontSettings } from './storage.js';
 
 fontSettings.applyFont();
 
@@ -85,6 +86,11 @@ export class UIRenderer {
         this.searchAbortController = null;
         this.vibrantColorCache = new Map();
         this.visualizer = null;
+
+        // Listen for dynamic color reset events
+        window.addEventListener('reset-dynamic-color', () => {
+            this.resetVibrantColor();
+        });
     }
 
     // Helper for Heart Icon
@@ -96,7 +102,13 @@ export class UIRenderer {
     }
 
     async extractAndApplyColor(url) {
-        if (!backgroundSettings.isEnabled() || !url) {
+        if (!url) {
+            this.resetVibrantColor();
+            return;
+        }
+
+        // Check if dynamic coloring is enabled
+        if (!dynamicColorSettings.isEnabled()) {
             this.resetVibrantColor();
             return;
         }
@@ -695,7 +707,7 @@ export class UIRenderer {
 
         const root = document.documentElement;
         const theme = root.getAttribute('data-theme');
-        const isLightMode = theme === 'light';
+        const isLightMode = theme === 'white';
 
         let hex = color.replace('#', '');
         // Handle shorthand hex

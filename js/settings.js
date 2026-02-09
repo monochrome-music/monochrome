@@ -5,6 +5,7 @@ import {
     nowPlayingSettings,
     lyricsSettings,
     backgroundSettings,
+    dynamicColorSettings,
     cardSettings,
     waveformSettings,
     replayGainSettings,
@@ -776,6 +777,19 @@ export function initializeSettings(scrobbler, player, api, ui) {
         albumBackgroundToggle.checked = backgroundSettings.isEnabled();
         albumBackgroundToggle.addEventListener('change', (e) => {
             backgroundSettings.setEnabled(e.target.checked);
+        });
+    }
+
+    // Dynamic Color Toggle
+    const dynamicColorToggle = document.getElementById('dynamic-color-toggle');
+    if (dynamicColorToggle) {
+        dynamicColorToggle.checked = dynamicColorSettings.isEnabled();
+        dynamicColorToggle.addEventListener('change', (e) => {
+            dynamicColorSettings.setEnabled(e.target.checked);
+            if (!e.target.checked) {
+                // Reset colors immediately when disabled
+                window.dispatchEvent(new CustomEvent('reset-dynamic-color'));
+            }
         });
     }
 

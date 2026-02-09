@@ -457,7 +457,7 @@ export class UnknownPleasuresWebGL {
     draw(ctx, canvas, analyser, dataArray, params) {
         const gl = ctx;
         const { width, height } = canvas;
-        const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+        const isDark = document.documentElement.getAttribute('data-theme') !== 'white';
 
         // Set CSS blend mode based on mode and theme
         // Solid: normal (opaque background)

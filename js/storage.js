@@ -237,7 +237,7 @@ export const themeManager = {
 
         if (theme === 'system') {
             const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'white');
         } else {
             document.documentElement.setAttribute('data-theme', theme);
         }
@@ -356,6 +356,23 @@ export const lyricsSettings = {
 
 export const backgroundSettings = {
     STORAGE_KEY: 'album-background-enabled',
+
+    isEnabled() {
+        try {
+            // Default to true if not set
+            return localStorage.getItem(this.STORAGE_KEY) !== 'false';
+        } catch {
+            return true;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+};
+
+export const dynamicColorSettings = {
+    STORAGE_KEY: 'dynamic-color-enabled',
 
     isEnabled() {
         try {
@@ -1155,7 +1172,7 @@ export const sidebarSectionSettings = {
 if (typeof window !== 'undefined' && window.matchMedia) {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
         if (themeManager.getTheme() === 'system') {
-            document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'white');
         }
     });
 }
@@ -1168,10 +1185,10 @@ export const fontSettings = {
 
     getDefaultConfig() {
         return {
-            type: 'preset',
-            family: 'Inter',
-            fallback: 'sans-serif',
-            weights: [400, 500, 600, 700, 800],
+            type: 'google',
+            family: 'IBM Plex Mono',
+            fallback: 'monospace',
+            weights: [100, 200, 300, 400, 500, 600, 700],
         };
     },
 

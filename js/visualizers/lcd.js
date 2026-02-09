@@ -190,7 +190,7 @@ export class LCDPreset {
         const { kick, primaryColor, mode } = params;
 
         this.primaryColor = primaryColor;
-        const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+        const isDark = document.documentElement.getAttribute('data-theme') !== 'white';
 
         // --- Background ---
         ctx.clearRect(0, 0, width, height);

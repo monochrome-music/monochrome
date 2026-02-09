@@ -2095,9 +2095,9 @@
                                 </div>
                                 <div class="theme-picker" id="theme-picker">
                                     <div class="theme-option" data-theme="system">System</div>
-                                    <div class="theme-option" data-theme="light">Light</div>
-                                    <div class="theme-option" data-theme="dark">Dark</div>
                                     <div class="theme-option" data-theme="monochrome">Black</div>
+                                    <div class="theme-option" data-theme="white">White</div>
+                                    <div class="theme-option" data-theme="dark">Dark</div>
                                     <div class="theme-option" data-theme="ocean">Ocean</div>
                                     <div class="theme-option" data-theme="purple">Purple</div>
                                     <div class="theme-option" data-theme="forest">Forest</div>
@@ -2132,7 +2132,8 @@
 
                                         <div id="font-preset-section" class="font-section">
                                             <select id="font-preset-select">
-                                                <option value="Inter">Inter (Default)</option>
+                                                <option value="IBM Plex Mono">IBM Plex Mono (Default)</option>
+                                                <option value="Inter">Inter</option>
                                                 <option value="Roboto">Roboto</option>
                                                 <option value="Open Sans">Open Sans</option>
                                                 <option value="Lato">Lato</option>
@@ -2215,6 +2216,19 @@
                                     </div>
                                     <label class="toggle-switch">
                                         <input type="checkbox" id="album-background-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Dynamic Colors</span>
+                                        <span class="description"
+                                            >Automatically change the app accent color based on the currently playing
+                                            track's album art</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="dynamic-color-toggle" checked />
                                         <span class="slider"></span>
                                     </label>
                                 </div>

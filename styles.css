@@ -43,23 +43,23 @@
 :root[data-theme='monochrome'] {
     color-scheme: dark;
 
-    --background: #000;
-    --foreground: #fafafa;
-    --card: #111;
-    --card-foreground: #fafafa;
-    --primary: #fafafa;
-    --primary-foreground: #111;
-    --secondary: #27272a;
-    --secondary-foreground: #fafafa;
-    --muted: #27272a;
-    --muted-foreground: #a1a1aa;
-    --border: #27272a;
-    --input: #27272a;
-    --ring: #fafafa;
-    --highlight: #fff;
-    --highlight-rgb: 255, 255, 255;
+    --background: #0a0a0a;
+    --foreground: #f5f5f5;
+    --card: #141414;
+    --card-foreground: #f5f5f5;
+    --primary: #f5f5f5;
+    --primary-foreground: #0a0a0a;
+    --secondary: #1f1f1f;
+    --secondary-foreground: #e0e0e0;
+    --muted: #1f1f1f;
+    --muted-foreground: #a0a0a0;
+    --border: #2a2a2a;
+    --input: #1f1f1f;
+    --ring: #f5f5f5;
+    --highlight: #f5f5f5;
+    --highlight-rgb: 245, 245, 245;
     --active-highlight: var(--highlight);
-    --explicit-badge: #fafafa;
+    --explicit-badge: #f5f5f5;
 }
 
 :root[data-theme='dark'] {
@@ -231,33 +231,33 @@
     --muted-foreground: #6c6f85;
     --border: #ccd0da;
     --input: #bcc0cc;
-    --ring: #1e66f5;
+    --ring: #fdfdfd;
     --highlight: #1e66f5;
     --highlight-rgb: #7287fd;
     --active-highlight: #7287fd;
     --explicit-badge: #df8e1d;
 }
 
-:root[data-theme='light'] {
+:root[data-theme='white'] {
     color-scheme: light;
 
-    --background: #fff;
-    --foreground: #000;
-    --card: #f4f4f5;
-    --card-foreground: #000;
-    --primary: #2563eb;
-    --primary-foreground: #fff;
-    --secondary: #e4e4e7;
-    --secondary-foreground: #000;
-    --muted: #e4e4e7;
-    --muted-foreground: #62626a;
-    --border: #e4e4e7;
-    --input: #e4e4e7;
-    --ring: #2563eb;
-    --highlight: #2563eb;
-    --highlight-rgb: 37, 99, 235;
+    --background: #f5f5f5;
+    --foreground: #1a1a1a;
+    --card: #e8e8e8;
+    --card-foreground: #1a1a1a;
+    --primary: #1a1a1a;
+    --primary-foreground: #f5f5f5;
+    --secondary: #ddd;
+    --secondary-foreground: #2a2a2a;
+    --muted: #e0e0e0;
+    --muted-foreground: #555;
+    --border: #ccc;
+    --input: #e0e0e0;
+    --ring: #1a1a1a;
+    --highlight: #1a1a1a;
+    --highlight-rgb: 26, 26, 26;
     --active-highlight: var(--highlight);
-    --explicit-badge: #f58a8a;
+    --explicit-badge: #1a1a1a;
     --cover-filter: blur(50px) brightness(1.6) opacity(0.35);
 }
 
@@ -268,7 +268,7 @@
     margin: 0;
     padding: 0;
     -webkit-tap-highlight-color: transparent;
-    font-family: var(--font-family, 'Inter', sans-serif) !important;
+    font-family: var(--font-family, 'IBM Plex Mono', monospace) !important;
 }
 
 html {
@@ -281,7 +281,7 @@ html {
 body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: var(--font-family, 'Inter', sans-serif) !important;
+    font-family: var(--font-family, 'IBM Plex Mono', monospace) !important;
     overflow: hidden;
     transition:
         background-color 0.3s ease,
@@ -391,7 +391,7 @@ kbd {
 }
 
 /* Light mode adjustments */
-:root[data-theme='light'] #page-background {
+:root[data-theme='white'] #page-background {
     mask-image: linear-gradient(to bottom, rgb(0, 0, 0, 1) 0%, rgb(0, 0, 0, 0) 100%);
 }
 
@@ -423,7 +423,7 @@ kbd {
     animation: slide-up var(--transition-slow) var(--ease-out-back);
 }
 
-:root[data-theme='light'] .now-playing-bar {
+:root[data-theme='white'] .now-playing-bar {
     background-color: color-mix(in srgb, var(--card) 80%, transparent);
     border-color: rgb(0, 0, 0, 0.1);
 }

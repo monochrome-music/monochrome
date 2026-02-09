@@ -18,7 +18,7 @@ export class ParticlesPreset {
         const { width, height } = canvas;
         const { kick, intensity, primaryColor, mode } = params;
         const sensitivity = params.sensitivity || 1.0;
-        const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+        const isDark = document.documentElement.getAttribute('data-theme') !== 'white';
 
         // Clear background
         ctx.clearRect(0, 0, width, height);
