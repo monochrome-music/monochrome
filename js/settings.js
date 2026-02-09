@@ -1617,7 +1617,8 @@ export function initializeSettings(scrobbler, player, api, ui) {
 
         // Hide individual fields in the modal
         if (pbFromEnv && customPbUrlInput) customPbUrlInput.closest('div[style]').style.display = 'none';
-        if (fbFromEnv && customFirebaseConfigInput) customFirebaseConfigInput.closest('div[style]').style.display = 'none';
+        if (fbFromEnv && customFirebaseConfigInput)
+            customFirebaseConfigInput.closest('div[style]').style.display = 'none';
 
         customDbBtn.addEventListener('click', () => {
             const pbUrl = localStorage.getItem('monochrome-pocketbase-url') || '';
