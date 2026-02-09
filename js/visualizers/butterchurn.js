@@ -1,9 +1,103 @@
 /**
  * Butterchurn (Milkdrop) Visualizer Preset
  * WebGL-based audio visualization using the Butterchurn library
+ * Uses same loading logic as bc-demo.html - loads presets as global scripts
  */
 import butterchurn from 'butterchurn';
 import { visualizerSettings } from '../storage.js';
+import { audioContextManager } from '../audio-context.js';
+
+// Module-level preset cache - loads immediately when this file is imported
+let cachedPresets = null;
+let cachedPresetKeys = [];
+let isLoading = false;
+let loadCallbacks = [];
+
+/**
+ * Load presets at module level so they're available immediately
+ */
+function loadPresetsModule() {
+    if (cachedPresets || isLoading) return;
+    isLoading = true;
+
+    // Check if already loaded in global
+    if (window.butterchurnPresets) {
+        processPresetsModule();
+        return;
+    }
+
+    // Load presets script like bc-demo.html does
+    const script = document.createElement('script');
+    script.src = '/node_modules/butterchurn-presets/lib/butterchurnPresets.min.js';
+    script.onload = () => {
+        console.log('[Butterchurn] Presets script loaded');
+        processPresetsModule();
+    };
+    script.onerror = (e) => {
+        console.error('[Butterchurn] Failed to load presets script:', e);
+        isLoading = false;
+    };
+    document.head.appendChild(script);
+}
+
+/**
+ * Process loaded presets at module level
+ */
+function processPresetsModule() {
+    try {
+        const presetsModule = window.butterchurnPresets;
+        if (!presetsModule) {
+            console.error('[Butterchurn] butterchurnPresets not found on window');
+            isLoading = false;
+            return;
+        }
+
+        const allPresets =
+            typeof presetsModule.getPresets === 'function'
+                ? presetsModule.getPresets()
+                : presetsModule.default || presetsModule;
+
+        cachedPresets = allPresets || {};
+        cachedPresetKeys = Object.keys(cachedPresets);
+        cachedPresetKeys.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+
+        console.log('[Butterchurn] Module-level presets loaded:', cachedPresetKeys.length);
+
+        // Notify all waiting callbacks
+        loadCallbacks.forEach((cb) => cb(cachedPresets, cachedPresetKeys));
+        loadCallbacks = [];
+
+        // Dispatch global event
+        window.dispatchEvent(new CustomEvent('butterchurn-presets-loaded'));
+    } catch (e) {
+        console.error('[Butterchurn] Failed to process presets:', e);
+        cachedPresets = {};
+        cachedPresetKeys = [];
+    } finally {
+        isLoading = false;
+    }
+}
+
+/**
+ * Get cached presets - available immediately after module loads
+ */
+export function getButterchurnPresets() {
+    return { presets: cachedPresets, keys: cachedPresetKeys };
+}
+
+/**
+ * Register callback for when presets are loaded
+ */
+export function onButterchurnPresetsLoaded(callback) {
+    if (cachedPresets) {
+        callback(cachedPresets, cachedPresetKeys);
+    } else {
+        loadCallbacks.push(callback);
+    }
+}
+
+// Start loading presets immediately when module is imported
+loadPresetsModule();
 
 export class ButterchurnPreset {
     constructor() {
@@ -17,60 +111,30 @@ export class ButterchurnPreset {
         this.lastPresetChange = 0;
         this.isInitialized = false;
 
-        this.presets = {};
-        this.presetKeys = [];
-        this.isLoadingPresets = false;
+        // Use cached presets if available
+        this.presets = cachedPresets || {};
+        this.presetKeys = cachedPresetKeys || [];
+        this.isLoadingPresets = isLoading;
 
         // Transition settings
         this.blendProgress = 0;
         this.blendDuration = 2.7; // seconds for preset transitions
 
-        // Load presets asynchronously
-        this.loadPresets();
-    }
+        // Listen for presets if not loaded yet
+        if (!cachedPresets) {
+            onButterchurnPresetsLoaded((presets, keys) => {
+                this.presets = presets;
+                this.presetKeys = keys;
+                this.isLoadingPresets = false;
 
-    /**
-     * Load presets dynamically to avoid blocking main bundle
-     */
-    async loadPresets() {
-        if (this.isLoadingPresets) return;
-        this.isLoadingPresets = true;
+                // Notify system that presets are ready (for settings dropdown)
+                window.dispatchEvent(new CustomEvent('butterchurn-presets-loaded'));
 
-        try {
-            const module = await import('butterchurn-presets');
-            const presets = module.default.getPresets();
-
-            this.presets = presets;
-            this.presetKeys = Object.keys(this.presets);
-
-            // Filter to get a good selection of presets
-            this.presetKeys = this.presetKeys.filter(key => {
-                const skipPatterns = ['flexi', 'empty', 'test', '_'];
-                return !skipPatterns.some(pattern => key.toLowerCase().includes(pattern));
+                // If visualizer already initialized, load a preset
+                if (this.isInitialized && this.visualizer) {
+                    this.loadNextPreset();
+                }
             });
-
-            if (this.presetKeys.length === 0) {
-                this.presetKeys = Object.keys(this.presets);
-            }
-
-            // Shuffle presets for variety
-            this.shufflePresets();
-
-            console.log('[Butterchurn] Presets loaded:', this.presetKeys.length);
-
-            // Notify system that presets are ready
-            window.dispatchEvent(new CustomEvent('butterchurn-presets-loaded'));
-
-            // If initialized (visualizer ready), load a preset immediately
-            if (this.isInitialized && this.visualizer) {
-                this.loadNextPreset();
-            }
-        } catch (e) {
-            console.error('[Butterchurn] Failed to load presets:', e);
-            this.presets = {};
-            this.presetKeys = [];
-        } finally {
-            this.isLoadingPresets = false;
         }
     }
 
@@ -102,7 +166,7 @@ export class ButterchurnPreset {
 
             // Connect audio source
             if (sourceNode) {
-                this.visualizer.connectAudio(sourceNode);
+                this.connectAudioWithDelay(sourceNode);
             }
 
             // Load initial preset
@@ -111,6 +175,16 @@ export class ButterchurnPreset {
             this.lastPresetChange = performance.now();
             this.isInitialized = true;
 
+            // Register for audio graph changes so we can reconnect when EQ is toggled
+            if (audioContextManager) {
+                this._unregisterGraphChange = audioContextManager.onGraphChange((sourceNode) => {
+                    if (sourceNode && this.isInitialized) {
+                        console.log('[Butterchurn] Audio graph changed, reconnecting...');
+                        this.connectAudioWithDelay(sourceNode);
+                    }
+                });
+            }
+
             console.log('[Butterchurn] Initialized with', this.presetKeys.length, 'presets');
         } catch (error) {
             console.error('[Butterchurn] Initialization failed:', error);
@@ -118,12 +192,27 @@ export class ButterchurnPreset {
     }
 
     /**
-     * Shuffle the preset keys for random variety
+     * Connect audio source to the visualizer (public API)
      */
-    shufflePresets() {
-        for (let i = this.presetKeys.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [this.presetKeys[i], this.presetKeys[j]] = [this.presetKeys[j], this.presetKeys[i]];
+    connectAudio(sourceNode) {
+        if (sourceNode) {
+            this.connectAudioWithDelay(sourceNode);
+        }
+    }
+
+    /**
+     * Connect audio source with delay node for proper sync
+     * Like bc-demo.html: creates a delay node and connects visualizer to it
+     */
+    connectAudioWithDelay(sourceNode) {
+        if (!this.audioContext || !this.visualizer) return;
+
+        try {
+            // Connect visualizer directly to the source node
+            this.visualizer.connectAudio(sourceNode);
+            console.log('[Butterchurn] Audio connected');
+        } catch (error) {
+            console.warn('[Butterchurn] Failed to connect audio:', error);
         }
     }
 
@@ -132,15 +221,6 @@ export class ButterchurnPreset {
      */
     loadNextPreset() {
         if (!this.visualizer || this.presetKeys.length === 0) return;
-
-        // If cycle enabled is false, don't change preset automatically unless forced (e.g. init or manual next)
-        // But here we are just loading 'a' preset.
-        // The cycling logic is in draw().
-
-        // Wait, loadNextPreset is general.
-        // Let's check settings inside loadNextPreset?
-        // No, loadNextPreset is an action. It should just do it.
-        // The caller decides when.
 
         const randomize = visualizerSettings.isButterchurnRandomizeEnabled();
 
@@ -156,7 +236,6 @@ export class ButterchurnPreset {
         if (preset) {
             try {
                 this.visualizer.loadPreset(preset, this.blendDuration);
-                // console.log('[Butterchurn] Loaded preset:', presetKey);
             } catch (error) {
                 console.warn('[Butterchurn] Failed to load preset:', presetKey, error);
                 // Try next preset
@@ -222,8 +301,6 @@ export class ButterchurnPreset {
      */
     draw(ctx, canvas, analyser, dataArray, params) {
         if (!this.isInitialized) {
-            // Lazy initialization - need audio context and source node
-            // This will be handled by the visualizer.js main class
             return;
         }
 
@@ -249,11 +326,8 @@ export class ButterchurnPreset {
             console.warn('[Butterchurn] Render error:', error);
         }
 
-        // Handle blended mode - we need to composite with cover art
-        // Butterchurn renders directly to the canvas, so for blended mode
-        // we need to adjust the canvas opacity/blend
+        // Handle blended mode
         if (mode === 'blended') {
-            // The canvas will be composited by CSS in the parent
             canvas.style.opacity = '0.85';
             canvas.style.mixBlendMode = 'screen';
         } else {
@@ -263,37 +337,33 @@ export class ButterchurnPreset {
     }
 
     /**
-     * Connect audio source to the visualizer
-     */
-    connectAudio(sourceNode) {
-        if (this.visualizer && sourceNode) {
-            try {
-                this.visualizer.connectAudio(sourceNode);
-                console.log('[Butterchurn] Audio connected');
-            } catch (error) {
-                console.warn('[Butterchurn] Failed to connect audio:', error);
-            }
-        }
-    }
-
-    /**
      * Lazy initialization helper for when audio context becomes available
      */
     lazyInit(canvas, audioContext, sourceNode) {
         if (!this.isInitialized && canvas && audioContext) {
-            const gl = canvas.getContext('webgl2', {
-                alpha: true,
-                antialias: true,
-                preserveDrawingBuffer: true,
-            }) || canvas.getContext('webgl', {
-                alpha: true,
-                antialias: true,
-                preserveDrawingBuffer: true,
-            });
+            const gl =
+                canvas.getContext('webgl2', {
+                    alpha: true,
+                    antialias: true,
+                    preserveDrawingBuffer: true,
+                }) ||
+                canvas.getContext('webgl', {
+                    alpha: true,
+                    antialias: true,
+                    preserveDrawingBuffer: true,
+                });
 
             if (gl) {
-                this.init(canvas, gl, audioContext, sourceNode);
+                this.init(canvas, gl, audioContext, null);
+
+                // Connect audio if sourceNode is provided
+                if (sourceNode) {
+                    this.connectAudioWithDelay(sourceNode);
+                }
             }
+        } else if (this.isInitialized && sourceNode) {
+            // Reconnect if source changed
+            this.connectAudioWithDelay(sourceNode);
         }
     }
 
@@ -301,9 +371,13 @@ export class ButterchurnPreset {
      * Cleanup resources
      */
     destroy() {
+        // Unregister graph change listener
+        if (this._unregisterGraphChange) {
+            this._unregisterGraphChange();
+            this._unregisterGraphChange = null;
+        }
+
         if (this.visualizer) {
-            // Butterchurn doesn't have an explicit cleanup method
-            // but we can null our references
             this.visualizer = null;
         }
         this.isInitialized = false;

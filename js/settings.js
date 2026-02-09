@@ -26,6 +26,7 @@ import {
     fontSettings,
 } from './storage.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
+import { getButterchurnPresets } from './visualizers/butterchurn.js';
 import { db } from './db.js';
 import { authManager } from './accounts/auth.js';
 import { syncManager } from './accounts/pocketbase.js';
@@ -884,31 +885,37 @@ export function initializeSettings(scrobbler, player, api, ui) {
         if (butterchurnDurationSetting) butterchurnDurationSetting.style.display = showSubSettings ? 'flex' : 'none';
         if (butterchurnRandomizeSetting) butterchurnRandomizeSetting.style.display = showSubSettings ? 'flex' : 'none';
 
-        // Populate preset list if visible
-        if (show && ui && ui.visualizer && ui.visualizer.presets['butterchurn']) {
-            const preset = ui.visualizer.presets['butterchurn'];
-            const select = butterchurnSpecificPresetSelect;
+        // Populate preset list using module-level cache (works even before visualizer initializes)
+        const { keys: presetNames } = getButterchurnPresets();
+        const select = butterchurnSpecificPresetSelect;
 
-            // Only populate if needed (to avoid resetting selection or heavy DOM ops)
-            if (select && select.options.length <= 1 && preset.getPresetNames && preset.getPresetNames().length > 0) {
-                const names = preset.getPresetNames();
+        if (select && presetNames.length > 0) {
+            const currentNames = Array.from(select.options).map((opt) => opt.value);
+            // Check if dropdown only has "Loading..." or needs full update
+            const hasOnlyLoadingOption = currentNames.length === 1 && currentNames[0] === '';
+            const needsUpdate =
+                hasOnlyLoadingOption ||
+                currentNames.length !== presetNames.length ||
+                !presetNames.every((name) => currentNames.includes(name));
+
+            if (needsUpdate) {
+                // Save current selection
+                const currentSelection = select.value;
+
+                // Clear and rebuild dropdown
                 select.innerHTML = '';
-                names.forEach(name => {
+                presetNames.forEach((name) => {
                     const option = document.createElement('option');
                     option.value = name;
                     option.textContent = name;
                     select.appendChild(option);
                 });
 
-                // Select current
-                if (preset.getCurrentPresetName) {
-                    select.value = preset.getCurrentPresetName();
-                }
-            } else if (select && preset.getCurrentPresetName) {
-                // Just update selection if list already populated
-                const current = preset.getCurrentPresetName();
-                if (select.value !== current) {
-                    select.value = current;
+                // Restore selection if it still exists
+                if (presetNames.includes(currentSelection)) {
+                    select.value = currentSelection;
+                } else {
+                    select.selectedIndex = 0;
                 }
             }
         }
@@ -982,6 +989,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
 
     if (butterchurnSpecificPresetSelect) {
         butterchurnSpecificPresetSelect.addEventListener('change', (e) => {
+            // Try to load via visualizer if active, otherwise just store the selection
             if (ui && ui.visualizer && ui.visualizer.presets['butterchurn']) {
                 ui.visualizer.presets['butterchurn'].loadPreset(e.target.value);
             }
@@ -990,8 +998,32 @@ export function initializeSettings(scrobbler, player, api, ui) {
 
     // Refresh settings when presets are loaded asynchronously
     window.addEventListener('butterchurn-presets-loaded', () => {
+        console.log('[Settings] Butterchurn presets loaded event received');
         updateButterchurnSettingsVisibility();
     });
+
+    // Check if presets already cached and update immediately
+    const { keys: cachedKeys } = getButterchurnPresets();
+    if (cachedKeys.length > 0) {
+        console.log('[Settings] Presets already cached, updating dropdown immediately');
+        updateButterchurnSettingsVisibility();
+    }
+
+    // Watch for audio tab becoming active and refresh presets
+    const audioTabContent = document.getElementById('settings-tab-audio');
+    if (audioTabContent) {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    if (audioTabContent.classList.contains('active')) {
+                        console.log('[Settings] Audio tab became active, refreshing presets');
+                        updateButterchurnSettingsVisibility();
+                    }
+                }
+            });
+        });
+        observer.observe(audioTabContent, { attributes: true });
+    }
 
     // Visualizer Mode Select
     const visualizerModeSelect = document.getElementById('visualizer-mode-select');

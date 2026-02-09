@@ -79,7 +79,7 @@ export class Visualizer {
      * Get the source node
      */
     getSourceNode() {
-        return audioContextManager.source;
+        return audioContextManager.getSourceNode();
     }
 
     initContext() {
@@ -143,11 +143,8 @@ export class Visualizer {
 
         // Initialize Butterchurn if it's the active preset
         if (this.activePresetKey === 'butterchurn' && this.activePreset.lazyInit) {
-            this.activePreset.lazyInit(
-                this.canvas,
-                this.audioContext,
-                this.analyser
-            );
+            const sourceNode = audioContextManager.getSourceNode();
+            this.activePreset.lazyInit(this.canvas, this.audioContext, sourceNode);
         }
 
         this.resize();
@@ -272,11 +269,8 @@ export class Visualizer {
 
         // Initialize Butterchurn if switching to it
         if (key === 'butterchurn' && this.presets[key].lazyInit && this.audioContext) {
-            this.presets[key].lazyInit(
-                this.canvas,
-                this.audioContext,
-                this.analyser
-            );
+            const sourceNode = audioContextManager.getSourceNode();
+            this.presets[key].lazyInit(this.canvas, this.audioContext, sourceNode);
         }
     }
 }

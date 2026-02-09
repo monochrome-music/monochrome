@@ -86,8 +86,39 @@ class AudioContextManager {
         this.currentGains = new Array(16).fill(0);
         this.audio = null;
 
+        // Callbacks for audio graph changes (for visualizers like Butterchurn)
+        this._graphChangeCallbacks = [];
+
         // Load saved settings
         this._loadSettings();
+    }
+
+    /**
+     * Register a callback to be called when audio graph is reconnected
+     * @param {Function} callback - Function to call when graph changes
+     * @returns {Function} - Unregister function
+     */
+    onGraphChange(callback) {
+        this._graphChangeCallbacks.push(callback);
+        return () => {
+            const index = this._graphChangeCallbacks.indexOf(callback);
+            if (index > -1) {
+                this._graphChangeCallbacks.splice(index, 1);
+            }
+        };
+    }
+
+    /**
+     * Notify all registered callbacks that graph has changed
+     */
+    _notifyGraphChange() {
+        this._graphChangeCallbacks.forEach((callback) => {
+            try {
+                callback(this.source);
+            } catch (e) {
+                console.warn('[AudioContext] Graph change callback failed:', e);
+            }
+        });
     }
 
     /**
@@ -183,6 +214,9 @@ class AudioContextManager {
                 this.analyser.connect(this.audioContext.destination);
                 console.log('[AudioContext] EQ bypassed');
             }
+
+            // Notify visualizers that graph has been reconnected
+            this._notifyGraphChange();
         } catch (e) {
             console.warn('[AudioContext] Failed to connect graph:', e);
             // Fallback: direct connection
@@ -232,6 +266,13 @@ class AudioContextManager {
      */
     getAudioContext() {
         return this.audioContext;
+    }
+
+    /**
+     * Get the source node for visualizers
+     */
+    getSourceNode() {
+        return this.source;
     }
 
     /**
