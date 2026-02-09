@@ -22,6 +22,7 @@ import {
     libreFmSettings,
     homePageSettings,
     sidebarSectionSettings,
+    fontSettings,
 } from './storage.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
 import { db } from './db.js';
@@ -1280,8 +1281,156 @@ export function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
+    // Font Settings
+    initializeFontSettings();
+
     // Settings Search functionality
     setupSettingsSearch();
+}
+
+function initializeFontSettings() {
+    const fontTypeSelect = document.getElementById('font-type-select');
+    const fontPresetSection = document.getElementById('font-preset-section');
+    const fontGoogleSection = document.getElementById('font-google-section');
+    const fontUrlSection = document.getElementById('font-url-section');
+    const fontUploadSection = document.getElementById('font-upload-section');
+    const fontPresetSelect = document.getElementById('font-preset-select');
+    const fontGoogleInput = document.getElementById('font-google-input');
+    const fontGoogleApply = document.getElementById('font-google-apply');
+    const fontUrlInput = document.getElementById('font-url-input');
+    const fontUrlName = document.getElementById('font-url-name');
+    const fontUrlApply = document.getElementById('font-url-apply');
+    const fontUploadInput = document.getElementById('font-upload-input');
+    const uploadedFontsList = document.getElementById('uploaded-fonts-list');
+
+    if (!fontTypeSelect) return;
+
+    // Load current font config
+    const config = fontSettings.getConfig();
+
+    // Show correct section based on type
+    function showFontSection(type) {
+        fontPresetSection.style.display = type === 'preset' ? 'block' : 'none';
+        fontGoogleSection.style.display = type === 'google' ? 'flex' : 'none';
+        fontUrlSection.style.display = type === 'url' ? 'flex' : 'none';
+        fontUploadSection.style.display = type === 'upload' ? 'block' : 'none';
+    }
+
+    // Initialize UI state
+    fontTypeSelect.value = config.type;
+    showFontSection(config.type);
+
+    if (config.type === 'preset') {
+        fontPresetSelect.value = config.family;
+    } else if (config.type === 'google') {
+        fontGoogleInput.value = config.family || '';
+    } else if (config.type === 'url') {
+        fontUrlInput.value = config.url || '';
+        fontUrlName.value = config.family || '';
+    }
+
+    // Type selector change
+    fontTypeSelect.addEventListener('change', (e) => {
+        showFontSection(e.target.value);
+    });
+
+    // Preset font change
+    fontPresetSelect.addEventListener('change', (e) => {
+        const value = e.target.value;
+        if (value === 'System UI') {
+            fontSettings.loadPresetFont(
+                "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue'",
+                'sans-serif'
+            );
+        } else if (value === 'monospace') {
+            fontSettings.loadPresetFont('monospace', 'monospace');
+        } else {
+            fontSettings.loadPresetFont(value, 'sans-serif');
+        }
+    });
+
+    // Google Fonts apply
+    fontGoogleApply.addEventListener('click', () => {
+        const input = fontGoogleInput.value.trim();
+        if (!input) return;
+
+        let fontName = input;
+
+        // Check if it's a Google Fonts URL
+        if (input.includes('fonts.google.com')) {
+            const parsed = fontSettings.parseGoogleFontsUrl(input);
+            if (parsed) {
+                fontName = parsed;
+            }
+        }
+
+        fontSettings.loadGoogleFont(fontName);
+    });
+
+    // URL font apply
+    fontUrlApply.addEventListener('click', () => {
+        const url = fontUrlInput.value.trim();
+        const name = fontUrlName.value.trim();
+        if (!url) return;
+
+        fontSettings.loadFontFromUrl(url, name || 'CustomFont');
+    });
+
+    // File upload
+    fontUploadInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+            const font = await fontSettings.saveUploadedFont(file);
+            await fontSettings.loadUploadedFont(font.id);
+            renderUploadedFontsList();
+            fontUploadInput.value = '';
+        } catch (err) {
+            console.error('Failed to upload font:', err);
+            alert('Failed to upload font');
+        }
+    });
+
+    // Render uploaded fonts list
+    function renderUploadedFontsList() {
+        const fonts = fontSettings.getUploadedFontList();
+        uploadedFontsList.innerHTML = '';
+
+        fonts.forEach((font) => {
+            const item = document.createElement('div');
+            item.className = 'uploaded-font-item';
+            item.innerHTML = `
+                <span class="font-name">${font.name}</span>
+                <div class="font-actions">
+                    <button class="btn-icon" data-id="${font.id}" data-action="use">Use</button>
+                    <button class="btn-icon btn-delete" data-id="${font.id}" data-action="delete">Delete</button>
+                </div>
+            `;
+            uploadedFontsList.appendChild(item);
+        });
+
+        // Add event listeners for buttons
+        uploadedFontsList.querySelectorAll('.btn-icon').forEach((btn) => {
+            btn.addEventListener('click', async (e) => {
+                const fontId = e.target.dataset.id;
+                const action = e.target.dataset.action;
+
+                if (action === 'use') {
+                    await fontSettings.loadUploadedFont(fontId);
+                    fontTypeSelect.value = 'upload';
+                    showFontSection('upload');
+                } else if (action === 'delete') {
+                    if (confirm('Delete this font?')) {
+                        fontSettings.deleteUploadedFont(fontId);
+                        renderUploadedFontsList();
+                    }
+                }
+            });
+        });
+    }
+
+    renderUploadedFontsList();
 }
 
 function setupSettingsSearch() {

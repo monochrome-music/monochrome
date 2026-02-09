@@ -1096,6 +1096,20 @@
                         </p>
                     </div>
 
+                    <section class="content-section" id="home-editors-picks-section-empty" style="margin-top: 0">
+                        <div
+                            style="
+                                display: flex;
+                                align-items: center;
+                                justify-content: space-between;
+                                margin-bottom: 1rem;
+                            "
+                        >
+                            <h2 class="section-title" style="margin-bottom: 0">Editor's Picks</h2>
+                        </div>
+                        <div class="card-grid" id="home-editors-picks-empty"></div>
+                    </section>
+
                     <div id="home-content" style="display: none">
                         <section class="content-section">
                             <div
@@ -1165,19 +1179,6 @@
                             </div>
                             <div class="card-grid" id="home-recommended-albums"></div>
                         </section>
-                        <section class="content-section" id="home-editors-picks-section">
-                            <div
-                                style="
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: space-between;
-                                    margin-bottom: 1rem;
-                                "
-                            >
-                                <h2 class="section-title" style="margin-bottom: 0">Editor's Picks</h2>
-                            </div>
-                            <div class="card-grid" id="home-editors-picks"></div>
-                        </section>
                         <section class="content-section">
                             <div
                                 style="
@@ -1246,6 +1247,19 @@
                                 </button>
                             </div>
                             <div class="card-grid" id="home-recent-mixed"></div>
+                        </section>
+                        <section class="content-section" id="home-editors-picks-section">
+                            <div
+                                style="
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: space-between;
+                                    margin-bottom: 1rem;
+                                "
+                            >
+                                <h2 class="section-title" style="margin-bottom: 0">Editor's Picks</h2>
+                            </div>
+                            <div class="card-grid" id="home-editors-picks"></div>
                         </section>
                     </div>
                 </div>
@@ -2101,25 +2115,70 @@
                                         <button class="btn-secondary" id="reset-custom-theme">Reset</button>
                                     </div>
                                 </div>
-                                <div class="setting-item">
+                                <div class="setting-item font-settings-container">
                                     <div class="info">
                                         <span class="label">Font</span>
-                                        <span class="description">Choose the application font</span>
-                                    </div>
-                                    <select id="font-select">
-                                        <option value="'Inter', sans-serif">Inter (Default)</option>
-                                        <option value="'Roboto', sans-serif">Roboto</option>
-                                        <option value="'Open Sans', sans-serif">Open Sans</option>
-                                        <option value="'Lato', sans-serif">Lato</option>
-                                        <option value="'Montserrat', sans-serif">Montserrat</option>
-                                        <option value="'Poppins', sans-serif">Poppins</option>
-                                        <option
-                                            value="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif"
+                                        <span class="description"
+                                            >Choose from presets, Google Fonts, URLs, or upload your own</span
                                         >
-                                            System UI
-                                        </option>
-                                        <option value="monospace">Monospace</option>
-                                    </select>
+                                    </div>
+                                    <div class="font-input-group">
+                                        <select id="font-type-select" class="font-type-select">
+                                            <option value="preset">Preset</option>
+                                            <option value="google">Google Fonts</option>
+                                            <option value="url">URL</option>
+                                            <option value="upload">Upload</option>
+                                        </select>
+
+                                        <div id="font-preset-section" class="font-section">
+                                            <select id="font-preset-select">
+                                                <option value="Inter">Inter (Default)</option>
+                                                <option value="Roboto">Roboto</option>
+                                                <option value="Open Sans">Open Sans</option>
+                                                <option value="Lato">Lato</option>
+                                                <option value="Montserrat">Montserrat</option>
+                                                <option value="Poppins">Poppins</option>
+                                                <option value="System UI">System UI</option>
+                                                <option value="monospace">Monospace</option>
+                                            </select>
+                                        </div>
+
+                                        <div id="font-google-section" class="font-section" style="display: none">
+                                            <input
+                                                type="text"
+                                                id="font-google-input"
+                                                placeholder="Enter Google Fonts URL or font name (e.g., IBM Plex Mono)"
+                                                class="font-input"
+                                            />
+                                            <button id="font-google-apply" class="btn-secondary">Apply</button>
+                                        </div>
+
+                                        <div id="font-url-section" class="font-section" style="display: none">
+                                            <input
+                                                type="text"
+                                                id="font-url-input"
+                                                placeholder="Enter font file URL (.woff, .woff2, .ttf, .otf)"
+                                                class="font-input"
+                                            />
+                                            <input
+                                                type="text"
+                                                id="font-url-name"
+                                                placeholder="Font name (optional)"
+                                                class="font-input font-name-input"
+                                            />
+                                            <button id="font-url-apply" class="btn-secondary">Apply</button>
+                                        </div>
+
+                                        <div id="font-upload-section" class="font-section" style="display: none">
+                                            <input
+                                                type="file"
+                                                id="font-upload-input"
+                                                accept=".woff,.woff2,.ttf,.otf"
+                                                class="font-file-input"
+                                            />
+                                            <div id="uploaded-fonts-list" class="uploaded-fonts-list"></div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="setting-item">
                                     <div class="info">

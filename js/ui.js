@@ -42,8 +42,9 @@ import {
     createProjectCardHTML,
     createTrackFromSong,
 } from './tracker.js';
-const savedFont = localStorage.getItem('monochrome-font');
-if (savedFont) document.documentElement.style.setProperty('--font-family', savedFont);
+import { fontSettings } from './storage.js';
+
+fontSettings.applyFont();
 
 function sortTracks(tracks, sortType) {
     if (sortType === 'custom') return [...tracks];
@@ -1382,12 +1383,34 @@ export class UIRenderer {
 
         const welcomeEl = document.getElementById('home-welcome');
         const contentEl = document.getElementById('home-content');
+        const editorsPicksSectionEmpty = document.getElementById('home-editors-picks-section-empty');
+        const editorsPicksSection = document.getElementById('home-editors-picks-section');
 
         const history = await db.getHistory();
         const favorites = await db.getFavorites('track');
         const playlists = await db.getPlaylists(true);
 
-        if (history.length === 0 && favorites.length === 0 && playlists.length === 0) {
+        const hasActivity = history.length > 0 || favorites.length > 0 || playlists.length > 0;
+
+        // Handle Editor's Picks visibility based on settings
+        if (!homePageSettings.shouldShowEditorsPicks()) {
+            if (editorsPicksSectionEmpty) editorsPicksSectionEmpty.style.display = 'none';
+            if (editorsPicksSection) editorsPicksSection.style.display = 'none';
+        } else {
+            // Show empty-state section at top when no activity, hide the bottom one
+            if (editorsPicksSectionEmpty) editorsPicksSectionEmpty.style.display = hasActivity ? 'none' : '';
+            // Show bottom section when has activity, render it
+            if (editorsPicksSection) editorsPicksSection.style.display = hasActivity ? '' : 'none';
+        }
+
+        // Render editor's picks in the visible container
+        if (hasActivity) {
+            this.renderHomeEditorsPicks(false, 'home-editors-picks');
+        } else {
+            this.renderHomeEditorsPicks(false, 'home-editors-picks-empty');
+        }
+
+        if (!hasActivity) {
             if (welcomeEl) welcomeEl.style.display = 'block';
             if (contentEl) contentEl.style.display = 'none';
             return;
@@ -1414,7 +1437,6 @@ export class UIRenderer {
 
         this.renderHomeSongs();
         this.renderHomeAlbums();
-        this.renderHomeEditorsPicks();
         this.renderHomeArtists();
         this.renderHomeRecent();
     }
@@ -1540,16 +1562,8 @@ export class UIRenderer {
         });
     }
 
-    async renderHomeEditorsPicks(forceRefresh = false) {
-        const picksContainer = document.getElementById('home-editors-picks');
-        const section = document.getElementById('home-editors-picks-section');
-
-        if (!homePageSettings.shouldShowEditorsPicks()) {
-            if (section) section.style.display = 'none';
-            return;
-        }
-
-        if (section) section.style.display = '';
+    async renderHomeEditorsPicks(forceRefresh = false, containerId = 'home-editors-picks') {
+        const picksContainer = document.getElementById(containerId);
 
         if (picksContainer) {
             if (forceRefresh) picksContainer.innerHTML = this.createSkeletonCards(6);
@@ -1598,7 +1612,7 @@ export class UIRenderer {
 
                 if (cardsHTML.length > 0) {
                     picksContainer.innerHTML = cardsHTML.join('');
-                    itemsToStore.forEach((item, index) => {
+                    itemsToStore.forEach((item, _index) => {
                         const type = item.type;
                         const id = item.data.id;
                         const el = picksContainer.querySelector(`[data-${type}-id="${id}"]`);

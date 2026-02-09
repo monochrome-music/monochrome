@@ -268,6 +268,7 @@
     margin: 0;
     padding: 0;
     -webkit-tap-highlight-color: transparent;
+    font-family: var(--font-family, 'Inter', sans-serif) !important;
 }
 
 html {
@@ -280,7 +281,7 @@ html {
 body {
     background-color: var(--background);
     color: var(--foreground);
-    font-family: var(--font-family, 'Inter', sans-serif);
+    font-family: var(--font-family, 'Inter', sans-serif) !important;
     overflow: hidden;
     transition:
         background-color 0.3s ease,
@@ -318,7 +319,7 @@ kbd {
     border-radius: 4px;
     padding: 0.25rem 0.5rem;
     font-size: 0.85rem;
-    font-family: 'Courier New', monospace;
+    font-family: inherit;
     box-shadow: 0 2px 4px rgb(0, 0, 0, 0.1);
 }
 
@@ -1774,12 +1775,147 @@ input[type='search']::-webkit-search-cancel-button {
     border-radius: var(--radius);
     color: var(--foreground);
     font-size: 0.9rem;
-    font-family: 'Courier New', monospace;
 }
 
 .template-input:focus {
     outline: none;
     border-color: var(--ring);
+}
+
+.font-settings-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.font-settings-container .info {
+    width: 100%;
+}
+
+.font-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+    max-width: 500px;
+}
+
+.font-type-select {
+    width: 100%;
+    padding: 0.5rem;
+    background-color: var(--input);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+}
+
+.font-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.font-section select {
+    width: 100%;
+    padding: 0.5rem;
+    background-color: var(--input);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+}
+
+.font-input {
+    width: 100%;
+    padding: 0.5rem;
+    background-color: var(--input);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+}
+
+.font-name-input {
+    margin-top: 0.25rem;
+}
+
+.font-file-input {
+    padding: 0.5rem;
+    background-color: var(--input);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.font-file-input::file-selector-button {
+    background-color: var(--secondary);
+    color: var(--secondary-foreground);
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 0.4rem 0.8rem;
+    margin-right: 0.75rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background-color var(--transition-fast);
+}
+
+.font-file-input::file-selector-button:hover {
+    background-color: var(--secondary-hover);
+}
+
+.uploaded-fonts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.uploaded-font-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.75rem;
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 0.9rem;
+}
+
+.uploaded-font-item .font-name {
+    flex: 1;
+    color: var(--foreground);
+}
+
+.uploaded-font-item .font-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.uploaded-font-item .btn-icon {
+    padding: 0.25rem 0.5rem;
+    background-color: var(--secondary);
+    color: var(--secondary-foreground);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.uploaded-font-item .btn-icon:hover {
+    background-color: var(--secondary-hover);
+}
+
+.uploaded-font-item .btn-delete {
+    background-color: var(--destructive);
+    color: var(--destructive-foreground);
+}
+
+.uploaded-font-item .btn-delete:hover {
+    background-color: var(--destructive-hover);
 }
 
 .toggle-switch {
@@ -3041,7 +3177,6 @@ input:checked + .slider::before {
 
 .about-tech p {
     color: var(--muted-foreground);
-    font-family: 'Courier New', monospace;
     font-size: 0.9rem;
 }
 
@@ -3205,7 +3340,6 @@ input:checked + .slider::before {
     background-color: var(--secondary);
     padding: 0.2rem 0.4rem;
     border-radius: 4px;
-    font-family: 'Courier New', monospace;
     font-size: 0.85em;
 }
 
@@ -3376,7 +3510,6 @@ input:checked + .slider::before {
 }
 
 .lyrics-timing-display {
-    font-family: monospace;
     font-size: 0.875rem;
     font-weight: 600;
     color: var(--foreground);
@@ -4002,7 +4135,6 @@ img[src=''] {
     padding: 0.75rem 1.25rem;
     border-bottom: 1px solid var(--border);
     color: var(--foreground);
-    font-family: Inter, sans-serif;
     font-size: 0.95rem;
     font-weight: 400;
     line-height: 1.4;
@@ -4926,7 +5058,6 @@ body:has(#fullscreen-cover-overlay:not([style*='display: none'])) .now-playing-b
     font-size: 0.8rem;
     color: var(--muted-foreground);
     margin-bottom: 0.5rem;
-    font-family: monospace;
 }
 
 .annotation-text {
