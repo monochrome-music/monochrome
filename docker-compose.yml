@@ -8,7 +8,7 @@ services:
         ports:
             - '${MONOCHROME_PORT:-3000}:4173'
         environment:
-            AUTH_ENABLED: ${AUTH_ENABLED:-true}
+            AUTH_ENABLED: ${AUTH_ENABLED:-false}
             AUTH_SECRET: ${AUTH_SECRET:-}
             FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-monochrome-database}
             FIREBASE_CONFIG: ${FIREBASE_CONFIG:-}

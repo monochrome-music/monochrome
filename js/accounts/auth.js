@@ -149,11 +149,15 @@ export class AuthManager {
                 });
             }
 
-            // Settings page: hide custom DB/Auth config
+            // Settings page: hide custom DB/Auth config when fully server-configured
             const customDbBtn = document.getElementById('custom-db-btn');
             if (customDbBtn) {
-                const settingItem = customDbBtn.closest('.setting-item');
-                if (settingItem) settingItem.style.display = 'none';
+                const fbFromEnv = !!window.__FIREBASE_CONFIG__;
+                const pbFromEnv = !!window.__POCKETBASE_URL__;
+                if (fbFromEnv && pbFromEnv) {
+                    const settingItem = customDbBtn.closest('.setting-item');
+                    if (settingItem) settingItem.style.display = 'none';
+                }
             }
 
             return;

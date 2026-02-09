@@ -30,7 +30,7 @@ export default function authGatePlugin() {
         },
 
         configurePreviewServer(server) {
-            const AUTH_ENABLED = (env.AUTH_ENABLED ?? 'true') !== 'false';
+            const AUTH_ENABLED = (env.AUTH_ENABLED ?? 'false') !== 'false';
             const FIREBASE_CONFIG = env.FIREBASE_CONFIG;
             const POCKETBASE_URL = env.POCKETBASE_URL;
 
@@ -99,9 +99,7 @@ export default function authGatePlugin() {
                 console.log(`Auth gate enabled (Firebase project: ${PROJECT_ID})`);
 
                 const JWKS = createRemoteJWKSet(
-                    new URL(
-                        'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com',
-                    ),
+                    new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com')
                 );
 
                 server.middlewares.use(
@@ -111,13 +109,18 @@ export default function authGatePlugin() {
                         maxAge: SESSION_MAX_AGE,
                         httpOnly: true,
                         sameSite: 'lax',
-                    }),
+                    })
                 );
 
                 server.middlewares.use(async (req, res, next) => {
                     const url = req.url.split('?')[0];
 
                     if (url === '/login' || url === '/login.html') {
+                        if (req.session && req.session.uid) {
+                            res.writeHead(302, { Location: '/' });
+                            res.end();
+                            return;
+                        }
                         if (loginHtml) {
                             res.setHeader('Content-Type', 'text/html');
                             res.end(loginHtml);
