@@ -106,7 +106,7 @@ export class AuthManager {
             if (window.__AUTH_GATE__) {
                 try {
                     await fetch('/api/auth/logout', { method: 'POST' });
-                } catch (_) {
+                } catch {
                     // Server endpoint may not exist in dev mode
                 }
                 window.location.href = '/login';

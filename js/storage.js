@@ -86,7 +86,7 @@ export const apiSettings = {
         }
     },
 
-    async getInstances(type = 'api', sortBySpeed = false) {
+    async getInstances(type = 'api', _sortBySpeed = false) {
         let instancesObj;
 
         const stored = localStorage.getItem(this.STORAGE_KEY);
