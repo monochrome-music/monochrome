@@ -212,7 +212,7 @@ class AudioContextManager {
             if (this.monoMergerNode) {
                 try {
                     this.monoMergerNode.disconnect();
-                } catch (e) {
+                } catch {
                     // Ignore if not connected
                 }
             }
@@ -220,7 +220,7 @@ class AudioContextManager {
             // Only disconnect destination from analyser to preserve other taps (like Butterchurn)
             try {
                 this.analyser.disconnect(this.audioContext.destination);
-            } catch (e) {
+            } catch {
                 // Ignore if not connected
             }
 

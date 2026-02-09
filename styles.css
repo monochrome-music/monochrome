@@ -1755,7 +1755,7 @@ input[type='search']::-webkit-search-cancel-button {
     border-radius: 4px;
     flex-shrink: 0;
     display: inline-block;
-    background-image: radial-gradient(currentColor 1.2px, transparent 1.3px);
+    background-image: radial-gradient(currentcolor 1.2px, transparent 1.3px);
     background-size: 6px 6px;
     background-position: center;
     background-repeat: repeat;
