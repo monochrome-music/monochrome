@@ -3,32 +3,38 @@
  * WebGL-based audio visualization using the Butterchurn library
  */
 import butterchurn from 'butterchurn';
-import butterchurnPresets from 'butterchurn-presets';
 import { visualizerSettings } from '../storage.js';
 import { audioContextManager } from '../audio-context.js';
 
 // Module-level preset cache - loads immediately when this file is imported
 let cachedPresets = null;
 let cachedPresetKeys = [];
+let isLoading = false;
 let loadCallbacks = [];
 
 /**
- * Load presets at module level using static import
+ * Load presets at module level using dynamic import (lazy loaded)
  */
-function loadPresetsModule() {
+async function loadPresetsModule() {
+    if (cachedPresets || isLoading) return;
+    isLoading = true;
+
     try {
-        console.log('[Butterchurn] Loading presets module, export type:', typeof butterchurnPresets);
+        // Dynamic import to code-split butterchurn-presets into separate chunk
+        const butterchurnPresets = await import('butterchurn-presets');
+        console.log('[Butterchurn] Presets module loaded, type:', typeof butterchurnPresets);
 
         // The module has a static getPresets method
-        if (typeof butterchurnPresets.getPresets !== 'function') {
+        if (typeof butterchurnPresets.default?.getPresets !== 'function') {
             console.error(
                 '[Butterchurn] butterchurnPresets.getPresets is not a function:',
-                typeof butterchurnPresets.getPresets
+                typeof butterchurnPresets.default?.getPresets
             );
+            isLoading = false;
             return;
         }
 
-        const allPresets = butterchurnPresets.getPresets();
+        const allPresets = butterchurnPresets.default.getPresets();
         cachedPresets = allPresets || {};
         cachedPresetKeys = Object.keys(cachedPresets);
 
@@ -53,6 +59,8 @@ function loadPresetsModule() {
         console.error('[Butterchurn] Failed to load presets:', e);
         cachedPresets = {};
         cachedPresetKeys = [];
+    } finally {
+        isLoading = false;
     }
 }
 
@@ -74,7 +82,7 @@ export function onButterchurnPresetsLoaded(callback) {
     }
 }
 
-// Start loading presets immediately when module is imported
+// Start loading presets immediately when module is imported (lazy loaded)
 loadPresetsModule();
 
 export class ButterchurnPreset {

@@ -13,6 +13,7 @@ export default defineConfig({
             workbox: {
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
                 cleanupOutdatedCaches: true,
+                maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MiB limit
                 // Define runtime caching strategies
                 runtimeCaching: [
                     {
