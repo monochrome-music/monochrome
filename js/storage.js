@@ -1187,6 +1187,21 @@ export const homePageSettings = {
     setShowEditorsPicks(enabled) {
         localStorage.setItem(this.SHOW_EDITORS_PICKS_KEY, enabled ? 'true' : 'false');
     },
+
+    SHUFFLE_EDITORS_PICKS_KEY: 'home-shuffle-editors-picks',
+
+    shouldShuffleEditorsPicks() {
+        try {
+            const val = localStorage.getItem(this.SHUFFLE_EDITORS_PICKS_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShuffleEditorsPicks(enabled) {
+        localStorage.setItem(this.SHUFFLE_EDITORS_PICKS_KEY, enabled ? 'true' : 'false');
+    },
 };
 
 export const sidebarSectionSettings = {
