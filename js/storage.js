@@ -1371,10 +1371,10 @@ export const fontSettings = {
 
     getDefaultConfig() {
         return {
-            type: 'google',
-            family: 'IBM Plex Mono',
-            fallback: 'monospace',
-            weights: [100, 200, 300, 400, 500, 600, 700],
+            type: 'preset',
+            family: 'Inter',
+            fallback: 'sans-serif',
+            weights: [400, 500, 600, 700, 800],
         };
     },
 
