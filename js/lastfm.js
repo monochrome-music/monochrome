@@ -3,8 +3,8 @@ import { lastFMStorage } from './storage.js';
 
 export class LastFMScrobbler {
     constructor() {
-        this.API_KEY = '0ecf01914957b40c17030db822845a76';
-        this.API_SECRET = 'bd37e61e0b16b8c7bf8de2862de5493c';
+        this.API_KEY = '85214f5abbc730e78770f27784b9bdf7';
+        this.API_SECRET = '2c2c37fd86739191860db810dd063292';
         this.API_URL = 'https://ws.audioscrobbler.com/2.0/';
 
         this.sessionKey = null;
