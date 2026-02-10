@@ -241,15 +241,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize desktop environment (Neutralino)
     const urlParams = new URLSearchParams(window.location.search);
     const hasNLParams = urlParams.has('NL_PORT') || urlParams.has('NL_TOKEN');
-    const isDesktop = typeof window !== 'undefined' && (window.NL_MODE || window.location.port === '5050' || hasNLParams);
+    const isDesktop =
+        typeof window !== 'undefined' && (window.NL_MODE || window.location.port === '5050' || hasNLParams);
 
     if (typeof window !== 'undefined') {
-        const nlGlobals = Object.keys(window).filter(k => k.startsWith('NL_'));
+        const nlGlobals = Object.keys(window).filter((k) => k.startsWith('NL_'));
         console.log('[App] Environment Check:', {
             isDesktop,
             port: window.location.port,
             hasNLParams,
-            nlGlobals
+            nlGlobals,
         });
     }
 
