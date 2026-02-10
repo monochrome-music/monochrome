@@ -52,7 +52,7 @@ export class AuthManager {
 
         try {
             const result = await signInWithPopup(auth, provider);
-            
+
             if (result.user) {
                 console.log('Login successful:', result.user.email);
                 this.user = result.user;
@@ -62,11 +62,15 @@ export class AuthManager {
             }
         } catch (error) {
             console.error('Login failed:', error);
-            
-            // On Linux, if popup is blocked or fails, we might be forced to redirect, 
+
+            // On Linux, if popup is blocked or fails, we might be forced to redirect,
             // but we've seen it "bug the app", so we alert the user first.
             if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
-                if (confirm('The login popup was blocked or failed to communicate. Would you like to try a redirect instead? Note: This may reload the application.')) {
+                if (
+                    confirm(
+                        'The login popup was blocked or failed to communicate. Would you like to try a redirect instead? Note: This may reload the application.'
+                    )
+                ) {
                     try {
                         await signInWithRedirect(auth, provider);
                         return;
