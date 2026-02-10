@@ -1250,7 +1250,6 @@ async function updateContextMenuLikeState(contextMenu, contextTrack) {
 
     const likeItem = contextMenu.querySelector('li[data-action="toggle-like"]');
     if (likeItem) {
-        const { db } = await import('./db.js');
         const isLiked = await db.isFavorite('track', contextTrack.id);
         likeItem.textContent = isLiked ? 'Unlike' : 'Like';
     }

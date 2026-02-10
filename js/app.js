@@ -16,17 +16,18 @@ import { registerSW } from 'virtual:pwa-register';
 import { initializeDiscordRPC } from './discord-rpc.js';
 import * as Neutralino from '@neutralinojs/lib';
 import './smooth-scrolling.js';
+import { showNotification, downloadPlaylistAsZip } from './downloads.js';
+import './metadata.js'; // Ensure Side Effects
 
 // Assign Neutralino to window for global access
 if (typeof window !== 'undefined') {
     window.Neutralino = Neutralino;
 }
 
+import { initTracker } from './tracker.js';
+
 // Lazy-loaded modules
 let settingsModule = null;
-let downloadsModule = null;
-let trackerModule = null;
-let metadataModule = null;
 
 async function loadSettingsModule() {
     if (!settingsModule) {
@@ -35,26 +36,7 @@ async function loadSettingsModule() {
     return settingsModule;
 }
 
-async function loadDownloadsModule() {
-    if (!downloadsModule) {
-        downloadsModule = await import('./downloads.js');
-    }
-    return downloadsModule;
-}
 
-async function loadTrackerModule() {
-    if (!trackerModule) {
-        trackerModule = await import('./tracker.js');
-    }
-    return trackerModule;
-}
-
-async function loadMetadataModule() {
-    if (!metadataModule) {
-        metadataModule = await import('./metadata.js');
-    }
-    return metadataModule;
-}
 
 function initializeCasting(audioPlayer, castBtn) {
     if (!castBtn) return;
@@ -381,8 +363,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeUIInteractions(player, api, ui);
     initializeKeyboardShortcuts(player, audioPlayer);
 
-    // Load tracker module
-    const { initTracker } = await loadTrackerModule();
+    // Initialize tracker
     initTracker(player);
 
     // Initialize desktop environment (Neutralino)
@@ -390,7 +371,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Initializing Neutralino desktop environment (Lite Mode)...');
         try {
             Neutralino.init();
-            
+
             // Register events immediately
             Neutralino.events.on('windowClose', () => {
                 Neutralino.app.exit();
@@ -584,7 +565,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             } catch (error) {
                 console.error('Failed to play album:', error);
-                const { showNotification } = await loadDownloadsModule();
+
                 showNotification('Failed to play album');
             }
         }
@@ -608,12 +589,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (shuffleBtn) shuffleBtn.classList.remove('active');
                     player.shuffleActive = false;
                     player.playTrackFromQueue();
-                    const { showNotification } = await loadDownloadsModule();
+
                     showNotification('Shuffling album');
                 }
             } catch (error) {
                 console.error('Failed to shuffle album:', error);
-                const { showNotification } = await loadDownloadsModule();
+
                 showNotification('Failed to shuffle album');
             }
         }
@@ -637,7 +618,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             try {
                 const { mix, tracks } = await api.getMix(mixId);
-                const { downloadPlaylistAsZip } = await loadDownloadsModule();
+
                 await downloadPlaylistAsZip(mix, tracks, api, downloadQualitySettings.getQuality(), lyricsManager);
             } catch (error) {
                 console.error('Mix download failed:', error);
@@ -681,7 +662,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     tracks = data.tracks;
                 }
 
-                const { downloadPlaylistAsZip } = await loadDownloadsModule();
+
                 await downloadPlaylistAsZip(playlist, tracks, api, downloadQualitySettings.getQuality(), lyricsManager);
             } catch (error) {
                 console.error('Playlist download failed:', error);

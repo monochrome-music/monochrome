@@ -12,6 +12,9 @@ import {
 } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 import { downloadQualitySettings } from './storage.js';
+import { db } from './db.js';
+import { syncManager } from './accounts/pocketbase.js';
+import { showNotification, downloadTracks } from './downloads.js';
 
 export function initializeUIInteractions(player, api, ui) {
     const sidebar = document.querySelector('.sidebar');
@@ -53,9 +56,6 @@ export function initializeUIInteractions(player, api, ui) {
                 const folderId = folderCard.dataset.folderId;
 
                 if (playlistId && folderId) {
-                    const { db } = await import('./db.js');
-                    const { syncManager } = await import('./accounts/pocketbase.js');
-                    const { showNotification } = await import('./downloads.js');
                     const updatedFolder = await db.addPlaylistToFolder(folderId, playlistId);
                     syncManager.syncUserFolder(updatedFolder, 'update');
                     const subtitle = folderCard.querySelector('.card-subtitle');
@@ -126,7 +126,6 @@ export function initializeUIInteractions(player, api, ui) {
         const downloadBtn = container.querySelector('#download-queue-btn');
         if (downloadBtn) {
             downloadBtn.addEventListener('click', async () => {
-                const { downloadTracks } = await import('./downloads.js');
                 downloadTracks(currentQueue, api, downloadQualitySettings.getQuality());
             });
         }
@@ -134,10 +133,6 @@ export function initializeUIInteractions(player, api, ui) {
         const likeBtn = container.querySelector('#like-queue-btn');
         if (likeBtn) {
             likeBtn.addEventListener('click', async () => {
-                const { db } = await import('./db.js'); // Already imported
-                const { syncManager } = await import('./accounts/pocketbase.js');
-                const { showNotification } = await import('./downloads.js');
-
                 let addedCount = 0;
                 for (const track of currentQueue) {
                     const wasAdded = await db.toggleFavorite('track', track);
@@ -160,10 +155,6 @@ export function initializeUIInteractions(player, api, ui) {
         const addToPlaylistBtn = container.querySelector('#add-queue-to-playlist-btn');
         if (addToPlaylistBtn) {
             addToPlaylistBtn.addEventListener('click', async () => {
-                const { db } = await import('./db.js'); // Already imported
-                const { syncManager } = await import('./accounts/pocketbase.js');
-                const { showNotification } = await import('./downloads.js');
-
                 const playlists = await db.getPlaylists();
                 if (playlists.length === 0) {
                     showNotification('No playlists yet. Create one first.');
@@ -291,7 +282,6 @@ export function initializeUIInteractions(player, api, ui) {
             // Update like button state
             const likeBtn = item.querySelector('.queue-like-btn');
             if (likeBtn && track) {
-                const { db } = await import('./db.js');
                 const isLiked = await db.isFavorite('track', track.id);
                 likeBtn.classList.toggle('active', isLiked);
                 likeBtn.innerHTML = isLiked
@@ -313,10 +303,6 @@ export function initializeUIInteractions(player, api, ui) {
                     e.stopPropagation();
                     const track = player.getCurrentQueue()[index];
                     if (track) {
-                        const { db } = await import('./db.js'); // Already imported
-                        const { syncManager } = await import('./accounts/pocketbase.js');
-                        const { showNotification } = await import('./downloads.js');
-
                         const added = await db.toggleFavorite('track', track);
                         syncManager.syncLibraryItem('track', track, added);
 
@@ -343,7 +329,6 @@ export function initializeUIInteractions(player, api, ui) {
                 if (contextMenu) {
                     const track = player.getCurrentQueue()[index];
                     if (track) {
-                        const { db } = await import('./db.js');
                         const isLiked = await db.isFavorite('track', track.id);
                         const likeItem = contextMenu.querySelector('li[data-action="toggle-like"]');
                         if (likeItem) {
@@ -440,9 +425,6 @@ export function initializeUIInteractions(player, api, ui) {
             const playlistId = e.dataTransfer.getData('text/playlist-id');
             const folderId = window.location.pathname.split('/')[2];
             if (playlistId && folderId) {
-                const { db } = await import('./db.js');
-                const { syncManager } = await import('./accounts/pocketbase.js');
-                const { showNotification } = await import('./downloads.js');
                 try {
                     const updatedFolder = await db.addPlaylistToFolder(folderId, playlistId);
                     syncManager.syncUserFolder(updatedFolder, 'update');
