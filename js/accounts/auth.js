@@ -51,32 +51,33 @@ export class AuthManager {
         }
 
         try {
-            // Check for Linux environment (Neutralino) where popups are often blocked
-            // Also check User Agent as fallback since NL_OS might not be set if init skipped
-            if (window.NL_OS === 'Linux' || navigator.userAgent.includes('Linux')) {
-                console.log('Linux environment detected, using signInWithRedirect');
-                await signInWithRedirect(auth, provider);
-                // The page will redirect, so no return value needed immediately
-                return;
-            }
-
             const result = await signInWithPopup(auth, provider);
-            // The onAuthStateChanged listener will handle the rest
-            return result.user;
+            
+            if (result.user) {
+                console.log('Login successful:', result.user.email);
+                this.user = result.user;
+                this.updateUI(result.user);
+                this.authListeners.forEach((listener) => listener(result.user));
+                return result.user;
+            }
         } catch (error) {
             console.error('Login failed:', error);
-            if (error.code === 'auth/popup-blocked') {
-                console.log('Popup blocked, falling back to redirect...');
-                try {
-                    await signInWithRedirect(auth, provider);
-                    return;
-                } catch (redirectError) {
-                    console.error('Redirect fallback failed:', redirectError);
-                    alert(`Login failed: ${redirectError.message}`);
-                    throw redirectError;
+            
+            // On Linux, if popup is blocked or fails, we might be forced to redirect, 
+            // but we've seen it "bug the app", so we alert the user first.
+            if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+                if (confirm('The login popup was blocked or failed to communicate. Would you like to try a redirect instead? Note: This may reload the application.')) {
+                    try {
+                        await signInWithRedirect(auth, provider);
+                        return;
+                    } catch (redirectError) {
+                        console.error('Redirect fallback failed:', redirectError);
+                        alert(`Login failed: ${redirectError.message}`);
+                    }
                 }
+            } else {
+                alert(`Login failed: ${error.message}`);
             }
-            alert(`Login failed: ${error.message}`);
             throw error;
         }
     }
