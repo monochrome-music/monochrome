@@ -65,7 +65,7 @@ const _window = {
     },
     setTitle: async (title) => {
         window.parent.postMessage({ type: 'NL_WINDOW_SET_TITLE', title }, '*');
-    }
+    },
 };
 
 // Expose generically for other modules
@@ -75,5 +75,5 @@ export default {
     events,
     extensions,
     app,
-    window: _window
+    window: _window,
 };
