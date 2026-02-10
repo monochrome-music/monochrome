@@ -6,7 +6,7 @@
     "description": "Lossless music streaming",
     "version": "1.0.0",
     "defaultMode": "window",
-    "documentRoot": "www/",
+    "documentRoot": "dist/",
     "url": "https://monochrome.tf",
     "enableServer": true,
     "enableNativeAPI": true,
@@ -32,7 +32,7 @@
     "port": 5050,
     "cli": {
         "binaryName": "Monochrome",
-        "resourcesPath": "www/",
+        "resourcesPath": "dist/",
         "binaryVersion": "6.5.0",
         "clientVersion": "6.5.0"
     },

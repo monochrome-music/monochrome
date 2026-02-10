@@ -37,27 +37,27 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          node-version: '20'
-          cache: 'npm'
+          bun-version: latest
 
       - name: Install dependencies
-        run: npm install
+        run: bun install
 
       - name: Download Neutralino binaries
-        run: npx neu update
+        run: bun x neu update
 
       - name: Build application
-        run: npm run build:desktop
+        run: bun run build
 
       - name: Prepare Release
         run: |
           mkdir release
           cp dist/Monochrome/resources.neu release/
           cp neutralino.config.json release/
-          cp -r extensions release/
+          # Extensions are already copied to dist/Monochrome/extensions by postbuild
+          cp -r dist/Monochrome/extensions release/
           cp dist/Monochrome/${{ matrix.binary_source }} release/${{ matrix.binary_dest }}
         shell: bash
 

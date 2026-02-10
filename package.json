@@ -6,8 +6,8 @@
     "main": "sw.js",
     "scripts": {
         "dev": "vite",
-        "build": "vite build",
-        "build:desktop": "vite build --mode neutralino && npx neu build && node -e \"const fs = require('fs'); fs.cpSync('extensions', 'dist/Monochrome/extensions', {recursive: true}); fs.copyFileSync('neutralino.config.json', 'dist/Monochrome/neutralino.config.json')\"",
+        "build": "vite build --mode neutralino && bun x neu build",
+        "postbuild": "node -e \"const fs = require('fs'); const path = require('path'); const src = 'extensions'; const dest = path.join('dist', 'Monochrome', 'extensions'); if (fs.existsSync(src)) { fs.mkdirSync(dest, { recursive: true }); fs.cpSync(src, dest, { recursive: true }); console.log('Extensions manually copied to ' + dest); }\"",
         "preview": "vite preview",
         "start": "vite preview",
         "lint:js": "eslint .",

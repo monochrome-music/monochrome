@@ -239,9 +239,21 @@ async function disablePwaForAuthGate() {
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Initialize desktop environment (Neutralino)
-    const isDesktop = typeof window !== 'undefined' && (window.NL_MODE || window.location.port === '5050');
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasNLParams = urlParams.has('NL_PORT') || urlParams.has('NL_TOKEN');
+    const isDesktop = typeof window !== 'undefined' && (window.NL_MODE || window.location.port === '5050' || hasNLParams);
+
+    if (typeof window !== 'undefined') {
+        const nlGlobals = Object.keys(window).filter(k => k.startsWith('NL_'));
+        console.log('[App] Environment Check:', {
+            isDesktop,
+            port: window.location.port,
+            hasNLParams,
+            nlGlobals
+        });
+    }
+
     if (typeof window !== 'undefined' && window.Neutralino) {
-        console.log('[App] Neutralino object detected. Environment:', isDesktop ? 'Desktop' : 'Web');
         if (isDesktop) {
             console.log('[App] Initializing Neutralino desktop environment...');
             try {
@@ -411,7 +423,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize tracker
     initTracker(player);
 
-    if (typeof window !== 'undefined' && window.Neutralino && (window.NL_MODE || window.location.port === '5050')) {
+    if (typeof window !== 'undefined' && window.Neutralino && isDesktop) {
         console.log('[App] Starting Discord RPC...');
         initializeDiscordRPC(player);
     }
