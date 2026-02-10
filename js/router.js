@@ -29,18 +29,21 @@ export function createRouter(ui) {
         const page = parts[0];
         const param = parts.slice(1).join('/');
 
+        // Helper to strip /t/ prefix from params (for Tidal ID format like /album/t/123)
+        const stripTidalPrefix = (p) => (p.startsWith('t/') ? p.slice(2) : p);
+
         switch (page) {
             case 'search':
                 await ui.renderSearchPage(decodeURIComponent(param));
                 break;
             case 'album':
-                await ui.renderAlbumPage(param);
+                await ui.renderAlbumPage(stripTidalPrefix(param));
                 break;
             case 'artist':
-                await ui.renderArtistPage(param);
+                await ui.renderArtistPage(stripTidalPrefix(param));
                 break;
             case 'playlist':
-                await ui.renderPlaylistPage(param, 'api');
+                await ui.renderPlaylistPage(stripTidalPrefix(param), 'api');
                 break;
             case 'userplaylist':
                 await ui.renderPlaylistPage(param, 'user');
@@ -49,13 +52,14 @@ export function createRouter(ui) {
                 await ui.renderFolderPage(param);
                 break;
             case 'mix':
-                await ui.renderMixPage(param);
+                await ui.renderMixPage(stripTidalPrefix(param));
                 break;
             case 'track':
-                if (param.startsWith('tracker-')) {
-                    await ui.renderTrackerTrackPage(param);
+                const trackParam = stripTidalPrefix(param);
+                if (trackParam.startsWith('tracker-')) {
+                    await ui.renderTrackerTrackPage(trackParam);
                 } else {
-                    await ui.renderTrackPage(param);
+                    await ui.renderTrackPage(trackParam);
                 }
                 break;
             case 'library':

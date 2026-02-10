@@ -586,7 +586,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const pathParts = window.location.pathname.split('/');
             const albumIndex = pathParts.indexOf('album');
-            const albumId = albumIndex !== -1 ? pathParts[albumIndex + 1] : null;
+            let albumId = albumIndex !== -1 ? pathParts[albumIndex + 1] : null;
+            // Handle /album/t/ID format
+            if (albumId === 't') {
+                albumId = pathParts[albumIndex + 2];
+            }
 
             if (!albumId) return;
 
@@ -620,7 +624,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const pathParts = window.location.pathname.split('/');
             const albumIndex = pathParts.indexOf('album');
-            const albumId = albumIndex !== -1 ? pathParts[albumIndex + 1] : null;
+            let albumId = albumIndex !== -1 ? pathParts[albumIndex + 1] : null;
+            // Handle /album/t/ID format
+            if (albumId === 't') {
+                albumId = pathParts[albumIndex + 2];
+            }
 
             if (!albumId) return;
 
