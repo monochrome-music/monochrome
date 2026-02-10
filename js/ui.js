@@ -185,22 +185,20 @@ export class UIRenderer {
                 }
             }
 
-            // For tracker tracks: show add playlist, hide lyrics
-            // For normal tracks: hide add playlist, show lyrics (unless local)
             if (addPlaylistBtn) {
-                if (isTracker) {
+                if (isLocal) {
+                    addPlaylistBtn.style.setProperty('display', 'none', 'important');
+                } else {
                     addPlaylistBtn.style.removeProperty('display');
                     addPlaylistBtn.style.display = 'flex';
-                } else {
-                    addPlaylistBtn.style.setProperty('display', 'none', 'important');
                 }
             }
             if (mobileAddPlaylistBtn) {
-                if (isTracker) {
+                if (isLocal) {
+                    mobileAddPlaylistBtn.style.setProperty('display', 'none', 'important');
+                } else {
                     mobileAddPlaylistBtn.style.removeProperty('display');
                     mobileAddPlaylistBtn.style.display = 'flex';
-                } else {
-                    mobileAddPlaylistBtn.style.setProperty('display', 'none', 'important');
                 }
             }
             if (lyricsBtn) {
