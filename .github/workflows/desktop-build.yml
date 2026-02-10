@@ -50,7 +50,7 @@ jobs:
         run: npx neu update
 
       - name: Build application
-        run: npm run build
+        run: npm run build:desktop
 
       - name: Prepare Release
         run: |

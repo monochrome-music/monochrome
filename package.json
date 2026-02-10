@@ -6,7 +6,8 @@
     "main": "sw.js",
     "scripts": {
         "dev": "vite",
-        "build": "vite build && npx neu build",
+        "build": "vite build",
+        "build:desktop": "vite build --mode neutralino && npx neu build && node -e \"const fs = require('fs'); fs.cpSync('extensions', 'dist/Monochrome/extensions', {recursive: true}); fs.copyFileSync('neutralino.config.json', 'dist/Monochrome/neutralino.config.json')\"",
         "preview": "vite preview",
         "start": "vite preview",
         "lint:js": "eslint .",
