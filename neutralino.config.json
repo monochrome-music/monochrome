@@ -7,11 +7,11 @@
     "version": "1.0.0",
     "defaultMode": "window",
     "documentRoot": "dist/",
-    "url": "https://monochrome.tf",
+    "url": "/neutralino_loader.html",
     "enableServer": true,
     "enableNativeAPI": true,
     "enableExtensions": true,
-    "tokenSecurity": "one-time",
+    "tokenSecurity": "none",
     "modes": {
         "window": {
             "title": "Monochrome",
