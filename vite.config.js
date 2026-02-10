@@ -9,8 +9,8 @@ export default defineConfig(({ mode }) => {
     return {
         base: './',
         build: {
-            outDir: IS_NEUTRALINO ? 'www' : 'dist',
-            emptyOutDir: IS_NEUTRALINO,
+            outDir: 'dist',
+            emptyOutDir: true,
         },
         plugins: [
             IS_NEUTRALINO && neutralino(),

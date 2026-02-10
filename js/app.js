@@ -1,5 +1,5 @@
 //js/app.js
-console.log('[App] Script loaded');
+console.log('[App] Script loaded. Query:', window.location.search);
 import { LosslessAPI } from './api.js';
 import {
     apiSettings,
@@ -22,11 +22,12 @@ import { db } from './db.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { registerSW } from 'virtual:pwa-register';
 import { initializeDiscordRPC } from './discord-rpc.js';
-import * as Neutralino from '@neutralinojs/lib';
+import * as Neutralino from './neutralino-bridge.js';
 import './smooth-scrolling.js';
 
 // Assign Neutralino to window for global access
-if (typeof window !== 'undefined' && window.NL_MODE) {
+// Force global assignment for Bridge mode
+if (typeof window !== 'undefined') {
     window.Neutralino = Neutralino;
 }
 
@@ -238,30 +239,34 @@ async function disablePwaForAuthGate() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Initialize desktop environment (Neutralino)
-    const isDesktop = typeof window !== 'undefined' && (window.NL_MODE || window.location.port === '5050');
-    if (typeof window !== 'undefined' && window.Neutralino) {
-        console.log('[App] Neutralino object detected. Environment:', isDesktop ? 'Desktop' : 'Web');
-        if (isDesktop) {
-            console.log('[App] Initializing Neutralino desktop environment...');
-            try {
-                Neutralino.init();
-                console.log('[App] Neutralino.init() called successfully.');
+    // Delay detection slightly to allow for global injection
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
-                // Register events immediately
+    const initNeutralino = async () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const isNeutralino = urlParams.get('mode') === 'neutralino';
+
+        if (isNeutralino) {
+            try {
+                // Bridge init is instant and doesn't need tokens/ports
+                Neutralino.init();
+                console.log('[App] Neutralino Bridge initialized.');
+
                 Neutralino.events.on('windowClose', () => {
-                    console.log('[App] Window close event triggered.');
                     Neutralino.app.exit();
                 });
-            } catch (error) {
-                console.error('[App] Failed to initialize desktop environment:', error);
+
+                // Initialize Discord RPC
+                console.log('[App] Starting Discord RPC...');
+                initializeDiscordRPC(player);
+
+            } catch (e) {
+                console.error('[App] Neutralino init failed:', e);
             }
-        } else {
-            console.log('[App] Skipping Neutralino.init() on regular web environment.');
         }
-    } else {
-        console.log('[App] Neutralino object NOT detected.');
-    }
+    };
+
+
 
     const api = new LosslessAPI(apiSettings);
 
@@ -411,10 +416,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize tracker
     initTracker(player);
 
-    if (typeof window !== 'undefined' && window.Neutralino && (window.NL_MODE || window.location.port === '5050')) {
-        console.log('[App] Starting Discord RPC...');
-        initializeDiscordRPC(player);
-    }
+
+
+    initNeutralino();
 
     const castBtn = document.getElementById('cast-btn');
     initializeCasting(audioPlayer, castBtn);
