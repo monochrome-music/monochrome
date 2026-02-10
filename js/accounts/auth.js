@@ -52,7 +52,9 @@ export class AuthManager {
 
         try {
             // Check for Linux environment (Neutralino) where popups are often blocked
-            if (window.NL_OS === 'Linux') {
+            // Also check User Agent as fallback since NL_OS might not be set if init skipped
+            if (window.NL_OS === 'Linux' || navigator.userAgent.includes('Linux')) {
+                console.log('Linux environment detected, using signInWithRedirect');
                 await signInWithRedirect(auth, provider);
                 // The page will redirect, so no return value needed immediately
                 return;
