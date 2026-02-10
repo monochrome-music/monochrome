@@ -1,4 +1,5 @@
 //js/app.js
+console.log('[App] Script loaded');
 import { LosslessAPI } from './api.js';
 import {
     apiSettings,
@@ -25,7 +26,7 @@ import * as Neutralino from '@neutralinojs/lib';
 import './smooth-scrolling.js';
 
 // Assign Neutralino to window for global access
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && window.NL_MODE) {
     window.Neutralino = Neutralino;
 }
 
@@ -237,6 +238,31 @@ async function disablePwaForAuthGate() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize desktop environment (Neutralino)
+    const isDesktop = typeof window !== 'undefined' && (window.NL_MODE || window.location.port === '5050');
+    if (typeof window !== 'undefined' && window.Neutralino) {
+        console.log('[App] Neutralino object detected. Environment:', isDesktop ? 'Desktop' : 'Web');
+        if (isDesktop) {
+            console.log('[App] Initializing Neutralino desktop environment...');
+            try {
+                Neutralino.init();
+                console.log('[App] Neutralino.init() called successfully.');
+
+                // Register events immediately
+                Neutralino.events.on('windowClose', () => {
+                    console.log('[App] Window close event triggered.');
+                    Neutralino.app.exit();
+                });
+            } catch (error) {
+                console.error('[App] Failed to initialize desktop environment:', error);
+            }
+        } else {
+            console.log('[App] Skipping Neutralino.init() on regular web environment.');
+        }
+    } else {
+        console.log('[App] Neutralino object NOT detected.');
+    }
+
     const api = new LosslessAPI(apiSettings);
 
     const audioPlayer = document.getElementById('audio-player');
@@ -385,22 +411,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize tracker
     initTracker(player);
 
-    // Initialize desktop environment (Neutralino)
-    if (window.Neutralino) {
-        console.log('Initializing Neutralino desktop environment (Lite Mode)...');
-        try {
-            Neutralino.init();
-
-            // Register events immediately
-            Neutralino.events.on('windowClose', () => {
-                Neutralino.app.exit();
-            });
-
-            // Start RPC immediately after init
-            initializeDiscordRPC(player);
-        } catch (error) {
-            console.error('Failed to initialize desktop environment:', error);
-        }
+    if (typeof window !== 'undefined' && window.Neutralino && (window.NL_MODE || window.location.port === '5050')) {
+        console.log('[App] Starting Discord RPC...');
+        initializeDiscordRPC(player);
     }
 
     const castBtn = document.getElementById('cast-btn');

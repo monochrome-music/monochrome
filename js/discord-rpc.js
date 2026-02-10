@@ -42,6 +42,7 @@ export function initializeDiscordRPC(player) {
         if (player.currentTrack) {
             sendUpdate(player.currentTrack, player.audio.paused);
         } else {
+            console.log('[DiscordRPC] Sending idling heartbeat...');
             const idlingData = {
                 details: 'Idling',
                 state: 'Monochrome',

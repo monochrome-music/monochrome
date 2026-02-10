@@ -3,16 +3,19 @@ import { VitePWA } from 'vite-plugin-pwa';
 import neutralino from 'vite-plugin-neutralino';
 import authGatePlugin from './vite-plugin-auth-gate.js';
 
-export default defineConfig({
-    base: './',
-    build: {
-        outDir: 'www',
-        emptyOutDir: true,
-    },
-    plugins: [
-        neutralino(),
-        authGatePlugin(),
-        VitePWA({
+export default defineConfig(({ mode }) => {
+    const IS_NEUTRALINO = mode === 'neutralino';
+
+    return {
+        base: './',
+        build: {
+            outDir: IS_NEUTRALINO ? 'www' : 'dist',
+            emptyOutDir: IS_NEUTRALINO,
+        },
+        plugins: [
+            IS_NEUTRALINO && neutralino(),
+            authGatePlugin(),
+            VitePWA({
             registerType: 'prompt',
             workbox: {
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
@@ -49,4 +52,5 @@ export default defineConfig({
             manifest: false, // Use existing public/manifest.json
         }),
     ],
+    };
 });
