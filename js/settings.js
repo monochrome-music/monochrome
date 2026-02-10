@@ -27,6 +27,7 @@ import {
     monoAudioSettings,
     exponentialVolumeSettings,
     audioEffectsSettings,
+    settingsUiState,
     pwaUpdateSettings,
 } from './storage.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
@@ -37,6 +38,16 @@ import { syncManager } from './accounts/pocketbase.js';
 import { saveFirebaseConfig, clearFirebaseConfig } from './accounts/config.js';
 
 export function initializeSettings(scrobbler, player, api, ui) {
+    // Restore last active settings tab
+    const savedTab = settingsUiState.getActiveTab();
+    const settingsTab = document.querySelector(`.settings-tab[data-tab="${savedTab}"]`);
+    if (settingsTab) {
+        document.querySelectorAll('.settings-tab').forEach((t) => t.classList.remove('active'));
+        document.querySelectorAll('.settings-tab-content').forEach((c) => c.classList.remove('active'));
+        settingsTab.classList.add('active');
+        document.getElementById(`settings-tab-${savedTab}`)?.classList.add('active');
+    }
+
     // Initialize account system UI & Settings
     authManager.updateUI(authManager.user);
 
@@ -789,40 +800,37 @@ export function initializeSettings(scrobbler, player, api, ui) {
     }
 
     // ========================================
-    // Audio Effects (Playback Speed & Pitch)
+    // Audio Effects (Playback Speed)
     // ========================================
     const playbackSpeedSlider = document.getElementById('playback-speed-slider');
-    const playbackSpeedValue = document.getElementById('playback-speed-value');
-    if (playbackSpeedSlider && playbackSpeedValue) {
-        playbackSpeedSlider.value = audioEffectsSettings.getSpeed();
-        playbackSpeedValue.textContent = playbackSpeedSlider.value + 'x';
+    const playbackSpeedInput = document.getElementById('playback-speed-input');
+    if (playbackSpeedSlider && playbackSpeedInput) {
+        const currentSpeed = audioEffectsSettings.getSpeed();
+        // Clamp slider to its range (0.25-4), but show actual value in input
+        playbackSpeedSlider.value = Math.max(0.25, Math.min(4.0, currentSpeed));
+        playbackSpeedInput.value = currentSpeed;
 
+        // Slider only controls 0.25-4 range
         playbackSpeedSlider.addEventListener('input', (e) => {
-            const speed = e.target.value;
-            playbackSpeedValue.textContent = speed + 'x';
+            const speed = parseFloat(e.target.value) || 1.0;
+            playbackSpeedInput.value = speed;
             player.setPlaybackSpeed(speed);
         });
-    }
 
-    const pitchShiftSlider = document.getElementById('pitch-shift-slider');
-    const pitchShiftValue = document.getElementById('pitch-shift-value');
-    if (pitchShiftSlider && pitchShiftValue) {
-        pitchShiftSlider.value = audioEffectsSettings.getPitch();
-        pitchShiftValue.textContent = (pitchShiftSlider.value > 0 ? '+' : '') + pitchShiftSlider.value;
+        // Input allows full 0.01-100 range
+        const handleInputChange = () => {
+            const speed = parseFloat(playbackSpeedInput.value) || 1.0;
+            const validSpeed = Math.max(0.01, Math.min(100, speed));
+            playbackSpeedInput.value = validSpeed;
+            // Only update slider if value is within slider range
+            if (validSpeed >= 0.25 && validSpeed <= 4.0) {
+                playbackSpeedSlider.value = validSpeed;
+            }
+            player.setPlaybackSpeed(validSpeed);
+        };
 
-        pitchShiftSlider.addEventListener('input', (e) => {
-            const pitch = e.target.value;
-            pitchShiftValue.textContent = (pitch > 0 ? '+' : '') + pitch;
-            player.setPitchShift(pitch);
-        });
-    }
-
-    const preservePitchToggle = document.getElementById('preserve-pitch-toggle');
-    if (preservePitchToggle) {
-        preservePitchToggle.checked = audioEffectsSettings.getPreservePitch();
-        preservePitchToggle.addEventListener('change', (e) => {
-            player.setPreservePitch(e.target.checked);
-        });
+        playbackSpeedInput.addEventListener('change', handleInputChange);
+        playbackSpeedInput.addEventListener('blur', handleInputChange);
     }
 
     // ========================================
@@ -2034,7 +2042,7 @@ function filterSettings(query) {
     const allTabs = settingsPage.querySelectorAll('.settings-tab');
 
     if (!query) {
-        // Reset: show active tab only
+        // Reset: show saved active tab
         allTabContents.forEach((content) => {
             content.classList.remove('active');
         });
@@ -2042,12 +2050,17 @@ function filterSettings(query) {
             tab.classList.remove('active');
         });
 
-        // Restore first tab as active
-        const firstTab = allTabs[0];
-        const firstContent = allTabContents[0];
-        if (firstTab && firstContent) {
-            firstTab.classList.add('active');
-            firstContent.classList.add('active');
+        // Restore saved tab as active
+        const savedTabName = settingsUiState.getActiveTab();
+        const savedTab = document.querySelector(`.settings-tab[data-tab="${savedTabName}"]`);
+        const savedContent = document.getElementById(`settings-tab-${savedTabName}`);
+        if (savedTab && savedContent) {
+            savedTab.classList.add('active');
+            savedContent.classList.add('active');
+        } else if (allTabs[0] && allTabContents[0]) {
+            // Fallback to first tab if saved tab not found
+            allTabs[0].classList.add('active');
+            allTabContents[0].classList.add('active');
         }
 
         // Show all settings groups and items

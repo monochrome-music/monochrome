@@ -96,16 +96,6 @@ class AudioContextManager {
     }
 
     /**
-     * Calculate playback rate for pitch shift
-     * @param {number} semitones - Pitch shift in semitones (-12 to +12)
-     * @returns {number} - Playback rate multiplier
-     */
-    getPitchRate(semitones) {
-        // Convert semitones to playback rate: rate = 2^(semitones/12)
-        return Math.pow(2, semitones / 12);
-    }
-
-    /**
      * Register a callback to be called when audio graph is reconnected
      * @param {Function} callback - Function to call when graph changes
      * @returns {Function} - Unregister function

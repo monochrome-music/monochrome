@@ -897,78 +897,36 @@ export const exponentialVolumeSettings = {
 
 export const audioEffectsSettings = {
     SPEED_KEY: 'audio-effects-speed',
-    PITCH_KEY: 'audio-effects-pitch',
-    PRESERVE_PITCH_KEY: 'audio-effects-preserve-pitch',
 
-    // Playback speed (0.5 to 2.0, default 1.0)
+    // Playback speed (0.01 to 100, default 1.0)
     getSpeed() {
         try {
             const val = parseFloat(localStorage.getItem(this.SPEED_KEY));
-            return isNaN(val) ? 1.0 : Math.max(0.5, Math.min(2.0, val));
+            return isNaN(val) ? 1.0 : Math.max(0.01, Math.min(100, val));
         } catch {
             return 1.0;
         }
     },
 
     setSpeed(speed) {
-        const validSpeed = Math.max(0.5, Math.min(2.0, parseFloat(speed) || 1.0));
+        const validSpeed = Math.max(0.01, Math.min(100, parseFloat(speed) || 1.0));
         localStorage.setItem(this.SPEED_KEY, validSpeed.toString());
-    },
-
-    // Pitch shift (-12 to +12 semitones, default 0)
-    getPitch() {
-        try {
-            const val = parseInt(localStorage.getItem(this.PITCH_KEY), 10);
-            return isNaN(val) ? 0 : Math.max(-12, Math.min(12, val));
-        } catch {
-            return 0;
-        }
-    },
-
-    setPitch(pitch) {
-        const validPitch = Math.max(-12, Math.min(12, parseInt(pitch, 10) || 0));
-        localStorage.setItem(this.PITCH_KEY, validPitch.toString());
-    },
-
-    // Preserve pitch when changing speed (default true)
-    getPreservePitch() {
-        try {
-            return localStorage.getItem(this.PRESERVE_PITCH_KEY) !== 'false';
-        } catch {
-            return true;
-        }
-    },
-
-    setPreservePitch(enabled) {
-        localStorage.setItem(this.PRESERVE_PITCH_KEY, enabled ? 'true' : 'false');
     },
 };
 
-export const sidebarSettings = {
-    STORAGE_KEY: 'monochrome-sidebar-collapsed',
+export const settingsUiState = {
+    ACTIVE_TAB_KEY: 'settings-active-tab',
 
-    isCollapsed() {
+    getActiveTab() {
         try {
-            return localStorage.getItem(this.STORAGE_KEY) === 'true';
+            return localStorage.getItem(this.ACTIVE_TAB_KEY) || 'appearance';
         } catch {
-            return false;
+            return 'appearance';
         }
     },
 
-    setCollapsed(collapsed) {
-        localStorage.setItem(this.STORAGE_KEY, collapsed ? 'true' : 'false');
-    },
-
-    restoreState() {
-        const isCollapsed = this.isCollapsed();
-        if (isCollapsed) {
-            document.body.classList.add('sidebar-collapsed');
-            const toggleBtn = document.getElementById('sidebar-toggle');
-            if (toggleBtn) {
-                toggleBtn.innerHTML =
-                    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
-            }
-        }
+    setActiveTab(tab) {
+        localStorage.setItem(this.ACTIVE_TAB_KEY, tab);
     },
 };
 
@@ -998,6 +956,34 @@ export const queueManager = {
             localStorage.setItem(this.STORAGE_KEY, JSON.stringify(minimalState));
         } catch (e) {
             console.warn('Failed to save queue to localStorage:', e);
+        }
+    },
+};
+
+export const sidebarSettings = {
+    STORAGE_KEY: 'monochrome-sidebar-collapsed',
+
+    isCollapsed() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) === 'true';
+        } catch {
+            return false;
+        }
+    },
+
+    setCollapsed(collapsed) {
+        localStorage.setItem(this.STORAGE_KEY, collapsed ? 'true' : 'false');
+    },
+
+    restoreState() {
+        const isCollapsed = this.isCollapsed();
+        if (isCollapsed) {
+            document.body.classList.add('sidebar-collapsed');
+            const toggleBtn = document.getElementById('sidebar-toggle');
+            if (toggleBtn) {
+                toggleBtn.innerHTML =
+                    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+            }
         }
     },
 };

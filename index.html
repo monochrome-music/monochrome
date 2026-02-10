@@ -3105,64 +3105,38 @@
                                 <div class="setting-item">
                                     <div class="info">
                                         <span class="label">Playback Speed</span>
-                                        <span class="description">Adjust playback speed (0.5x - 2.0x)</span>
+                                        <span class="description">Adjust playback speed (0.01x - 100x)</span>
                                     </div>
                                     <div style="display: flex; align-items: center; gap: 12px">
                                         <input
                                             type="range"
                                             id="playback-speed-slider"
-                                            min="0.5"
-                                            max="2.0"
-                                            step="0.1"
+                                            min="0.25"
+                                            max="4.0"
+                                            step="0.01"
                                             value="1.0"
                                             style="width: 150px"
                                         />
-                                        <span
-                                            id="playback-speed-value"
-                                            style="min-width: 50px; text-align: right; font-family: var(--font-family)"
-                                            >1.0x</span
-                                        >
-                                    </div>
-                                </div>
-
-                                <!-- Pitch Shift Control -->
-                                <div class="setting-item">
-                                    <div class="info">
-                                        <span class="label">Pitch Shift</span>
-                                        <span class="description"
-                                            >Shift pitch up or down (-12 to +12 semitones). Note: Disable "Preserve
-                                            Pitch" to hear the effect</span
-                                        >
-                                    </div>
-                                    <div style="display: flex; align-items: center; gap: 12px">
                                         <input
-                                            type="range"
-                                            id="pitch-shift-slider"
-                                            min="-12"
-                                            max="12"
-                                            step="1"
-                                            value="0"
-                                            style="width: 150px"
+                                            type="number"
+                                            id="playback-speed-input"
+                                            min="0.01"
+                                            max="100"
+                                            step="0.01"
+                                            value="1.0"
+                                            style="
+                                                width: 80px;
+                                                text-align: center;
+                                                font-family: var(--font-family);
+                                                padding: 4px 8px;
+                                                border: 1px solid var(--border-color);
+                                                border-radius: 4px;
+                                                background: var(--bg-secondary);
+                                                color: var(--text-primary);
+                                            "
                                         />
-                                        <span
-                                            id="pitch-shift-value"
-                                            style="min-width: 50px; text-align: right; font-family: var(--font-family)"
-                                            >0</span
-                                        >
+                                        <span style="font-family: var(--font-family)">x</span>
                                     </div>
-                                </div>
-
-                                <div class="setting-item">
-                                    <div class="info">
-                                        <span class="label">Preserve Pitch</span>
-                                        <span class="description"
-                                            >Keep original pitch when changing playback speed</span
-                                        >
-                                    </div>
-                                    <label class="toggle-switch">
-                                        <input type="checkbox" id="preserve-pitch-toggle" checked />
-                                        <span class="slider"></span>
-                                    </label>
                                 </div>
 
                                 <!-- 16-Band Equalizer -->
