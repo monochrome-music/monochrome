@@ -8,5 +8,5 @@
         "color-function-notation": null,
         "alpha-value-notation": null
     },
-    "ignoreFiles": ["dist/**/*.css", "node_modules/**/*.css", "legacy/**/*.css"]
+    "ignoreFiles": ["dist/**/*.css", "node_modules/**/*.css", "legacy/**/*.css", "www/**/*.css"]
 }

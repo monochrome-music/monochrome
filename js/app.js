@@ -16,8 +16,6 @@ import { registerSW } from 'virtual:pwa-register';
 import { initializeDiscordRPC } from './discord-rpc.js';
 import * as Neutralino from '@neutralinojs/lib';
 import './smooth-scrolling.js';
-import { showNotification, downloadPlaylistAsZip } from './downloads.js';
-import './metadata.js'; // Ensure Side Effects
 
 // Assign Neutralino to window for global access
 if (typeof window !== 'undefined') {
@@ -28,6 +26,8 @@ import { initTracker } from './tracker.js';
 
 // Lazy-loaded modules
 let settingsModule = null;
+let downloadsModule = null;
+let metadataModule = null;
 
 async function loadSettingsModule() {
     if (!settingsModule) {
@@ -36,7 +36,19 @@ async function loadSettingsModule() {
     return settingsModule;
 }
 
+async function loadDownloadsModule() {
+    if (!downloadsModule) {
+        downloadsModule = await import('./downloads.js');
+    }
+    return downloadsModule;
+}
 
+async function loadMetadataModule() {
+    if (!metadataModule) {
+        metadataModule = await import('./metadata.js');
+    }
+    return metadataModule;
+}
 
 function initializeCasting(audioPlayer, castBtn) {
     if (!castBtn) return;
@@ -565,7 +577,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             } catch (error) {
                 console.error('Failed to play album:', error);
-
+                const { showNotification } = await loadDownloadsModule();
                 showNotification('Failed to play album');
             }
         }
@@ -590,11 +602,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     player.shuffleActive = false;
                     player.playTrackFromQueue();
 
+                    const { showNotification } = await loadDownloadsModule();
                     showNotification('Shuffling album');
                 }
             } catch (error) {
                 console.error('Failed to shuffle album:', error);
-
+                const { showNotification } = await loadDownloadsModule();
                 showNotification('Failed to shuffle album');
             }
         }
@@ -618,7 +631,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             try {
                 const { mix, tracks } = await api.getMix(mixId);
-
+                const { downloadPlaylistAsZip } = await loadDownloadsModule();
                 await downloadPlaylistAsZip(mix, tracks, api, downloadQualitySettings.getQuality(), lyricsManager);
             } catch (error) {
                 console.error('Mix download failed:', error);
@@ -662,7 +675,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     tracks = data.tracks;
                 }
 
-
+                const { downloadPlaylistAsZip } = await loadDownloadsModule();
                 await downloadPlaylistAsZip(playlist, tracks, api, downloadQualitySettings.getQuality(), lyricsManager);
             } catch (error) {
                 console.error('Playlist download failed:', error);

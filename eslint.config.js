@@ -4,7 +4,7 @@ import prettierConfig from 'eslint-config-prettier';
 
 export default [
     {
-        ignores: ['**/dist/**', '**/node_modules/**', '**/legacy/**', '**/bin/**'],
+        ignores: ['**/dist/**', '**/node_modules/**', '**/legacy/**', '**/bin/**', '**/www/**'],
     },
     js.configs.recommended,
     prettierConfig,
@@ -15,6 +15,7 @@ export default [
             globals: {
                 ...globals.browser,
                 ...globals.node,
+                Neutralino: 'readonly',
             },
         },
         rules: {

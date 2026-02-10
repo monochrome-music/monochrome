@@ -31,8 +31,10 @@ export function initializeDiscordRPC(player) {
         }
 
         console.log('[DiscordRPC] Dispatching to', EXTENSION_ID, data);
-        Neutralino.events.broadcast('discord:update', data).catch(e => console.error('Broadcast failed', e));
-        Neutralino.extensions.dispatch(EXTENSION_ID, 'discord:update', data).catch(e => console.error('Dispatch failed', e));
+        Neutralino.events.broadcast('discord:update', data).catch((e) => console.error('Broadcast failed', e));
+        Neutralino.extensions
+            .dispatch(EXTENSION_ID, 'discord:update', data)
+            .catch((e) => console.error('Dispatch failed', e));
     }
 
     // Heartbeat & Debug Ping
@@ -46,16 +48,12 @@ export function initializeDiscordRPC(player) {
                 largeImageKey: 'monochrome',
                 largeImageText: 'Monochrome',
                 smallImageKey: 'pause',
-                smallImageText: 'Paused'
+                smallImageText: 'Paused',
             };
-            Neutralino.events.broadcast('discord:update', idlingData).catch(() => { });
-            Neutralino.extensions.dispatch(EXTENSION_ID, 'discord:update', idlingData).catch(() => { });
+            Neutralino.events.broadcast('discord:update', idlingData).catch(() => {});
+            Neutralino.extensions.dispatch(EXTENSION_ID, 'discord:update', idlingData).catch(() => {});
         }
     }, 5000);
-
-    function sendClear() {
-        Neutralino.events.broadcast('discord:clear', {}).catch(() => { });
-    }
 
     player.audio.addEventListener('play', () => {
         sendUpdate(player.currentTrack);
@@ -75,13 +73,15 @@ export function initializeDiscordRPC(player) {
     if (player.currentTrack) {
         sendUpdate(player.currentTrack, player.audio.paused);
     } else {
-        Neutralino.events.broadcast('discord:update', {
-            details: 'Idling',
-            state: 'Monochrome',
-            largeImageKey: 'monochrome',
-            largeImageText: 'Monochrome',
-            smallImageKey: 'pause',
-            smallImageText: 'Paused'
-        }).catch(() => { });
+        Neutralino.events
+            .broadcast('discord:update', {
+                details: 'Idling',
+                state: 'Monochrome',
+                largeImageKey: 'monochrome',
+                largeImageText: 'Monochrome',
+                smallImageKey: 'pause',
+                smallImageText: 'Paused',
+            })
+            .catch(() => {});
     }
 }
