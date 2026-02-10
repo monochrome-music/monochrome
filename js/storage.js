@@ -1703,3 +1703,20 @@ export const fontSettings = {
         }));
     },
 };
+
+export const pwaUpdateSettings = {
+    STORAGE_KEY: 'pwa-auto-update-enabled',
+
+    isAutoUpdateEnabled() {
+        try {
+            // Default to true (auto-update) if not set
+            return localStorage.getItem(this.STORAGE_KEY) !== 'false';
+        } catch {
+            return true;
+        }
+    },
+
+    setAutoUpdateEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+};

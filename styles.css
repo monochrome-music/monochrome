@@ -3430,6 +3430,34 @@ input:checked + .slider::before {
     align-items: stretch;
 }
 
+.update-notification-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.update-notification-actions .btn-icon {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted-foreground);
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all var(--transition);
+    flex-shrink: 0;
+}
+
+.update-notification-actions .btn-icon:hover {
+    background: var(--secondary);
+    color: var(--foreground);
+    border-color: var(--foreground);
+}
+
 .close-shortcuts {
     background: transparent;
     border: none;

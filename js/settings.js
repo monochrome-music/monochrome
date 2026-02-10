@@ -27,6 +27,7 @@ import {
     monoAudioSettings,
     exponentialVolumeSettings,
     audioEffectsSettings,
+    pwaUpdateSettings,
 } from './storage.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
 import { getButterchurnPresets } from './visualizers/butterchurn.js';
@@ -1773,6 +1774,73 @@ export function initializeSettings(scrobbler, player, api, ui) {
                 clearFirebaseConfig();
                 alert('Settings reset. Reloading...');
                 window.location.reload();
+            }
+        });
+    }
+
+    // PWA Auto-Update Toggle
+    const pwaAutoUpdateToggle = document.getElementById('pwa-auto-update-toggle');
+    if (pwaAutoUpdateToggle) {
+        pwaAutoUpdateToggle.checked = pwaUpdateSettings.isAutoUpdateEnabled();
+        pwaAutoUpdateToggle.addEventListener('change', (e) => {
+            pwaUpdateSettings.setAutoUpdateEnabled(e.target.checked);
+        });
+    }
+
+    // Reset Local Data Button
+    const resetLocalDataBtn = document.getElementById('reset-local-data-btn');
+    if (resetLocalDataBtn) {
+        resetLocalDataBtn.addEventListener('click', async () => {
+            if (
+                confirm(
+                    'WARNING: This will clear all local data including settings, cache, and library.\n\nAre you sure you want to continue?\n\n(Cloud-synced data will not be affected)'
+                )
+            ) {
+                try {
+                    // Clear all localStorage
+                    const keysToPreserve = [];
+                    // Optionally preserve certain keys if needed
+
+                    // Get all keys
+                    const allKeys = Object.keys(localStorage);
+
+                    // Clear each key except preserved ones
+                    allKeys.forEach((key) => {
+                        if (!keysToPreserve.includes(key)) {
+                            localStorage.removeItem(key);
+                        }
+                    });
+
+                    // Clear IndexedDB - try to clear individual stores, fallback to deleting database
+                    try {
+                        const stores = ['tracks', 'albums', 'artists', 'playlists', 'settings', 'history'];
+                        for (const storeName of stores) {
+                            try {
+                                await db.performTransaction(storeName, 'readwrite', (store) => store.clear());
+                            } catch (e) {
+                                // Store might not exist, continue
+                            }
+                        }
+                    } catch (dbError) {
+                        console.log('Could not clear IndexedDB stores:', dbError);
+                        // Try to delete the entire database as fallback
+                        try {
+                            const deleteRequest = indexedDB.deleteDatabase('monochrome-music');
+                            await new Promise((resolve, reject) => {
+                                deleteRequest.onsuccess = resolve;
+                                deleteRequest.onerror = reject;
+                            });
+                        } catch (deleteError) {
+                            console.log('Could not delete IndexedDB:', deleteError);
+                        }
+                    }
+
+                    alert('All local data has been cleared. The app will now reload.');
+                    window.location.reload();
+                } catch (error) {
+                    console.error('Failed to reset local data:', error);
+                    alert('Failed to reset local data: ' + error.message);
+                }
             }
         });
     }

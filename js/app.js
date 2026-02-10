@@ -1,6 +1,13 @@
 //js/app.js
 import { LosslessAPI } from './api.js';
-import { apiSettings, themeManager, nowPlayingSettings, downloadQualitySettings, sidebarSettings } from './storage.js';
+import {
+    apiSettings,
+    themeManager,
+    nowPlayingSettings,
+    downloadQualitySettings,
+    sidebarSettings,
+    pwaUpdateSettings,
+} from './storage.js';
 import { UIRenderer } from './ui.js';
 import { Player } from './player.js';
 import { MultiScrobbler } from './multi-scrobbler.js';
@@ -1471,7 +1478,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
         const updateSW = registerSW({
             onNeedRefresh() {
-                showUpdateNotification(() => updateSW(true));
+                if (pwaUpdateSettings.isAutoUpdateEnabled()) {
+                    // Auto-update: immediately activate the new service worker
+                    updateSW(true);
+                } else {
+                    // Show notification with Update button and dismiss option
+                    showUpdateNotification(() => updateSW(true));
+                }
             },
             onOfflineReady() {
                 console.log('App ready to work offline');
@@ -1558,6 +1571,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function showUpdateNotification(updateCallback) {
+    // Remove any existing update notification
+    const existingNotification = document.querySelector('.update-notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+
     const notification = document.createElement('div');
     notification.className = 'update-notification';
     notification.innerHTML = `
@@ -1565,7 +1584,15 @@ function showUpdateNotification(updateCallback) {
             <strong>Update Available</strong>
             <p>A new version of Monochrome is available.</p>
         </div>
-        <button class="btn-primary" id="update-now-btn">Update Now</button>
+        <div class="update-notification-actions">
+            <button class="btn-primary" id="update-now-btn">Update Now</button>
+            <button class="btn-icon" id="dismiss-update-btn" title="Dismiss">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
     `;
     document.body.appendChild(notification);
 
@@ -1577,6 +1604,10 @@ function showUpdateNotification(updateCallback) {
         } else {
             window.location.reload();
         }
+    });
+
+    document.getElementById('dismiss-update-btn').addEventListener('click', () => {
+        notification.remove();
     });
 }
 
