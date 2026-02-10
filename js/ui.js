@@ -28,6 +28,7 @@ import {
     visualizerSettings,
     homePageSettings,
     fontSettings,
+    contentBlockingSettings,
 } from './storage.js';
 import { db } from './db.js';
 import { getVibrantColorFromImage } from './vibrant-color.js';
@@ -261,6 +262,7 @@ export class UIRenderer {
 
     createTrackItemHTML(track, index, showCover = false, hasMultipleDiscs = false, useTrackNumber = false) {
         const isUnavailable = track.isUnavailable;
+        const isBlocked = contentBlockingSettings?.shouldHideTrack(track);
         const trackImageHTML = showCover
             ? `<img src="${this.api.getCoverUrl(track.album?.cover)}" alt="Track Cover" class="track-item-cover" loading="lazy">`
             : '';
@@ -296,11 +298,16 @@ export class UIRenderer {
             </button>
         `;
 
+        const blockedTitle = isBlocked
+            ? `title="Blocked: ${contentBlockingSettings.isTrackBlocked(track.id) ? 'Track blocked' : contentBlockingSettings.isArtistBlocked(track.artist?.id) ? 'Artist blocked' : 'Album blocked'}"`
+            : '';
+
         return `
-            <div class="track-item ${isCurrentTrack ? 'playing' : ''} ${isUnavailable ? 'unavailable' : ''}" 
+            <div class="track-item ${isCurrentTrack ? 'playing' : ''} ${isUnavailable ? 'unavailable' : ''} ${isBlocked ? 'blocked' : ''}" 
                  data-track-id="${track.id}" 
                  ${track.isLocal ? 'data-is-local="true"' : ''}
-                 ${isUnavailable ? 'title="This track is currently unavailable"' : ''}>
+                 ${isUnavailable ? 'title="This track is currently unavailable"' : ''}
+                 ${blockedTitle}>
                 ${trackNumberHTML}
                 <div class="track-item-info">
                     <div class="track-item-details">
@@ -312,7 +319,7 @@ export class UIRenderer {
                         <div class="artist">${escapeHtml(trackArtists)}${yearDisplay}</div>
                     </div>
                 </div>
-                <div class="track-item-duration">${isUnavailable ? '--:--' : track.duration ? formatTime(track.duration) : '--:--'}</div>
+                <div class="track-item-duration">${isUnavailable || isBlocked ? '--:--' : track.duration ? formatTime(track.duration) : '--:--'}</div>
                 <div class="track-item-actions">
                     ${actionsHTML}
                 </div>
@@ -496,6 +503,7 @@ export class UIRenderer {
     createAlbumCardHTML(album) {
         const explicitBadge = hasExplicitContent(album) ? this.createExplicitBadge() : '';
         const qualityBadge = createQualityBadgeHTML(album);
+        const isBlocked = contentBlockingSettings?.shouldHideAlbum(album);
         let yearDisplay = '';
         if (album.releaseDate) {
             const date = new Date(album.releaseDate);
@@ -521,11 +529,16 @@ export class UIRenderer {
                 </button>
             `,
             isCompact,
+            extraClasses: isBlocked ? 'blocked' : '',
+            extraAttributes: isBlocked
+                ? `title="Blocked: ${contentBlockingSettings.isAlbumBlocked(album.id) ? 'Album blocked' : 'Artist blocked'}"`
+                : '',
         });
     }
 
     createArtistCardHTML(artist) {
         const isCompact = cardSettings.isCompactArtist();
+        const isBlocked = contentBlockingSettings?.shouldHideArtist(artist);
 
         return this.createBaseCardHTML({
             type: 'artist',
@@ -540,7 +553,8 @@ export class UIRenderer {
                 </button>
             `,
             isCompact,
-            extraClasses: 'artist',
+            extraClasses: `artist${isBlocked ? ' blocked' : ''}`,
+            extraAttributes: isBlocked ? 'title="Blocked: Artist blocked"' : '',
         });
     }
 
@@ -1590,6 +1604,19 @@ export class UIRenderer {
                     return;
                 }
 
+                // Filter out blocked content
+                const { contentBlockingSettings } = await import('./storage.js');
+                items = items.filter((item) => {
+                    if (item.type === 'track') {
+                        return !contentBlockingSettings.shouldHideTrack(item);
+                    } else if (item.type === 'album') {
+                        return !contentBlockingSettings.shouldHideAlbum(item);
+                    } else if (item.type === 'artist') {
+                        return !contentBlockingSettings.shouldHideArtist(item);
+                    }
+                    return true;
+                });
+
                 // Shuffle items if enabled
                 if (homePageSettings.shouldShuffleEditorsPicks()) {
                     items = [...items].sort(() => Math.random() - 0.5);
@@ -1807,6 +1834,18 @@ export class UIRenderer {
 
     async filterUserContent(items, type) {
         if (!items || items.length === 0) return [];
+
+        // Import blocking settings
+        const { contentBlockingSettings } = await import('./storage.js');
+
+        // First filter out blocked content
+        if (type === 'track') {
+            items = contentBlockingSettings.filterTracks(items);
+        } else if (type === 'album') {
+            items = contentBlockingSettings.filterAlbums(items);
+        } else if (type === 'artist') {
+            items = contentBlockingSettings.filterArtists(items);
+        }
 
         const favorites = await db.getFavorites(type);
         const favoriteIds = new Set(favorites.map((i) => i.id));
@@ -2138,12 +2177,24 @@ export class UIRenderer {
                 // Similar Artists
                 this.api
                     .getSimilarArtists(album.artist.id)
-                    .then((similar) => {
-                        if (similar && similar.length > 0 && similarArtistsContainer && similarArtistsSection) {
-                            similarArtistsContainer.innerHTML = similar
+                    .then(async (similar) => {
+                        // Filter out blocked artists
+                        const { contentBlockingSettings } = await import('./storage.js');
+                        const filteredSimilar = contentBlockingSettings.filterArtists(similar || []);
+
+                        if (filteredSimilar.length > 0 && similarArtistsContainer && similarArtistsSection) {
+                            similarArtistsContainer.innerHTML = filteredSimilar
                                 .map((a) => this.createArtistCardHTML(a))
                                 .join('');
                             similarArtistsSection.style.display = 'block';
+
+                            filteredSimilar.forEach((a) => {
+                                const el = similarArtistsContainer.querySelector(`[data-artist-id="${a.id}"]`);
+                                if (el) {
+                                    trackDataStore.set(el, a);
+                                    this.updateLikeState(el, 'artist', a.id);
+                                }
+                            });
                         }
                     })
                     .catch((e) => console.warn('Failed to load similar artists:', e));
@@ -2151,12 +2202,18 @@ export class UIRenderer {
                 // Similar Albums
                 this.api
                     .getSimilarAlbums(albumId)
-                    .then((similar) => {
-                        if (similar && similar.length > 0 && similarAlbumsContainer && similarAlbumsSection) {
-                            similarAlbumsContainer.innerHTML = similar.map((a) => this.createAlbumCardHTML(a)).join('');
+                    .then(async (similar) => {
+                        // Filter out blocked albums
+                        const { contentBlockingSettings } = await import('./storage.js');
+                        const filteredSimilar = contentBlockingSettings.filterAlbums(similar || []);
+
+                        if (filteredSimilar.length > 0 && similarAlbumsContainer && similarAlbumsSection) {
+                            similarAlbumsContainer.innerHTML = filteredSimilar
+                                .map((a) => this.createAlbumCardHTML(a))
+                                .join('');
                             similarAlbumsSection.style.display = 'block';
 
-                            similar.forEach((a) => {
+                            filteredSimilar.forEach((a) => {
                                 const el = similarAlbumsContainer.querySelector(`[data-album-id="${a.id}"]`);
                                 if (el) {
                                     trackDataStore.set(el, a);
@@ -2185,7 +2242,11 @@ export class UIRenderer {
         }
 
         try {
-            const recommendedTracks = await this.api.getRecommendedTracksForPlaylist(tracks, 20);
+            let recommendedTracks = await this.api.getRecommendedTracksForPlaylist(tracks, 20);
+
+            // Filter out blocked tracks
+            const { contentBlockingSettings } = await import('./storage.js');
+            recommendedTracks = contentBlockingSettings.filterTracks(recommendedTracks);
 
             if (recommendedTracks.length > 0) {
                 this.renderListWithTracks(recommendedContainer, recommendedTracks, true);
@@ -2739,12 +2800,18 @@ export class UIRenderer {
             if (similarContainer && similarSection) {
                 this.api
                     .getSimilarArtists(artistId)
-                    .then((similar) => {
-                        if (similar && similar.length > 0) {
-                            similarContainer.innerHTML = similar.map((a) => this.createArtistCardHTML(a)).join('');
+                    .then(async (similar) => {
+                        // Filter out blocked artists
+                        const { contentBlockingSettings } = await import('./storage.js');
+                        const filteredSimilar = contentBlockingSettings.filterArtists(similar || []);
+
+                        if (filteredSimilar.length > 0) {
+                            similarContainer.innerHTML = filteredSimilar
+                                .map((a) => this.createArtistCardHTML(a))
+                                .join('');
                             similarSection.style.display = 'block';
 
-                            similar.forEach((a) => {
+                            filteredSimilar.forEach((a) => {
                                 const el = similarContainer.querySelector(`[data-artist-id="${a.id}"]`);
                                 if (el) {
                                     trackDataStore.set(el, a);

@@ -327,6 +327,14 @@ export class Player {
             return;
         }
 
+        // Check if track is blocked
+        const { contentBlockingSettings } = await import('./storage.js');
+        if (contentBlockingSettings.shouldHideTrack(track)) {
+            console.warn(`Attempted to play blocked track: ${track.title}. Skipping...`);
+            this.playNext();
+            return;
+        }
+
         this.saveQueueState();
 
         this.currentTrack = track;
@@ -574,33 +582,42 @@ export class Player {
         const isLastTrack = this.currentQueueIndex >= currentQueue.length - 1;
 
         if (recursiveCount > currentQueue.length) {
-            console.error('All tracks in queue are unavailable.');
+            console.error('All tracks in queue are unavailable or blocked.');
             this.audio.pause();
             return;
         }
 
-        if (this.repeatMode === REPEAT_MODE.ONE && !currentQueue[this.currentQueueIndex]?.isUnavailable) {
+        // Import blocking settings dynamically
+        import('./storage.js').then(({ contentBlockingSettings }) => {
+            if (
+                this.repeatMode === REPEAT_MODE.ONE &&
+                !currentQueue[this.currentQueueIndex]?.isUnavailable &&
+                !contentBlockingSettings.shouldHideTrack(currentQueue[this.currentQueueIndex])
+            ) {
+                this.playTrackFromQueue(0, recursiveCount);
+                return;
+            }
+
+            if (!isLastTrack) {
+                this.currentQueueIndex++;
+                const track = currentQueue[this.currentQueueIndex];
+                // Skip unavailable and blocked tracks
+                if (track?.isUnavailable || contentBlockingSettings.shouldHideTrack(track)) {
+                    return this.playNext(recursiveCount + 1);
+                }
+            } else if (this.repeatMode === REPEAT_MODE.ALL) {
+                this.currentQueueIndex = 0;
+                const track = currentQueue[this.currentQueueIndex];
+                // Skip unavailable and blocked tracks
+                if (track?.isUnavailable || contentBlockingSettings.shouldHideTrack(track)) {
+                    return this.playNext(recursiveCount + 1);
+                }
+            } else {
+                return;
+            }
+
             this.playTrackFromQueue(0, recursiveCount);
-            return;
-        }
-
-        if (!isLastTrack) {
-            this.currentQueueIndex++;
-            // Skip unavailable tracks
-            if (currentQueue[this.currentQueueIndex].isUnavailable) {
-                return this.playNext(recursiveCount + 1);
-            }
-        } else if (this.repeatMode === REPEAT_MODE.ALL) {
-            this.currentQueueIndex = 0;
-            // Skip unavailable tracks
-            if (currentQueue[this.currentQueueIndex].isUnavailable) {
-                return this.playNext(recursiveCount + 1);
-            }
-        } else {
-            return;
-        }
-
-        this.playTrackFromQueue(0, recursiveCount);
+        });
     }
 
     playPrev(recursiveCount = 0) {
@@ -609,19 +626,22 @@ export class Player {
             this.updateMediaSessionPositionState();
         } else if (this.currentQueueIndex > 0) {
             this.currentQueueIndex--;
-            // Skip unavailable tracks
+            // Skip unavailable and blocked tracks
             const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
 
             if (recursiveCount > currentQueue.length) {
-                console.error('All tracks in queue are unavailable.');
+                console.error('All tracks in queue are unavailable or blocked.');
                 this.audio.pause();
                 return;
             }
 
-            if (currentQueue[this.currentQueueIndex].isUnavailable) {
-                return this.playPrev(recursiveCount + 1);
-            }
-            this.playTrackFromQueue(0, recursiveCount);
+            import('./storage.js').then(({ contentBlockingSettings }) => {
+                const track = currentQueue[this.currentQueueIndex];
+                if (track?.isUnavailable || contentBlockingSettings.shouldHideTrack(track)) {
+                    return this.playPrev(recursiveCount + 1);
+                }
+                this.playTrackFromQueue(0, recursiveCount);
+            });
         }
     }
 

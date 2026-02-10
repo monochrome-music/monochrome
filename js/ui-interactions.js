@@ -11,7 +11,7 @@ import {
     createQualityBadgeHTML,
 } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
-import { downloadQualitySettings } from './storage.js';
+import { downloadQualitySettings, contentBlockingSettings } from './storage.js';
 import { db } from './db.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { showNotification, downloadTracks } from './downloads.js';
@@ -241,12 +241,16 @@ export function initializeUIInteractions(player, api, ui) {
         const html = currentQueue
             .map((track, index) => {
                 const isPlaying = index === player.currentQueueIndex;
+                const isBlocked = contentBlockingSettings?.shouldHideTrack(track);
                 const trackTitle = getTrackTitle(track);
                 const trackArtists = getTrackArtists(track, { fallback: 'Unknown' });
                 const qualityBadge = createQualityBadgeHTML(track);
+                const blockedTitle = isBlocked
+                    ? `title="Blocked: ${contentBlockingSettings.isTrackBlocked(track.id) ? 'Track blocked' : contentBlockingSettings.isArtistBlocked(track.artist?.id) ? 'Artist blocked' : 'Album blocked'}"`
+                    : '';
 
                 return `
-                <div class="queue-track-item ${isPlaying ? 'playing' : ''}" data-queue-index="${index}" data-track-id="${track.id}" draggable="true">
+                <div class="queue-track-item ${isPlaying ? 'playing' : ''} ${isBlocked ? 'blocked' : ''}" data-queue-index="${index}" data-track-id="${track.id}" draggable="${isBlocked ? 'false' : 'true'}" ${blockedTitle}>
                     <div class="drag-handle">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="5" y1="8" x2="19" y2="8"></line>
@@ -261,7 +265,7 @@ export function initializeUIInteractions(player, api, ui) {
                             <div class="artist">${escapeHtml(trackArtists)}</div>
                         </div>
                     </div>
-                    <div class="track-item-duration">${formatTime(track.duration)}</div>
+                    <div class="track-item-duration">${isBlocked ? '--:--' : formatTime(track.duration)}</div>
                     <button class="queue-like-btn" data-action="toggle-like" title="Add to Liked">
                         ${SVG_HEART}
                     </button>
@@ -316,6 +320,11 @@ export function initializeUIInteractions(player, api, ui) {
                             added ? `Added to Liked: ${track.title}` : `Removed from Liked: ${track.title}`
                         );
                     }
+                    return;
+                }
+
+                // Don't play blocked tracks
+                if (item.classList.contains('blocked')) {
                     return;
                 }
 

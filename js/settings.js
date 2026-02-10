@@ -29,6 +29,7 @@ import {
     audioEffectsSettings,
     settingsUiState,
     pwaUpdateSettings,
+    contentBlockingSettings,
 } from './storage.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
 import { getButterchurnPresets } from './visualizers/butterchurn.js';
@@ -1858,6 +1859,9 @@ export function initializeSettings(scrobbler, player, api, ui) {
 
     // Settings Search functionality
     setupSettingsSearch();
+
+    // Blocked Content Management
+    initializeBlockedContentManager();
 }
 
 function initializeFontSettings() {
@@ -2106,4 +2110,139 @@ function filterSettings(query) {
         // Show/hide group based on whether it has any visible items
         group.style.display = hasMatch ? '' : 'none';
     });
+}
+
+function initializeBlockedContentManager() {
+    const manageBtn = document.getElementById('manage-blocked-btn');
+    const clearAllBtn = document.getElementById('clear-all-blocked-btn');
+    const blockedListContainer = document.getElementById('blocked-content-list');
+    const blockedArtistsList = document.getElementById('blocked-artists-list');
+    const blockedAlbumsList = document.getElementById('blocked-albums-list');
+    const blockedTracksList = document.getElementById('blocked-tracks-list');
+    const blockedArtistsSection = document.getElementById('blocked-artists-section');
+    const blockedAlbumsSection = document.getElementById('blocked-albums-section');
+    const blockedTracksSection = document.getElementById('blocked-tracks-section');
+    const blockedEmptyMessage = document.getElementById('blocked-empty-message');
+
+    if (!manageBtn || !blockedListContainer) return;
+
+    function renderBlockedLists() {
+        const artists = contentBlockingSettings.getBlockedArtists();
+        const albums = contentBlockingSettings.getBlockedAlbums();
+        const tracks = contentBlockingSettings.getBlockedTracks();
+        const totalCount = artists.length + albums.length + tracks.length;
+
+        // Update manage button text
+        manageBtn.textContent = totalCount > 0 ? `Manage (${totalCount})` : 'Manage';
+
+        // Show/hide clear all button
+        if (clearAllBtn) {
+            clearAllBtn.style.display = totalCount > 0 ? 'inline-block' : 'none';
+        }
+
+        // Show/hide sections
+        blockedArtistsSection.style.display = artists.length > 0 ? 'block' : 'none';
+        blockedAlbumsSection.style.display = albums.length > 0 ? 'block' : 'none';
+        blockedTracksSection.style.display = tracks.length > 0 ? 'block' : 'none';
+        blockedEmptyMessage.style.display = totalCount === 0 ? 'block' : 'none';
+
+        // Render artists
+        if (blockedArtistsList) {
+            blockedArtistsList.innerHTML = artists
+                .map(
+                    (artist) => `
+                <li data-id="${artist.id}" data-type="artist">
+                    <div class="item-info">
+                        <div class="item-name">${escapeHtml(artist.name)}</div>
+                        <div class="item-meta">${new Date(artist.blockedAt).toLocaleDateString()}</div>
+                    </div>
+                    <button class="unblock-btn" data-id="${artist.id}" data-type="artist">Unblock</button>
+                </li>
+            `
+                )
+                .join('');
+        }
+
+        // Render albums
+        if (blockedAlbumsList) {
+            blockedAlbumsList.innerHTML = albums
+                .map(
+                    (album) => `
+                <li data-id="${album.id}" data-type="album">
+                    <div class="item-info">
+                        <div class="item-name">${escapeHtml(album.title)}</div>
+                        <div class="item-meta">${escapeHtml(album.artist || 'Unknown Artist')} • ${new Date(album.blockedAt).toLocaleDateString()}</div>
+                    </div>
+                    <button class="unblock-btn" data-id="${album.id}" data-type="album">Unblock</button>
+                </li>
+            `
+                )
+                .join('');
+        }
+
+        // Render tracks
+        if (blockedTracksList) {
+            blockedTracksList.innerHTML = tracks
+                .map(
+                    (track) => `
+                <li data-id="${track.id}" data-type="track">
+                    <div class="item-info">
+                        <div class="item-name">${escapeHtml(track.title)}</div>
+                        <div class="item-meta">${escapeHtml(track.artist || 'Unknown Artist')} • ${new Date(track.blockedAt).toLocaleDateString()}</div>
+                    </div>
+                    <button class="unblock-btn" data-id="${track.id}" data-type="track">Unblock</button>
+                </li>
+            `
+                )
+                .join('');
+        }
+
+        // Add unblock button handlers
+        blockedListContainer.querySelectorAll('.unblock-btn').forEach((btn) => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = btn.dataset.id;
+                const type = btn.dataset.type;
+
+                if (type === 'artist') {
+                    contentBlockingSettings.unblockArtist(id);
+                } else if (type === 'album') {
+                    contentBlockingSettings.unblockAlbum(id);
+                } else if (type === 'track') {
+                    contentBlockingSettings.unblockTrack(id);
+                }
+
+                renderBlockedLists();
+            });
+        });
+    }
+
+    // Toggle blocked list visibility
+    manageBtn.addEventListener('click', () => {
+        const isVisible = blockedListContainer.style.display !== 'none';
+        blockedListContainer.style.display = isVisible ? 'none' : 'block';
+        if (!isVisible) {
+            renderBlockedLists();
+        }
+    });
+
+    // Clear all blocked content
+    if (clearAllBtn) {
+        clearAllBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to unblock all artists, albums, and tracks?')) {
+                contentBlockingSettings.clearAllBlocked();
+                renderBlockedLists();
+            }
+        });
+    }
+
+    // Initial render
+    renderBlockedLists();
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }

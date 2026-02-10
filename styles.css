@@ -2431,6 +2431,113 @@ input:checked + .slider::before {
     color: var(--foreground);
 }
 
+#context-menu li.separator {
+    height: 1px;
+    background-color: var(--border);
+    margin: 0.5rem 0;
+    padding: 0;
+    cursor: default;
+    pointer-events: none;
+}
+
+#context-menu li.separator:hover {
+    background-color: var(--border);
+    transform: none;
+}
+
+.blocked-items-list {
+    list-style: none;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.blocked-items-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background: var(--accent);
+    border-radius: 4px;
+    margin-bottom: 0.25rem;
+}
+
+.blocked-items-list li:hover {
+    background: var(--secondary);
+}
+
+.blocked-items-list .item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.blocked-items-list .item-name {
+    font-weight: 500;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.blocked-items-list .item-meta {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+}
+
+.blocked-items-list .unblock-btn {
+    background: transparent;
+    border: none;
+    color: var(--primary);
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    border-radius: 4px;
+}
+
+.blocked-items-list .unblock-btn:hover {
+    background: var(--secondary);
+}
+
+/* Blocked content styling */
+.track-item.blocked {
+    opacity: 0.4;
+    pointer-events: none;
+    filter: grayscale(100%);
+}
+
+.track-item.blocked .track-item-info {
+    text-decoration: line-through;
+}
+
+.track-item.blocked .track-menu-btn {
+    pointer-events: auto;
+    opacity: 1;
+}
+
+.card.blocked {
+    opacity: 0.4;
+    pointer-events: none;
+    filter: grayscale(100%);
+}
+
+.card.blocked .card-menu-btn {
+    pointer-events: auto;
+    opacity: 1;
+}
+
+.card.blocked .card-title,
+.card.blocked .card-subtitle {
+    text-decoration: line-through;
+}
+
+.queue-track-item.blocked {
+    opacity: 0.4;
+    filter: grayscale(100%);
+}
+
+.queue-track-item.blocked .track-item-details {
+    text-decoration: line-through;
+}
+
 #queue-modal-overlay {
     display: none;
     position: fixed;

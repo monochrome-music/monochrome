@@ -726,6 +726,13 @@ export async function handleTrackAction(
 
     if (isCollection && collectionActions.includes(action)) {
         try {
+            // Check if album/artist is blocked
+            const { contentBlockingSettings } = await import('./storage.js');
+            if (type === 'album' && contentBlockingSettings.shouldHideAlbum(item)) {
+                showNotification('This album is blocked');
+                return;
+            }
+
             let tracks = [];
             let collectionItem = item;
 
@@ -779,6 +786,9 @@ export async function handleTrackAction(
                 }
                 return;
             }
+
+            // Filter blocked tracks from collections
+            tracks = contentBlockingSettings.filterTracks(tracks);
 
             if (action === 'add-to-queue') {
                 player.addToQueue(tracks);
@@ -835,6 +845,13 @@ export async function handleTrackAction(
     }
 
     // Individual Track Actions
+    // Check if track/artist is blocked
+    const { contentBlockingSettings } = await import('./storage.js');
+    if (type === 'track' && contentBlockingSettings.shouldHideTrack(item)) {
+        showNotification('This track is blocked');
+        return;
+    }
+
     if (action === 'add-to-queue') {
         player.addToQueue(item);
         if (window.renderQueueFunction) window.renderQueueFunction();
@@ -1242,6 +1259,57 @@ export async function handleTrackAction(
         } else {
             showNotification('No original URL available for this track.');
         }
+    } else if (action === 'block-track') {
+        const { contentBlockingSettings } = await import('./storage.js');
+        if (contentBlockingSettings.isTrackBlocked(item.id)) {
+            contentBlockingSettings.unblockTrack(item.id);
+            showNotification(`Unblocked track: ${item.title}`);
+        } else {
+            contentBlockingSettings.blockTrack(item);
+            showNotification(`Blocked track: ${item.title}`);
+        }
+    } else if (action === 'block-album') {
+        const { contentBlockingSettings } = await import('./storage.js');
+        const albumId = type === 'album' ? item.id : item.album?.id;
+        const albumTitle = type === 'album' ? item.title : item.album?.title;
+        const albumArtist = type === 'album' ? item.artist : item.album?.artist;
+
+        if (!albumId) {
+            showNotification('No album information available');
+            return;
+        }
+
+        if (contentBlockingSettings.isAlbumBlocked(albumId)) {
+            contentBlockingSettings.unblockAlbum(albumId);
+            showNotification(`Unblocked album: ${albumTitle || 'Unknown Album'}`);
+        } else {
+            contentBlockingSettings.blockAlbum({
+                id: albumId,
+                title: albumTitle,
+                artist: albumArtist,
+            });
+            showNotification(`Blocked album: ${albumTitle || 'Unknown Album'}`);
+        }
+    } else if (action === 'block-artist') {
+        const { contentBlockingSettings } = await import('./storage.js');
+        const artistId = item.artist?.id || item.artists?.[0]?.id;
+        const artistName = item.artist?.name || item.artists?.[0]?.name || item.name;
+
+        if (!artistId) {
+            showNotification('No artist information available');
+            return;
+        }
+
+        if (contentBlockingSettings.isArtistBlocked(artistId)) {
+            contentBlockingSettings.unblockArtist(artistId);
+            showNotification(`Unblocked artist: ${artistName || 'Unknown Artist'}`);
+        } else {
+            contentBlockingSettings.blockArtist({
+                id: artistId,
+                name: artistName,
+            });
+            showNotification(`Blocked artist: ${artistName || 'Unknown Artist'}`);
+        }
     }
 }
 
@@ -1267,8 +1335,37 @@ async function updateContextMenuLikeState(contextMenu, contextTrack) {
         openOriginalUrlItem.style.display = isUnreleased ? 'block' : 'none';
     }
 
-    // Filter items based on type
+    // Update block/unblock labels
+    const { contentBlockingSettings } = await import('./storage.js');
     const type = contextMenu._contextType || 'track';
+
+    const blockTrackItem = contextMenu.querySelector('li[data-action="block-track"]');
+    if (blockTrackItem) {
+        const isBlocked = contentBlockingSettings.isTrackBlocked(contextTrack.id);
+        blockTrackItem.textContent = isBlocked
+            ? blockTrackItem.dataset.labelUnblock || 'Unblock track'
+            : blockTrackItem.dataset.labelBlock || 'Block track';
+    }
+
+    const blockAlbumItem = contextMenu.querySelector('li[data-action="block-album"]');
+    if (blockAlbumItem) {
+        const albumId = type === 'album' ? contextTrack.id : contextTrack.album?.id;
+        const isBlocked = albumId ? contentBlockingSettings.isAlbumBlocked(albumId) : false;
+        blockAlbumItem.textContent = isBlocked
+            ? blockAlbumItem.dataset.labelUnblock || 'Unblock album'
+            : blockAlbumItem.dataset.labelBlock || 'Block album';
+    }
+
+    const blockArtistItem = contextMenu.querySelector('li[data-action="block-artist"]');
+    if (blockArtistItem) {
+        const artistId = contextTrack.artist?.id || contextTrack.artists?.[0]?.id;
+        const isBlocked = artistId ? contentBlockingSettings.isArtistBlocked(artistId) : false;
+        blockArtistItem.textContent = isBlocked
+            ? blockArtistItem.dataset.labelUnblock || 'Unblock artist'
+            : blockArtistItem.dataset.labelBlock || 'Block artist';
+    }
+
+    // Filter items based on type
     contextMenu.querySelectorAll('li[data-action]').forEach((item) => {
         const filter = item.dataset.typeFilter;
         if (filter) {
@@ -1389,7 +1486,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
         }
 
         const trackItem = e.target.closest('.track-item');
-        if (trackItem && trackItem.classList.contains('unavailable')) {
+        if (trackItem && (trackItem.classList.contains('unavailable') || trackItem.classList.contains('blocked'))) {
             return;
         }
         if (trackItem && !trackItem.dataset.queueIndex && !e.target.closest('.remove-from-playlist-btn')) {
@@ -1409,6 +1506,11 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
 
         const card = e.target.closest('.card');
         if (card) {
+            // Don't navigate if card is blocked (unless clicking menu button)
+            if (card.classList.contains('blocked') && !e.target.closest('.card-menu-btn')) {
+                return;
+            }
+
             if (e.target.closest('.edit-playlist-btn') || e.target.closest('.delete-playlist-btn')) {
                 return;
             }

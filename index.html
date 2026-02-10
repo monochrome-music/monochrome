@@ -47,6 +47,31 @@
                 <li data-action="track-info" data-type-filter="track">Track info</li>
                 <li data-action="open-original-url" data-type-filter="track">Open original URL</li>
                 <li data-action="download">Download</li>
+                <li class="separator"></li>
+                <li
+                    data-action="block-track"
+                    data-type-filter="track"
+                    data-label-block="Block track"
+                    data-label-unblock="Unblock track"
+                >
+                    Block track
+                </li>
+                <li
+                    data-action="block-album"
+                    data-type-filter="album,track"
+                    data-label-block="Block album"
+                    data-label-unblock="Unblock album"
+                >
+                    Block album
+                </li>
+                <li
+                    data-action="block-artist"
+                    data-type-filter="track,album,artist"
+                    data-label-block="Block artist"
+                    data-label-unblock="Unblock artist"
+                >
+                    Block artist
+                </li>
             </ul>
         </div>
 
@@ -3675,6 +3700,78 @@
                                         </button>
                                     </div>
                                     <ul id="api-instance-list"></ul>
+                                </div>
+
+                                <div
+                                    class="setting-item"
+                                    style="padding-bottom: 1rem; border-top: 1px solid var(--border)"
+                                >
+                                    <div class="info">
+                                        <span class="label">Blocked Content</span>
+                                        <span class="description"
+                                            >Manage artists, albums, and tracks you've blocked from
+                                            recommendations</span
+                                        >
+                                    </div>
+                                    <div style="display: flex; gap: 0.5rem">
+                                        <button id="manage-blocked-btn" class="btn-secondary">Manage</button>
+                                        <button
+                                            id="clear-all-blocked-btn"
+                                            class="btn-secondary danger"
+                                            style="display: none"
+                                        >
+                                            Clear All
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="blocked-content-list" style="display: none">
+                                    <div id="blocked-artists-section" style="margin-bottom: 1rem">
+                                        <h4
+                                            style="
+                                                font-size: 0.9rem;
+                                                margin-bottom: 0.5rem;
+                                                color: var(--muted-foreground);
+                                            "
+                                        >
+                                            Blocked Artists
+                                        </h4>
+                                        <ul id="blocked-artists-list" class="blocked-items-list"></ul>
+                                    </div>
+                                    <div id="blocked-albums-section" style="margin-bottom: 1rem">
+                                        <h4
+                                            style="
+                                                font-size: 0.9rem;
+                                                margin-bottom: 0.5rem;
+                                                color: var(--muted-foreground);
+                                            "
+                                        >
+                                            Blocked Albums
+                                        </h4>
+                                        <ul id="blocked-albums-list" class="blocked-items-list"></ul>
+                                    </div>
+                                    <div id="blocked-tracks-section" style="margin-bottom: 1rem">
+                                        <h4
+                                            style="
+                                                font-size: 0.9rem;
+                                                margin-bottom: 0.5rem;
+                                                color: var(--muted-foreground);
+                                            "
+                                        >
+                                            Blocked Tracks
+                                        </h4>
+                                        <ul id="blocked-tracks-list" class="blocked-items-list"></ul>
+                                    </div>
+                                    <div
+                                        id="blocked-empty-message"
+                                        style="
+                                            text-align: center;
+                                            padding: 1rem;
+                                            color: var(--muted-foreground);
+                                            display: none;
+                                        "
+                                    >
+                                        No blocked content
+                                    </div>
                                 </div>
                             </div>
                         </div>
