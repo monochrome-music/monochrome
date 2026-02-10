@@ -24,9 +24,9 @@ def recv_packet(s):
         return json.loads(payload.decode('utf-8'))
     except: return None
 
-def set_activity(ds, pid, details, state, img=None):
+def set_activity(ds, pid, details, state, img=None, start=None, end=None, large_text=None, small_img=None, small_txt=None):
     global LAST_STATUS
-    current = f"{details}-{state}-{img}"
+    current = f"{details}-{state}-{img}-{start}-{end}-{large_text}-{small_img}-{small_txt}"
     if current == LAST_STATUS: return
     LAST_STATUS = current
 
@@ -36,9 +36,18 @@ def set_activity(ds, pid, details, state, img=None):
         "type": 2, # Listening
         "assets": {
             "large_image": img if img and img.startswith('http') else "monochrome",
-            "large_text": "Monochrome"
+            "large_text": str(large_text or "Monochrome")
         }
     }
+
+    if small_img:
+        activity["assets"]["small_image"] = str(small_img)
+        activity["assets"]["small_text"] = str(small_txt or "")
+    
+    if start or end:
+        activity["timestamps"] = {}
+        if start: activity["timestamps"]["start"] = int(start)
+        if end: activity["timestamps"]["end"] = int(end)
     
     send_packet(ds, 1, {
         "cmd": "SET_ACTIVITY",
@@ -119,7 +128,7 @@ def main():
             msg = json.loads(data.decode('utf-8'))
             if msg['event'] == 'discord:update':
                 d = msg['data']
-                set_activity(ds, ppid, d.get('details'), d.get('state'), d.get('largeImageKey'))
+                set_activity(ds, ppid, d.get('details'), d.get('state'), d.get('largeImageKey'), d.get('startTimestamp'), d.get('endTimestamp'), d.get('largeImageText'), d.get('smallImageKey'), d.get('smallImageText'))
             elif msg['event'] == 'discord:clear':
                 set_activity(ds, ppid, "Idling", "Monochrome")
             elif msg['event'] == 'windowClose':

@@ -1,8 +1,8 @@
-# bridge.ps1 - JSON Depth Fix
-# $Log = Join-Path $PSScriptRoot "bridge_final.log"
-function Log($m) { }
+# bridge.ps1 - Diagnostic Version
+$Log = Join-Path $PSScriptRoot "bridge.log"
+function Log($m) { Add-Content $Log "$(Get-Date -f 'HH:mm:ss') - $m" }
 
-Log "--- START (DEPTH FIX) ---"
+Log "--- START (DIAGNOSTIC) ---"
 
 # 1. PID
 $p = Get-Process Monochrome -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -37,15 +37,26 @@ $h = New-Object byte[] 8; if ($pipe.Read($h, 0, 8) -eq 8) {
     Log "Handshake OK"
 }
 
-function Set-Activity($d, $s, $img) {
+function Set-Activity($d, $s, $img, $start, $end, $large_text, $small_img, $small_txt) {
     $activity = @{
         details = [string]$d
         state = [string]$s
         type = 2
         assets = @{
             large_image = if ($img -and $img.StartsWith("http")) { [string]$img } else { "monochrome" }
-            large_text = "Monochrome"
+            large_text = if ($large_text) { [string]$large_text } else { "Monochrome" }
         }
+    }
+
+    if ($small_img) {
+        $activity.assets.small_image = [string]$small_img
+        $activity.assets.small_text = [string]$small_txt
+    }
+
+    if ($start -or $end) {
+        $activity.timestamps = @{}
+        if ($start) { $activity.timestamps.start = [long]$start }
+        if ($end) { $activity.timestamps.end = [long]$end }
     }
     
     # CRITICAL: -Depth 10 ensures 'assets' is not stringified as a class name
@@ -59,7 +70,7 @@ function Set-Activity($d, $s, $img) {
 }
 
 Start-Sleep -Seconds 1
-Set-Activity "Idling" "Monochrome" $null
+Set-Activity "Idling" "Monochrome" $null $null $null $null $null $null
 
 # 4. Config & WS
 $line = [Console]::In.ReadLine()
@@ -83,9 +94,9 @@ while ($ws.State -eq "Open") {
             $raw = [System.Text.Encoding]::UTF8.GetString($buf, 0, $task.Result.Count)
             $msg = $raw | ConvertFrom-Json
             if ($msg.event -eq "discord:update") { 
-                Set-Activity $msg.data.details $msg.data.state $msg.data.largeImageKey
+                Set-Activity $msg.data.details $msg.data.state $msg.data.largeImageKey $msg.data.startTimestamp $msg.data.endTimestamp $msg.data.largeImageText $msg.data.smallImageKey $msg.data.smallImageText
             }
-            elseif ($msg.event -eq "discord:clear") { Set-Activity "Idling" "Monochrome" $null }
+            elseif ($msg.event -eq "discord:clear") { Set-Activity "Idling" "Monochrome" $null $null $null $null $null $null }
         } catch {}
     }
 }

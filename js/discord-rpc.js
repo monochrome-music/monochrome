@@ -1,8 +1,6 @@
 import { getTrackTitle, getTrackArtists } from './utils.js';
 
 export function initializeDiscordRPC(player) {
-    console.log('[DiscordRPC] Initializing...');
-
     const EXTENSION_ID = 'js.neutralino.discordrpc';
 
     function sendUpdate(track, isPaused = false) {
@@ -27,10 +25,12 @@ export function initializeDiscordRPC(player) {
         if (!isPaused && track.duration) {
             const now = Date.now();
             const elapsed = player.audio.currentTime * 1000;
+            const remaining = (track.duration - player.audio.currentTime) * 1000;
+
             data.startTimestamp = Math.floor((now - elapsed) / 1000);
+            data.endTimestamp = Math.floor((now + remaining) / 1000);
         }
 
-        console.log('[DiscordRPC] Dispatching to', EXTENSION_ID, data);
         Neutralino.events.broadcast('discord:update', data).catch((e) => console.error('Broadcast failed', e));
         Neutralino.extensions
             .dispatch(EXTENSION_ID, 'discord:update', data)
@@ -42,7 +42,6 @@ export function initializeDiscordRPC(player) {
         if (player.currentTrack) {
             sendUpdate(player.currentTrack, player.audio.paused);
         } else {
-            console.log('[DiscordRPC] Sending idling heartbeat...');
             const idlingData = {
                 details: 'Idling',
                 state: 'Monochrome',

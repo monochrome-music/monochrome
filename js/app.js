@@ -1,5 +1,4 @@
 //js/app.js
-console.log('[App] Script loaded');
 import { LosslessAPI } from './api.js';
 import {
     apiSettings,
