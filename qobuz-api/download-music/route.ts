@@ -4,7 +4,7 @@ import z from 'zod';
 
 const downloadParamsSchema = z.object({
     track_id: z.preprocess((a) => parseInt(a as string), z.number().min(0, 'ID must be 0 or greater').default(1)),
-    quality: z.enum(['27', '7', '6', '5']).default('27')
+    quality: z.enum(['27', '7', '6', '5']).default('27'),
 });
 
 export async function GET(request: NextRequest) {
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
         return new NextResponse(
             JSON.stringify({
                 success: false,
-                error: error?.errors || error.message || 'An error occurred parsing the request.'
+                error: error?.errors || error.message || 'An error occurred parsing the request.',
             }),
             { status: 400 }
         );

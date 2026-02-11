@@ -6,7 +6,7 @@ export async function GET() {
         return new NextResponse(
             JSON.stringify({
                 success: false,
-                error: 'No countries list found'
+                error: 'No countries list found',
             })
         );
     }
@@ -15,14 +15,14 @@ export async function GET() {
         return new NextResponse(
             JSON.stringify({
                 success: true,
-                data: countryCodes
+                data: countryCodes,
             })
         );
     } catch {
         return new NextResponse(
             JSON.stringify({
                 success: false,
-                error: 'Error parsing the countries list'
+                error: 'Error parsing the countries list',
             })
         );
     }

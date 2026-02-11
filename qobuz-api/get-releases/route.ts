@@ -7,7 +7,7 @@ const releasesParamsSchema = z.object({
     release_type: z.enum(['album', 'live', 'compilation', 'epSingle', 'download']).default('album'),
     track_size: z.number().positive().default(1000),
     offset: z.preprocess((a) => parseInt(a as string), z.number().positive().default(0)),
-    limit: z.preprocess((a) => parseInt(a as string), z.number().positive().default(10))
+    limit: z.preprocess((a) => parseInt(a as string), z.number().positive().default(10)),
 });
 
 export async function GET(request: NextRequest) {
@@ -15,13 +15,20 @@ export async function GET(request: NextRequest) {
     const params = Object.fromEntries(new URL(request.url).searchParams.entries());
     try {
         const { artist_id, release_type, track_size, offset, limit } = releasesParamsSchema.parse(params);
-        const data = await getArtistReleases(artist_id, release_type, limit, offset, track_size, country ? { country } : {});
+        const data = await getArtistReleases(
+            artist_id,
+            release_type,
+            limit,
+            offset,
+            track_size,
+            country ? { country } : {}
+        );
         return new NextResponse(JSON.stringify({ success: true, data }), { status: 200 });
     } catch (error: any) {
         return new NextResponse(
             JSON.stringify({
                 success: false,
-                error: error?.errors || error.message || 'An error occurred parsing the request.'
+                error: error?.errors || error.message || 'An error occurred parsing the request.',
             }),
             { status: 400 }
         );

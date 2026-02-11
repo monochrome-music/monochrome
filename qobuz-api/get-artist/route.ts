@@ -2,7 +2,7 @@ import { getArtist } from '@/lib/qobuz-dl-server';
 import z from 'zod';
 
 const artistReleasesParamsSchema = z.object({
-    artist_id: z.string().min(1, 'ID is required')
+    artist_id: z.string().min(1, 'ID is required'),
 });
 
 export async function GET(request: Request) {
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
         return new Response(
             JSON.stringify({
                 success: false,
-                error: error?.errors || error.message || 'An error occurred parsing the request.'
+                error: error?.errors || error.message || 'An error occurred parsing the request.',
             }),
             { status: 400 }
         );
