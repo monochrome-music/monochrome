@@ -109,6 +109,10 @@ export class MusicAPI {
         return this.tidalAPI.getArtistPictureUrl(id, size);
     }
 
+    extractStreamUrlFromManifest(manifest) {
+        return this.tidalAPI.extractStreamUrlFromManifest(manifest);
+    }
+
     // Helper methods
     getProviderFromId(id) {
         if (typeof id === 'string') {
