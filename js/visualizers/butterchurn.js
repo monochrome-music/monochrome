@@ -20,21 +20,30 @@ async function loadPresetsModule() {
     isLoading = true;
 
     try {
-        // Dynamic import to code-split butterchurn-presets into separate chunk
-        const butterchurnPresets = await import('butterchurn-presets');
-        console.log('[Butterchurn] Presets module loaded, type:', typeof butterchurnPresets);
+        // Load butterchurn-presets via script tag to avoid ES module issues
+        if (!window.butterchurnPresets) {
+            await new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = '/lib/butterchurnPresets.min.js';
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
 
-        // The module has a static getPresets method
-        if (typeof butterchurnPresets.default?.getPresets !== 'function') {
+        const butterchurnPresets = window.butterchurnPresets;
+        console.log('[Butterchurn] Presets loaded, type:', typeof butterchurnPresets);
+
+        if (typeof butterchurnPresets?.getPresets !== 'function') {
             console.error(
                 '[Butterchurn] butterchurnPresets.getPresets is not a function:',
-                typeof butterchurnPresets.default?.getPresets
+                typeof butterchurnPresets?.getPresets
             );
             isLoading = false;
             return;
         }
 
-        const allPresets = butterchurnPresets.default.getPresets();
+        const allPresets = butterchurnPresets.getPresets();
         cachedPresets = allPresets || {};
         cachedPresetKeys = Object.keys(cachedPresets);
 

@@ -48,11 +48,11 @@
     },
     "dependencies": {
         "@neutralinojs/lib": "^6.5.0",
-        "cookie-session": "^2.1.0",
-        "jose": "^6.0.11",
         "butterchurn": "^2.6.7",
         "butterchurn-presets": "^2.4.7",
+        "cookie-session": "^2.1.0",
         "dashjs": "^5.1.1",
+        "jose": "^6.0.11",
         "pocketbase": "^0.26.5"
     }
 }

@@ -8,6 +8,19 @@ export default defineConfig(({ mode }) => {
 
     return {
         base: './',
+        resolve: {
+            alias: {
+                pocketbase: '/node_modules/pocketbase/dist/pocketbase.es.js',
+            },
+        },
+        optimizeDeps: {
+            exclude: ['pocketbase'],
+        },
+        server: {
+            fs: {
+                allow: ['.', 'node_modules'],
+            },
+        },
         build: {
             outDir: 'dist',
             emptyOutDir: true,

@@ -684,9 +684,9 @@ export const visualizerSettings = {
 
     getPreset() {
         try {
-            return localStorage.getItem(this.PRESET_KEY) || 'lcd';
+            return localStorage.getItem(this.PRESET_KEY) || 'butterchurn';
         } catch {
-            return 'lcd';
+            return 'butterchurn';
         }
     },
 
