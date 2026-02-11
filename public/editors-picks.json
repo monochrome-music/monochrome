@@ -1,6 +1,28 @@
 [
     {
         "type": "album",
+        "id": 89313048,
+        "title": "DAYTONA",
+        "artist": { "id": 3972883, "name": "Pusha T" },
+        "releaseDate": "2018-05-25",
+        "cover": "30288caf-2bdd-4511-a95c-57117936b2b6",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 118353565,
+        "title": "Dyn-O-Mite",
+        "artist": { "id": 5755811, "name": "ZelooperZ" },
+        "releaseDate": "2019-05-18",
+        "cover": "c42f0025-9839-4dd2-b5de-9fd05ed5e917",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
         "id": 4527433,
         "title": "Flockaveli",
         "artist": { "id": 3654061, "name": "Waka Flocka Flame" },

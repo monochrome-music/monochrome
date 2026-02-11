@@ -1322,7 +1322,15 @@
                             <button id="create-playlist-btn" class="btn-primary" style="margin: 10px 0">
                                 Create Playlist
                             </button>
-                            <button id="create-folder-btn" class="btn-secondary" style="margin: 10px 0 10px 10px">
+                            <button
+                                id="create-folder-btn"
+                                class="btn-primary"
+                                style="
+                                    margin: 10px 0 10px 10px;
+                                    background-color: var(--secondary);
+                                    color: var(--foreground);
+                                "
+                            >
                                 Create Folder
                             </button>
                         </div>
@@ -1515,10 +1523,34 @@
                             <h1 class="title" id="tracker-artist-detail-name"></h1>
                             <div class="meta" id="tracker-artist-detail-meta"></div>
                             <div class="detail-header-actions">
-                                <button id="play-tracker-artist-btn" class="btn-primary">
+                                <button id="play-tracker-artist-btn" class="btn-primary" title="Shuffle Play">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 24 24"
+                                        fill="currentColor"
+                                    >
+                                        <polygon points="7 3 21 12 7 21 7 3"></polygon>
+                                    </svg>
                                     <span>Shuffle Play</span>
                                 </button>
-                                <button id="download-tracker-artist-btn" class="btn-primary">
+                                <button id="download-tracker-artist-btn" class="btn-primary" title="Download">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="7 10 12 15 17 10"></polyline>
+                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                                    </svg>
                                     <span>Download All</span>
                                 </button>
                             </div>
@@ -1540,10 +1572,19 @@
                             <div class="meta" id="album-detail-meta"></div>
                             <div class="meta" id="album-detail-producer"></div>
                             <div class="detail-header-actions">
-                                <button id="play-album-btn" class="btn-primary">
+                                <button id="play-album-btn" class="btn-primary" title="Play Album">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 24 24"
+                                        fill="currentColor"
+                                    >
+                                        <polygon points="7 3 21 12 7 21 7 3"></polygon>
+                                    </svg>
                                     <span>Play Album</span>
                                 </button>
-                                <button id="shuffle-album-btn" class="btn-primary">
+                                <button id="shuffle-album-btn" class="btn-primary" title="Shuffle">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
                                         width="18"
@@ -1563,7 +1604,7 @@
                                     </svg>
                                     <span>Shuffle</span>
                                 </button>
-                                <button id="album-mix-btn" class="btn-primary" style="display: none">
+                                <button id="album-mix-btn" class="btn-primary" style="display: none" title="Mix">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
                                         width="20"
@@ -1577,7 +1618,22 @@
                                     </svg>
                                     <span>Mix</span>
                                 </button>
-                                <button id="download-album-btn" class="btn-primary">
+                                <button id="download-album-btn" class="btn-primary" title="Download">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="7 10 12 15 17 10"></polyline>
+                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                                    </svg>
                                     <span>Download</span>
                                 </button>
                                 <button id="add-album-to-playlist-btn" class="btn-secondary" title="Add to Playlist">
@@ -1592,9 +1648,10 @@
                                         stroke-linecap="round"
                                         stroke-linejoin="round"
                                     >
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
                                     </svg>
+                                    <span>Add to Playlist</span>
                                 </button>
                                 <button
                                     id="like-album-btn"
@@ -1619,6 +1676,7 @@
                                             d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
                                         ></path>
                                     </svg>
+                                    <span>Save</span>
                                 </button>
                             </div>
                         </div>
@@ -1676,11 +1734,72 @@
                             <div class="meta" id="playlist-detail-meta"></div>
                             <div class="meta" id="playlist-detail-description" class="detail-description"></div>
                             <div class="detail-header-actions">
-                                <button id="play-playlist-btn" class="btn-primary">
+                                <button id="play-playlist-btn" class="btn-primary" title="Play">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 24 24"
+                                        fill="currentColor"
+                                    >
+                                        <polygon points="7 3 21 12 7 21 7 3"></polygon>
+                                    </svg>
                                     <span>Play</span>
                                 </button>
-                                <button id="download-playlist-btn" class="btn-primary">
+                                <button id="shuffle-playlist-btn" class="btn-primary" title="Shuffle">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="18"
+                                        height="18"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="m18 14 4 4-4 4" />
+                                        <path d="m18 2 4 4-4 4" />
+                                        <path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22" />
+                                        <path d="M2 6h1.972a4 4 0 0 1 3.6 2.2" />
+                                        <path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45" />
+                                    </svg>
+                                    <span>Shuffle</span>
+                                </button>
+                                <button id="download-playlist-btn" class="btn-primary" title="Download">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="7 10 12 15 17 10"></polyline>
+                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                                    </svg>
                                     <span>Download</span>
+                                </button>
+                                <button id="add-playlist-to-playlist-btn" class="btn-secondary" title="Add to Playlist">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                                    </svg>
+                                    <span>Add to Playlist</span>
                                 </button>
                                 <button
                                     id="like-playlist-btn"
@@ -1705,6 +1824,7 @@
                                             d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
                                         ></path>
                                     </svg>
+                                    <span>Save</span>
                                 </button>
                             </div>
                         </div>
@@ -1789,10 +1909,34 @@
                             <div class="meta" id="mix-detail-meta"></div>
                             <div class="meta" id="mix-detail-description" class="detail-description"></div>
                             <div class="detail-header-actions">
-                                <button id="play-mix-btn" class="btn-primary">
+                                <button id="play-mix-btn" class="btn-primary" title="Play">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 24 24"
+                                        fill="currentColor"
+                                    >
+                                        <polygon points="7 3 21 12 7 21 7 3"></polygon>
+                                    </svg>
                                     <span>Play</span>
                                 </button>
-                                <button id="download-mix-btn" class="btn-primary">
+                                <button id="download-mix-btn" class="btn-primary" title="Download">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="7 10 12 15 17 10"></polyline>
+                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                                    </svg>
                                     <span>Download</span>
                                 </button>
                                 <button
@@ -1819,6 +1963,7 @@
                                             d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
                                         ></path>
                                     </svg>
+                                    <span>Save</span>
                                 </button>
                             </div>
                         </div>
@@ -1838,7 +1983,7 @@
                             <h1 class="title" id="artist-detail-name"></h1>
                             <div class="meta" id="artist-detail-meta"></div>
                             <div class="detail-header-actions">
-                                <button id="play-artist-radio-btn" class="btn-primary">
+                                <button id="play-artist-radio-btn" class="btn-primary" title="Artist Radio">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
                                         width="20"
@@ -1850,9 +1995,9 @@
                                             d="M4.5 9v6h3l5 5V4l-5 5h-3zm16 3a6 6 0 0 0-3.26-5.3l-1.48 1.48C17.31 9.21 18 10.53 18 12c0 1.47-.69 2.79-1.74 3.82l1.48 1.48A6 6 0 0 0 20.5 12z"
                                         />
                                     </svg>
-                                    <span>Artist Radio</span>
+                                    <span>Radio</span>
                                 </button>
-                                <button id="shuffle-artist-btn" class="btn-primary">
+                                <button id="shuffle-artist-btn" class="btn-primary" title="Shuffle">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
                                         width="18"
@@ -1872,7 +2017,7 @@
                                     </svg>
                                     <span>Shuffle</span>
                                 </button>
-                                <button id="artist-mix-btn" class="btn-primary" style="display: none">
+                                <button id="artist-mix-btn" class="btn-primary" style="display: none" title="Mix">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
                                         width="20"
@@ -1886,8 +2031,23 @@
                                     </svg>
                                     <span>Mix</span>
                                 </button>
-                                <button id="download-discography-btn" class="btn-primary">
-                                    <span>Download Discography</span>
+                                <button id="download-discography-btn" class="btn-primary" title="Download">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="20"
+                                        height="20"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="7 10 12 15 17 10"></polyline>
+                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                                    </svg>
+                                    <span>Download</span>
                                 </button>
                                 <button
                                     id="like-artist-btn"
@@ -1912,6 +2072,7 @@
                                             d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
                                         ></path>
                                     </svg>
+                                    <span>Save</span>
                                 </button>
                             </div>
                         </div>
@@ -1961,19 +2122,19 @@
                                 <span id="track-detail-year"></span>
                             </div>
                             <div class="detail-header-actions">
-                                <button id="play-track-btn" class="btn-primary">
+                                <button id="play-track-btn" class="btn-primary" title="Play">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
-                                        width="24"
-                                        height="24"
+                                        width="20"
+                                        height="20"
                                         viewBox="0 0 24 24"
                                         fill="currentColor"
                                     >
-                                        <path d="M8 5v14l11-7z" />
+                                        <polygon points="7 3 21 12 7 21 7 3"></polygon>
                                     </svg>
                                     <span>Play</span>
                                 </button>
-                                <button id="track-lyrics-btn" class="btn-secondary">
+                                <button id="track-lyrics-btn" class="btn-secondary" title="Lyrics">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
                                         width="20"
@@ -1992,7 +2153,7 @@
                                     </svg>
                                     <span>Lyrics</span>
                                 </button>
-                                <button id="share-track-btn" class="btn-secondary">
+                                <button id="share-track-btn" class="btn-secondary" title="Share">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
                                         width="20"
@@ -2033,6 +2194,7 @@
                                             d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
                                         ></path>
                                     </svg>
+                                    <span>Save</span>
                                 </button>
                                 <button id="download-track-btn" class="btn-secondary" title="Download">
                                     <svg
@@ -2046,10 +2208,11 @@
                                         stroke-linecap="round"
                                         stroke-linejoin="round"
                                     >
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                        <polyline points="7 10 12 15 17 10" />
-                                        <line x1="12" y1="15" x2="12" y2="3" />
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="7 10 12 15 17 10"></polyline>
+                                        <line x1="12" y1="15" x2="12" y2="3"></line>
                                     </svg>
+                                    <span>Download</span>
                                 </button>
                             </div>
                         </div>
