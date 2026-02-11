@@ -1707,6 +1707,22 @@ export const pwaUpdateSettings = {
     },
 };
 
+export const musicProviderSettings = {
+    STORAGE_KEY: 'music-provider',
+
+    getProvider() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) || 'tidal';
+        } catch {
+            return 'tidal';
+        }
+    },
+
+    setProvider(provider) {
+        localStorage.setItem(this.STORAGE_KEY, provider);
+    },
+};
+
 export const contentBlockingSettings = {
     BLOCKED_ARTISTS_KEY: 'blocked-artists',
     BLOCKED_TRACKS_KEY: 'blocked-tracks',

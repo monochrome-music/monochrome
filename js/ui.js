@@ -1910,11 +1910,12 @@ export class UIRenderer {
         const signal = this.searchAbortController.signal;
 
         try {
+            const provider = this.api.getCurrentProvider();
             const [tracksResult, artistsResult, albumsResult, playlistsResult] = await Promise.all([
-                this.api.searchTracks(query, { signal }),
-                this.api.searchArtists(query, { signal }),
-                this.api.searchAlbums(query, { signal }),
-                this.api.searchPlaylists(query, { signal }),
+                this.api.searchTracks(query, { signal, provider }),
+                this.api.searchArtists(query, { signal, provider }),
+                this.api.searchAlbums(query, { signal, provider }),
+                this.api.searchPlaylists(query, { signal, provider }),
             ]);
 
             let finalTracks = tracksResult.items;
@@ -2001,7 +2002,7 @@ export class UIRenderer {
         }
     }
 
-    async renderAlbumPage(albumId) {
+    async renderAlbumPage(albumId, provider = null) {
         this.showPage('album');
 
         const imageEl = document.getElementById('album-detail-image');
@@ -2032,7 +2033,7 @@ export class UIRenderer {
         `;
 
         try {
-            const { album, tracks } = await this.api.getAlbum(albumId);
+            const { album, tracks } = await this.api.getAlbum(albumId, provider);
 
             const coverUrl = this.api.getCoverUrl(album.cover);
             imageEl.src = coverUrl;
@@ -2329,7 +2330,7 @@ export class UIRenderer {
         }
     }
 
-    async renderPlaylistPage(playlistId, source = null) {
+    async renderPlaylistPage(playlistId, source = null, provider = null) {
         this.showPage('playlist');
 
         // Reset search input for new playlist
@@ -2659,7 +2660,7 @@ export class UIRenderer {
         }
     }
 
-    async renderMixPage(mixId) {
+    async renderMixPage(mixId, provider = null) {
         this.showPage('mix');
 
         const imageEl = document.getElementById('mix-detail-image');
@@ -2689,7 +2690,7 @@ export class UIRenderer {
         `;
 
         try {
-            const { mix, tracks } = await this.api.getMix(mixId);
+            const { mix, tracks } = await this.api.getMix(mixId, provider);
 
             if (mix.cover) {
                 imageEl.src = mix.cover;
@@ -2754,7 +2755,7 @@ export class UIRenderer {
         }
     }
 
-    async renderArtistPage(artistId) {
+    async renderArtistPage(artistId, provider = null) {
         this.showPage('artist');
 
         const imageEl = document.getElementById('artist-detail-image');
@@ -2783,7 +2784,7 @@ export class UIRenderer {
         if (similarSection) similarSection.style.display = 'block';
 
         try {
-            const artist = await this.api.getArtist(artistId);
+            const artist = await this.api.getArtist(artistId, provider);
 
             // Handle Artist Mix Button
             const mixBtn = document.getElementById('artist-mix-btn');
@@ -3446,7 +3447,7 @@ export class UIRenderer {
         );
     }
 
-    async renderTrackPage(trackId) {
+    async renderTrackPage(trackId, provider = null) {
         this.showPage('track');
 
         document.body.classList.add('sidebar-collapsed');
@@ -3489,7 +3490,7 @@ export class UIRenderer {
         }
 
         try {
-            const track = await this.api.getTrackMetadata(trackId);
+            const track = await this.api.getTrackMetadata(trackId, provider);
             const displayTitle = getTrackTitle(track);
             const artistName = getTrackArtists(track);
 

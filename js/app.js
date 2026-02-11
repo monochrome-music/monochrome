@@ -1,5 +1,6 @@
 //js/app.js
 import { LosslessAPI } from './api.js';
+import { MusicAPI } from './music-api.js';
 import {
     apiSettings,
     themeManager,
@@ -275,7 +276,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('[App] Neutralino object NOT detected.');
     }
 
-    const api = new LosslessAPI(apiSettings);
+    const api = new MusicAPI(apiSettings);
 
     const audioPlayer = document.getElementById('audio-player');
 

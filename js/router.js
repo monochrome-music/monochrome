@@ -29,39 +29,57 @@ export function createRouter(ui) {
         const page = parts[0];
         const param = parts.slice(1).join('/');
 
-        // Helper to strip /t/ prefix from params (for Tidal ID format like /album/t/123)
-        const stripTidalPrefix = (p) => (p.startsWith('t/') ? p.slice(2) : p);
+        // Helper to extract provider prefix and ID from params
+        // Supports formats like: /track/t/123 (Tidal), /track/q/123 (Qobuz), /track/123 (default)
+        const extractProviderAndId = (p) => {
+            if (p.startsWith('t/')) {
+                return { provider: 'tidal', id: p.slice(2) };
+            }
+            if (p.startsWith('q/')) {
+                return { provider: 'qobuz', id: p.slice(2) };
+            }
+            return { provider: null, id: p };
+        };
 
         switch (page) {
             case 'search':
                 await ui.renderSearchPage(decodeURIComponent(param));
                 break;
-            case 'album':
-                await ui.renderAlbumPage(stripTidalPrefix(param));
+            case 'album': {
+                const { provider, id } = extractProviderAndId(param);
+                await ui.renderAlbumPage(id, provider);
                 break;
-            case 'artist':
-                await ui.renderArtistPage(stripTidalPrefix(param));
+            }
+            case 'artist': {
+                const { provider, id } = extractProviderAndId(param);
+                await ui.renderArtistPage(id, provider);
                 break;
-            case 'playlist':
-                await ui.renderPlaylistPage(stripTidalPrefix(param), 'api');
+            }
+            case 'playlist': {
+                const { provider, id } = extractProviderAndId(param);
+                await ui.renderPlaylistPage(id, 'api', provider);
                 break;
+            }
             case 'userplaylist':
                 await ui.renderPlaylistPage(param, 'user');
                 break;
             case 'folder':
                 await ui.renderFolderPage(param);
                 break;
-            case 'mix':
-                await ui.renderMixPage(stripTidalPrefix(param));
+            case 'mix': {
+                const { provider, id } = extractProviderAndId(param);
+                await ui.renderMixPage(id, provider);
                 break;
-            case 'track':
-                const trackParam = stripTidalPrefix(param);
-                if (trackParam.startsWith('tracker-')) {
-                    await ui.renderTrackerTrackPage(trackParam);
+            }
+            case 'track': {
+                const { provider, id } = extractProviderAndId(param);
+                if (id.startsWith('tracker-')) {
+                    await ui.renderTrackerTrackPage(id);
                 } else {
-                    await ui.renderTrackPage(trackParam);
+                    await ui.renderTrackPage(id, provider);
                 }
                 break;
+            }
             case 'library':
                 await ui.renderLibraryPage();
                 break;

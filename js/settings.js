@@ -30,6 +30,7 @@ import {
     settingsUiState,
     pwaUpdateSettings,
     contentBlockingSettings,
+    musicProviderSettings,
 } from './storage.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
 import { getButterchurnPresets } from './visualizers/butterchurn.js';
@@ -695,6 +696,17 @@ export function initializeSettings(scrobbler, player, api, ui) {
     document.getElementById('reset-custom-theme')?.addEventListener('click', () => {
         renderCustomThemeEditor();
     });
+
+    // Music Provider setting
+    const musicProviderSetting = document.getElementById('music-provider-setting');
+    if (musicProviderSetting) {
+        musicProviderSetting.value = musicProviderSettings.getProvider();
+        musicProviderSetting.addEventListener('change', (e) => {
+            musicProviderSettings.setProvider(e.target.value);
+            // Reload page to apply changes
+            window.location.reload();
+        });
+    }
 
     // Streaming Quality setting
     const streamingQualitySetting = document.getElementById('streaming-quality-setting');
