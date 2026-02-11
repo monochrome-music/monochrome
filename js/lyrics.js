@@ -36,12 +36,10 @@ class GeniusManager {
     async searchTrack(title, artist) {
         const cleanTitle = title.split('(')[0].split('-')[0].trim();
         const query = encodeURIComponent(`${cleanTitle} ${artist}`);
-
-        const url = `https://api.genius.com/search?q=${query}`;
         const token = this.getToken();
-        const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
+
+        const url = `https://api.genius.com/search?q=${query}&access_token=${token}`;
+        const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
 
         if (!response.ok) throw new Error('Failed to search Genius');
 
@@ -61,10 +59,8 @@ class GeniusManager {
 
     async getReferents(songId) {
         const token = this.getToken();
-        const url = `https://api.genius.com/referents?song_id=${songId}&text_format=plain&per_page=50`;
-        const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
+        const url = `https://api.genius.com/referents?song_id=${songId}&text_format=plain&per_page=50&access_token=${token}`;
+        const response = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
 
         if (!response.ok) throw new Error('Failed to fetch annotations');
 
