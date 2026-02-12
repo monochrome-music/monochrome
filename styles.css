@@ -1323,23 +1323,18 @@ input[type='search']::-webkit-search-cancel-button {
     padding: var(--spacing-sm) var(--spacing-md);
     border-radius: var(--radius-sm);
     align-items: center;
-    transition:
-        background-color var(--transition-fast),
-        transform var(--transition-fast);
+    transition: background-color var(--transition-fast);
     cursor: pointer;
     border: 1px solid transparent;
 }
 
 .track-item:hover {
     background-color: var(--secondary);
-    transform: scale(1.005);
-
-    /* Micro interaction */
 }
 
 /* Add active state for click feedback */
 .track-item:active {
-    transform: scale(0.99);
+    background-color: var(--secondary); /* Keep background, remove scale */
 }
 
 .track-item.playing {
