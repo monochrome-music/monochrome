@@ -55,7 +55,6 @@ async function run() {
             restoreConfig();
             process.exit(code);
         });
-
     } catch (e) {
         console.error('Error running dev environment:', e);
         restoreConfig();

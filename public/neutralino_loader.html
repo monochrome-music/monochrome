@@ -48,20 +48,20 @@
                 // Simplified Dev Mode Detection using Neutralino's internal args
                 // 'neu run' adds --neu-dev-auto-reload, which we can use to detect dev environment.
                 const args = window.NL_ARGS || [];
-                const isDev = args.some(arg => arg.includes('--neu-dev-auto-reload') || arg.includes('--debug-mode'));
-                
+                const isDev = args.some((arg) => arg.includes('--neu-dev-auto-reload') || arg.includes('--debug-mode'));
+
                 // Static Dev Port
                 const DEV_PORT = '5173';
 
                 let port = window.NL_PORT || sessionStorage.getItem('NL_PORT') || '5050';
                 const iframe = document.getElementById('app-frame');
-                
+
                 const targetPort = isDev ? DEV_PORT : port;
                 const targetUrl = `http://localhost:${targetPort}/?mode=neutralino`;
-                
+
                 if (isDev) {
                     console.log(`[Shell] Dev mode detected via NL_ARGS. Waiting 2s for Vite on port ${targetPort}...`);
-                    await new Promise(r => setTimeout(r, 2000));
+                    await new Promise((r) => setTimeout(r, 2000));
                 } else {
                     console.log(`[Shell] Production mode detected.`);
                 }
