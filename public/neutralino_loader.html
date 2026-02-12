@@ -45,15 +45,19 @@
                         menuItems: [
                             { id: 'show', text: 'Show Monochrome' },
                             { id: 'sep', text: '-' },
-                            { id: 'quit', text: 'Quit' }
-                        ]
+                            { id: 'quit', text: 'Quit' },
+                        ],
                     };
                     try {
                         await Neutralino.os.setTray(tray);
                         console.log('[Shell] Tray set successfully');
-                    } catch(e) {
+                    } catch (e) {
                         console.error('[Shell] Tray error:', e);
-                        await Neutralino.os.showMessageBox('Tray Error', `Failed to set tray: ${JSON.stringify(e)}`, 'ERROR');
+                        await Neutralino.os.showMessageBox(
+                            'Tray Error',
+                            `Failed to set tray: ${JSON.stringify(e)}`,
+                            'ERROR'
+                        );
                     }
                 };
 
@@ -71,7 +75,6 @@
                             break;
                     }
                 });
-
             } catch (e) {
                 console.error('[Shell] Failed to init Neutralino:', e);
             }
