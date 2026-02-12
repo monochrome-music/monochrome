@@ -2390,6 +2390,8 @@ input:checked + .slider::before {
     box-shadow: var(--shadow-lg);
     z-index: 3000;
     min-width: 160px;
+    max-height: 90vh;
+    overflow-y: auto;
     transform-origin: top left;
     animation: scale-in var(--transition-fast) var(--ease-out-back);
 }

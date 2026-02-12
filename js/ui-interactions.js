@@ -9,6 +9,7 @@ import {
     getTrackArtists,
     escapeHtml,
     createQualityBadgeHTML,
+    positionMenu,
 } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 import { downloadQualitySettings, contentBlockingSettings } from './storage.js';
@@ -350,22 +351,7 @@ export function initializeUIInteractions(player, api, ui) {
                             trackMixItem.style.display = hasMix ? 'block' : 'none';
                         }
 
-                        const menuWidth = 150;
-                        const menuHeight = 200;
-
-                        let left = e.clientX;
-                        let top = e.clientY;
-
-                        if (left + menuWidth > window.innerWidth) {
-                            left = window.innerWidth - menuWidth - 10;
-                        }
-                        if (top + menuHeight > window.innerHeight) {
-                            top = e.clientY - menuHeight - 10;
-                        }
-
-                        contextMenu.style.left = `${left}px`;
-                        contextMenu.style.top = `${top}px`;
-                        contextMenu.style.display = 'block';
+                        positionMenu(contextMenu, e.clientX, e.clientY);
 
                         contextMenu._contextTrack = track;
                     }

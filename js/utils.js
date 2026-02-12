@@ -429,3 +429,63 @@ export async function getCoverBlob(api, coverId) {
     }
     return null;
 }
+
+/**
+ * Positions a menu element relative to a point or an anchor rectangle,
+ * ensuring it stays within the viewport and becomes scrollable if too tall.
+ * @param {HTMLElement} menu - The menu element to position
+ * @param {number} x - X coordinate (clientX)
+ * @param {number} y - Y coordinate (clientY)
+ * @param {DOMRect} [anchorRect] - Optional anchor element rectangle
+ */
+export function positionMenu(menu, x, y, anchorRect = null) {
+    // Temporarily show to measure dimensions
+    menu.style.visibility = 'hidden';
+    menu.style.display = 'block';
+    menu.style.maxHeight = '';
+    menu.style.overflowY = '';
+
+    const menuWidth = menu.offsetWidth;
+    const menuHeight = menu.offsetHeight;
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    let left = x;
+    let top = y;
+
+    if (anchorRect) {
+        // Adjust horizontal position if it overflows right
+        if (left + menuWidth > windowWidth - 10) {
+            left = Math.max(10, anchorRect.right - menuWidth);
+        }
+        // Adjust vertical position if it overflows bottom
+        if (top + menuHeight > windowHeight - 10) {
+            top = Math.max(10, anchorRect.top - menuHeight - 5);
+        }
+    } else {
+        // Adjust horizontal position if it overflows right
+        if (left + menuWidth > windowWidth - 10) {
+            left = Math.max(10, windowWidth - menuWidth - 10);
+        }
+        // Adjust vertical position if it overflows bottom
+        if (top + menuHeight > windowHeight - 10) {
+            top = Math.max(10, y - menuHeight);
+        }
+    }
+
+    // Final checks to ensure it's not off-screen at the top or left
+    if (left < 10) left = 10;
+    if (top < 10) top = 10;
+
+    // If it's still too tall for the viewport, make it scrollable
+    // We measure again because max-height might be needed
+    const currentMenuHeight = menu.offsetHeight;
+    if (top + currentMenuHeight > windowHeight - 10) {
+        menu.style.maxHeight = `${windowHeight - top - 10}px`;
+        menu.style.overflowY = 'auto';
+    }
+
+    menu.style.top = `${top}px`;
+    menu.style.left = `${left}px`;
+    menu.style.visibility = 'visible';
+}

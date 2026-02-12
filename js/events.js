@@ -9,6 +9,7 @@ import {
     formatTime,
     SVG_BIN,
     getTrackArtists,
+    positionMenu,
 } from './utils.js';
 import { lastFMStorage, libreFmSettings, waveformSettings } from './storage.js';
 import { showNotification, downloadTrackWithMetadata, downloadAlbumAsZip, downloadPlaylistAsZip } from './downloads.js';
@@ -1553,7 +1554,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                 contextMenu._contextTrack = contextTrack;
                 contextMenu._contextType = 'track';
                 await updateContextMenuLikeState(contextMenu, contextTrack);
-                positionMenu(contextMenu, e.pageX, e.pageY);
+                positionMenu(contextMenu, e.clientX, e.clientY);
             }
         }
     });
@@ -1576,7 +1577,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                 contextMenu._contextTrack = contextTrack;
                 contextMenu._contextType = 'track';
                 await updateContextMenuLikeState(contextMenu, contextTrack);
-                positionMenu(contextMenu, e.pageX, e.pageY);
+                positionMenu(contextMenu, e.clientX, e.clientY);
             }
         } else if (card) {
             e.preventDefault();
@@ -1602,7 +1603,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             contextMenu._contextHref = card.dataset.href;
 
             await updateContextMenuLikeState(contextMenu, item);
-            positionMenu(contextMenu, e.pageX, e.pageY);
+            positionMenu(contextMenu, e.clientX, e.clientY);
         }
     });
 
@@ -1794,44 +1795,4 @@ function showSleepTimerModal(player) {
     modal.addEventListener('click', handleCancel);
 
     modal.classList.add('active');
-}
-
-function positionMenu(menu, x, y, anchorRect = null) {
-    // Temporarily show to measure dimensions
-    menu.style.visibility = 'hidden';
-    menu.style.display = 'block';
-
-    const menuWidth = menu.offsetWidth;
-    const menuHeight = menu.offsetHeight;
-    const windowWidth = window.innerWidth;
-    const windowHeight = window.innerHeight;
-
-    let left = x;
-    let top = y;
-
-    if (anchorRect) {
-        // Adjust horizontal position if it overflows right
-        if (left + menuWidth > windowWidth - 10) {
-            // 10px buffer
-            left = anchorRect.right - menuWidth;
-            if (left < 10) left = 10;
-        }
-        // Adjust vertical position if it overflows bottom
-        if (top + menuHeight > windowHeight - 10) {
-            top = anchorRect.top - menuHeight - 5;
-        }
-    } else {
-        // Adjust horizontal position if it overflows right
-        if (left + menuWidth > windowWidth - 10) {
-            left = windowWidth - menuWidth - 10;
-        }
-        // Adjust vertical position if it overflows bottom
-        if (top + menuHeight > windowHeight - 10) {
-            top = y - menuHeight;
-        }
-    }
-
-    menu.style.top = `${top}px`;
-    menu.style.left = `${left}px`;
-    menu.style.visibility = 'visible';
 }
