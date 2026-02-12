@@ -1484,7 +1484,7 @@ input[type='search']::-webkit-search-cancel-button {
 /* Editable Playlist Track Items (with remove button) */
 .is-editable .track-list-header,
 .is-editable .track-item {
-    grid-template-columns: 40px 1fr 80px 90px;
+    grid-template-columns: 40px 1fr 32px 64px;
 }
 
 .detail-header {

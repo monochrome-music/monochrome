@@ -748,8 +748,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
         showQualityBadgesToggle.checked = qualityBadgeSettings.isEnabled();
         showQualityBadgesToggle.addEventListener('change', (e) => {
             qualityBadgeSettings.setEnabled(e.target.checked);
-            // Re-render to reflect changes
-            ui.renderLibraryPage();
+            // Re-render queue if available, but don't force navigation to library
             if (window.renderQueueFunction) window.renderQueueFunction();
         });
     }

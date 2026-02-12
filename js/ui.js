@@ -302,8 +302,15 @@ export class UIRenderer {
             ? `title="Blocked: ${contentBlockingSettings.isTrackBlocked(track.id) ? 'Track blocked' : contentBlockingSettings.isArtistBlocked(track.artist?.id) ? 'Artist blocked' : 'Album blocked'}"`
             : '';
 
+        const classList = [
+            'track-item',
+            isCurrentTrack ? 'playing' : '',
+            isUnavailable ? 'unavailable' : '',
+            isBlocked ? 'blocked' : ''
+        ].filter(Boolean).join(' ');
+
         return `
-            <div class="track-item ${isCurrentTrack ? 'playing' : ''} ${isUnavailable ? 'unavailable' : ''} ${isBlocked ? 'blocked' : ''}" 
+            <div class="${classList}" 
                  data-track-id="${track.id}" 
                  ${track.isLocal ? 'data-is-local="true"' : ''}
                  ${isUnavailable ? 'title="This track is currently unavailable"' : ''}
