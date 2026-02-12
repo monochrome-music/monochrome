@@ -1,4 +1,5 @@
-import { getTrackTitle, getTrackArtists } from './utils.js';
+// js/desktop/discord-rpc.js
+import { getTrackTitle, getTrackArtists } from '../utils.js';
 
 export function initializeDiscordRPC(player) {
     const EXTENSION_ID = 'js.neutralino.discordrpc';

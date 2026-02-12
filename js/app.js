@@ -21,14 +21,7 @@ import { sidePanelManager } from './side-panel.js';
 import { db } from './db.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { registerSW } from 'virtual:pwa-register';
-import { initializeDiscordRPC } from './discord-rpc.js';
-import * as Neutralino from '@neutralinojs/lib';
 import './smooth-scrolling.js';
-
-// Assign Neutralino to window for global access
-if (typeof window !== 'undefined' && window.NL_MODE) {
-    window.Neutralino = Neutralino;
-}
 
 import { initTracker } from './tracker.js';
 
@@ -238,46 +231,7 @@ async function disablePwaForAuthGate() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Initialize desktop environment (Neutralino)
-    const urlParams = new URLSearchParams(window.location.search);
-    const hasNLParams = urlParams.has('NL_PORT') || urlParams.has('NL_TOKEN');
-    const isDesktop =
-        typeof window !== 'undefined' && (window.NL_MODE || window.location.port === '5050' || hasNLParams);
-
-    if (typeof window !== 'undefined') {
-        const nlGlobals = Object.keys(window).filter((k) => k.startsWith('NL_'));
-        console.log('[App] Environment Check:', {
-            isDesktop,
-            port: window.location.port,
-            hasNLParams,
-            nlGlobals,
-        });
-    }
-
-    if (typeof window !== 'undefined' && window.Neutralino) {
-        if (isDesktop) {
-            console.log('[App] Initializing Neutralino desktop environment...');
-            try {
-                Neutralino.init();
-                console.log('[App] Neutralino.init() called successfully.');
-
-                // Register events immediately
-                Neutralino.events.on('windowClose', () => {
-                    console.log('[App] Window close event triggered.');
-                    Neutralino.app.exit();
-                });
-            } catch (error) {
-                console.error('[App] Failed to initialize desktop environment:', error);
-            }
-        } else {
-            console.log('[App] Skipping Neutralino.init() on regular web environment.');
-        }
-    } else {
-        console.log('[App] Neutralino object NOT detected.');
-    }
-
     const api = new MusicAPI(apiSettings);
-
     const audioPlayer = document.getElementById('audio-player');
 
     // i love ios and macos!!!! webkit fucking SUCKS BULLSHIT sorry ios/macos heads yall getting lossless only
@@ -307,6 +261,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const currentQuality = localStorage.getItem('playback-quality') || 'HI_RES_LOSSLESS';
     const player = new Player(audioPlayer, api, currentQuality);
+
+    // Initialize tracker
+    initTracker(player);
+
+    // Initialize desktop features if in Neutralino mode
+    if (typeof window !== 'undefined' && (window.NL_MODE || window.location.search.includes('mode=neutralino'))) {
+        import('./desktop/desktop.js').then((m) => m.initDesktop(player));
+    }
+
+    const castBtn = document.getElementById('cast-btn');
+    initializeCasting(audioPlayer, castBtn);
 
     const ui = new UIRenderer(api, player);
     const scrobbler = new MultiScrobbler();
@@ -420,17 +385,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     );
     initializeUIInteractions(player, api, ui);
     initializeKeyboardShortcuts(player, audioPlayer);
-
-    // Initialize tracker
-    initTracker(player);
-
-    if (typeof window !== 'undefined' && window.Neutralino && isDesktop) {
-        console.log('[App] Starting Discord RPC...');
-        initializeDiscordRPC(player);
-    }
-
-    const castBtn = document.getElementById('cast-btn');
-    initializeCasting(audioPlayer, castBtn);
 
     // Restore UI state for the current track (like button, theme)
     if (player.currentTrack) {

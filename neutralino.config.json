@@ -1,9 +1,9 @@
 {
     "applicationId": "com.monochrome.app",
     "applicationName": "Monochrome",
-    "applicationIcon": "public/assets/512.png",
+    "applicationIcon": "public/assets/appicon.png",
     "author": "Monochrome",
-    "description": "Lossless music streaming",
+    "description": "Monochrome - Lossless music streaming",
     "version": "1.0.0",
     "defaultMode": "window",
     "documentRoot": "dist/",
@@ -15,7 +15,7 @@
     "modes": {
         "window": {
             "title": "Monochrome",
-            "icon": "public/assets/512.png",
+            "icon": "public/assets/appicon.png",
             "width": 1280,
             "height": 800,
             "minWidth": 800,
@@ -44,5 +44,5 @@
             "commandWindows": "powershell.exe -ExecutionPolicy Bypass -File \"${NL_PATH}/extensions/js.neutralino.discordrpc/bridge.ps1\""
         }
     ],
-    "nativeAllowList": ["app.exit", "window.*", "extensions.*", "events.*"]
+    "nativeAllowList": ["app.exit", "window.*", "extensions.*", "events.*", "os.*"]
 }
