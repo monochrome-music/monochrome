@@ -6,7 +6,7 @@ const releasesParamsSchema = z.object({
     artist_id: z.string().min(1, 'ID is required'),
     release_type: z.enum(['album', 'live', 'compilation', 'epSingle', 'download']).default('album'),
     track_size: z.number().positive().default(1000),
-    offset: z.preprocess((a) => parseInt(a as string), z.number().positive().default(0)),
+    offset: z.preprocess((a) => parseInt(a as string), z.number().nonnegative().default(0)),
     limit: z.preprocess((a) => parseInt(a as string), z.number().positive().default(10)),
 });
 

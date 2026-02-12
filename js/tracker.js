@@ -444,7 +444,7 @@ export async function renderTrackerArtistPage(sheetId, container) {
                 Object.values(era.data).forEach((songs) => {
                     if (songs && songs.length) {
                         songs.forEach((song, index) => {
-                            if (song.name.toLowerCase().includes(query)) {
+                            if (song.name?.toLowerCase().includes(query)) {
                                 matches.push({ song, era, index });
                             }
                         });
@@ -734,6 +734,8 @@ export async function renderUnreleasedPage(container) {
         const sheetId = getSheetId(artist.url);
         if (!sheetId) return;
 
+        if (!artist.name) return;
+
         const artistCard = document.createElement('div');
         artistCard.className = 'card';
         artistCard.style.cursor = 'pointer';
@@ -953,12 +955,15 @@ export async function initTracker(player) {
 // Helper function to find a tracker artist by name (for use in normal artist pages)
 export function findTrackerArtistByName(artistName) {
     // First try exact match
-    let match = artistsData.find((a) => a.name.toLowerCase() === artistName.toLowerCase());
+    if (!artistName) return null;
+
+    let match = artistsData.find((a) => a.name?.toLowerCase() === artistName.toLowerCase());
     if (match) return match;
 
     // Try fuzzy match (remove special chars and spaces)
     const normalized = artistName.toLowerCase().replace(/[^a-z0-9]/g, '');
     match = artistsData.find((a) => {
+        if (!a.name) return false;
         const aNormalized = a.name.toLowerCase().replace(/[^a-z0-9]/g, '');
         return aNormalized === normalized || aNormalized.includes(normalized) || normalized.includes(aNormalized);
     });

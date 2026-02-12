@@ -486,27 +486,43 @@ export class Player {
                 }
                 await this.audio.play();
             } else {
-                // Get track data for ReplayGain (should be cached by API)
-                const trackData = await this.api.getTrack(track.id, this.quality);
+                const isQobuz = String(track.id).startsWith('q:');
 
-                if (trackData && trackData.info) {
-                    this.currentRgValues = {
-                        trackReplayGain: trackData.info.trackReplayGain,
-                        trackPeakAmplitude: trackData.info.trackPeakAmplitude,
-                        albumReplayGain: trackData.info.albumReplayGain,
-                        albumPeakAmplitude: trackData.info.albumPeakAmplitude,
-                    };
-                } else {
+                if (isQobuz) {
+                    // Qobuz: skip getTrack call, directly fetch stream URL
                     this.currentRgValues = null;
-                }
-                this.applyReplayGain();
+                    this.applyReplayGain();
 
-                if (this.preloadCache.has(track.id)) {
-                    streamUrl = this.preloadCache.get(track.id);
-                } else if (trackData.originalTrackUrl) {
-                    streamUrl = trackData.originalTrackUrl;
+                    if (this.preloadCache.has(track.id)) {
+                        streamUrl = this.preloadCache.get(track.id);
+                    } else {
+                        streamUrl = await this.api.getStreamUrl(track.id, this.quality);
+                    }
                 } else {
-                    streamUrl = this.api.extractStreamUrlFromManifest(trackData.info.manifest);
+                    // Tidal: Get track data for ReplayGain (should be cached by API)
+                    const trackData = await this.api.getTrack(track.id, this.quality);
+
+                    if (trackData && trackData.info) {
+                        this.currentRgValues = {
+                            trackReplayGain: trackData.info.trackReplayGain,
+                            trackPeakAmplitude: trackData.info.trackPeakAmplitude,
+                            albumReplayGain: trackData.info.albumReplayGain,
+                            albumPeakAmplitude: trackData.info.albumPeakAmplitude,
+                        };
+                    } else {
+                        this.currentRgValues = null;
+                    }
+                    this.applyReplayGain();
+
+                    if (this.preloadCache.has(track.id)) {
+                        streamUrl = this.preloadCache.get(track.id);
+                    } else if (trackData.originalTrackUrl) {
+                        streamUrl = trackData.originalTrackUrl;
+                    } else if (trackData.info?.manifest) {
+                        streamUrl = this.api.extractStreamUrlFromManifest(trackData.info.manifest);
+                    } else {
+                        streamUrl = await this.api.getStreamUrl(track.id, this.quality);
+                    }
                 }
 
                 // Handle playback

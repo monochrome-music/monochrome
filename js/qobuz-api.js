@@ -30,7 +30,11 @@ export class QobuzAPI {
     // Search tracks
     async searchTracks(query, options = {}) {
         try {
-            const data = await this.fetchWithRetry(`/get-music?q=${encodeURIComponent(query)}`);
+            const offset = options.offset || 0;
+            const limit = options.limit || 10;
+            const data = await this.fetchWithRetry(
+                `/get-music?q=${encodeURIComponent(query)}&offset=${offset}&limit=${limit}`
+            );
 
             if (!data.success || !data.data) {
                 return { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 };
@@ -55,7 +59,11 @@ export class QobuzAPI {
     // Search albums
     async searchAlbums(query, options = {}) {
         try {
-            const data = await this.fetchWithRetry(`/get-music?q=${encodeURIComponent(query)}`);
+            const offset = options.offset || 0;
+            const limit = options.limit || 10;
+            const data = await this.fetchWithRetry(
+                `/get-music?q=${encodeURIComponent(query)}&offset=${offset}&limit=${limit}`
+            );
 
             if (!data.success || !data.data) {
                 return { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 };
@@ -80,7 +88,11 @@ export class QobuzAPI {
     // Search artists
     async searchArtists(query, options = {}) {
         try {
-            const data = await this.fetchWithRetry(`/get-music?q=${encodeURIComponent(query)}`);
+            const offset = options.offset || 0;
+            const limit = options.limit || 10;
+            const data = await this.fetchWithRetry(
+                `/get-music?q=${encodeURIComponent(query)}&offset=${offset}&limit=${limit}`
+            );
 
             if (!data.success || !data.data) {
                 return { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 };
@@ -104,25 +116,10 @@ export class QobuzAPI {
 
     // Get track details
     async getTrack(id) {
-        try {
-            // For Qobuz, we'll need to search or get from album
-            // Since the API might not have a direct track endpoint
-            const data = await this.fetchWithRetry(`/get-music?q=${encodeURIComponent(id)}`);
-
-            if (!data.success || !data.data) {
-                throw new Error('Track not found');
-            }
-
-            const track = data.data.tracks?.items?.find((t) => t.id === id || t.isrc === id);
-            if (!track) {
-                throw new Error('Track not found');
-            }
-
-            return this.transformTrack(track);
-        } catch (error) {
-            console.error('Qobuz getTrack failed:', error);
-            throw error;
-        }
+        // Qobuz doesn't have a direct track endpoint
+        // Track metadata comes from search/album endpoints
+        // For playback, use getStreamUrl directly
+        throw new Error('Qobuz getTrack not implemented - use getStreamUrl for playback');
     }
 
     // Get album details
@@ -135,7 +132,7 @@ export class QobuzAPI {
             }
 
             const album = this.transformAlbum(data.data);
-            const tracks = (data.data.tracks || []).map((track) => this.transformTrack(track, data.data));
+            const tracks = (data.data.tracks?.items || []).map((track) => this.transformTrack(track, data.data));
 
             return { album, tracks };
         } catch (error) {
@@ -147,16 +144,42 @@ export class QobuzAPI {
     // Get artist details
     async getArtist(id) {
         try {
-            const data = await this.fetchWithRetry(`/get-artist?artist_id=${encodeURIComponent(id)}`);
+            const artistData = await this.fetchWithRetry(`/get-artist?artist_id=${encodeURIComponent(id)}`);
 
-            if (!data.success || !data.data) {
+            if (!artistData.success || !artistData.data) {
                 throw new Error('Artist not found');
             }
 
-            const artist = this.transformArtist(data.data);
-            const albums = (data.data.albums || []).map((album) => this.transformAlbum(album));
+            // Qobuz get-artist returns { artist: {...} } nested structure
+            const artistInfo = artistData.data.artist || artistData.data;
+            if (!artistInfo) {
+                throw new Error('Artist info not found in response');
+            }
+            const artist = this.transformArtist(artistInfo);
 
-            return { ...artist, albums, eps: [], tracks: [] };
+            // Get albums from the releases section
+            let albums = [];
+            let eps = [];
+            if (Array.isArray(artistData.data.releases)) {
+                // Find album releases
+                const albumReleases = artistData.data.releases.find((r) => r.type === 'album');
+                if (albumReleases?.items) {
+                    albums = albumReleases.items.map((album) => this.transformAlbum(album));
+                }
+                // Find EP/single releases
+                const epReleases = artistData.data.releases.find((r) => r.type === 'epSingle');
+                if (epReleases?.items) {
+                    eps = epReleases.items.map((album) => this.transformAlbum(album));
+                }
+            }
+
+            // Get top tracks
+            let tracks = [];
+            if (Array.isArray(artistData.data.top_tracks)) {
+                tracks = artistData.data.top_tracks.map((track) => this.transformTrack(track));
+            }
+
+            return { ...artist, albums, eps, tracks };
         } catch (error) {
             console.error('Qobuz getArtist failed:', error);
             throw error;
@@ -165,12 +188,16 @@ export class QobuzAPI {
 
     // Transform Qobuz track to Tidal-like format
     transformTrack(track, albumData = null) {
+        // Qobuz uses 'performer' for the main artist, not 'artist'
+        const mainArtist = track.performer || track.artist;
+        const artistsList = track.artists || (mainArtist ? [mainArtist] : []);
+
         return {
             id: `q:${track.id}`,
             title: track.title,
             duration: track.duration,
-            artist: track.artist ? this.transformArtist(track.artist) : null,
-            artists: track.artists ? track.artists.map((a) => this.transformArtist(a)) : [],
+            artist: mainArtist ? this.transformArtist(mainArtist) : null,
+            artists: artistsList.map((a) => this.transformArtist(a)),
             album: albumData ? this.transformAlbum(albumData) : track.album ? this.transformAlbum(track.album) : null,
             audioQuality: this.mapQuality(track.streaming_quality),
             explicit: track.parental_warning || false,
@@ -184,11 +211,17 @@ export class QobuzAPI {
 
     // Transform Qobuz album to Tidal-like format
     transformAlbum(album) {
+        // Qobuz albums have artist (single) or artists (array)
+        const mainArtist = album.artist || album.artists?.[0];
         return {
             id: `q:${album.id}`,
             title: album.title,
-            artist: album.artist ? this.transformArtist(album.artist) : null,
-            artists: album.artists ? album.artists.map((a) => this.transformArtist(a)) : [],
+            artist: mainArtist ? this.transformArtist(mainArtist) : null,
+            artists: album.artists
+                ? album.artists.map((a) => this.transformArtist(a))
+                : mainArtist
+                  ? [this.transformArtist(mainArtist)]
+                  : [],
             numberOfTracks: album.tracks_count || 0,
             releaseDate: album.release_date_original || album.release_date,
             cover: album.image?.large || album.image?.medium || album.image?.small,
@@ -201,10 +234,30 @@ export class QobuzAPI {
 
     // Transform Qobuz artist to Tidal-like format
     transformArtist(artist) {
+        if (!artist) {
+            return {
+                id: 'q:unknown',
+                name: 'Unknown Artist',
+                picture: null,
+                provider: 'qobuz',
+                originalId: null,
+            };
+        }
+        // Handle different name structures: string or { display: string }
+        const name = typeof artist.name === 'string' ? artist.name : artist.name?.display || 'Unknown Artist';
+        // Handle different image structures: image object or picture string or images.portrait
+        const picture =
+            artist.image?.large ||
+            artist.image?.medium ||
+            artist.image?.small ||
+            artist.picture ||
+            (artist.images?.portrait
+                ? `https://static.qobuz.com/images/artists/covers/large/${artist.images.portrait.hash}.${artist.images.portrait.format}`
+                : null);
         return {
             id: `q:${artist.id}`,
-            name: artist.name,
-            picture: artist.image?.large || artist.image?.medium || artist.image?.small,
+            name: name,
+            picture: picture,
             provider: 'qobuz',
             originalId: artist.id,
         };
@@ -234,11 +287,37 @@ export class QobuzAPI {
         return coverId;
     }
 
+    // Get artist picture URL
+    getArtistPictureUrl(pictureUrl, size = '320') {
+        if (!pictureUrl) {
+            return `https://picsum.photos/seed/${Math.random()}/${size}`;
+        }
+
+        // Qobuz picture URLs are usually full URLs
+        if (typeof pictureUrl === 'string' && pictureUrl.startsWith('http')) {
+            return pictureUrl;
+        }
+
+        return pictureUrl;
+    }
+
     // Get stream URL for a track
-    async getStreamUrl(trackId) {
+    async getStreamUrl(trackId, quality = '27') {
         try {
             const cleanId = trackId.replace(/^q:/, '');
-            const data = await this.fetchWithRetry(`/download-music?track_id=${encodeURIComponent(cleanId)}`);
+            // Map Tidal quality format to Qobuz quality values
+            // Qobuz: 27=MP3 320kbps, 7=FLAC lossless, 6=HiRes 96/24, 5=HiRes 192/24
+            const qualityMap = {
+                LOW: '27',
+                HIGH: '27',
+                LOSSLESS: '7',
+                HI_RES: '6',
+                HI_RES_LOSSLESS: '5',
+            };
+            const qobuzQuality = qualityMap[quality] || quality || '27';
+            const data = await this.fetchWithRetry(
+                `/download-music?track_id=${encodeURIComponent(cleanId)}&quality=${qobuzQuality}`
+            );
 
             if (!data.success || !data.data?.url) {
                 throw new Error('Stream URL not available');
@@ -249,6 +328,71 @@ export class QobuzAPI {
             console.error('Qobuz getStreamUrl failed:', error);
             throw error;
         }
+    }
+
+    // Unified search - search all types at once
+    async search(query, options = {}) {
+        const offset = options.offset || 0;
+        const limit = options.limit || 10;
+
+        try {
+            const data = await this.fetchWithRetry(
+                `/get-music?q=${encodeURIComponent(query)}&offset=${offset}&limit=${limit}`
+            );
+
+            if (!data.success || !data.data) {
+                return {
+                    tracks: { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 },
+                    albums: { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 },
+                    artists: { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 },
+                };
+            }
+
+            const tracks = (data.data.tracks?.items || []).map((track) => this.transformTrack(track));
+            const albums = (data.data.albums?.items || []).map((album) => this.transformAlbum(album));
+            const artists = (data.data.artists?.items || []).map((artist) => this.transformArtist(artist));
+
+            return {
+                tracks: {
+                    items: tracks,
+                    limit: data.data.tracks?.limit || tracks.length,
+                    offset: data.data.tracks?.offset || 0,
+                    totalNumberOfItems: data.data.tracks?.total || tracks.length,
+                },
+                albums: {
+                    items: albums,
+                    limit: data.data.albums?.limit || albums.length,
+                    offset: data.data.albums?.offset || 0,
+                    totalNumberOfItems: data.data.albums?.total || albums.length,
+                },
+                artists: {
+                    items: artists,
+                    limit: data.data.artists?.limit || artists.length,
+                    offset: data.data.artists?.offset || 0,
+                    totalNumberOfItems: data.data.artists?.total || artists.length,
+                },
+            };
+        } catch (error) {
+            if (error.name === 'AbortError') throw error;
+            console.error('Qobuz search failed:', error);
+            return {
+                tracks: { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 },
+                albums: { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 },
+                artists: { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 },
+            };
+        }
+    }
+
+    // Get next page helper
+    getNextPage(currentOffset, limit, total) {
+        const nextOffset = currentOffset + limit;
+        return nextOffset < total ? nextOffset : null;
+    }
+
+    // Get previous page helper
+    getPreviousPage(currentOffset, limit) {
+        const prevOffset = currentOffset - limit;
+        return prevOffset >= 0 ? prevOffset : null;
     }
 }
 

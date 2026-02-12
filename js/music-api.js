@@ -173,4 +173,10 @@ export class MusicAPI {
     get settings() {
         return this._settings;
     }
+
+    // Extract stream URL from manifest (Tidal only)
+    extractStreamUrlFromManifest(manifest) {
+        // This is only available for Tidal
+        return this.tidalAPI.extractStreamUrlFromManifest(manifest);
+    }
 }
