@@ -1,10 +1,8 @@
 // js/desktop/neutralino-bridge.js
 
-const isNeutralino = typeof window !== 'undefined' && (
-    window.NL_MODE || 
-    window.location.search.includes('mode=neutralino') ||
-    (window.parent !== window)
-);
+const isNeutralino =
+    typeof window !== 'undefined' &&
+    (window.NL_MODE || window.location.search.includes('mode=neutralino') || window.parent !== window);
 
 const listeners = new Map();
 
