@@ -1,0 +1,48 @@
+{
+    "applicationId": "com.monochrome.app",
+    "applicationName": "Monochrome",
+    "applicationIcon": "public/assets/appicon.png",
+    "author": "Monochrome",
+    "description": "Monochrome - Lossless music streaming",
+    "version": "1.0.0",
+    "defaultMode": "window",
+    "documentRoot": "/",
+    "url": "/public/neutralino_loader.html",
+    "enableServer": true,
+    "enableNativeAPI": true,
+    "enableExtensions": true,
+    "tokenSecurity": "none",
+    "modes": {
+        "window": {
+            "title": "Monochrome (DEV)",
+            "icon": "public/assets/appicon.png",
+            "width": 1280,
+            "height": 800,
+            "minWidth": 800,
+            "minHeight": 600,
+            "center": true,
+            "resizable": true,
+            "hidden": false,
+            "borderless": false,
+            "enableInspector": true,
+            "openInspectorOnStartup": true,
+            "exitProcessOnClose": true
+        }
+    },
+    "port": 5050,
+    "cli": {
+        "binaryName": "Monochrome",
+        "resourcesPath": "/",
+        "binaryVersion": "6.5.0",
+        "clientVersion": "6.5.0"
+    },
+    "extensions": [
+        {
+            "id": "js.neutralino.discordrpc",
+            "commandLinux": "python3 \"${NL_PATH}/extensions/js.neutralino.discordrpc/bridge.py\"",
+            "commandMac": "python3 \"${NL_PATH}/extensions/js.neutralino.discordrpc/bridge.py\"",
+            "commandWindows": "powershell.exe -ExecutionPolicy Bypass -File \"${NL_PATH}/extensions/js.neutralino.discordrpc/bridge.ps1\""
+        }
+    ],
+    "nativeAllowList": ["app.exit", "window.*", "extensions.*", "filesystem.*", "events.*", "os.*"]
+}

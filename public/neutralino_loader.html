@@ -25,8 +25,8 @@
     </head>
 
     <body>
-        <script src="/__neutralino_globals.js"></script>
-        <script src="/neutralino.js"></script>
+        <script src="__neutralino_globals.js"></script>
+        <script src="neutralino.js"></script>
 
         <!-- Load the app from the local Neutralino server -->
         <iframe id="app-frame" allow="autoplay; fullscreen; microphone; clipboard-read; clipboard-write"></iframe>
@@ -45,22 +45,29 @@
             // Neutralino.init() usually populates window.NL_PORT or we read it from sessionStorage
 
             const initFrame = async () => {
-                // Wait a tick for globals
-                await new Promise((r) => setTimeout(r, 100));
+                // Simplified Dev Mode Detection using Neutralino's internal args
+                // 'neu run' adds --neu-dev-auto-reload, which we can use to detect dev environment.
+                const args = window.NL_ARGS || [];
+                const isDev = args.some(arg => arg.includes('--neu-dev-auto-reload') || arg.includes('--debug-mode'));
+                
+                // Static Dev Port
+                const DEV_PORT = '5173';
 
-                let port = window.NL_PORT || sessionStorage.getItem('NL_PORT');
-                // Fallback if missing (shouldn't happen after init)
-                if (!port) {
-                    // Try reading from window.location if passed (it isn't in shell mode usually)
-                    // But Neutralino fills globals.
-                    // If not, default to 5050
-                    port = '5050';
+                let port = window.NL_PORT || sessionStorage.getItem('NL_PORT') || '5050';
+                const iframe = document.getElementById('app-frame');
+                
+                const targetPort = isDev ? DEV_PORT : port;
+                const targetUrl = `http://localhost:${targetPort}/?mode=neutralino`;
+                
+                if (isDev) {
+                    console.log(`[Shell] Dev mode detected via NL_ARGS. Waiting 2s for Vite on port ${targetPort}...`);
+                    await new Promise(r => setTimeout(r, 2000));
+                } else {
+                    console.log(`[Shell] Production mode detected.`);
                 }
 
-                const iframe = document.getElementById('app-frame');
-                // Load the local index.html
-                iframe.src = `http://localhost:${port}/?mode=neutralino`;
-                console.log(`[Shell] Loading local app from http://localhost:${port}/?mode=neutralino`);
+                console.log(`[Shell] Loading app from: ${targetUrl}`);
+                iframe.src = targetUrl;
             };
 
             initFrame();

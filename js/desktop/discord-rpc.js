@@ -38,24 +38,6 @@ export function initializeDiscordRPC(player) {
             .catch((e) => console.error('Dispatch failed', e));
     }
 
-    // Heartbeat & Debug Ping
-    setInterval(() => {
-        if (player.currentTrack) {
-            sendUpdate(player.currentTrack, player.audio.paused);
-        } else {
-            const idlingData = {
-                details: 'Idling',
-                state: 'Monochrome',
-                largeImageKey: 'monochrome',
-                largeImageText: 'Monochrome',
-                smallImageKey: 'pause',
-                smallImageText: 'Paused',
-            };
-            Neutralino.events.broadcast('discord:update', idlingData).catch(() => {});
-            Neutralino.extensions.dispatch(EXTENSION_ID, 'discord:update', idlingData).catch(() => {});
-        }
-    }, 5000);
-
     player.audio.addEventListener('play', () => {
         sendUpdate(player.currentTrack);
     });
