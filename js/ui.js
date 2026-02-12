@@ -306,8 +306,10 @@ export class UIRenderer {
             'track-item',
             isCurrentTrack ? 'playing' : '',
             isUnavailable ? 'unavailable' : '',
-            isBlocked ? 'blocked' : ''
-        ].filter(Boolean).join(' ');
+            isBlocked ? 'blocked' : '',
+        ]
+            .filter(Boolean)
+            .join(' ');
 
         return `
             <div class="${classList}" 
