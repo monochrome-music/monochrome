@@ -714,7 +714,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const cover = document.getElementById('folder-cover-input').value.trim();
 
             if (name) {
-                await db.createFolder(name, cover);
+                const folder = await db.createFolder(name, cover);
+                await syncManager.syncUserFolder(folder, 'create');
                 ui.renderLibraryPage();
                 document.getElementById('folder-modal').classList.remove('active');
             }
@@ -728,6 +729,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const folderId = window.location.pathname.split('/')[2];
             if (folderId && confirm('Are you sure you want to delete this folder?')) {
                 await db.deleteFolder(folderId);
+                // Sync deletion to cloud
+                await syncManager.syncUserFolder({ id: folderId }, 'delete');
                 navigate('/library');
             }
         }
