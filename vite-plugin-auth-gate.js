@@ -33,6 +33,8 @@ export default function authGatePlugin() {
             const AUTH_ENABLED = (env.AUTH_ENABLED ?? 'false') !== 'false';
             const FIREBASE_CONFIG = env.FIREBASE_CONFIG;
             const POCKETBASE_URL = env.POCKETBASE_URL;
+            const AUTH_GOOGLE_ENABLED = env.AUTH_GOOGLE_ENABLED;
+            const AUTH_EMAIL_ENABLED = env.AUTH_EMAIL_ENABLED;
 
             // Parse Firebase config once (used for injection + auth verification)
             let parsedFirebaseConfig = null;
@@ -51,6 +53,16 @@ export default function authGatePlugin() {
 
             const flags = [];
             if (AUTH_ENABLED) flags.push('window.__AUTH_GATE__=true');
+            const authProviderOverrides = {};
+            if (AUTH_GOOGLE_ENABLED !== undefined) {
+                authProviderOverrides.google = AUTH_GOOGLE_ENABLED !== 'false';
+            }
+            if (AUTH_EMAIL_ENABLED !== undefined) {
+                authProviderOverrides.password = AUTH_EMAIL_ENABLED !== 'false';
+            }
+            if (Object.keys(authProviderOverrides).length > 0) {
+                flags.push(`window.__AUTH_PROVIDERS__=${JSON.stringify(authProviderOverrides)}`);
+            }
             if (parsedFirebaseConfig) flags.push(`window.__FIREBASE_CONFIG__=${JSON.stringify(parsedFirebaseConfig)}`);
             if (POCKETBASE_URL) flags.push(`window.__POCKETBASE_URL__=${JSON.stringify(POCKETBASE_URL)}`);
             const configScript = flags.length > 0 ? `<script>${flags.join(';')};</script>` : null;

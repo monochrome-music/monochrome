@@ -277,24 +277,35 @@
             const auth = getAuth(fbApp);
             const provider = new GoogleAuthProvider();
 
-            // Reveal auth providers based on Firebase project config (non-blocking)
-            fetch(`https://www.googleapis.com/identitytoolkit/v3/relyingparty/getProjectConfig?key=${firebaseConfig.apiKey}`)
-                .then(res => res.ok ? res.json() : null)
-                .then(data => {
-                    if (!data) return;
-                    const providers = (data.idpConfig || []).filter(p => p.enabled).map(p => p.provider);
-                    const hasGoogle = providers.includes('google.com');
-                    const hasPassword = (data.signIn || {}).allowPasswordSignup !== false;
-                    if (hasGoogle) document.getElementById('google-btn').style.display = '';
-                    if (hasPassword) document.getElementById('email-form').style.display = '';
-                    if (hasGoogle && hasPassword) document.querySelector('.divider').style.display = '';
-                })
-                .catch(() => {
-                    // Fallback: show everything if the check fails
-                    document.getElementById('google-btn').style.display = '';
-                    document.getElementById('email-form').style.display = '';
-                    document.querySelector('.divider').style.display = '';
-                });
+            const googleBtn = document.getElementById('google-btn');
+            const emailForm = document.getElementById('email-form');
+            const divider = document.querySelector('.divider');
+            const providerState = {
+                google: true,
+                password: true,
+            };
+            const providerConfig = window.__AUTH_PROVIDERS__ || {};
+            if (typeof providerConfig.google === 'boolean') providerState.google = providerConfig.google;
+            if (typeof providerConfig.password === 'boolean') providerState.password = providerConfig.password;
+
+            const NO_PROVIDER_MESSAGE = 'No sign-in providers are enabled for this Firebase project.';
+
+            function renderProviders() {
+                if (googleBtn) googleBtn.style.display = providerState.google ? '' : 'none';
+                if (emailForm) emailForm.style.display = providerState.password ? '' : 'none';
+                if (divider) divider.style.display = providerState.google && providerState.password ? '' : 'none';
+                if (!providerState.google && !providerState.password) {
+                    showError(NO_PROVIDER_MESSAGE);
+                }
+            }
+
+            function setProviderEnabled(providerName, enabled) {
+                if (providerName === 'google') providerState.google = enabled;
+                if (providerName === 'password') providerState.password = enabled;
+                renderProviders();
+            }
+
+            renderProviders();
 
             function showError(msg) {
                 const el = document.getElementById('error');
@@ -334,7 +345,10 @@
                     const result = await signInWithPopup(auth, provider);
                     await sendTokenToServer(result.user);
                 } catch (err) {
-                    if (err.code !== 'auth/popup-closed-by-user') {
+                    if (err.code === 'auth/operation-not-allowed') {
+                        setProviderEnabled('google', false);
+                        showError('Google sign-in is not enabled for this Firebase project.');
+                    } else if (err.code !== 'auth/popup-closed-by-user') {
                         showError(err.message);
                     }
                     setLoading(false);
@@ -353,7 +367,12 @@
                     const result = await signInWithEmailAndPassword(auth, email, password);
                     await sendTokenToServer(result.user);
                 } catch (err) {
-                    showError(err.message);
+                    if (err.code === 'auth/operation-not-allowed') {
+                        setProviderEnabled('password', false);
+                        showError('Email/password sign-in is not enabled for this Firebase project.');
+                    } else {
+                        showError(err.message);
+                    }
                     setLoading(false);
                 }
             };

@@ -27,6 +27,8 @@ This document explains the optional server-side login gate and what it implies f
 
 - `AUTH_ENABLED=true` enables the gate (default is false).
 - `AUTH_SECRET` is required when the gate is enabled. It signs the session cookie.
+- `AUTH_GOOGLE_ENABLED` toggles Google sign-in on `/login` (default true).
+- `AUTH_EMAIL_ENABLED` toggles email/password sign-in on `/login` (default true).
 - `FIREBASE_PROJECT_ID` sets the Firebase project used to verify tokens.
 - `FIREBASE_CONFIG` (JSON) injects config into the login page.
 - `POCKETBASE_URL` hides the custom DB setting field.
