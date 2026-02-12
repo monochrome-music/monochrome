@@ -26,7 +26,7 @@
             "borderless": false,
             "enableInspector": true,
             "openInspectorOnStartup": false,
-            "exitProcessOnClose": true
+            "exitProcessOnClose": false
         }
     },
     "port": 5050,

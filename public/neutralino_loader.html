@@ -36,6 +36,42 @@
             try {
                 Neutralino.init();
                 console.log('[Shell] Neutralino initialized.');
+
+                const setupTray = async () => {
+                    const iconPath = '/dist/assets/appicon.png';
+                    console.log('[Shell] Setting tray icon:', iconPath);
+                    const tray = {
+                        icon: iconPath,
+                        menuItems: [
+                            { id: 'show', text: 'Show Monochrome' },
+                            { id: 'sep', text: '-' },
+                            { id: 'quit', text: 'Quit' }
+                        ]
+                    };
+                    try {
+                        await Neutralino.os.setTray(tray);
+                        console.log('[Shell] Tray set successfully');
+                    } catch(e) {
+                        console.error('[Shell] Tray error:', e);
+                        await Neutralino.os.showMessageBox('Tray Error', `Failed to set tray: ${JSON.stringify(e)}`, 'ERROR');
+                    }
+                };
+
+                Neutralino.events.on('ready', setupTray);
+
+                Neutralino.events.on('trayMenuItemClicked', async (event) => {
+                    switch (event.detail.id) {
+                        case 'show':
+                            await Neutralino.window.show();
+                            await Neutralino.window.unminimize();
+                            await Neutralino.window.focus();
+                            break;
+                        case 'quit':
+                            await Neutralino.app.exit();
+                            break;
+                    }
+                });
+
             } catch (e) {
                 console.error('[Shell] Failed to init Neutralino:', e);
             }
@@ -90,7 +126,9 @@
 
             // Listen for specific events to forward
             // Add more here if the app needs them (e.g., tray events)
-            Neutralino.events.on('windowClose', () => forwardEvent('windowClose'));
+            Neutralino.events.on('windowClose', async () => {
+                await Neutralino.window.hide();
+            });
             Neutralino.events.on('windowFocus', () => forwardEvent('windowFocus'));
             Neutralino.events.on('windowBlur', () => forwardEvent('windowBlur'));
 
