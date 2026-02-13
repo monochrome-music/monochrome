@@ -1845,7 +1845,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
                         console.log('Could not clear IndexedDB stores:', dbError);
                         // Try to delete the entire database as fallback
                         try {
-                            const deleteRequest = indexedDB.deleteDatabase('monochrome-music');
+                            const deleteRequest = indexedDB.deleteDatabase('monochromeDB');
                             await new Promise((resolve, reject) => {
                                 deleteRequest.onsuccess = resolve;
                                 deleteRequest.onerror = reject;
