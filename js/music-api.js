@@ -76,12 +76,12 @@ export class MusicAPI {
         return api.getArtist(cleanId);
     }
 
-    async getPlaylist(id, provider = null) {
+    async getPlaylist(id, _provider = null) {
         // Playlists are always Tidal for now
         return this.tidalAPI.getPlaylist(id);
     }
 
-    async getMix(id, provider = null) {
+    async getMix(id, _provider = null) {
         // Mixes are always Tidal for now
         return this.tidalAPI.getMix(id);
     }
@@ -172,11 +172,5 @@ export class MusicAPI {
     // Settings accessor for compatibility
     get settings() {
         return this._settings;
-    }
-
-    // Extract stream URL from manifest (Tidal only)
-    extractStreamUrlFromManifest(manifest) {
-        // This is only available for Tidal
-        return this.tidalAPI.extractStreamUrlFromManifest(manifest);
     }
 }

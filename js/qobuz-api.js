@@ -115,7 +115,7 @@ export class QobuzAPI {
     }
 
     // Get track details
-    async getTrack(id) {
+    async getTrack(_id) {
         // Qobuz doesn't have a direct track endpoint
         // Track metadata comes from search/album endpoints
         // For playback, use getStreamUrl directly
