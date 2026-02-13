@@ -2111,7 +2111,7 @@ input:checked + .slider::before {
 
 .player-controls.waveform-loaded {
     gap: 0.1rem;
-    margin-bottom: .3rem;
+    margin-bottom: 0.3rem;
 }
 
 .player-controls .buttons {
