@@ -309,12 +309,6 @@
                 }
             }
 
-            function setProviderEnabled(providerName, enabled) {
-                if (providerName === 'google') providerState.google = enabled;
-                if (providerName === 'password') providerState.password = enabled;
-                renderProviders();
-            }
-
             renderProviders();
 
             function setLoading(loading) {
@@ -345,10 +339,7 @@
                     const result = await signInWithPopup(auth, provider);
                     await sendTokenToServer(result.user);
                 } catch (err) {
-                    if (err.code === 'auth/operation-not-allowed') {
-                        setProviderEnabled('google', false);
-                        showError('Google sign-in is not enabled for this Firebase project.');
-                    } else if (err.code !== 'auth/popup-closed-by-user') {
+                    if (err.code !== 'auth/popup-closed-by-user') {
                         showError(err.message);
                     }
                     setLoading(false);
@@ -367,12 +358,7 @@
                     const result = await signInWithEmailAndPassword(auth, email, password);
                     await sendTokenToServer(result.user);
                 } catch (err) {
-                    if (err.code === 'auth/operation-not-allowed') {
-                        setProviderEnabled('password', false);
-                        showError('Email/password sign-in is not enabled for this Firebase project.');
-                    } else {
-                        showError(err.message);
-                    }
+                    showError(err.message);
                     setLoading(false);
                 }
             };
