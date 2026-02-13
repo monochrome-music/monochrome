@@ -205,7 +205,7 @@
                 Sign in with Google
             </button>
 
-            <div class="divider" style="display:none">or</div>
+            <div id="divider" class="divider" style="display:none">or</div>
 
             <form id="email-form" onsubmit="emailAuth(event)" style="display:none">
                 <div class="form-group">
@@ -277,9 +277,19 @@
             const auth = getAuth(fbApp);
             const provider = new GoogleAuthProvider();
 
+            function showError(msg) {
+                const el = document.getElementById('error');
+                el.textContent = msg;
+                el.style.display = 'block';
+            }
+
+            function hideError() {
+                document.getElementById('error').style.display = 'none';
+            }
+
             const googleBtn = document.getElementById('google-btn');
             const emailForm = document.getElementById('email-form');
-            const divider = document.querySelector('.divider');
+            const divider = document.getElementById('divider');
             const providerState = {
                 google: true,
                 password: true,
@@ -306,16 +316,6 @@
             }
 
             renderProviders();
-
-            function showError(msg) {
-                const el = document.getElementById('error');
-                el.textContent = msg;
-                el.style.display = 'block';
-            }
-
-            function hideError() {
-                document.getElementById('error').style.display = 'none';
-            }
 
             function setLoading(loading) {
                 document.getElementById('google-btn').disabled = loading;

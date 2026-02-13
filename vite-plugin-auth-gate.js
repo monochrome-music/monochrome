@@ -58,6 +58,7 @@ export default function authGatePlugin() {
                 authProviderOverrides.google = AUTH_GOOGLE_ENABLED !== 'false';
             }
             if (AUTH_EMAIL_ENABLED !== undefined) {
+                // Firebase calls it "password" provider; env uses "EMAIL" for clarity
                 authProviderOverrides.password = AUTH_EMAIL_ENABLED !== 'false';
             }
             if (Object.keys(authProviderOverrides).length > 0) {
