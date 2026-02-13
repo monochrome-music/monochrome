@@ -1837,7 +1837,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
                         for (const storeName of stores) {
                             try {
                                 await db.performTransaction(storeName, 'readwrite', (store) => store.clear());
-                            } catch (e) {
+                            } catch {
                                 // Store might not exist, continue
                             }
                         }

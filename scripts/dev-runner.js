@@ -1,6 +1,5 @@
 import fs from 'fs';
 import { spawn } from 'child_process';
-import path from 'path';
 
 const CONFIG_FILE = 'neutralino.config.json';
 const DEV_CONFIG_FILE = 'neutralino.config.dev.json';

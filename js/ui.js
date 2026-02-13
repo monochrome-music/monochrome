@@ -2339,7 +2339,7 @@ export class UIRenderer {
         }
     }
 
-    async renderPlaylistPage(playlistId, source = null, provider = null) {
+    async renderPlaylistPage(playlistId, source = null, _provider = null) {
         this.showPage('playlist');
 
         // Reset search input for new playlist
