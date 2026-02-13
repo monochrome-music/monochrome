@@ -50,6 +50,23 @@ export class AuthManager {
             return;
         }
 
+        // Check for Neutralino mode
+        const isNeutralino =
+            window.NL_MODE ||
+            window.location.search.includes('mode=neutralino') ||
+            (window.Neutralino && typeof window.Neutralino === 'object');
+
+        if (isNeutralino) {
+            try {
+                await signInWithRedirect(auth, provider);
+                return;
+            } catch (error) {
+                console.error('Redirect Login failed:', error);
+                alert(`Login failed: ${error.message}`);
+                throw error;
+            }
+        }
+
         try {
             const result = await signInWithPopup(auth, provider);
 
