@@ -40,9 +40,6 @@ if (config) {
         auth = getAuth(app);
         database = getDatabase(app);
         provider = new GoogleAuthProvider();
-        provider.setCustomParameters({
-            prompt: 'select_account',
-        });
         console.log('Firebase initialized from ' + (storedConfig ? 'saved' : 'default') + ' config');
     } catch (error) {
         console.error('Error initializing Firebase:', error);

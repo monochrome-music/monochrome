@@ -217,14 +217,20 @@ export function initializeSettings(scrobbler, player, api, ui) {
             return;
         }
 
-        const authWindow = window.open('', '_blank');
+        let authWindow = null;
+        if (!window.Neutralino) {
+            authWindow = window.open('', '_blank');
+        }
+
         lastfmConnectBtn.disabled = true;
         lastfmConnectBtn.textContent = 'Opening Last.fm...';
 
         try {
             const { token, url } = await scrobbler.lastfm.getAuthUrl();
 
-            if (authWindow) {
+            if (window.Neutralino) {
+                await Neutralino.os.open(url);
+            } else if (authWindow) {
                 authWindow.location.href = url;
             } else {
                 alert('Popup blocked! Please allow popups.');
@@ -563,14 +569,20 @@ export function initializeSettings(scrobbler, player, api, ui) {
                 return;
             }
 
-            const authWindow = window.open('', '_blank');
+            let authWindow = null;
+            if (!window.Neutralino) {
+                authWindow = window.open('', '_blank');
+            }
+
             librefmConnectBtn.disabled = true;
             librefmConnectBtn.textContent = 'Opening Libre.fm...';
 
             try {
                 const { token, url } = await scrobbler.librefm.getAuthUrl();
 
-                if (authWindow) {
+                if (window.Neutralino) {
+                    await Neutralino.os.open(url);
+                } else if (authWindow) {
                     authWindow.location.href = url;
                 } else {
                     alert('Popup blocked! Please allow popups.');

@@ -107,10 +107,10 @@ export class LastFMScrobbler {
         console.log('Signature string:', signatureString);
 
         try {
-            const { default: md5 } = await import('https://cdn.jsdelivr.net/npm/md5@2.3.0/+esm');
+            const { default: md5 } = await import('./md5.js');
             return md5(signatureString);
-        } catch {
-            console.error('MD5 library not available');
+        } catch (e) {
+            console.error('MD5 library not available', e);
             throw new Error('MD5 library required for Last.fm');
         }
     }
