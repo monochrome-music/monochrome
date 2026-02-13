@@ -66,11 +66,6 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
                 scrobbler.updateNowPlaying(player.currentTrack);
             }
 
-            // Resume AudioContext for waveform on mobile (iOS)
-            if (waveformGenerator.audioContext.state === 'suspended') {
-                waveformGenerator.audioContext.resume();
-            }
-
             updateWaveform();
         }
 

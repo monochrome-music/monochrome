@@ -81,12 +81,14 @@ class AudioContextManager {
         this.analyser = null;
         this.filters = [];
         this.outputNode = null;
+        this.volumeNode = null;
         this.isInitialized = false;
         this.isEQEnabled = false;
         this.isMonoAudioEnabled = false;
         this.monoMergerNode = null;
         this.currentGains = new Array(16).fill(0);
         this.audio = null;
+        this.currentVolume = 1.0;
 
         // Callbacks for audio graph changes (for visualizers like Butterchurn)
         this._graphChangeCallbacks = [];
@@ -170,6 +172,10 @@ class AudioContextManager {
             this.outputNode = this.audioContext.createGain();
             this.outputNode.gain.value = 1;
 
+            // Create volume node
+            this.volumeNode = this.audioContext.createGain();
+            this.volumeNode.gain.value = this.currentVolume;
+
             // Create mono audio merger node
             this.monoMergerNode = this.audioContext.createChannelMerger(2);
 
@@ -199,19 +205,17 @@ class AudioContextManager {
             // Disconnect everything first
             this.source.disconnect();
             this.outputNode.disconnect();
+            if (this.volumeNode) {
+                this.volumeNode.disconnect();
+            }
+            this.analyser.disconnect();
+
             if (this.monoMergerNode) {
                 try {
                     this.monoMergerNode.disconnect();
                 } catch {
                     // Ignore if not connected
                 }
-            }
-
-            // Only disconnect destination from analyser to preserve other taps (like Butterchurn)
-            try {
-                this.analyser.disconnect(this.audioContext.destination);
-            } catch {
-                // Ignore if not connected
             }
 
             let lastNode = this.source;
@@ -234,15 +238,17 @@ class AudioContextManager {
             }
 
             if (this.isEQEnabled && this.filters.length > 0) {
-                // EQ enabled: lastNode -> EQ filters -> output -> analyser -> destination
+                // EQ enabled: lastNode -> EQ filters -> output -> analyser -> volume -> destination
                 lastNode.connect(this.filters[0]);
                 this.outputNode.connect(this.analyser);
-                this.analyser.connect(this.audioContext.destination);
+                this.analyser.connect(this.volumeNode);
+                this.volumeNode.connect(this.audioContext.destination);
                 console.log('[AudioContext] EQ connected');
             } else {
-                // EQ disabled: lastNode -> analyser -> destination
+                // EQ disabled: lastNode -> analyser -> volume -> destination
                 lastNode.connect(this.analyser);
-                this.analyser.connect(this.audioContext.destination);
+                this.analyser.connect(this.volumeNode);
+                this.volumeNode.connect(this.audioContext.destination);
                 console.log('[AudioContext] EQ bypassed');
             }
 
@@ -311,6 +317,18 @@ class AudioContextManager {
      */
     isReady() {
         return this.isInitialized;
+    }
+
+    /**
+     * Set the volume level (0.0 to 1.0)
+     * @param {number} value - Volume level
+     */
+    setVolume(value) {
+        this.currentVolume = Math.max(0, Math.min(1, value));
+        if (this.volumeNode && this.audioContext) {
+            const now = this.audioContext.currentTime;
+            this.volumeNode.gain.setTargetAtTime(this.currentVolume, now, 0.01);
+        }
     }
 
     /**

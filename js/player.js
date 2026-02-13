@@ -111,8 +111,17 @@ export class Player {
         // Calculate effective volume
         const effectiveVolume = curvedVolume * scale;
 
-        // Apply to audio element
-        this.audio.volume = Math.max(0, Math.min(1, effectiveVolume));
+        // Apply to audio element and/or Web Audio graph
+        if (audioContextManager.isReady()) {
+            // If Web Audio is active, we apply volume there for better compatibility
+            // Especially on Linux where audio.volume might not affect the Web Audio graph
+            // We set audio.volume to 1.0 to avoid double-reduction, or keep it synced?
+            // Some browsers require audio.volume to be set for system media controls to show volume
+            this.audio.volume = 1.0;
+            audioContextManager.setVolume(effectiveVolume);
+        } else {
+            this.audio.volume = Math.max(0, Math.min(1, effectiveVolume));
+        }
     }
 
     applyAudioEffects() {
@@ -213,6 +222,7 @@ export class Player {
             // Must happen before audio.play() or audio won't route through Web Audio
             if (!audioContextManager.isReady()) {
                 audioContextManager.init(this.audio);
+                this.applyReplayGain();
             }
             await audioContextManager.resume();
 
@@ -233,6 +243,7 @@ export class Player {
             // Ensure audio context is active for iOS lock screen controls
             if (!audioContextManager.isReady()) {
                 audioContextManager.init(this.audio);
+                this.applyReplayGain();
             }
             await audioContextManager.resume();
             this.playPrev();
@@ -242,6 +253,7 @@ export class Player {
             // Ensure audio context is active for iOS lock screen controls
             if (!audioContextManager.isReady()) {
                 audioContextManager.init(this.audio);
+                this.applyReplayGain();
             }
             await audioContextManager.resume();
             this.playNext();
