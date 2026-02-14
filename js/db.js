@@ -371,7 +371,7 @@ export class MusicDatabase {
             }
             const entry = { ...minifiedItem, pinnedAt: Date.now() };
             await this.performTransaction(storeName, 'readwrite', (store) => store.put(entry));
-            return true; 
+            return true;
         }
     }
 

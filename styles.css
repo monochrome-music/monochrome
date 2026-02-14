@@ -1416,7 +1416,6 @@ input[type='search']::-webkit-search-cancel-button {
 .track-item:hover {
     background-color: var(--secondary);
     transform: scale(1.005);
-
 }
 
 /* Add active state for click feedback */
@@ -6123,13 +6122,11 @@ textarea:focus {
 .sidebar-nav-bottom {
     flex: 0 0 auto;
     margin-top: auto;
-    padding: 1rem 0 0 0;
+    padding: 1rem 0 0;
     border-top: 1px solid var(--border);
     background: var(--background);
-
     position: relative;
 }
-
 
 .sidebar-nav-bottom::before {
     content: '';

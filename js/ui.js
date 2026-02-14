@@ -179,11 +179,15 @@ export class UIRenderer {
                 let iconHTML;
                 if (item.type === 'user-playlist' && !item.cover && item.images && item.images.length > 0) {
                     const images = item.images.slice(0, 4);
-                    const imgsHTML = images.map((src) => `<img src="${this.api.getCoverUrl(src)}" loading="lazy">`).join('');
+                    const imgsHTML = images
+                        .map((src) => `<img src="${this.api.getCoverUrl(src)}" loading="lazy">`)
+                        .join('');
                     iconHTML = `<div class="pinned-item-collage">${imgsHTML}</div>`;
                 } else {
                     const coverUrl =
-                        item.type === 'artist' ? this.api.getArtistPictureUrl(item.cover) : this.api.getCoverUrl(item.cover);
+                        item.type === 'artist'
+                            ? this.api.getArtistPictureUrl(item.cover)
+                            : this.api.getCoverUrl(item.cover);
                     const coverClass = item.type === 'artist' ? 'artist' : '';
                     iconHTML = `<img src="${coverUrl}" class="pinned-item-cover ${coverClass}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.src='assets/logo.svg'">`;
                 }
