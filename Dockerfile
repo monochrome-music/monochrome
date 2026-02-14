@@ -15,6 +15,9 @@ RUN npm install
 # Copy the rest of the project
 COPY . .
 
+# install bun, otherwise the build will fail
+RUN npm install -g bun
+
 # Build the project
 RUN npm run build
 
