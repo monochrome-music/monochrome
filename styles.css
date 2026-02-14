@@ -356,6 +356,21 @@ kbd {
     flex: 1;
 }
 
+.sidebar-bottom-container {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-nav-bottom {
+    margin-top: auto;
+    padding-top: 1rem;
+}
+
+.sidebar-nav.bottom {
+    margin-top: 0;
+}
+
 .main-content {
     grid-area: main;
     overflow-y: auto;
@@ -499,6 +514,66 @@ kbd {
     width: 20px;
     height: 20px;
     flex-shrink: 0;
+}
+
+.pinned-items-header {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    padding: 0 0.75rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+}
+
+#pinned-items-nav {
+    margin-top: auto;
+    flex-shrink: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+#pinned-items-list .nav-item a {
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+}
+
+#pinned-items-list .nav-item a .pinned-item-cover {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    object-fit: cover;
+}
+
+#pinned-items-list .nav-item a .pinned-item-cover.artist {
+    border-radius: 50%;
+}
+
+#pinned-items-list .nav-item a .pinned-item-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+}
+
+.pinned-item-collage {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    overflow: hidden;
+}
+
+.pinned-item-collage img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background-color: var(--muted);
 }
 
 #sidebar-overlay {
@@ -1323,18 +1398,22 @@ input[type='search']::-webkit-search-cancel-button {
     padding: var(--spacing-sm) var(--spacing-md);
     border-radius: var(--radius-sm);
     align-items: center;
-    transition: background-color var(--transition-fast);
+    transition:
+        background-color var(--transition-fast),
+        transform var(--transition-fast);
     cursor: pointer;
     border: 1px solid transparent;
 }
 
 .track-item:hover {
     background-color: var(--secondary);
+    transform: scale(1.005);
+
 }
 
 /* Add active state for click feedback */
 .track-item:active {
-    background-color: var(--secondary); /* Keep background, remove scale */
+    transform: scale(0.99);
 }
 
 .track-item.playing {
@@ -1479,7 +1558,7 @@ input[type='search']::-webkit-search-cancel-button {
 /* Editable Playlist Track Items (with remove button) */
 .is-editable .track-list-header,
 .is-editable .track-item {
-    grid-template-columns: 40px 1fr 32px 64px;
+    grid-template-columns: 40px 1fr 80px 90px;
 }
 
 .detail-header {
@@ -2390,8 +2469,6 @@ input:checked + .slider::before {
     box-shadow: var(--shadow-lg);
     z-index: 3000;
     min-width: 160px;
-    max-height: 90vh;
-    overflow-y: auto;
     transform-origin: top left;
     animation: scale-in var(--transition-fast) var(--ease-out-back);
 }
@@ -5368,6 +5445,18 @@ body:has(#fullscreen-cover-overlay:not([style*='display: none'])) .now-playing-b
         padding: 0.75rem 0;
     }
 
+    body.sidebar-collapsed .pinned-items-header {
+        display: none;
+    }
+
+    body.sidebar-collapsed #pinned-items-list .nav-item a .pinned-item-name {
+        display: none;
+    }
+
+    body.sidebar-collapsed #pinned-items-list .nav-item a {
+        justify-content: center;
+    }
+
     body.sidebar-collapsed .now-playing-bar {
         width: calc(96% - 80px) !important;
         left: calc(80px + 2%);
@@ -5992,4 +6081,59 @@ textarea:focus {
 
 #custom-tooltip.visible {
     opacity: 1;
+}
+
+/* idec this collides with other styles atp if it works it works */
+.sidebar-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.sidebar-nav.main {
+    flex-shrink: 0;
+}
+
+.sidebar-bottom-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
+#pinned-items-nav {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.sidebar-nav-bottom {
+    flex: 0 0 auto;
+    margin-top: auto;
+    padding: 1rem 0 0 0;
+    border-top: 1px solid var(--border);
+    background: var(--background);
+
+    position: relative;
+}
+
+
+.sidebar-nav-bottom::before {
+    content: '';
+    display: block;
+    height: 0.5rem;
+    margin-top: -0.5rem;
+}
+
+.sidebar-nav.bottom {
+    margin: 0;
+    padding: 0;
+}
+
+#sidebar-nav-discord {
 }

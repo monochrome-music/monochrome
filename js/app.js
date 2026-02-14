@@ -277,75 +277,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const scrobbler = new MultiScrobbler();
     const lyricsManager = new LyricsManager(api);
 
-    const originalRenderPlaylistPage = ui.renderPlaylistPage.bind(ui);
-    ui.renderPlaylistPage = async function (id, type) {
-        await originalRenderPlaylistPage(id, type);
-
-        if (type === 'user') {
-            try {
-                const playlist = await db.getPlaylist(id);
-                const imgElement = document.getElementById('playlist-detail-image');
-
-                if (!imgElement) return;
-
-                let container = imgElement.parentElement;
-                let collageElement = document.getElementById('playlist-detail-collage');
-
-                if (!container.classList.contains('detail-header-cover-container')) {
-                    container = document.createElement('div');
-                    container.className = 'detail-header-cover-container';
-                    imgElement.parentNode.insertBefore(container, imgElement);
-                    container.appendChild(imgElement);
-
-                    collageElement = document.createElement('div');
-                    collageElement.id = 'playlist-detail-collage';
-                    collageElement.className = 'detail-header-collage';
-                    collageElement.style.display = 'none';
-                    container.appendChild(collageElement);
-                }
-
-                if (playlist && !playlist.cover && collageElement && playlist.tracks && playlist.tracks.length > 0) {
-                    const tracksWithCovers = playlist.tracks.filter((t) => t.album && t.album.cover);
-
-                    if (tracksWithCovers.length > 0) {
-                        imgElement.style.setProperty('display', 'none', 'important');
-                        collageElement.style.display = 'grid';
-                        collageElement.innerHTML = '';
-
-                        const uniqueCovers = [];
-                        const seen = new Set();
-                        for (const t of tracksWithCovers) {
-                            if (!seen.has(t.album.cover)) {
-                                seen.add(t.album.cover);
-                                uniqueCovers.push(t.album.cover);
-                                if (uniqueCovers.length >= 4) break;
-                            }
-                        }
-
-                        const images = [];
-                        for (let i = 0; i < 4; i++) {
-                            images.push(uniqueCovers[i % uniqueCovers.length]);
-                        }
-
-                        images.forEach((src) => {
-                            const img = document.createElement('img');
-                            img.src = api.getCoverUrl(src);
-                            collageElement.appendChild(img);
-                        });
-                    } else {
-                        imgElement.style.removeProperty('display');
-                        collageElement.style.display = 'none';
-                    }
-                } else if (collageElement) {
-                    imgElement.style.removeProperty('display');
-                    collageElement.style.display = 'none';
-                }
-            } catch (e) {
-                console.error('Error generating playlist cover:', e);
-            }
-        }
-    };
-
     // Check browser support for local files
     const selectLocalBtn = document.getElementById('select-local-folder-btn');
     const browserWarning = document.getElementById('local-browser-warning');
@@ -368,6 +299,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Restore sidebar state
     sidebarSettings.restoreState();
+
+    // Render pinned items
+    await ui.renderPinnedItems();
 
     // Load settings module and initialize
     const { initializeSettings } = await loadSettingsModule();

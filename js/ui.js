@@ -161,6 +161,45 @@ export class UIRenderer {
         }
     }
 
+    async renderPinnedItems() {
+        const nav = document.getElementById('pinned-items-nav');
+        const list = document.getElementById('pinned-items-list');
+        if (!nav || !list) return;
+
+        const pinnedItems = await db.getPinned();
+
+        if (pinnedItems.length === 0) {
+            nav.style.display = 'none';
+            return;
+        }
+
+        nav.style.display = '';
+        list.innerHTML = pinnedItems
+            .map((item) => {
+                let iconHTML;
+                if (item.type === 'user-playlist' && !item.cover && item.images && item.images.length > 0) {
+                    const images = item.images.slice(0, 4);
+                    const imgsHTML = images.map((src) => `<img src="${this.api.getCoverUrl(src)}" loading="lazy">`).join('');
+                    iconHTML = `<div class="pinned-item-collage">${imgsHTML}</div>`;
+                } else {
+                    const coverUrl =
+                        item.type === 'artist' ? this.api.getArtistPictureUrl(item.cover) : this.api.getCoverUrl(item.cover);
+                    const coverClass = item.type === 'artist' ? 'artist' : '';
+                    iconHTML = `<img src="${coverUrl}" class="pinned-item-cover ${coverClass}" alt="${escapeHtml(item.name)}" loading="lazy" onerror="this.src='assets/logo.svg'">`;
+                }
+
+                return `
+                <li class="nav-item">
+                    <a href="${item.href}">
+                        ${iconHTML}
+                        <span class="pinned-item-name">${escapeHtml(item.name)}</span>
+                    </a>
+                </li>
+            `;
+            })
+            .join('');
+    }
+
     setCurrentTrack(track) {
         this.currentTrack = track;
         this.updateGlobalTheme();
@@ -2347,6 +2386,7 @@ export class UIRenderer {
         if (searchInput) searchInput.value = '';
 
         const imageEl = document.getElementById('playlist-detail-image');
+        const collageEl = document.getElementById('playlist-detail-collage');
         const titleEl = document.getElementById('playlist-detail-title');
         const metaEl = document.getElementById('playlist-detail-meta');
         const descEl = document.getElementById('playlist-detail-description');
@@ -2401,9 +2441,45 @@ export class UIRenderer {
             if (playlistData) {
                 // ... (rest of the logic)
 
-                // Render user or public Pocketbase playlist
-                imageEl.src = playlistData.cover || '/assets/appicon.png';
-                imageEl.style.backgroundColor = '';
+                if (playlistData.cover) {
+                    imageEl.src = playlistData.cover;
+                    imageEl.style.display = 'block';
+                    if (collageEl) collageEl.style.display = 'none';
+                    this.setPageBackground(playlistData.cover);
+                    this.extractAndApplyColor(playlistData.cover);
+                } else {
+                    const tracksWithCovers = (playlistData.tracks || []).filter((t) => t.album && t.album.cover);
+                    const uniqueCovers = [];
+                    const seen = new Set();
+                    for (const t of tracksWithCovers) {
+                        if (!seen.has(t.album.cover)) {
+                            seen.add(t.album.cover);
+                            uniqueCovers.push(t.album.cover);
+                            if (uniqueCovers.length >= 4) break;
+                        }
+                    }
+
+                    if (uniqueCovers.length > 0 && collageEl) {
+                        imageEl.style.display = 'none';
+                        collageEl.style.display = 'grid';
+                        collageEl.innerHTML = '';
+                        const imagesToRender = [];
+                        for (let i = 0; i < 4; i++) {
+                            imagesToRender.push(uniqueCovers[i % uniqueCovers.length]);
+                        }
+                        imagesToRender.forEach((cover) => {
+                            const img = document.createElement('img');
+                            img.src = this.api.getCoverUrl(cover);
+                            collageEl.appendChild(img);
+                        });
+                    } else {
+                        imageEl.src = '/assets/appicon.png';
+                        imageEl.style.display = 'block';
+                        if (collageEl) collageEl.style.display = 'none';
+                    }
+                    this.setPageBackground(null);
+                    this.resetVibrantColor();
+                }
 
                 titleEl.textContent = playlistData.name || playlistData.title;
                 this.adjustTitleFontSize(titleEl, titleEl.textContent);

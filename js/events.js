@@ -845,6 +845,15 @@ export async function handleTrackAction(
         return;
     }
 
+    if (action === 'toggle-pin') {
+        const pinned = await db.togglePinned(item, type);
+        showNotification(pinned ? `Pinned to sidebar` : `Unpinned from sidebar`);
+
+        if (ui && typeof ui.renderPinnedItems === 'function') {
+            ui.renderPinnedItems();
+        }
+    }
+
     // Individual Track Actions
     // Check if track/artist is blocked
     const { contentBlockingSettings } = await import('./storage.js');
@@ -1321,6 +1330,12 @@ async function updateContextMenuLikeState(contextMenu, contextTrack) {
     if (likeItem) {
         const isLiked = await db.isFavorite('track', contextTrack.id);
         likeItem.textContent = isLiked ? 'Unlike' : 'Like';
+    }
+
+    const pinItem = contextMenu.querySelector('li[data-action="toggle-pin"]');
+    if (pinItem) {
+        const isPinned = await db.isPinned(contextTrack.id || contextTrack.uuid);
+        pinItem.textContent = isPinned ? 'Unpin' : 'Pin';
     }
 
     const trackMixItem = contextMenu.querySelector('li[data-action="track-mix"]');
