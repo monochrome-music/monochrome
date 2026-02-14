@@ -81,12 +81,14 @@ class AudioContextManager {
         this.analyser = null;
         this.filters = [];
         this.outputNode = null;
+        this.volumeNode = null;
         this.isInitialized = false;
         this.isEQEnabled = false;
         this.isMonoAudioEnabled = false;
         this.monoMergerNode = null;
         this.currentGains = new Array(16).fill(0);
         this.audio = null;
+        this.currentVolume = 1.0;
 
         // Callbacks for audio graph changes (for visualizers like Butterchurn)
         this._graphChangeCallbacks = [];
@@ -131,6 +133,8 @@ class AudioContextManager {
         if (this.isInitialized) return;
         if (!audioElement) return;
 
+        this.audio = audioElement;
+
         // Detect iOS - skip Web Audio initialization on iOS to avoid lock screen audio issues
         // iOS suspends AudioContext when screen locks, and MediaSession controls don't count
         // as user gestures to resume it, causing audio to play silently
@@ -138,13 +142,12 @@ class AudioContextManager {
         const isIOS = /iphone|ipad|ipod/.test(ua) || (ua.includes('mac') && navigator.maxTouchPoints > 1);
         if (isIOS) {
             console.log('[AudioContext] Skipping Web Audio initialization on iOS for lock screen compatibility');
-            this.isInitialized = true; // Mark as initialized to prevent repeated attempts
+            // Don't set isInitialized - let it remain false so isReady() returns false
+            // This prevents other code from trying to use the non-existent audio context
             return;
         }
 
         try {
-            this.audio = audioElement;
-
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             this.audioContext = new AudioContext();
 
@@ -169,6 +172,10 @@ class AudioContextManager {
             // Create output gain node
             this.outputNode = this.audioContext.createGain();
             this.outputNode.gain.value = 1;
+
+            // Create volume node
+            this.volumeNode = this.audioContext.createGain();
+            this.volumeNode.gain.value = this.currentVolume;
 
             // Create mono audio merger node
             this.monoMergerNode = this.audioContext.createChannelMerger(2);
@@ -199,19 +206,17 @@ class AudioContextManager {
             // Disconnect everything first
             this.source.disconnect();
             this.outputNode.disconnect();
+            if (this.volumeNode) {
+                this.volumeNode.disconnect();
+            }
+            this.analyser.disconnect();
+
             if (this.monoMergerNode) {
                 try {
                     this.monoMergerNode.disconnect();
                 } catch {
                     // Ignore if not connected
                 }
-            }
-
-            // Only disconnect destination from analyser to preserve other taps (like Butterchurn)
-            try {
-                this.analyser.disconnect(this.audioContext.destination);
-            } catch {
-                // Ignore if not connected
             }
 
             let lastNode = this.source;
@@ -234,15 +239,17 @@ class AudioContextManager {
             }
 
             if (this.isEQEnabled && this.filters.length > 0) {
-                // EQ enabled: lastNode -> EQ filters -> output -> analyser -> destination
+                // EQ enabled: lastNode -> EQ filters -> output -> analyser -> volume -> destination
                 lastNode.connect(this.filters[0]);
                 this.outputNode.connect(this.analyser);
-                this.analyser.connect(this.audioContext.destination);
+                this.analyser.connect(this.volumeNode);
+                this.volumeNode.connect(this.audioContext.destination);
                 console.log('[AudioContext] EQ connected');
             } else {
-                // EQ disabled: lastNode -> analyser -> destination
+                // EQ disabled: lastNode -> analyser -> volume -> destination
                 lastNode.connect(this.analyser);
-                this.analyser.connect(this.audioContext.destination);
+                this.analyser.connect(this.volumeNode);
+                this.volumeNode.connect(this.audioContext.destination);
                 console.log('[AudioContext] EQ bypassed');
             }
 
@@ -307,10 +314,22 @@ class AudioContextManager {
     }
 
     /**
-     * Check if initialized
+     * Check if initialized and active
      */
     isReady() {
-        return this.isInitialized;
+        return this.isInitialized && this.audioContext !== null;
+    }
+
+    /**
+     * Set the volume level (0.0 to 1.0)
+     * @param {number} value - Volume level
+     */
+    setVolume(value) {
+        this.currentVolume = Math.max(0, Math.min(1, value));
+        if (this.volumeNode && this.audioContext) {
+            const now = this.audioContext.currentTime;
+            this.volumeNode.gain.setTargetAtTime(this.currentVolume, now, 0.01);
+        }
     }
 
     /**

@@ -217,14 +217,20 @@ export function initializeSettings(scrobbler, player, api, ui) {
             return;
         }
 
-        const authWindow = window.open('', '_blank');
+        let authWindow = null;
+        if (!window.Neutralino) {
+            authWindow = window.open('', '_blank');
+        }
+
         lastfmConnectBtn.disabled = true;
         lastfmConnectBtn.textContent = 'Opening Last.fm...';
 
         try {
             const { token, url } = await scrobbler.lastfm.getAuthUrl();
 
-            if (authWindow) {
+            if (window.Neutralino) {
+                await Neutralino.os.open(url);
+            } else if (authWindow) {
                 authWindow.location.href = url;
             } else {
                 alert('Popup blocked! Please allow popups.');
@@ -563,14 +569,20 @@ export function initializeSettings(scrobbler, player, api, ui) {
                 return;
             }
 
-            const authWindow = window.open('', '_blank');
+            let authWindow = null;
+            if (!window.Neutralino) {
+                authWindow = window.open('', '_blank');
+            }
+
             librefmConnectBtn.disabled = true;
             librefmConnectBtn.textContent = 'Opening Libre.fm...';
 
             try {
                 const { token, url } = await scrobbler.librefm.getAuthUrl();
 
-                if (authWindow) {
+                if (window.Neutralino) {
+                    await Neutralino.os.open(url);
+                } else if (authWindow) {
                     authWindow.location.href = url;
                 } else {
                     alert('Popup blocked! Please allow popups.');
@@ -1837,7 +1849,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
                         for (const storeName of stores) {
                             try {
                                 await db.performTransaction(storeName, 'readwrite', (store) => store.clear());
-                            } catch (e) {
+                            } catch {
                                 // Store might not exist, continue
                             }
                         }
@@ -1845,7 +1857,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
                         console.log('Could not clear IndexedDB stores:', dbError);
                         // Try to delete the entire database as fallback
                         try {
-                            const deleteRequest = indexedDB.deleteDatabase('monochrome-music');
+                            const deleteRequest = indexedDB.deleteDatabase('monochromeDB');
                             await new Promise((resolve, reject) => {
                                 deleteRequest.onsuccess = resolve;
                                 deleteRequest.onerror = reject;
@@ -1931,6 +1943,8 @@ function initializeFontSettings() {
             );
         } else if (value === 'monospace') {
             fontSettings.loadPresetFont('monospace', 'monospace');
+        } else if (value === 'Apple Music') {
+            fontSettings.loadAppleMusicFont();
         } else {
             fontSettings.loadPresetFont(value, 'sans-serif');
         }

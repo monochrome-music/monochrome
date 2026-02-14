@@ -183,7 +183,7 @@
 
             <div id="error" class="error-msg"></div>
 
-            <button id="google-btn" class="btn" onclick="googleSignIn()">
+            <button id="google-btn" class="btn" onclick="googleSignIn()" style="display: none">
                 <svg class="google-icon" viewBox="0 0 24 24">
                     <path
                         fill="#4285F4"
@@ -205,9 +205,9 @@
                 Sign in with Google
             </button>
 
-            <div class="divider">or</div>
+            <div id="divider" class="divider" style="display: none">or</div>
 
-            <form id="email-form" onsubmit="emailAuth(event)">
+            <form id="email-form" onsubmit="emailAuth(event)" style="display: none">
                 <div class="form-group">
                     <input type="email" id="email" placeholder="Email" required autocomplete="email" />
                 </div>
@@ -286,6 +286,30 @@
             function hideError() {
                 document.getElementById('error').style.display = 'none';
             }
+
+            const googleBtn = document.getElementById('google-btn');
+            const emailForm = document.getElementById('email-form');
+            const divider = document.getElementById('divider');
+            const providerState = {
+                google: true,
+                password: true,
+            };
+            const providerConfig = window.__AUTH_PROVIDERS__ || {};
+            if (typeof providerConfig.google === 'boolean') providerState.google = providerConfig.google;
+            if (typeof providerConfig.password === 'boolean') providerState.password = providerConfig.password;
+
+            const NO_PROVIDER_MESSAGE = 'No sign-in providers are enabled for this Firebase project.';
+
+            function renderProviders() {
+                if (googleBtn) googleBtn.style.display = providerState.google ? '' : 'none';
+                if (emailForm) emailForm.style.display = providerState.password ? '' : 'none';
+                if (divider) divider.style.display = providerState.google && providerState.password ? '' : 'none';
+                if (!providerState.google && !providerState.password) {
+                    showError(NO_PROVIDER_MESSAGE);
+                }
+            }
+
+            renderProviders();
 
             function setLoading(loading) {
                 document.getElementById('google-btn').disabled = loading;

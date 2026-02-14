@@ -455,6 +455,14 @@ kbd {
     margin-bottom: 1rem;
 }
 
+.sidebar-logo-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: inherit;
+    text-decoration: none;
+}
+
 .sidebar-logo .app-logo {
     width: 15px;
     height: 15px;
@@ -1301,7 +1309,7 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 #playlist-detail-recommended .track-item {
-    grid-template-columns: 40px 1fr 80px 90px;
+    grid-template-columns: 40px 1fr 32px 64px;
 }
 
 @media (max-width: 1100px) {
@@ -2190,7 +2198,7 @@ input:checked + .slider::before {
 
 .player-controls.waveform-loaded {
     gap: 0.1rem;
-    margin-bottom: -0.4rem;
+    margin-bottom: 0.3rem;
 }
 
 .player-controls .buttons {
@@ -3234,6 +3242,26 @@ input:checked + .slider::before {
 
 .skeleton-container {
     width: 100%;
+}
+
+/* Skeleton grids for recommended sections */
+#home-recommended-albums .skeleton-container,
+#home-recommended-artists .skeleton-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+#home-recommended-songs .skeleton-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+    gap: 2px var(--spacing-xl);
+}
+
+@media (max-width: 1100px) {
+    #home-recommended-songs .skeleton-container {
+        grid-template-columns: 1fr;
+    }
 }
 
 #api-instance-list {
@@ -5321,6 +5349,7 @@ body:has(#fullscreen-cover-overlay:not([style*='display: none'])) .now-playing-b
     max-width: 400px;
     overflow: hidden;
     text-overflow: ellipsis;
+    will-change: transform, opacity;
 }
 
 /* Genius i love genius brah!! */
@@ -6056,27 +6085,6 @@ textarea:focus {
 
 .track-list-search-input {
     font-size: 0.95rem;
-}
-
-/* Custom Tooltip */
-#custom-tooltip {
-    position: fixed;
-    background: var(--card);
-    color: var(--card-foreground);
-    padding: 0.5rem 0.75rem;
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-lg);
-    font-size: 0.85rem;
-    pointer-events: none;
-    z-index: 10000;
-    opacity: 0;
-    transition: opacity 0.1s ease;
-    white-space: nowrap;
-    max-width: 400px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    will-change: transform, opacity;
 }
 
 #custom-tooltip.visible {

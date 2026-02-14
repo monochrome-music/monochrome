@@ -22,18 +22,29 @@ export class AuthManager {
     init() {
         if (!auth) return;
 
+        console.log('[Auth] Initializing. Current URL:', window.location.href);
+
         this.unsubscribe = onAuthStateChanged(auth, (user) => {
             this.user = user;
+            console.log('[Auth] Auth state changed:', user ? user.email : 'No user');
             this.updateUI(user);
 
             this.authListeners.forEach((listener) => listener(user));
         });
 
         // Handle redirect result (for Linux/Mobile where popup might be blocked)
-        getRedirectResult(auth).catch((error) => {
-            console.error('Redirect Login failed:', error);
-            alert(`Login failed: ${error.message}`);
-        });
+        getRedirectResult(auth)
+            .then((result) => {
+                if (result) {
+                    console.log('[Auth] Redirect result received:', result.user.email);
+                } else {
+                    console.log('[Auth] No redirect result found.');
+                }
+            })
+            .catch((error) => {
+                console.error('[Auth] Redirect Login failed:', error);
+                alert(`Login failed: ${error.message}`);
+            });
     }
 
     onAuthStateChanged(callback) {
@@ -48,6 +59,23 @@ export class AuthManager {
         if (!auth) {
             alert('Firebase is not configured. Please check console.');
             return;
+        }
+
+        // Check for Neutralino mode
+        const isNeutralino =
+            window.NL_MODE ||
+            window.location.search.includes('mode=neutralino') ||
+            (window.Neutralino && typeof window.Neutralino === 'object');
+
+        if (isNeutralino) {
+            try {
+                await signInWithRedirect(auth, provider);
+                return;
+            } catch (error) {
+                console.error('Redirect Login failed:', error);
+                alert(`Login failed: ${error.message}`);
+                throw error;
+            }
         }
 
         try {

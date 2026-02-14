@@ -1659,6 +1659,41 @@ export const fontSettings = {
         document.documentElement.style.setProperty('--font-family', fontValue);
     },
 
+    loadAppleMusicFont() {
+        const APPLE_FONT_LINK_ID = 'monochrome-apple-font';
+
+        // Remove any existing dynamic font links
+        let existingLink = document.getElementById(this.FONT_LINK_ID);
+        if (existingLink) {
+            existingLink.remove();
+        }
+
+        // Remove any existing @font-face styles
+        let existingStyle = document.getElementById(this.FONT_FACE_ID);
+        if (existingStyle) {
+            existingStyle.remove();
+        }
+
+        // Load Apple font CSS
+        let link = document.getElementById(APPLE_FONT_LINK_ID);
+        if (!link) {
+            link = document.createElement('link');
+            link.id = APPLE_FONT_LINK_ID;
+            link.rel = 'stylesheet';
+            link.href = '/fonts/apple/sf-pro-display.css';
+            document.head.appendChild(link);
+        }
+
+        this.setConfig({
+            type: 'preset',
+            family: 'Apple Music',
+            fallback: 'sans-serif',
+            weights: [400, 500, 600, 700],
+        });
+
+        document.documentElement.style.setProperty('--font-family', "'SF Pro Display', sans-serif");
+    },
+
     applyFont() {
         const config = this.getConfig();
 
@@ -1674,7 +1709,11 @@ export const fontSettings = {
                 break;
             case 'preset':
             default:
-                this.loadPresetFont(config.family, config.fallback);
+                if (config.family === 'Apple Music') {
+                    this.loadAppleMusicFont();
+                } else {
+                    this.loadPresetFont(config.family, config.fallback);
+                }
                 break;
         }
     },

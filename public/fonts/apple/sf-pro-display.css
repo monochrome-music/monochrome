@@ -1,0 +1,36 @@
+/**
+ * Apple Fonts - SF Pro Display
+ * Fonts sourced from Apple Music design system
+ */
+
+@font-face {
+    font-family: 'SF Pro Display';
+    src: url('SFPRODISPLAYREGULAR.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'SF Pro Display';
+    src: url('SFPRODISPLAYMEDIUM.woff2') format('woff2');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'SF Pro Display';
+    src: url('SFPRODISPLAYBOLD.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'SF Pro Display';
+    src: url('SFPRODISPLAYSEMIBOLDITALIC.woff2') format('woff2');
+    font-weight: 600;
+    font-style: italic;
+    font-display: swap;
+}
