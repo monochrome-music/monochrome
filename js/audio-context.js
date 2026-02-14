@@ -133,6 +133,8 @@ class AudioContextManager {
         if (this.isInitialized) return;
         if (!audioElement) return;
 
+        this.audio = audioElement;
+
         // Detect iOS - skip Web Audio initialization on iOS to avoid lock screen audio issues
         // iOS suspends AudioContext when screen locks, and MediaSession controls don't count
         // as user gestures to resume it, causing audio to play silently
@@ -140,13 +142,12 @@ class AudioContextManager {
         const isIOS = /iphone|ipad|ipod/.test(ua) || (ua.includes('mac') && navigator.maxTouchPoints > 1);
         if (isIOS) {
             console.log('[AudioContext] Skipping Web Audio initialization on iOS for lock screen compatibility');
-            this.isInitialized = true; // Mark as initialized to prevent repeated attempts
+            // Don't set isInitialized - let it remain false so isReady() returns false
+            // This prevents other code from trying to use the non-existent audio context
             return;
         }
 
         try {
-            this.audio = audioElement;
-
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             this.audioContext = new AudioContext();
 
@@ -313,10 +314,10 @@ class AudioContextManager {
     }
 
     /**
-     * Check if initialized
+     * Check if initialized and active
      */
     isReady() {
-        return this.isInitialized;
+        return this.isInitialized && this.audioContext !== null;
     }
 
     /**
