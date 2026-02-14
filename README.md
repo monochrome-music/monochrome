@@ -39,8 +39,8 @@
 **Monochrome** is an open-source, privacy-respecting, ad-free [TIDAL](https://tidal.com) web UI, built on top of [Hi-Fi](https://github.com/binimum/hifi-api). It provides a beautiful, minimalist interface for streaming high-quality music without the clutter of traditional streaming platforms.
 
 <p align="center">
-  <a href="https://monochrome.tf/#album/413189044">
-    <img src="https://files.catbox.moe/tpgxii.png" alt="Monochrome UI" width="800">
+  <a href="https://monochrome.tf/#album/90502209">
+    <img width="2559" height="1439" alt="image" src="https://github.com/user-attachments/assets/7973ea9f-c4aa-4c12-b476-f388f614db38"  alt="Monochrome UI" width="800>
   </a>
 </p>
 
