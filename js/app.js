@@ -234,8 +234,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const audioPlayer = document.getElementById('audio-player');
 
     // i love ios and macos!!!! webkit fucking SUCKS BULLSHIT sorry ios/macos heads yall getting lossless only
+    // Use window.__IS_IOS__ (set before UA spoof in index.html) so detection works on real iOS.
+    const isIOS = typeof window !== 'undefined' && window.__IS_IOS__ === true;
     const ua = navigator.userAgent.toLowerCase();
-    const isIOS = /iphone|ipad|ipod/.test(ua) || (ua.includes('mac') && navigator.maxTouchPoints > 1);
     const isSafari =
         ua.includes('safari') && !ua.includes('chrome') && !ua.includes('crios') && !ua.includes('android');
 
