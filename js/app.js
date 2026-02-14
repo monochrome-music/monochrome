@@ -265,7 +265,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     initTracker(player);
 
     // Initialize desktop features if in Neutralino mode
-    if (typeof window !== 'undefined' && (window.NL_MODE || window.location.search.includes('mode=neutralino'))) {
+    if (
+        typeof window !== 'undefined' &&
+        (window.NL_MODE ||
+            window.location.search.includes('mode=neutralino') ||
+            (window.Neutralino && typeof window.Neutralino === 'object'))
+    ) {
+        window.NL_MODE = true;
         import('./desktop/desktop.js').then((m) => m.initDesktop(player));
     }
 
