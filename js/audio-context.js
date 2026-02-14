@@ -137,9 +137,9 @@ class AudioContextManager {
 
         // Detect iOS - skip Web Audio initialization on iOS to avoid lock screen audio issues
         // iOS suspends AudioContext when screen locks, and MediaSession controls don't count
-        // as user gestures to resume it, causing audio to play silently
-        const ua = navigator.userAgent.toLowerCase();
-        const isIOS = /iphone|ipad|ipod/.test(ua) || (ua.includes('mac') && navigator.maxTouchPoints > 1);
+        // as user gestures to resume it, causing audio to play silently.
+        // Use window.__IS_IOS__ (set before UA spoof in index.html) so detection works on real iOS.
+        const isIOS = typeof window !== 'undefined' && window.__IS_IOS__ === true;
         if (isIOS) {
             console.log('[AudioContext] Skipping Web Audio initialization on iOS for lock screen compatibility');
             // Don't set isInitialized - let it remain false so isReady() returns false

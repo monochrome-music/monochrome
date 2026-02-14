@@ -2,6 +2,10 @@
 <html lang="en">
     <head>
         <script>
+            // Capture real iOS state before spoofing (needed for background audio)
+            var _ua = navigator.userAgent.toLowerCase();
+            window.__IS_IOS__ = /iphone|ipad|ipod/.test(_ua) || (_ua.includes('mac') && navigator.maxTouchPoints > 1);
+
             // Spoof User-Agent to bypass Google's embedded browser check
             Object.defineProperty(navigator, 'userAgent', {
                 get: function () {
