@@ -19,6 +19,20 @@
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Monochrome" />
         <meta name="description" content="A minimalist music streaming application" />
+
+        <!-- Preconnect to critical third-party origins -->
+        <link rel="preconnect" href="https://api.fonts.coollabs.io" crossorigin />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://api.monochrome.tf" crossorigin />
+        <link rel="preconnect" href="https://ws.audioscrobbler.com" crossorigin />
+        <link rel="preconnect" href="https://libre.fm" crossorigin />
+        <link rel="preconnect" href="https://api.listenbrainz.org" crossorigin />
+        <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
+        <link rel="preconnect" href="https://resources.tidal.com" crossorigin />
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+        <link rel="preconnect" href="https://unpkg.com" crossorigin />
+
         <link rel="apple-touch-icon" href="/assets/logo.svg" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" href="/assets/logo.svg" type="image/svg+xml" />
@@ -758,20 +772,22 @@
             <aside class="sidebar">
                 <div class="sidebar-content">
                     <div class="sidebar-logo">
-                        <svg
-                            class="app-logo"
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="200"
-                            height="200"
-                            viewBox="14.75 14.75 70.5 70.5"
-                        >
-                            <g fill="currentColor">
-                                <path
-                                    d="M38.25 14.75H85.25V61.75H61.75V38.25H38.25ZM14.75 38.25H38.25V61.75H61.75V85.25H14.75Z"
-                                />
-                            </g>
-                        </svg>
-                        <span>Monochrome</span>
+                        <a href="https://monochrome.tf/" class="sidebar-logo-link">
+                            <svg
+                                class="app-logo"
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="200"
+                                height="200"
+                                viewBox="14.75 14.75 70.5 70.5"
+                            >
+                                <g fill="currentColor">
+                                    <path
+                                        d="M38.25 14.75H85.25V61.75H61.75V38.25H38.25ZM14.75 38.25H38.25V61.75H61.75V85.25H14.75Z"
+                                    />
+                                </g>
+                            </svg>
+                            <span>Monochrome</span>
+                        </a>
                         <button
                             id="sidebar-toggle"
                             class="btn-icon desktop-only"
@@ -2333,6 +2349,7 @@
                                         <div id="font-preset-section" class="font-section">
                                             <select id="font-preset-select">
                                                 <option value="Inter">Inter (Default)</option>
+                                                <option value="Apple Music">Apple Music</option>
                                                 <option value="IBM Plex Mono">IBM Plex Mono</option>
                                                 <option value="Roboto">Roboto</option>
                                                 <option value="Open Sans">Open Sans</option>

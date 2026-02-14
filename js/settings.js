@@ -1943,6 +1943,8 @@ function initializeFontSettings() {
             );
         } else if (value === 'monospace') {
             fontSettings.loadPresetFont('monospace', 'monospace');
+        } else if (value === 'Apple Music') {
+            fontSettings.loadAppleMusicFont();
         } else {
             fontSettings.loadPresetFont(value, 'sans-serif');
         }

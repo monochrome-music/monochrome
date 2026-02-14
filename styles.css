@@ -440,6 +440,14 @@ kbd {
     margin-bottom: 1rem;
 }
 
+.sidebar-logo-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: inherit;
+    text-decoration: none;
+}
+
 .sidebar-logo .app-logo {
     width: 15px;
     height: 15px;
