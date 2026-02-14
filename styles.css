@@ -3167,6 +3167,26 @@ input:checked + .slider::before {
     width: 100%;
 }
 
+/* Skeleton grids for recommended sections */
+#home-recommended-albums .skeleton-container,
+#home-recommended-artists .skeleton-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+#home-recommended-songs .skeleton-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+    gap: 2px var(--spacing-xl);
+}
+
+@media (max-width: 1100px) {
+    #home-recommended-songs .skeleton-container {
+        grid-template-columns: 1fr;
+    }
+}
+
 #api-instance-list {
     list-style: none;
     margin-bottom: 1rem;

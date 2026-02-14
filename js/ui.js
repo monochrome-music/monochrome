@@ -1505,8 +1505,11 @@ export class UIRenderer {
         if (section) section.style.display = '';
 
         if (songsContainer) {
-            if (forceRefresh) songsContainer.innerHTML = this.createSkeletonTracks(5, true);
-            else if (songsContainer.children.length > 0 && !songsContainer.querySelector('.skeleton')) return; // Already loaded
+            if (forceRefresh || songsContainer.children.length === 0) {
+                songsContainer.innerHTML = this.createSkeletonTracks(10, true);
+            } else if (!songsContainer.querySelector('.skeleton')) {
+                return; // Already loaded
+            }
 
             try {
                 const seeds = await this.getSeeds();
@@ -1539,8 +1542,11 @@ export class UIRenderer {
         if (section) section.style.display = '';
 
         if (albumsContainer) {
-            if (forceRefresh) albumsContainer.innerHTML = this.createSkeletonCards(6);
-            else if (albumsContainer.children.length > 0 && !albumsContainer.querySelector('.skeleton')) return;
+            if (forceRefresh || albumsContainer.children.length === 0) {
+                albumsContainer.innerHTML = this.createSkeletonCards(5);
+            } else if (!albumsContainer.querySelector('.skeleton')) {
+                return;
+            }
 
             try {
                 const seeds = await this.getSeeds();
@@ -1742,8 +1748,11 @@ export class UIRenderer {
         if (section) section.style.display = '';
 
         if (artistsContainer) {
-            if (forceRefresh) artistsContainer.innerHTML = this.createSkeletonCards(6, true);
-            else if (artistsContainer.children.length > 0 && !artistsContainer.querySelector('.skeleton')) return;
+            if (forceRefresh || artistsContainer.children.length === 0) {
+                artistsContainer.innerHTML = this.createSkeletonCards(12, true);
+            } else if (!artistsContainer.querySelector('.skeleton')) {
+                return;
+            }
 
             try {
                 const seeds = await this.getSeeds();
