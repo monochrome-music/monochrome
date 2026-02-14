@@ -64,7 +64,6 @@ jobs:
         if: matrix.platform != 'windows'
         run: chmod +x release/${{ matrix.binary_dest }}
 
-
       - name: Zip for R2 (Windows)
         if: matrix.platform == 'windows'
         run: Compress-Archive -Path release/* -DestinationPath ${{ matrix.archive_name }} -Force
@@ -77,6 +76,12 @@ jobs:
           zip -r ../${{ matrix.archive_name }} .
         shell: bash
 
+      - name: Isolate Zip File
+        run: |
+          mkdir out_delivery
+          mv ${{ matrix.archive_name }} out_delivery/
+        shell: bash
+
       - name: Upload to R2
         uses: ryand56/r2-upload-action@latest
         with:
@@ -84,8 +89,7 @@ jobs:
           r2-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
           r2-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           r2-bucket: ${{ secrets.R2_BUCKET }}
-          source-dir: '.'
-          include: '${{ matrix.archive_name }}'
+          source-dir: 'out_delivery'
           destination-dir: ''
 
       - name: Upload Artifact (GH Internal)
