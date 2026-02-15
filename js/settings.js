@@ -229,7 +229,14 @@ export function initializeSettings(scrobbler, player, api, ui) {
             const { token, url } = await scrobbler.lastfm.getAuthUrl();
 
             if (window.Neutralino) {
-                await Neutralino.os.open(url);
+                try {
+                    await Neutralino.os.open(url);
+                } catch (e) {
+                    // Fallback if os.open fails
+                    console.error('Neutralino open failed, falling back to window.open', e);
+                    if (!authWindow) authWindow = window.open(url, '_blank');
+                    else authWindow.location.href = url;
+                }
             } else if (authWindow) {
                 authWindow.location.href = url;
             } else {
@@ -271,7 +278,6 @@ export function initializeSettings(scrobbler, player, api, ui) {
                         lastfmToggle.checked = true;
                         updateLastFMUI();
                         lastfmConnectBtn.disabled = false;
-                        alert(`Successfully connected to Last.fm as ${result.username}!`);
                     }
                 } catch {
                     // Still waiting
@@ -396,7 +402,6 @@ export function initializeSettings(scrobbler, player, api, ui) {
                     updateLastFMUI();
                     // Clear password for security
                     if (lastfmPasswordInput) lastfmPasswordInput.value = '';
-                    alert(`Successfully connected to Last.fm as ${result.username}!`);
                 }
             } catch (error) {
                 console.error('Last.fm credential login failed:', error);

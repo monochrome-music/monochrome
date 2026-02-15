@@ -92,52 +92,11 @@
                 // Static Dev Port
                 const DEV_PORT = '5173';
 
-                // NL_PORT and NL_TOKEN are populated by neutralino.js upon init (or pre-init)
-                // We should ensure they are present.
                 let port = window.NL_PORT || sessionStorage.getItem('NL_PORT') || '5050';
-                let token = window.NL_TOKEN || sessionStorage.getItem('NL_TOKEN') || '';
-
-                console.log('[Shell] Neutralino Globals - Port:', port, 'Token:', token ? '***' : 'Missing');
-
                 const iframe = document.getElementById('app-frame');
 
                 const targetPort = isDev ? DEV_PORT : port;
-                let targetUrl = `http://localhost:${targetPort}/?mode=neutralino`;
-
-                // Pass global args to app for bridge links
-                if (port) targetUrl += `&nl_port=${port}`;
-                if (token) targetUrl += `&nl_token=${token}`;
-
-                try {
-                    const envs = await Neutralino.os.getEnvs();
-                    console.log('[Shell] Envs:', envs);
-
-                    // Heuristic for Linux:
-                    // If XDG_SESSION_TYPE or SHELL is present and generic OS isn't 'Windows_NT'
-                    let detectedOS = null;
-                    if (envs.OS)
-                        detectedOS = envs.OS; // Windows usually sets 'OS' env param to 'Windows_NT'
-                    else if (envs.XDG_SESSION_TYPE || envs.SHELL) detectedOS = 'Linux'; // Rough guess
-
-                    if (detectedOS) {
-                        console.log('[Shell] Detected OS (Env):', detectedOS);
-                        targetUrl += `&os=${encodeURIComponent(detectedOS)}`;
-                    } else {
-                        // Fallback: try computer.getOSInfo again with better error logging?
-                        // Or just assume non-Linux if we can't tell.
-                        try {
-                            const osInfo = await Neutralino.computer.getOSInfo();
-                            if (osInfo && osInfo.name) {
-                                console.log('[Shell] Detected OS (API):', osInfo.name);
-                                targetUrl += `&os=${encodeURIComponent(osInfo.name)}`;
-                            }
-                        } catch (err) {
-                            console.log('[Shell] OS Detection failed completley.');
-                        }
-                    }
-                } catch (e) {
-                    console.error('[Shell] Failed to get envs:', e);
-                }
+                const targetUrl = `http://localhost:${targetPort}/?mode=neutralino`;
 
                 if (isDev) {
                     console.log(`[Shell] Dev mode detected via NL_ARGS. Waiting 2s for Vite on port ${targetPort}...`);
@@ -175,12 +134,6 @@
             });
             Neutralino.events.on('windowFocus', () => forwardEvent('windowFocus'));
             Neutralino.events.on('windowBlur', () => forwardEvent('windowBlur'));
-
-            // Forward the external auth success event to the app
-            Neutralino.events.on('externalAuthSuccess', (event) => {
-                console.log('[Shell] Received external auth success', event.detail);
-                forwardEvent('externalAuthSuccess', event.detail);
-            });
 
             // Handle commands from the Iframe (via Bridge)
             window.addEventListener('message', async (event) => {

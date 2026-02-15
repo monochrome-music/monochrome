@@ -22,24 +22,6 @@ export class AuthManager {
     init() {
         if (!auth) return;
 
-        // Persist Neutralino Env params across navigation via sessionStorage
-        window.MonochromeEnv = window.MonochromeEnv || {};
-        const initUrlParams = new URLSearchParams(window.location.search);
-
-        // Only update sessionStorage if params are present in URL (e.g. fresh launch)
-        if (initUrlParams.has('nl_port')) sessionStorage.setItem('NL_PORT', initUrlParams.get('nl_port'));
-        if (initUrlParams.has('nl_token')) sessionStorage.setItem('NL_TOKEN', initUrlParams.get('nl_token'));
-        if (initUrlParams.has('os')) sessionStorage.setItem('NL_OS', initUrlParams.get('os'));
-        if (initUrlParams.has('mode')) sessionStorage.setItem('NL_MODE', initUrlParams.get('mode'));
-
-        // Populate window.MonochromeEnv from sessionStorage
-        window.MonochromeEnv.nl_port = sessionStorage.getItem('NL_PORT');
-        window.MonochromeEnv.nl_token = sessionStorage.getItem('NL_TOKEN');
-        window.MonochromeEnv.os = sessionStorage.getItem('NL_OS');
-
-        console.log('[Auth] Initializing. Current URL:', window.location.href);
-        console.log('[Auth] Persisted Env (SessionStorage):', window.MonochromeEnv);
-
         this.unsubscribe = onAuthStateChanged(auth, (user) => {
             this.user = user;
             this.updateUI(user);
@@ -68,90 +50,6 @@ export class AuthManager {
             return;
         }
 
-        console.log('[Auth] URL Debug:', window.location.href);
-
-        // Check for Neutralino mode
-        // We trust NL_MODE or specific params.
-        const isNeutralino =
-            window.NL_MODE === true ||
-            sessionStorage.getItem('NL_MODE') === 'neutralino' ||
-            (window.Neutralino && typeof window.Neutralino === 'object');
-
-        // Check for OS/Port/Token from URL params OR persisted env
-        const urlParams = new URLSearchParams(window.location.search);
-
-        // Populate from env if not in URL
-        const nlPort = urlParams.get('nl_port') || window.MonochromeEnv?.nl_port;
-        const nlToken = urlParams.get('nl_token') || window.MonochromeEnv?.nl_token;
-
-        console.log('[Auth] Starting Google Sign-In. Mode:', isNeutralino ? 'Neutralino' : 'Web');
-
-        if (isNeutralino) {
-            // Neutralino (Desktop) Mode
-            // We use the External Auth Bridge for ALL desktop platforms (Windows/Linux/Mac)
-            // This avoids issues with internal webview restrictions (e.g. Google blocking embedded webviews)
-
-            if (!nlPort || !nlToken) {
-                alert('Missing Neutralino connection parameters. Cannot launch external auth.');
-                return;
-            }
-
-            console.log('[Auth] Desktop detected. Launching external browser for authentication...');
-
-            // Construct the local URL for the bridge file
-            // Use window.location.origin to ensure we use the correct server (Vite in dev, Neutralino in prod)
-            const bridgeUrl = `${window.location.origin}/auth_bridge.html?port=${nlPort}&token=${nlToken}`;
-
-            try {
-                await window.Neutralino.os.open(bridgeUrl);
-
-                // Show a waiting UI
-                const connectBtn = document.getElementById('firebase-connect-btn');
-                if (connectBtn) {
-                    connectBtn.textContent = 'Waiting for browser...';
-                    connectBtn.disabled = true;
-                }
-
-                // Setup one-time listener for the success event
-                const authHandler = async (detail) => {
-                    // We received a raw ID token (Google ID Token) or similar?
-                    // The bridge sends { uid, email, accessToken }.
-                    // We need to create a credential from it.
-
-                    try {
-                        const { GoogleAuthProvider, signInWithCredential } =
-                            await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');
-                        // Create credential using Google's tokens passed from the bridge
-                        const credential = GoogleAuthProvider.credential(detail.idToken, detail.accessToken);
-
-                        const result = await signInWithCredential(auth, credential);
-                        console.log('[Auth] External Login successful');
-
-                        this.user = result.user;
-                        this.updateUI(result.user);
-                        this.authListeners.forEach((listener) => listener(result.user));
-
-                        // Cleanup
-                        window.Neutralino.events.off('externalAuthSuccess', authHandler);
-                    } catch (e) {
-                        console.error('[Auth] Failed to sign in with external credential:', e);
-                        alert('Failed to complete login from external browser.');
-                        if (connectBtn) {
-                            connectBtn.textContent = 'Connect with Google';
-                            connectBtn.disabled = false;
-                        }
-                    }
-                };
-
-                window.Neutralino.events.on('externalAuthSuccess', authHandler);
-            } catch (e) {
-                console.error('[Auth] Failed to open external browser:', e);
-                alert('Failed to launch external browser.');
-            }
-            return;
-        }
-
-        // Web Mode
         try {
             const result = await signInWithPopup(auth, provider);
 
