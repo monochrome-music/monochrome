@@ -1940,7 +1940,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
-    const sidebarShowAboutToggle = document.getElementById('sidebar-show-about-toggle');
+    const sidebarShowAboutToggle = document.getElementById('sidebar-show-about-bottom-toggle');
     if (sidebarShowAboutToggle) {
         sidebarShowAboutToggle.checked = sidebarSectionSettings.shouldShowAbout();
         sidebarShowAboutToggle.addEventListener('change', (e) => {
@@ -1949,7 +1949,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
-    const sidebarShowDownloadToggle = document.getElementById('sidebar-show-download-toggle');
+    const sidebarShowDownloadToggle = document.getElementById('sidebar-show-download-bottom-toggle');
     if (sidebarShowDownloadToggle) {
         sidebarShowDownloadToggle.checked = sidebarSectionSettings.shouldShowDownload();
         sidebarShowDownloadToggle.addEventListener('change', (e) => {
@@ -1958,7 +1958,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
-    const sidebarShowDiscordToggle = document.getElementById('sidebar-show-discord-toggle');
+    const sidebarShowDiscordToggle = document.getElementById('sidebar-show-discordbtn-toggle');
     if (sidebarShowDiscordToggle) {
         sidebarShowDiscordToggle.checked = sidebarSectionSettings.shouldShowDiscord();
         sidebarShowDiscordToggle.addEventListener('change', (e) => {
@@ -1989,18 +1989,29 @@ export function initializeSettings(scrobbler, player, api, ui) {
             item.draggable = true;
         });
 
-        const getSidebarItems = () =>
-            Array.from(sidebarSettingsGroup.querySelectorAll('.sidebar-setting-item[data-sidebar-id]'));
+        const mainContainer = sidebarSettingsGroup.querySelector('.sidebar-settings-main');
+        const bottomContainer = sidebarSettingsGroup.querySelector('.sidebar-settings-bottom');
+
+        const getSidebarItems = () => [
+            ...(mainContainer?.querySelectorAll('.sidebar-setting-item[data-sidebar-id]') ?? []),
+            ...(bottomContainer?.querySelectorAll('.sidebar-setting-item[data-sidebar-id]') ?? []),
+        ];
 
         const applySidebarSettingsOrder = () => {
             const order = sidebarSectionSettings.getOrder();
-            const itemMap = new Map(getSidebarItems().map((item) => [item.dataset.sidebarId, item]));
+            const bottomIds = sidebarSectionSettings.getBottomNavIds();
+            const mainOrder = order.filter((id) => !bottomIds.includes(id));
+            const bottomOrder = order.filter((id) => bottomIds.includes(id));
+            const allItems = getSidebarItems();
+            const itemMap = new Map(allItems.map((item) => [item.dataset.sidebarId, item]));
 
-            order.forEach((id) => {
+            mainOrder.forEach((id) => {
                 const item = itemMap.get(id);
-                if (item) {
-                    sidebarSettingsGroup.appendChild(item);
-                }
+                if (item && mainContainer) mainContainer.appendChild(item);
+            });
+            bottomOrder.forEach((id) => {
+                const item = itemMap.get(id);
+                if (item && bottomContainer) bottomContainer.appendChild(item);
             });
         };
 
@@ -2032,9 +2043,8 @@ export function initializeSettings(scrobbler, player, api, ui) {
             saveSidebarOrder();
         };
 
-        const getDragAfterElement = (container, y) => {
-            const draggableElements = [...container.querySelectorAll('.sidebar-setting-item:not(.dragging)')];
-
+        const getDragAfterElement = (elements, y) => {
+            const draggableElements = elements.filter((el) => el !== draggedItem);
             return draggableElements.reduce(
                 (closest, child) => {
                     const box = child.getBoundingClientRect();
@@ -2051,12 +2061,15 @@ export function initializeSettings(scrobbler, player, api, ui) {
         const handleDragOver = (e) => {
             e.preventDefault();
             if (!draggedItem) return;
-            const afterElement = getDragAfterElement(sidebarSettingsGroup, e.clientY);
+            const container = draggedItem.parentElement;
+            if (container !== mainContainer && container !== bottomContainer) return;
+            const sectionItems = Array.from(container.querySelectorAll('.sidebar-setting-item[data-sidebar-id]'));
+            const afterElement = getDragAfterElement(sectionItems, e.clientY);
             if (afterElement === draggedItem) return;
             if (afterElement) {
-                sidebarSettingsGroup.insertBefore(draggedItem, afterElement);
+                container.insertBefore(draggedItem, afterElement);
             } else {
-                sidebarSettingsGroup.appendChild(draggedItem);
+                container.appendChild(draggedItem);
             }
         };
 
