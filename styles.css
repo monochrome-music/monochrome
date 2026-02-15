@@ -1820,6 +1820,29 @@ input[type='search']::-webkit-search-cancel-button {
     padding: 0;
 }
 
+.sidebar-settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.sidebar-settings-section-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted-foreground);
+    margin-bottom: 0;
+}
+
+.sidebar-settings-section .sidebar-settings-section-label + .setting-item {
+    margin-top: var(--spacing-sm);
+}
+
+.sidebar-settings-section .setting-item + .setting-item {
+    margin-top: var(--spacing-md);
+}
+
 .setting-item {
     display: flex;
     justify-content: space-between;

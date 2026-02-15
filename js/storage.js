@@ -1501,10 +1501,16 @@ export const sidebarSectionSettings = {
         'sidebar-nav-donate',
         'sidebar-nav-settings',
         'sidebar-nav-account',
-        'sidebar-nav-about',
-        'sidebar-nav-download',
-        'sidebar-nav-discord',
+        'sidebar-nav-about-bottom',
+        'sidebar-nav-download-bottom',
+        'sidebar-nav-discordbtn',
     ],
+
+    getBottomNavIds() {
+        const ul = document.querySelector('.sidebar-nav.bottom ul');
+        if (!ul) return [];
+        return Array.from(ul.children).map((li) => li.id);
+    },
 
     shouldShowHome() {
         try {
@@ -1661,37 +1667,24 @@ export const sidebarSectionSettings = {
     },
 
     applySidebarOrder() {
-        const lists = document.querySelectorAll('.sidebar-nav ul');
-        const primaryList = lists[0];
-        if (!primaryList) return;
-        const secondaryList = lists[1];
+        const mainList = document.querySelector('.sidebar-nav.main ul');
+        const bottomList = document.querySelector('.sidebar-nav.bottom ul');
+        if (!mainList) return;
 
         const order = this.getOrder();
-        const secondaryCount = secondaryList ? secondaryList.children.length : 0;
-        const splitIndex = secondaryCount ? Math.max(0, order.length - secondaryCount) : order.length;
-        const primaryOrder = order.slice(0, splitIndex);
-        const secondaryOrder = order.slice(splitIndex);
+        const bottomIds = this.getBottomNavIds();
+        const mainOrder = order.filter((id) => !bottomIds.includes(id));
+        const bottomOrder = order.filter((id) => bottomIds.includes(id));
 
-        primaryOrder.forEach((id) => {
+        mainOrder.forEach((id) => {
             const item = document.getElementById(id);
-            if (item) {
-                primaryList.appendChild(item);
-            }
+            if (item) mainList.appendChild(item);
         });
 
-        if (secondaryList) {
-            secondaryOrder.forEach((id) => {
+        if (bottomList) {
+            bottomOrder.forEach((id) => {
                 const item = document.getElementById(id);
-                if (item) {
-                    secondaryList.appendChild(item);
-                }
-            });
-        } else {
-            secondaryOrder.forEach((id) => {
-                const item = document.getElementById(id);
-                if (item) {
-                    primaryList.appendChild(item);
-                }
+                if (item) bottomList.appendChild(item);
             });
         }
     },
