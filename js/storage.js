@@ -1415,9 +1415,9 @@ export const sidebarSectionSettings = {
             { id: 'sidebar-nav-donate', check: this.shouldShowDonate() },
             { id: 'sidebar-nav-settings', check: this.shouldShowSettings() },
             { id: 'sidebar-nav-account', check: this.shouldShowAccount() },
-            { id: 'sidebar-nav-about', check: this.shouldShowAbout() },
-            { id: 'sidebar-nav-download', check: this.shouldShowDownload() },
-            { id: 'sidebar-nav-discord', check: this.shouldShowDiscord() },
+            { id: 'sidebar-nav-about-bottom', check: this.shouldShowAbout() },
+            { id: 'sidebar-nav-download-bottom', check: this.shouldShowDownload() },
+            { id: 'sidebar-nav-discordbtn', check: this.shouldShowDiscord() },
         ];
 
         items.forEach(({ id, check }) => {
