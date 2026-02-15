@@ -10,6 +10,7 @@ import {
     SVG_BIN,
     getTrackArtists,
     positionMenu,
+    getShareUrl,
 } from './utils.js';
 import { lastFMStorage, libreFmSettings, waveformSettings } from './storage.js';
 import { showNotification, downloadTrackWithMetadata, downloadAlbumAsZip, downloadPlaylistAsZip } from './downloads.js';
@@ -1159,9 +1160,9 @@ export async function handleTrackAction(
         // Use stored href from card if available, otherwise construct URL
         const contextMenu = document.getElementById('context-menu');
         const storedHref = contextMenu?._contextHref;
-        const url = storedHref
-            ? `${window.location.origin}${storedHref}`
-            : `${window.location.origin}/track/${item.id || item.uuid}`;
+        const url = getShareUrl(
+            storedHref ? storedHref : `/track/${item.id || item.uuid}`
+        );
 
         trackCopyLink(type, item.id || item.uuid);
         navigator.clipboard.writeText(url).then(() => {

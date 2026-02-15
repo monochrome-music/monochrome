@@ -15,7 +15,7 @@ import { LyricsManager, openLyricsPanel, clearLyricsPanelSync } from './lyrics.j
 import { createRouter, updateTabTitle, navigate } from './router.js';
 import { initializePlayerEvents, initializeTrackInteractions, handleTrackAction } from './events.js';
 import { initializeUIInteractions } from './ui-interactions.js';
-import { debounce, SVG_PLAY } from './utils.js';
+import { debounce, SVG_PLAY, getShareUrl } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 import { db } from './db.js';
 import { syncManager } from './accounts/pocketbase.js';
@@ -1050,7 +1050,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (shareBtn) {
                         shareBtn.style.display = playlist.isPublic ? 'flex' : 'none';
                         shareBtn.onclick = () => {
-                            const url = `${window.location.origin}/userplaylist/${playlist.id}`;
+                            const url = getShareUrl(`/userplaylist/${playlist.id}`);
                             navigator.clipboard.writeText(url).then(() => alert('Link copied to clipboard!'));
                         };
                     }
@@ -1091,7 +1091,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (shareBtn) {
                         shareBtn.style.display = playlist.isPublic ? 'flex' : 'none';
                         shareBtn.onclick = () => {
-                            const url = `${window.location.origin}/userplaylist/${playlist.id}`;
+                            const url = getShareUrl(`/userplaylist/${playlist.id}`);
                             navigator.clipboard.writeText(url).then(() => alert('Link copied to clipboard!'));
                         };
                     }

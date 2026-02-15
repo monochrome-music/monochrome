@@ -18,6 +18,7 @@ import {
     calculateTotalDuration,
     formatDuration,
     escapeHtml,
+    getShareUrl,
 } from './utils.js';
 import { openLyricsPanel } from './lyrics.js';
 import {
@@ -3324,7 +3325,7 @@ export class UIRenderer {
                 '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg><span>Share</span>';
 
             shareBtn.onclick = () => {
-                const url = `${window.location.origin}/userplaylist/${playlist.id || playlist.uuid}`;
+                const url = getShareUrl(`/userplaylist/${playlist.id || playlist.uuid}`);
                 navigator.clipboard.writeText(url).then(() => alert('Link copied to clipboard!'));
             };
             fragment.appendChild(shareBtn);
@@ -3660,7 +3661,7 @@ export class UIRenderer {
             };
 
             shareBtn.onclick = () => {
-                const url = `${window.location.origin}/track/${track.id}`;
+                const url = getShareUrl(`/track/${track.id}`);
                 navigator.clipboard.writeText(url).then(() => {
                     showNotification('Link copied to clipboard!');
                 });

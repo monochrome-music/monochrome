@@ -489,3 +489,9 @@ export function positionMenu(menu, x, y, anchorRect = null) {
     menu.style.left = `${left}px`;
     menu.style.visibility = 'visible';
 }
+
+export const getShareUrl = (path) => {
+    const baseUrl = window.NL_MODE ? 'https://monochrome.tf' : window.location.origin;
+    const safePath = path.startsWith('/') ? path : `/${path}`;
+    return `${baseUrl}${safePath}`;
+};
