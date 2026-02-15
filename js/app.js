@@ -23,6 +23,39 @@ import { registerSW } from 'virtual:pwa-register';
 import './smooth-scrolling.js';
 
 import { initTracker } from './tracker.js';
+import {
+    initAnalytics,
+    trackNavigate,
+    trackSidebarNavigation,
+    trackCreatePlaylist,
+    trackEditPlaylist,
+    trackDeletePlaylist,
+    trackCreateFolder,
+    trackDeleteFolder,
+    trackImportCSV,
+    trackImportJSPF,
+    trackSelectLocalFolder,
+    trackChangeLocalFolder,
+    trackPlayAlbum,
+    trackShuffleLikedTracks,
+    trackDownloadLikedTracks,
+    trackDownloadDiscography,
+    trackOpenModal,
+    trackCloseModal,
+    trackClearHistory,
+    trackClearRecent,
+    trackKeyboardShortcut,
+    trackPwaUpdate,
+    trackDismissUpdate,
+    trackOpenFullscreenCover,
+    trackCloseFullscreenCover,
+    trackToggleLyricsFullscreen,
+    trackPlayPlaylist,
+    trackPlayArtistRadio,
+    trackOpenLyrics,
+    trackCloseLyrics,
+    trackContextMenuAction,
+} from './analytics.js';
 
 // Lazy-loaded modules
 let settingsModule = null;
@@ -130,52 +163,66 @@ function initializeKeyboardShortcuts(player, audioPlayer) {
         switch (e.key.toLowerCase()) {
             case ' ':
                 e.preventDefault();
+                trackKeyboardShortcut('Space');
                 player.handlePlayPause();
                 break;
             case 'arrowright':
                 if (e.shiftKey) {
+                    trackKeyboardShortcut('Shift+Right');
                     player.playNext();
                 } else {
+                    trackKeyboardShortcut('Right');
                     audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + 10);
                 }
                 break;
             case 'arrowleft':
                 if (e.shiftKey) {
+                    trackKeyboardShortcut('Shift+Left');
                     player.playPrev();
                 } else {
+                    trackKeyboardShortcut('Left');
                     audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 10);
                 }
                 break;
             case 'arrowup':
                 e.preventDefault();
+                trackKeyboardShortcut('Up');
                 player.setVolume(player.userVolume + 0.1);
                 break;
             case 'arrowdown':
                 e.preventDefault();
+                trackKeyboardShortcut('Down');
                 player.setVolume(player.userVolume - 0.1);
                 break;
             case 'm':
+                trackKeyboardShortcut('M');
                 audioPlayer.muted = !audioPlayer.muted;
                 break;
             case 's':
+                trackKeyboardShortcut('S');
                 document.getElementById('shuffle-btn')?.click();
                 break;
             case 'r':
+                trackKeyboardShortcut('R');
                 document.getElementById('repeat-btn')?.click();
                 break;
             case 'q':
+                trackKeyboardShortcut('Q');
                 document.getElementById('queue-btn')?.click();
                 break;
             case '/':
                 e.preventDefault();
+                trackKeyboardShortcut('/');
                 document.getElementById('search-input')?.focus();
                 break;
             case 'escape':
+                trackKeyboardShortcut('Escape');
                 document.getElementById('search-input')?.blur();
                 sidePanelManager.close();
                 clearLyricsPanelSync(audioPlayer, sidePanelManager.panel);
                 break;
             case 'l':
+                trackKeyboardShortcut('L');
                 document.querySelector('.now-playing-bar .cover')?.click();
                 break;
         }
@@ -230,6 +277,9 @@ async function disablePwaForAuthGate() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize analytics
+    initAnalytics();
+
     const api = new MusicAPI(apiSettings);
     const audioPlayer = document.getElementById('audio-player');
 
@@ -313,6 +363,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     const { initializeSettings } = await loadSettingsModule();
     initializeSettings(scrobbler, player, api, ui);
 
+    // Track sidebar navigation clicks
+    document.querySelectorAll('.sidebar-nav a').forEach((link) => {
+        link.addEventListener('click', (e) => {
+            const href = link.getAttribute('href');
+            if (href && !href.startsWith('http')) {
+                const item = link.querySelector('span')?.textContent || href;
+                trackSidebarNavigation(item);
+            }
+        });
+    });
+
     initializePlayerEvents(player, audioPlayer, scrobbler, ui);
     initializeTrackInteractions(
         player,
@@ -338,6 +399,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         const mode = nowPlayingSettings.getMode();
+
+        if (mode === 'lyrics') {
+            const isActive = sidePanelManager.isActive('lyrics');
+
+            if (isActive) {
+                trackCloseLyrics(player.currentTrack);
+            } else {
+                trackOpenLyrics(player.currentTrack);
+            }
+        } else if (mode === 'cover') {
+            const overlay = document.getElementById('fullscreen-cover-overlay');
+            if (overlay && overlay.style.display === 'flex') {
+                trackCloseFullscreenCover();
+            } else {
+                trackOpenFullscreenCover(player.currentTrack);
+            }
+        }
 
         if (mode === 'lyrics') {
             const isActive = sidePanelManager.isActive('lyrics');
@@ -375,6 +453,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.getElementById('close-fullscreen-cover-btn')?.addEventListener('click', () => {
+        trackCloseFullscreenCover();
         if (window.location.hash === '#fullscreen') {
             window.history.back();
         } else {
@@ -401,6 +480,32 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         // Save sidebar state to localStorage
         sidebarSettings.setCollapsed(isCollapsed);
+    });
+
+    // Import tab switching in playlist modal
+    document.querySelectorAll('.import-tab').forEach((tab) => {
+        tab.addEventListener('click', () => {
+            const importType = tab.dataset.importType;
+
+            // Update tab styles
+            document.querySelectorAll('.import-tab').forEach((t) => {
+                t.classList.remove('active');
+                t.style.opacity = '0.7';
+            });
+            tab.classList.add('active');
+            tab.style.opacity = '1';
+
+            // Show/hide panels
+            document.getElementById('csv-import-panel').style.display = importType === 'csv' ? 'block' : 'none';
+            document.getElementById('jspf-import-panel').style.display = importType === 'jspf' ? 'block' : 'none';
+
+            // Clear the other file input
+            if (importType === 'csv') {
+                document.getElementById('jspf-file-input').value = '';
+            } else {
+                document.getElementById('csv-file-input').value = '';
+            }
+        });
     });
 
     document.getElementById('nav-back')?.addEventListener('click', () => {
@@ -622,14 +727,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (e.target.closest('#create-playlist-btn')) {
+            trackOpenModal('Create Playlist');
             const modal = document.getElementById('playlist-modal');
             document.getElementById('playlist-modal-title').textContent = 'Create Playlist';
             document.getElementById('playlist-name-input').value = '';
             document.getElementById('playlist-cover-input').value = '';
             document.getElementById('playlist-description-input').value = '';
             modal.dataset.editingId = '';
-            document.getElementById('csv-import-section').style.display = 'block';
+            document.getElementById('import-section').style.display = 'block';
             document.getElementById('csv-file-input').value = '';
+            document.getElementById('jspf-file-input').value = '';
+
+            // Reset import tabs to CSV
+            document.querySelectorAll('.import-tab').forEach((tab) => {
+                tab.classList.toggle('active', tab.dataset.importType === 'csv');
+            });
+            document.getElementById('csv-import-panel').style.display = 'block';
+            document.getElementById('jspf-import-panel').style.display = 'none';
 
             // Reset Public Toggle
             const publicToggle = document.getElementById('playlist-public-toggle');
@@ -642,6 +756,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (e.target.closest('#create-folder-btn')) {
+            trackOpenModal('Create Folder');
             const modal = document.getElementById('folder-modal');
             document.getElementById('folder-name-input').value = '';
             document.getElementById('folder-cover-input').value = '';
@@ -655,9 +770,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (name) {
                 const folder = await db.createFolder(name, cover);
+                trackCreateFolder(folder);
                 await syncManager.syncUserFolder(folder, 'create');
                 ui.renderLibraryPage();
                 document.getElementById('folder-modal').classList.remove('active');
+                trackCloseModal('Create Folder');
             }
         }
 
@@ -676,8 +793,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (e.target.closest('#playlist-modal-save')) {
-            const name = document.getElementById('playlist-name-input').value.trim();
-            const description = document.getElementById('playlist-description-input').value.trim();
+            let name = document.getElementById('playlist-name-input').value.trim();
+            let description = document.getElementById('playlist-description-input').value.trim();
             const isPublic = document.getElementById('playlist-public-toggle')?.checked;
 
             if (name) {
@@ -726,10 +843,100 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } else {
                     // Create
                     const csvFileInput = document.getElementById('csv-file-input');
+                    const jspfFileInput = document.getElementById('jspf-file-input');
                     let tracks = [];
+                    let importSource = 'manual';
+                    let cover = document.getElementById('playlist-cover-input').value.trim();
 
-                    if (csvFileInput.files.length > 0) {
+                    if (jspfFileInput.files.length > 0) {
+                        // Import from JSPF
+                        importSource = 'jspf_import';
+                        const file = jspfFileInput.files[0];
+                        const progressElement = document.getElementById('csv-import-progress');
+                        const progressFill = document.getElementById('csv-progress-fill');
+                        const progressCurrent = document.getElementById('csv-progress-current');
+                        const progressTotal = document.getElementById('csv-progress-total');
+                        const currentTrackElement = progressElement.querySelector('.current-track');
+                        const currentArtistElement = progressElement.querySelector('.current-artist');
+
+                        try {
+                            // Show progress bar
+                            progressElement.style.display = 'block';
+                            progressFill.style.width = '0%';
+                            progressCurrent.textContent = '0';
+                            currentTrackElement.textContent = 'Reading JSPF file...';
+                            if (currentArtistElement) currentArtistElement.textContent = '';
+
+                            const jspfText = await file.text();
+
+                            const result = await parseJSPF(jspfText, api, (progress) => {
+                                const percentage = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
+                                progressFill.style.width = `${Math.min(percentage, 100)}%`;
+                                progressCurrent.textContent = progress.current.toString();
+                                progressTotal.textContent = progress.total.toString();
+                                currentTrackElement.textContent = progress.currentTrack;
+                                if (currentArtistElement)
+                                    currentArtistElement.textContent = progress.currentArtist || '';
+                            });
+
+                            tracks = result.tracks;
+                            const missingTracks = result.missingTracks;
+
+                            if (tracks.length === 0) {
+                                alert('No valid tracks found in the JSPF file! Please check the format.');
+                                progressElement.style.display = 'none';
+                                return;
+                            }
+                            console.log(`Imported ${tracks.length} tracks from JSPF`);
+
+                            // Auto-fill playlist metadata from JSPF if not provided
+                            const jspfData = result.jspfData;
+                            if (jspfData && jspfData.playlist) {
+                                const playlist = jspfData.playlist;
+                                if (!name && playlist.title) {
+                                    name = playlist.title;
+                                }
+                                if (!description && playlist.annotation) {
+                                    description = playlist.annotation;
+                                }
+                                if (!cover && playlist.image) {
+                                    cover = playlist.image;
+                                }
+                            }
+
+                            // Track JSPF import
+                            const jspfPlaylist = result.jspfData?.playlist;
+                            const jspfCreator =
+                                jspfPlaylist?.creator ||
+                                jspfPlaylist?.extension?.['https://musicbrainz.org/doc/jspf#playlist']?.creator ||
+                                'unknown';
+                            trackImportJSPF(
+                                name || jspfPlaylist?.title || 'Untitled',
+                                tracks.length,
+                                missingTracks.length,
+                                jspfCreator
+                            );
+
+                            // if theres missing songs, warn the user
+                            if (missingTracks.length > 0) {
+                                setTimeout(() => {
+                                    showMissingTracksNotification(missingTracks);
+                                }, 500);
+                            }
+                        } catch (error) {
+                            console.error('Failed to parse JSPF!', error);
+                            alert('Failed to parse JSPF file! ' + error.message);
+                            progressElement.style.display = 'none';
+                            return;
+                        } finally {
+                            // Hide progress bar
+                            setTimeout(() => {
+                                progressElement.style.display = 'none';
+                            }, 1000);
+                        }
+                    } else if (csvFileInput.files.length > 0) {
                         // Import from CSV
+                        importSource = 'csv_import';
                         const file = csvFileInput.files[0];
                         const progressElement = document.getElementById('csv-import-progress');
                         const progressFill = document.getElementById('csv-progress-fill');
@@ -789,8 +996,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
                     }
 
-                    const cover = document.getElementById('playlist-cover-input').value.trim();
-
                     // Check for pending tracks (from Add to Playlist -> New Playlist)
                     const modal = document.getElementById('playlist-modal');
                     if (modal._pendingTracks && Array.isArray(modal._pendingTracks)) {
@@ -805,8 +1010,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         // Update DB again with isPublic flag
                         await db.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
                         await syncManager.syncUserPlaylist(playlist, 'create');
+                        trackCreatePlaylist(playlist, importSource);
                         ui.renderLibraryPage();
                         modal.classList.remove('active');
+                        trackCloseModal('Create Playlist');
                     });
                 }
             }
@@ -844,7 +1051,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
 
                     modal.dataset.editingId = playlistId;
-                    document.getElementById('csv-import-section').style.display = 'none';
+                    document.getElementById('import-section').style.display = 'none';
                     modal.classList.add('active');
                     document.getElementById('playlist-name-input').focus();
                 }
@@ -885,7 +1092,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
 
                     modal.dataset.editingId = playlistId;
-                    document.getElementById('csv-import-section').style.display = 'none';
+                    document.getElementById('import-section').style.display = 'none';
                     modal.classList.add('active');
                     document.getElementById('playlist-name-input').focus();
                 }
@@ -1048,7 +1255,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         document.getElementById('playlist-name-input').value = '';
                         document.getElementById('playlist-cover-input').value = '';
                         createModal.dataset.editingId = '';
-                        document.getElementById('csv-import-section').style.display = 'none'; // Hide CSV for simple add
+                        document.getElementById('import-section').style.display = 'none'; // Hide import for simple add
 
                         // Pass tracks
                         createModal._pendingTracks = tracks;
@@ -1228,6 +1435,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Local Files Logic lollll
         if (e.target.closest('#select-local-folder-btn') || e.target.closest('#change-local-folder-btn')) {
+            const isChange = e.target.closest('#change-local-folder-btn') !== null;
             try {
                 const handle = await window.showDirectoryPicker({
                     id: 'music-folder',
@@ -1235,6 +1443,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
 
                 await db.saveSetting('local_folder_handle', handle);
+                if (isChange) {
+                    trackChangeLocalFolder();
+                }
 
                 const btn = document.getElementById('select-local-folder-btn');
                 const btnText = document.getElementById('select-local-folder-text');
@@ -1279,6 +1490,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
 
                 window.localFilesCache = tracks;
+                trackSelectLocalFolder(tracks.length);
                 ui.renderLibraryPage();
             } catch (err) {
                 if (err.name !== 'AbortError') {
@@ -1411,10 +1623,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             onNeedRefresh() {
                 if (pwaUpdateSettings.isAutoUpdateEnabled()) {
                     // Auto-update: immediately activate the new service worker
+                    trackPwaUpdate();
                     updateSW(true);
                 } else {
                     // Show notification with Update button and dismiss option
-                    showUpdateNotification(() => updateSW(true));
+                    showUpdateNotification(() => {
+                        trackPwaUpdate();
+                        updateSW(true);
+                    });
                 }
             },
             onOfflineReady() {
@@ -1538,6 +1754,7 @@ function showUpdateNotification(updateCallback) {
     });
 
     document.getElementById('dismiss-update-btn').addEventListener('click', () => {
+        trackDismissUpdate();
         notification.remove();
     });
 }
@@ -1858,6 +2075,165 @@ async function parseCSV(csvText, api, onProgress) {
     }
 
     return { tracks, missingTracks };
+}
+
+async function parseJSPF(jspfText, api, onProgress) {
+    try {
+        const jspfData = JSON.parse(jspfText);
+
+        if (!jspfData.playlist || !Array.isArray(jspfData.playlist.track)) {
+            throw new Error('Invalid JSPF format: missing playlist or track array');
+        }
+
+        const playlist = jspfData.playlist;
+        const tracks = [];
+        const missingTracks = [];
+        const totalTracks = playlist.track.length;
+
+        // Helper: Normalize strings for fuzzy matching
+        const normalize = (str) =>
+            str
+                ?.normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .replace(/[^\w\s]/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim() || '';
+
+        // Helper: Check if result matches our criteria
+        const isValidMatch = (track, title, artists, album) => {
+            if (!track) return false;
+
+            const trackTitle = normalize(track.title || '');
+            const trackArtists = (track.artists || []).map((a) => normalize(a.name || '')).join(' ');
+            const trackAlbum = normalize(track.album?.name || '');
+
+            const queryTitle = normalize(title);
+            const queryArtists = normalize(artists);
+            const queryAlbum = normalize(album || '');
+
+            // Must match title (exact or substring match)
+            const titleMatch =
+                trackTitle === queryTitle || trackTitle.includes(queryTitle) || queryTitle.includes(trackTitle);
+            if (!titleMatch) return false;
+
+            // Must match at least one artist
+            const artistMatch =
+                trackArtists.includes(queryArtists.split(' ')[0]) || queryArtists.includes(trackArtists.split(' ')[0]);
+            if (!artistMatch) return false;
+
+            // If album provided, prefer matching album but not strict
+            if (queryAlbum) {
+                const albumMatch =
+                    trackAlbum === queryAlbum || trackAlbum.includes(queryAlbum) || queryAlbum.includes(trackAlbum);
+                return albumMatch;
+            }
+
+            return true;
+        };
+
+        for (let i = 0; i < playlist.track.length; i++) {
+            const jspfTrack = playlist.track[i];
+            const trackTitle = jspfTrack.title;
+            const trackCreator = jspfTrack.creator;
+            const trackAlbum = jspfTrack.album;
+
+            // Support ListenBrainz extension data
+            const lbExtension = jspfTrack.extension?.['https://musicbrainz.org/doc/jspf#track'];
+            const mbRecordingId = lbExtension?.artist_identifiers?.[0]?.split('/').pop();
+
+            if (onProgress) {
+                onProgress({
+                    current: i,
+                    total: totalTracks,
+                    currentTrack: trackTitle || 'Unknown track',
+                    currentArtist: trackCreator || '',
+                });
+            }
+
+            // Try to find track
+            let foundTrack = null;
+
+            if (trackTitle && trackCreator) {
+                // Add delay to prevent rate limiting
+                await new Promise((resolve) => setTimeout(resolve, 300));
+
+                try {
+                    // 1. Search with title + artist + album
+                    let searchQuery = `${trackTitle} ${trackCreator}`;
+                    if (trackAlbum) searchQuery += ` ${trackAlbum}`;
+                    const searchResults = await api.searchTracks(searchQuery);
+
+                    if (searchResults.items && searchResults.items.length > 0) {
+                        for (const result of searchResults.items) {
+                            if (isValidMatch(result, trackTitle, trackCreator, trackAlbum)) {
+                                foundTrack = result;
+                                break;
+                            }
+                        }
+                    }
+
+                    // 2. Retry with main artist only
+                    if (!foundTrack) {
+                        const mainArtist = trackCreator.split(',')[0].trim();
+                        if (mainArtist && mainArtist !== trackCreator) {
+                            const searchResults = await api.searchTracks(`${trackTitle} ${mainArtist}`);
+                            if (searchResults.items) {
+                                for (const result of searchResults.items) {
+                                    if (isValidMatch(result, trackTitle, mainArtist, trackAlbum)) {
+                                        foundTrack = result;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 3. Try just title + artist, ignoring album
+                    if (!foundTrack) {
+                        const searchResults = await api.searchTracks(`${trackTitle} ${trackCreator}`);
+                        if (searchResults.items) {
+                            for (const result of searchResults.items) {
+                                if (isValidMatch(result, trackTitle, trackCreator, null)) {
+                                    foundTrack = result;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (foundTrack) {
+                        tracks.push(foundTrack);
+                        console.log(`✓ "${trackTitle}" by ${trackCreator}`);
+                    } else {
+                        console.warn(`✗ Track not found: "${trackTitle}" by ${trackCreator}`);
+                        missingTracks.push(
+                            `${trackTitle} - ${trackCreator}${trackAlbum ? ' (' + trackAlbum + ')' : ''}`
+                        );
+                    }
+                } catch (error) {
+                    console.error(`Error searching for track "${trackTitle}":`, error);
+                    missingTracks.push(`${trackTitle} - ${trackCreator}${trackAlbum ? ' (' + trackAlbum + ')' : ''}`);
+                }
+            } else {
+                missingTracks.push(`Invalid track entry at position ${i + 1}`);
+            }
+        }
+
+        // Final progress update
+        if (onProgress) {
+            onProgress({
+                current: totalTracks,
+                total: totalTracks,
+                currentTrack: 'Import complete',
+            });
+        }
+
+        return { tracks, missingTracks, jspfData };
+    } catch (error) {
+        console.error('JSPF parsing error:', error);
+        throw new Error('Failed to parse JSPF file: ' + error.message);
+    }
 }
 
 function showDiscographyDownloadModal(artist, api, quality, lyricsManager, triggerBtn) {

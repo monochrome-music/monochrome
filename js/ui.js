@@ -45,6 +45,13 @@ import {
     createProjectCardHTML,
     createTrackFromSong,
 } from './tracker.js';
+import {
+    trackSearch,
+    trackSearchTabChange,
+    trackClearSearchHistory,
+    trackClickSearchHistory,
+    trackChangeSort,
+} from './analytics.js';
 
 fontSettings.applyFont();
 fontSettings.applyFontSize();
@@ -2012,6 +2019,10 @@ export class UIRenderer {
                 finalAlbums = Array.from(albumMap.values());
             }
 
+            // Track search with results
+            const totalResults = finalTracks.length + finalArtists.length + finalAlbums.length + finalPlaylists.length;
+            trackSearch(query, totalResults);
+
             if (finalTracks.length) {
                 this.renderListWithTracks(tracksContainer, finalTracks, true);
             } else {
@@ -3275,6 +3286,7 @@ export class UIRenderer {
                 const handleSort = (ev) => {
                     const li = ev.target.closest('li');
                     if (li && li.dataset.sort) {
+                        trackChangeSort(li.dataset.sort);
                         onSort(li.dataset.sort);
                         closeMenu();
                     }

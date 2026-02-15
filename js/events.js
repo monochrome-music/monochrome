@@ -19,6 +19,45 @@ import { db } from './db.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { waveformGenerator } from './waveform.js';
 import { audioContextManager } from './audio-context.js';
+import {
+    trackPlayTrack,
+    trackPauseTrack,
+    trackSkipTrack,
+    trackToggleShuffle,
+    trackToggleRepeat,
+    trackToggleMute,
+    trackSeek,
+    trackAddToQueue,
+    trackPlayNext,
+    trackClearQueue,
+    trackLikeTrack,
+    trackUnlikeTrack,
+    trackLikeAlbum,
+    trackUnlikeAlbum,
+    trackLikeArtist,
+    trackUnlikeArtist,
+    trackLikePlaylist,
+    trackUnlikePlaylist,
+    trackDownloadTrack,
+    trackContextMenuAction,
+    trackBlockTrack,
+    trackUnblockTrack,
+    trackBlockAlbum,
+    trackUnblockAlbum,
+    trackBlockArtist,
+    trackUnblockArtist,
+    trackCopyLink,
+    trackOpenInNewTab,
+    trackSetSleepTimer,
+    trackCancelSleepTimer,
+    trackOpenSidePanel,
+    trackCloseSidePanel,
+    trackOpenQueue,
+    trackCloseQueue,
+    trackStartMix,
+    trackChangeSort,
+    trackToggleWaveform,
+} from './analytics.js';
 
 let currentTrackIdForWaveform = null;
 
@@ -61,6 +100,9 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
         audioContextManager.resume();
 
         if (player.currentTrack) {
+            // Track play event
+            trackPlayTrack(player.currentTrack);
+
             // Scrobble
             if (scrobbler.isAuthenticated()) {
                 scrobbler.updateNowPlaying(player.currentTrack);
@@ -81,6 +123,9 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
     });
 
     audioPlayer.addEventListener('pause', () => {
+        if (player.currentTrack) {
+            trackPauseTrack(player.currentTrack);
+        }
         playPauseBtn.innerHTML = SVG_PLAY;
         player.updateMediaSessionPlaybackState();
         player.updateMediaSessionPositionState();
@@ -97,6 +142,9 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
             const currentTimeEl = document.getElementById('current-time');
             progressFill.style.width = `${(currentTime / duration) * 100}%`;
             currentTimeEl.textContent = formatTime(currentTime);
+
+            // Track seek milestones
+            trackSeek(currentTime, duration);
 
             // Log to history after 10 seconds of playback
             if (currentTime >= 10 && player.currentTrack && player.currentTrack.id !== historyLoggedTrackId) {
@@ -173,17 +221,25 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
     });
 
     playPauseBtn.addEventListener('click', () => player.handlePlayPause());
-    nextBtn.addEventListener('click', () => player.playNext());
-    prevBtn.addEventListener('click', () => player.playPrev());
+    nextBtn.addEventListener('click', () => {
+        trackSkipTrack(player.currentTrack, 'next');
+        player.playNext();
+    });
+    prevBtn.addEventListener('click', () => {
+        trackSkipTrack(player.currentTrack, 'previous');
+        player.playPrev();
+    });
 
     shuffleBtn.addEventListener('click', () => {
         player.toggleShuffle();
+        trackToggleShuffle(player.shuffleActive);
         shuffleBtn.classList.toggle('active', player.shuffleActive);
         if (window.renderQueueFunction) window.renderQueueFunction();
     });
 
     repeatBtn.addEventListener('click', () => {
         const mode = player.toggleRepeat();
+        trackToggleRepeat(mode === REPEAT_MODE.OFF ? 'off' : mode === REPEAT_MODE.ALL ? 'all' : 'one');
         repeatBtn.classList.toggle('active', mode !== REPEAT_MODE.OFF);
         repeatBtn.classList.toggle('repeat-one', mode === REPEAT_MODE.ONE);
         repeatBtn.title =
@@ -195,6 +251,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
         sleepTimerBtnDesktop.addEventListener('click', () => {
             if (player.isSleepTimerActive()) {
                 player.clearSleepTimer();
+                trackCancelSleepTimer();
                 showNotification('Sleep timer cancelled');
             } else {
                 showSleepTimerModal(player);
@@ -207,6 +264,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
         sleepTimerBtnMobile.addEventListener('click', () => {
             if (player.isSleepTimerActive()) {
                 player.clearSleepTimer();
+                trackCancelSleepTimer();
                 showNotification('Sleep timer cancelled');
             } else {
                 showSleepTimerModal(player);
@@ -858,10 +916,12 @@ export async function handleTrackAction(
     }
 
     if (action === 'add-to-queue') {
+        trackAddToQueue(item, 'end');
         player.addToQueue(item);
         if (window.renderQueueFunction) window.renderQueueFunction();
         showNotification(`Added to queue: ${item.title}`);
     } else if (action === 'play-next') {
+        trackPlayNext(item);
         player.addNextToQueue(item);
         if (window.renderQueueFunction) window.renderQueueFunction();
         showNotification(`Playing next: ${item.title}`);
@@ -870,16 +930,31 @@ export async function handleTrackAction(
         player.playAtIndex(0);
         showNotification(`Playing track: ${item.title}`);
     } else if (action === 'start-mix') {
+        trackStartMix(type, item);
         if (item.mixes?.TRACK_MIX) {
             navigate(`/mix/${item.mixes.TRACK_MIX}`);
         } else {
             showNotification('No mix available for this track');
         }
     } else if (action === 'download') {
+        trackDownloadTrack(item, downloadQualitySettings.getQuality());
         await downloadTrackWithMetadata(item, downloadQualitySettings.getQuality(), api, lyricsManager);
     } else if (action === 'toggle-like') {
         const added = await db.toggleFavorite(type, item);
         syncManager.syncLibraryItem(type, item, added);
+
+        // Track like/unlike
+        if (added) {
+            if (type === 'track') trackLikeTrack(item);
+            else if (type === 'album') trackLikeAlbum(item);
+            else if (type === 'artist') trackLikeArtist(item);
+            else if (type === 'playlist' || type === 'user-playlist') trackLikePlaylist(item);
+        } else {
+            if (type === 'track') trackUnlikeTrack(item);
+            else if (type === 'album') trackUnlikeAlbum(item);
+            else if (type === 'artist') trackUnlikeArtist(item);
+            else if (type === 'playlist' || type === 'user-playlist') trackUnlikePlaylist(item);
+        }
 
         if (added && type === 'track' && scrobbler) {
             if (lastFMStorage.isEnabled() && lastFMStorage.shouldLoveOnLike()) {
@@ -1088,6 +1163,7 @@ export async function handleTrackAction(
             ? `${window.location.origin}${storedHref}`
             : `${window.location.origin}/track/${item.id || item.uuid}`;
 
+        trackCopyLink(type, item.id || item.uuid);
         navigator.clipboard.writeText(url).then(() => {
             showNotification('Link copied to clipboard!');
         });
@@ -1099,6 +1175,7 @@ export async function handleTrackAction(
             ? `${window.location.origin}${storedHref}`
             : `${window.location.origin}/track/${item.id || item.uuid}`;
 
+        trackOpenInNewTab(type, item.id || item.uuid);
         window.open(url, '_blank');
     } else if (action === 'track-info') {
         // Show detailed track info modal
@@ -1268,9 +1345,11 @@ export async function handleTrackAction(
         const { contentBlockingSettings } = await import('./storage.js');
         if (contentBlockingSettings.isTrackBlocked(item.id)) {
             contentBlockingSettings.unblockTrack(item.id);
+            trackUnblockTrack(item);
             showNotification(`Unblocked track: ${item.title}`);
         } else {
             contentBlockingSettings.blockTrack(item);
+            trackBlockTrack(item);
             showNotification(`Blocked track: ${item.title}`);
         }
     } else if (action === 'block-album') {
@@ -1284,15 +1363,15 @@ export async function handleTrackAction(
             return;
         }
 
+        const albumObj = { id: albumId, title: albumTitle, artist: albumArtist };
+
         if (contentBlockingSettings.isAlbumBlocked(albumId)) {
             contentBlockingSettings.unblockAlbum(albumId);
+            trackUnblockAlbum(albumObj);
             showNotification(`Unblocked album: ${albumTitle || 'Unknown Album'}`);
         } else {
-            contentBlockingSettings.blockAlbum({
-                id: albumId,
-                title: albumTitle,
-                artist: albumArtist,
-            });
+            contentBlockingSettings.blockAlbum(albumObj);
+            trackBlockAlbum(albumObj);
             showNotification(`Blocked album: ${albumTitle || 'Unknown Album'}`);
         }
     } else if (action === 'block-artist') {
@@ -1305,14 +1384,15 @@ export async function handleTrackAction(
             return;
         }
 
+        const artistObj = { id: artistId, name: artistName };
+
         if (contentBlockingSettings.isArtistBlocked(artistId)) {
             contentBlockingSettings.unblockArtist(artistId);
+            trackUnblockArtist(artistObj);
             showNotification(`Unblocked artist: ${artistName || 'Unknown Artist'}`);
         } else {
-            contentBlockingSettings.blockArtist({
-                id: artistId,
-                name: artistName,
-            });
+            contentBlockingSettings.blockArtist(artistObj);
+            trackBlockArtist(artistObj);
             showNotification(`Blocked artist: ${artistName || 'Unknown Artist'}`);
         }
     }
@@ -1630,6 +1710,8 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
         const track = contextMenu._contextTrack || contextTrack;
         const type = contextMenu._contextType || 'track';
         if (action && track) {
+            // Track context menu action
+            trackContextMenuAction(action, type, track);
             await handleTrackAction(action, track, player, api, lyricsManager, type, ui, scrobbler);
         }
         contextMenu.style.display = 'none';
@@ -1784,6 +1866,7 @@ function showSleepTimerModal(player) {
 
             if (minutes) {
                 player.setSleepTimer(minutes);
+                trackSetSleepTimer(minutes);
                 showNotification(`Sleep timer set for ${minutes} minute${minutes === 1 ? '' : 's'}`);
                 closeModal();
             }
