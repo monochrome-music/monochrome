@@ -2026,7 +2026,7 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 .font-size-slider {
-    -webkit-appearance: none;
+    appearance: none;
     width: 150px;
     height: 6px;
     background: var(--border);
@@ -2035,7 +2035,7 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 .font-size-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
+    appearance: none;
     width: 18px;
     height: 18px;
     background: var(--primary);
@@ -2087,12 +2087,12 @@ input[type='search']::-webkit-search-cancel-button {
 /* Hide number input arrows */
 .font-size-number-input::-webkit-outer-spin-button,
 .font-size-number-input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
+    appearance: none;
     margin: 0;
 }
 
 .font-size-number-input[type='number'] {
-    -moz-appearance: textfield;
+    appearance: textfield;
 }
 
 .font-size-unit {
@@ -5923,12 +5923,12 @@ textarea:focus {
 /* Hide number input arrows */
 .eq-band-count-input::-webkit-outer-spin-button,
 .eq-band-count-input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
+    appearance: none;
     margin: 0;
 }
 
 .eq-band-count-input[type='number'] {
-    -moz-appearance: textfield;
+    appearance: textfield;
 }
 
 #equalizer-reset-btn {
@@ -6068,12 +6068,12 @@ textarea:focus {
 /* Hide number input arrows */
 .eq-range-input::-webkit-outer-spin-button,
 .eq-range-input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
+    appearance: none;
     margin: 0;
 }
 
 .eq-range-input[type='number'] {
-    -moz-appearance: textfield;
+    appearance: textfield;
 }
 
 #apply-eq-range-btn {
@@ -6134,12 +6134,12 @@ textarea:focus {
 /* Hide number input arrows */
 .eq-freq-input::-webkit-outer-spin-button,
 .eq-freq-input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
+    appearance: none;
     margin: 0;
 }
 
 .eq-freq-input[type='number'] {
-    -moz-appearance: textfield;
+    appearance: textfield;
 }
 
 #apply-eq-freq-btn {
