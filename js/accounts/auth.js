@@ -2,6 +2,8 @@
 import { auth, provider } from './config.js';
 import {
     signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult,
     signOut as firebaseSignOut,
     onAuthStateChanged,
     signInWithEmailAndPassword,
@@ -26,6 +28,12 @@ export class AuthManager {
 
             this.authListeners.forEach((listener) => listener(user));
         });
+
+        // Handle redirect result (for Linux/Mobile where popup might be blocked)
+        getRedirectResult(auth).catch((error) => {
+            console.error('Redirect Login failed:', error);
+            alert(`Login failed: ${error.message}`);
+        });
     }
 
     onAuthStateChanged(callback) {
@@ -44,11 +52,36 @@ export class AuthManager {
 
         try {
             const result = await signInWithPopup(auth, provider);
-            // The onAuthStateChanged listener will handle the rest
-            return result.user;
+
+            if (result.user) {
+                console.log('Login successful:', result.user.email);
+                this.user = result.user;
+                this.updateUI(result.user);
+                this.authListeners.forEach((listener) => listener(result.user));
+                return result.user;
+            }
         } catch (error) {
             console.error('Login failed:', error);
-            alert(`Login failed: ${error.message}`);
+
+            // On Linux, if popup is blocked or fails, we might be forced to redirect,
+            // but we've seen it "bug the app", so we alert the user first.
+            if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+                if (
+                    confirm(
+                        'The login popup was blocked or failed to communicate. Would you like to try a redirect instead? Note: This may reload the application.'
+                    )
+                ) {
+                    try {
+                        await signInWithRedirect(auth, provider);
+                        return;
+                    } catch (redirectError) {
+                        console.error('Redirect fallback failed:', redirectError);
+                        alert(`Login failed: ${redirectError.message}`);
+                    }
+                }
+            } else {
+                alert(`Login failed: ${error.message}`);
+            }
             throw error;
         }
     }
