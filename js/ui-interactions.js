@@ -16,7 +16,7 @@ import { downloadQualitySettings, contentBlockingSettings } from './storage.js';
 import { db } from './db.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { showNotification, downloadTracks } from './downloads.js';
-import { trackSearchTabChange, trackOpenQueue, trackCloseQueue, trackChangeSort } from './analytics.js';
+import { trackSearchTabChange, trackOpenQueue } from './analytics.js';
 
 export function initializeUIInteractions(player, api, ui) {
     const sidebar = document.querySelector('.sidebar');

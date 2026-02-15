@@ -4,9 +4,6 @@
 
 import { equalizerSettings, monoAudioSettings } from './storage.js';
 
-// Standard 16-band ISO center frequencies (Hz) - for reference
-const DEFAULT_EQ_FREQUENCIES = [25, 40, 63, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000, 16000, 20000];
-
 // Generate frequency array for given number of bands using logarithmic spacing
 function generateFrequencies(bandCount, minFreq = 20, maxFreq = 20000) {
     const frequencies = [];

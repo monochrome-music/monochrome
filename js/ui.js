@@ -46,13 +46,7 @@ import {
     createProjectCardHTML,
     createTrackFromSong,
 } from './tracker.js';
-import {
-    trackSearch,
-    trackSearchTabChange,
-    trackClearSearchHistory,
-    trackClickSearchHistory,
-    trackChangeSort,
-} from './analytics.js';
+import { trackSearch, trackChangeSort } from './analytics.js';
 
 fontSettings.applyFont();
 fontSettings.applyFontSize();

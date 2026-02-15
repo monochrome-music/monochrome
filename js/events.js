@@ -26,11 +26,9 @@ import {
     trackSkipTrack,
     trackToggleShuffle,
     trackToggleRepeat,
-    trackToggleMute,
     trackSeek,
     trackAddToQueue,
     trackPlayNext,
-    trackClearQueue,
     trackLikeTrack,
     trackUnlikeTrack,
     trackLikeAlbum,
@@ -51,13 +49,7 @@ import {
     trackOpenInNewTab,
     trackSetSleepTimer,
     trackCancelSleepTimer,
-    trackOpenSidePanel,
-    trackCloseSidePanel,
-    trackOpenQueue,
-    trackCloseQueue,
     trackStartMix,
-    trackChangeSort,
-    trackToggleWaveform,
 } from './analytics.js';
 
 let currentTrackIdForWaveform = null;

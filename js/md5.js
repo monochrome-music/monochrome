@@ -197,7 +197,7 @@ function md5(string, key, raw) {
                 output += hexTab.charAt((x >>> 4) & 0x0f) + hexTab.charAt(x & 0x0f);
             }
             return output;
-        } catch (e) {
+        } catch {
             return '';
         }
     }
