@@ -3396,23 +3396,38 @@
                                         <div class="equalizer-preset-row">
                                             <label for="equalizer-preset-select">Preset</label>
                                             <select id="equalizer-preset-select">
-                                                <option value="flat">Flat</option>
-                                                <option value="bass_boost">Bass Boost</option>
-                                                <option value="bass_reducer">Bass Reducer</option>
-                                                <option value="treble_boost">Treble Boost</option>
-                                                <option value="treble_reducer">Treble Reducer</option>
-                                                <option value="vocal_boost">Vocal Boost</option>
-                                                <option value="loudness">Loudness</option>
-                                                <option value="rock">Rock</option>
-                                                <option value="pop">Pop</option>
-                                                <option value="classical">Classical</option>
-                                                <option value="jazz">Jazz</option>
-                                                <option value="electronic">Electronic</option>
-                                                <option value="hip_hop">Hip-Hop</option>
-                                                <option value="r_and_b">R&B</option>
-                                                <option value="acoustic">Acoustic</option>
-                                                <option value="podcast">Podcast / Speech</option>
+                                                <optgroup label="Built-in Presets">
+                                                    <option value="flat">Flat</option>
+                                                    <option value="bass_boost">Bass Boost</option>
+                                                    <option value="bass_reducer">Bass Reducer</option>
+                                                    <option value="treble_boost">Treble Boost</option>
+                                                    <option value="treble_reducer">Treble Reducer</option>
+                                                    <option value="vocal_boost">Vocal Boost</option>
+                                                    <option value="loudness">Loudness</option>
+                                                    <option value="rock">Rock</option>
+                                                    <option value="pop">Pop</option>
+                                                    <option value="classical">Classical</option>
+                                                    <option value="jazz">Jazz</option>
+                                                    <option value="electronic">Electronic</option>
+                                                    <option value="hip_hop">Hip-Hop</option>
+                                                    <option value="r_and_b">R&B</option>
+                                                    <option value="acoustic">Acoustic</option>
+                                                    <option value="podcast">Podcast / Speech</option>
+                                                </optgroup>
+                                                <optgroup label="Custom Presets" id="custom-presets-optgroup">
+                                                    <!-- Custom presets will be populated by JavaScript -->
+                                                </optgroup>
                                             </select>
+                                            <label for="eq-band-count">Bands</label>
+                                            <input
+                                                type="number"
+                                                id="eq-band-count"
+                                                class="eq-band-count-input"
+                                                min="3"
+                                                max="32"
+                                                value="16"
+                                                title="Number of EQ bands (3-32)"
+                                            />
                                             <button
                                                 id="equalizer-reset-btn"
                                                 class="btn-secondary"
@@ -3434,218 +3449,128 @@
                                                 </svg>
                                             </button>
                                         </div>
+
+                                        <div class="custom-preset-controls">
+                                            <div class="custom-preset-input-row">
+                                                <input
+                                                    type="text"
+                                                    id="custom-preset-name"
+                                                    placeholder="Preset name (e.g., Home, Car, Work)"
+                                                    maxlength="50"
+                                                />
+                                                <button
+                                                    id="save-custom-preset-btn"
+                                                    class="btn-primary"
+                                                    title="Save current EQ as custom preset"
+                                                >
+                                                    Save
+                                                </button>
+                                            </div>
+                                            <button
+                                                id="delete-custom-preset-btn"
+                                                class="btn-secondary delete-preset-btn"
+                                                style="display: none"
+                                                title="Delete selected custom preset"
+                                            >
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    width="16"
+                                                    height="16"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    stroke-width="2"
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                >
+                                                    <polyline points="3 6 5 6 21 6" />
+                                                    <path
+                                                        d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                                                    />
+                                                </svg>
+                                                Delete Preset
+                                            </button>
+                                        </div>
+
+                                        <div class="eq-range-controls">
+                                            <label>DB Range:</label>
+                                            <input
+                                                type="number"
+                                                id="eq-range-min"
+                                                class="eq-range-input"
+                                                min="-60"
+                                                max="0"
+                                                value="-30"
+                                                title="Minimum gain in dB"
+                                            />
+                                            <span>to</span>
+                                            <input
+                                                type="number"
+                                                id="eq-range-max"
+                                                class="eq-range-input"
+                                                min="0"
+                                                max="60"
+                                                value="30"
+                                                title="Maximum gain in dB"
+                                            />
+                                            <span>dB</span>
+                                            <button
+                                                id="apply-eq-range-btn"
+                                                class="btn-secondary"
+                                                title="Apply new range to all bands"
+                                            >
+                                                Apply
+                                            </button>
+                                            <button
+                                                id="reset-eq-range-btn"
+                                                class="btn-secondary"
+                                                title="Reset to default (-30 to +30 dB)"
+                                            >
+                                                Reset
+                                            </button>
+                                        </div>
+
+                                        <div class="eq-freq-controls">
+                                            <label>Freq Range:</label>
+                                            <input
+                                                type="number"
+                                                id="eq-freq-min"
+                                                class="eq-freq-input"
+                                                min="10"
+                                                max="20000"
+                                                value="20"
+                                                title="Minimum frequency in Hz"
+                                            />
+                                            <span>Hz to</span>
+                                            <input
+                                                type="number"
+                                                id="eq-freq-max"
+                                                class="eq-freq-input"
+                                                min="20"
+                                                max="96000"
+                                                value="20000"
+                                                title="Maximum frequency in Hz"
+                                            />
+                                            <span>Hz</span>
+                                            <button
+                                                id="apply-eq-freq-btn"
+                                                class="btn-secondary"
+                                                title="Apply new frequency range"
+                                            >
+                                                Apply
+                                            </button>
+                                            <button
+                                                id="reset-eq-freq-btn"
+                                                class="btn-secondary"
+                                                title="Reset to default (20 Hz to 20 kHz)"
+                                            >
+                                                Reset
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div class="equalizer-bands" id="equalizer-bands">
                                         <!-- Bands will be dynamically generated by JavaScript -->
-                                        <div class="eq-band" data-band="0">
-                                            <input
-                                                type="range"
-                                                class="eq-slider"
-                                                min="-30"
-                                                max="30"
-                                                step="0.5"
-                                                value="0"
-                                                orient="vertical"
-                                            />
-                                            <span class="eq-value">0</span>
-                                            <span class="eq-freq">25</span>
-                                        </div>
-                                        <div class="eq-band" data-band="1">
-                                            <input
-                                                type="range"
-                                                class="eq-slider"
-                                                min="-30"
-                                                max="30"
-                                                step="0.5"
-                                                value="0"
-                                                orient="vertical"
-                                            />
-                                            <span class="eq-value">0</span>
-                                            <span class="eq-freq">40</span>
-                                        </div>
-                                        <div class="eq-band" data-band="2">
-                                            <input
-                                                type="range"
-                                                class="eq-slider"
-                                                min="-30"
-                                                max="30"
-                                                step="0.5"
-                                                value="0"
-                                                orient="vertical"
-                                            />
-                                            <span class="eq-value">0</span>
-                                            <span class="eq-freq">63</span>
-                                        </div>
-                                        <div class="eq-band" data-band="3">
-                                            <input
-                                                type="range"
-                                                class="eq-slider"
-                                                min="-30"
-                                                max="30"
-                                                step="0.5"
-                                                value="0"
-                                                orient="vertical"
-                                            />
-                                            <span class="eq-value">0</span>
-                                            <span class="eq-freq">100</span>
-                                        </div>
-                                        <div class="eq-band" data-band="4">
-                                            <input
-                                                type="range"
-                                                class="eq-slider"
-                                                min="-30"
-                                                max="30"
-                                                step="0.5"
-                                                value="0"
-                                                orient="vertical"
-                                            />
-                                            <span class="eq-value">0</span>
-                                            <span class="eq-freq">160</span>
-                                        </div>
-                                        <div class="eq-band" data-band="5">
-                                            <input
-                                                type="range"
-                                                class="eq-slider"
-                                                min="-30"
-                                                max="30"
-                                                step="0.5"
-                                                value="0"
-                                                orient="vertical"
-                                            />
-                                            <span class="eq-value">0</span>
-                                            <span class="eq-freq">250</span>
-                                        </div>
-                                        <div class="eq-band" data-band="6">
-                                            <input
-                                                type="range"
-                                                class="eq-slider"
-                                                min="-30"
-                                                max="30"
-                                                step="0.5"
-                                                value="0"
-                                                orient="vertical"
-                                            />
-                                            <span class="eq-value">0</span>
-                                            <span class="eq-freq">400</span>
-                                        </div>
-                                        <div class="eq-band" data-band="7">
-                                            <input
-                                                type="range"
-                                                class="eq-slider"
-                                                min="-30"
-                                                max="30"
-                                                step="0.5"
-                                                value="0"
-                                                orient="vertical"
-                                            />
-                                            <span class="eq-value">0</span>
-                                            <span class="eq-freq">630</span>
-                                        </div>
-                                        <div class="eq-band" data-band="8">
-                                            <input
-                                                type="range"
-                                                class="eq-slider"
-                                                min="-30"
-                                                max="30"
-                                                step="0.5"
-                                                value="0"
-                                                orient="vertical"
-                                            />
-                                            <span class="eq-value">0</span>
-                                            <span class="eq-freq">1K</span>
-                                        </div>
-                                        <div class="eq-band" data-band="9">
-                                            <input
-                                                type="range"
-                                                class="eq-slider"
-                                                min="-30"
-                                                max="30"
-                                                step="0.5"
-                                                value="0"
-                                                orient="vertical"
-                                            />
-                                            <span class="eq-value">0</span>
-                                            <span class="eq-freq">1.6K</span>
-                                        </div>
-                                        <div class="eq-band" data-band="10">
-                                            <input
-                                                type="range"
-                                                class="eq-slider"
-                                                min="-30"
-                                                max="30"
-                                                step="0.5"
-                                                value="0"
-                                                orient="vertical"
-                                            />
-                                            <span class="eq-value">0</span>
-                                            <span class="eq-freq">2.5K</span>
-                                        </div>
-                                        <div class="eq-band" data-band="11">
-                                            <input
-                                                type="range"
-                                                class="eq-slider"
-                                                min="-30"
-                                                max="30"
-                                                step="0.5"
-                                                value="0"
-                                                orient="vertical"
-                                            />
-                                            <span class="eq-value">0</span>
-                                            <span class="eq-freq">4K</span>
-                                        </div>
-                                        <div class="eq-band" data-band="12">
-                                            <input
-                                                type="range"
-                                                class="eq-slider"
-                                                min="-30"
-                                                max="30"
-                                                step="0.5"
-                                                value="0"
-                                                orient="vertical"
-                                            />
-                                            <span class="eq-value">0</span>
-                                            <span class="eq-freq">6.3K</span>
-                                        </div>
-                                        <div class="eq-band" data-band="13">
-                                            <input
-                                                type="range"
-                                                class="eq-slider"
-                                                min="-30"
-                                                max="30"
-                                                step="0.5"
-                                                value="0"
-                                                orient="vertical"
-                                            />
-                                            <span class="eq-value">0</span>
-                                            <span class="eq-freq">10K</span>
-                                        </div>
-                                        <div class="eq-band" data-band="14">
-                                            <input
-                                                type="range"
-                                                class="eq-slider"
-                                                min="-30"
-                                                max="30"
-                                                step="0.5"
-                                                value="0"
-                                                orient="vertical"
-                                            />
-                                            <span class="eq-value">0</span>
-                                            <span class="eq-freq">16K</span>
-                                        </div>
-                                        <div class="eq-band" data-band="15">
-                                            <input
-                                                type="range"
-                                                class="eq-slider"
-                                                min="-30"
-                                                max="30"
-                                                step="0.5"
-                                                value="0"
-                                                orient="vertical"
-                                            />
-                                            <span class="eq-value">0</span>
-                                            <span class="eq-freq">20K</span>
-                                        </div>
                                     </div>
 
                                     <div class="equalizer-scale">

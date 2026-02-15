@@ -858,13 +858,111 @@ export function initializeSettings(scrobbler, player, api, ui) {
     }
 
     // ========================================
-    // 16-Band Equalizer Settings
+    // Parametric Equalizer Settings (3-32 bands with custom ranges)
     // ========================================
     const eqToggle = document.getElementById('equalizer-enabled-toggle');
     const eqContainer = document.getElementById('equalizer-container');
     const eqPresetSelect = document.getElementById('equalizer-preset-select');
     const eqResetBtn = document.getElementById('equalizer-reset-btn');
-    const eqBands = document.querySelectorAll('.eq-band');
+    const eqBandsContainer = document.getElementById('equalizer-bands');
+    const customPresetsOptgroup = document.getElementById('custom-presets-optgroup');
+    const customPresetNameInput = document.getElementById('custom-preset-name');
+    const saveCustomPresetBtn = document.getElementById('save-custom-preset-btn');
+    const deleteCustomPresetBtn = document.getElementById('delete-custom-preset-btn');
+    const eqBandCountInput = document.getElementById('eq-band-count');
+    const eqRangeMinInput = document.getElementById('eq-range-min');
+    const eqRangeMaxInput = document.getElementById('eq-range-max');
+    const applyEqRangeBtn = document.getElementById('apply-eq-range-btn');
+    const eqFreqMinInput = document.getElementById('eq-freq-min');
+    const eqFreqMaxInput = document.getElementById('eq-freq-max');
+    const applyEqFreqBtn = document.getElementById('apply-eq-freq-btn');
+    const resetEqFreqBtn = document.getElementById('reset-eq-freq-btn');
+    const resetEqRangeBtn = document.getElementById('reset-eq-range-btn');
+    const eqScaleContainer = document.querySelector('.equalizer-scale');
+
+    // Current settings
+    let currentBandCount = equalizerSettings.getBandCount();
+    let currentRange = equalizerSettings.getRange();
+    let currentFreqRange = equalizerSettings.getFreqRange();
+
+    /**
+     * Generate frequency labels for given band count and frequency range
+     */
+    const generateFreqLabels = (count, minFreq = currentFreqRange.min, maxFreq = currentFreqRange.max) => {
+        const labels = [];
+        const safeMin = Math.max(10, minFreq);
+        const safeMax = Math.min(96000, maxFreq);
+
+        for (let i = 0; i < count; i++) {
+            const t = i / (count - 1);
+            const freq = safeMin * Math.pow(safeMax / safeMin, t);
+            const rounded = Math.round(freq);
+
+            if (rounded < 1000) {
+                labels.push(rounded.toString());
+            } else if (rounded < 10000) {
+                labels.push((rounded / 1000).toFixed(rounded % 1000 === 0 ? 0 : 1) + 'K');
+            } else {
+                labels.push((rounded / 1000).toFixed(0) + 'K');
+            }
+        }
+
+        return labels;
+    };
+
+    /**
+     * Generate EQ bands HTML
+     */
+    const generateEQBands = (
+        count,
+        rangeMin = currentRange.min,
+        rangeMax = currentRange.max,
+        freqMin = currentFreqRange.min,
+        freqMax = currentFreqRange.max
+    ) => {
+        if (!eqBandsContainer) return;
+
+        const labels = generateFreqLabels(count, freqMin, freqMax);
+        eqBandsContainer.innerHTML = '';
+
+        for (let i = 0; i < count; i++) {
+            const bandEl = document.createElement('div');
+            bandEl.className = 'eq-band';
+            bandEl.dataset.band = i;
+
+            bandEl.innerHTML = `
+                <input
+                    type="range"
+                    class="eq-slider"
+                    min="${rangeMin}"
+                    max="${rangeMax}"
+                    step="0.5"
+                    value="0"
+                    orient="vertical"
+                />
+                <span class="eq-value">0</span>
+                <span class="eq-freq">${labels[i]}</span>
+            `;
+
+            eqBandsContainer.appendChild(bandEl);
+        }
+
+        // Re-initialize band sliders
+        initializeBandSliders();
+    };
+
+    /**
+     * Update EQ scale display
+     */
+    const updateEQScale = (min, max) => {
+        if (!eqScaleContainer) return;
+        const spans = eqScaleContainer.querySelectorAll('span');
+        if (spans.length >= 3) {
+            spans[0].textContent = `+${max} dB`;
+            spans[1].textContent = '0 dB';
+            spans[2].textContent = `${min} dB`;
+        }
+    };
 
     /**
      * Update the visual display of a band value
@@ -889,6 +987,9 @@ export function initializeSettings(scrobbler, player, api, ui) {
      * Update all band sliders and displays from an array of gains
      */
     const updateAllBandUI = (gains) => {
+        const eqBands = eqBandsContainer?.querySelectorAll('.eq-band');
+        if (!eqBands) return;
+
         eqBands.forEach((bandEl, index) => {
             const slider = bandEl.querySelector('.eq-slider');
             if (slider && gains[index] !== undefined) {
@@ -907,48 +1008,59 @@ export function initializeSettings(scrobbler, player, api, ui) {
         }
     };
 
-    // Initialize EQ toggle
-    if (eqToggle) {
-        const isEnabled = equalizerSettings.isEnabled();
-        eqToggle.checked = isEnabled;
-        updateEQContainerVisibility(isEnabled);
+    /**
+     * Populate custom presets in the dropdown
+     */
+    const populateCustomPresets = () => {
+        if (!customPresetsOptgroup) return;
 
-        eqToggle.addEventListener('change', (e) => {
-            const enabled = e.target.checked;
-            audioContextManager.toggleEQ(enabled);
-            updateEQContainerVisibility(enabled);
-        });
-    }
+        // Clear existing custom presets
+        customPresetsOptgroup.innerHTML = '';
 
-    // Initialize preset selector
-    if (eqPresetSelect) {
-        eqPresetSelect.value = equalizerSettings.getPreset();
+        const customPresets = equalizerSettings.getCustomPresets();
+        const presetIds = Object.keys(customPresets);
 
-        eqPresetSelect.addEventListener('change', (e) => {
-            const presetKey = e.target.value;
-            const preset = EQ_PRESETS[presetKey];
+        if (presetIds.length === 0) {
+            const emptyOption = document.createElement('option');
+            emptyOption.value = '';
+            emptyOption.textContent = 'No custom presets saved';
+            emptyOption.disabled = true;
+            customPresetsOptgroup.appendChild(emptyOption);
+        } else {
+            presetIds.forEach((presetId) => {
+                const preset = customPresets[presetId];
+                const option = document.createElement('option');
+                option.value = presetId;
+                option.textContent = preset.name;
+                customPresetsOptgroup.appendChild(option);
+            });
+        }
+    };
 
-            if (preset) {
-                audioContextManager.applyPreset(presetKey);
-                updateAllBandUI(preset.gains);
-            }
-        });
-    }
+    /**
+     * Check if a preset ID is a custom preset
+     */
+    const isCustomPreset = (presetId) => {
+        return presetId && presetId.startsWith('custom_');
+    };
 
-    // Initialize reset button
-    if (eqResetBtn) {
-        eqResetBtn.addEventListener('click', () => {
-            audioContextManager.reset();
-            updateAllBandUI(new Array(16).fill(0));
-            if (eqPresetSelect) {
-                eqPresetSelect.value = 'flat';
-            }
-        });
-    }
+    /**
+     * Update delete button visibility based on selected preset
+     */
+    const updateDeleteButtonVisibility = () => {
+        if (!deleteCustomPresetBtn || !eqPresetSelect) return;
+        const isCustom = isCustomPreset(eqPresetSelect.value);
+        deleteCustomPresetBtn.style.display = isCustom ? 'flex' : 'none';
+    };
 
-    // Initialize all band sliders
-    if (eqBands.length > 0) {
-        const savedGains = equalizerSettings.getGains();
+    /**
+     * Initialize band slider event listeners
+     */
+    const initializeBandSliders = () => {
+        const eqBands = eqBandsContainer?.querySelectorAll('.eq-band');
+        if (!eqBands || eqBands.length === 0) return;
+
+        const savedGains = equalizerSettings.getGains(currentBandCount);
 
         eqBands.forEach((bandEl) => {
             const bandIndex = parseInt(bandEl.dataset.band, 10);
@@ -966,16 +1078,15 @@ export function initializeSettings(scrobbler, player, api, ui) {
                     audioContextManager.setBandGain(bandIndex, gain);
                     updateBandValueDisplay(bandEl, gain);
 
-                    // When manually adjusting, switch preset to 'flat' (custom)
-                    // to indicate the user has made custom changes
+                    // When manually adjusting, check if we should clear preset
                     if (eqPresetSelect && eqPresetSelect.value !== 'flat') {
-                        // Check if current gains still match the selected preset
-                        const currentPreset = EQ_PRESETS[eqPresetSelect.value];
+                        const currentGains = audioContextManager.getGains();
+                        const builtInPresets = EQ_PRESETS;
+                        const currentPreset = builtInPresets[eqPresetSelect.value];
                         if (currentPreset) {
-                            const currentGains = audioContextManager.getGains();
                             const matches = currentPreset.gains.every((g, i) => Math.abs(g - currentGains[i]) < 0.01);
                             if (!matches) {
-                                // Don't change the select, but the preset will save as 'custom'
+                                // User has deviated from preset
                             }
                         }
                     }
@@ -989,7 +1100,422 @@ export function initializeSettings(scrobbler, player, api, ui) {
                 });
             }
         });
+    };
+
+    // Initialize EQ toggle
+    if (eqToggle) {
+        const isEnabled = equalizerSettings.isEnabled();
+        eqToggle.checked = isEnabled;
+        updateEQContainerVisibility(isEnabled);
+
+        eqToggle.addEventListener('change', (e) => {
+            const enabled = e.target.checked;
+            audioContextManager.toggleEQ(enabled);
+            updateEQContainerVisibility(enabled);
+        });
     }
+
+    // Initialize band count input
+    if (eqBandCountInput) {
+        eqBandCountInput.value = currentBandCount;
+
+        eqBandCountInput.addEventListener('change', (e) => {
+            const newCount = parseInt(e.target.value, 10);
+            if (newCount >= equalizerSettings.MIN_BANDS && newCount <= equalizerSettings.MAX_BANDS) {
+                currentBandCount = newCount;
+
+                // Save new band count and update audio context
+                equalizerSettings.setBandCount(newCount);
+                audioContextManager.setBandCount?.(newCount) || audioContextManager.reinitialize?.();
+
+                // Regenerate UI
+                generateEQBands(
+                    newCount,
+                    currentRange.min,
+                    currentRange.max,
+                    currentFreqRange.min,
+                    currentFreqRange.max
+                );
+
+                // Reset to flat and apply
+                const flatGains = new Array(newCount).fill(0);
+                audioContextManager.setAllGains(flatGains);
+                updateAllBandUI(flatGains);
+
+                if (eqPresetSelect) {
+                    eqPresetSelect.value = 'flat';
+                    equalizerSettings.setPreset('flat');
+                }
+                updateDeleteButtonVisibility();
+            }
+        });
+    }
+
+    // Initialize preset selector
+    if (eqPresetSelect) {
+        populateCustomPresets();
+        eqPresetSelect.value = equalizerSettings.getPreset();
+        updateDeleteButtonVisibility();
+
+        eqPresetSelect.addEventListener('change', (e) => {
+            const presetKey = e.target.value;
+
+            // Check if it's a custom preset
+            if (isCustomPreset(presetKey)) {
+                const customPresets = equalizerSettings.getCustomPresets();
+                const customPreset = customPresets[presetKey];
+                if (customPreset && customPreset.gains) {
+                    // Check if preset has different band count
+                    const presetBands = customPreset.bandCount || customPreset.gains.length;
+                    if (presetBands !== currentBandCount) {
+                        // Update band count to match preset
+                        currentBandCount = presetBands;
+                        equalizerSettings.setBandCount(presetBands);
+                        if (eqBandCountInput) eqBandCountInput.value = presetBands;
+                        generateEQBands(
+                            presetBands,
+                            currentRange.min,
+                            currentRange.max,
+                            currentFreqRange.min,
+                            currentFreqRange.max
+                        );
+                    }
+                    audioContextManager.setAllGains(customPreset.gains);
+                    updateAllBandUI(customPreset.gains);
+                    equalizerSettings.setPreset(presetKey);
+                }
+            } else {
+                // Built-in preset - use current band count
+                const presets = EQ_PRESETS;
+                const preset = presets[presetKey];
+                if (preset) {
+                    audioContextManager.applyPreset(presetKey);
+                    updateAllBandUI(preset.gains);
+                }
+            }
+            updateDeleteButtonVisibility();
+        });
+    }
+
+    // Initialize reset button
+    if (eqResetBtn) {
+        eqResetBtn.addEventListener('click', () => {
+            audioContextManager.reset();
+            updateAllBandUI(new Array(currentBandCount).fill(0));
+            if (eqPresetSelect) {
+                eqPresetSelect.value = 'flat';
+                updateDeleteButtonVisibility();
+            }
+        });
+    }
+
+    // Initialize save custom preset button
+    if (saveCustomPresetBtn && customPresetNameInput) {
+        saveCustomPresetBtn.addEventListener('click', () => {
+            const name = customPresetNameInput.value.trim();
+            if (!name) {
+                alert('Please enter a name for your preset');
+                return;
+            }
+
+            const currentGains = audioContextManager.getGains();
+            const presetId = equalizerSettings.saveCustomPreset(name, currentGains);
+
+            if (presetId) {
+                populateCustomPresets();
+                if (eqPresetSelect) {
+                    eqPresetSelect.value = presetId;
+                    equalizerSettings.setPreset(presetId);
+                    updateDeleteButtonVisibility();
+                }
+                customPresetNameInput.value = '';
+
+                // Show feedback
+                const originalText = saveCustomPresetBtn.textContent;
+                saveCustomPresetBtn.textContent = 'Saved!';
+                setTimeout(() => {
+                    saveCustomPresetBtn.textContent = originalText;
+                }, 1500);
+            } else {
+                alert('Failed to save preset. Please try again.');
+            }
+        });
+
+        // Allow saving with Enter key
+        customPresetNameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                saveCustomPresetBtn.click();
+            }
+        });
+    }
+
+    // Initialize delete custom preset button
+    if (deleteCustomPresetBtn) {
+        deleteCustomPresetBtn.addEventListener('click', () => {
+            if (!eqPresetSelect) return;
+
+            const presetId = eqPresetSelect.value;
+            if (!isCustomPreset(presetId)) return;
+
+            const customPresets = equalizerSettings.getCustomPresets();
+            const presetName = customPresets[presetId]?.name || 'this preset';
+
+            if (confirm(`Are you sure you want to delete "${presetName}"?`)) {
+                const success = equalizerSettings.deleteCustomPreset(presetId);
+                if (success) {
+                    populateCustomPresets();
+                    eqPresetSelect.value = 'flat';
+                    audioContextManager.reset();
+                    updateAllBandUI(new Array(currentBandCount).fill(0));
+                    equalizerSettings.setPreset('flat');
+                    updateDeleteButtonVisibility();
+                } else {
+                    alert('Failed to delete preset. Please try again.');
+                }
+            }
+        });
+    }
+
+    // Initialize range inputs
+    if (eqRangeMinInput) {
+        eqRangeMinInput.value = currentRange.min;
+    }
+    if (eqRangeMaxInput) {
+        eqRangeMaxInput.value = currentRange.max;
+    }
+    updateEQScale(currentRange.min, currentRange.max);
+
+    // Initialize apply range button
+    if (applyEqRangeBtn && eqRangeMinInput && eqRangeMaxInput) {
+        applyEqRangeBtn.addEventListener('click', () => {
+            const newMin = parseInt(eqRangeMinInput.value, 10);
+            const newMax = parseInt(eqRangeMaxInput.value, 10);
+
+            // Validate range
+            if (isNaN(newMin) || isNaN(newMax)) {
+                alert('Please enter valid numbers for the range');
+                return;
+            }
+
+            if (newMin >= 0 || newMax <= 0) {
+                alert('Minimum must be negative and maximum must be positive');
+                return;
+            }
+
+            if (newMin < equalizerSettings.ABSOLUTE_MIN || newMax > equalizerSettings.ABSOLUTE_MAX) {
+                alert(
+                    `Range must be between ${equalizerSettings.ABSOLUTE_MIN} and ${equalizerSettings.ABSOLUTE_MAX} dB`
+                );
+                return;
+            }
+
+            // Save new range
+            equalizerSettings.setRange(newMin, newMax);
+            currentRange = { min: newMin, max: newMax };
+
+            // Regenerate bands with new range
+            generateEQBands(currentBandCount, newMin, newMax);
+
+            // Update scale display
+            updateEQScale(newMin, newMax);
+
+            // Reset gains to flat
+            const flatGains = new Array(currentBandCount).fill(0);
+            audioContextManager.setAllGains(flatGains);
+            updateAllBandUI(flatGains);
+
+            // Reset to flat preset
+            if (eqPresetSelect) {
+                eqPresetSelect.value = 'flat';
+                equalizerSettings.setPreset('flat');
+            }
+
+            // Show feedback
+            const originalText = applyEqRangeBtn.textContent;
+            applyEqRangeBtn.textContent = 'Applied!';
+            setTimeout(() => {
+                applyEqRangeBtn.textContent = originalText;
+            }, 1500);
+        });
+    }
+
+    // Initialize reset DB range button
+    if (resetEqRangeBtn) {
+        resetEqRangeBtn.addEventListener('click', () => {
+            // Reset to default values
+            const defaultMin = equalizerSettings.DEFAULT_RANGE_MIN;
+            const defaultMax = equalizerSettings.DEFAULT_RANGE_MAX;
+
+            // Update inputs
+            if (eqRangeMinInput) eqRangeMinInput.value = defaultMin;
+            if (eqRangeMaxInput) eqRangeMaxInput.value = defaultMax;
+
+            // Save new range
+            equalizerSettings.setRange(defaultMin, defaultMax);
+            currentRange = { min: defaultMin, max: defaultMax };
+
+            // Regenerate bands with new range
+            generateEQBands(currentBandCount, defaultMin, defaultMax, currentFreqRange.min, currentFreqRange.max);
+
+            // Update scale display
+            updateEQScale(defaultMin, defaultMax);
+
+            // Reset gains to flat
+            const flatGains = new Array(currentBandCount).fill(0);
+            audioContextManager.setAllGains(flatGains);
+            updateAllBandUI(flatGains);
+
+            // Reset to flat preset
+            if (eqPresetSelect) {
+                eqPresetSelect.value = 'flat';
+                equalizerSettings.setPreset('flat');
+            }
+
+            // Show feedback
+            const originalText = resetEqRangeBtn.textContent;
+            resetEqRangeBtn.textContent = 'Reset!';
+            setTimeout(() => {
+                resetEqRangeBtn.textContent = originalText;
+            }, 1500);
+        });
+    }
+
+    // Initialize frequency range inputs
+    if (eqFreqMinInput) {
+        eqFreqMinInput.value = currentFreqRange.min;
+    }
+    if (eqFreqMaxInput) {
+        eqFreqMaxInput.value = currentFreqRange.max;
+    }
+
+    // Initialize apply frequency range button
+    if (applyEqFreqBtn && eqFreqMinInput && eqFreqMaxInput) {
+        applyEqFreqBtn.addEventListener('click', () => {
+            const newMin = parseInt(eqFreqMinInput.value, 10);
+            const newMax = parseInt(eqFreqMaxInput.value, 10);
+
+            // Validate range
+            if (isNaN(newMin) || isNaN(newMax)) {
+                alert('Please enter valid numbers for the frequency range');
+                return;
+            }
+
+            if (newMin < equalizerSettings.ABSOLUTE_FREQ_MIN || newMax > equalizerSettings.ABSOLUTE_FREQ_MAX) {
+                alert(
+                    `Frequency range must be between ${equalizerSettings.ABSOLUTE_FREQ_MIN} Hz and ${equalizerSettings.ABSOLUTE_FREQ_MAX} Hz`
+                );
+                return;
+            }
+
+            if (newMin >= newMax) {
+                alert('Minimum frequency must be less than maximum frequency');
+                return;
+            }
+
+            // Save new frequency range
+            equalizerSettings.setFreqRange(newMin, newMax);
+            currentFreqRange = { min: newMin, max: newMax };
+
+            // Update audio context
+            audioContextManager.setFreqRange(newMin, newMax);
+
+            // Regenerate bands with new frequency range
+            generateEQBands(currentBandCount, currentRange.min, currentRange.max, newMin, newMax);
+
+            // Reset gains to flat
+            const flatGains = new Array(currentBandCount).fill(0);
+            audioContextManager.setAllGains(flatGains);
+            updateAllBandUI(flatGains);
+
+            // Reset to flat preset
+            if (eqPresetSelect) {
+                eqPresetSelect.value = 'flat';
+                equalizerSettings.setPreset('flat');
+            }
+
+            // Show feedback
+            const originalText = applyEqFreqBtn.textContent;
+            applyEqFreqBtn.textContent = 'Applied!';
+            setTimeout(() => {
+                applyEqFreqBtn.textContent = originalText;
+            }, 1500);
+        });
+    }
+
+    // Initialize reset frequency range button
+    if (resetEqFreqBtn) {
+        resetEqFreqBtn.addEventListener('click', () => {
+            // Reset to default values
+            const defaultMin = equalizerSettings.DEFAULT_FREQ_MIN;
+            const defaultMax = equalizerSettings.DEFAULT_FREQ_MAX;
+
+            // Update inputs
+            if (eqFreqMinInput) eqFreqMinInput.value = defaultMin;
+            if (eqFreqMaxInput) eqFreqMaxInput.value = defaultMax;
+
+            // Save new frequency range
+            equalizerSettings.setFreqRange(defaultMin, defaultMax);
+            currentFreqRange = { min: defaultMin, max: defaultMax };
+
+            // Update audio context
+            audioContextManager.setFreqRange(defaultMin, defaultMax);
+
+            // Regenerate bands with new frequency range
+            generateEQBands(currentBandCount, currentRange.min, currentRange.max, defaultMin, defaultMax);
+
+            // Reset gains to flat
+            const flatGains = new Array(currentBandCount).fill(0);
+            audioContextManager.setAllGains(flatGains);
+            updateAllBandUI(flatGains);
+
+            // Reset to flat preset
+            if (eqPresetSelect) {
+                eqPresetSelect.value = 'flat';
+                equalizerSettings.setPreset('flat');
+            }
+
+            // Show feedback
+            const originalText = resetEqFreqBtn.textContent;
+            resetEqFreqBtn.textContent = 'Reset!';
+            setTimeout(() => {
+                resetEqFreqBtn.textContent = originalText;
+            }, 1500);
+        });
+    }
+
+    // Generate initial EQ bands with current ranges
+    generateEQBands(currentBandCount, currentRange.min, currentRange.max, currentFreqRange.min, currentFreqRange.max);
+
+    // Listen for band count changes from other sources
+    window.addEventListener('equalizer-band-count-changed', (e) => {
+        if (e.detail && e.detail.bandCount) {
+            currentBandCount = e.detail.bandCount;
+            if (eqBandCountInput) eqBandCountInput.value = currentBandCount;
+            generateEQBands(
+                currentBandCount,
+                currentRange.min,
+                currentRange.max,
+                currentFreqRange.min,
+                currentFreqRange.max
+            );
+        }
+    });
+
+    // Listen for frequency range changes from other sources
+    window.addEventListener('equalizer-freq-range-changed', (e) => {
+        if (e.detail && e.detail.min !== undefined && e.detail.max !== undefined) {
+            currentFreqRange = { min: e.detail.min, max: e.detail.max };
+            if (eqFreqMinInput) eqFreqMinInput.value = currentFreqRange.min;
+            if (eqFreqMaxInput) eqFreqMaxInput.value = currentFreqRange.max;
+            generateEQBands(
+                currentBandCount,
+                currentRange.min,
+                currentRange.max,
+                currentFreqRange.min,
+                currentFreqRange.max
+            );
+        }
+    });
 
     // Now Playing Mode
     const nowPlayingMode = document.getElementById('now-playing-mode');

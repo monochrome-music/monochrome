@@ -1,13 +1,13 @@
 // js/equalizer.js
-// 16-Band Parametric Equalizer with Web Audio API
+// Parametric Equalizer with Web Audio API - Supports 3-32 bands
 
 import { equalizerSettings } from './storage.js';
 
-// Standard 16-band ISO center frequencies (Hz)
-const EQ_FREQUENCIES = [25, 40, 63, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000, 16000, 20000];
+// Standard 16-band ISO center frequencies (Hz) - kept for reference
+const DEFAULT_EQ_FREQUENCIES = [25, 40, 63, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000, 16000, 20000];
 
 // Frequency labels for UI display
-const FREQUENCY_LABELS = [
+const DEFAULT_FREQUENCY_LABELS = [
     '25',
     '40',
     '63',
@@ -26,8 +26,37 @@ const FREQUENCY_LABELS = [
     '20K',
 ];
 
+// Generate frequency array for given number of bands using logarithmic spacing
+function generateFrequencies(bandCount, minFreq = 20, maxFreq = 20000) {
+    const frequencies = [];
+    const safeMin = Math.max(10, minFreq);
+    const safeMax = Math.min(96000, maxFreq);
+
+    for (let i = 0; i < bandCount; i++) {
+        // Logarithmic interpolation
+        const t = i / (bandCount - 1);
+        const freq = safeMin * Math.pow(safeMax / safeMin, t);
+        frequencies.push(Math.round(freq));
+    }
+
+    return frequencies;
+}
+
+// Generate frequency labels for display
+function generateFrequencyLabels(frequencies) {
+    return frequencies.map((freq) => {
+        if (freq < 1000) {
+            return freq.toString();
+        } else if (freq < 10000) {
+            return (freq / 1000).toFixed(freq % 1000 === 0 ? 0 : 1) + 'K';
+        } else {
+            return (freq / 1000).toFixed(0) + 'K';
+        }
+    });
+}
+
 // EQ Presets (gain values in dB for each of the 16 bands)
-const EQ_PRESETS = {
+const EQ_PRESETS_16BAND = {
     flat: {
         name: 'Flat',
         gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -94,6 +123,37 @@ const EQ_PRESETS = {
     },
 };
 
+// Interpolate 16-band preset to target band count
+function interpolatePreset(preset16, targetBands) {
+    if (targetBands === 16) return [...preset16];
+
+    const result = [];
+    for (let i = 0; i < targetBands; i++) {
+        const sourceIndex = (i / (targetBands - 1)) * (preset16.length - 1);
+        const indexLow = Math.floor(sourceIndex);
+        const indexHigh = Math.min(Math.ceil(sourceIndex), preset16.length - 1);
+        const fraction = sourceIndex - indexLow;
+
+        const lowValue = preset16[indexLow] || 0;
+        const highValue = preset16[indexHigh] || 0;
+        const interpolated = lowValue + (highValue - lowValue) * fraction;
+        result.push(Math.round(interpolated * 10) / 10);
+    }
+    return result;
+}
+
+// Get presets for given band count
+function getPresetsForBandCount(bandCount) {
+    const presets = {};
+    for (const [key, preset] of Object.entries(EQ_PRESETS_16BAND)) {
+        presets[key] = {
+            name: preset.name,
+            gains: interpolatePreset(preset.gains, bandCount),
+        };
+    }
+    return presets;
+}
+
 export class Equalizer {
     constructor() {
         this.audioContext = null;
@@ -105,11 +165,97 @@ export class Equalizer {
         this.isInitialized = false;
         this.audio = null;
 
+        // Band configuration
+        this.bandCount = equalizerSettings.getBandCount();
+        this.freqRange = equalizerSettings.getFreqRange();
+        this.frequencies = generateFrequencies(this.bandCount, this.freqRange.min, this.freqRange.max);
+        this.frequencyLabels = generateFrequencyLabels(this.frequencies);
+
         // Store current gains
-        this.currentGains = new Array(16).fill(0);
+        this.currentGains = new Array(this.bandCount).fill(0);
 
         // Load saved settings
         this._loadSettings();
+    }
+
+    /**
+     * Update band count and reinitialize
+     */
+    setBandCount(count) {
+        const newCount = Math.max(
+            equalizerSettings.MIN_BANDS,
+            Math.min(equalizerSettings.MAX_BANDS, parseInt(count, 10) || 16)
+        );
+
+        if (newCount === this.bandCount) return;
+
+        // Save new band count
+        equalizerSettings.setBandCount(newCount);
+
+        // Update configuration
+        this.bandCount = newCount;
+        this.frequencies = generateFrequencies(newCount, this.freqRange.min, this.freqRange.max);
+        this.frequencyLabels = generateFrequencyLabels(this.frequencies);
+
+        // Interpolate current gains to new band count
+        const newGains = equalizerSettings._interpolateGains(this.currentGains, newCount);
+        this.currentGains = newGains;
+        equalizerSettings.setGains(newGains);
+
+        // Reinitialize if already initialized
+        if (this.isInitialized) {
+            this.destroy();
+            if (this.audioContext && this.source && this.audio) {
+                this.init(this.audioContext, this.source, this.audio);
+            }
+        }
+
+        // Dispatch event for UI update
+        window.dispatchEvent(
+            new CustomEvent('equalizer-band-count-changed', {
+                detail: { bandCount: newCount, frequencies: this.frequencies, labels: this.frequencyLabels },
+            })
+        );
+    }
+
+    /**
+     * Update frequency range and reinitialize
+     */
+    setFreqRange(minFreq, maxFreq) {
+        const newMin = Math.max(10, Math.min(96000, parseInt(minFreq, 10) || 20));
+        const newMax = Math.max(10, Math.min(96000, parseInt(maxFreq, 10) || 20000));
+
+        if (newMin >= newMax) {
+            console.warn('[Equalizer] Invalid frequency range: min must be less than max');
+            return false;
+        }
+
+        if (newMin === this.freqRange.min && newMax === this.freqRange.max) return true;
+
+        // Save new frequency range
+        equalizerSettings.setFreqRange(newMin, newMax);
+
+        // Update configuration
+        this.freqRange = { min: newMin, max: newMax };
+        this.frequencies = generateFrequencies(this.bandCount, newMin, newMax);
+        this.frequencyLabels = generateFrequencyLabels(this.frequencies);
+
+        // Reinitialize if already initialized
+        if (this.isInitialized) {
+            this.destroy();
+            if (this.audioContext && this.source && this.audio) {
+                this.init(this.audioContext, this.source, this.audio);
+            }
+        }
+
+        // Dispatch event for UI update
+        window.dispatchEvent(
+            new CustomEvent('equalizer-freq-range-changed', {
+                detail: { min: newMin, max: newMax, frequencies: this.frequencies, labels: this.frequencyLabels },
+            })
+        );
+
+        return true;
     }
 
     /**
@@ -127,15 +273,15 @@ export class Equalizer {
             this.source = sourceNode;
             this.audio = audioElement;
 
-            // Create 16 biquad filters for each frequency band
-            this.filters = EQ_FREQUENCIES.map((freq, index) => {
+            // Create biquad filters for each frequency band
+            this.filters = this.frequencies.map((freq, index) => {
                 const filter = this.audioContext.createBiquadFilter();
 
                 // Use peaking filter for all bands (best for EQ)
                 filter.type = 'peaking';
                 filter.frequency.value = freq;
                 filter.Q.value = this._calculateQ(index);
-                filter.gain.value = this.currentGains[index];
+                filter.gain.value = this.currentGains[index] || 0;
 
                 return filter;
             });
@@ -154,7 +300,7 @@ export class Equalizer {
                 this._enableFilters();
             }
 
-            console.log('[Equalizer] Initialized with 16 bands');
+            console.log(`[Equalizer] Initialized with ${this.bandCount} bands`);
         } catch (e) {
             console.warn('[Equalizer] Init failed:', e);
         }
@@ -167,7 +313,10 @@ export class Equalizer {
     _calculateQ(_index) {
         // For 16-band 1/2 octave spacing, Q ≈ 2.87
         // Slightly lower Q for smoother response
-        return 2.5;
+        // Scale Q based on band count for consistent sound
+        const baseQ = 2.5;
+        const scalingFactor = Math.sqrt(16 / this.bandCount);
+        return baseQ * scalingFactor;
     }
 
     /**
@@ -248,15 +397,30 @@ export class Equalizer {
     }
 
     /**
+     * Get current gain range from settings
+     */
+    getRange() {
+        return equalizerSettings.getRange();
+    }
+
+    /**
+     * Clamp gain to current range
+     */
+    _clampGain(gainDb) {
+        const range = this.getRange();
+        return Math.max(range.min, Math.min(range.max, gainDb));
+    }
+
+    /**
      * Set gain for a specific band
-     * @param {number} bandIndex - Band index (0-15)
-     * @param {number} gainDb - Gain in dB (-12 to +12)
+     * @param {number} bandIndex - Band index
+     * @param {number} gainDb - Gain in dB
      */
     setBandGain(bandIndex, gainDb) {
-        if (bandIndex < 0 || bandIndex >= 16) return;
+        if (bandIndex < 0 || bandIndex >= this.bandCount) return;
 
         // Clamp gain to valid range
-        const clampedGain = Math.max(-30, Math.min(30, gainDb));
+        const clampedGain = this._clampGain(gainDb);
         this.currentGains[bandIndex] = clampedGain;
 
         if (this.filters[bandIndex]) {
@@ -271,15 +435,21 @@ export class Equalizer {
 
     /**
      * Set all band gains at once
-     * @param {number[]} gains - Array of 16 gain values in dB
+     * @param {number[]} gains - Array of gain values in dB
      */
     setAllGains(gains) {
-        if (!Array.isArray(gains) || gains.length !== 16) return;
+        if (!Array.isArray(gains)) return;
+
+        // Ensure gains array matches current band count
+        let adjustedGains = gains;
+        if (gains.length !== this.bandCount) {
+            adjustedGains = equalizerSettings._interpolateGains(gains, this.bandCount);
+        }
 
         const now = this.audioContext?.currentTime || 0;
 
-        gains.forEach((gain, index) => {
-            const clampedGain = Math.max(-30, Math.min(30, gain));
+        adjustedGains.forEach((gain, index) => {
+            const clampedGain = this._clampGain(gain);
             this.currentGains[index] = clampedGain;
 
             if (this.filters[index]) {
@@ -295,7 +465,8 @@ export class Equalizer {
      * @param {string} presetKey - Key from EQ_PRESETS
      */
     applyPreset(presetKey) {
-        const preset = EQ_PRESETS[presetKey];
+        const presets = getPresetsForBandCount(this.bandCount);
+        const preset = presets[presetKey];
         if (!preset) return;
 
         this.setAllGains(preset.gains);
@@ -306,37 +477,47 @@ export class Equalizer {
      * Reset all bands to flat (0 dB)
      */
     reset() {
-        this.setAllGains(new Array(16).fill(0));
+        this.setAllGains(new Array(this.bandCount).fill(0));
         equalizerSettings.setPreset('flat');
     }
 
     /**
      * Get current gains
-     * @returns {number[]} Array of 16 gain values
+     * @returns {number[]} Array of gain values
      */
     getGains() {
         return [...this.currentGains];
     }
 
     /**
-     * Get frequency labels
+     * Get current band count
+     * @returns {number} Number of bands
      */
-    static getFrequencyLabels() {
-        return FREQUENCY_LABELS;
+    getBandCount() {
+        return this.bandCount;
+    }
+
+    /**
+     * Get frequency labels for UI
+     * @returns {string[]} Array of frequency labels
+     */
+    getFrequencyLabels() {
+        return this.frequencyLabels;
     }
 
     /**
      * Get frequencies
+     * @returns {number[]} Array of frequency values
      */
-    static getFrequencies() {
-        return EQ_FREQUENCIES;
+    getFrequencies() {
+        return this.frequencies;
     }
 
     /**
-     * Get available presets
+     * Get available presets (static method for default 16 bands)
      */
-    static getPresets() {
-        return EQ_PRESETS;
+    static getPresets(bandCount = 16) {
+        return getPresetsForBandCount(bandCount);
     }
 
     /**
@@ -344,7 +525,11 @@ export class Equalizer {
      */
     _loadSettings() {
         this.isEnabled = equalizerSettings.isEnabled();
-        this.currentGains = equalizerSettings.getGains();
+        this.bandCount = equalizerSettings.getBandCount();
+        this.freqRange = equalizerSettings.getFreqRange();
+        this.frequencies = generateFrequencies(this.bandCount, this.freqRange.min, this.freqRange.max);
+        this.frequencyLabels = generateFrequencyLabels(this.frequencies);
+        this.currentGains = equalizerSettings.getGains(this.bandCount);
     }
 
     /**
@@ -380,5 +565,13 @@ export class Equalizer {
 // Export singleton instance
 export const equalizer = new Equalizer();
 
-// Export constants
-export { EQ_FREQUENCIES, FREQUENCY_LABELS, EQ_PRESETS };
+// Export helper functions and constants
+export {
+    generateFrequencies,
+    generateFrequencyLabels,
+    getPresetsForBandCount,
+    interpolatePreset,
+    DEFAULT_EQ_FREQUENCIES,
+    DEFAULT_FREQUENCY_LABELS,
+    EQ_PRESETS_16BAND as EQ_PRESETS,
+};

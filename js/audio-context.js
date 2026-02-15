@@ -1,78 +1,94 @@
 // js/audio-context.js
 // Shared Audio Context Manager - handles EQ and provides context for visualizer
+// Supports 3-32 parametric EQ bands
 
 import { equalizerSettings, monoAudioSettings } from './storage.js';
 
-// Standard 16-band ISO center frequencies (Hz)
-const EQ_FREQUENCIES = [25, 40, 63, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000, 16000, 20000];
+// Standard 16-band ISO center frequencies (Hz) - for reference
+const DEFAULT_EQ_FREQUENCIES = [25, 40, 63, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000, 16000, 20000];
 
-// EQ Presets (gain values in dB for each of the 16 bands)
-const EQ_PRESETS = {
-    flat: {
-        name: 'Flat',
-        gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    },
-    bass_boost: {
-        name: 'Bass Boost',
-        gains: [6, 5, 4.5, 4, 3, 2, 1, 0.5, 0, 0, 0, 0, 0, 0, 0, 0],
-    },
-    bass_reducer: {
-        name: 'Bass Reducer',
-        gains: [-6, -5, -4, -3, -2, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    },
-    treble_boost: {
-        name: 'Treble Boost',
-        gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 5.5, 6],
-    },
-    treble_reducer: {
-        name: 'Treble Reducer',
-        gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -2, -3, -4, -5, -5.5, -6],
-    },
-    vocal_boost: {
-        name: 'Vocal Boost',
-        gains: [-2, -1, 0, 0, 1, 2, 3, 4, 4, 3, 2, 1, 0, 0, -1, -2],
-    },
-    loudness: {
-        name: 'Loudness',
-        gains: [5, 4, 3, 1, 0, -1, -1, 0, 0, 1, 2, 3, 4, 4.5, 4, 3],
-    },
-    rock: {
-        name: 'Rock',
-        gains: [4, 3.5, 3, 2, -1, -2, -1, 1, 2, 3, 3.5, 4, 4, 3, 2, 1],
-    },
-    pop: {
-        name: 'Pop',
-        gains: [-1, 0, 1, 2, 3, 3, 2, 1, 0, 1, 2, 2, 2, 2, 1, 0],
-    },
-    classical: {
-        name: 'Classical',
-        gains: [3, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 3, 2],
-    },
-    jazz: {
-        name: 'Jazz',
-        gains: [3, 2, 1, 1, -1, -1, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2],
-    },
-    electronic: {
-        name: 'Electronic',
-        gains: [4, 3.5, 3, 1, 0, -1, 0, 1, 2, 3, 3, 2, 2, 3, 4, 3.5],
-    },
-    hip_hop: {
-        name: 'Hip-Hop',
-        gains: [5, 4.5, 4, 3, 1, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2],
-    },
-    r_and_b: {
-        name: 'R&B',
-        gains: [3, 5, 4, 2, 1, 0, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1],
-    },
-    acoustic: {
-        name: 'Acoustic',
-        gains: [3, 2, 1, 1, 2, 2, 1, 0, 0, 1, 1, 2, 3, 3, 2, 1],
-    },
-    podcast: {
-        name: 'Podcast / Speech',
-        gains: [-3, -2, -1, 0, 1, 2, 3, 4, 4, 3, 2, 1, 0, -1, -2, -3],
-    },
+// Generate frequency array for given number of bands using logarithmic spacing
+function generateFrequencies(bandCount, minFreq = 20, maxFreq = 20000) {
+    const frequencies = [];
+    const safeMin = Math.max(10, minFreq);
+    const safeMax = Math.min(96000, maxFreq);
+
+    for (let i = 0; i < bandCount; i++) {
+        // Logarithmic interpolation
+        const t = i / (bandCount - 1);
+        const freq = safeMin * Math.pow(safeMax / safeMin, t);
+        frequencies.push(Math.round(freq));
+    }
+
+    return frequencies;
+}
+
+// Generate frequency labels for display
+function generateFrequencyLabels(frequencies) {
+    return frequencies.map((freq) => {
+        if (freq < 1000) {
+            return freq.toString();
+        } else if (freq < 10000) {
+            return (freq / 1000).toFixed(freq % 1000 === 0 ? 0 : 1) + 'K';
+        } else {
+            return (freq / 1000).toFixed(0) + 'K';
+        }
+    });
+}
+
+// EQ Presets (16-band default)
+const EQ_PRESETS_16 = {
+    flat: { name: 'Flat', gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+    bass_boost: { name: 'Bass Boost', gains: [6, 5, 4.5, 4, 3, 2, 1, 0.5, 0, 0, 0, 0, 0, 0, 0, 0] },
+    bass_reducer: { name: 'Bass Reducer', gains: [-6, -5, -4, -3, -2, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+    treble_boost: { name: 'Treble Boost', gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 5.5, 6] },
+    treble_reducer: { name: 'Treble Reducer', gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -2, -3, -4, -5, -5.5, -6] },
+    vocal_boost: { name: 'Vocal Boost', gains: [-2, -1, 0, 0, 1, 2, 3, 4, 4, 3, 2, 1, 0, 0, -1, -2] },
+    loudness: { name: 'Loudness', gains: [5, 4, 3, 1, 0, -1, -1, 0, 0, 1, 2, 3, 4, 4.5, 4, 3] },
+    rock: { name: 'Rock', gains: [4, 3.5, 3, 2, -1, -2, -1, 1, 2, 3, 3.5, 4, 4, 3, 2, 1] },
+    pop: { name: 'Pop', gains: [-1, 0, 1, 2, 3, 3, 2, 1, 0, 1, 2, 2, 2, 2, 1, 0] },
+    classical: { name: 'Classical', gains: [3, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 3, 2] },
+    jazz: { name: 'Jazz', gains: [3, 2, 1, 1, -1, -1, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2] },
+    electronic: { name: 'Electronic', gains: [4, 3.5, 3, 1, 0, -1, 0, 1, 2, 3, 3, 2, 2, 3, 4, 3.5] },
+    hip_hop: { name: 'Hip-Hop', gains: [5, 4.5, 4, 3, 1, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2] },
+    r_and_b: { name: 'R&B', gains: [3, 5, 4, 2, 1, 0, 1, 1, 1, 1, 2, 2, 2, 1, 1, 1] },
+    acoustic: { name: 'Acoustic', gains: [3, 2, 1, 1, 2, 2, 1, 0, 0, 1, 1, 2, 3, 3, 2, 1] },
+    podcast: { name: 'Podcast / Speech', gains: [-3, -2, -1, 0, 1, 2, 3, 4, 4, 3, 2, 1, 0, -1, -2, -3] },
 };
+
+// Interpolate 16-band preset to target band count
+function interpolatePreset(preset16, targetBands) {
+    if (targetBands === 16) return [...preset16];
+
+    const result = [];
+    for (let i = 0; i < targetBands; i++) {
+        const sourceIndex = (i / (targetBands - 1)) * (preset16.length - 1);
+        const indexLow = Math.floor(sourceIndex);
+        const indexHigh = Math.min(Math.ceil(sourceIndex), preset16.length - 1);
+        const fraction = sourceIndex - indexLow;
+
+        const lowValue = preset16[indexLow] || 0;
+        const highValue = preset16[indexHigh] || 0;
+        const interpolated = lowValue + (highValue - lowValue) * fraction;
+        result.push(Math.round(interpolated * 10) / 10);
+    }
+    return result;
+}
+
+// Get presets for given band count
+function getPresetsForBandCount(bandCount) {
+    const presets = {};
+    for (const [key, preset] of Object.entries(EQ_PRESETS_16)) {
+        presets[key] = {
+            name: preset.name,
+            gains: interpolatePreset(preset.gains, bandCount),
+        };
+    }
+    return presets;
+}
+
+// Default export for backwards compatibility (16 bands)
+const EQ_PRESETS = EQ_PRESETS_16;
 
 class AudioContextManager {
     constructor() {
@@ -86,15 +102,142 @@ class AudioContextManager {
         this.isEQEnabled = false;
         this.isMonoAudioEnabled = false;
         this.monoMergerNode = null;
-        this.currentGains = new Array(16).fill(0);
         this.audio = null;
         this.currentVolume = 1.0;
+
+        // Band configuration
+        this.bandCount = equalizerSettings.getBandCount();
+        this.freqRange = equalizerSettings.getFreqRange();
+        this.frequencies = generateFrequencies(this.bandCount, this.freqRange.min, this.freqRange.max);
+        this.currentGains = new Array(this.bandCount).fill(0);
 
         // Callbacks for audio graph changes (for visualizers like Butterchurn)
         this._graphChangeCallbacks = [];
 
         // Load saved settings
         this._loadSettings();
+    }
+
+    /**
+     * Update band count and reinitialize EQ
+     */
+    setBandCount(count) {
+        const newCount = Math.max(
+            equalizerSettings.MIN_BANDS,
+            Math.min(equalizerSettings.MAX_BANDS, parseInt(count, 10) || 16)
+        );
+
+        if (newCount === this.bandCount) return;
+
+        // Save new band count
+        equalizerSettings.setBandCount(newCount);
+
+        // Update configuration
+        this.bandCount = newCount;
+        this.frequencies = generateFrequencies(newCount, this.freqRange.min, this.freqRange.max);
+
+        // Interpolate current gains to new band count
+        const newGains = equalizerSettings._interpolateGains(this.currentGains, newCount);
+        this.currentGains = newGains;
+        equalizerSettings.setGains(newGains);
+
+        // Reinitialize EQ if already initialized
+        if (this.isInitialized && this.audioContext) {
+            this._destroyEQ();
+            this._createEQ();
+        }
+
+        // Dispatch event for UI update
+        window.dispatchEvent(
+            new CustomEvent('equalizer-band-count-changed', {
+                detail: { bandCount: newCount, frequencies: this.frequencies },
+            })
+        );
+    }
+
+    /**
+     * Update frequency range and reinitialize EQ
+     */
+    setFreqRange(minFreq, maxFreq) {
+        const newMin = Math.max(10, Math.min(96000, parseInt(minFreq, 10) || 20));
+        const newMax = Math.max(10, Math.min(96000, parseInt(maxFreq, 10) || 20000));
+
+        if (newMin >= newMax) {
+            console.warn('[AudioContext] Invalid frequency range: min must be less than max');
+            return false;
+        }
+
+        if (newMin === this.freqRange.min && newMax === this.freqRange.max) return true;
+
+        // Save new frequency range
+        equalizerSettings.setFreqRange(newMin, newMax);
+
+        // Update configuration
+        this.freqRange = { min: newMin, max: newMax };
+        this.frequencies = generateFrequencies(this.bandCount, newMin, newMax);
+
+        // Reinitialize EQ if already initialized
+        if (this.isInitialized && this.audioContext) {
+            this._destroyEQ();
+            this._createEQ();
+        }
+
+        // Dispatch event for UI update
+        window.dispatchEvent(
+            new CustomEvent('equalizer-freq-range-changed', {
+                detail: { min: newMin, max: newMax, frequencies: this.frequencies },
+            })
+        );
+
+        return true;
+    }
+
+    /**
+     * Destroy EQ filters
+     */
+    _destroyEQ() {
+        if (this.filters) {
+            this.filters.forEach((filter) => {
+                try {
+                    filter.disconnect();
+                } catch {
+                    /* ignore */
+                }
+            });
+        }
+        this.filters = [];
+    }
+
+    /**
+     * Create EQ filters
+     */
+    _createEQ() {
+        if (!this.audioContext) return;
+
+        // Create biquad filters for each frequency band
+        this.filters = this.frequencies.map((freq, index) => {
+            const filter = this.audioContext.createBiquadFilter();
+            filter.type = 'peaking';
+            filter.frequency.value = freq;
+            filter.Q.value = this._calculateQ(index);
+            filter.gain.value = this.currentGains[index] || 0;
+            return filter;
+        });
+
+        // Create volume node if not exists
+        if (!this.volumeNode) {
+            this.volumeNode = this.audioContext.createGain();
+        }
+    }
+
+    /**
+     * Calculate Q factor for each band
+     */
+    _calculateQ(_index) {
+        // Scale Q based on band count for consistent sound
+        const baseQ = 2.5;
+        const scalingFactor = Math.sqrt(16 / this.bandCount);
+        return baseQ * scalingFactor;
     }
 
     /**
@@ -159,15 +302,8 @@ class AudioContextManager {
             this.analyser.fftSize = 512;
             this.analyser.smoothingTimeConstant = 0.7;
 
-            // Create 16 biquad filters for EQ
-            this.filters = EQ_FREQUENCIES.map((freq, index) => {
-                const filter = this.audioContext.createBiquadFilter();
-                filter.type = 'peaking';
-                filter.frequency.value = freq;
-                filter.Q.value = 2.5; // Constant-Q design
-                filter.gain.value = this.currentGains[index];
-                return filter;
-            });
+            // Create biquad filters for EQ with dynamic band count
+            this._createEQ();
 
             // Create output gain node
             this.outputNode = this.audioContext.createGain();
@@ -180,17 +316,11 @@ class AudioContextManager {
             // Create mono audio merger node
             this.monoMergerNode = this.audioContext.createChannelMerger(2);
 
-            // Connect filter chain: filter[0] -> filter[1] -> ... -> filter[15] -> outputNode
-            for (let i = 0; i < this.filters.length - 1; i++) {
-                this.filters[i].connect(this.filters[i + 1]);
-            }
-            this.filters[this.filters.length - 1].connect(this.outputNode);
-
             // Connect the audio graph based on EQ and mono state
             this._connectGraph();
 
             this.isInitialized = true;
-            console.log('[AudioContext] Initialized with 16-band EQ');
+            console.log(`[AudioContext] Initialized with ${this.bandCount}-band EQ`);
         } catch (e) {
             console.warn('[AudioContext] Init failed:', e);
         }
@@ -240,7 +370,13 @@ class AudioContextManager {
 
             if (this.isEQEnabled && this.filters.length > 0) {
                 // EQ enabled: lastNode -> EQ filters -> output -> analyser -> volume -> destination
+                // Connect filter chain
+                for (let i = 0; i < this.filters.length - 1; i++) {
+                    this.filters[i].connect(this.filters[i + 1]);
+                }
+                // Connect input to first filter and last filter to output
                 lastNode.connect(this.filters[0]);
+                this.filters[this.filters.length - 1].connect(this.outputNode);
                 this.outputNode.connect(this.analyser);
                 this.analyser.connect(this.volumeNode);
                 this.volumeNode.connect(this.audioContext.destination);
@@ -375,12 +511,27 @@ class AudioContextManager {
     }
 
     /**
+     * Get current gain range
+     */
+    getRange() {
+        return equalizerSettings.getRange();
+    }
+
+    /**
+     * Clamp gain to valid range
+     */
+    _clampGain(gainDb) {
+        const range = this.getRange();
+        return Math.max(range.min, Math.min(range.max, gainDb));
+    }
+
+    /**
      * Set gain for a specific band
      */
     setBandGain(bandIndex, gainDb) {
-        if (bandIndex < 0 || bandIndex >= 16) return;
+        if (bandIndex < 0 || bandIndex >= this.bandCount) return;
 
-        const clampedGain = Math.max(-30, Math.min(30, gainDb));
+        const clampedGain = this._clampGain(gainDb);
         this.currentGains[bandIndex] = clampedGain;
 
         if (this.filters[bandIndex] && this.audioContext) {
@@ -395,12 +546,18 @@ class AudioContextManager {
      * Set all band gains at once
      */
     setAllGains(gains) {
-        if (!Array.isArray(gains) || gains.length !== 16) return;
+        if (!Array.isArray(gains)) return;
+
+        // Ensure gains array matches current band count
+        let adjustedGains = gains;
+        if (gains.length !== this.bandCount) {
+            adjustedGains = equalizerSettings._interpolateGains(gains, this.bandCount);
+        }
 
         const now = this.audioContext?.currentTime || 0;
 
-        gains.forEach((gain, index) => {
-            const clampedGain = Math.max(-30, Math.min(30, gain));
+        adjustedGains.forEach((gain, index) => {
+            const clampedGain = this._clampGain(gain);
             this.currentGains[index] = clampedGain;
 
             if (this.filters[index]) {
@@ -415,7 +572,8 @@ class AudioContextManager {
      * Apply a preset
      */
     applyPreset(presetKey) {
-        const preset = EQ_PRESETS[presetKey];
+        const presets = getPresetsForBandCount(this.bandCount);
+        const preset = presets[presetKey];
         if (!preset) return;
 
         this.setAllGains(preset.gains);
@@ -426,7 +584,7 @@ class AudioContextManager {
      * Reset all bands to flat
      */
     reset() {
-        this.setAllGains(new Array(16).fill(0));
+        this.setAllGains(new Array(this.bandCount).fill(0));
         equalizerSettings.setPreset('flat');
     }
 
@@ -438,11 +596,21 @@ class AudioContextManager {
     }
 
     /**
+     * Get current band count
+     */
+    getBandCount() {
+        return this.bandCount;
+    }
+
+    /**
      * Load settings from storage
      */
     _loadSettings() {
         this.isEQEnabled = equalizerSettings.isEnabled();
-        this.currentGains = equalizerSettings.getGains();
+        this.bandCount = equalizerSettings.getBandCount();
+        this.freqRange = equalizerSettings.getFreqRange();
+        this.frequencies = generateFrequencies(this.bandCount, this.freqRange.min, this.freqRange.max);
+        this.currentGains = equalizerSettings.getGains(this.bandCount);
         this.isMonoAudioEnabled = monoAudioSettings.isEnabled();
     }
 }
@@ -450,5 +618,12 @@ class AudioContextManager {
 // Export singleton instance
 export const audioContextManager = new AudioContextManager();
 
-// Export presets for settings UI
-export { EQ_PRESETS };
+// Export presets and helper functions for settings UI
+export {
+    EQ_PRESETS,
+    generateFrequencies,
+    generateFrequencyLabels,
+    getPresetsForBandCount,
+    interpolatePreset,
+    EQ_PRESETS_16,
+};

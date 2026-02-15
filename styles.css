@@ -5805,6 +5805,42 @@ textarea:focus {
     box-shadow: 0 0 0 3px rgb(var(--highlight-rgb), 0.2);
 }
 
+.eq-band-count-input {
+    width: 60px;
+    padding: 0.5rem;
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-size: 0.9rem;
+    text-align: center;
+    cursor: pointer;
+    transition:
+        border-color var(--transition-fast),
+        box-shadow var(--transition-fast);
+}
+
+.eq-band-count-input:hover {
+    border-color: var(--primary);
+}
+
+.eq-band-count-input:focus {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px rgb(var(--highlight-rgb), 0.2);
+}
+
+/* Hide number input arrows */
+.eq-band-count-input::-webkit-outer-spin-button,
+.eq-band-count-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.eq-band-count-input[type='number'] {
+    -moz-appearance: textfield;
+}
+
 #equalizer-reset-btn {
     padding: 0.5rem;
     display: flex;
@@ -5829,6 +5865,214 @@ textarea:focus {
 
 #equalizer-reset-btn:hover svg {
     transform: rotate(-45deg);
+}
+
+/* Custom Preset Controls */
+.custom-preset-controls {
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--border);
+}
+
+.custom-preset-input-row {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+}
+
+#custom-preset-name {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-size: 0.9rem;
+    transition: border-color var(--transition-fast);
+}
+
+#custom-preset-name:focus {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px rgb(var(--highlight-rgb), 0.2);
+}
+
+#save-custom-preset-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: 0.5rem 1rem;
+    white-space: nowrap;
+}
+
+#save-custom-preset-btn svg {
+    flex-shrink: 0;
+}
+
+.delete-preset-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    color: var(--destructive);
+    border-color: var(--destructive);
+    opacity: 0.8;
+    transition: opacity var(--transition-fast);
+}
+
+.delete-preset-btn:hover {
+    opacity: 1;
+    background: var(--destructive);
+    color: var(--destructive-foreground);
+}
+
+.delete-preset-btn svg {
+    flex-shrink: 0;
+}
+
+/* EQ Range Controls */
+.eq-range-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+}
+
+.eq-range-controls label {
+    font-size: 0.9rem;
+    color: var(--muted-foreground);
+    font-weight: 500;
+}
+
+.eq-range-controls span {
+    font-size: 0.9rem;
+    color: var(--muted-foreground);
+}
+
+.eq-range-input {
+    width: 60px;
+    padding: 0.4rem 0.5rem;
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-size: 0.9rem;
+    text-align: center;
+    transition: border-color var(--transition-fast);
+}
+
+.eq-range-input:hover {
+    border-color: var(--primary);
+}
+
+.eq-range-input:focus {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px rgb(var(--highlight-rgb), 0.2);
+}
+
+/* Hide number input arrows */
+.eq-range-input::-webkit-outer-spin-button,
+.eq-range-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.eq-range-input[type='number'] {
+    -moz-appearance: textfield;
+}
+
+#apply-eq-range-btn {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
+}
+
+#reset-eq-range-btn {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
+    margin-left: var(--spacing-xs);
+}
+
+/* EQ Frequency Range Controls */
+.eq-freq-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+}
+
+.eq-freq-controls label {
+    font-size: 0.9rem;
+    color: var(--muted-foreground);
+    font-weight: 500;
+}
+
+.eq-freq-controls span {
+    font-size: 0.9rem;
+    color: var(--muted-foreground);
+}
+
+.eq-freq-input {
+    width: 70px;
+    padding: 0.4rem 0.5rem;
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-size: 0.9rem;
+    text-align: center;
+    transition: border-color var(--transition-fast);
+}
+
+.eq-freq-input:hover {
+    border-color: var(--primary);
+}
+
+.eq-freq-input:focus {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px rgb(var(--highlight-rgb), 0.2);
+}
+
+/* Hide number input arrows */
+.eq-freq-input::-webkit-outer-spin-button,
+.eq-freq-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.eq-freq-input[type='number'] {
+    -moz-appearance: textfield;
+}
+
+#apply-eq-freq-btn {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
+}
+
+#reset-eq-freq-btn {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
+    margin-left: var(--spacing-xs);
+}
+
+/* Equalizer preset dropdown styling */
+.equalizer-preset-row select optgroup {
+    font-weight: 600;
+    color: var(--foreground);
+    padding: var(--spacing-xs) 0;
+}
+
+.equalizer-preset-row select optgroup option {
+    font-weight: 400;
+    padding-left: var(--spacing-sm);
 }
 
 .equalizer-bands {

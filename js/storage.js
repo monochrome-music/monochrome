@@ -791,6 +791,23 @@ export const equalizerSettings = {
     ENABLED_KEY: 'equalizer-enabled',
     GAINS_KEY: 'equalizer-gains',
     PRESET_KEY: 'equalizer-preset',
+    CUSTOM_PRESETS_KEY: 'equalizer-custom-presets',
+    BAND_COUNT_KEY: 'equalizer-band-count',
+    RANGE_MIN_KEY: 'equalizer-range-min',
+    RANGE_MAX_KEY: 'equalizer-range-max',
+    FREQ_MIN_KEY: 'equalizer-freq-min',
+    FREQ_MAX_KEY: 'equalizer-freq-max',
+    DEFAULT_BAND_COUNT: 16,
+    MIN_BANDS: 3,
+    MAX_BANDS: 32,
+    DEFAULT_RANGE_MIN: -30,
+    DEFAULT_RANGE_MAX: 30,
+    ABSOLUTE_MIN: -60,
+    ABSOLUTE_MAX: 60,
+    DEFAULT_FREQ_MIN: 20,
+    DEFAULT_FREQ_MAX: 20000,
+    ABSOLUTE_FREQ_MIN: 10,
+    ABSOLUTE_FREQ_MAX: 96000,
 
     isEnabled() {
         try {
@@ -805,30 +822,208 @@ export const equalizerSettings = {
         localStorage.setItem(this.ENABLED_KEY, enabled ? 'true' : 'false');
     },
 
-    getGains() {
+    getBandCount() {
+        try {
+            const stored = localStorage.getItem(this.BAND_COUNT_KEY);
+            if (stored) {
+                const count = parseInt(stored, 10);
+                if (!isNaN(count) && count >= this.MIN_BANDS && count <= this.MAX_BANDS) {
+                    return count;
+                }
+            }
+        } catch {
+            /* ignore */
+        }
+        return this.DEFAULT_BAND_COUNT;
+    },
+
+    setBandCount(count) {
+        const validCount = Math.max(
+            this.MIN_BANDS,
+            Math.min(this.MAX_BANDS, parseInt(count, 10) || this.DEFAULT_BAND_COUNT)
+        );
+        localStorage.setItem(this.BAND_COUNT_KEY, validCount.toString());
+    },
+
+    getRangeMin() {
+        try {
+            const stored = localStorage.getItem(this.RANGE_MIN_KEY);
+            if (stored) {
+                const val = parseInt(stored, 10);
+                if (!isNaN(val) && val >= this.ABSOLUTE_MIN && val < 0) {
+                    return val;
+                }
+            }
+        } catch {
+            /* ignore */
+        }
+        return this.DEFAULT_RANGE_MIN;
+    },
+
+    setRangeMin(value) {
+        const val = parseInt(value, 10);
+        if (!isNaN(val) && val >= this.ABSOLUTE_MIN && val < 0) {
+            localStorage.setItem(this.RANGE_MIN_KEY, val.toString());
+            return true;
+        }
+        return false;
+    },
+
+    getRangeMax() {
+        try {
+            const stored = localStorage.getItem(this.RANGE_MAX_KEY);
+            if (stored) {
+                const val = parseInt(stored, 10);
+                if (!isNaN(val) && val > 0 && val <= this.ABSOLUTE_MAX) {
+                    return val;
+                }
+            }
+        } catch {
+            /* ignore */
+        }
+        return this.DEFAULT_RANGE_MAX;
+    },
+
+    setRangeMax(value) {
+        const val = parseInt(value, 10);
+        if (!isNaN(val) && val > 0 && val <= this.ABSOLUTE_MAX) {
+            localStorage.setItem(this.RANGE_MAX_KEY, val.toString());
+            return true;
+        }
+        return false;
+    },
+
+    getRange() {
+        return {
+            min: this.getRangeMin(),
+            max: this.getRangeMax(),
+        };
+    },
+
+    setRange(min, max) {
+        const validMin = this.setRangeMin(min);
+        const validMax = this.setRangeMax(max);
+        return validMin && validMax;
+    },
+
+    getFreqMin() {
+        try {
+            const stored = localStorage.getItem(this.FREQ_MIN_KEY);
+            if (stored) {
+                const val = parseInt(stored, 10);
+                if (!isNaN(val) && val >= this.ABSOLUTE_FREQ_MIN && val < this.DEFAULT_FREQ_MAX) {
+                    return val;
+                }
+            }
+        } catch {
+            /* ignore */
+        }
+        return this.DEFAULT_FREQ_MIN;
+    },
+
+    setFreqMin(value) {
+        const val = parseInt(value, 10);
+        if (!isNaN(val) && val >= this.ABSOLUTE_FREQ_MIN && val < this.getFreqMax()) {
+            localStorage.setItem(this.FREQ_MIN_KEY, val.toString());
+            return true;
+        }
+        return false;
+    },
+
+    getFreqMax() {
+        try {
+            const stored = localStorage.getItem(this.FREQ_MAX_KEY);
+            if (stored) {
+                const val = parseInt(stored, 10);
+                if (!isNaN(val) && val > this.getFreqMin() && val <= this.ABSOLUTE_FREQ_MAX) {
+                    return val;
+                }
+            }
+        } catch {
+            /* ignore */
+        }
+        return this.DEFAULT_FREQ_MAX;
+    },
+
+    setFreqMax(value) {
+        const val = parseInt(value, 10);
+        if (!isNaN(val) && val > this.getFreqMin() && val <= this.ABSOLUTE_FREQ_MAX) {
+            localStorage.setItem(this.FREQ_MAX_KEY, val.toString());
+            return true;
+        }
+        return false;
+    },
+
+    getFreqRange() {
+        return {
+            min: this.getFreqMin(),
+            max: this.getFreqMax(),
+        };
+    },
+
+    setFreqRange(min, max) {
+        const validMax = this.setFreqMax(max);
+        const validMin = this.setFreqMin(min);
+        return validMin && validMax;
+    },
+
+    getGains(bandCount) {
+        const count = bandCount || this.getBandCount();
         try {
             const stored = localStorage.getItem(this.GAINS_KEY);
             if (stored) {
                 const gains = JSON.parse(stored);
-                if (Array.isArray(gains) && gains.length === 16) {
-                    return gains;
+                if (Array.isArray(gains)) {
+                    // If stored gains match current band count, return them
+                    if (gains.length === count) {
+                        return gains;
+                    }
+                    // If different band count, try to interpolate or return flat
+                    if (gains.length > 0) {
+                        return this._interpolateGains(gains, count);
+                    }
                 }
             }
         } catch {
             /* ignore */
         }
         // Return flat EQ (all zeros) by default
-        return new Array(16).fill(0);
+        return new Array(count).fill(0);
     },
 
     setGains(gains) {
         try {
-            if (Array.isArray(gains) && gains.length === 16) {
+            if (Array.isArray(gains) && gains.length >= this.MIN_BANDS && gains.length <= this.MAX_BANDS) {
                 localStorage.setItem(this.GAINS_KEY, JSON.stringify(gains));
             }
         } catch (e) {
             console.warn('[EQ] Failed to save gains:', e);
         }
+    },
+
+    /**
+     * Interpolate gains array to match target band count
+     */
+    _interpolateGains(sourceGains, targetCount) {
+        if (sourceGains.length === targetCount) {
+            return [...sourceGains];
+        }
+
+        const result = [];
+        for (let i = 0; i < targetCount; i++) {
+            // Map target index to source index
+            const sourceIndex = (i / (targetCount - 1)) * (sourceGains.length - 1);
+            const indexLow = Math.floor(sourceIndex);
+            const indexHigh = Math.min(Math.ceil(sourceIndex), sourceGains.length - 1);
+            const fraction = sourceIndex - indexLow;
+
+            // Linear interpolation
+            const lowValue = sourceGains[indexLow] || 0;
+            const highValue = sourceGains[indexHigh] || 0;
+            const interpolated = lowValue + (highValue - lowValue) * fraction;
+            result.push(Math.round(interpolated * 10) / 10);
+        }
+        return result;
     },
 
     getPreset() {
@@ -841,6 +1036,102 @@ export const equalizerSettings = {
 
     setPreset(preset) {
         localStorage.setItem(this.PRESET_KEY, preset);
+    },
+
+    // Custom Preset Methods
+    getCustomPresets() {
+        try {
+            const stored = localStorage.getItem(this.CUSTOM_PRESETS_KEY);
+            if (stored) {
+                const presets = JSON.parse(stored);
+                if (typeof presets === 'object' && presets !== null) {
+                    return presets;
+                }
+            }
+        } catch {
+            /* ignore */
+        }
+        return {};
+    },
+
+    saveCustomPreset(name, gains) {
+        try {
+            if (!name || !Array.isArray(gains) || gains.length < this.MIN_BANDS || gains.length > this.MAX_BANDS) {
+                console.warn('[EQ] Invalid preset data');
+                return false;
+            }
+
+            // Sanitize name - remove special characters and limit length
+            const sanitizedName = name
+                .trim()
+                .substring(0, 50)
+                .replace(/[^\w\s-]/g, '');
+            if (!sanitizedName) {
+                console.warn('[EQ] Invalid preset name');
+                return false;
+            }
+
+            const presets = this.getCustomPresets();
+            const presetId = 'custom_' + Date.now();
+
+            presets[presetId] = {
+                name: sanitizedName,
+                gains: gains.map((g) => Math.round(g * 10) / 10), // Round to 1 decimal place
+                bandCount: gains.length,
+                createdAt: Date.now(),
+            };
+
+            localStorage.setItem(this.CUSTOM_PRESETS_KEY, JSON.stringify(presets));
+            return presetId;
+        } catch (e) {
+            console.warn('[EQ] Failed to save custom preset:', e);
+            return false;
+        }
+    },
+
+    deleteCustomPreset(presetId) {
+        try {
+            const presets = this.getCustomPresets();
+            if (presets[presetId]) {
+                delete presets[presetId];
+                localStorage.setItem(this.CUSTOM_PRESETS_KEY, JSON.stringify(presets));
+                return true;
+            }
+            return false;
+        } catch (e) {
+            console.warn('[EQ] Failed to delete custom preset:', e);
+            return false;
+        }
+    },
+
+    updateCustomPreset(presetId, name, gains) {
+        try {
+            const presets = this.getCustomPresets();
+            if (!presets[presetId]) {
+                return false;
+            }
+
+            if (name !== undefined) {
+                const sanitizedName = name
+                    .trim()
+                    .substring(0, 50)
+                    .replace(/[^\w\s-]/g, '');
+                if (sanitizedName) {
+                    presets[presetId].name = sanitizedName;
+                }
+            }
+
+            if (Array.isArray(gains) && gains.length === 16) {
+                presets[presetId].gains = gains.map((g) => Math.round(g * 10) / 10);
+                presets[presetId].updatedAt = Date.now();
+            }
+
+            localStorage.setItem(this.CUSTOM_PRESETS_KEY, JSON.stringify(presets));
+            return true;
+        } catch (e) {
+            console.warn('[EQ] Failed to update custom preset:', e);
+            return false;
+        }
     },
 };
 
