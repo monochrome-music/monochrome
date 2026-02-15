@@ -1,11 +1,22 @@
 // js/analytics.js - Plausible Analytics custom event tracking
 
+import { analyticsSettings } from './storage.js';
+
+/**
+ * Check if analytics is enabled
+ * @returns {boolean}
+ */
+function isAnalyticsEnabled() {
+    return analyticsSettings.isEnabled();
+}
+
 /**
  * Track a custom event with Plausible
  * @param {string} eventName - The name of the event
  * @param {object} [props] - Optional event properties
  */
 export function trackEvent(eventName, props = {}) {
+    if (!isAnalyticsEnabled()) return;
     if (window.plausible) {
         try {
             window.plausible(eventName, { props });
@@ -26,26 +37,40 @@ export function trackPageView(path) {
 // Playback Events
 export function trackPlayTrack(track) {
     trackEvent('Play Track', {
+        track_id: track?.id || 'unknown',
         track_title: track?.title || 'Unknown',
+        artist_id: track?.artist?.id || track?.artists?.[0]?.id || 'unknown',
         artist: track?.artist?.name || track?.artists?.[0]?.name || 'Unknown',
+        album_id: track?.album?.id || 'unknown',
         album: track?.album?.title || 'Unknown',
         duration: track?.duration || 0,
         quality: track?.audioQuality || track?.quality || 'Unknown',
         is_local: track?.isLocal || false,
+        is_explicit: track?.explicit || false,
+        track_number: track?.trackNumber || 0,
+        year: track?.album?.releaseYear || track?.album?.releaseDate || 'unknown',
     });
 }
 
 export function trackPauseTrack(track) {
     trackEvent('Pause Track', {
+        track_id: track?.id || 'unknown',
         track_title: track?.title || 'Unknown',
+        artist_id: track?.artist?.id || track?.artists?.[0]?.id || 'unknown',
         artist: track?.artist?.name || track?.artists?.[0]?.name || 'Unknown',
+        album_id: track?.album?.id || 'unknown',
+        album: track?.album?.title || 'Unknown',
     });
 }
 
 export function trackSkipTrack(track, direction) {
     trackEvent('Skip Track', {
+        track_id: track?.id || 'unknown',
         track_title: track?.title || 'Unknown',
+        artist_id: track?.artist?.id || track?.artists?.[0]?.id || 'unknown',
         artist: track?.artist?.name || track?.artists?.[0]?.name || 'Unknown',
+        album_id: track?.album?.id || 'unknown',
+        album: track?.album?.title || 'Unknown',
         direction: direction,
     });
 }
@@ -56,6 +81,19 @@ export function trackToggleShuffle(enabled) {
 
 export function trackToggleRepeat(mode) {
     trackEvent('Toggle Repeat', { mode });
+}
+
+export function trackTrackComplete(track, completionPercent) {
+    trackEvent('Track Complete', {
+        track_id: track?.id || 'unknown',
+        track_title: track?.title || 'Unknown',
+        artist_id: track?.artist?.id || track?.artists?.[0]?.id || 'unknown',
+        artist: track?.artist?.name || track?.artists?.[0]?.name || 'Unknown',
+        album_id: track?.album?.id || 'unknown',
+        album: track?.album?.title || 'Unknown',
+        duration: track?.duration || 0,
+        completion_percent: completionPercent || 100,
+    });
 }
 
 export function trackSetVolume(level) {
@@ -78,6 +116,16 @@ export function trackSeek(position, duration) {
     } else if (progress >= 75 && progress < 80) {
         trackEvent('Seek', { milestone: '75%', position });
     }
+}
+
+// Track listening progress milestones (10%, 25%, 50%, 75%, 90%, 100%)
+export function trackListeningProgress(track, percent) {
+    trackEvent('Listening Progress', {
+        track_id: track?.id || 'unknown',
+        track_title: track?.title || 'Unknown',
+        artist_id: track?.artist?.id || track?.artists?.[0]?.id || 'unknown',
+        percent: percent,
+    });
 }
 
 // Search Events
@@ -108,15 +156,22 @@ export function trackSidebarNavigation(item) {
 // Library Events
 export function trackLikeTrack(track) {
     trackEvent('Like Track', {
+        track_id: track?.id || 'unknown',
         track_title: track?.title || 'Unknown',
+        artist_id: track?.artist?.id || track?.artists?.[0]?.id || 'unknown',
         artist: track?.artist?.name || track?.artists?.[0]?.name || 'Unknown',
+        album_id: track?.album?.id || 'unknown',
+        album: track?.album?.title || 'Unknown',
     });
 }
 
 export function trackUnlikeTrack(track) {
     trackEvent('Unlike Track', {
+        track_id: track?.id || 'unknown',
         track_title: track?.title || 'Unknown',
+        artist_id: track?.artist?.id || track?.artists?.[0]?.id || 'unknown',
         artist: track?.artist?.name || track?.artists?.[0]?.name || 'Unknown',
+        album_id: track?.album?.id || 'unknown',
     });
 }
 
@@ -204,23 +259,29 @@ export function trackDeleteFolder(folderName) {
 // Playback Actions
 export function trackPlayAlbum(album, shuffle) {
     trackEvent('Play Album', {
+        album_id: album?.id || 'unknown',
         album_title: album?.title || 'Unknown',
+        artist_id: album?.artist?.id || 'unknown',
         artist: album?.artist?.name || 'Unknown',
         shuffle: shuffle || false,
         track_count: album?.numberOfTracks || album?.tracks?.length || 0,
+        year: album?.releaseYear || album?.releaseDate || 'unknown',
     });
 }
 
 export function trackPlayPlaylist(playlist, shuffle) {
     trackEvent('Play Playlist', {
+        playlist_id: playlist?.id || 'unknown',
         playlist_name: playlist?.title || playlist?.name || 'Unknown',
         shuffle: shuffle || false,
         track_count: playlist?.tracks?.length || 0,
+        is_public: playlist?.isPublic || false,
     });
 }
 
 export function trackPlayArtistRadio(artist) {
     trackEvent('Play Artist Radio', {
+        artist_id: artist?.id || 'unknown',
         artist_name: artist?.name || 'Unknown',
     });
 }
@@ -232,15 +293,20 @@ export function trackShuffleLikedTracks(count) {
 // Download Events
 export function trackDownloadTrack(track, quality) {
     trackEvent('Download Track', {
+        track_id: track?.id || 'unknown',
         track_title: track?.title || 'Unknown',
+        artist_id: track?.artist?.id || track?.artists?.[0]?.id || 'unknown',
         artist: track?.artist?.name || track?.artists?.[0]?.name || 'Unknown',
+        album_id: track?.album?.id || 'unknown',
         quality: quality || 'Unknown',
     });
 }
 
 export function trackDownloadAlbum(album, quality) {
     trackEvent('Download Album', {
+        album_id: album?.id || 'unknown',
         album_title: album?.title || 'Unknown',
+        artist_id: album?.artist?.id || 'unknown',
         artist: album?.artist?.name || 'Unknown',
         track_count: album?.numberOfTracks || album?.tracks?.length || 0,
         quality: quality || 'Unknown',
@@ -249,6 +315,7 @@ export function trackDownloadAlbum(album, quality) {
 
 export function trackDownloadPlaylist(playlist, quality) {
     trackEvent('Download Playlist', {
+        playlist_id: playlist?.id || 'unknown',
         playlist_name: playlist?.title || playlist?.name || 'Unknown',
         track_count: playlist?.tracks?.length || 0,
         quality: quality || 'Unknown',
@@ -264,6 +331,7 @@ export function trackDownloadLikedTracks(count, quality) {
 
 export function trackDownloadDiscography(artist, selection) {
     trackEvent('Download Discography', {
+        artist_id: artist?.id || 'unknown',
         artist_name: artist?.name || 'Unknown',
         include_albums: selection?.includeAlbums || false,
         include_eps: selection?.includeEPs || false,
@@ -274,16 +342,22 @@ export function trackDownloadDiscography(artist, selection) {
 // Queue Management
 export function trackAddToQueue(track, position) {
     trackEvent('Add to Queue', {
+        track_id: track?.id || 'unknown',
         track_title: track?.title || 'Unknown',
+        artist_id: track?.artist?.id || track?.artists?.[0]?.id || 'unknown',
         artist: track?.artist?.name || track?.artists?.[0]?.name || 'Unknown',
+        album_id: track?.album?.id || 'unknown',
         position: position || 'end',
     });
 }
 
 export function trackPlayNext(track) {
     trackEvent('Play Next', {
+        track_id: track?.id || 'unknown',
         track_title: track?.title || 'Unknown',
+        artist_id: track?.artist?.id || track?.artists?.[0]?.id || 'unknown',
         artist: track?.artist?.name || track?.artists?.[0]?.name || 'Unknown',
+        album_id: track?.album?.id || 'unknown',
     });
 }
 
@@ -306,37 +380,46 @@ export function trackContextMenuAction(action, itemType, item) {
 
 export function trackBlockTrack(track) {
     trackEvent('Block Track', {
+        track_id: track?.id || 'unknown',
         track_title: track?.title || 'Unknown',
+        artist_id: track?.artist?.id || track?.artists?.[0]?.id || 'unknown',
         artist: track?.artist?.name || track?.artists?.[0]?.name || 'Unknown',
+        album_id: track?.album?.id || 'unknown',
     });
 }
 
 export function trackUnblockTrack(track) {
     trackEvent('Unblock Track', {
+        track_id: track?.id || 'unknown',
         track_title: track?.title || 'Unknown',
     });
 }
 
 export function trackBlockAlbum(album) {
     trackEvent('Block Album', {
+        album_id: album?.id || 'unknown',
         album_title: album?.title || 'Unknown',
+        artist_id: album?.artist?.id || 'unknown',
     });
 }
 
 export function trackUnblockAlbum(album) {
     trackEvent('Unblock Album', {
+        album_id: album?.id || 'unknown',
         album_title: album?.title || 'Unknown',
     });
 }
 
 export function trackBlockArtist(artist) {
     trackEvent('Block Artist', {
+        artist_id: artist?.id || 'unknown',
         artist_name: artist?.name || 'Unknown',
     });
 }
 
 export function trackUnblockArtist(artist) {
     trackEvent('Unblock Artist', {
+        artist_id: artist?.id || 'unknown',
         artist_name: artist?.name || 'Unknown',
     });
 }
@@ -634,6 +717,8 @@ export function trackSessionEnd(duration) {
 
 // Initialize analytics on page load
 export function initAnalytics() {
+    if (!isAnalyticsEnabled()) return;
+
     // Track initial page view
     trackPageView(window.location.pathname);
 
