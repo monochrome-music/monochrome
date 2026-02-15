@@ -21,13 +21,13 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/SamidyFR/monochrome/stargazers">
+  <a href="https://github.com/monochrome-music/monochrome/stargazers">
     <img src="https://img.shields.io/github/stars/SamidyFR/monochrome?style=for-the-badge&color=ffffff&labelColor=000000" alt="GitHub stars">
   </a>
-  <a href="https://github.com/SamidyFR/monochrome/forks">
+  <a href="https://github.com/monochrome-music/monochrome/forks">
     <img src="https://img.shields.io/github/forks/SamidyFR/monochrome?style=for-the-badge&color=ffffff&labelColor=000000" alt="GitHub forks">
   </a>
-  <a href="https://github.com/SamidyFR/monochrome/issues">
+  <a href="https://github.com/monochrome-music/monochrome/issues">
     <img src="https://img.shields.io/github/issues/SamidyFR/monochrome?style=for-the-badge&color=ffffff&labelColor=000000" alt="GitHub issues">
   </a>
 </p>
@@ -131,7 +131,7 @@ For PocketBase, development mode, and advanced setups, see [DOCKER.md](DOCKER.md
 1. **Clone the repository:**
 
     ```bash
-    git clone https://github.com/SamidyFR/monochrome.git
+    git clone https://github.com/monochrome-music/monochrome.git
     cd monochrome
     ```
 

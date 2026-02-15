@@ -236,5 +236,5 @@ Now configure Monochrome to use your custom backend:
 ## Need Help?
 
 - Join our [Discord community](https://monochrome.tf/discord) (if available)
-- Open an issue on [GitHub](https://github.com/SamidyFR/monochrome/issues)
-- Check existing [GitHub issues](https://github.com/SamidyFR/monochrome/issues) for solutions
+- Open an issue on [GitHub](https://github.com/monochrome-music/monochrome/issues)
+- Check existing [GitHub issues](https://github.com/monochrome-music/monochrome/issues) for solutions
