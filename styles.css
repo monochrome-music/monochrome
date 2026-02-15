@@ -4,6 +4,7 @@
 
     /* Font - default to Inter for instant render, JS will override if needed */
     --font-family: 'Inter', sans-serif;
+    --font-size-scale: 100%; /* Dynamic font size scale (50% - 200%) */
 
     /* Spacing */
     --spacing-xs: 0.25rem;
@@ -279,6 +280,7 @@ html {
     -moz-osx-font-smoothing: grayscale;
     height: 100%;
     overflow: hidden;
+    font-size: var(--font-size-scale, 100%);
 }
 
 body {
@@ -2014,6 +2016,94 @@ input[type='search']::-webkit-search-cancel-button {
 .uploaded-font-item .font-actions {
     display: flex;
     gap: 0.5rem;
+}
+
+/* Font Size Control */
+.font-size-control {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.font-size-slider {
+    -webkit-appearance: none;
+    width: 150px;
+    height: 6px;
+    background: var(--border);
+    border-radius: var(--radius-full);
+    outline: none;
+}
+
+.font-size-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--primary);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.font-size-slider::-webkit-slider-thumb:hover {
+    background: var(--highlight);
+}
+
+.font-size-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: var(--primary);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    transition: background-color var(--transition-fast);
+}
+
+.font-size-slider::-moz-range-thumb:hover {
+    background: var(--highlight);
+}
+
+.font-size-number-input {
+    width: 60px;
+    padding: 0.4rem 0.5rem;
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-size: 0.9rem;
+    text-align: center;
+    transition: border-color var(--transition-fast);
+}
+
+.font-size-number-input:hover {
+    border-color: var(--primary);
+}
+
+.font-size-number-input:focus {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px rgb(var(--highlight-rgb), 0.2);
+}
+
+/* Hide number input arrows */
+.font-size-number-input::-webkit-outer-spin-button,
+.font-size-number-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.font-size-number-input[type='number'] {
+    -moz-appearance: textfield;
+}
+
+.font-size-unit {
+    font-size: 0.9rem;
+    color: var(--muted-foreground);
+    margin-left: -0.25rem;
+}
+
+#font-size-reset {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
 }
 
 .uploaded-font-item .btn-icon {

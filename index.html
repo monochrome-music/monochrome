@@ -2415,6 +2415,37 @@
                                 </div>
                                 <div class="setting-item">
                                     <div class="info">
+                                        <span class="label">Font Size</span>
+                                        <span class="description">Adjust the base font size (50% - 200%)</span>
+                                    </div>
+                                    <div class="font-size-control">
+                                        <input
+                                            type="range"
+                                            id="font-size-slider"
+                                            min="50"
+                                            max="200"
+                                            value="100"
+                                            step="5"
+                                            class="font-size-slider"
+                                        />
+                                        <input
+                                            type="number"
+                                            id="font-size-input"
+                                            min="50"
+                                            max="200"
+                                            value="100"
+                                            step="1"
+                                            class="font-size-number-input"
+                                            title="Enter font size percentage"
+                                        />
+                                        <span class="font-size-unit">%</span>
+                                        <button id="font-size-reset" class="btn-secondary" title="Reset to default">
+                                            Reset
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
                                         <span class="label">Waveform Seekbar</span>
                                         <span class="description"
                                             >Show a visual waveform of the track in the progress bar

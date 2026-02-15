@@ -2558,6 +2558,59 @@ function initializeFontSettings() {
     }
 
     renderUploadedFontsList();
+
+    // Font Size Controls
+    const fontSizeSlider = document.getElementById('font-size-slider');
+    const fontSizeInput = document.getElementById('font-size-input');
+    const fontSizeReset = document.getElementById('font-size-reset');
+
+    // Helper function to update both controls
+    const updateFontSizeControls = (size) => {
+        const validSize = Math.max(50, Math.min(200, parseInt(size, 10) || 100));
+        if (fontSizeSlider) fontSizeSlider.value = validSize;
+        if (fontSizeInput) fontSizeInput.value = validSize;
+        return validSize;
+    };
+
+    // Initialize with saved value
+    const savedSize = fontSettings.getFontSize();
+    updateFontSizeControls(savedSize);
+
+    // Slider change handler
+    if (fontSizeSlider) {
+        fontSizeSlider.addEventListener('input', () => {
+            const size = parseInt(fontSizeSlider.value, 10);
+            if (fontSizeInput) fontSizeInput.value = size;
+            fontSettings.setFontSize(size);
+        });
+    }
+
+    // Number input change handler
+    if (fontSizeInput) {
+        fontSizeInput.addEventListener('change', () => {
+            let size = parseInt(fontSizeInput.value, 10);
+            // Clamp to valid range
+            size = Math.max(50, Math.min(200, size || 100));
+            updateFontSizeControls(size);
+            fontSettings.setFontSize(size);
+        });
+
+        // Also update on input for real-time feedback
+        fontSizeInput.addEventListener('input', () => {
+            let size = parseInt(fontSizeInput.value, 10);
+            if (!isNaN(size) && size >= 50 && size <= 200) {
+                if (fontSizeSlider) fontSizeSlider.value = size;
+                fontSettings.setFontSize(size);
+            }
+        });
+    }
+
+    if (fontSizeReset) {
+        fontSizeReset.addEventListener('click', () => {
+            const defaultSize = fontSettings.resetFontSize();
+            updateFontSizeControls(defaultSize);
+        });
+    }
 }
 
 function setupSettingsSearch() {

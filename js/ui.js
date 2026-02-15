@@ -47,6 +47,7 @@ import {
 } from './tracker.js';
 
 fontSettings.applyFont();
+fontSettings.applyFontSize();
 
 function sortTracks(tracks, sortType) {
     if (sortType === 'custom') return [...tracks];

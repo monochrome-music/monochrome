@@ -1732,6 +1732,7 @@ if (typeof window !== 'undefined' && window.matchMedia) {
 export const fontSettings = {
     STORAGE_KEY: 'monochrome-font-config-v2',
     CUSTOM_FONTS_KEY: 'monochrome-custom-fonts',
+    FONT_SIZE_KEY: 'monochrome-font-size',
     FONT_LINK_ID: 'monochrome-dynamic-font',
     FONT_FACE_ID: 'monochrome-dynamic-fontface',
 
@@ -1742,6 +1743,43 @@ export const fontSettings = {
             fallback: 'sans-serif',
             weights: [400, 500, 600, 700, 800],
         };
+    },
+
+    getDefaultFontSize() {
+        return 100; // 100% = default size
+    },
+
+    getFontSize() {
+        try {
+            const stored = localStorage.getItem(this.FONT_SIZE_KEY);
+            if (stored) {
+                const size = parseInt(stored, 10);
+                if (!isNaN(size) && size >= 50 && size <= 200) {
+                    return size;
+                }
+            }
+        } catch {
+            // ignore
+        }
+        return this.getDefaultFontSize();
+    },
+
+    setFontSize(size) {
+        const validSize = Math.max(50, Math.min(200, parseInt(size, 10) || 100));
+        localStorage.setItem(this.FONT_SIZE_KEY, validSize.toString());
+        this.applyFontSize();
+        return validSize;
+    },
+
+    applyFontSize() {
+        const size = this.getFontSize();
+        document.documentElement.style.setProperty('--font-size-scale', `${size}%`);
+    },
+
+    resetFontSize() {
+        localStorage.removeItem(this.FONT_SIZE_KEY);
+        this.applyFontSize();
+        return this.getDefaultFontSize();
     },
 
     getConfig() {
