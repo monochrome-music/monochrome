@@ -6444,11 +6444,10 @@ textarea:focus {
 
 #pinned-items-nav {
     flex: 1 1 auto;
-    overflow-y: auto;
-    overflow-x: hidden;
     min-height: 0;
     margin-bottom: 0;
     padding-bottom: 0;
+    overflow: visible;
 }
 
 .sidebar-nav-bottom {

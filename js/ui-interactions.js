@@ -515,7 +515,7 @@ export function initializeUIInteractions(player, api, ui) {
 
     document.body.addEventListener('mouseover', (e) => {
         const selector =
-            '.card-title, .card-subtitle, .track-item-details .title, .track-item-details .artist, .now-playing-bar .title, .now-playing-bar .artist, .now-playing-bar .album';
+            '.card-title, .card-subtitle, .track-item-details .title, .track-item-details .artist, .now-playing-bar .title, .now-playing-bar .artist, .now-playing-bar .album, .pinned-item-name';
         const target = e.target.closest(selector);
 
         if (target) {
