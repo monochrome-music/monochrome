@@ -496,6 +496,12 @@ export function initializeUIInteractions(player, api, ui) {
             finalY = e.clientY - rect.height - 10;
         }
 
+        // Ensure it stays within viewport
+        if (finalX < 5) finalX = 5;
+        if (finalY < 5) finalY = 5;
+        if (finalX + rect.width > winWidth - 5) finalX = winWidth - rect.width - 5;
+        if (finalY + rect.height > winHeight - 5) finalY = winHeight - rect.height - 5;
+
         tooltipEl.style.transform = `translate(${finalX}px, ${finalY}px)`;
         // Reset top/left to 0 since we use transform
         tooltipEl.style.top = '0';
