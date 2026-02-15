@@ -1,11 +1,11 @@
 {
   "productName": "Monochrome",
   "version": "0.1.0",
-  "identifier": "com.samidy.monochrome",
+  "identifier": "com.squid.monochrome",
   "build": {
     "beforeDevCommand": "",
     "beforeBuildCommand": "",
-    "devUrl": "https://monochrome.samidy.com",
+    "devUrl": "https://mono.squid.wtf",
     "frontendDist": "dist"
   },
   "bundle": {

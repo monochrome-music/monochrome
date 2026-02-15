@@ -18,7 +18,7 @@
     </style>
 </head>
 <body>
-    <iframe id="remote-frame" src="https://monochrome.samidy.com"></iframe>
+    <iframe id="remote-frame" src="https://mono.squid.wtf"></iframe>
     
     <script type="module">
         const { invoke } = window.__TAURI__.tauri;
@@ -33,7 +33,7 @@
         });
 
         window.addEventListener('message', async (event) => {
-            if (event.origin !== 'https://monochrome.samidy.com') return;
+            if (event.origin !== 'https://mono.squid.wtf') return;
 
             const { type, data } = event.data;
             

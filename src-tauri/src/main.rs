@@ -77,7 +77,7 @@ fn update_discord_presence(
             "large_text": "Music On Monochrome"
         },
         "buttons": [
-            { "label": "Listen On Monochrome", "url": "https://monochrome.samidy.com" }
+            { "label": "Listen On Monochrome", "url": "https://mono.squid.wtf" }
         ]
     });
 
@@ -226,7 +226,7 @@ pub fn run() {
             let window = WebviewWindowBuilder::new(
                 app,
                 "main",
-                WebviewUrl::External("https://monochrome.samidy.com".parse().unwrap())
+                WebviewUrl::External("https://mono.squid.wtf".parse().unwrap())
             )
             .title("Monochrome")
             .inner_size(1200.0, 800.0)

@@ -12,6 +12,6 @@
   ],
   "platforms": ["windows", "macOS", "linux"],
   "remote": {
-    "urls": ["https://monochrome.samidy.com"]
+    "urls": ["https://mono.squid.wtf"]
   }
 }

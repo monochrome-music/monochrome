@@ -2,7 +2,7 @@
     "name": "monochrome",
     "type": "module",
     "version": "1.0.0",
-    "description": "[<img src=\"https://github.com/SamidyFR/monochrome/blob/main/assets/512.png?raw=true\" alt=\"Monochrome Logo\">](https://monochrome.samidy.com)",
+    "description": "[<img src=\"https://github.com/SamidyFR/monochrome/blob/main/assets/512.png?raw=true\" alt=\"Monochrome Logo\">](https://mono.squid.wtf)",
     "main": "sw.js",
     "scripts": {
         "dev": "vite",
