@@ -2,8 +2,6 @@
 import { auth, provider } from './config.js';
 import {
     signInWithPopup,
-    signInWithRedirect,
-    getRedirectResult,
     signOut as firebaseSignOut,
     onAuthStateChanged,
     signInWithEmailAndPassword,
@@ -22,29 +20,12 @@ export class AuthManager {
     init() {
         if (!auth) return;
 
-        console.log('[Auth] Initializing. Current URL:', window.location.href);
-
         this.unsubscribe = onAuthStateChanged(auth, (user) => {
             this.user = user;
-            console.log('[Auth] Auth state changed:', user ? user.email : 'No user');
             this.updateUI(user);
 
             this.authListeners.forEach((listener) => listener(user));
         });
-
-        // Handle redirect result (for Linux/Mobile where popup might be blocked)
-        getRedirectResult(auth)
-            .then((result) => {
-                if (result) {
-                    console.log('[Auth] Redirect result received:', result.user.email);
-                } else {
-                    console.log('[Auth] No redirect result found.');
-                }
-            })
-            .catch((error) => {
-                console.error('[Auth] Redirect Login failed:', error);
-                alert(`Login failed: ${error.message}`);
-            });
     }
 
     onAuthStateChanged(callback) {
@@ -61,55 +42,13 @@ export class AuthManager {
             return;
         }
 
-        // Check for Neutralino mode
-        const isNeutralino =
-            window.NL_MODE ||
-            window.location.search.includes('mode=neutralino') ||
-            (window.Neutralino && typeof window.Neutralino === 'object');
-
-        if (isNeutralino) {
-            try {
-                await signInWithRedirect(auth, provider);
-                return;
-            } catch (error) {
-                console.error('Redirect Login failed:', error);
-                alert(`Login failed: ${error.message}`);
-                throw error;
-            }
-        }
-
         try {
             const result = await signInWithPopup(auth, provider);
-
-            if (result.user) {
-                console.log('Login successful:', result.user.email);
-                this.user = result.user;
-                this.updateUI(result.user);
-                this.authListeners.forEach((listener) => listener(result.user));
-                return result.user;
-            }
+            // The onAuthStateChanged listener will handle the rest
+            return result.user;
         } catch (error) {
             console.error('Login failed:', error);
-
-            // On Linux, if popup is blocked or fails, we might be forced to redirect,
-            // but we've seen it "bug the app", so we alert the user first.
-            if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
-                if (
-                    confirm(
-                        'The login popup was blocked or failed to communicate. Would you like to try a redirect instead? Note: This may reload the application.'
-                    )
-                ) {
-                    try {
-                        await signInWithRedirect(auth, provider);
-                        return;
-                    } catch (redirectError) {
-                        console.error('Redirect fallback failed:', redirectError);
-                        alert(`Login failed: ${redirectError.message}`);
-                    }
-                }
-            } else {
-                alert(`Login failed: ${error.message}`);
-            }
+            alert(`Login failed: ${error.message}`);
             throw error;
         }
     }
