@@ -65,6 +65,61 @@ export const app = {
     },
 };
 
+export const os = {
+    open: async (url) => {
+        if (!isNeutralino) return;
+        window.parent.postMessage({ type: 'NL_OS_OPEN', url }, '*');
+    },
+    showSaveDialog: async (title, options) => {
+        if (!isNeutralino) return;
+        return new Promise((resolve) => {
+            const id = Math.random().toString(36).substring(7);
+            const handler = (event) => {
+                if (event.data?.type === 'NL_RESPONSE' && event.data.id === id) {
+                    window.removeEventListener('message', handler);
+                    resolve(event.data.result);
+                }
+            };
+            window.addEventListener('message', handler);
+            window.parent.postMessage({ type: 'NL_OS_SHOW_SAVE_DIALOG', id, title, options }, '*');
+        });
+    },
+};
+
+export const filesystem = {
+    writeBinaryFile: async (path, buffer) => {
+        if (!isNeutralino) return;
+        return new Promise((resolve, reject) => {
+            const id = Math.random().toString(36).substring(7);
+            const handler = (event) => {
+                if (event.data?.type === 'NL_RESPONSE' && event.data.id === id) {
+                    window.removeEventListener('message', handler);
+                    if (event.data.error) reject(event.data.error);
+                    else resolve(event.data.result);
+                }
+            };
+            window.addEventListener('message', handler);
+            window.parent.postMessage({ type: 'NL_FS_WRITE_BINARY', id, path, buffer }, '*', [buffer]);
+        });
+    },
+    appendBinaryFile: async (path, buffer) => {
+        if (!isNeutralino) return;
+        return new Promise((resolve, reject) => {
+            const id = Math.random().toString(36).substring(7);
+            const handler = (event) => {
+                if (event.data?.type === 'NL_RESPONSE' && event.data.id === id) {
+                    window.removeEventListener('message', handler);
+                    if (event.data.error) reject(event.data.error);
+                    else resolve(event.data.result);
+                }
+            };
+            window.addEventListener('message', handler);
+            // Transfer buffer if possible to save memory
+            window.parent.postMessage({ type: 'NL_FS_APPEND_BINARY', id, path, buffer }, '*', [buffer]);
+        });
+    },
+};
+
 export const _window = {
     minimize: async () => {
         if (!isNeutralino) return;
@@ -98,5 +153,7 @@ export default {
     events,
     extensions,
     app,
+    os,
+    filesystem,
     window: _window,
 };

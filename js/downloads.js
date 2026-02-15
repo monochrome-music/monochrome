@@ -537,6 +537,169 @@ async function bulkDownloadToZipBlob(
     }
 }
 
+async function bulkDownloadToZipNeutralino(
+    tracks,
+    folderName,
+    api,
+    quality,
+    lyricsManager,
+    notification,
+    coverBlob = null,
+    type = 'playlist',
+    metadata = null
+) {
+    const { abortController } = bulkDownloadTasks.get(notification);
+    const signal = abortController.signal;
+    const { downloadZip } = await loadClientZip();
+
+    // Re-use logic for generating file entries
+    async function* yieldFiles() {
+        // Add cover if available
+        if (coverBlob) {
+            yield { name: `${folderName}/cover.jpg`, lastModified: new Date(), input: coverBlob };
+        }
+
+        // Generate playlist files first
+        const useRelativePaths = playlistSettings.shouldUseRelativePaths();
+
+        if (playlistSettings.shouldGenerateM3U()) {
+            const m3uContent = generateM3U(metadata || { title: folderName }, tracks, useRelativePaths);
+            yield {
+                name: `${folderName}/${sanitizeForFilename(folderName)}.m3u`,
+                lastModified: new Date(),
+                input: m3uContent,
+            };
+        }
+
+        if (playlistSettings.shouldGenerateM3U8()) {
+            const m3u8Content = generateM3U8(metadata || { title: folderName }, tracks, useRelativePaths);
+            yield {
+                name: `${folderName}/${sanitizeForFilename(folderName)}.m3u8`,
+                lastModified: new Date(),
+                input: m3u8Content,
+            };
+        }
+
+        if (playlistSettings.shouldGenerateNFO()) {
+            const nfoContent = generateNFO(metadata || { title: folderName }, tracks, type);
+            yield {
+                name: `${folderName}/${sanitizeForFilename(folderName)}.nfo`,
+                lastModified: new Date(),
+                input: nfoContent,
+            };
+        }
+
+        if (playlistSettings.shouldGenerateJSON()) {
+            const jsonContent = generateJSON(metadata || { title: folderName }, tracks, type);
+            yield {
+                name: `${folderName}/${sanitizeForFilename(folderName)}.json`,
+                lastModified: new Date(),
+                input: jsonContent,
+            };
+        }
+
+        // For albums, generate CUE file
+        if (type === 'album' && playlistSettings.shouldGenerateCUE()) {
+            const audioFilename = `${sanitizeForFilename(folderName)}.flac`; // Assume FLAC for CUE
+            const cueContent = generateCUE(metadata, tracks, audioFilename);
+            yield {
+                name: `${folderName}/${sanitizeForFilename(folderName)}.cue`,
+                lastModified: new Date(),
+                input: cueContent,
+            };
+        }
+
+        // Download tracks
+        for (let i = 0; i < tracks.length; i++) {
+            if (signal.aborted) break;
+            const track = tracks[i];
+            const trackTitle = getTrackTitle(track);
+
+            updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
+
+            try {
+                const { blob, extension } = await downloadTrackBlob(track, quality, api, null, signal);
+                const filename = buildTrackFilename(track, quality, extension);
+                yield { name: `${folderName}/${filename}`, lastModified: new Date(), input: blob };
+
+                if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
+                    try {
+                        const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
+                        if (lyricsData) {
+                            const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
+                            if (lrcContent) {
+                                const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
+                                yield {
+                                    name: `${folderName}/${lrcFilename}`,
+                                    lastModified: new Date(),
+                                    input: lrcContent,
+                                };
+                            }
+                        }
+                    } catch {
+                        /* ignore */
+                    }
+                }
+            } catch (err) {
+                if (err.name === 'AbortError') throw err;
+                console.error(`Failed to download track ${trackTitle}:`, err);
+            }
+        }
+    }
+
+    try {
+        // Load the bridge explicitly to ensure we go through the parent shell
+        const bridge = await import('./desktop/neutralino-bridge.js');
+
+        // Native Save Dialog via Bridge
+        const savePath = await bridge.os.showSaveDialog(`Select save location for ${folderName}.zip`, {
+            defaultPath: `${folderName}.zip`,
+            filters: [{ name: 'ZIP Archive', extensions: ['zip'] }],
+        });
+
+        if (!savePath) {
+            // Cancelled
+            removeBulkDownloadTask(notification);
+            return;
+        }
+
+        const response = downloadZip(yieldFiles());
+
+        // Initialize file (empty) to ensure it exists
+        // We use writeBinaryFile with an empty buffer to create/overwrite
+        await bridge.filesystem.writeBinaryFile(savePath, new ArrayBuffer(0));
+
+        // Stream the response body
+        if (!response.body) throw new Error('ZIP response body is null');
+
+        const reader = response.body.getReader();
+        let receivedLength = 0;
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            // 'value' is a Uint8Array. Neutralino filesystem expects ArrayBuffer.
+            // value.buffer might contain the whole backing store, so we should be careful to slice if offset is non-zero
+            // but usually read() returns fresh chunks.
+            // However, neutralino bridge's appendBinaryFile takes ArrayBuffer.
+            const chunk = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength);
+
+            await bridge.filesystem.appendBinaryFile(savePath, chunk);
+            receivedLength += value.length;
+
+            // Optional: Update granular progress if we want, but we typically update per-track in yieldFiles
+        }
+
+        console.log(`[ZIP] Download complete. Total size: ${receivedLength} bytes.`);
+
+        completeBulkDownload(notification, true);
+    } catch (error) {
+        if (error.name === 'AbortError') return;
+        throw error;
+    }
+}
+
 async function startBulkDownload(
     tracks,
     defaultName,
@@ -551,12 +714,26 @@ async function startBulkDownload(
     const notification = createBulkDownloadNotification(type, name, tracks.length);
 
     try {
+        const isNeutralino = window.NL_MODE === true;
         const hasFileSystemAccess =
             'showSaveFilePicker' in window && 'createWritable' in FileSystemFileHandle.prototype;
         const useZip = hasFileSystemAccess && !bulkDownloadSettings.shouldForceIndividual();
         const useZipBlob = !hasFileSystemAccess && !bulkDownloadSettings.shouldForceIndividual();
 
-        if (useZip) {
+        if (isNeutralino) {
+            // Neutralino Native Logic
+            await bulkDownloadToZipNeutralino(
+                tracks,
+                defaultName,
+                api,
+                quality,
+                lyricsManager,
+                notification,
+                coverBlob,
+                type,
+                metadata
+            );
+        } else if (useZip) {
             // File System Access API available - use streaming
             try {
                 const fileHandle = await window.showSaveFilePicker({

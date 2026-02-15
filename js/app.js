@@ -316,13 +316,55 @@ document.addEventListener('DOMContentLoaded', async () => {
     initTracker(player);
 
     // Initialize desktop features if in Neutralino mode
-    if (
+    // We only assume Neutralino mode if explicitly flagged or if specific params are present
+    const isNeutralinoMode =
         typeof window !== 'undefined' &&
         (window.NL_MODE ||
             window.location.search.includes('mode=neutralino') ||
-            (window.Neutralino && typeof window.Neutralino === 'object'))
-    ) {
+            window.location.search.includes('nl_port='));
+
+    if (isNeutralinoMode) {
         window.NL_MODE = true;
+
+        // Function to restore env vars for Neutralino
+        const restoreNeutralinoEnv = () => {
+            if (window.MonochromeEnv) {
+                if (window.MonochromeEnv.nl_port) window.NL_PORT = window.MonochromeEnv.nl_port;
+                if (window.MonochromeEnv.nl_token) window.NL_TOKEN = window.MonochromeEnv.nl_token;
+            } else {
+                // Fallback direct read
+                const p = sessionStorage.getItem('NL_PORT');
+                const t = sessionStorage.getItem('NL_TOKEN');
+                if (p) window.NL_PORT = p;
+                if (t) window.NL_TOKEN = t;
+            }
+            // Polyfill NL_ARGS to prevent crash in neutralino.js (it checks for debug flags)
+            window.NL_ARGS = window.NL_ARGS || [];
+            console.log('[App] Restored Neutralino Env:', { port: window.NL_PORT, token: !!window.NL_TOKEN });
+        };
+
+        // Ensure Neutralino global is available
+        if (typeof window.Neutralino === 'undefined') {
+            console.log('[App] Neutralino global not found. Injecting script...');
+            try {
+                // Dynamically load neutralino.js from the server root
+                const script = document.createElement('script');
+                script.src = '/neutralino.js';
+                script.onload = () => {
+                    console.log('[App] neutralino.js loaded.');
+                    restoreNeutralinoEnv(); // Restore BEFORE init
+                    window.Neutralino.init();
+                };
+                document.body.appendChild(script);
+            } catch (e) {
+                console.error('[App] Failed to inject neutralino.js:', e);
+            }
+        } else {
+            // Already present
+            restoreNeutralinoEnv(); // Restore BEFORE init
+            window.Neutralino.init();
+        }
+
         import('./desktop/desktop.js').then((m) => m.initDesktop(player));
     }
 

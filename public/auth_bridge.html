@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Monochrome Login</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+
+        .container {
+            background: #1e1e1e;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 90%;
+        }
+
+        h1 {
+            margin-bottom: 1.5rem;
+        }
+
+        p {
+            color: #aaaaaa;
+            margin-bottom: 2rem;
+        }
+
+        .btn {
+            background-color: #ffffff;
+            color: #000000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #e0e0e0;
+        }
+
+        .error {
+            color: #ff5252;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .success {
+            color: #4caf50;
+            margin-top: 1rem;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1 id="status-title">Monochrome Login</h1>
+        <p id="status-text">Please sign in to continue.</p>
+        <button id="login-btn" class="btn">Sign in with Google</button>
+        <div id="error-msg" class="error"></div>
+        <div id="success-msg" class="success">Login successful! You can close this window.</div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import {
+            getAuth,
+            GoogleAuthProvider,
+            signInWithPopup,
+            signInWithRedirect,
+            getRedirectResult,
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        // Duplicate config from config.js - safer to keep standalone here to avoid import issues in external browser
+        const firebaseConfig = {
+            apiKey: 'AIzaSyDPU-unAjuLtQJt4IkGS5faG50UCF7lYyA',
+            authDomain: 'monochrome-database.firebaseapp.com',
+            projectId: 'monochrome-database',
+            storageBucket: 'monochrome-database.firebasestorage.app',
+            messagingSenderId: '895657412760',
+            appId: '1:895657412760:web:e81c5044c7f4e9b799e8ed',
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const NL_PORT = urlParams.get('port');
+        const NL_TOKEN = urlParams.get('token');
+
+        const btn = document.getElementById('login-btn');
+        const errorMsg = document.getElementById('error-msg');
+        const successMsg = document.getElementById('success-msg');
+        const statusTitle = document.getElementById('status-title');
+        const statusText = document.getElementById('status-text');
+
+        // Handle Redirect Result (if we came back from a redirect login)
+        getRedirectResult(auth)
+            .then((result) => {
+                if (result) {
+                    console.log('Redirect Login Successful:', result.user.email);
+                    sendAuthToApp(result);
+                }
+            })
+            .catch((error) => {
+                console.error('Redirect Login Failed:', error);
+                showError(error.message);
+            });
+
+        // Simple Neutralino WebSocket Client (just enough to send an event)
+        function sendAuthToApp(result) {
+            if (!NL_PORT || !NL_TOKEN) {
+                showError('Missing connection parameters (port/token). Launch from app.');
+                return;
+            }
+
+            // Extract user and credential from the UserCredential result
+            const user = result.user;
+            const credential = GoogleAuthProvider.credentialFromResult(result);
+
+            if (!credential) {
+                showError('Failed to retrieve Google Auth Credentials.');
+                return;
+            }
+
+            // Neutralino expects connectToken to be the second part of the NL_TOKEN
+            // NL_TOKEN format: access_token.connect_token
+            const parts = NL_TOKEN.split('.');
+            if (parts.length < 2) {
+                showError('Invalid Token format.');
+                return;
+            }
+            const connectToken = parts[1];
+
+            const ws = new WebSocket(`ws://localhost:${NL_PORT}?connectToken=${connectToken}`);
+
+            ws.onopen = async () => {
+                console.log('Connected to Monochrome App');
+
+                // Payload must follow Neutralino protocol:
+                // { id: uuid, method: "events.broadcast", data: { ... }, accessToken: NL_TOKEN }
+
+                const uuid = crypto.randomUUID ? crypto.randomUUID() : 'auth-' + Date.now();
+
+                const payload = {
+                    id: uuid,
+                    method: 'events.broadcast',
+                    accessToken: NL_TOKEN, // Full token required here
+                    data: {
+                        event: 'externalAuthSuccess',
+                        data: {
+                            uid: user.uid,
+                            email: user.email,
+                            // Pass Google OAuth tokens to create a credential in the main app
+                            idToken: credential.idToken,
+                            accessToken: credential.accessToken,
+                        },
+                    },
+                };
+
+                ws.send(JSON.stringify(payload));
+
+                showSuccess();
+                statusTitle.textContent = "You're signed in";
+                statusText.textContent = 'Return to Monochrome to see your library.';
+                btn.style.display = 'none';
+
+                // Close after a brief delay
+                setTimeout(() => ws.close(), 1000);
+            };
+
+            ws.send(JSON.stringify(payload));
+
+            showSuccess();
+            statusTitle.textContent = "You're signed in";
+            statusText.textContent = 'Return to Monochrome to see your library.';
+            btn.style.display = 'none';
+
+            // Close after a brief delay
+            setTimeout(() => ws.close(), 1000);
+        };
+
+        ws.onerror = (e) => {
+            console.error('WebSocket Error:', e);
+            showError('Failed to connect to Monochrome App. Is it running?');
+        };
+        }
+
+        function showError(msg) {
+            errorMsg.textContent = msg;
+            errorMsg.style.display = 'block';
+            successMsg.style.display = 'none';
+        }
+
+        function showSuccess() {
+            successMsg.style.display = 'block';
+            errorMsg.style.display = 'none';
+        }
+
+        btn.addEventListener('click', async () => {
+            try {
+                const result = await signInWithPopup(auth, provider);
+                console.log('User signed in via popup:', result.user.email);
+                sendAuthToApp(result);
+            } catch (error) {
+                console.error('Popup Login failed:', error);
+
+                // Fallback to redirect for almost any error (popup blocked, closed, network error, internal error)
+                // unless it's a specific user-cancellation that we know is intentional?
+                // 'auth/cancelled-popup-request' usually means the user closed it or the browser killed it.
+                // 'auth/internal-error' often happens if scripts are blocked.
+
+                console.log('Falling back to Redirect Login...');
+                showError('Popup failed (' + error.code + '). Redirecting...');
+
+                try {
+                    await signInWithRedirect(auth, provider);
+                } catch (redirectError) {
+                    console.error('Redirect Login failed:', redirectError);
+                    showError('Login failed completely: ' + redirectError.message + ' (' + redirectError.code + ')');
+                }
+            }
+        });
+
+
+
+        if (!NL_PORT || !NL_TOKEN) {
+            showError('Invalid launch parameters. Please open this page from within Monochrome.');
+            btn.disabled = true;
+        }
+    </script>
+</body>
+
+</html>
