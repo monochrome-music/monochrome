@@ -154,9 +154,9 @@ export class MusicAPI {
         return api.getSimilarAlbums(cleanId);
     }
 
-    async getRecommendedTracksForPlaylist(tracks, limit = 20) {
+    async getRecommendedTracksForPlaylist(tracks, limit = 20, options = {}) {
         // Use Tidal for recommendations
-        return this.tidalAPI.getRecommendedTracksForPlaylist(tracks, limit);
+        return this.tidalAPI.getRecommendedTracksForPlaylist(tracks, limit, options);
     }
 
     // Cache methods

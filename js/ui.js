@@ -624,6 +624,7 @@ export class UIRenderer {
                     </div>
                 </div>
                 <div class="skeleton skeleton-track-duration"></div>
+                <div class="skeleton skeleton-track-actions"></div>
             </div>
         `;
     }
@@ -639,10 +640,10 @@ export class UIRenderer {
     }
 
     createSkeletonTracks(count = 5, showCover = false) {
-        return `<div class="skeleton-container">${Array(count)
+        return Array(count)
             .fill(0)
             .map(() => this.createSkeletonTrack(showCover))
-            .join('')}</div>`;
+            .join('');
     }
 
     createSkeletonCards(count = 6, isArtist = false) {
@@ -1560,7 +1561,9 @@ export class UIRenderer {
             try {
                 const seeds = await this.getSeeds();
                 const trackSeeds = seeds.slice(0, 5);
-                const recommendedTracks = await this.api.getRecommendedTracksForPlaylist(trackSeeds, 20);
+                const recommendedTracks = await this.api.getRecommendedTracksForPlaylist(trackSeeds, 20, {
+                    skipCache: forceRefresh,
+                });
 
                 const filteredTracks = await this.filterUserContent(recommendedTracks, 'track');
 

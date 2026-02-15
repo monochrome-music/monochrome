@@ -675,8 +675,10 @@ export class LosslessAPI {
 
     async getArtist(artistId, options = {}) {
         const cacheKey = options.lightweight ? `artist_${artistId}_light` : `artist_${artistId}`;
-        const cached = await this.cache.get('artist', cacheKey);
-        if (cached) return cached;
+        if (!options.skipCache) {
+            const cached = await this.cache.get('artist', cacheKey);
+            if (cached) return cached;
+        }
 
         const [primaryResponse, contentResponse] = await Promise.all([
             this.fetchWithRetry(`/artist/?id=${artistId}`),
@@ -811,7 +813,7 @@ export class LosslessAPI {
         }
     }
 
-    async getRecommendedTracksForPlaylist(tracks, limit = 20) {
+    async getRecommendedTracksForPlaylist(tracks, limit = 20, options = {}) {
         const artistMap = new Map();
 
         // Check if tracks already have artist info (some might)
@@ -872,7 +874,7 @@ export class LosslessAPI {
         const artistPromises = artistsToProcess.map(async (artist) => {
             try {
                 console.log(`Fetching tracks for artist: ${artist.name} (ID: ${artist.id})`);
-                const artistData = await this.getArtist(artist.id, { lightweight: true });
+                const artistData = await this.getArtist(artist.id, { lightweight: true, skipCache: options.skipCache });
                 if (artistData && artistData.tracks && artistData.tracks.length > 0) {
                     const newTracks = artistData.tracks.filter((track) => !seenTrackIds.has(track.id)).slice(0, 4);
                     return newTracks;

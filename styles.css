@@ -3289,11 +3289,10 @@ input:checked + .slider::before {
 
 .skeleton-track {
     display: grid;
-    grid-template-columns: 40px 1fr 80px 48px;
+    grid-template-columns: 40px 1fr 60px 40px;
     align-items: center;
     gap: var(--spacing-md);
-    padding: var(--spacing-sm);
-    margin-bottom: 2px;
+    padding: var(--spacing-sm) var(--spacing-md);
 }
 
 .skeleton-track-number {
@@ -3339,6 +3338,12 @@ input:checked + .slider::before {
 .skeleton-track-duration {
     width: 40px;
     height: 14px;
+}
+
+.skeleton-track-actions {
+    width: 24px;
+    height: 24px;
+    justify-self: flex-end;
 }
 
 .skeleton-card {
