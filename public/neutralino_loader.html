@@ -135,6 +135,12 @@
             Neutralino.events.on('windowFocus', () => forwardEvent('windowFocus'));
             Neutralino.events.on('windowBlur', () => forwardEvent('windowBlur'));
 
+            // Media Key Events (Linux Fix)
+            Neutralino.events.on('mediaNext', () => forwardEvent('mediaNext'));
+            Neutralino.events.on('mediaPrevious', () => forwardEvent('mediaPrevious'));
+            Neutralino.events.on('mediaPlayPause', () => forwardEvent('mediaPlayPause'));
+            Neutralino.events.on('mediaStop', () => forwardEvent('mediaStop'));
+
             // Handle commands from the Iframe (via Bridge)
             window.addEventListener('message', async (event) => {
                 const { type, eventName, data, extensionId } = event.data;

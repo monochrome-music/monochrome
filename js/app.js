@@ -315,6 +315,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize tracker
     initTracker(player);
 
+    // Linux Media Keys Fix
+    if (window.NL_MODE) {
+        import('./desktop/neutralino-bridge.js').then(({ events }) => {
+            events.on('mediaNext', () => player.playNext());
+            events.on('mediaPrevious', () => player.playPrev());
+            events.on('mediaPlayPause', () => player.handlePlayPause());
+            events.on('mediaStop', () => {
+                player.audio.pause();
+                player.audio.currentTime = 0;
+            });
+            console.log('Media keys initialized via bridge');
+        });
+    }
+
     // Initialize desktop features if in Neutralino mode
     if (
         typeof window !== 'undefined' &&
