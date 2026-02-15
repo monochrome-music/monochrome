@@ -388,6 +388,18 @@ kbd {
     padding: 0;
 }
 
+.sidebar-nav.bottom .nav-item a {
+    padding: 0.5rem 0.75rem;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+}
+
+.sidebar-nav.bottom .nav-item a svg {
+    width: 17px;
+    height: 17px;
+}
+
 .main-content {
     grid-area: main;
     overflow-y: auto;
