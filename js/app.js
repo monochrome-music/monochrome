@@ -25,36 +25,21 @@ import './smooth-scrolling.js';
 import { initTracker } from './tracker.js';
 import {
     initAnalytics,
-    trackNavigate,
     trackSidebarNavigation,
     trackCreatePlaylist,
-    trackEditPlaylist,
-    trackDeletePlaylist,
     trackCreateFolder,
-    trackDeleteFolder,
-    trackImportCSV,
     trackImportJSPF,
     trackSelectLocalFolder,
     trackChangeLocalFolder,
-    trackPlayAlbum,
-    trackShuffleLikedTracks,
-    trackDownloadLikedTracks,
-    trackDownloadDiscography,
     trackOpenModal,
     trackCloseModal,
-    trackClearHistory,
-    trackClearRecent,
     trackKeyboardShortcut,
     trackPwaUpdate,
     trackDismissUpdate,
     trackOpenFullscreenCover,
     trackCloseFullscreenCover,
-    trackToggleLyricsFullscreen,
-    trackPlayPlaylist,
-    trackPlayArtistRadio,
     trackOpenLyrics,
     trackCloseLyrics,
-    trackContextMenuAction,
 } from './analytics.js';
 
 // Lazy-loaded modules
@@ -384,7 +369,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Track sidebar navigation clicks
     document.querySelectorAll('.sidebar-nav a').forEach((link) => {
-        link.addEventListener('click', (e) => {
+        link.addEventListener('click', () => {
             const href = link.getAttribute('href');
             if (href && !href.startsWith('http')) {
                 const item = link.querySelector('span')?.textContent || href;
@@ -2156,10 +2141,6 @@ async function parseJSPF(jspfText, api, onProgress) {
             const trackTitle = jspfTrack.title;
             const trackCreator = jspfTrack.creator;
             const trackAlbum = jspfTrack.album;
-
-            // Support ListenBrainz extension data
-            const lbExtension = jspfTrack.extension?.['https://musicbrainz.org/doc/jspf#track'];
-            const mbRecordingId = lbExtension?.artist_identifiers?.[0]?.split('/').pop();
 
             if (onProgress) {
                 onProgress({

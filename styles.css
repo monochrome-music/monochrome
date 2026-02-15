@@ -356,21 +356,36 @@ kbd {
 
 .sidebar-nav.main {
     flex: 1;
+    flex-shrink: 0;
 }
 
 .sidebar-bottom-container {
     margin-top: auto;
     display: flex;
     flex-direction: column;
+    flex: 1;
+    min-height: 0;
 }
 
 .sidebar-nav-bottom {
     margin-top: auto;
     padding-top: 1rem;
+    flex: 0 0 auto;
+    border-top: 1px solid var(--border);
+    background: var(--background);
+    position: relative;
+}
+
+.sidebar-nav-bottom::before {
+    content: '';
+    display: block;
+    height: 0.5rem;
+    margin-top: -0.5rem;
 }
 
 .sidebar-nav.bottom {
-    margin-top: 0;
+    margin: 0;
+    padding: 0;
 }
 
 .main-content {
@@ -538,9 +553,11 @@ kbd {
 
 #pinned-items-nav {
     margin-top: auto;
-    flex-shrink: 1;
-    overflow-y: auto;
     min-height: 0;
+    flex: 1 1 auto;
+    margin-bottom: 0;
+    padding-bottom: 0;
+    overflow: visible;
 }
 
 #pinned-items-list .nav-item a {
@@ -6422,54 +6439,4 @@ textarea:focus {
 
 #custom-tooltip.visible {
     opacity: 1;
-}
-
-/* idec this collides with other styles atp if it works it works */
-.sidebar-content {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-}
-
-.sidebar-nav.main {
-    flex-shrink: 0;
-}
-
-.sidebar-bottom-container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-}
-
-#pinned-items-nav {
-    flex: 1 1 auto;
-    min-height: 0;
-    margin-bottom: 0;
-    padding-bottom: 0;
-    overflow: visible;
-}
-
-.sidebar-nav-bottom {
-    flex: 0 0 auto;
-    margin-top: auto;
-    padding: 1rem 0 0;
-    border-top: 1px solid var(--border);
-    background: var(--background);
-    position: relative;
-}
-
-.sidebar-nav-bottom::before {
-    content: '';
-    display: block;
-    height: 0.5rem;
-    margin-top: -0.5rem;
-}
-
-.sidebar-nav.bottom {
-    margin: 0;
-    padding: 0;
-}
-
-#sidebar-nav-discord {
 }
