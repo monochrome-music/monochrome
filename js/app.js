@@ -548,6 +548,72 @@ document.addEventListener('DOMContentLoaded', async () => {
                 importType === 'm3u' ? document.getElementById('m3u-file-input').value : '';
         });
     });
+    const spotifyBtn = document.getElementById('csv-spotify-btn');
+    const appleBtn = document.getElementById('csv-apple-btn');
+    const ytmBtn = document.getElementById('csv-ytm-btn');
+    const spotifyGuide = document.getElementById('csv-spotify-guide');
+    const appleGuide = document.getElementById('csv-apple-guide');
+    const ytmGuide = document.getElementById('csv-ytm-guide');
+    const inputContainer = document.getElementById('csv-input-container');
+
+    if (spotifyBtn && appleBtn && ytmBtn) {
+        spotifyBtn.addEventListener('click', () => {
+            spotifyBtn.classList.remove('btn-secondary');
+            spotifyBtn.classList.add('btn-primary');
+            spotifyBtn.style.opacity = '1';
+
+            appleBtn.classList.remove('btn-primary');
+            appleBtn.classList.add('btn-secondary');
+            appleBtn.style.opacity = '0.7';
+            
+            ytmBtn.classList.remove('btn-primary');
+            ytmBtn.classList.add('btn-secondary');
+            ytmBtn.style.opacity = '0.7';
+
+            spotifyGuide.style.display = 'block';
+            appleGuide.style.display = 'none';
+            ytmGuide.style.display = 'none';
+            inputContainer.style.display = 'block';
+        });
+
+        appleBtn.addEventListener('click', () => {
+            appleBtn.classList.remove('btn-secondary');
+            appleBtn.classList.add('btn-primary');
+            appleBtn.style.opacity = '1';
+
+            spotifyBtn.classList.remove('btn-primary');
+            spotifyBtn.classList.add('btn-secondary');
+            spotifyBtn.style.opacity = '0.7';
+            
+            ytmBtn.classList.remove('btn-primary');
+            ytmBtn.classList.add('btn-secondary');
+            ytmBtn.style.opacity = '0.7';
+
+            appleGuide.style.display = 'block';
+            spotifyGuide.style.display = 'none';
+            ytmGuide.style.display = 'none';
+            inputContainer.style.display = 'block';
+        });
+
+        ytmBtn.addEventListener('click', () => {
+            ytmBtn.classList.remove('btn-secondary');
+            ytmBtn.classList.add('btn-primary');
+            ytmBtn.style.opacity = '1';
+
+            spotifyBtn.classList.remove('btn-primary');
+            spotifyBtn.classList.add('btn-secondary');
+            spotifyBtn.style.opacity = '0.7';
+
+            appleBtn.classList.remove('btn-primary');
+            appleBtn.classList.add('btn-secondary');
+            appleBtn.style.opacity = '0.7';
+
+            ytmGuide.style.display = 'block';
+            spotifyGuide.style.display = 'none';
+            appleGuide.style.display = 'none';
+            inputContainer.style.display = 'none';
+        });
+    }
 
     // Cover image upload functionality
     const coverUploadBtn = document.getElementById('playlist-cover-upload-btn');
@@ -843,6 +909,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             modal.dataset.editingId = '';
             document.getElementById('import-section').style.display = 'block';
             document.getElementById('csv-file-input').value = '';
+            document.getElementById('ytm-url-input').value = '';
+            document.getElementById('ytm-status').textContent = '';
             document.getElementById('jspf-file-input').value = '';
             document.getElementById('xspf-file-input').value = '';
             document.getElementById('xml-file-input').value = '';
@@ -998,7 +1066,89 @@ document.addEventListener('DOMContentLoaded', async () => {
                         };
                     };
 
-                    if (jspfFileInput.files.length > 0) {
+                    const isYTMActive = document.getElementById('csv-ytm-btn')?.classList.contains('btn-primary');
+                    const ytmUrlInput = document.getElementById('ytm-url-input');
+
+                    if (isYTMActive && ytmUrlInput.value.trim()) {
+                        importSource = 'ytm_import';
+                        const url = ytmUrlInput.value.trim();
+                        const playlistId = url.split('list=')[1]?.split('&')[0];
+                        
+                        const workerUrl = `https://ytmimport.samidy.workers.dev?playlistId=${playlistId}`;
+
+                        if (!playlistId) {
+                            alert("Invalid URL. Make sure it has 'list=' in it.");
+                            return;
+                        }
+
+                        const {
+                            progressElement,
+                            progressFill,
+                            progressCurrent,
+                            progressTotal,
+                            currentTrackElement,
+                            currentArtistElement,
+                        } = setupProgressElements();
+
+                        try {
+                            progressElement.style.display = 'block';
+                            progressFill.style.width = '0%';
+                            progressCurrent.textContent = '0';
+                            currentTrackElement.textContent = 'Fetching from YouTube...';
+                            if (currentArtistElement) currentArtistElement.textContent = '';
+
+                            const response = await fetch(workerUrl);
+                            const songs = await response.json();
+
+                            if (songs.error) throw new Error(songs.error);
+
+                            currentTrackElement.textContent = `Processing ${songs.length} songs...`;
+
+                            const headers = "Title,Artist,URL\n";
+                            const csvText = headers + songs.map(s => 
+                                `"${s.title.replace(/"/g, '""')}","${s.artist.replace(/"/g, '""')}","${s.url}"`
+                            ).join("\n");
+
+                            const totalTracks = songs.length;
+                            progressTotal.textContent = totalTracks.toString();
+
+                            const result = await parseCSV(csvText, api, (progress) => {
+                                const percentage = totalTracks > 0 ? (progress.current / totalTracks) * 100 : 0;
+                                progressFill.style.width = `${Math.min(percentage, 100)}%`;
+                                progressCurrent.textContent = progress.current.toString();
+                                currentTrackElement.textContent = progress.currentTrack;
+                                if (currentArtistElement)
+                                    currentArtistElement.textContent = progress.currentArtist || '';
+                            });
+
+                            tracks = result.tracks;
+                            const missingTracks = result.missingTracks;
+                            
+                            if (tracks.length === 0) {
+                                alert('No valid tracks found in the YouTube playlist!');
+                                progressElement.style.display = 'none';
+                                return;
+                            }
+
+                            console.log(`Imported ${tracks.length} tracks from YouTube`);
+                            trackImportCSV(name || 'Untitled', tracks.length, missingTracks.length);
+
+                            if (missingTracks.length > 0) {
+                                setTimeout(() => {
+                                    showMissingTracksNotification(missingTracks);
+                                }, 500);
+                            }
+                        } catch (err) {
+                            console.error('YTM Import Error:', err);
+                            alert(`Error importing from YouTube: ${err.message}`);
+                            progressElement.style.display = 'none';
+                            return;
+                        } finally {
+                            setTimeout(() => {
+                                progressElement.style.display = 'none';
+                            }, 1000);
+                        }
+                    } else if (jspfFileInput.files.length > 0) {
                         // Import from JSPF
                         importSource = 'jspf_import';
                         const file = jspfFileInput.files[0];
@@ -2141,7 +2291,10 @@ function showMissingTracksNotification(missingTracks) {
     const modal = document.getElementById('missing-tracks-modal');
     const listUl = document.getElementById('missing-tracks-list-ul');
 
-    listUl.innerHTML = missingTracks.map((track) => `<li>${track}</li>`).join('');
+    listUl.innerHTML = missingTracks.map((track) => {
+        const text = typeof track === 'string' ? track : `${track.artist ? track.artist + ' - ' : ''}${track.title}`;
+        return `<li>${text}</li>`;
+    }).join('');
 
     const closeModal = () => modal.classList.remove('active');
 
