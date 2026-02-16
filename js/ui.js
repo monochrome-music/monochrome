@@ -2514,9 +2514,8 @@ export class UIRenderer {
                 descEl.textContent = playlistData.description || '';
 
                 const originalTracks = [...tracks];
-                // Default sort: first available option (Playlist Order if no addedAt, else Date Added Newest)
-                const hasAddedDate = tracks.some((t) => t.addedAt);
-                currentSort = hasAddedDate ? 'added-newest' : 'custom';
+                const savedSort = localStorage.getItem(`playlist-sort-${playlistId}`);
+                currentSort = savedSort || 'custom';
                 let currentTracks = sortTracks(originalTracks, currentSort);
 
                 const renderTracks = () => {
@@ -2563,6 +2562,7 @@ export class UIRenderer {
 
                 const applySort = (sortType) => {
                     currentSort = sortType;
+                    localStorage.setItem(`playlist-sort-${playlistId}`, sortType);
                     currentTracks = sortTracks(originalTracks, sortType);
                     renderTracks();
                 };
@@ -2653,8 +2653,9 @@ export class UIRenderer {
                 descEl.textContent = playlist.description || '';
 
                 const originalTracks = [...tracks];
-                let currentTracks = [...tracks];
-                let currentSort = 'custom';
+                const savedSort = localStorage.getItem(`playlist-sort-${playlistId}`);
+                let currentSort = savedSort || 'custom';
+                let currentTracks = sortTracks(originalTracks, currentSort);
 
                 const renderTracks = () => {
                     tracklistContainer.innerHTML = `
@@ -2670,6 +2671,7 @@ export class UIRenderer {
 
                 const applySort = (sortType) => {
                     currentSort = sortType;
+                    localStorage.setItem(`playlist-sort-${playlistId}`, sortType);
                     currentTracks = sortTracks(originalTracks, sortType);
                     renderTracks();
                 };
@@ -3400,8 +3402,10 @@ export class UIRenderer {
         });
 
         const dragStart = (e) => {
-            draggedElement = e.target;
-            draggedIndex = parseInt(e.target.dataset.index);
+            draggedElement = e.target.closest('.track-item');
+            if (!draggedElement) return;
+
+            draggedIndex = parseInt(draggedElement.dataset.index);
             e.dataTransfer.effectAllowed = 'move';
             e.dataTransfer.setData('text/plain', draggedIndex);
             draggedElement.classList.add('dragging');
