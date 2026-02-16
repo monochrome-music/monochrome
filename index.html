@@ -405,19 +405,62 @@
                     placeholder="Playlist name"
                     style="margin: 1rem 0"
                 />
-                <input
-                    type="url"
-                    id="playlist-cover-input"
-                    class="template-input"
-                    placeholder="Cover image URL (optional)"
-                    style="margin: 0.5rem 0"
-                />
-                <p style="font-size: 0.8rem; margin: 0">
-                    Upload your cover to
-                    <a href="https://catbox.moe" style="text-decoration: underline">catbox.moe</a> then paste the link
-                    here. (or any other service that allows directly linking to a file, but we recommend catbox due to
-                    their long-term storage of your files)
-                </p>
+                <div
+                    id="playlist-cover-wrapper"
+                    style="margin: 0.5rem 0; display: flex; gap: 0.5rem; align-items: stretch"
+                >
+                    <input
+                        type="url"
+                        id="playlist-cover-input"
+                        class="template-input"
+                        placeholder="Cover image URL"
+                        style="flex: 1; margin: 0; display: none"
+                    />
+                    <input type="file" id="playlist-cover-file-input" accept="image/*" style="display: none" />
+                    <button
+                        type="button"
+                        id="playlist-cover-upload-btn"
+                        class="template-btn"
+                        style="
+                            flex: 1;
+                            padding: 0.5rem;
+                            font-size: 0.85rem;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            gap: 0.5rem;
+                        "
+                    >
+                        <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="17 8 12 3 7 8" />
+                            <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                        <span id="playlist-cover-btn-text">Upload</span>
+                    </button>
+                    <button
+                        type="button"
+                        id="playlist-cover-toggle-url-btn"
+                        class="template-btn"
+                        style="padding: 0.5rem; font-size: 0.85rem; white-space: nowrap"
+                        title="Switch to URL input"
+                    >
+                        or URL
+                    </button>
+                </div>
+                <div
+                    id="playlist-cover-upload-status"
+                    style="display: none; margin: -0.25rem 0 0.5rem 0; font-size: 0.75rem; opacity: 0.8"
+                >
+                    <span id="playlist-cover-upload-text"></span>
+                </div>
                 <textarea
                     id="playlist-description-input"
                     class="template-input"

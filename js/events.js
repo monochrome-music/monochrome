@@ -696,9 +696,24 @@ export async function showAddToPlaylistModal(track) {
             document.getElementById('playlist-modal-title').textContent = 'Create Playlist';
             document.getElementById('playlist-name-input').value = '';
             document.getElementById('playlist-cover-input').value = '';
+            document.getElementById('playlist-cover-file-input').value = '';
             document.getElementById('playlist-description-input').value = '';
             createModal.dataset.editingId = '';
-            document.getElementById('csv-import-section').style.display = 'none';
+            document.getElementById('import-section').style.display = 'none';
+
+            // Reset cover upload state
+            const coverUploadBtn = document.getElementById('playlist-cover-upload-btn');
+            const coverUrlInput = document.getElementById('playlist-cover-input');
+            const coverToggleUrlBtn = document.getElementById('playlist-cover-toggle-url-btn');
+            if (coverUploadBtn) {
+                coverUploadBtn.style.flex = '1';
+                coverUploadBtn.style.display = 'flex';
+            }
+            if (coverUrlInput) coverUrlInput.style.display = 'none';
+            if (coverToggleUrlBtn) {
+                coverToggleUrlBtn.textContent = 'or URL';
+                coverToggleUrlBtn.title = 'Switch to URL input';
+            }
 
             // Pass track
             createModal._pendingTracks = [track];
@@ -1096,9 +1111,24 @@ export async function handleTrackAction(
                 document.getElementById('playlist-modal-title').textContent = 'Create Playlist';
                 document.getElementById('playlist-name-input').value = '';
                 document.getElementById('playlist-cover-input').value = '';
+                document.getElementById('playlist-cover-file-input').value = '';
                 document.getElementById('playlist-description-input').value = '';
                 createModal.dataset.editingId = '';
-                document.getElementById('csv-import-section').style.display = 'none';
+                document.getElementById('import-section').style.display = 'none';
+
+                // Reset cover upload state
+                const coverUploadBtn = document.getElementById('playlist-cover-upload-btn');
+                const coverUrlInput = document.getElementById('playlist-cover-input');
+                const coverToggleUrlBtn = document.getElementById('playlist-cover-toggle-url-btn');
+                if (coverUploadBtn) {
+                    coverUploadBtn.style.flex = '1';
+                    coverUploadBtn.style.display = 'flex';
+                }
+                if (coverUrlInput) coverUrlInput.style.display = 'none';
+                if (coverToggleUrlBtn) {
+                    coverToggleUrlBtn.textContent = 'or URL';
+                    coverToggleUrlBtn.title = 'Switch to URL input';
+                }
 
                 // Pass track
                 createModal._pendingTracks = [item];
