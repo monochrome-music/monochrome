@@ -1610,6 +1610,8 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
 
     mainContent.addEventListener('contextmenu', async (e) => {
         const trackItem = e.target.closest('.track-item, .queue-track-item');
+        const card = e.target.closest('.card');
+
         if (trackItem) {
             e.preventDefault();
             if (trackItem.classList.contains('queue-track-item')) {
@@ -1632,29 +1634,6 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                     }
                 });
 
-                contextMenu._contextTrack = contextTrack;
-                contextMenu._contextType = 'track';
-                await updateContextMenuLikeState(contextMenu, contextTrack);
-                positionMenu(contextMenu, e.clientX, e.clientY);
-            }
-        }
-    });
-
-    mainContent.addEventListener('contextmenu', async (e) => {
-        const trackItem = e.target.closest('.track-item, .queue-track-item');
-        const card = e.target.closest('.card');
-
-        if (trackItem) {
-            e.preventDefault();
-            if (trackItem.classList.contains('queue-track-item')) {
-                const queueIndex = parseInt(trackItem.dataset.queueIndex);
-                contextTrack = player.getCurrentQueue()[queueIndex];
-            } else {
-                contextTrack = trackDataStore.get(trackItem);
-            }
-
-            if (contextTrack) {
-                if (contextTrack.isLocal) return;
                 contextMenu._contextTrack = contextTrack;
                 contextMenu._contextType = 'track';
                 await updateContextMenuLikeState(contextMenu, contextTrack);
