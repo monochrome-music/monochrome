@@ -934,7 +934,7 @@ function getLyricsHighlightColor() {
 
 function updateLyricsTheme() {
     const highlightColor = getLyricsHighlightColor();
-    document.querySelectorAll('am-lyrics').forEach(el => {
+    document.querySelectorAll('am-lyrics').forEach((el) => {
         el.setAttribute('highlight-color', highlightColor);
     });
 }
@@ -946,7 +946,7 @@ const themeObserver = new MutationObserver(() => {
 
 themeObserver.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ['data-theme', 'style']
+    attributeFilter: ['data-theme', 'style'],
 });
 
 async function renderLyricsComponent(container, track, audioPlayer, lyricsManager) {
