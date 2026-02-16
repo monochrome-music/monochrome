@@ -13,6 +13,17 @@
     {
         "type": "album",
         "id": 118353565,
+        "title": "I LAY DOWN MY LIFE FOR YOU: DIRECTOR'S CUT",
+        "artist": { "id": 439890147, "name": "JPEGMAFIA" },
+        "releaseDate": "2025-02-03",
+        "cover": "9c84302b-2584-4c0a-9db7-e648542f459f",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 118353565,
         "title": "Dyn-O-Mite",
         "artist": { "id": 5755811, "name": "ZelooperZ" },
         "releaseDate": "2019-05-18",
@@ -26,7 +37,7 @@
         "id": 487053581,
         "title": "USB A (Deluxe)",
         "artist": { "id": 46882510, "name": "PRODYSGROUP" },
-        "releaseDate": "2019-05-18",
+        "releaseDate": "2025-08-9",
         "cover": "6409de67-1a4e-421b-9820-cc67a21792ec",
         "explicit": true,
         "audioQuality": "LOSSLESS",
