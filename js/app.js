@@ -268,51 +268,22 @@ async function disablePwaForAuthGate() {
 }
 
 async function uploadCoverImage(file) {
-    const API_BASE = 'https://temp.imgur.gg/api/upload';
-
     try {
-        const payload = {
-            files: [
-                {
-                    fileName: file.name,
-                    fileType: file.type,
-                    fileSize: file.size,
-                },
-            ],
-        };
+        const formData = new FormData();
+        formData.append('file', file);
 
-        const metadataResp = await fetch(API_BASE, {
+        const response = await fetch('/upload', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(payload),
+            body: formData,
         });
 
-        if (!metadataResp.ok) {
-            throw new Error(`Metadata request failed: ${metadataResp.status}`);
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || `Upload failed: ${response.status}`);
         }
 
-        const metadata = await metadataResp.json();
-
-        if (!metadata.success || !metadata.files || !metadata.files[0]) {
-            throw new Error('Failed to get upload URL');
-        }
-
-        const fileInfo = metadata.files[0];
-        const uploadUrl = fileInfo.uploadUrl;
-
-        const uploadResp = await fetch(uploadUrl, {
-            method: 'PUT',
-            body: file,
-        });
-
-        if (!uploadResp.ok) {
-            throw new Error(`Upload failed: ${uploadResp.status}`);
-        }
-
-        const publicUrl = `https://i.imgur.gg/${fileInfo.fileId}-${fileInfo.fileName}`;
-        return publicUrl;
+        const data = await response.json();
+        return data.url;
     } catch (error) {
         console.error('Cover upload error:', error);
         throw error;
