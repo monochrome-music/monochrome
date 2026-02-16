@@ -476,6 +476,51 @@
                         >
                             JSPF
                         </button>
+                        <button
+                            type="button"
+                            class="import-tab"
+                            data-import-type="xspf"
+                            style="
+                                background: transparent;
+                                border: none;
+                                color: var(--foreground);
+                                cursor: pointer;
+                                padding: 0.25rem 0.5rem;
+                                opacity: 0.7;
+                            "
+                        >
+                            XSPF
+                        </button>
+                        <button
+                            type="button"
+                            class="import-tab"
+                            data-import-type="xml"
+                            style="
+                                background: transparent;
+                                border: none;
+                                color: var(--foreground);
+                                cursor: pointer;
+                                padding: 0.25rem 0.5rem;
+                                opacity: 0.7;
+                            "
+                        >
+                            XML
+                        </button>
+                        <button
+                            type="button"
+                            class="import-tab"
+                            data-import-type="m3u"
+                            style="
+                                background: transparent;
+                                border: none;
+                                color: var(--foreground);
+                                cursor: pointer;
+                                padding: 0.25rem 0.5rem;
+                                opacity: 0.7;
+                            "
+                        >
+                            M3U
+                        </button>
                     </div>
 
                     <div id="csv-import-panel" class="import-panel active">
@@ -513,6 +558,54 @@
                             id="jspf-file-input"
                             class="btn-secondary"
                             accept=".json,.jspf"
+                            style="width: 100%; margin-bottom: 0.5rem"
+                        />
+                    </div>
+
+                    <div id="xspf-import-panel" class="import-panel" style="display: none">
+                        <p style="margin-bottom: 0.5rem; font-size: 0.9rem">Import from XSPF</p>
+                        <p style="font-size: 0.8rem; margin: 0">
+                            XSPF (XML Shareable Playlist Format) is a standard XML playlist format supported by many
+                            media players including VLC, Audacious, and Clementine.
+                        </p>
+                        <br />
+                        <input
+                            type="file"
+                            id="xspf-file-input"
+                            class="btn-secondary"
+                            accept=".xspf,.xml"
+                            style="width: 100%; margin-bottom: 0.5rem"
+                        />
+                    </div>
+
+                    <div id="xml-import-panel" class="import-panel" style="display: none">
+                        <p style="margin-bottom: 0.5rem; font-size: 0.9rem">Import from XML</p>
+                        <p style="font-size: 0.8rem; margin: 0">
+                            Import playlists from generic XML formats including iTunes XML playlists, Winamp XML, and
+                            other custom XML playlist formats.
+                        </p>
+                        <br />
+                        <input
+                            type="file"
+                            id="xml-file-input"
+                            class="btn-secondary"
+                            accept=".xml"
+                            style="width: 100%; margin-bottom: 0.5rem"
+                        />
+                    </div>
+
+                    <div id="m3u-import-panel" class="import-panel" style="display: none">
+                        <p style="margin-bottom: 0.5rem; font-size: 0.9rem">Import from M3U/M3U8</p>
+                        <p style="font-size: 0.8rem; margin: 0">
+                            M3U is the most widely supported playlist format. Import from any M3U or M3U8 playlist file.
+                            Track information is extracted from the extended M3U format.
+                        </p>
+                        <br />
+                        <input
+                            type="file"
+                            id="m3u-file-input"
+                            class="btn-secondary"
+                            accept=".m3u,.m3u8"
                             style="width: 100%; margin-bottom: 0.5rem"
                         />
                     </div>

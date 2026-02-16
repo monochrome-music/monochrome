@@ -530,10 +530,27 @@ export function trackImportJSPF(playlistName, trackCount, missingCount, source) 
     });
 }
 
-export function trackExportPlaylist(playlist) {
-    trackEvent('Export Playlist', {
-        playlist_name: playlist?.title || playlist?.name || 'Unknown',
-        track_count: playlist?.tracks?.length || 0,
+export function trackImportXSPF(playlistName, trackCount, missingCount) {
+    trackEvent('Import XSPF', {
+        playlist_name: playlistName,
+        track_count: trackCount,
+        missing_count: missingCount,
+    });
+}
+
+export function trackImportXML(playlistName, trackCount, missingCount) {
+    trackEvent('Import XML', {
+        playlist_name: playlistName,
+        track_count: trackCount,
+        missing_count: missingCount,
+    });
+}
+
+export function trackImportM3U(playlistName, trackCount, missingCount) {
+    trackEvent('Import M3U', {
+        playlist_name: playlistName,
+        track_count: trackCount,
+        missing_count: missingCount,
     });
 }
 

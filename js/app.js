@@ -29,6 +29,10 @@ import {
     trackCreatePlaylist,
     trackCreateFolder,
     trackImportJSPF,
+    trackImportCSV,
+    trackImportXSPF,
+    trackImportXML,
+    trackImportM3U,
     trackSelectLocalFolder,
     trackChangeLocalFolder,
     trackOpenModal,
@@ -41,6 +45,7 @@ import {
     trackOpenLyrics,
     trackCloseLyrics,
 } from './analytics.js';
+import { parseCSV, parseJSPF, parseXSPF, parseXML, parseM3U } from './playlist-importer.js';
 
 // Lazy-loaded modules
 let settingsModule = null;
@@ -502,13 +507,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Show/hide panels
             document.getElementById('csv-import-panel').style.display = importType === 'csv' ? 'block' : 'none';
             document.getElementById('jspf-import-panel').style.display = importType === 'jspf' ? 'block' : 'none';
+            document.getElementById('xspf-import-panel').style.display = importType === 'xspf' ? 'block' : 'none';
+            document.getElementById('xml-import-panel').style.display = importType === 'xml' ? 'block' : 'none';
+            document.getElementById('m3u-import-panel').style.display = importType === 'm3u' ? 'block' : 'none';
 
-            // Clear the other file input
-            if (importType === 'csv') {
-                document.getElementById('jspf-file-input').value = '';
-            } else {
-                document.getElementById('csv-file-input').value = '';
-            }
+            // Clear all file inputs except the active one
+            document.getElementById('csv-file-input').value =
+                importType === 'csv' ? document.getElementById('csv-file-input').value : '';
+            document.getElementById('jspf-file-input').value =
+                importType === 'jspf' ? document.getElementById('jspf-file-input').value : '';
+            document.getElementById('xspf-file-input').value =
+                importType === 'xspf' ? document.getElementById('xspf-file-input').value : '';
+            document.getElementById('xml-file-input').value =
+                importType === 'xml' ? document.getElementById('xml-file-input').value : '';
+            document.getElementById('m3u-file-input').value =
+                importType === 'm3u' ? document.getElementById('m3u-file-input').value : '';
         });
     });
 
@@ -741,6 +754,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('import-section').style.display = 'block';
             document.getElementById('csv-file-input').value = '';
             document.getElementById('jspf-file-input').value = '';
+            document.getElementById('xspf-file-input').value = '';
+            document.getElementById('xml-file-input').value = '';
+            document.getElementById('m3u-file-input').value = '';
 
             // Reset import tabs to CSV
             document.querySelectorAll('.import-tab').forEach((tab) => {
@@ -748,6 +764,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
             document.getElementById('csv-import-panel').style.display = 'block';
             document.getElementById('jspf-import-panel').style.display = 'none';
+            document.getElementById('xspf-import-panel').style.display = 'none';
+            document.getElementById('xml-import-panel').style.display = 'none';
+            document.getElementById('m3u-import-panel').style.display = 'none';
 
             // Reset Public Toggle
             const publicToggle = document.getElementById('playlist-public-toggle');
@@ -848,23 +867,45 @@ document.addEventListener('DOMContentLoaded', async () => {
                     // Create
                     const csvFileInput = document.getElementById('csv-file-input');
                     const jspfFileInput = document.getElementById('jspf-file-input');
+                    const xspfFileInput = document.getElementById('xspf-file-input');
+                    const xmlFileInput = document.getElementById('xml-file-input');
+                    const m3uFileInput = document.getElementById('m3u-file-input');
                     let tracks = [];
                     let importSource = 'manual';
                     let cover = document.getElementById('playlist-cover-input').value.trim();
 
-                    if (jspfFileInput.files.length > 0) {
-                        // Import from JSPF
-                        importSource = 'jspf_import';
-                        const file = jspfFileInput.files[0];
+                    // Helper function for import progress
+                    const setupProgressElements = () => {
                         const progressElement = document.getElementById('csv-import-progress');
                         const progressFill = document.getElementById('csv-progress-fill');
                         const progressCurrent = document.getElementById('csv-progress-current');
                         const progressTotal = document.getElementById('csv-progress-total');
                         const currentTrackElement = progressElement.querySelector('.current-track');
                         const currentArtistElement = progressElement.querySelector('.current-artist');
+                        return {
+                            progressElement,
+                            progressFill,
+                            progressCurrent,
+                            progressTotal,
+                            currentTrackElement,
+                            currentArtistElement,
+                        };
+                    };
+
+                    if (jspfFileInput.files.length > 0) {
+                        // Import from JSPF
+                        importSource = 'jspf_import';
+                        const file = jspfFileInput.files[0];
+                        const {
+                            progressElement,
+                            progressFill,
+                            progressCurrent,
+                            progressTotal,
+                            currentTrackElement,
+                            currentArtistElement,
+                        } = setupProgressElements();
 
                         try {
-                            // Show progress bar
                             progressElement.style.display = 'block';
                             progressFill.style.width = '0%';
                             progressCurrent.textContent = '0';
@@ -921,7 +962,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 jspfCreator
                             );
 
-                            // if theres missing songs, warn the user
                             if (missingTracks.length > 0) {
                                 setTimeout(() => {
                                     showMissingTracksNotification(missingTracks);
@@ -933,7 +973,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                             progressElement.style.display = 'none';
                             return;
                         } finally {
-                            // Hide progress bar
                             setTimeout(() => {
                                 progressElement.style.display = 'none';
                             }, 1000);
@@ -942,15 +981,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                         // Import from CSV
                         importSource = 'csv_import';
                         const file = csvFileInput.files[0];
-                        const progressElement = document.getElementById('csv-import-progress');
-                        const progressFill = document.getElementById('csv-progress-fill');
-                        const progressCurrent = document.getElementById('csv-progress-current');
-                        const progressTotal = document.getElementById('csv-progress-total');
-                        const currentTrackElement = progressElement.querySelector('.current-track');
-                        const currentArtistElement = progressElement.querySelector('.current-artist');
+                        const {
+                            progressElement,
+                            progressFill,
+                            progressCurrent,
+                            progressTotal,
+                            currentTrackElement,
+                            currentArtistElement,
+                        } = setupProgressElements();
 
                         try {
-                            // Show progress bar
                             progressElement.style.display = 'block';
                             progressFill.style.width = '0%';
                             progressCurrent.textContent = '0';
@@ -981,7 +1021,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                             }
                             console.log(`Imported ${tracks.length} tracks from CSV`);
 
-                            // if theres missing songs, warn the user
+                            trackImportCSV(name || 'Untitled', tracks.length, missingTracks.length);
+
                             if (missingTracks.length > 0) {
                                 setTimeout(() => {
                                     showMissingTracksNotification(missingTracks);
@@ -993,7 +1034,183 @@ document.addEventListener('DOMContentLoaded', async () => {
                             progressElement.style.display = 'none';
                             return;
                         } finally {
-                            // Hide progress bar
+                            setTimeout(() => {
+                                progressElement.style.display = 'none';
+                            }, 1000);
+                        }
+                    } else if (xspfFileInput.files.length > 0) {
+                        // Import from XSPF
+                        importSource = 'xspf_import';
+                        const file = xspfFileInput.files[0];
+                        const {
+                            progressElement,
+                            progressFill,
+                            progressCurrent,
+                            progressTotal,
+                            currentTrackElement,
+                            currentArtistElement,
+                        } = setupProgressElements();
+
+                        try {
+                            progressElement.style.display = 'block';
+                            progressFill.style.width = '0%';
+                            progressCurrent.textContent = '0';
+                            currentTrackElement.textContent = 'Reading XSPF file...';
+                            if (currentArtistElement) currentArtistElement.textContent = '';
+
+                            const xspfText = await file.text();
+
+                            const result = await parseXSPF(xspfText, api, (progress) => {
+                                const percentage = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
+                                progressFill.style.width = `${Math.min(percentage, 100)}%`;
+                                progressCurrent.textContent = progress.current.toString();
+                                progressTotal.textContent = progress.total.toString();
+                                currentTrackElement.textContent = progress.currentTrack;
+                                if (currentArtistElement)
+                                    currentArtistElement.textContent = progress.currentArtist || '';
+                            });
+
+                            tracks = result.tracks;
+                            const missingTracks = result.missingTracks;
+
+                            if (tracks.length === 0) {
+                                alert('No valid tracks found in the XSPF file! Please check the format.');
+                                progressElement.style.display = 'none';
+                                return;
+                            }
+                            console.log(`Imported ${tracks.length} tracks from XSPF`);
+
+                            trackImportXSPF(name || 'Untitled', tracks.length, missingTracks.length);
+
+                            if (missingTracks.length > 0) {
+                                setTimeout(() => {
+                                    showMissingTracksNotification(missingTracks);
+                                }, 500);
+                            }
+                        } catch (error) {
+                            console.error('Failed to parse XSPF!', error);
+                            alert('Failed to parse XSPF file! ' + error.message);
+                            progressElement.style.display = 'none';
+                            return;
+                        } finally {
+                            setTimeout(() => {
+                                progressElement.style.display = 'none';
+                            }, 1000);
+                        }
+                    } else if (xmlFileInput.files.length > 0) {
+                        // Import from XML
+                        importSource = 'xml_import';
+                        const file = xmlFileInput.files[0];
+                        const {
+                            progressElement,
+                            progressFill,
+                            progressCurrent,
+                            progressTotal,
+                            currentTrackElement,
+                            currentArtistElement,
+                        } = setupProgressElements();
+
+                        try {
+                            progressElement.style.display = 'block';
+                            progressFill.style.width = '0%';
+                            progressCurrent.textContent = '0';
+                            currentTrackElement.textContent = 'Reading XML file...';
+                            if (currentArtistElement) currentArtistElement.textContent = '';
+
+                            const xmlText = await file.text();
+
+                            const result = await parseXML(xmlText, api, (progress) => {
+                                const percentage = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
+                                progressFill.style.width = `${Math.min(percentage, 100)}%`;
+                                progressCurrent.textContent = progress.current.toString();
+                                progressTotal.textContent = progress.total.toString();
+                                currentTrackElement.textContent = progress.currentTrack;
+                                if (currentArtistElement)
+                                    currentArtistElement.textContent = progress.currentArtist || '';
+                            });
+
+                            tracks = result.tracks;
+                            const missingTracks = result.missingTracks;
+
+                            if (tracks.length === 0) {
+                                alert('No valid tracks found in the XML file! Please check the format.');
+                                progressElement.style.display = 'none';
+                                return;
+                            }
+                            console.log(`Imported ${tracks.length} tracks from XML`);
+
+                            trackImportXML(name || 'Untitled', tracks.length, missingTracks.length);
+
+                            if (missingTracks.length > 0) {
+                                setTimeout(() => {
+                                    showMissingTracksNotification(missingTracks);
+                                }, 500);
+                            }
+                        } catch (error) {
+                            console.error('Failed to parse XML!', error);
+                            alert('Failed to parse XML file! ' + error.message);
+                            progressElement.style.display = 'none';
+                            return;
+                        } finally {
+                            setTimeout(() => {
+                                progressElement.style.display = 'none';
+                            }, 1000);
+                        }
+                    } else if (m3uFileInput.files.length > 0) {
+                        // Import from M3U/M3U8
+                        importSource = 'm3u_import';
+                        const file = m3uFileInput.files[0];
+                        const {
+                            progressElement,
+                            progressFill,
+                            progressCurrent,
+                            progressTotal,
+                            currentTrackElement,
+                            currentArtistElement,
+                        } = setupProgressElements();
+
+                        try {
+                            progressElement.style.display = 'block';
+                            progressFill.style.width = '0%';
+                            progressCurrent.textContent = '0';
+                            currentTrackElement.textContent = 'Reading M3U file...';
+                            if (currentArtistElement) currentArtistElement.textContent = '';
+
+                            const m3uText = await file.text();
+
+                            const result = await parseM3U(m3uText, api, (progress) => {
+                                const percentage = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
+                                progressFill.style.width = `${Math.min(percentage, 100)}%`;
+                                progressCurrent.textContent = progress.current.toString();
+                                progressTotal.textContent = progress.total.toString();
+                                currentTrackElement.textContent = progress.currentTrack;
+                                if (currentArtistElement)
+                                    currentArtistElement.textContent = progress.currentArtist || '';
+                            });
+
+                            tracks = result.tracks;
+                            const missingTracks = result.missingTracks;
+
+                            if (tracks.length === 0) {
+                                alert('No valid tracks found in the M3U file! Please check the format.');
+                                progressElement.style.display = 'none';
+                                return;
+                            }
+                            console.log(`Imported ${tracks.length} tracks from M3U`);
+
+                            trackImportM3U(name || 'Untitled', tracks.length, missingTracks.length);
+
+                            if (missingTracks.length > 0) {
+                                setTimeout(() => {
+                                    showMissingTracksNotification(missingTracks);
+                                }, 500);
+                            }
+                        } catch (error) {
+                            console.error('Failed to parse M3U!', error);
+                            alert('Failed to parse M3U file! ' + error.message);
+                            progressElement.style.display = 'none';
+                            return;
+                        } finally {
                             setTimeout(() => {
                                 progressElement.style.display = 'none';
                             }, 1000);
@@ -1787,453 +2004,6 @@ function showMissingTracksNotification(missingTracks) {
 
     modal.addEventListener('click', handleClose);
     modal.classList.add('active');
-}
-
-async function parseCSV(csvText, api, onProgress) {
-    const lines = csvText.trim().split('\n');
-    if (lines.length < 2) return [];
-
-    // Robust CSV line parser that respects quotes
-    const parseLine = (text) => {
-        const values = [];
-        let current = '';
-        let inQuote = false;
-
-        for (let i = 0; i < text.length; i++) {
-            const char = text[i];
-
-            if (char === '"') {
-                inQuote = !inQuote;
-            } else if (char === ',' && !inQuote) {
-                values.push(current);
-                current = '';
-            } else {
-                current += char;
-            }
-        }
-        values.push(current);
-
-        // Clean up quotes: remove surrounding quotes and unescape double quotes if any
-        return values.map((v) => v.trim().replace(/^"|"$/g, '').replace(/""/g, '"').trim());
-    };
-
-    const headers = parseLine(lines[0]);
-    const rows = lines.slice(1);
-
-    const tracks = [];
-    const missingTracks = [];
-    const totalTracks = rows.length;
-
-    for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
-        if (!row.trim()) continue; // Skip empty lines
-
-        const values = parseLine(row);
-
-        if (values.length >= headers.length) {
-            let trackTitle = '';
-            let artistNames = '';
-            let albumName = '';
-
-            headers.forEach((header, index) => {
-                const value = values[index];
-                if (!value) return;
-
-                switch (header.toLowerCase()) {
-                    case 'track name':
-                    case 'title':
-                    case 'song':
-                        trackTitle = value;
-                        break;
-                    case 'artist name(s)':
-                    case 'artist name':
-                    case 'artist':
-                    case 'artists':
-                        artistNames = value;
-                        break;
-                    case 'album':
-                    case 'album name':
-                        albumName = value;
-                        break;
-                }
-            });
-
-            if (onProgress) {
-                onProgress({
-                    current: i,
-                    total: totalTracks,
-                    currentTrack: trackTitle || 'Unknown track',
-                    currentArtist: artistNames || '',
-                });
-            }
-
-            // Search for the track in hifi tidal api's catalog
-            if (trackTitle && artistNames) {
-                // Add a small delay to prevent rate limiting
-                await new Promise((resolve) => setTimeout(resolve, 300));
-
-                try {
-                    let foundTrack = null;
-
-                    // Helper: Normalize strings for fuzzy matching
-                    const normalize = (str) =>
-                        str
-                            .normalize('NFD')
-                            .replace(/[\u0300-\u036f]/g, '')
-                            .toLowerCase()
-                            .replace(/[^\w\s]/g, ' ')
-                            .replace(/\s+/g, ' ')
-                            .trim();
-
-                    // Helper: Check if result matches our criteria
-                    const isValidMatch = (track, title, artists, album) => {
-                        if (!track) return false;
-
-                        const trackTitle = normalize(track.title || '');
-                        const trackArtists = (track.artists || []).map((a) => normalize(a.name || '')).join(' ');
-                        const trackAlbum = normalize(track.album?.name || '');
-
-                        const queryTitle = normalize(title);
-                        const queryArtists = normalize(artists);
-                        const queryAlbum = normalize(album || '');
-
-                        // Must match title (exact or substring match)
-                        const titleMatch =
-                            trackTitle === queryTitle ||
-                            trackTitle.includes(queryTitle) ||
-                            queryTitle.includes(trackTitle);
-                        if (!titleMatch) return false;
-
-                        // Must match at least one artist
-                        const artistMatch =
-                            trackArtists.includes(queryArtists.split(' ')[0]) ||
-                            queryArtists.includes(trackArtists.split(' ')[0]);
-                        if (!artistMatch) return false;
-
-                        // If album provided, prefer matching album but not strict
-                        if (queryAlbum) {
-                            const albumMatch =
-                                trackAlbum === queryAlbum ||
-                                trackAlbum.includes(queryAlbum) ||
-                                queryAlbum.includes(trackAlbum);
-                            return albumMatch;
-                        }
-
-                        return true;
-                    };
-
-                    // 1. Initial Search: Title + All Artists + Album (most specific)
-                    if (!foundTrack) {
-                        let searchQuery = `${trackTitle} ${artistNames}`;
-                        if (albumName) searchQuery += ` ${albumName}`;
-                        const searchResults = await api.searchTracks(searchQuery);
-
-                        if (searchResults.items && searchResults.items.length > 0) {
-                            // Try to find best match within results
-                            for (const result of searchResults.items) {
-                                if (isValidMatch(result, trackTitle, artistNames, albumName)) {
-                                    foundTrack = result;
-                                    break;
-                                }
-                            }
-                            // Fallback: if no valid match found, use first result only if album matches
-                            if (!foundTrack && albumName) {
-                                const firstResult = searchResults.items[0];
-                                if (isValidMatch(firstResult, trackTitle, artistNames, albumName)) {
-                                    foundTrack = firstResult;
-                                }
-                            }
-                        }
-                    }
-
-                    // 2. Retry: Title + Main Artist + Album
-                    if (!foundTrack && artistNames) {
-                        const mainArtist = artistNames.split(',')[0].trim();
-                        if (mainArtist && mainArtist !== artistNames) {
-                            let searchQuery = `${trackTitle} ${mainArtist}`;
-                            if (albumName) searchQuery += ` ${albumName}`;
-                            const searchResults = await api.searchTracks(searchQuery);
-
-                            if (searchResults.items && searchResults.items.length > 0) {
-                                for (const result of searchResults.items) {
-                                    if (isValidMatch(result, trackTitle, mainArtist, albumName)) {
-                                        foundTrack = result;
-                                        console.log(`Found (Retry 1 - Main Artist): ${trackTitle}`);
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // 3. Retry: Just Title + Album (strong album context)
-                    if (!foundTrack && albumName) {
-                        const searchQuery = `${trackTitle} ${albumName}`;
-                        const searchResults = await api.searchTracks(searchQuery);
-
-                        if (searchResults.items && searchResults.items.length > 0) {
-                            for (const result of searchResults.items) {
-                                if (isValidMatch(result, trackTitle, artistNames, albumName)) {
-                                    foundTrack = result;
-                                    console.log(`Found (Retry 2 - Album): ${trackTitle}`);
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    // Clean title for retry strategies
-                    // Remove " - ", "(feat. ...)", "[feat. ...]"
-                    const cleanTitle = (t) =>
-                        t
-                            .split(' - ')[0]
-                            .replace(/\s*[([]feat\.?.*?[)\]]/i, '')
-                            .trim();
-                    const cleanedTitle = cleanTitle(trackTitle);
-                    const isTitleCleaned = cleanedTitle !== trackTitle;
-
-                    // 4. Retry: Cleaned Title + Main Artist + Album
-                    if (!foundTrack && isTitleCleaned) {
-                        const mainArtist = (artistNames || '').split(',')[0].trim();
-                        if (cleanedTitle) {
-                            let searchQuery = `${cleanedTitle} ${mainArtist}`;
-                            if (albumName) searchQuery += ` ${albumName}`;
-                            const searchResults = await api.searchTracks(searchQuery);
-
-                            if (searchResults.items && searchResults.items.length > 0) {
-                                for (const result of searchResults.items) {
-                                    if (isValidMatch(result, cleanedTitle, mainArtist, albumName)) {
-                                        foundTrack = result;
-                                        console.log(`Found (Retry 3 - Cleaned Title): ${trackTitle}`);
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // 5. Retry: Title + Main Artist (Ignore Album in Query and Match)
-                    if (!foundTrack) {
-                        const mainArtist = (artistNames || '').split(',')[0].trim();
-                        // Search WITHOUT album name to find tracks where album metadata differs
-                        const searchQuery = `${trackTitle} ${mainArtist}`;
-                        const searchResults = await api.searchTracks(searchQuery);
-
-                        if (searchResults.items && searchResults.items.length > 0) {
-                            for (const result of searchResults.items) {
-                                // Pass null for album to ignore it in validation
-                                if (isValidMatch(result, trackTitle, mainArtist, null)) {
-                                    foundTrack = result;
-                                    console.log(`Found (Retry 4 - Ignore Album): ${trackTitle}`);
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    // 6. Retry: Cleaned Title + Main Artist (Ignore Album in Query and Match)
-                    if (!foundTrack && isTitleCleaned) {
-                        const mainArtist = (artistNames || '').split(',')[0].trim();
-                        const searchQuery = `${cleanedTitle} ${mainArtist}`;
-                        const searchResults = await api.searchTracks(searchQuery);
-
-                        if (searchResults.items && searchResults.items.length > 0) {
-                            for (const result of searchResults.items) {
-                                if (isValidMatch(result, cleanedTitle, mainArtist, null)) {
-                                    foundTrack = result;
-                                    console.log(`Found (Retry 5 - Cleaned Title + Ignore Album): ${trackTitle}`);
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    if (foundTrack) {
-                        tracks.push(foundTrack);
-                        console.log(`✓ "${trackTitle}" by ${artistNames}${albumName ? ' [' + albumName + ']' : ''}`);
-                    } else {
-                        console.warn(
-                            `✗ Track not found: "${trackTitle}" by ${artistNames}${albumName ? ' [' + albumName + ']' : ''}`
-                        );
-                        missingTracks.push(
-                            `${trackTitle} - ${artistNames}${albumName ? ' (album: ' + albumName + ')' : ''}`
-                        );
-                    }
-                } catch (error) {
-                    console.error(`Error searching for track "${trackTitle}":`, error);
-                    missingTracks.push(
-                        `${trackTitle} - ${artistNames}${albumName ? ' (album: ' + albumName + ')' : ''}`
-                    );
-                }
-            }
-        }
-    }
-
-    // yayyy its finished :P
-    if (onProgress) {
-        onProgress({
-            current: totalTracks,
-            total: totalTracks,
-            currentTrack: 'Import complete',
-        });
-    }
-
-    return { tracks, missingTracks };
-}
-
-async function parseJSPF(jspfText, api, onProgress) {
-    try {
-        const jspfData = JSON.parse(jspfText);
-
-        if (!jspfData.playlist || !Array.isArray(jspfData.playlist.track)) {
-            throw new Error('Invalid JSPF format: missing playlist or track array');
-        }
-
-        const playlist = jspfData.playlist;
-        const tracks = [];
-        const missingTracks = [];
-        const totalTracks = playlist.track.length;
-
-        // Helper: Normalize strings for fuzzy matching
-        const normalize = (str) =>
-            str
-                ?.normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '')
-                .toLowerCase()
-                .replace(/[^\w\s]/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim() || '';
-
-        // Helper: Check if result matches our criteria
-        const isValidMatch = (track, title, artists, album) => {
-            if (!track) return false;
-
-            const trackTitle = normalize(track.title || '');
-            const trackArtists = (track.artists || []).map((a) => normalize(a.name || '')).join(' ');
-            const trackAlbum = normalize(track.album?.name || '');
-
-            const queryTitle = normalize(title);
-            const queryArtists = normalize(artists);
-            const queryAlbum = normalize(album || '');
-
-            // Must match title (exact or substring match)
-            const titleMatch =
-                trackTitle === queryTitle || trackTitle.includes(queryTitle) || queryTitle.includes(trackTitle);
-            if (!titleMatch) return false;
-
-            // Must match at least one artist
-            const artistMatch =
-                trackArtists.includes(queryArtists.split(' ')[0]) || queryArtists.includes(trackArtists.split(' ')[0]);
-            if (!artistMatch) return false;
-
-            // If album provided, prefer matching album but not strict
-            if (queryAlbum) {
-                const albumMatch =
-                    trackAlbum === queryAlbum || trackAlbum.includes(queryAlbum) || queryAlbum.includes(trackAlbum);
-                return albumMatch;
-            }
-
-            return true;
-        };
-
-        for (let i = 0; i < playlist.track.length; i++) {
-            const jspfTrack = playlist.track[i];
-            const trackTitle = jspfTrack.title;
-            const trackCreator = jspfTrack.creator;
-            const trackAlbum = jspfTrack.album;
-
-            if (onProgress) {
-                onProgress({
-                    current: i,
-                    total: totalTracks,
-                    currentTrack: trackTitle || 'Unknown track',
-                    currentArtist: trackCreator || '',
-                });
-            }
-
-            // Try to find track
-            let foundTrack = null;
-
-            if (trackTitle && trackCreator) {
-                // Add delay to prevent rate limiting
-                await new Promise((resolve) => setTimeout(resolve, 300));
-
-                try {
-                    // 1. Search with title + artist + album
-                    let searchQuery = `${trackTitle} ${trackCreator}`;
-                    if (trackAlbum) searchQuery += ` ${trackAlbum}`;
-                    const searchResults = await api.searchTracks(searchQuery);
-
-                    if (searchResults.items && searchResults.items.length > 0) {
-                        for (const result of searchResults.items) {
-                            if (isValidMatch(result, trackTitle, trackCreator, trackAlbum)) {
-                                foundTrack = result;
-                                break;
-                            }
-                        }
-                    }
-
-                    // 2. Retry with main artist only
-                    if (!foundTrack) {
-                        const mainArtist = trackCreator.split(',')[0].trim();
-                        if (mainArtist && mainArtist !== trackCreator) {
-                            const searchResults = await api.searchTracks(`${trackTitle} ${mainArtist}`);
-                            if (searchResults.items) {
-                                for (const result of searchResults.items) {
-                                    if (isValidMatch(result, trackTitle, mainArtist, trackAlbum)) {
-                                        foundTrack = result;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // 3. Try just title + artist, ignoring album
-                    if (!foundTrack) {
-                        const searchResults = await api.searchTracks(`${trackTitle} ${trackCreator}`);
-                        if (searchResults.items) {
-                            for (const result of searchResults.items) {
-                                if (isValidMatch(result, trackTitle, trackCreator, null)) {
-                                    foundTrack = result;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    if (foundTrack) {
-                        tracks.push(foundTrack);
-                        console.log(`✓ "${trackTitle}" by ${trackCreator}`);
-                    } else {
-                        console.warn(`✗ Track not found: "${trackTitle}" by ${trackCreator}`);
-                        missingTracks.push(
-                            `${trackTitle} - ${trackCreator}${trackAlbum ? ' (' + trackAlbum + ')' : ''}`
-                        );
-                    }
-                } catch (error) {
-                    console.error(`Error searching for track "${trackTitle}":`, error);
-                    missingTracks.push(`${trackTitle} - ${trackCreator}${trackAlbum ? ' (' + trackAlbum + ')' : ''}`);
-                }
-            } else {
-                missingTracks.push(`Invalid track entry at position ${i + 1}`);
-            }
-        }
-
-        // Final progress update
-        if (onProgress) {
-            onProgress({
-                current: totalTracks,
-                total: totalTracks,
-                currentTrack: 'Import complete',
-            });
-        }
-
-        return { tracks, missingTracks, jspfData };
-    } catch (error) {
-        console.error('JSPF parsing error:', error);
-        throw new Error('Failed to parse JSPF file: ' + error.message);
-    }
 }
 
 function showDiscographyDownloadModal(artist, api, quality, lyricsManager, triggerBtn) {
