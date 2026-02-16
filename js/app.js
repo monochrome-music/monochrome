@@ -565,7 +565,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             appleBtn.classList.remove('btn-primary');
             appleBtn.classList.add('btn-secondary');
             appleBtn.style.opacity = '0.7';
-            
+
             ytmBtn.classList.remove('btn-primary');
             ytmBtn.classList.add('btn-secondary');
             ytmBtn.style.opacity = '0.7';
@@ -584,7 +584,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             spotifyBtn.classList.remove('btn-primary');
             spotifyBtn.classList.add('btn-secondary');
             spotifyBtn.style.opacity = '0.7';
-            
+
             ytmBtn.classList.remove('btn-primary');
             ytmBtn.classList.add('btn-secondary');
             ytmBtn.style.opacity = '0.7';
@@ -1073,7 +1073,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         importSource = 'ytm_import';
                         const url = ytmUrlInput.value.trim();
                         const playlistId = url.split('list=')[1]?.split('&')[0];
-                        
+
                         const workerUrl = `https://ytmimport.samidy.workers.dev?playlistId=${playlistId}`;
 
                         if (!playlistId) {
@@ -1104,10 +1104,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             currentTrackElement.textContent = `Processing ${songs.length} songs...`;
 
-                            const headers = "Title,Artist,URL\n";
-                            const csvText = headers + songs.map(s => 
-                                `"${s.title.replace(/"/g, '""')}","${s.artist.replace(/"/g, '""')}","${s.url}"`
-                            ).join("\n");
+                            const headers = 'Title,Artist,URL\n';
+                            const csvText =
+                                headers +
+                                songs
+                                    .map(
+                                        (s) =>
+                                            `"${s.title.replace(/"/g, '""')}","${s.artist.replace(/"/g, '""')}","${s.url}"`
+                                    )
+                                    .join('\n');
 
                             const totalTracks = songs.length;
                             progressTotal.textContent = totalTracks.toString();
@@ -1123,7 +1128,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             tracks = result.tracks;
                             const missingTracks = result.missingTracks;
-                            
+
                             if (tracks.length === 0) {
                                 alert('No valid tracks found in the YouTube playlist!');
                                 progressElement.style.display = 'none';
@@ -2291,10 +2296,13 @@ function showMissingTracksNotification(missingTracks) {
     const modal = document.getElementById('missing-tracks-modal');
     const listUl = document.getElementById('missing-tracks-list-ul');
 
-    listUl.innerHTML = missingTracks.map((track) => {
-        const text = typeof track === 'string' ? track : `${track.artist ? track.artist + ' - ' : ''}${track.title}`;
-        return `<li>${text}</li>`;
-    }).join('');
+    listUl.innerHTML = missingTracks
+        .map((track) => {
+            const text =
+                typeof track === 'string' ? track : `${track.artist ? track.artist + ' - ' : ''}${track.title}`;
+            return `<li>${text}</li>`;
+        })
+        .join('');
 
     const closeModal = () => modal.classList.remove('active');
 

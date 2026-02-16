@@ -568,31 +568,63 @@
 
                     <div id="csv-import-panel" class="import-panel active">
                         <p style="margin-bottom: 0.5rem; font-size: 0.9rem">Import from CSV</p>
-                        
+
                         <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem">
-                            <button type="button" id="csv-spotify-btn" class="btn-secondary" style="flex: 1; opacity: 0.7">Spotify</button>
-                            <button type="button" id="csv-apple-btn" class="btn-secondary" style="flex: 1; opacity: 0.7">Apple Music</button>
-                            <button type="button" id="csv-ytm-btn" class="btn-secondary" style="flex: 1; opacity: 0.7">YouTube Music</button>
+                            <button
+                                type="button"
+                                id="csv-spotify-btn"
+                                class="btn-secondary"
+                                style="flex: 1; opacity: 0.7"
+                            >
+                                Spotify
+                            </button>
+                            <button
+                                type="button"
+                                id="csv-apple-btn"
+                                class="btn-secondary"
+                                style="flex: 1; opacity: 0.7"
+                            >
+                                Apple Music
+                            </button>
+                            <button type="button" id="csv-ytm-btn" class="btn-secondary" style="flex: 1; opacity: 0.7">
+                                YouTube Music
+                            </button>
                         </div>
 
                         <div id="csv-spotify-guide" style="display: none; margin-bottom: 1rem">
                             <p style="font-size: 0.8rem; margin: 0">
-                                Please use <a href="https://exportify.app/" target="_blank" style="text-decoration: underline">Exportify</a> to export your Spotify playlist into a .csv.
+                                Please use
+                                <a href="https://exportify.app/" target="_blank" style="text-decoration: underline"
+                                    >Exportify</a
+                                >
+                                to export your Spotify playlist into a .csv.
                             </p>
                         </div>
 
                         <div id="csv-apple-guide" style="display: none; margin-bottom: 1rem">
                             <p style="font-size: 0.8rem; margin: 0">
-                                Please use <a href="https://www.tunemymusic.com/transfer/spotify-to-apple-music" target="_blank" style="text-decoration: underline">TuneMyMusic</a> to export your Apple Music playlist into a .csv.
-                                <br><span style="opacity: 0.7">(Apple Music imports are prone to errors)</span>
+                                Please use
+                                <a
+                                    href="https://www.tunemymusic.com/transfer/spotify-to-apple-music"
+                                    target="_blank"
+                                    style="text-decoration: underline"
+                                    >TuneMyMusic</a
+                                >
+                                to export your Apple Music playlist into a .csv. <br /><span style="opacity: 0.7"
+                                    >(Apple Music imports are prone to errors)</span
+                                >
                             </p>
                         </div>
 
                         <div id="csv-ytm-guide" style="display: none; margin-bottom: 1rem">
-                            <p style="font-size: 0.8rem; margin: 0 0 0.5rem 0">
-                                Paste a YouTube Music Playlist URL.
-                            </p>
-                            <input type="text" id="ytm-url-input" class="template-input" placeholder="https://music.youtube.com/playlist?list=..." style="width: 100%; margin-bottom: 0.5rem">
+                            <p style="font-size: 0.8rem; margin: 0 0 0.5rem 0">Paste a YouTube Music Playlist URL.</p>
+                            <input
+                                type="text"
+                                id="ytm-url-input"
+                                class="template-input"
+                                placeholder="https://music.youtube.com/playlist?list=..."
+                                style="width: 100%; margin-bottom: 0.5rem"
+                            />
                             <p id="ytm-status" style="font-size: 0.8rem; margin: 0; opacity: 0.7"></p>
                         </div>
 
