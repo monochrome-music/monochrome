@@ -32,6 +32,7 @@ import {
     contentBlockingSettings,
     musicProviderSettings,
     analyticsSettings,
+    queueBehaviorSettings,
 } from './storage.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
 import { getButterchurnPresets } from './visualizers/butterchurn.js';
@@ -1529,6 +1530,15 @@ export function initializeSettings(scrobbler, player, api, ui) {
         nowPlayingMode.value = nowPlayingSettings.getMode();
         nowPlayingMode.addEventListener('change', (e) => {
             nowPlayingSettings.setMode(e.target.value);
+        });
+    }
+
+    // Queue Close on Navigation Toggle
+    const queueCloseOnNavigationToggle = document.getElementById('queue-close-on-navigation-toggle');
+    if (queueCloseOnNavigationToggle) {
+        queueCloseOnNavigationToggle.checked = queueBehaviorSettings.shouldCloseOnNavigation();
+        queueCloseOnNavigationToggle.addEventListener('change', (e) => {
+            queueBehaviorSettings.setCloseOnNavigation(e.target.checked);
         });
     }
 

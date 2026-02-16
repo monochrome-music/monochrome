@@ -7,6 +7,7 @@ import {
     downloadQualitySettings,
     sidebarSettings,
     pwaUpdateSettings,
+    queueBehaviorSettings,
 } from './storage.js';
 import { UIRenderer } from './ui.js';
 import { Player } from './player.js';
@@ -1808,6 +1809,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }, 2000);
             return;
+        }
+
+        // Close side panel (queue/lyrics) on navigation if setting is enabled
+        if (queueBehaviorSettings.shouldCloseOnNavigation()) {
+            sidePanelManager.close();
         }
 
         await router();

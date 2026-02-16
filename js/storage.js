@@ -2101,6 +2101,28 @@ export const musicProviderSettings = {
     },
 };
 
+export const queueBehaviorSettings = {
+    STORAGE_KEY: 'queue-close-on-navigation',
+
+    shouldCloseOnNavigation() {
+        try {
+            // Default to true on mobile, false on desktop
+            const saved = localStorage.getItem(this.STORAGE_KEY);
+            if (saved === null) {
+                // Auto-detect: default to true for mobile/touch devices
+                return window.matchMedia('(pointer: coarse)').matches;
+            }
+            return saved === 'true';
+        } catch {
+            return false;
+        }
+    },
+
+    setCloseOnNavigation(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+};
+
 export const contentBlockingSettings = {
     BLOCKED_ARTISTS_KEY: 'blocked-artists',
     BLOCKED_TRACKS_KEY: 'blocked-tracks',
