@@ -6982,6 +6982,8 @@ textarea:focus {
     min-width: 0;
     position: relative;
     z-index: 1;
+    cursor: ns-resize;
+    user-select: none;
 }
 
 /* Vertical slider styling */
@@ -6993,6 +6995,7 @@ textarea:focus {
     height: 120px;
     background: transparent;
     cursor: pointer;
+    user-select: none;
     position: relative;
 }
 

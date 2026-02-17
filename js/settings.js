@@ -1228,6 +1228,9 @@ export function initializeSettings(scrobbler, player, api, ui) {
 
         const savedGains = equalizerSettings.getGains(currentBandCount);
 
+        // FL Studio-style absolute position drag state
+        let isDragging = false;
+
         eqBands.forEach((bandEl) => {
             const bandIndex = parseInt(bandEl.dataset.band, 10);
             const slider = bandEl.querySelector('.eq-slider');
@@ -1266,6 +1269,63 @@ export function initializeSettings(scrobbler, player, api, ui) {
                     updateBandValueDisplay(bandEl, 0);
                     drawEQCurve();
                 });
+
+                // FL Studio-style absolute drag: mousedown starts drag mode
+                bandEl.addEventListener('mousedown', (e) => {
+                    // Only handle left mouse button
+                    if (e.button !== 0) return;
+
+                    isDragging = true;
+                    document.body.style.cursor = 'ns-resize';
+                    e.preventDefault();
+                });
+            }
+        });
+
+        // Global mousemove: whichever band is under cursor, set slider to cursor Y position
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+
+            // Find which band is under the cursor
+            const elementUnderCursor = document.elementFromPoint(e.clientX, e.clientY);
+            const bandUnderCursor = elementUnderCursor?.closest('.eq-band');
+
+            if (bandUnderCursor) {
+                const slider = bandUnderCursor.querySelector('.eq-slider');
+
+                if (slider) {
+                    const rect = slider.getBoundingClientRect();
+                    const min = parseFloat(slider.min);
+                    const max = parseFloat(slider.max);
+                    const step = parseFloat(slider.step) || 0.5;
+
+                    // Calculate relative Y position within slider (0 = bottom, 1 = top)
+                    const relativeY = (rect.bottom - e.clientY) / rect.height;
+                    const clampedY = Math.max(0, Math.min(1, relativeY));
+
+                    // Map to slider value range
+                    let newValue = min + clampedY * (max - min);
+
+                    // Round to step
+                    newValue = Math.round(newValue / step) * step;
+
+                    // Only update if value changed
+                    if (parseFloat(slider.value) !== newValue) {
+                        slider.value = newValue;
+                        const bandIndex = parseInt(bandUnderCursor.dataset.band, 10);
+                        audioContextManager.setBandGain(bandIndex, newValue);
+                        updateBandValueDisplay(bandUnderCursor, newValue);
+                        drawEQCurve();
+                    }
+                }
+            }
+        });
+
+        // Global mouseup: stop dragging
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                document.body.style.cursor = '';
             }
         });
 
