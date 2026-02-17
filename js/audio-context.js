@@ -142,6 +142,8 @@ class AudioContextManager {
         if (this.isInitialized && this.audioContext) {
             this._destroyEQ();
             this._createEQ();
+            // Reconnect the audio graph without interrupting playback
+            this._connectGraph();
         }
 
         // Dispatch event for UI update
@@ -177,6 +179,8 @@ class AudioContextManager {
         if (this.isInitialized && this.audioContext) {
             this._destroyEQ();
             this._createEQ();
+            // Reconnect the audio graph without interrupting playback
+            this._connectGraph();
         }
 
         // Dispatch event for UI update
@@ -203,6 +207,16 @@ class AudioContextManager {
             });
         }
         this.filters = [];
+
+        // Destroy preamp node
+        if (this.preampNode) {
+            try {
+                this.preampNode.disconnect();
+            } catch {
+                /* ignore */
+            }
+            this.preampNode = null;
+        }
     }
 
     /**
@@ -210,6 +224,15 @@ class AudioContextManager {
      */
     _createEQ() {
         if (!this.audioContext) return;
+
+        // Create preamp node
+        if (!this.preampNode) {
+            this.preampNode = this.audioContext.createGain();
+        }
+        // Set preamp gain
+        const preampValue = this.preamp || 0;
+        const gainValue = Math.pow(10, preampValue / 20);
+        this.preampNode.gain.value = gainValue;
 
         // Create biquad filters for each frequency band
         this.filters = this.frequencies.map((freq, index) => {
@@ -366,13 +389,18 @@ class AudioContextManager {
             }
 
             if (this.isEQEnabled && this.filters.length > 0) {
-                // EQ enabled: lastNode -> EQ filters -> output -> analyser -> volume -> destination
+                // EQ enabled: lastNode -> preamp -> EQ filters -> output -> analyser -> volume -> destination
                 // Connect filter chain
                 for (let i = 0; i < this.filters.length - 1; i++) {
                     this.filters[i].connect(this.filters[i + 1]);
                 }
-                // Connect input to first filter and last filter to output
-                lastNode.connect(this.filters[0]);
+                // Connect preamp to first filter
+                if (this.preampNode) {
+                    lastNode.connect(this.preampNode);
+                    this.preampNode.connect(this.filters[0]);
+                } else {
+                    lastNode.connect(this.filters[0]);
+                }
                 this.filters[this.filters.length - 1].connect(this.outputNode);
                 this.outputNode.connect(this.analyser);
                 this.analyser.connect(this.volumeNode);
@@ -609,6 +637,119 @@ class AudioContextManager {
         this.frequencies = generateFrequencies(this.bandCount, this.freqRange.min, this.freqRange.max);
         this.currentGains = equalizerSettings.getGains(this.bandCount);
         this.isMonoAudioEnabled = monoAudioSettings.isEnabled();
+        this.preamp = equalizerSettings.getPreamp();
+    }
+
+    /**
+     * Set preamp value in dB
+     * @param {number} db - Preamp value in dB (-20 to +20)
+     */
+    setPreamp(db) {
+        const clampedDb = Math.max(-20, Math.min(20, parseFloat(db) || 0));
+        this.preamp = clampedDb;
+        equalizerSettings.setPreamp(clampedDb);
+
+        // Update preamp node if it exists
+        if (this.preampNode && this.audioContext) {
+            const gainValue = Math.pow(10, clampedDb / 20);
+            const now = this.audioContext.currentTime;
+            this.preampNode.gain.setTargetAtTime(gainValue, now, 0.01);
+        }
+    }
+
+    /**
+     * Get current preamp value
+     * @returns {number} Current preamp value in dB
+     */
+    getPreamp() {
+        return this.preamp || 0;
+    }
+
+    /**
+     * Export equalizer settings to text format
+     * @returns {string} Exported settings in text format
+     */
+    exportEQToText() {
+        const lines = [];
+        const preampValue = this.getPreamp();
+        lines.push(`Preamp: ${preampValue.toFixed(1)} dB`);
+
+        this.frequencies.forEach((freq, index) => {
+            const gain = this.currentGains[index] || 0;
+            const filterNum = index + 1;
+            lines.push(`Filter ${filterNum}: ON PK Fc ${freq} Hz Gain ${gain.toFixed(1)} dB Q 0.71`);
+        });
+
+        return lines.join('\n');
+    }
+
+    /**
+     * Import equalizer settings from text format
+     * @param {string} text - Text format settings
+     * @returns {boolean} True if import was successful
+     */
+    importEQFromText(text) {
+        try {
+            const lines = text
+                .split('\n')
+                .map((line) => line.trim())
+                .filter((line) => line);
+            const filters = [];
+            let preamp = 0;
+
+            for (const line of lines) {
+                // Parse preamp
+                const preampMatch = line.match(/^Preamp:\s*([+-]?\d+\.?\d*)\s*dB$/i);
+                if (preampMatch) {
+                    preamp = parseFloat(preampMatch[1]);
+                    continue;
+                }
+
+                // Parse filter lines (handle "Filter:" and "Filter X:" formats)
+                const filterMatch = line.match(
+                    /^Filter\s*\d*:\s*ON\s+(\w+)\s+Fc\s+(\d+)\s+Hz\s+Gain\s*([+-]?\d+\.?\d*)\s*dB\s+Q\s+(\d+\.?\d*)/i
+                );
+                if (filterMatch) {
+                    const type = filterMatch[1].toUpperCase();
+                    const freq = parseInt(filterMatch[2], 10);
+                    const gain = parseFloat(filterMatch[3]);
+                    const q = parseFloat(filterMatch[4]);
+                    filters.push({ type, freq, gain, q });
+                }
+            }
+
+            if (filters.length === 0) {
+                console.warn('[AudioContext] No valid filters found in import text');
+                return false;
+            }
+
+            // Apply preamp
+            this.setPreamp(preamp);
+
+            // If different number of bands, adjust
+            if (filters.length !== this.bandCount) {
+                const newCount = Math.max(
+                    equalizerSettings.MIN_BANDS,
+                    Math.min(equalizerSettings.MAX_BANDS, filters.length)
+                );
+                this.setBandCount(newCount);
+            }
+
+            // Extract gains from filters
+            const gains = filters.slice(0, this.bandCount).map((f) => f.gain);
+            this.setAllGains(gains);
+
+            // Store filter frequencies if different
+            const newFreqs = filters.slice(0, this.bandCount).map((f) => f.freq);
+            if (JSON.stringify(newFreqs) !== JSON.stringify(this.frequencies)) {
+                equalizerSettings.setFreqRange(newFreqs[0], newFreqs[newFreqs.length - 1]);
+            }
+
+            return true;
+        } catch (e) {
+            console.warn('[AudioContext] Failed to import EQ settings:', e);
+            return false;
+        }
     }
 }
 

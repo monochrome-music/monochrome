@@ -797,6 +797,7 @@ export const equalizerSettings = {
     RANGE_MAX_KEY: 'equalizer-range-max',
     FREQ_MIN_KEY: 'equalizer-freq-min',
     FREQ_MAX_KEY: 'equalizer-freq-max',
+    PREAMP_KEY: 'equalizer-preamp',
     DEFAULT_BAND_COUNT: 16,
     MIN_BANDS: 3,
     MAX_BANDS: 32,
@@ -808,6 +809,9 @@ export const equalizerSettings = {
     DEFAULT_FREQ_MAX: 20000,
     ABSOLUTE_FREQ_MIN: 10,
     ABSOLUTE_FREQ_MAX: 96000,
+    DEFAULT_PREAMP: 0,
+    PREAMP_MIN: -20,
+    PREAMP_MAX: 20,
 
     isEnabled() {
         try {
@@ -965,6 +969,30 @@ export const equalizerSettings = {
         const validMax = this.setFreqMax(max);
         const validMin = this.setFreqMin(min);
         return validMin && validMax;
+    },
+
+    getPreamp() {
+        try {
+            const stored = localStorage.getItem(this.PREAMP_KEY);
+            if (stored) {
+                const val = parseFloat(stored);
+                if (!isNaN(val) && val >= this.PREAMP_MIN && val <= this.PREAMP_MAX) {
+                    return val;
+                }
+            }
+        } catch {
+            /* ignore */
+        }
+        return this.DEFAULT_PREAMP;
+    },
+
+    setPreamp(value) {
+        const val = parseFloat(value);
+        if (!isNaN(val) && val >= this.PREAMP_MIN && val <= this.PREAMP_MAX) {
+            localStorage.setItem(this.PREAMP_KEY, val.toString());
+            return true;
+        }
+        return false;
     },
 
     getGains(bandCount) {

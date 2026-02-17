@@ -6563,7 +6563,7 @@ textarea:focus {
 .equalizer-preset-row {
     display: flex;
     align-items: center;
-    gap: var(--spacing-md);
+    gap: var(--spacing-sm);
     flex-wrap: wrap;
 }
 
@@ -6857,6 +6857,72 @@ textarea:focus {
     margin-left: var(--spacing-xs);
 }
 
+/* EQ Preamp Controls */
+.eq-preamp-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+}
+
+.eq-preamp-controls label {
+    font-size: 0.9rem;
+    color: var(--muted-foreground);
+    font-weight: 500;
+}
+
+#eq-preamp-slider {
+    flex: 1;
+    min-width: 120px;
+    max-width: 200px;
+    height: 4px;
+    appearance: none;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+}
+
+#eq-preamp-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    transition: transform var(--transition-fast);
+}
+
+#eq-preamp-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+#eq-preamp-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    border: none;
+    transition: transform var(--transition-fast);
+}
+
+#eq-preamp-slider::-moz-range-thumb:hover {
+    transform: scale(1.2);
+}
+
+/* EQ Import/Export Buttons (now inline) */
+#eq-export-btn,
+#eq-import-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    gap: var(--spacing-xs);
+}
+
 /* Equalizer preset dropdown styling */
 .equalizer-preset-row select optgroup {
     font-weight: 600;
@@ -6869,11 +6935,15 @@ textarea:focus {
     padding-left: var(--spacing-sm);
 }
 
+.equalizer-bands-wrapper {
+    position: relative;
+    padding: var(--spacing-md) 0;
+}
+
 .equalizer-bands {
     display: flex;
     justify-content: space-between;
     gap: 4px;
-    padding: var(--spacing-md) 0;
     position: relative;
 }
 
@@ -6883,12 +6953,24 @@ textarea:focus {
     position: absolute;
     left: 0;
     right: 0;
-    top: calc(var(--spacing-md) + 60px);
+    top: 60px;
     height: 1px;
     background: var(--border);
     opacity: 0.5;
     pointer-events: none;
     z-index: 0;
+}
+
+/* EQ Response Curve Canvas */
+.eq-response-canvas {
+    position: absolute;
+    top: var(--spacing-md);
+    left: 4px;
+    width: calc(100% - 8px);
+    height: 120px;
+    pointer-events: none;
+    z-index: 2;
+    display: block;
 }
 
 .eq-band {
