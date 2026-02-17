@@ -1690,7 +1690,7 @@ export class UIRenderer {
                 const cardsHTML = [];
                 const itemsToStore = [];
 
-                for (const item of items.slice(0, 12)) {
+                for (const item of items) {
                     try {
                         if (item.type === 'album') {
                             // Check if we have cached metadata

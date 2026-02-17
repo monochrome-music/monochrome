@@ -6877,13 +6877,13 @@ textarea:focus {
     position: relative;
 }
 
-/* Zero line indicator */
+/* Zero line indicator - positioned at center of slider tracks */
 .equalizer-bands::before {
     content: '';
     position: absolute;
     left: 0;
     right: 0;
-    top: 50%;
+    top: calc(var(--spacing-md) + 60px);
     height: 1px;
     background: var(--border);
     opacity: 0.5;
