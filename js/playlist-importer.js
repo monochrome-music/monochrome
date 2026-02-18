@@ -287,7 +287,7 @@ export async function parseXSPF(xspfText, api, onProgress) {
     }
 
     const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xspfText, 'text/xml');
+    const xmlDoc = parser.parseFromString(xspfText, 'application/xml');
 
     const trackList = xmlDoc.getElementsByTagName('track');
     const tracks = [];
@@ -348,7 +348,7 @@ export async function parseXML(xmlText, api, onProgress) {
     }
 
     const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+    const xmlDoc = parser.parseFromString(xmlText, 'application/xml');
 
     // Try different track element names
     let trackElements = xmlDoc.getElementsByTagName('track');
