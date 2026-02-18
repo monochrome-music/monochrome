@@ -7,7 +7,7 @@ import {
     downloadQualitySettings,
     sidebarSettings,
     pwaUpdateSettings,
-    queueBehaviorSettings,
+    modalSettings,
 } from './storage.js';
 import { UIRenderer } from './ui.js';
 import { Player } from './player.js';
@@ -2117,9 +2117,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // Close side panel (queue/lyrics) on navigation if setting is enabled
-        if (queueBehaviorSettings.shouldCloseOnNavigation()) {
+        // Close side panel (queue/lyrics) and modals on navigation if setting is enabled
+        if (modalSettings.shouldCloseOnNavigation()) {
             sidePanelManager.close();
+            modalSettings.closeAllModals();
         }
 
         await router();

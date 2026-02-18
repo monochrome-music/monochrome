@@ -2208,16 +2208,15 @@ export const musicProviderSettings = {
     },
 };
 
-export const queueBehaviorSettings = {
-    STORAGE_KEY: 'queue-close-on-navigation',
+export const modalSettings = {
+    STORAGE_KEY: 'close-modals-on-navigation',
 
     shouldCloseOnNavigation() {
         try {
-            // Default to true on mobile, false on desktop
+            // Default to false to preserve existing behavior
             const saved = localStorage.getItem(this.STORAGE_KEY);
             if (saved === null) {
-                // Auto-detect: default to true for mobile/touch devices
-                return window.matchMedia('(pointer: coarse)').matches;
+                return false;
             }
             return saved === 'true';
         } catch {
@@ -2227,6 +2226,39 @@ export const queueBehaviorSettings = {
 
     setCloseOnNavigation(enabled) {
         localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+
+    closeAllModals() {
+        // Close all modal overlays
+        document.querySelectorAll('.modal-overlay').forEach((modal) => {
+            modal.remove();
+        });
+
+        // Close all modals with active class
+        document.querySelectorAll('.modal.active').forEach((modal) => {
+            modal.classList.remove('active');
+        });
+
+        // Close specific modals by ID
+        const modalIds = [
+            'playlist-modal',
+            'folder-modal',
+            'playlist-select-modal',
+            'shortcuts-modal',
+            'missing-tracks-modal',
+            'sleep-timer-modal',
+            'discography-download-modal',
+            'custom-db-modal',
+            'tracker-modal',
+            'epilepsy-warning-modal',
+        ];
+
+        modalIds.forEach((id) => {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        });
     },
 };
 
