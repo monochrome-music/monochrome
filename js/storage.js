@@ -29,7 +29,7 @@ export const apiSettings = {
                     if (isSimpleArray) {
                         groupedInstances.api = [...data.api];
                     } else {
-                        for (const [, config] of Object.entries(data.api)) {
+                        for (const [_key, config] of Object.entries(data.api)) {
                             if (config.cors === false && Array.isArray(config.urls)) {
                                 groupedInstances.api.push(...config.urls);
                             }
@@ -233,7 +233,7 @@ export const themeManager = {
         purple: {},
         forest: {},
         mocha: {},
-        machiatto: {},
+        macchiato: {},
         frappe: {},
         latte: {},
     },
@@ -947,7 +947,7 @@ export const equalizerSettings = {
             const stored = localStorage.getItem(this.FREQ_MIN_KEY);
             if (stored) {
                 const val = parseInt(stored, 10);
-                if (!isNaN(val) && val >= this.ABSOLUTE_FREQ_MIN && val < this.DEFAULT_FREQ_MAX) {
+                if (!isNaN(val) && val >= this.ABSOLUTE_FREQ_MIN && val < this.ABSOLUTE_FREQ_MAX) {
                     return val;
                 }
             }
@@ -959,7 +959,20 @@ export const equalizerSettings = {
 
     setFreqMin(value) {
         const val = parseInt(value, 10);
-        if (!isNaN(val) && val >= this.ABSOLUTE_FREQ_MIN && val < this.getFreqMax()) {
+        // Get effective max from storage without recursive call
+        let effectiveMax = this.DEFAULT_FREQ_MAX;
+        try {
+            const storedMax = localStorage.getItem(this.FREQ_MAX_KEY);
+            if (storedMax) {
+                const parsedMax = parseInt(storedMax, 10);
+                if (!isNaN(parsedMax) && parsedMax > this.ABSOLUTE_FREQ_MIN && parsedMax <= this.ABSOLUTE_FREQ_MAX) {
+                    effectiveMax = parsedMax;
+                }
+            }
+        } catch {
+            /* ignore and use default max */
+        }
+        if (!isNaN(val) && val >= this.ABSOLUTE_FREQ_MIN && val < effectiveMax) {
             localStorage.setItem(this.FREQ_MIN_KEY, val.toString());
             return true;
         }
@@ -968,11 +981,23 @@ export const equalizerSettings = {
 
     getFreqMax() {
         try {
-            const stored = localStorage.getItem(this.FREQ_MAX_KEY);
-            if (stored) {
-                const val = parseInt(stored, 10);
-                if (!isNaN(val) && val > this.getFreqMin() && val <= this.ABSOLUTE_FREQ_MAX) {
-                    return val;
+            const storedMax = localStorage.getItem(this.FREQ_MAX_KEY);
+            if (storedMax) {
+                const maxVal = parseInt(storedMax, 10);
+                if (!isNaN(maxVal) && maxVal > this.ABSOLUTE_FREQ_MIN && maxVal <= this.ABSOLUTE_FREQ_MAX) {
+                    // Get stored min without recursive call
+                    try {
+                        const storedMin = localStorage.getItem(this.FREQ_MIN_KEY);
+                        if (storedMin) {
+                            const minVal = parseInt(storedMin, 10);
+                            if (!isNaN(minVal) && maxVal <= minVal) {
+                                return this.DEFAULT_FREQ_MAX;
+                            }
+                        }
+                    } catch {
+                        /* ignore */
+                    }
+                    return maxVal;
                 }
             }
         } catch {
@@ -982,9 +1007,21 @@ export const equalizerSettings = {
     },
 
     setFreqMax(value) {
-        const val = parseInt(value, 10);
-        if (!isNaN(val) && val > this.getFreqMin() && val <= this.ABSOLUTE_FREQ_MAX) {
-            localStorage.setItem(this.FREQ_MAX_KEY, val.toString());
+        const maxVal = parseInt(value, 10);
+        if (!isNaN(maxVal) && maxVal > this.ABSOLUTE_FREQ_MIN && maxVal <= this.ABSOLUTE_FREQ_MAX) {
+            // Check against stored min without recursive call
+            try {
+                const storedMin = localStorage.getItem(this.FREQ_MIN_KEY);
+                if (storedMin) {
+                    const minVal = parseInt(storedMin, 10);
+                    if (!isNaN(minVal) && maxVal <= minVal) {
+                        return false;
+                    }
+                }
+            } catch {
+                /* ignore */
+            }
+            localStorage.setItem(this.FREQ_MAX_KEY, maxVal.toString());
             return true;
         }
         return false;
@@ -1181,7 +1218,7 @@ export const equalizerSettings = {
                 }
             }
 
-            if (Array.isArray(gains) && gains.length === 16) {
+            if (Array.isArray(gains) && gains.length === this.DEFAULT_BAND_COUNT) {
                 presets[presetId].gains = gains.map((g) => Math.round(g * 10) / 10);
                 presets[presetId].updatedAt = Date.now();
             }

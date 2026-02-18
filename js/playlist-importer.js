@@ -1,5 +1,3 @@
-import { sanitizeForFilename } from './utils.js';
-
 /**
  * Helper function to get track artists string
  */
