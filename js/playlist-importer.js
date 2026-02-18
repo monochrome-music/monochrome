@@ -277,6 +277,15 @@ export async function parseJSPF(jspfText, api, onProgress) {
  * @returns {Promise<{tracks: Array, missingTracks: Array}>}
  */
 export async function parseXSPF(xspfText, api, onProgress) {
+    // Validate input to prevent potential XXE attacks
+    if (!xspfText || typeof xspfText !== 'string' || xspfText.length > 10 * 1024 * 1024) {
+        throw new Error('Invalid XSPF content');
+    }
+    // Reject potential XXE payloads
+    if (xspfText.includes('<!ENTITY') || xspfText.includes('<!DOCTYPE')) {
+        throw new Error('XSPF content contains potentially dangerous declarations');
+    }
+
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xspfText, 'text/xml');
 
@@ -329,6 +338,15 @@ export async function parseXSPF(xspfText, api, onProgress) {
  * @returns {Promise<{tracks: Array, missingTracks: Array}>}
  */
 export async function parseXML(xmlText, api, onProgress) {
+    // Validate input to prevent potential XXE attacks
+    if (!xmlText || typeof xmlText !== 'string' || xmlText.length > 10 * 1024 * 1024) {
+        throw new Error('Invalid XML content');
+    }
+    // Reject potential XXE payloads
+    if (xmlText.includes('<!ENTITY') || xmlText.includes('<!DOCTYPE')) {
+        throw new Error('XML content contains potentially dangerous declarations');
+    }
+
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
 

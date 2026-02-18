@@ -9,6 +9,7 @@ import {
     SVG_CLOSE,
     getCoverBlob,
     getExtensionFromBlob,
+    escapeHtml,
 } from './utils.js';
 import { lyricsSettings, bulkDownloadSettings, playlistSettings } from './storage.js';
 import { addMetadataToAudio } from './metadata.js';
@@ -45,11 +46,11 @@ export function showNotification(message) {
     const notifEl = document.createElement('div');
     notifEl.className = 'download-task';
 
-    notifEl.innerHTML = `
-        <div style="display: flex; align-items: start;">
-            ${message}
-        </div>
-    `;
+    const innerDiv = document.createElement('div');
+    innerDiv.style.display = 'flex';
+    innerDiv.style.alignItems = 'start';
+    innerDiv.textContent = message;
+    notifEl.appendChild(innerDiv);
 
     container.appendChild(notifEl);
 
@@ -1019,7 +1020,7 @@ function createBulkDownloadNotification(type, name, _totalItems) {
                 <div style="font-weight: 600; font-size: 0.95rem; margin-bottom: 0.25rem;">
                     Downloading ${typeLabel}
                 </div>
-                <div style="font-size: 0.85rem; color: var(--muted-foreground); margin-bottom: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${name}</div>
+                <div style="font-size: 0.85rem; color: var(--muted-foreground); margin-bottom: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(name)}</div>
                 <div class="download-progress-bar" style="height: 4px; background: var(--secondary); border-radius: 2px; overflow: hidden;">
                     <div class="download-progress-fill" style="width: 0%; height: 100%; background: var(--highlight); transition: width 0.2s;"></div>
                 </div>

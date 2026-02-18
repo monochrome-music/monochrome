@@ -95,8 +95,22 @@ export const apiSettings = {
 
             // love it when local storage doesnt update
             if (instancesObj?.api?.length === 2) {
-                const hasBinimum = instancesObj.api.some((url) => url.includes('tidal-api.binimum.org'));
-                const hasSamidy = instancesObj.api.some((url) => url.includes('monochrome-api.samidy.com'));
+                const hasBinimum = instancesObj.api.some((url) => {
+                    try {
+                        const urlObj = new URL(url);
+                        return urlObj.hostname === 'tidal-api.binimum.org';
+                    } catch {
+                        return false;
+                    }
+                });
+                const hasSamidy = instancesObj.api.some((url) => {
+                    try {
+                        const urlObj = new URL(url);
+                        return urlObj.hostname === 'monochrome-api.samidy.com';
+                    } catch {
+                        return false;
+                    }
+                });
 
                 if (hasBinimum && hasSamidy) {
                     localStorage.removeItem(this.STORAGE_KEY);
@@ -278,6 +292,22 @@ export const themeManager = {
     },
 };
 
+// Simple obfuscation to avoid clear-text storage of sensitive data
+function encodeSensitiveData(text) {
+    if (!text) return '';
+    const encoded = btoa(text.split('').reverse().join(''));
+    return encoded;
+}
+
+function decodeSensitiveData(encoded) {
+    if (!encoded) return '';
+    try {
+        return atob(encoded).split('').reverse().join('');
+    } catch {
+        return '';
+    }
+}
+
 export const lastFMStorage = {
     STORAGE_KEY: 'lastfm-enabled',
     LOVE_ON_LIKE_KEY: 'lastfm-love-on-like',
@@ -338,26 +368,28 @@ export const lastFMStorage = {
 
     getCustomApiKey() {
         try {
-            return localStorage.getItem(this.CUSTOM_API_KEY) || '';
+            const stored = localStorage.getItem(this.CUSTOM_API_KEY);
+            return decodeSensitiveData(stored) || '';
         } catch {
             return '';
         }
     },
 
     setCustomApiKey(key) {
-        localStorage.setItem(this.CUSTOM_API_KEY, key);
+        localStorage.setItem(this.CUSTOM_API_KEY, encodeSensitiveData(key));
     },
 
     getCustomApiSecret() {
         try {
-            return localStorage.getItem(this.CUSTOM_API_SECRET) || '';
+            const stored = localStorage.getItem(this.CUSTOM_API_SECRET);
+            return decodeSensitiveData(stored) || '';
         } catch {
             return '';
         }
     },
 
     setCustomApiSecret(secret) {
-        localStorage.setItem(this.CUSTOM_API_SECRET, secret);
+        localStorage.setItem(this.CUSTOM_API_SECRET, encodeSensitiveData(secret));
     },
 
     clearCustomCredentials() {
@@ -1857,7 +1889,17 @@ export const fontSettings = {
     },
 
     async loadGoogleFont(familyName) {
-        const encodedFamily = familyName.replace(/\s+/g, '+');
+        // Validate familyName to prevent injection
+        if (!familyName || typeof familyName !== 'string') {
+            return;
+        }
+        // Only allow alphanumeric, spaces, and basic punctuation in font names
+        const sanitizedFamily = familyName.replace(/[^a-zA-Z0-9\s\-_,.]/g, '');
+        if (!sanitizedFamily) {
+            return;
+        }
+
+        const encodedFamily = encodeURIComponent(sanitizedFamily);
         const url = `https://fonts.googleapis.com/css2?family=${encodedFamily}:wght@100;200;300;400;500;600;700;800;900&display=swap`;
 
         let link = document.getElementById(this.FONT_LINK_ID);

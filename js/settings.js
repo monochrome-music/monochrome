@@ -2899,11 +2899,16 @@ function initializeFontSettings() {
         let fontName = input;
 
         // Check if it's a Google Fonts URL
-        if (input.includes('fonts.google.com')) {
-            const parsed = fontSettings.parseGoogleFontsUrl(input);
-            if (parsed) {
-                fontName = parsed;
+        try {
+            const urlObj = new URL(input);
+            if (urlObj.hostname === 'fonts.google.com') {
+                const parsed = fontSettings.parseGoogleFontsUrl(input);
+                if (parsed) {
+                    fontName = parsed;
+                }
             }
+        } catch {
+            // Not a URL, treat as font name
         }
 
         fontSettings.loadGoogleFont(fontName);
