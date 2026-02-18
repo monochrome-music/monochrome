@@ -374,10 +374,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         const ua = navigator.userAgent;
         const isChromeOrEdge = (ua.indexOf('Chrome') > -1 || ua.indexOf('Edg') > -1) && !/Mobile|Android/.test(ua);
         const hasFileSystemApi = 'showDirectoryPicker' in window;
+        const isNeutralino =
+            window.NL_MODE ||
+            window.location.search.includes('mode=neutralino') ||
+            window.location.search.includes('nl_port=');
 
-        if (!isChromeOrEdge || !hasFileSystemApi) {
+        if (!isNeutralino && (!isChromeOrEdge || !hasFileSystemApi)) {
             selectLocalBtn.style.display = 'none';
             browserWarning.style.display = 'block';
+        } else if (isNeutralino) {
+            selectLocalBtn.style.display = 'flex';
+            browserWarning.style.display = 'none';
         }
     }
 
@@ -1965,10 +1972,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.target.closest('#select-local-folder-btn') || e.target.closest('#change-local-folder-btn')) {
             const isChange = e.target.closest('#change-local-folder-btn') !== null;
             try {
-                const handle = await window.showDirectoryPicker({
-                    id: 'music-folder',
-                    mode: 'read',
-                });
+                const isNeutralino =
+                    window.Neutralino && (window.NL_MODE || window.location.search.includes('mode=neutralino'));
+                let handle;
+                let path;
+
+                if (isNeutralino) {
+                    path = await window.Neutralino.os.showFolderDialog('Select Music Folder');
+                    if (!path) return;
+                    // Mock a handle object for UI compatibility
+                    handle = { name: path.split(/[/\\]/).pop() || path, isNeutralino: true, path };
+                } else {
+                    handle = await window.showDirectoryPicker({
+                        id: 'music-folder',
+                        mode: 'read',
+                    });
+                }
 
                 await db.saveSetting('local_folder_handle', handle);
                 if (isChange) {
@@ -1985,31 +2004,66 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 const tracks = [];
                 let idCounter = 0;
+                const { readTrackMetadata } = await loadMetadataModule();
 
-                async function scanDirectory(dirHandle) {
-                    for await (const entry of dirHandle.values()) {
-                        if (entry.kind === 'file') {
-                            const name = entry.name.toLowerCase();
-                            if (
-                                name.endsWith('.flac') ||
-                                name.endsWith('.mp3') ||
-                                name.endsWith('.m4a') ||
-                                name.endsWith('.wav') ||
-                                name.endsWith('.ogg')
-                            ) {
-                                const file = await entry.getFile();
-                                const { readTrackMetadata } = await loadMetadataModule();
-                                const metadata = await readTrackMetadata(file);
-                                metadata.id = `local-${idCounter++}-${file.name}`;
-                                tracks.push(metadata);
+                if (isNeutralino) {
+                    async function scanDirectoryNeu(dirPath) {
+                        const entries = await window.Neutralino.filesystem.readDirectory(dirPath);
+                        for (const entry of entries) {
+                            if (entry.entry === '.' || entry.entry === '..') continue;
+                            const fullPath = `${dirPath}/${entry.entry}`;
+                            if (entry.type === 'FILE') {
+                                const name = entry.entry.toLowerCase();
+                                if (
+                                    name.endsWith('.flac') ||
+                                    name.endsWith('.mp3') ||
+                                    name.endsWith('.m4a') ||
+                                    name.endsWith('.wav') ||
+                                    name.endsWith('.ogg')
+                                ) {
+                                    try {
+                                        const buffer = await window.Neutralino.filesystem.readBinaryFile(fullPath);
+                                        const stats = await window.Neutralino.filesystem.getStats(fullPath);
+                                        const file = new File([buffer], entry.entry, {
+                                            lastModified: stats.mtime,
+                                        });
+                                        const metadata = await readTrackMetadata(file);
+                                        metadata.id = `local-${idCounter++}-${entry.entry}`;
+                                        tracks.push(metadata);
+                                    } catch (e) {
+                                        console.error('Failed to read file:', fullPath, e);
+                                    }
+                                }
+                            } else if (entry.type === 'DIRECTORY') {
+                                await scanDirectoryNeu(fullPath);
                             }
-                        } else if (entry.kind === 'directory') {
-                            await scanDirectory(entry);
                         }
                     }
+                    await scanDirectoryNeu(path);
+                } else {
+                    async function scanDirectory(dirHandle) {
+                        for await (const entry of dirHandle.values()) {
+                            if (entry.kind === 'file') {
+                                const name = entry.name.toLowerCase();
+                                if (
+                                    name.endsWith('.flac') ||
+                                    name.endsWith('.mp3') ||
+                                    name.endsWith('.m4a') ||
+                                    name.endsWith('.wav') ||
+                                    name.endsWith('.ogg')
+                                ) {
+                                    const file = await entry.getFile();
+                                    const metadata = await readTrackMetadata(file);
+                                    metadata.id = `local-${idCounter++}-${file.name}`;
+                                    tracks.push(metadata);
+                                }
+                            } else if (entry.kind === 'directory') {
+                                await scanDirectory(entry);
+                            }
+                        }
+                    }
+                    await scanDirectory(handle);
                 }
-
-                await scanDirectory(handle);
 
                 tracks.sort((a, b) => {
                     const artistA = a.artist.name || '';
