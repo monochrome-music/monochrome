@@ -2210,10 +2210,10 @@ export const musicProviderSettings = {
 
 export const modalSettings = {
     STORAGE_KEY: 'close-modals-on-navigation',
+    INTERCEPT_BACK_KEY: 'intercept-back-to-close-modals',
 
     shouldCloseOnNavigation() {
         try {
-            // Default to false to preserve existing behavior
             const saved = localStorage.getItem(this.STORAGE_KEY);
             if (saved === null) {
                 return false;
@@ -2226,6 +2226,54 @@ export const modalSettings = {
 
     setCloseOnNavigation(enabled) {
         localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldInterceptBackToClose() {
+        try {
+            const saved = localStorage.getItem(this.INTERCEPT_BACK_KEY);
+            if (saved === null) {
+                return false;
+            }
+            return saved === 'true';
+        } catch {
+            return false;
+        }
+    },
+
+    setInterceptBackToClose(enabled) {
+        localStorage.setItem(this.INTERCEPT_BACK_KEY, enabled ? 'true' : 'false');
+    },
+
+    hasOpenModalsOrPanels() {
+        const sidePanel = document.getElementById('side-panel');
+        if (sidePanel && sidePanel.classList.contains('active')) {
+            return true;
+        }
+        if (document.querySelector('.modal.active')) {
+            return true;
+        }
+        if (document.querySelector('.modal-overlay')) {
+            return true;
+        }
+        const modalIds = [
+            'playlist-modal',
+            'folder-modal',
+            'playlist-select-modal',
+            'shortcuts-modal',
+            'missing-tracks-modal',
+            'sleep-timer-modal',
+            'discography-download-modal',
+            'custom-db-modal',
+            'tracker-modal',
+            'epilepsy-warning-modal',
+        ];
+        for (const id of modalIds) {
+            const modal = document.getElementById(id);
+            if (modal && modal.classList.contains('active')) {
+                return true;
+            }
+        }
+        return false;
     },
 
     closeAllModals() {

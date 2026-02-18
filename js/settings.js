@@ -1919,6 +1919,15 @@ export function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
+    // Intercept Back to Close Modals Toggle
+    const interceptBackToCloseToggle = document.getElementById('intercept-back-to-close-modals-toggle');
+    if (interceptBackToCloseToggle) {
+        interceptBackToCloseToggle.checked = modalSettings.shouldInterceptBackToClose();
+        interceptBackToCloseToggle.addEventListener('change', (e) => {
+            modalSettings.setInterceptBackToClose(e.target.checked);
+        });
+    }
+
     // Compact Artist Toggle
     const compactArtistToggle = document.getElementById('compact-artist-toggle');
     if (compactArtistToggle) {

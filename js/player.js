@@ -8,6 +8,7 @@ import {
     getTrackArtistsHTML,
     getTrackYearDisplay,
     createQualityBadgeHTML,
+    escapeHtml,
 } from './utils.js';
 import {
     queueManager,
@@ -166,7 +167,7 @@ export class Player {
                 if (coverEl) coverEl.src = this.api.getCoverUrl(track.album?.cover);
                 if (titleEl) {
                     const qualityBadge = createQualityBadgeHTML(track);
-                    titleEl.innerHTML = `${trackTitle} ${qualityBadge}`;
+                    titleEl.innerHTML = `${escapeHtml(trackTitle)} ${qualityBadge}`;
                 }
                 if (albumEl) {
                     const albumTitle = track.album?.title || '';
@@ -356,7 +357,8 @@ export class Player {
         const yearDisplay = getTrackYearDisplay(track);
 
         document.querySelector('.now-playing-bar .cover').src = this.api.getCoverUrl(track.album?.cover);
-        document.querySelector('.now-playing-bar .title').innerHTML = `${trackTitle} ${createQualityBadgeHTML(track)}`;
+        document.querySelector('.now-playing-bar .title').innerHTML =
+            `${escapeHtml(trackTitle)} ${createQualityBadgeHTML(track)}`;
         const albumEl = document.querySelector('.now-playing-bar .album');
         if (albumEl) {
             const albumTitle = track.album?.title || '';
