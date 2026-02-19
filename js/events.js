@@ -765,7 +765,8 @@ export async function handleTrackAction(
     lyricsManager,
     type = 'track',
     ui = null,
-    scrobbler = null
+    scrobbler = null,
+    extraData = null
 ) {
     if (!item) return;
 
@@ -1171,8 +1172,12 @@ export async function handleTrackAction(
 
         modal.classList.add('active');
     } else if (action === 'go-to-artist') {
-        const artistId = item.artist?.id || item.artists?.[0]?.id;
-        if (artistId) {
+        const artistId = extraData?.artistId || item.artist?.id || item.artists?.[0]?.id;
+        const trackerSheetId = extraData?.trackerSheetId || (item.isTracker ? item.trackerInfo?.sheetId : null);
+
+        if (trackerSheetId) {
+            navigate(`/unreleased/${trackerSheetId}`);
+        } else if (artistId) {
             navigate(`/artist/${artistId}`);
         }
     } else if (action === 'go-to-album') {
@@ -1499,6 +1504,54 @@ async function updateContextMenuLikeState(contextMenu, contextTrack) {
             item.textContent = label;
         }
     });
+
+    // Handle multiple artists for "Go to artist"
+    const artistItem = contextMenu.querySelector('li[data-action="go-to-artist"]');
+    if (artistItem) {
+        // Remove any previously added multiple artist items
+        contextMenu.querySelectorAll('.dynamic-artist-item').forEach((i) => i.remove());
+
+        const artists = Array.isArray(contextTrack.artists)
+            ? contextTrack.artists
+            : contextTrack.artist
+              ? [contextTrack.artist]
+              : [];
+        const canShowArtist = type === 'track' || type === 'album';
+
+        if (artists.length > 1 && canShowArtist) {
+            artistItem.style.display = 'none';
+            // Sort artists by name to be consistent
+            [...artists]
+                .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+                .forEach((artist) => {
+                    const li = document.createElement('li');
+                    li.classList.add('dynamic-artist-item');
+                    li.dataset.action = 'go-to-artist';
+                    li.dataset.artistId = artist.id || '';
+
+                    // Handle tracker/unreleased tracks
+                    const isTracker =
+                        contextTrack.isTracker || (contextTrack.id && String(contextTrack.id).startsWith('tracker-'));
+                    if (isTracker && contextTrack.trackerInfo?.sheetId) {
+                        li.dataset.trackerSheetId = contextTrack.trackerInfo.sheetId;
+                    }
+
+                    li.textContent = `Go to ${artist.name || 'Unknown Artist'}`;
+                    artistItem.parentNode.insertBefore(li, artistItem.nextSibling);
+                });
+        } else {
+            // Restore default behavior for single artist
+            const hasArtist = artists.length > 0;
+            artistItem.style.display = hasArtist && canShowArtist ? 'block' : 'none';
+            if (hasArtist) {
+                artistItem.textContent = `Go to ${artists[0].name || 'artist'}`;
+            } else {
+                artistItem.textContent = 'Go to artist';
+            }
+            delete artistItem.dataset.artistId;
+            delete artistItem.dataset.trackerSheetId;
+        }
+    }
 }
 
 export function initializeTrackInteractions(player, api, mainContent, contextMenu, lyricsManager, ui, scrobbler) {
@@ -1717,7 +1770,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
         if (action && track) {
             // Track context menu action
             trackContextMenuAction(action, type, track);
-            await handleTrackAction(action, track, player, api, lyricsManager, type, ui, scrobbler);
+            await handleTrackAction(action, track, player, api, lyricsManager, type, ui, scrobbler, target.dataset);
         }
         contextMenu.style.display = 'none';
         contextMenu._contextType = null;
