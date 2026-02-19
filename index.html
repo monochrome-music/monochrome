@@ -738,95 +738,272 @@
             <div class="modal-overlay"></div>
             <div class="modal-content">
                 <h3>Edit Profile</h3>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem;">Username</label>
+                <div style="margin-bottom: 1rem">
+                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem">Username</label>
                     <input type="text" id="edit-profile-username" class="template-input" placeholder="username" />
-                    <p id="username-error" style="color: #ef4444; font-size: 0.8rem; display: none; margin-top: 0.25rem;"></p>
+                    <p
+                        id="username-error"
+                        style="color: #ef4444; font-size: 0.8rem; display: none; margin-top: 0.25rem"
+                    ></p>
                 </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem;">Display Name</label>
-                    <input type="text" id="edit-profile-display-name" class="template-input" placeholder="Display Name" />
+                <div style="margin-bottom: 1rem">
+                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem">Display Name</label>
+                    <input
+                        type="text"
+                        id="edit-profile-display-name"
+                        class="template-input"
+                        placeholder="Display Name"
+                    />
                 </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem;">Avatar URL</label>
+                <div style="margin-bottom: 1rem">
+                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem">Avatar URL</label>
                     <div style="display: flex; gap: 0.5rem; align-items: stretch">
-                        <input type="url" id="edit-profile-avatar" class="template-input" placeholder="Avatar URL" style="flex: 1; margin: 0; display: none" />
+                        <input
+                            type="url"
+                            id="edit-profile-avatar"
+                            class="template-input"
+                            placeholder="Avatar URL"
+                            style="flex: 1; margin: 0; display: none"
+                        />
                         <input type="file" id="edit-profile-avatar-file" accept="image/*" style="display: none" />
-                        <button type="button" id="edit-profile-avatar-upload-btn" class="template-btn" style="flex: 1; padding: 0.5rem; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: var(--input); border: 1px solid var(--border); color: var(--foreground); border-radius: var(--radius); cursor: pointer;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <button
+                            type="button"
+                            id="edit-profile-avatar-upload-btn"
+                            class="template-btn"
+                            style="
+                                flex: 1;
+                                padding: 0.5rem;
+                                font-size: 0.85rem;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                gap: 0.5rem;
+                                background: var(--input);
+                                border: 1px solid var(--border);
+                                color: var(--foreground);
+                                border-radius: var(--radius);
+                                cursor: pointer;
+                            "
+                        >
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                                 <polyline points="17 8 12 3 7 8" />
                                 <line x1="12" y1="3" x2="12" y2="15" />
                             </svg>
                             <span>Upload</span>
                         </button>
-                        <button type="button" id="edit-profile-avatar-toggle-btn" class="template-btn" style="padding: 0.5rem; font-size: 0.85rem; white-space: nowrap; background: var(--input); border: 1px solid var(--border); color: var(--foreground); border-radius: var(--radius); cursor: pointer;" title="Switch to URL input">or URL</button>
+                        <button
+                            type="button"
+                            id="edit-profile-avatar-toggle-btn"
+                            class="template-btn"
+                            style="
+                                padding: 0.5rem;
+                                font-size: 0.85rem;
+                                white-space: nowrap;
+                                background: var(--input);
+                                border: 1px solid var(--border);
+                                color: var(--foreground);
+                                border-radius: var(--radius);
+                                cursor: pointer;
+                            "
+                            title="Switch to URL input"
+                        >
+                            or URL
+                        </button>
                     </div>
-                    <div id="edit-profile-avatar-upload-status" style="display: none; margin-top: 0.25rem; font-size: 0.75rem; opacity: 0.8"></div>
+                    <div
+                        id="edit-profile-avatar-upload-status"
+                        style="display: none; margin-top: 0.25rem; font-size: 0.75rem; opacity: 0.8"
+                    ></div>
                 </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem;">Banner URL</label>
+                <div style="margin-bottom: 1rem">
+                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem">Banner URL</label>
                     <div style="display: flex; gap: 0.5rem; align-items: stretch">
-                        <input type="url" id="edit-profile-banner" class="template-input" placeholder="Banner URL" style="flex: 1; margin: 0; display: none" />
+                        <input
+                            type="url"
+                            id="edit-profile-banner"
+                            class="template-input"
+                            placeholder="Banner URL"
+                            style="flex: 1; margin: 0; display: none"
+                        />
                         <input type="file" id="edit-profile-banner-file" accept="image/*" style="display: none" />
-                        <button type="button" id="edit-profile-banner-upload-btn" class="template-btn" style="flex: 1; padding: 0.5rem; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: var(--input); border: 1px solid var(--border); color: var(--foreground); border-radius: var(--radius); cursor: pointer;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <button
+                            type="button"
+                            id="edit-profile-banner-upload-btn"
+                            class="template-btn"
+                            style="
+                                flex: 1;
+                                padding: 0.5rem;
+                                font-size: 0.85rem;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                gap: 0.5rem;
+                                background: var(--input);
+                                border: 1px solid var(--border);
+                                color: var(--foreground);
+                                border-radius: var(--radius);
+                                cursor: pointer;
+                            "
+                        >
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                                 <polyline points="17 8 12 3 7 8" />
                                 <line x1="12" y1="3" x2="12" y2="15" />
                             </svg>
                             <span>Upload</span>
                         </button>
-                        <button type="button" id="edit-profile-banner-toggle-btn" class="template-btn" style="padding: 0.5rem; font-size: 0.85rem; white-space: nowrap; background: var(--input); border: 1px solid var(--border); color: var(--foreground); border-radius: var(--radius); cursor: pointer;" title="Switch to URL input">or URL</button>
+                        <button
+                            type="button"
+                            id="edit-profile-banner-toggle-btn"
+                            class="template-btn"
+                            style="
+                                padding: 0.5rem;
+                                font-size: 0.85rem;
+                                white-space: nowrap;
+                                background: var(--input);
+                                border: 1px solid var(--border);
+                                color: var(--foreground);
+                                border-radius: var(--radius);
+                                cursor: pointer;
+                            "
+                            title="Switch to URL input"
+                        >
+                            or URL
+                        </button>
                     </div>
-                    <div id="edit-profile-banner-upload-status" style="display: none; margin-top: 0.25rem; font-size: 0.75rem; opacity: 0.8"></div>
+                    <div
+                        id="edit-profile-banner-upload-status"
+                        style="display: none; margin-top: 0.25rem; font-size: 0.75rem; opacity: 0.8"
+                    ></div>
                 </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem;">Status (Listening to...)</label>
+                <div style="margin-bottom: 1rem">
+                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem"
+                        >Status (Listening to...)</label
+                    >
                     <div class="status-picker-container">
-                        <input type="text" id="edit-profile-status-search" class="template-input" placeholder="Search for a song or album..." autocomplete="off" />
+                        <input
+                            type="text"
+                            id="edit-profile-status-search"
+                            class="template-input"
+                            placeholder="Search for a song or album..."
+                            autocomplete="off"
+                        />
                         <div id="status-search-results" class="search-results-dropdown"></div>
-                        <input type="hidden" id="edit-profile-status-json">
-                        <div id="status-preview" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background: var(--secondary); border-radius: var(--radius); align-items: center; gap: 0.5rem;">
-                            <img id="status-preview-img" src="" style="width: 32px; height: 32px; border-radius: 4px; object-fit: cover;">
-                            <div style="flex: 1; min-width: 0;">
-                                <div id="status-preview-title" style="font-weight: 500; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
-                                <div id="status-preview-subtitle" style="font-size: 0.8rem; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
+                        <input type="hidden" id="edit-profile-status-json" />
+                        <div
+                            id="status-preview"
+                            style="
+                                display: none;
+                                margin-top: 0.5rem;
+                                padding: 0.5rem;
+                                background: var(--secondary);
+                                border-radius: var(--radius);
+                                align-items: center;
+                                gap: 0.5rem;
+                            "
+                        >
+                            <img
+                                id="status-preview-img"
+                                src=""
+                                style="width: 32px; height: 32px; border-radius: 4px; object-fit: cover"
+                            />
+                            <div style="flex: 1; min-width: 0">
+                                <div
+                                    id="status-preview-title"
+                                    style="
+                                        font-weight: 500;
+                                        font-size: 0.9rem;
+                                        white-space: nowrap;
+                                        overflow: hidden;
+                                        text-overflow: ellipsis;
+                                    "
+                                ></div>
+                                <div
+                                    id="status-preview-subtitle"
+                                    style="
+                                        font-size: 0.8rem;
+                                        color: var(--muted-foreground);
+                                        white-space: nowrap;
+                                        overflow: hidden;
+                                        text-overflow: ellipsis;
+                                    "
+                                ></div>
                             </div>
-                            <button id="clear-status-btn" class="btn-icon" style="width: 24px; height: 24px;">&times;</button>
+                            <button id="clear-status-btn" class="btn-icon" style="width: 24px; height: 24px">
+                                &times;
+                            </button>
                         </div>
                     </div>
                 </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem;">Favorite Albums (Max 5)</label>
-                    <div id="edit-favorite-albums-list" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.5rem;"></div>
+                <div style="margin-bottom: 1rem">
+                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem"
+                        >Favorite Albums (Max 5)</label
+                    >
+                    <div
+                        id="edit-favorite-albums-list"
+                        style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.5rem"
+                    ></div>
                     <div class="status-picker-container">
-                        <input type="text" id="edit-favorite-albums-search" class="template-input" placeholder="Search for an album..." autocomplete="off" />
+                        <input
+                            type="text"
+                            id="edit-favorite-albums-search"
+                            class="template-input"
+                            placeholder="Search for an album..."
+                            autocomplete="off"
+                        />
                         <div id="edit-favorite-albums-results" class="search-results-dropdown"></div>
                     </div>
                 </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem;">About Me</label>
-                    <textarea id="edit-profile-about" class="template-input" style="resize: vertical; min-height: 80px;" placeholder="Tell us about yourself"></textarea>
+                <div style="margin-bottom: 1rem">
+                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem">About Me</label>
+                    <textarea
+                        id="edit-profile-about"
+                        class="template-input"
+                        style="resize: vertical; min-height: 80px"
+                        placeholder="Tell us about yourself"
+                    ></textarea>
                 </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem;">Website</label>
+                <div style="margin-bottom: 1rem">
+                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem">Website</label>
                     <input type="url" id="edit-profile-website" class="template-input" placeholder="https://..." />
                 </div>
-                <div style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem;">Last.fm Username</label>
+                <div style="margin-bottom: 1rem">
+                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem">Last.fm Username</label>
                     <input type="text" id="edit-profile-lastfm" class="template-input" placeholder="Last.fm Username" />
-                    <p style="font-size: 0.8rem; color: var(--muted-foreground); margin-top: 0.5rem; line-height: 1.5;">Integrating Last.fm enables recent activity and top stats on your profile. Authorize it in <strong>Settings &gt; Scrobbling</strong>. Note: Last.fm authorization is stored locally and must be repeated on each device.</p>
+                    <p style="font-size: 0.8rem; color: var(--muted-foreground); margin-top: 0.5rem; line-height: 1.5">
+                        Integrating Last.fm enables recent activity and top stats on your profile. Authorize it in
+                        <strong>Settings &gt; Scrobbling</strong>. Note: Last.fm authorization is stored locally and
+                        must be repeated on each device.
+                    </p>
                 </div>
-                
-                <h4 style="margin-top: 1.5rem; margin-bottom: 1rem; font-size: 1rem;">Privacy</h4>
-                <div class="setting-item" style="padding: 0.5rem 0; border: none;">
+
+                <h4 style="margin-top: 1.5rem; margin-bottom: 1rem; font-size: 1rem">Privacy</h4>
+                <div class="setting-item" style="padding: 0.5rem 0; border: none">
                     <div class="info"><span class="label">Public Playlists</span></div>
-                    <label class="toggle-switch"><input type="checkbox" id="privacy-playlists-toggle" checked><span class="slider"></span></label>
+                    <label class="toggle-switch"
+                        ><input type="checkbox" id="privacy-playlists-toggle" checked /><span class="slider"></span
+                    ></label>
                 </div>
-                <div class="setting-item" style="padding: 0.5rem 0; border: none;">
+                <div class="setting-item" style="padding: 0.5rem 0; border: none">
                     <div class="info"><span class="label">Show Last.fm Link & Stats</span></div>
-                    <label class="toggle-switch"><input type="checkbox" id="privacy-lastfm-toggle" checked><span class="slider"></span></label>
+                    <label class="toggle-switch"
+                        ><input type="checkbox" id="privacy-lastfm-toggle" checked /><span class="slider"></span
+                    ></label>
                 </div>
 
                 <div class="modal-actions">
@@ -865,8 +1042,20 @@
             <div class="modal-overlay"></div>
             <div class="modal-content">
                 <h3 style="text-align: center; margin-bottom: 10px">Email Authentication</h3>
-                <input type="email" id="auth-email" class="template-input" placeholder="Email Address" style="margin-bottom: 0.5rem;" />
-                <input type="password" id="auth-password" class="template-input" placeholder="Password" style="margin-bottom: 1rem;" />
+                <input
+                    type="email"
+                    id="auth-email"
+                    class="template-input"
+                    placeholder="Email Address"
+                    style="margin-bottom: 0.5rem"
+                />
+                <input
+                    type="password"
+                    id="auth-password"
+                    class="template-input"
+                    placeholder="Password"
+                    style="margin-bottom: 1rem"
+                />
                 <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px">
                     <button id="email-signin-btn" class="btn-primary" style="flex: 1">Sign In</button>
                     <button id="email-signup-btn" class="btn-secondary" style="flex: 1">Sign Up</button>
@@ -878,7 +1067,9 @@
                 >
                     Forgot Password?
                 </button>
-                <button id="cancel-email-auth-btn" class="btn-secondary" style="width: 100%; margin-top: 10px">Cancel</button>
+                <button id="cancel-email-auth-btn" class="btn-secondary" style="width: 100%; margin-top: 10px">
+                    Cancel
+                </button>
             </div>
         </div>
 
@@ -1475,8 +1666,20 @@
                             <line x1="3" y1="18" x2="21" y2="18"></line>
                         </svg>
                     </button>
-                    <div class="header-account-control" style="position: relative; margin-right: 1rem;">
-                        <button id="header-account-btn" class="btn-icon" title="Account" style="width: 36px; height: 36px; border-radius: 50%; overflow: hidden; padding: 0; border: 1px solid var(--border);">
+                    <div class="header-account-control" style="position: relative; margin-right: 1rem">
+                        <button
+                            id="header-account-btn"
+                            class="btn-icon"
+                            title="Account"
+                            style="
+                                width: 36px;
+                                height: 36px;
+                                border-radius: 50%;
+                                overflow: hidden;
+                                padding: 0;
+                                border: 1px solid var(--border);
+                            "
+                        >
                             <svg
                                 id="header-account-icon"
                                 xmlns="http://www.w3.org/2000/svg"
@@ -1492,7 +1695,11 @@
                                 <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
                                 <circle cx="12" cy="7" r="4"></circle>
                             </svg>
-                            <img id="header-account-img" src="" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                            <img
+                                id="header-account-img"
+                                src=""
+                                style="width: 100%; height: 100%; object-fit: cover; display: none"
+                            />
                         </button>
                         <div id="header-account-dropdown" class="dropdown-menu"></div>
                     </div>
@@ -2647,45 +2854,63 @@
                     <div class="profile-header-container">
                         <div class="profile-banner" id="profile-banner"></div>
                         <div class="profile-info-section">
-                            <img id="profile-avatar" src="/assets/appicon.png" class="profile-avatar" alt="Avatar">
+                            <img id="profile-avatar" src="/assets/appicon.png" class="profile-avatar" alt="Avatar" />
                             <div class="profile-details">
                                 <h1 id="profile-display-name">User</h1>
                                 <div id="profile-username" class="profile-username">@username</div>
-                                <div id="profile-status" class="profile-status" style="display: none;"></div>
+                                <div id="profile-status" class="profile-status" style="display: none"></div>
                                 <div id="profile-about" class="profile-about"></div>
                                 <div class="profile-links">
-                                    <a id="profile-website" href="#" target="_blank" class="profile-link" style="display: none;">Website</a>
-                                    <a id="profile-lastfm" href="#" target="_blank" class="profile-link" style="display: none;">Last.fm</a>
+                                    <a
+                                        id="profile-website"
+                                        href="#"
+                                        target="_blank"
+                                        class="profile-link"
+                                        style="display: none"
+                                        >Website</a
+                                    >
+                                    <a
+                                        id="profile-lastfm"
+                                        href="#"
+                                        target="_blank"
+                                        class="profile-link"
+                                        style="display: none"
+                                        >Last.fm</a
+                                    >
                                 </div>
                             </div>
                             <div class="profile-actions">
-                                <button id="profile-edit-btn" class="btn-secondary" style="display: none;">Edit Profile</button>
+                                <button id="profile-edit-btn" class="btn-secondary" style="display: none">
+                                    Edit Profile
+                                </button>
                             </div>
                         </div>
                     </div>
                     <div class="profile-content">
                         <h2 class="section-title">Public Playlists</h2>
                         <div class="card-grid" id="profile-playlists-container"></div>
-                        <div id="profile-favorite-albums-section" style="display: none; margin-top: 3rem;">
+                        <div id="profile-favorite-albums-section" style="display: none; margin-top: 3rem">
                             <h2 class="section-title">Favorite Albums of All Time</h2>
                             <div id="profile-favorite-albums-container"></div>
                         </div>
-                        <div id="profile-recent-scrobbles-section" style="display: none; margin-top: 3rem;">
-                            <div style="display: flex; align-items: baseline; gap: 1rem; margin-bottom: 1rem;">
-                                <h2 class="section-title" style="margin-bottom: 0;">Recent Scrobbling</h2>
-                                <span style="font-size: 0.8rem; color: var(--muted-foreground);">Powered by Last.fm</span>
+                        <div id="profile-recent-scrobbles-section" style="display: none; margin-top: 3rem">
+                            <div style="display: flex; align-items: baseline; gap: 1rem; margin-bottom: 1rem">
+                                <h2 class="section-title" style="margin-bottom: 0">Recent Scrobbling</h2>
+                                <span style="font-size: 0.8rem; color: var(--muted-foreground)"
+                                    >Powered by Last.fm</span
+                                >
                             </div>
                             <div class="track-list" id="profile-recent-scrobbles-container"></div>
                         </div>
-                        <div id="profile-top-artists-section" style="display: none; margin-top: 3rem;">
+                        <div id="profile-top-artists-section" style="display: none; margin-top: 3rem">
                             <h2 class="section-title">Top Artists</h2>
                             <div class="card-grid" id="profile-top-artists-container"></div>
                         </div>
-                        <div id="profile-top-albums-section" style="display: none; margin-top: 3rem;">
+                        <div id="profile-top-albums-section" style="display: none; margin-top: 3rem">
                             <h2 class="section-title">Top Albums</h2>
                             <div class="card-grid" id="profile-top-albums-container"></div>
                         </div>
-                        <div id="profile-top-tracks-section" style="display: none; margin-top: 3rem;">
+                        <div id="profile-top-tracks-section" style="display: none; margin-top: 3rem">
                             <h2 class="section-title">Top Tracks</h2>
                             <div class="track-list" id="profile-top-tracks-container"></div>
                         </div>
@@ -4350,9 +4575,13 @@
                                 <div class="setting-item">
                                     <div class="info">
                                         <span class="label">Clear Cloud Data</span>
-                                        <span class="description">Delete all your data from the cloud (cannot be undone)</span>
+                                        <span class="description"
+                                            >Delete all your data from the cloud (cannot be undone)</span
+                                        >
                                     </div>
-                                    <button id="firebase-clear-cloud-btn" class="btn-secondary danger">Clear Cloud Data</button>
+                                    <button id="firebase-clear-cloud-btn" class="btn-secondary danger">
+                                        Clear Cloud Data
+                                    </button>
                                 </div>
                                 <div class="setting-item">
                                     <div class="info">
@@ -4620,7 +4849,9 @@
                         >
                             <button id="firebase-connect-btn" class="btn-secondary">Connect with Google</button>
                             <button id="toggle-email-auth-btn" class="btn-secondary">Connect with Email</button>
-                            <button id="view-my-profile-btn" class="btn-secondary" style="display: none;">View My Profile</button>
+                            <button id="view-my-profile-btn" class="btn-secondary" style="display: none">
+                                View My Profile
+                            </button>
                         </div>
 
                         <p id="firebase-status" style="text-align: center; padding-top: 15px; color: #8b8b93">

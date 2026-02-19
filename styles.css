@@ -7233,8 +7233,8 @@ textarea:focus {
     top: 0;
     left: 0;
     z-index: 0;
-    mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0));
-    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 50%, rgba(0,0,0,0));
+    mask-image: linear-gradient(to bottom, rgb(0, 0, 0, 1) 50%, rgb(0, 0, 0, 0));
+    mask-image: linear-gradient(to bottom, rgb(0, 0, 0, 1) 50%, rgb(0, 0, 0, 0));
 }
 
 .profile-info-section {
@@ -7272,16 +7272,16 @@ textarea:focus {
 #profile-display-name {
     font-size: 3rem;
     font-weight: 800;
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 0.5rem;
     line-height: 1.1;
-    text-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    text-shadow: 0 4px 12px rgb(0, 0, 0, 0.5);
 }
 
 .profile-username {
     color: var(--muted-foreground);
     font-size: 1.2rem;
     margin-bottom: 1rem;
-    background: rgba(0,0,0,0.3);
+    background: rgb(0, 0, 0, 0.3);
     padding: 0.25rem 0.75rem;
     border-radius: var(--radius-full);
     backdrop-filter: blur(4px);

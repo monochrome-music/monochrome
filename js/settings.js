@@ -76,7 +76,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
         cancelEmailBtn.addEventListener('click', () => {
             authModal.classList.remove('active');
         });
-        
+
         authModal.querySelector('.modal-overlay').addEventListener('click', () => {
             authModal.classList.remove('active');
         });
