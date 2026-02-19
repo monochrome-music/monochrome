@@ -58,7 +58,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
     // Email Auth UI Logic
     const toggleEmailBtn = document.getElementById('toggle-email-auth-btn');
     const cancelEmailBtn = document.getElementById('cancel-email-auth-btn');
-    const authContainer = document.getElementById('email-auth-container');
+    const authModal = document.getElementById('email-auth-modal');
     const authButtonsContainer = document.getElementById('auth-buttons-container');
     const emailInput = document.getElementById('auth-email');
     const passwordInput = document.getElementById('auth-password');
@@ -66,17 +66,19 @@ export function initializeSettings(scrobbler, player, api, ui) {
     const signUpBtn = document.getElementById('email-signup-btn');
     const resetPasswordBtn = document.getElementById('reset-password-btn');
 
-    if (toggleEmailBtn && authContainer && authButtonsContainer) {
+    if (toggleEmailBtn && authModal) {
         toggleEmailBtn.addEventListener('click', () => {
-            authContainer.style.display = 'flex';
-            authButtonsContainer.style.display = 'none';
+            authModal.classList.add('active');
         });
     }
 
-    if (cancelEmailBtn && authContainer && authButtonsContainer) {
+    if (cancelEmailBtn && authModal) {
         cancelEmailBtn.addEventListener('click', () => {
-            authContainer.style.display = 'none';
-            authButtonsContainer.style.display = 'flex';
+            authModal.classList.remove('active');
+        });
+        
+        authModal.querySelector('.modal-overlay').addEventListener('click', () => {
+            authModal.classList.remove('active');
         });
     }
 
@@ -90,8 +92,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
             }
             try {
                 await authManager.signInWithEmail(email, password);
-                authContainer.style.display = 'none';
-                authButtonsContainer.style.display = 'flex';
+                authModal.classList.remove('active');
                 emailInput.value = '';
                 passwordInput.value = '';
             } catch {
@@ -110,8 +111,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
             }
             try {
                 await authManager.signUpWithEmail(email, password);
-                authContainer.style.display = 'none';
-                authButtonsContainer.style.display = 'flex';
+                authModal.classList.remove('active');
                 emailInput.value = '';
                 passwordInput.value = '';
             } catch {
@@ -1940,15 +1940,6 @@ export function initializeSettings(scrobbler, player, api, ui) {
         sidebarShowSettingsToggle.checked = true;
         sidebarShowSettingsToggle.disabled = true;
         sidebarSectionSettings.setShowSettings(true);
-    }
-
-    const sidebarShowAccountToggle = document.getElementById('sidebar-show-account-toggle');
-    if (sidebarShowAccountToggle) {
-        sidebarShowAccountToggle.checked = sidebarSectionSettings.shouldShowAccount();
-        sidebarShowAccountToggle.addEventListener('change', (e) => {
-            sidebarSectionSettings.setShowAccount(e.target.checked);
-            sidebarSectionSettings.applySidebarVisibility();
-        });
     }
 
     const sidebarShowAboutToggle = document.getElementById('sidebar-show-about-bottom-toggle');

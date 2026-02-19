@@ -64,8 +64,22 @@ const syncManager = {
         const history = this.safeParseInternal(record.history, 'history', []);
         const userPlaylists = this.safeParseInternal(record.user_playlists, 'user_playlists', {});
         const userFolders = this.safeParseInternal(record.user_folders, 'user_folders', {});
+        const favoriteAlbums = this.safeParseInternal(record.favorite_albums, 'favorite_albums', []);
 
-        return { library, history, userPlaylists, userFolders };
+        const profile = {
+            username: record.username,
+            display_name: record.display_name,
+            avatar_url: record.avatar_url,
+            banner: record.banner,
+            status: record.status,
+            about: record.about,
+            website: record.website,
+            privacy: this.safeParseInternal(record.privacy, 'privacy', { playlists: 'public', lastfm: 'public' }),
+            lastfm_username: record.lastfm_username,
+            favorite_albums: favoriteAlbums,
+        };
+
+        return { library, history, userPlaylists, userFolders, profile };
     },
 
     async _updateUserJSON(uid, field, data) {
@@ -431,6 +445,48 @@ const syncManager = {
             }
         } catch (error) {
             console.error('Failed to unpublish playlist:', error);
+        }
+    },
+
+    async getProfile(username) {
+        try {
+            const record = await this.pb.collection('DB_users').getFirstListItem(`username="${username}"`, {
+                fields: 'username,display_name,avatar_url,banner,status,about,website,lastfm_username,privacy,user_playlists,favorite_albums',
+            });
+            return {
+                ...record,
+                privacy: this.safeParseInternal(record.privacy, 'privacy', { playlists: 'public', lastfm: 'public' }),
+                user_playlists: this.safeParseInternal(record.user_playlists, 'user_playlists', {}),
+                favorite_albums: this.safeParseInternal(record.favorite_albums, 'favorite_albums', []),
+            };
+        } catch (error) {
+            return null;
+        }
+    },
+
+    async updateProfile(data) {
+        const user = authManager.user;
+        if (!user) return;
+        const record = await this._getUserRecord(user.uid);
+        if (!record) return;
+
+        const updateData = { ...data };
+        if (updateData.privacy) {
+            updateData.privacy = JSON.stringify(updateData.privacy);
+        }
+
+        await this.pb.collection('DB_users').update(record.id, updateData, { f_id: user.uid });
+        if (this._userRecordCache) {
+            this._userRecordCache = { ...this._userRecordCache, ...updateData };
+        }
+    },
+
+    async isUsernameTaken(username) {
+        try {
+            const list = await this.pb.collection('DB_users').getList(1, 1, { filter: `username="${username}"` });
+            return list.totalItems > 0;
+        } catch (e) {
+            return false;
         }
     },
 

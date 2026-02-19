@@ -1,5 +1,6 @@
 //router.js
 import { getTrackArtists } from './utils.js';
+import { loadProfile } from './profile.js';
 
 export function navigate(path) {
     if (path === window.location.pathname) {
@@ -102,6 +103,11 @@ export function createRouter(ui) {
                 break;
             case 'home':
                 await ui.renderHomePage();
+                break;
+            case 'user':
+                if (param && param.startsWith('@') && !param.includes('/')) {
+                    await loadProfile(decodeURIComponent(param.slice(1)));
+                }
                 break;
             default:
                 ui.showPage(page);

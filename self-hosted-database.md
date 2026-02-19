@@ -83,6 +83,17 @@ Create two collections: `DB_users` and `public_playlists` (do NOT use the defaul
 | `user_playlists`    | JSON       | User's custom playlists   |
 | `user_folders`      | JSON       | User's playlist folders   |
 | `deleted_playlists` | JSON       | Soft-deleted playlists    |
+| `username`          | Plain Text | Unique username           |
+| `display_name`      | Plain Text | Profile display name      |
+| `avatar_url`        | URL        | Profile avatar URL        |
+| `banner`            | URL        | Profile banner URL        |
+| `status`            | Plain Text | User status               |
+| `about`             | Plain Text | About me bio              |
+| `website`           | URL        | Personal website URL      |
+| `lastfm_username`   | Plain Text | Last.fm username          |
+| `privacy`           | JSON       | Privacy settings          |
+| `profile_data_source` | Select (lastfm) | Preferred data source for profile |
+| `favorite_albums`   | JSON       | User's favorite albums    |
 
 #### public_playlists Fields
 
@@ -105,8 +116,8 @@ Set the API rules for both collections to allow read/write access:
 
 **DB_users API Rules:**
 
-- List/Search Rule: `firebase_id = @request.query.f_id`
-- View Rule: `firebase_id = @request.query.f_id`
+- List/Search Rule: `firebase_id = @request.query.f_id || username != ""`
+- View Rule: `firebase_id = @request.query.f_id || username != ""`
 - Create Rule: `firebase_id = @request.query.f_id`
 - Update Rule: `firebase_id = @request.query.f_id`
 - Delete Rule: `firebase_id = @request.query.f_id`

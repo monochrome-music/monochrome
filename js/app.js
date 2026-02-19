@@ -20,8 +20,10 @@ import { debounce, SVG_PLAY, getShareUrl } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 import { db } from './db.js';
 import { syncManager } from './accounts/pocketbase.js';
+import { authManager } from './accounts/auth.js';
 import { registerSW } from 'virtual:pwa-register';
 import './smooth-scrolling.js';
+import { openEditProfile } from './profile.js';
 
 import { initTracker } from './tracker.js';
 import {
@@ -325,6 +327,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const currentQuality = localStorage.getItem('playback-quality') || 'HI_RES_LOSSLESS';
     const player = new Player(audioPlayer, api, currentQuality);
+    window.monochromePlayer = player;
 
     // Initialize tracker
     initTracker(player);
@@ -2247,6 +2250,81 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         observer.observe(contextMenu, { attributes: true });
+    }
+
+    const headerAccountBtn = document.getElementById('header-account-btn');
+    const headerAccountDropdown = document.getElementById('header-account-dropdown');
+    const headerAccountImg = document.getElementById('header-account-img');
+    const headerAccountIcon = document.getElementById('header-account-icon');
+
+    if (headerAccountBtn && headerAccountDropdown) {
+        headerAccountBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            headerAccountDropdown.classList.toggle('active');
+            updateAccountDropdown();
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!headerAccountBtn.contains(e.target) && !headerAccountDropdown.contains(e.target)) {
+                headerAccountDropdown.classList.remove('active');
+            }
+        });
+
+        async function updateAccountDropdown() {
+            const user = authManager?.user;
+            headerAccountDropdown.innerHTML = '';
+
+            if (!user) {
+                headerAccountDropdown.innerHTML = `
+                    <button class="btn-secondary" id="header-google-auth">Connect with Google</button>
+                    <button class="btn-secondary" id="header-email-auth">Connect with Email</button>
+                `;
+                document.getElementById('header-google-auth').onclick = () => authManager.signInWithGoogle();
+                document.getElementById('header-email-auth').onclick = () => {
+                    document.getElementById('email-auth-modal').classList.add('active');
+                    headerAccountDropdown.classList.remove('active');
+                };
+            } else {
+                const data = await syncManager.getUserData();
+                const hasProfile = data && data.profile && data.profile.username;
+
+                if (hasProfile) {
+                    headerAccountDropdown.innerHTML = `
+                        <button class="btn-secondary" id="header-view-profile">My Profile</button>
+                        <button class="btn-secondary danger" id="header-sign-out">Sign Out</button>
+                    `;
+                    document.getElementById('header-view-profile').onclick = () => {
+                        navigate(`/user/@${data.profile.username}`);
+                        headerAccountDropdown.classList.remove('active');
+                    };
+                } else {
+                    headerAccountDropdown.innerHTML = `
+                        <button class="btn-primary" id="header-create-profile">Create Profile</button>
+                        <button class="btn-secondary danger" id="header-sign-out">Sign Out</button>
+                    `;
+                    document.getElementById('header-create-profile').onclick = () => {
+                        openEditProfile();
+                        headerAccountDropdown.classList.remove('active');
+                    };
+                }
+
+                document.getElementById('header-sign-out').onclick = () => authManager.signOut();
+            }
+        }
+
+        authManager.onAuthStateChanged(async (user) => {
+            if (user) {
+                const data = await syncManager.getUserData();
+                if (data && data.profile && data.profile.avatar_url) {
+                    headerAccountImg.src = data.profile.avatar_url;
+                    headerAccountImg.style.display = 'block';
+                    headerAccountIcon.style.display = 'none';
+                    return;
+                }
+            }
+            headerAccountImg.style.display = 'none';
+            headerAccountIcon.style.display = 'block';
+        });
     }
 });
 
