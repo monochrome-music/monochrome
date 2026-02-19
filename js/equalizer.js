@@ -174,6 +174,9 @@ export class Equalizer {
         // Store current gains
         this.currentGains = new Array(this.bandCount).fill(0);
 
+        // Store current preamp value
+        this.preamp = 0;
+
         // Load saved settings
         this._loadSettings();
     }
@@ -290,6 +293,10 @@ export class Equalizer {
             this.inputNode = this.audioContext.createGain();
             this.outputNode = this.audioContext.createGain();
 
+            // Create preamp gain node
+            this.preampNode = this.audioContext.createGain();
+            this._updatePreampGain();
+
             // Connect the filter chain
             this._connectFilters();
 
@@ -325,6 +332,11 @@ export class Equalizer {
     _connectFilters() {
         if (!this.filters.length) return;
 
+        // Connect preamp to first filter
+        if (this.preampNode) {
+            this.preampNode.connect(this.filters[0]);
+        }
+
         // Chain filters together
         for (let i = 0; i < this.filters.length - 1; i++) {
             this.filters[i].connect(this.filters[i + 1]);
@@ -356,7 +368,7 @@ export class Equalizer {
      * Get the input node for external connection
      */
     getInputNode() {
-        return this.filters[0] || null;
+        return this.preampNode || this.filters[0] || null;
     }
 
     /**
@@ -530,6 +542,38 @@ export class Equalizer {
         this.frequencies = generateFrequencies(this.bandCount, this.freqRange.min, this.freqRange.max);
         this.frequencyLabels = generateFrequencyLabels(this.frequencies);
         this.currentGains = equalizerSettings.getGains(this.bandCount);
+        this.preamp = equalizerSettings.getPreamp();
+    }
+
+    /**
+     * Update preamp gain value
+     * @private
+     */
+    _updatePreampGain() {
+        if (this.preampNode && this.audioContext) {
+            const gainValue = Math.pow(10, this.preamp / 20);
+            const now = this.audioContext.currentTime;
+            this.preampNode.gain.setTargetAtTime(gainValue, now, 0.01);
+        }
+    }
+
+    /**
+     * Set preamp value in dB
+     * @param {number} db - Preamp value in dB (-20 to +20)
+     */
+    setPreamp(db) {
+        const clampedDb = Math.max(-20, Math.min(20, parseFloat(db) || 0));
+        this.preamp = clampedDb;
+        equalizerSettings.setPreamp(clampedDb);
+        this._updatePreampGain();
+    }
+
+    /**
+     * Get current preamp value
+     * @returns {number} Current preamp value in dB
+     */
+    getPreamp() {
+        return this.preamp;
     }
 
     /**
@@ -554,11 +598,103 @@ export class Equalizer {
         } catch {
             /* ignore */
         }
+        try {
+            this.preampNode?.disconnect();
+        } catch {
+            /* ignore */
+        }
 
         this.filters = [];
         this.inputNode = null;
         this.outputNode = null;
+        this.preampNode = null;
         this.isInitialized = false;
+    }
+
+    /**
+     * Export equalizer settings to text format
+     * @returns {string} Exported settings in text format
+     */
+    exportToText() {
+        const lines = [];
+        lines.push(`Preamp: ${this.preamp.toFixed(1)} dB`);
+
+        this.frequencies.forEach((freq, index) => {
+            const gain = this.currentGains[index] || 0;
+            const filterNum = index + 1;
+            lines.push(`Filter ${filterNum}: ON PK Fc ${freq} Hz Gain ${gain.toFixed(1)} dB Q 0.71`);
+        });
+
+        return lines.join('\n');
+    }
+
+    /**
+     * Import equalizer settings from text format
+     * @param {string} text - Text format settings
+     * @returns {boolean} True if import was successful
+     */
+    importFromText(text) {
+        try {
+            const lines = text
+                .split('\n')
+                .map((line) => line.trim())
+                .filter((line) => line);
+            const filters = [];
+            let preamp = 0;
+
+            for (const line of lines) {
+                // Parse preamp
+                const preampMatch = line.match(/^Preamp:\s*([+-]?\d+\.?\d*)\s*dB$/i);
+                if (preampMatch) {
+                    preamp = parseFloat(preampMatch[1]);
+                    continue;
+                }
+
+                // Parse filter lines (handle "Filter:" and "Filter X:" formats)
+                const filterMatch = line.match(
+                    /^Filter\s*\d*:\s*ON\s+(\w+)\s+Fc\s+(\d+)\s+Hz\s+Gain\s*([+-]?\d+\.?\d*)\s*dB\s+Q\s+(\d+\.?\d*)/i
+                );
+                if (filterMatch) {
+                    const type = filterMatch[1].toUpperCase();
+                    const freq = parseInt(filterMatch[2], 10);
+                    const gain = parseFloat(filterMatch[3]);
+                    const q = parseFloat(filterMatch[4]);
+                    filters.push({ type, freq, gain, q });
+                }
+            }
+
+            if (filters.length === 0) {
+                console.warn('[Equalizer] No valid filters found in import text');
+                return false;
+            }
+
+            // Apply preamp
+            this.setPreamp(preamp);
+
+            // If different number of bands, adjust
+            if (filters.length !== this.bandCount) {
+                const newCount = Math.max(
+                    equalizerSettings.MIN_BANDS,
+                    Math.min(equalizerSettings.MAX_BANDS, filters.length)
+                );
+                this.setBandCount(newCount);
+            }
+
+            // Extract gains from filters
+            const gains = filters.slice(0, this.bandCount).map((f) => f.gain);
+            this.setAllGains(gains);
+
+            // Store filter frequencies if different
+            const newFreqs = filters.slice(0, this.bandCount).map((f) => f.freq);
+            if (JSON.stringify(newFreqs) !== JSON.stringify(this.frequencies)) {
+                equalizerSettings.setFreqRange(newFreqs[0], newFreqs[newFreqs.length - 1]);
+            }
+
+            return true;
+        } catch (e) {
+            console.warn('[Equalizer] Failed to import settings:', e);
+            return false;
+        }
     }
 }
 

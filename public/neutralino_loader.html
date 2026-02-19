@@ -228,6 +228,88 @@
                         }
                         break;
 
+                    case 'NL_OS_SHOW_FOLDER_DIALOG':
+                        try {
+                            const result = await Neutralino.os.showFolderDialog(event.data.title, event.data.options);
+                            if (iframe && iframe.contentWindow) {
+                                iframe.contentWindow.postMessage(
+                                    { type: 'NL_RESPONSE', id: event.data.id, result },
+                                    '*'
+                                );
+                            }
+                        } catch (e) {
+                            console.error('[Shell] Show Folder Dialog failed:', e);
+                            if (iframe && iframe.contentWindow) {
+                                iframe.contentWindow.postMessage(
+                                    { type: 'NL_RESPONSE', id: event.data.id, error: e },
+                                    '*'
+                                );
+                            }
+                        }
+                        break;
+
+                    case 'NL_FS_READ_BINARY':
+                        try {
+                            const result = await Neutralino.filesystem.readBinaryFile(event.data.path);
+                            if (iframe && iframe.contentWindow) {
+                                // result is ArrayBuffer, should be transferable
+                                iframe.contentWindow.postMessage(
+                                    { type: 'NL_RESPONSE', id: event.data.id, result },
+                                    '*',
+                                    [result]
+                                );
+                            }
+                        } catch (e) {
+                            console.error('[Shell] Read Binary File failed:', e);
+                            if (iframe && iframe.contentWindow) {
+                                iframe.contentWindow.postMessage(
+                                    { type: 'NL_RESPONSE', id: event.data.id, error: e },
+                                    '*'
+                                );
+                            }
+                        }
+                        break;
+
+                    case 'NL_FS_READ_DIR':
+                        try {
+                            const result = await Neutralino.filesystem.readDirectory(event.data.path);
+                            if (iframe && iframe.contentWindow) {
+                                iframe.contentWindow.postMessage(
+                                    { type: 'NL_RESPONSE', id: event.data.id, result },
+                                    '*'
+                                );
+                            }
+                        } catch (e) {
+                            console.error('[Shell] Read Directory failed:', e);
+                            if (iframe && iframe.contentWindow) {
+                                iframe.contentWindow.postMessage(
+                                    { type: 'NL_RESPONSE', id: event.data.id, error: e },
+                                    '*'
+                                );
+                            }
+                        }
+                        break;
+
+                    case 'NL_FS_STATS':
+                        try {
+                            const result = await Neutralino.filesystem.getStats(event.data.path);
+                            if (iframe && iframe.contentWindow) {
+                                iframe.contentWindow.postMessage(
+                                    { type: 'NL_RESPONSE', id: event.data.id, result },
+                                    '*'
+                                );
+                            }
+                        } catch (e) {
+                            console.error('[Shell] Get Stats failed:', e);
+                            if (iframe && iframe.contentWindow) {
+                                iframe.contentWindow.postMessage(
+                                    { type: 'NL_RESPONSE', id: event.data.id, error: e },
+                                    '*'
+                                );
+                            }
+                        }
+                        break;
+
                     case 'NL_FS_WRITE_BINARY':
                         try {
                             // buffer comes as ArrayBuffer in event.data.buffer (if transferred) or event.data.buffer

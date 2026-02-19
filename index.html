@@ -3244,14 +3244,27 @@
                             <div class="settings-group">
                                 <div class="setting-item">
                                     <div class="info">
-                                        <span class="label">Close Queue on Navigation</span>
+                                        <span class="label">Close Modals on Navigation</span>
                                         <span class="description"
-                                            >Close the queue panel when navigating back or to a new page (useful for
-                                            mobile)</span
+                                            >Close open modals and panels (like lyrics, queue) when navigating back or
+                                            to a new page</span
                                         >
                                     </div>
                                     <label class="toggle-switch">
-                                        <input type="checkbox" id="queue-close-on-navigation-toggle" />
+                                        <input type="checkbox" id="close-modals-on-navigation-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Intercept Back to Close Modals</span>
+                                        <span class="description"
+                                            >When pressing back, close open modals/panels first without navigating.
+                                            Press back again to actually go back.</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="intercept-back-to-close-modals-toggle" />
                                         <span class="slider"></span>
                                     </label>
                                 </div>
@@ -3917,6 +3930,28 @@
                                                     <path d="M3 3v5h5" />
                                                 </svg>
                                             </button>
+                                            <button
+                                                id="eq-export-btn"
+                                                class="btn-secondary"
+                                                title="Export EQ settings to text"
+                                                style="font-size: 0.75rem; padding: 0.25rem 0.5rem"
+                                            >
+                                                Export
+                                            </button>
+                                            <button
+                                                id="eq-import-btn"
+                                                class="btn-secondary"
+                                                title="Import EQ settings from text or file"
+                                                style="font-size: 0.75rem; padding: 0.25rem 0.5rem"
+                                            >
+                                                Import
+                                            </button>
+                                            <input
+                                                type="file"
+                                                id="eq-import-file"
+                                                accept=".txt"
+                                                style="display: none"
+                                            />
                                         </div>
 
                                         <div class="custom-preset-controls">
@@ -4036,10 +4071,41 @@
                                                 Reset
                                             </button>
                                         </div>
+
+                                        <div
+                                            class="eq-preamp-controls"
+                                            style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem"
+                                        >
+                                            <label style="font-size: 0.75rem; opacity: 0.8">Preamp:</label>
+                                            <input
+                                                type="range"
+                                                id="eq-preamp-slider"
+                                                min="-20"
+                                                max="20"
+                                                step="0.1"
+                                                value="0"
+                                                style="flex: 1; max-width: 120px"
+                                                title="Preamp gain in dB"
+                                            />
+                                            <input
+                                                type="number"
+                                                id="eq-preamp-input"
+                                                min="-20"
+                                                max="20"
+                                                step="0.1"
+                                                value="0"
+                                                style="width: 60px; padding: 0.25rem; font-size: 0.75rem"
+                                                title="Preamp value in dB"
+                                            />
+                                            <span style="font-size: 0.75rem">dB</span>
+                                        </div>
                                     </div>
 
-                                    <div class="equalizer-bands" id="equalizer-bands">
-                                        <!-- Bands will be dynamically generated by JavaScript -->
+                                    <div class="equalizer-bands-wrapper">
+                                        <canvas id="eq-response-canvas" class="eq-response-canvas"></canvas>
+                                        <div class="equalizer-bands" id="equalizer-bands">
+                                            <!-- Bands will be dynamically generated by JavaScript -->
+                                        </div>
                                     </div>
 
                                     <div class="equalizer-scale">

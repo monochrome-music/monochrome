@@ -29,7 +29,7 @@ export const apiSettings = {
                     if (isSimpleArray) {
                         groupedInstances.api = [...data.api];
                     } else {
-                        for (const [, config] of Object.entries(data.api)) {
+                        for (const [_key, config] of Object.entries(data.api)) {
                             if (config.cors === false && Array.isArray(config.urls)) {
                                 groupedInstances.api.push(...config.urls);
                             }
@@ -95,8 +95,22 @@ export const apiSettings = {
 
             // love it when local storage doesnt update
             if (instancesObj?.api?.length === 2) {
-                const hasBinimum = instancesObj.api.some((url) => url.includes('tidal-api.binimum.org'));
-                const hasSamidy = instancesObj.api.some((url) => url.includes('monochrome-api.samidy.com'));
+                const hasBinimum = instancesObj.api.some((url) => {
+                    try {
+                        const urlObj = new URL(url);
+                        return urlObj.hostname === 'tidal-api.binimum.org';
+                    } catch {
+                        return false;
+                    }
+                });
+                const hasSamidy = instancesObj.api.some((url) => {
+                    try {
+                        const urlObj = new URL(url);
+                        return urlObj.hostname === 'monochrome-api.samidy.com';
+                    } catch {
+                        return false;
+                    }
+                });
 
                 if (hasBinimum && hasSamidy) {
                     localStorage.removeItem(this.STORAGE_KEY);
@@ -219,7 +233,7 @@ export const themeManager = {
         purple: {},
         forest: {},
         mocha: {},
-        machiatto: {},
+        macchiato: {},
         frappe: {},
         latte: {},
     },
@@ -277,6 +291,22 @@ export const themeManager = {
         }
     },
 };
+
+// Simple obfuscation to avoid clear-text storage of sensitive data
+function encodeSensitiveData(text) {
+    if (!text) return '';
+    const encoded = btoa(text.split('').reverse().join(''));
+    return encoded;
+}
+
+function decodeSensitiveData(encoded) {
+    if (!encoded) return '';
+    try {
+        return atob(encoded).split('').reverse().join('');
+    } catch {
+        return '';
+    }
+}
 
 export const lastFMStorage = {
     STORAGE_KEY: 'lastfm-enabled',
@@ -338,26 +368,28 @@ export const lastFMStorage = {
 
     getCustomApiKey() {
         try {
-            return localStorage.getItem(this.CUSTOM_API_KEY) || '';
+            const stored = localStorage.getItem(this.CUSTOM_API_KEY);
+            return decodeSensitiveData(stored) || '';
         } catch {
             return '';
         }
     },
 
     setCustomApiKey(key) {
-        localStorage.setItem(this.CUSTOM_API_KEY, key);
+        localStorage.setItem(this.CUSTOM_API_KEY, encodeSensitiveData(key));
     },
 
     getCustomApiSecret() {
         try {
-            return localStorage.getItem(this.CUSTOM_API_SECRET) || '';
+            const stored = localStorage.getItem(this.CUSTOM_API_SECRET);
+            return decodeSensitiveData(stored) || '';
         } catch {
             return '';
         }
     },
 
     setCustomApiSecret(secret) {
-        localStorage.setItem(this.CUSTOM_API_SECRET, secret);
+        localStorage.setItem(this.CUSTOM_API_SECRET, encodeSensitiveData(secret));
     },
 
     clearCustomCredentials() {
@@ -797,6 +829,7 @@ export const equalizerSettings = {
     RANGE_MAX_KEY: 'equalizer-range-max',
     FREQ_MIN_KEY: 'equalizer-freq-min',
     FREQ_MAX_KEY: 'equalizer-freq-max',
+    PREAMP_KEY: 'equalizer-preamp',
     DEFAULT_BAND_COUNT: 16,
     MIN_BANDS: 3,
     MAX_BANDS: 32,
@@ -808,6 +841,9 @@ export const equalizerSettings = {
     DEFAULT_FREQ_MAX: 20000,
     ABSOLUTE_FREQ_MIN: 10,
     ABSOLUTE_FREQ_MAX: 96000,
+    DEFAULT_PREAMP: 0,
+    PREAMP_MIN: -20,
+    PREAMP_MAX: 20,
 
     isEnabled() {
         try {
@@ -911,7 +947,7 @@ export const equalizerSettings = {
             const stored = localStorage.getItem(this.FREQ_MIN_KEY);
             if (stored) {
                 const val = parseInt(stored, 10);
-                if (!isNaN(val) && val >= this.ABSOLUTE_FREQ_MIN && val < this.DEFAULT_FREQ_MAX) {
+                if (!isNaN(val) && val >= this.ABSOLUTE_FREQ_MIN && val < this.ABSOLUTE_FREQ_MAX) {
                     return val;
                 }
             }
@@ -923,7 +959,20 @@ export const equalizerSettings = {
 
     setFreqMin(value) {
         const val = parseInt(value, 10);
-        if (!isNaN(val) && val >= this.ABSOLUTE_FREQ_MIN && val < this.getFreqMax()) {
+        // Get effective max from storage without recursive call
+        let effectiveMax = this.DEFAULT_FREQ_MAX;
+        try {
+            const storedMax = localStorage.getItem(this.FREQ_MAX_KEY);
+            if (storedMax) {
+                const parsedMax = parseInt(storedMax, 10);
+                if (!isNaN(parsedMax) && parsedMax > this.ABSOLUTE_FREQ_MIN && parsedMax <= this.ABSOLUTE_FREQ_MAX) {
+                    effectiveMax = parsedMax;
+                }
+            }
+        } catch {
+            /* ignore and use default max */
+        }
+        if (!isNaN(val) && val >= this.ABSOLUTE_FREQ_MIN && val < effectiveMax) {
             localStorage.setItem(this.FREQ_MIN_KEY, val.toString());
             return true;
         }
@@ -932,11 +981,23 @@ export const equalizerSettings = {
 
     getFreqMax() {
         try {
-            const stored = localStorage.getItem(this.FREQ_MAX_KEY);
-            if (stored) {
-                const val = parseInt(stored, 10);
-                if (!isNaN(val) && val > this.getFreqMin() && val <= this.ABSOLUTE_FREQ_MAX) {
-                    return val;
+            const storedMax = localStorage.getItem(this.FREQ_MAX_KEY);
+            if (storedMax) {
+                const maxVal = parseInt(storedMax, 10);
+                if (!isNaN(maxVal) && maxVal > this.ABSOLUTE_FREQ_MIN && maxVal <= this.ABSOLUTE_FREQ_MAX) {
+                    // Get stored min without recursive call
+                    try {
+                        const storedMin = localStorage.getItem(this.FREQ_MIN_KEY);
+                        if (storedMin) {
+                            const minVal = parseInt(storedMin, 10);
+                            if (!isNaN(minVal) && maxVal <= minVal) {
+                                return this.DEFAULT_FREQ_MAX;
+                            }
+                        }
+                    } catch {
+                        /* ignore */
+                    }
+                    return maxVal;
                 }
             }
         } catch {
@@ -946,9 +1007,21 @@ export const equalizerSettings = {
     },
 
     setFreqMax(value) {
-        const val = parseInt(value, 10);
-        if (!isNaN(val) && val > this.getFreqMin() && val <= this.ABSOLUTE_FREQ_MAX) {
-            localStorage.setItem(this.FREQ_MAX_KEY, val.toString());
+        const maxVal = parseInt(value, 10);
+        if (!isNaN(maxVal) && maxVal > this.ABSOLUTE_FREQ_MIN && maxVal <= this.ABSOLUTE_FREQ_MAX) {
+            // Check against stored min without recursive call
+            try {
+                const storedMin = localStorage.getItem(this.FREQ_MIN_KEY);
+                if (storedMin) {
+                    const minVal = parseInt(storedMin, 10);
+                    if (!isNaN(minVal) && maxVal <= minVal) {
+                        return false;
+                    }
+                }
+            } catch {
+                /* ignore */
+            }
+            localStorage.setItem(this.FREQ_MAX_KEY, maxVal.toString());
             return true;
         }
         return false;
@@ -965,6 +1038,30 @@ export const equalizerSettings = {
         const validMax = this.setFreqMax(max);
         const validMin = this.setFreqMin(min);
         return validMin && validMax;
+    },
+
+    getPreamp() {
+        try {
+            const stored = localStorage.getItem(this.PREAMP_KEY);
+            if (stored) {
+                const val = parseFloat(stored);
+                if (!isNaN(val) && val >= this.PREAMP_MIN && val <= this.PREAMP_MAX) {
+                    return val;
+                }
+            }
+        } catch {
+            /* ignore */
+        }
+        return this.DEFAULT_PREAMP;
+    },
+
+    setPreamp(value) {
+        const val = parseFloat(value);
+        if (!isNaN(val) && val >= this.PREAMP_MIN && val <= this.PREAMP_MAX) {
+            localStorage.setItem(this.PREAMP_KEY, val.toString());
+            return true;
+        }
+        return false;
     },
 
     getGains(bandCount) {
@@ -1121,7 +1218,7 @@ export const equalizerSettings = {
                 }
             }
 
-            if (Array.isArray(gains) && gains.length === 16) {
+            if (Array.isArray(gains) && gains.length === this.DEFAULT_BAND_COUNT) {
                 presets[presetId].gains = gains.map((g) => Math.round(g * 10) / 10);
                 presets[presetId].updatedAt = Date.now();
             }
@@ -1813,7 +1910,17 @@ export const fontSettings = {
     },
 
     async loadGoogleFont(familyName) {
-        const encodedFamily = familyName.replace(/\s+/g, '+');
+        // Validate familyName to prevent injection
+        if (!familyName || typeof familyName !== 'string') {
+            return;
+        }
+        // Only allow alphanumeric, spaces, and basic punctuation in font names
+        const sanitizedFamily = familyName.replace(/[^a-zA-Z0-9\s\-_,.]/g, '');
+        if (!sanitizedFamily) {
+            return;
+        }
+
+        const encodedFamily = encodeURIComponent(sanitizedFamily);
         const url = `https://fonts.googleapis.com/css2?family=${encodedFamily}:wght@100;200;300;400;500;600;700;800;900&display=swap`;
 
         let link = document.getElementById(this.FONT_LINK_ID);
@@ -2085,16 +2192,15 @@ export const musicProviderSettings = {
     },
 };
 
-export const queueBehaviorSettings = {
-    STORAGE_KEY: 'queue-close-on-navigation',
+export const modalSettings = {
+    STORAGE_KEY: 'close-modals-on-navigation',
+    INTERCEPT_BACK_KEY: 'intercept-back-to-close-modals',
 
     shouldCloseOnNavigation() {
         try {
-            // Default to true on mobile, false on desktop
             const saved = localStorage.getItem(this.STORAGE_KEY);
             if (saved === null) {
-                // Auto-detect: default to true for mobile/touch devices
-                return window.matchMedia('(pointer: coarse)').matches;
+                return false;
             }
             return saved === 'true';
         } catch {
@@ -2104,6 +2210,87 @@ export const queueBehaviorSettings = {
 
     setCloseOnNavigation(enabled) {
         localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldInterceptBackToClose() {
+        try {
+            const saved = localStorage.getItem(this.INTERCEPT_BACK_KEY);
+            if (saved === null) {
+                return false;
+            }
+            return saved === 'true';
+        } catch {
+            return false;
+        }
+    },
+
+    setInterceptBackToClose(enabled) {
+        localStorage.setItem(this.INTERCEPT_BACK_KEY, enabled ? 'true' : 'false');
+    },
+
+    hasOpenModalsOrPanels() {
+        const sidePanel = document.getElementById('side-panel');
+        if (sidePanel && sidePanel.classList.contains('active')) {
+            return true;
+        }
+        if (document.querySelector('.modal.active')) {
+            return true;
+        }
+        if (document.querySelector('.modal-overlay')) {
+            return true;
+        }
+        const modalIds = [
+            'playlist-modal',
+            'folder-modal',
+            'playlist-select-modal',
+            'shortcuts-modal',
+            'missing-tracks-modal',
+            'sleep-timer-modal',
+            'discography-download-modal',
+            'custom-db-modal',
+            'tracker-modal',
+            'epilepsy-warning-modal',
+        ];
+        for (const id of modalIds) {
+            const modal = document.getElementById(id);
+            if (modal && modal.classList.contains('active')) {
+                return true;
+            }
+        }
+        return false;
+    },
+
+    closeAllModals() {
+        // Close all modal overlays
+        document.querySelectorAll('.modal-overlay').forEach((modal) => {
+            modal.remove();
+        });
+
+        // Close all modals with active class
+        document.querySelectorAll('.modal.active').forEach((modal) => {
+            modal.classList.remove('active');
+        });
+
+        // Close specific modals by ID
+        const modalIds = [
+            'playlist-modal',
+            'folder-modal',
+            'playlist-select-modal',
+            'shortcuts-modal',
+            'missing-tracks-modal',
+            'sleep-timer-modal',
+            'discography-download-modal',
+            'custom-db-modal',
+            'tracker-modal',
+            'epilepsy-warning-modal',
+        ];
+
+        modalIds.forEach((id) => {
+            const modal = document.getElementById(id);
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        });
     },
 };
 

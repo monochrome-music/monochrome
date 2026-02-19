@@ -32,7 +32,7 @@ import {
     contentBlockingSettings,
     musicProviderSettings,
     analyticsSettings,
-    queueBehaviorSettings,
+    modalSettings,
 } from './storage.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
 import { getButterchurnPresets } from './visualizers/butterchurn.js';
@@ -886,11 +886,17 @@ export function initializeSettings(scrobbler, player, api, ui) {
     const resetEqFreqBtn = document.getElementById('reset-eq-freq-btn');
     const resetEqRangeBtn = document.getElementById('reset-eq-range-btn');
     const eqScaleContainer = document.querySelector('.equalizer-scale');
+    const eqPreampSlider = document.getElementById('eq-preamp-slider');
+    const eqPreampInput = document.getElementById('eq-preamp-input');
+    const eqExportBtn = document.getElementById('eq-export-btn');
+    const eqImportBtn = document.getElementById('eq-import-btn');
+    const eqImportFile = document.getElementById('eq-import-file');
 
     // Current settings
     let currentBandCount = equalizerSettings.getBandCount();
     let currentRange = equalizerSettings.getRange();
     let currentFreqRange = equalizerSettings.getFreqRange();
+    let currentPreamp = equalizerSettings.getPreamp();
 
     /**
      * Generate frequency labels for given band count and frequency range
@@ -1004,6 +1010,9 @@ export function initializeSettings(scrobbler, player, api, ui) {
                 updateBandValueDisplay(bandEl, gains[index]);
             }
         });
+
+        // Redraw the EQ curve after updating all bands
+        drawEQCurve();
     };
 
     /**
@@ -1012,6 +1021,10 @@ export function initializeSettings(scrobbler, player, api, ui) {
     const updateEQContainerVisibility = (enabled) => {
         if (eqContainer) {
             eqContainer.style.display = enabled ? 'block' : 'none';
+            if (enabled) {
+                // Redraw curve when container becomes visible
+                requestAnimationFrame(drawEQCurve);
+            }
         }
     };
 
@@ -1061,6 +1074,152 @@ export function initializeSettings(scrobbler, player, api, ui) {
     };
 
     /**
+     * Draw smooth EQ response curve on canvas
+     */
+    const drawEQCurve = () => {
+        const canvas = document.getElementById('eq-response-canvas');
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+
+        // Skip if canvas has no size (not visible yet)
+        if (rect.width === 0 || rect.height === 0) return;
+
+        // Set canvas size accounting for DPR
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.scale(dpr, dpr);
+
+        const width = rect.width;
+        const height = rect.height;
+
+        // Clear canvas
+        ctx.clearRect(0, 0, width, height);
+
+        // Get all current gain values
+        const eqBands = eqBandsContainer?.querySelectorAll('.eq-band');
+        if (!eqBands || eqBands.length === 0) return;
+
+        // Get the actual highlight color from CSS
+        const tempEl = document.createElement('div');
+        tempEl.style.color = 'rgb(var(--highlight-rgb))';
+        document.body.appendChild(tempEl);
+        const highlightColor = getComputedStyle(tempEl).color;
+        document.body.removeChild(tempEl);
+
+        const gains = [];
+        const positions = [];
+        const range = currentRange;
+        const rangeTotal = range.max - range.min;
+        const canvasRect = canvas.getBoundingClientRect();
+
+        eqBands.forEach((bandEl) => {
+            const slider = bandEl.querySelector('.eq-slider');
+            const gain = slider ? parseFloat(slider.value) : 0;
+            gains.push(gain);
+
+            // Get actual center position of the band element relative to canvas
+            const bandRect = bandEl.getBoundingClientRect();
+            const x = bandRect.left + bandRect.width / 2 - canvasRect.left;
+            positions.push(x);
+        });
+
+        // Calculate y positions - account for slider thumb size (18px)
+        // The track is 120px, but thumb center moves within (120 - 18) = 102px range
+        const trackHeight = height;
+        const thumbSize = 18;
+        const usableTrack = trackHeight - thumbSize;
+        const trackOffset = thumbSize / 2;
+
+        const getY = (gain) => {
+            const normalized = (gain - range.min) / rangeTotal;
+            // Invert because canvas Y=0 is at top, slider max is at top
+            return trackOffset + (1 - normalized) * usableTrack;
+        };
+
+        // Create points array
+        const points = gains.map((gain, i) => ({
+            x: positions[i],
+            y: getY(gain),
+        }));
+
+        if (points.length < 2) return;
+
+        // Parse RGB values from color string
+        const rgbMatch = highlightColor.match(/\d+/g);
+        const r = rgbMatch ? parseInt(rgbMatch[0]) : 128;
+        const g = rgbMatch ? parseInt(rgbMatch[1]) : 128;
+        const b = rgbMatch ? parseInt(rgbMatch[2]) : 128;
+
+        // Calculate control points for smooth curve
+        const getControlPoints = (i) => {
+            const p0 = points[i === 0 ? i : i - 1];
+            const p1 = points[i];
+            const p2 = points[i + 1];
+            const p3 = points[i + 2] || p2;
+
+            const cp1x = p1.x + (p2.x - p0.x) / 6;
+            const cp1y = p1.y + (p2.y - p0.y) / 6;
+            const cp2x = p2.x - (p3.x - p1.x) / 6;
+            const cp2y = p2.y - (p3.y - p1.y) / 6;
+
+            return { cp1x, cp1y, cp2x, cp2y };
+        };
+
+        // Draw filled area from curve to bottom
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.3)`);
+        gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.05)`);
+
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, height);
+        ctx.lineTo(points[0].x, points[0].y);
+
+        for (let i = 0; i < points.length - 1; i++) {
+            const { cp1x, cp1y, cp2x, cp2y } = getControlPoints(i);
+            const p2 = points[i + 1];
+            ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+        }
+
+        ctx.lineTo(points[points.length - 1].x, height);
+        ctx.closePath();
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        // Draw the curve line
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+
+        for (let i = 0; i < points.length - 1; i++) {
+            const { cp1x, cp1y, cp2x, cp2y } = getControlPoints(i);
+            const p2 = points[i + 1];
+            ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+        }
+
+        ctx.strokeStyle = `rgb(${r}, ${g}, ${b})`;
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+
+        // Draw dots at each band point
+        points.forEach((point) => {
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
+            ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+            ctx.fill();
+
+            // Add white center to dots for visibility
+            ctx.beginPath();
+            ctx.arc(point.x, point.y, 2, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.fill();
+        });
+    };
+
+    /**
      * Initialize band slider event listeners
      */
     const initializeBandSliders = () => {
@@ -1068,6 +1227,9 @@ export function initializeSettings(scrobbler, player, api, ui) {
         if (!eqBands || eqBands.length === 0) return;
 
         const savedGains = equalizerSettings.getGains(currentBandCount);
+
+        // FL Studio-style absolute position drag state
+        let isDragging = false;
 
         eqBands.forEach((bandEl) => {
             const bandIndex = parseInt(bandEl.dataset.band, 10);
@@ -1084,6 +1246,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
                     const gain = parseFloat(e.target.value);
                     audioContextManager.setBandGain(bandIndex, gain);
                     updateBandValueDisplay(bandEl, gain);
+                    drawEQCurve();
 
                     // When manually adjusting, check if we should clear preset
                     if (eqPresetSelect && eqPresetSelect.value !== 'flat') {
@@ -1104,9 +1267,72 @@ export function initializeSettings(scrobbler, player, api, ui) {
                     slider.value = 0;
                     audioContextManager.setBandGain(bandIndex, 0);
                     updateBandValueDisplay(bandEl, 0);
+                    drawEQCurve();
+                });
+
+                // FL Studio-style absolute drag: mousedown starts drag mode
+                bandEl.addEventListener('mousedown', (e) => {
+                    // Only handle left mouse button
+                    if (e.button !== 0) return;
+
+                    isDragging = true;
+                    document.body.style.cursor = 'ns-resize';
+                    e.preventDefault();
                 });
             }
         });
+
+        // Global mousemove: whichever band is under cursor, set slider to cursor Y position
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+
+            // Find which band is under the cursor
+            const elementUnderCursor = document.elementFromPoint(e.clientX, e.clientY);
+            const bandUnderCursor = elementUnderCursor?.closest('.eq-band');
+
+            if (bandUnderCursor) {
+                const slider = bandUnderCursor.querySelector('.eq-slider');
+
+                if (slider) {
+                    const rect = slider.getBoundingClientRect();
+                    const min = parseFloat(slider.min);
+                    const max = parseFloat(slider.max);
+                    const step = parseFloat(slider.step) || 0.5;
+
+                    // Calculate relative Y position within slider (0 = bottom, 1 = top)
+                    const relativeY = (rect.bottom - e.clientY) / rect.height;
+                    const clampedY = Math.max(0, Math.min(1, relativeY));
+
+                    // Map to slider value range
+                    let newValue = min + clampedY * (max - min);
+
+                    // Round to step
+                    newValue = Math.round(newValue / step) * step;
+
+                    // Only update if value changed
+                    if (parseFloat(slider.value) !== newValue) {
+                        slider.value = newValue;
+                        const bandIndex = parseInt(bandUnderCursor.dataset.band, 10);
+                        audioContextManager.setBandGain(bandIndex, newValue);
+                        updateBandValueDisplay(bandUnderCursor, newValue);
+                        drawEQCurve();
+                    }
+                }
+            }
+        });
+
+        // Global mouseup: stop dragging
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                document.body.style.cursor = '';
+            }
+        });
+
+        // Initial curve draw with delay to ensure canvas has proper dimensions
+        setTimeout(() => {
+            drawEQCurve();
+        }, 100);
     };
 
     // Initialize EQ toggle
@@ -1119,6 +1345,13 @@ export function initializeSettings(scrobbler, player, api, ui) {
             const enabled = e.target.checked;
             audioContextManager.toggleEQ(enabled);
             updateEQContainerVisibility(enabled);
+
+            // Redraw curve after a brief delay to allow container to become visible
+            if (enabled) {
+                setTimeout(() => {
+                    drawEQCurve();
+                }, 50);
+            }
         });
     }
 
@@ -1131,9 +1364,9 @@ export function initializeSettings(scrobbler, player, api, ui) {
             if (newCount >= equalizerSettings.MIN_BANDS && newCount <= equalizerSettings.MAX_BANDS) {
                 currentBandCount = newCount;
 
-                // Save new band count and update audio context
+                // Save new band count and update audio context (interpolates gains automatically)
                 equalizerSettings.setBandCount(newCount);
-                audioContextManager.setBandCount?.(newCount) || audioContextManager.reinitialize?.();
+                audioContextManager.setBandCount?.(newCount);
 
                 // Regenerate UI
                 generateEQBands(
@@ -1144,16 +1377,25 @@ export function initializeSettings(scrobbler, player, api, ui) {
                     currentFreqRange.max
                 );
 
-                // Reset to flat and apply
-                const flatGains = new Array(newCount).fill(0);
-                audioContextManager.setAllGains(flatGains);
-                updateAllBandUI(flatGains);
+                // Get interpolated gains from audio context
+                const interpolatedGains = audioContextManager.getGains?.() || equalizerSettings.getGains(newCount);
+                updateAllBandUI(interpolatedGains);
 
+                // Keep current preset or set to custom if modified
                 if (eqPresetSelect) {
-                    eqPresetSelect.value = 'flat';
-                    equalizerSettings.setPreset('flat');
+                    const currentPreset = eqPresetSelect.value;
+                    if (!currentPreset.startsWith('custom_')) {
+                        eqPresetSelect.value = 'custom';
+                    }
                 }
                 updateDeleteButtonVisibility();
+
+                // Show brief feedback
+                const originalText = eqBandCountInput.style.backgroundColor;
+                eqBandCountInput.style.backgroundColor = 'var(--highlight)';
+                setTimeout(() => {
+                    eqBandCountInput.style.backgroundColor = originalText;
+                }, 300);
             }
         });
     }
@@ -1490,6 +1732,125 @@ export function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
+    // Initialize preamp control
+    const updatePreampUI = (value) => {
+        currentPreamp = value;
+        if (eqPreampSlider) eqPreampSlider.value = value;
+        if (eqPreampInput) eqPreampInput.value = value;
+        audioContextManager.setPreamp?.(value);
+    };
+
+    if (eqPreampSlider) {
+        // Set initial value
+        eqPreampSlider.value = currentPreamp;
+
+        // Handle slider input
+        eqPreampSlider.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            updatePreampUI(value);
+        });
+    }
+
+    if (eqPreampInput) {
+        // Set initial value
+        eqPreampInput.value = currentPreamp;
+
+        // Handle text input
+        eqPreampInput.addEventListener('change', (e) => {
+            let value = parseFloat(e.target.value);
+            // Clamp to valid range
+            value = Math.max(-20, Math.min(20, value || 0));
+            updatePreampUI(value);
+        });
+
+        // Handle enter key
+        eqPreampInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.target.blur();
+            }
+        });
+    }
+
+    // Initialize import/export controls
+    if (eqExportBtn) {
+        eqExportBtn.addEventListener('click', () => {
+            const text = audioContextManager.exportEQToText?.();
+            if (text) {
+                navigator.clipboard
+                    .writeText(text)
+                    .then(() => {
+                        eqExportBtn.textContent = 'Copied!';
+                        setTimeout(() => {
+                            eqExportBtn.textContent = 'Export';
+                        }, 1500);
+                    })
+                    .catch(() => {
+                        // Fallback: create and download file
+                        const blob = new Blob([text], { type: 'text/plain' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'equalizer-settings.txt';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    });
+            }
+        });
+    }
+
+    if (eqImportBtn && eqImportFile) {
+        eqImportBtn.addEventListener('click', () => {
+            eqImportFile.click();
+        });
+
+        eqImportFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const text = event.target.result;
+                const success = audioContextManager.importEQFromText?.(text);
+                if (success) {
+                    // Update UI
+                    currentPreamp = equalizerSettings.getPreamp();
+                    updatePreampUI(currentPreamp);
+
+                    // Update band count if changed
+                    currentBandCount = equalizerSettings.getBandCount();
+                    if (eqBandCountInput) eqBandCountInput.value = currentBandCount;
+
+                    // Regenerate bands and update UI
+                    generateEQBands(
+                        currentBandCount,
+                        currentRange.min,
+                        currentRange.max,
+                        currentFreqRange.min,
+                        currentFreqRange.max
+                    );
+                    const gains = audioContextManager.getGains?.() || equalizerSettings.getGains(currentBandCount);
+                    updateAllBandUI(gains);
+
+                    eqImportBtn.textContent = 'Imported!';
+                    setTimeout(() => {
+                        eqImportBtn.textContent = 'Import';
+                    }, 1500);
+                } else {
+                    eqImportBtn.textContent = 'Invalid!';
+                    setTimeout(() => {
+                        eqImportBtn.textContent = 'Import';
+                    }, 1500);
+                }
+            };
+            reader.readAsText(file);
+
+            // Reset file input
+            e.target.value = '';
+        });
+    }
+
     // Generate initial EQ bands with current ranges
     generateEQBands(currentBandCount, currentRange.min, currentRange.max, currentFreqRange.min, currentFreqRange.max);
 
@@ -1524,6 +1885,22 @@ export function initializeSettings(scrobbler, player, api, ui) {
         }
     });
 
+    // Redraw EQ curve on window resize
+    window.addEventListener('resize', () => {
+        requestAnimationFrame(drawEQCurve);
+    });
+
+    // Redraw EQ curve when a new track loads (audio metadata loaded)
+    const audioPlayer = document.getElementById('audio-player');
+    if (audioPlayer) {
+        audioPlayer.addEventListener('loadedmetadata', () => {
+            // Small delay to ensure the visualizer and EQ are fully ready
+            setTimeout(() => {
+                drawEQCurve();
+            }, 100);
+        });
+    }
+
     // Now Playing Mode
     const nowPlayingMode = document.getElementById('now-playing-mode');
     if (nowPlayingMode) {
@@ -1533,12 +1910,21 @@ export function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
-    // Queue Close on Navigation Toggle
-    const queueCloseOnNavigationToggle = document.getElementById('queue-close-on-navigation-toggle');
-    if (queueCloseOnNavigationToggle) {
-        queueCloseOnNavigationToggle.checked = queueBehaviorSettings.shouldCloseOnNavigation();
-        queueCloseOnNavigationToggle.addEventListener('change', (e) => {
-            queueBehaviorSettings.setCloseOnNavigation(e.target.checked);
+    // Close Modals on Navigation Toggle
+    const closeModalsOnNavigationToggle = document.getElementById('close-modals-on-navigation-toggle');
+    if (closeModalsOnNavigationToggle) {
+        closeModalsOnNavigationToggle.checked = modalSettings.shouldCloseOnNavigation();
+        closeModalsOnNavigationToggle.addEventListener('change', (e) => {
+            modalSettings.setCloseOnNavigation(e.target.checked);
+        });
+    }
+
+    // Intercept Back to Close Modals Toggle
+    const interceptBackToCloseToggle = document.getElementById('intercept-back-to-close-modals-toggle');
+    if (interceptBackToCloseToggle) {
+        interceptBackToCloseToggle.checked = modalSettings.shouldInterceptBackToClose();
+        interceptBackToCloseToggle.addEventListener('change', (e) => {
+            modalSettings.setInterceptBackToClose(e.target.checked);
         });
     }
 
@@ -2513,11 +2899,16 @@ function initializeFontSettings() {
         let fontName = input;
 
         // Check if it's a Google Fonts URL
-        if (input.includes('fonts.google.com')) {
-            const parsed = fontSettings.parseGoogleFontsUrl(input);
-            if (parsed) {
-                fontName = parsed;
+        try {
+            const urlObj = new URL(input);
+            if (urlObj.hostname === 'fonts.google.com') {
+                const parsed = fontSettings.parseGoogleFontsUrl(input);
+                if (parsed) {
+                    fontName = parsed;
+                }
             }
+        } catch {
+            // Not a URL, treat as font name
         }
 
         fontSettings.loadGoogleFont(fontName);

@@ -7,7 +7,7 @@ import {
     downloadQualitySettings,
     sidebarSettings,
     pwaUpdateSettings,
-    queueBehaviorSettings,
+    modalSettings,
 } from './storage.js';
 import { UIRenderer } from './ui.js';
 import { Player } from './player.js';
@@ -377,10 +377,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         const ua = navigator.userAgent;
         const isChromeOrEdge = (ua.indexOf('Chrome') > -1 || ua.indexOf('Edg') > -1) && !/Mobile|Android/.test(ua);
         const hasFileSystemApi = 'showDirectoryPicker' in window;
+        const isNeutralino =
+            window.NL_MODE ||
+            window.location.search.includes('mode=neutralino') ||
+            window.location.search.includes('nl_port=');
 
-        if (!isChromeOrEdge || !hasFileSystemApi) {
+        if (!isNeutralino && (!isChromeOrEdge || !hasFileSystemApi)) {
             selectLocalBtn.style.display = 'none';
             browserWarning.style.display = 'block';
+        } else if (isNeutralino) {
+            selectLocalBtn.style.display = 'flex';
+            browserWarning.style.display = 'none';
         }
     }
 
@@ -1968,10 +1975,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.target.closest('#select-local-folder-btn') || e.target.closest('#change-local-folder-btn')) {
             const isChange = e.target.closest('#change-local-folder-btn') !== null;
             try {
-                const handle = await window.showDirectoryPicker({
-                    id: 'music-folder',
-                    mode: 'read',
-                });
+                const isNeutralino =
+                    window.Neutralino && (window.NL_MODE || window.location.search.includes('mode=neutralino'));
+                let handle;
+                let path;
+
+                if (isNeutralino) {
+                    path = await window.Neutralino.os.showFolderDialog('Select Music Folder');
+                    if (!path) return;
+                    // Mock a handle object for UI compatibility
+                    handle = { name: path.split(/[/\\]/).pop() || path, isNeutralino: true, path };
+                } else {
+                    handle = await window.showDirectoryPicker({
+                        id: 'music-folder',
+                        mode: 'read',
+                    });
+                }
 
                 await db.saveSetting('local_folder_handle', handle);
                 if (isChange) {
@@ -1988,31 +2007,66 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 const tracks = [];
                 let idCounter = 0;
+                const { readTrackMetadata } = await loadMetadataModule();
 
-                async function scanDirectory(dirHandle) {
-                    for await (const entry of dirHandle.values()) {
-                        if (entry.kind === 'file') {
-                            const name = entry.name.toLowerCase();
-                            if (
-                                name.endsWith('.flac') ||
-                                name.endsWith('.mp3') ||
-                                name.endsWith('.m4a') ||
-                                name.endsWith('.wav') ||
-                                name.endsWith('.ogg')
-                            ) {
-                                const file = await entry.getFile();
-                                const { readTrackMetadata } = await loadMetadataModule();
-                                const metadata = await readTrackMetadata(file);
-                                metadata.id = `local-${idCounter++}-${file.name}`;
-                                tracks.push(metadata);
+                if (isNeutralino) {
+                    async function scanDirectoryNeu(dirPath) {
+                        const entries = await window.Neutralino.filesystem.readDirectory(dirPath);
+                        for (const entry of entries) {
+                            if (entry.entry === '.' || entry.entry === '..') continue;
+                            const fullPath = `${dirPath}/${entry.entry}`;
+                            if (entry.type === 'FILE') {
+                                const name = entry.entry.toLowerCase();
+                                if (
+                                    name.endsWith('.flac') ||
+                                    name.endsWith('.mp3') ||
+                                    name.endsWith('.m4a') ||
+                                    name.endsWith('.wav') ||
+                                    name.endsWith('.ogg')
+                                ) {
+                                    try {
+                                        const buffer = await window.Neutralino.filesystem.readBinaryFile(fullPath);
+                                        const stats = await window.Neutralino.filesystem.getStats(fullPath);
+                                        const file = new File([buffer], entry.entry, {
+                                            lastModified: stats.mtime,
+                                        });
+                                        const metadata = await readTrackMetadata(file);
+                                        metadata.id = `local-${idCounter++}-${entry.entry}`;
+                                        tracks.push(metadata);
+                                    } catch (e) {
+                                        console.error('Failed to read file:', fullPath, e);
+                                    }
+                                }
+                            } else if (entry.type === 'DIRECTORY') {
+                                await scanDirectoryNeu(fullPath);
                             }
-                        } else if (entry.kind === 'directory') {
-                            await scanDirectory(entry);
                         }
                     }
+                    await scanDirectoryNeu(path);
+                } else {
+                    async function scanDirectory(dirHandle) {
+                        for await (const entry of dirHandle.values()) {
+                            if (entry.kind === 'file') {
+                                const name = entry.name.toLowerCase();
+                                if (
+                                    name.endsWith('.flac') ||
+                                    name.endsWith('.mp3') ||
+                                    name.endsWith('.m4a') ||
+                                    name.endsWith('.wav') ||
+                                    name.endsWith('.ogg')
+                                ) {
+                                    const file = await entry.getFile();
+                                    const metadata = await readTrackMetadata(file);
+                                    metadata.id = `local-${idCounter++}-${file.name}`;
+                                    tracks.push(metadata);
+                                }
+                            } else if (entry.kind === 'directory') {
+                                await scanDirectory(entry);
+                            }
+                        }
+                    }
+                    await scanDirectory(handle);
                 }
-
-                await scanDirectory(handle);
 
                 tracks.sort((a, b) => {
                     const artistA = a.artist.name || '';
@@ -2120,9 +2174,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // Close side panel (queue/lyrics) on navigation if setting is enabled
-        if (queueBehaviorSettings.shouldCloseOnNavigation()) {
+        // Intercept back navigation to close modals first if setting is enabled
+        if (event && modalSettings.shouldInterceptBackToClose() && modalSettings.hasOpenModalsOrPanels()) {
             sidePanelManager.close();
+            modalSettings.closeAllModals();
+            history.pushState(history.state || { app: true }, '', window.location.pathname);
+            return;
+        }
+
+        // Close side panel (queue/lyrics) and modals on navigation if setting is enabled
+        if (modalSettings.shouldCloseOnNavigation()) {
+            sidePanelManager.close();
+            modalSettings.closeAllModals();
         }
 
         await router();
@@ -2370,6 +2433,12 @@ function showUpdateNotification(updateCallback) {
     });
 }
 
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 function showMissingTracksNotification(missingTracks) {
     const modal = document.getElementById('missing-tracks-modal');
     const listUl = document.getElementById('missing-tracks-list-ul');
@@ -2378,7 +2447,7 @@ function showMissingTracksNotification(missingTracks) {
         .map((track) => {
             const text =
                 typeof track === 'string' ? track : `${track.artist ? track.artist + ' - ' : ''}${track.title}`;
-            return `<li>${text}</li>`;
+            return `<li>${escapeHtml(text)}</li>`;
         })
         .join('');
 

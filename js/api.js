@@ -438,7 +438,7 @@ export class LosslessAPI {
         if (!album) throw new Error('Album not found');
 
         // If album exists but has no artist, try to extract from tracks
-        if (album && !album.artist && tracksSection?.items && tracksSection.items.length > 0) {
+        if (!album.artist && tracksSection?.items && tracksSection.items.length > 0) {
             const firstTrack = tracksSection.items[0];
             const track = firstTrack.item || firstTrack;
             if (track && track.artist) {
@@ -447,7 +447,7 @@ export class LosslessAPI {
         }
 
         // If album exists but has no releaseDate, try to extract from tracks
-        if (album && !album.releaseDate && tracksSection?.items && tracksSection.items.length > 0) {
+        if (!album.releaseDate && tracksSection?.items && tracksSection.items.length > 0) {
             const firstTrack = tracksSection.items[0];
             const track = firstTrack.item || firstTrack;
 

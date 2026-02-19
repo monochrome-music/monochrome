@@ -84,9 +84,68 @@ export const os = {
             window.parent.postMessage({ type: 'NL_OS_SHOW_SAVE_DIALOG', id, title, options }, '*');
         });
     },
+    showFolderDialog: async (title, options) => {
+        if (!isNeutralino) return;
+        return new Promise((resolve) => {
+            const id = Math.random().toString(36).substring(7);
+            const handler = (event) => {
+                if (event.data?.type === 'NL_RESPONSE' && event.data.id === id) {
+                    window.removeEventListener('message', handler);
+                    resolve(event.data.result);
+                }
+            };
+            window.addEventListener('message', handler);
+            window.parent.postMessage({ type: 'NL_OS_SHOW_FOLDER_DIALOG', id, title, options }, '*');
+        });
+    },
 };
 
 export const filesystem = {
+    readBinaryFile: async (path) => {
+        if (!isNeutralino) return;
+        return new Promise((resolve, reject) => {
+            const id = Math.random().toString(36).substring(7);
+            const handler = (event) => {
+                if (event.data?.type === 'NL_RESPONSE' && event.data.id === id) {
+                    window.removeEventListener('message', handler);
+                    if (event.data.error) reject(event.data.error);
+                    else resolve(event.data.result);
+                }
+            };
+            window.addEventListener('message', handler);
+            window.parent.postMessage({ type: 'NL_FS_READ_BINARY', id, path }, '*');
+        });
+    },
+    readDirectory: async (path) => {
+        if (!isNeutralino) return;
+        return new Promise((resolve, reject) => {
+            const id = Math.random().toString(36).substring(7);
+            const handler = (event) => {
+                if (event.data?.type === 'NL_RESPONSE' && event.data.id === id) {
+                    window.removeEventListener('message', handler);
+                    if (event.data.error) reject(event.data.error);
+                    else resolve(event.data.result);
+                }
+            };
+            window.addEventListener('message', handler);
+            window.parent.postMessage({ type: 'NL_FS_READ_DIR', id, path }, '*');
+        });
+    },
+    getStats: async (path) => {
+        if (!isNeutralino) return;
+        return new Promise((resolve, reject) => {
+            const id = Math.random().toString(36).substring(7);
+            const handler = (event) => {
+                if (event.data?.type === 'NL_RESPONSE' && event.data.id === id) {
+                    window.removeEventListener('message', handler);
+                    if (event.data.error) reject(event.data.error);
+                    else resolve(event.data.result);
+                }
+            };
+            window.addEventListener('message', handler);
+            window.parent.postMessage({ type: 'NL_FS_STATS', id, path }, '*');
+        });
+    },
     writeBinaryFile: async (path, buffer) => {
         if (!isNeutralino) return;
         return new Promise((resolve, reject) => {

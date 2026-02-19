@@ -22,7 +22,9 @@ def recv_packet(s):
         op, length = struct.unpack('<II', header)
         payload = s.recv(length)
         return json.loads(payload.decode('utf-8'))
-    except: return None
+    except Exception:
+        # Ignore errors and return None
+        return None
 
 def set_activity(ds, pid, details, state, img=None, start=None, end=None, large_text=None, small_img=None, small_txt=None):
     global LAST_STATUS
@@ -61,7 +63,9 @@ def main():
         line = sys.stdin.readline()
         if not line: return
         config = json.loads(line)
-    except: return
+    except Exception:
+        # Ignore errors and exit
+        return
 
     ppid = os.getppid()
 
@@ -71,7 +75,9 @@ def main():
     try:
         ds = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         ds.connect(ipc_path)
-    except: return
+    except Exception:
+        # Ignore connection errors and exit
+        return
 
     # 3. Handshake
     send_packet(ds, 0, {"v": 1, "client_id": CLIENT_ID})
@@ -85,7 +91,9 @@ def main():
     ws.settimeout(1.0)
     try:
         ws.connect(('127.0.0.1', int(config['nlPort'])))
-    except: return
+    except Exception:
+        # Ignore connection errors and exit
+        return
     
     key = base64.b64encode(os.urandom(16)).decode()
     handshake = (
@@ -133,8 +141,12 @@ def main():
                 set_activity(ds, ppid, "Idling", "Monochrome")
             elif msg['event'] == 'windowClose':
                 break
-        except socket.timeout: continue
-        except: continue
+        except socket.timeout:
+            # Timeout is expected, continue polling
+            continue
+        except Exception:
+            # Ignore other errors and continue
+            continue
 
     # Cleanup
     try:
@@ -145,7 +157,9 @@ def main():
         })
         time.sleep(0.1)
         ds.close()
-    except: pass
+    except Exception:
+        # Ignore cleanup errors
+        pass
 
 if __name__ == "__main__":
     main()
