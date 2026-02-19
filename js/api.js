@@ -12,6 +12,7 @@ import { addMetadataToAudio } from './metadata.js';
 import { DashDownloader } from './dash-downloader.js';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
+const TIDAL_V2_TOKEN = 'txNoH4kkV41MfH25';
 
 export class LosslessAPI {
     constructor(settings) {
@@ -791,6 +792,36 @@ export class LosslessAPI {
             console.warn('Failed to fetch similar artists:', e);
             return [];
         }
+    }
+
+    async getArtistBiography(artistId) {
+        const cacheKey = `artist_bio_v1_${artistId}`;
+        const cached = await this.cache.get('artist', cacheKey);
+        if (cached) return cached;
+
+        try {
+            const url = `https://api.tidal.com/v1/artists/${artistId}/bio?locale=en_US&countryCode=GB`;
+            const response = await fetch(url, {
+                headers: {
+                    'X-Tidal-Token': TIDAL_V2_TOKEN,
+                },
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data && data.text) {
+                    const bio = {
+                        text: data.text,
+                        source: data.source || 'Tidal',
+                    };
+                    await this.cache.set('artist', cacheKey, bio);
+                    return bio;
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to fetch Tidal biography:', e);
+        }
+        return null;
     }
 
     async getSimilarAlbums(albumId) {

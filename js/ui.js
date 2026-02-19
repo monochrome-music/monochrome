@@ -2871,6 +2871,7 @@ export class UIRenderer {
         const imageEl = document.getElementById('artist-detail-image');
         const nameEl = document.getElementById('artist-detail-name');
         const metaEl = document.getElementById('artist-detail-meta');
+        const bioEl = document.getElementById('artist-detail-bio');
         const tracksContainer = document.getElementById('artist-detail-tracks');
         const albumsContainer = document.getElementById('artist-detail-albums');
         const epsContainer = document.getElementById('artist-detail-eps');
@@ -2884,6 +2885,11 @@ export class UIRenderer {
         imageEl.style.backgroundColor = 'var(--muted)';
         nameEl.innerHTML = '<div class="skeleton" style="height: 48px; width: 300px; max-width: 90%;"></div>';
         metaEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 150px;"></div>';
+        if (bioEl) {
+            bioEl.style.display = 'none';
+            bioEl.textContent = '';
+            bioEl.classList.remove('expanded');
+        }
         tracksContainer.innerHTML = this.createSkeletonTracks(5, true);
         albumsContainer.innerHTML = this.createSkeletonCards(6, false);
         if (epsContainer) epsContainer.innerHTML = this.createSkeletonCards(6, false);
@@ -2895,6 +2901,148 @@ export class UIRenderer {
 
         try {
             const artist = await this.api.getArtist(artistId, provider);
+
+            // Handle Biography
+            if (bioEl) {
+                // Pre-define regex patterns for better performance
+                const linkTypes = ['artist', 'album', 'track', 'playlist'];
+                const regexCache = {
+                    wimp: linkTypes.reduce((acc, type) => {
+                        acc[type] = new RegExp(`\\[wimpLink ${type}Id="([a-f\\d-]+)"\\](.*?)\\[\\/wimpLink\\]`, 'g');
+                        return acc;
+                    }, {}),
+                    legacy: linkTypes.reduce((acc, type) => {
+                        acc[type] = new RegExp(`\\[${type}:([a-f\\d-]+)\\](.*?)\\[\\/${type}\\]`, 'g');
+                        return acc;
+                    }, {}),
+                    doubleBracket: /\[\[(.*?)\|(.*?)\]\]/g
+                };
+
+                const parseBio = (text) => {
+                    if (!text) return '';
+
+                    let parsed = text;
+
+                    linkTypes.forEach(type => {
+                        parsed = parsed.replace(regexCache.wimp[type], (m, id, name) => `<span class="bio-link" data-type="${type}" data-id="${id}">${name}</span>`);
+                        parsed = parsed.replace(regexCache.legacy[type], (m, id, name) => `<span class="bio-link" data-type="${type}" data-id="${id}">${name}</span>`);
+                    });
+
+                    parsed = parsed.replace(regexCache.doubleBracket, (m, name, id) => `<span class="bio-link" data-type="artist" data-id="${id}">${name}</span>`);
+
+                    return parsed.replace(/\n/g, '<br>');
+                };
+
+                // Helper to strip tags for clean preview
+                const stripBioTags = (text) => {
+                    if (!text) return '';
+                    let clean = text;
+                    linkTypes.forEach(type => {
+                        // [wimpLink artistId="..."]Name[/wimpLink] -> Name
+                        clean = clean.replace(regexCache.wimp[type], (m, id, name) => name);
+                        // [artist:...]Name[/artist] -> Name
+                        clean = clean.replace(regexCache.legacy[type], (m, id, name) => name);
+                    });
+                    // [[Name|ID]] -> Name
+                    clean = clean.replace(regexCache.doubleBracket, (m, name, id) => name);
+                    return clean;
+                };
+
+                const showBioModal = (bio) => {
+                    const text = typeof bio === 'string' ? bio : bio.text;
+                    const source = typeof bio === 'string' ? null : bio.source;
+
+                    const modal = document.createElement('div');
+                    modal.className = 'modal active bio-modal';
+                    modal.style.zIndex = '9999'; // Ensure it's on top
+                    modal.innerHTML = `
+                        <div class="modal-overlay"></div>
+                        <div class="modal-content extra-wide" style="display: flex; flex-direction: column;">
+                            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">
+                                <h3 style="margin: 0;">Artist Biography</h3>
+                                <button class="btn-close" style="background: none; border: none; font-size: 2rem; cursor: pointer; color: var(--foreground); padding: 0.2rem 0.5rem; line-height: 1;">&times;</button>
+                            </div>
+                            <div class="modal-body" style="max-height: 70vh; overflow-y: auto; line-height: 1.8; font-size: 1.1rem; padding-right: 1rem; color: var(--foreground); cursor: default;">
+                                ${parseBio(text)}
+                                ${source ? `<div class="bio-source">Source: ${source}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+
+                    document.body.appendChild(modal);
+
+                    const close = (e) => {
+                        if (e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }
+                        modal.remove();
+                    };
+
+                    modal.querySelector('.modal-overlay').onclick = close;
+                    modal.querySelector('.btn-close').onclick = close;
+
+                    // Ensure links are clickable by attaching the listener to the modal body
+                    const modalBody = modal.querySelector('.modal-body');
+                    modalBody.addEventListener('click', (e) => {
+                        const link = e.target.closest('.bio-link');
+                        if (link) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const { type, id } = link.dataset;
+                            if (type && id) {
+                                modal.remove();
+                                navigate(`/${type}/t/${id}`);
+                            }
+                        }
+                    }, true); // Use capture phase to ensure it's hit
+                };
+
+                const renderBioPreview = (bio) => {
+                    const text = typeof bio === 'string' ? bio : bio.text;
+                    if (text) {
+                        // Use stripped text for preview to avoid broken tags/links
+                        const cleanText = stripBioTags(text);
+                        const isLong = cleanText.length > 200;
+                        const previewText = isLong ? cleanText.substring(0, 200).trim() + '...' : cleanText;
+                        
+                        bioEl.innerHTML = previewText.replace(/\n/g, '<br>');
+                        bioEl.style.display = 'block';
+                        bioEl.style.webkitLineClamp = 'unset';
+                        bioEl.style.cursor = 'default';
+                        bioEl.onclick = null;
+
+                        if (isLong) {
+                            bioEl.appendChild(document.createElement('br'));
+                            const readMore = document.createElement('span');
+                            readMore.className = 'bio-read-more';
+                            readMore.textContent = 'Read More';
+                            readMore.onclick = (e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                showBioModal(bio);
+                            };
+                            bioEl.appendChild(readMore);
+                        }
+                    } else {
+                        bioEl.style.display = 'none';
+                    }
+                };
+
+                if (artist.biography) {
+                    renderBioPreview(artist.biography);
+                } else {
+                    // Try to fetch biography asynchronously
+                    this.api
+                        .getArtistBiography(artistId, provider)
+                        .then((bio) => {
+                            if (bio) renderBioPreview(bio);
+                        })
+                        .catch(() => {
+                            /* ignore */
+                        });
+                }
+            }
 
             // Handle Artist Mix Button
             const mixBtn = document.getElementById('artist-mix-btn');

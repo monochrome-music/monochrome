@@ -179,10 +179,26 @@ export class QobuzAPI {
                 tracks = artistData.data.top_tracks.map((track) => this.transformTrack(track));
             }
 
-            return { ...artist, albums, eps, tracks };
+            // Get biography
+            const biography = artistData.data.biography || artistInfo.biography || null;
+
+            return { ...artist, albums, eps, tracks, biography };
         } catch (error) {
             console.error('Qobuz getArtist failed:', error);
             throw error;
+        }
+    }
+
+    // Qobuz biography - usually part of getArtist, but adding for API consistency
+    async getArtistBiography(id) {
+        try {
+            const data = await this.getArtist(id);
+            return {
+                text: data.biography,
+                source: 'Qobuz',
+            };
+        } catch (e) {
+            return null;
         }
     }
 
