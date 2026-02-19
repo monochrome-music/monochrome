@@ -78,6 +78,8 @@ export class MusicAPI {
 
     async getArtistBiography(id, provider = null) {
         const p = provider || this.getProviderFromId(id) || this.getCurrentProvider();
+        if (p !== 'tidal') return null; // Biography only supported for Tidal
+
         const api = this.getAPI(p);
         const cleanId = this.stripProviderPrefix(id);
         if (typeof api.getArtistBiography === 'function') {
