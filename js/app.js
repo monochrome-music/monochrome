@@ -2303,8 +2303,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 albumItem.style.display = track.album ? 'block' : 'none';
                             }
                             if (artistItem) {
-                                const hasArtist = track.artist || (track.artists && track.artists.length > 0);
-                                artistItem.style.display = hasArtist ? 'block' : 'none';
+                                const artists = track.artists || (track.artist ? [track.artist] : []);
+                                if (artists.length === 1) {
+                                    artistItem.style.display = 'block';
+                                    artistItem.textContent = `Go to ${artists[0].name || 'artist'}`;
+                                } else {
+                                    artistItem.style.display = 'none';
+                                }
                             }
                         }
                     }
