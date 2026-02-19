@@ -2915,7 +2915,7 @@ export class UIRenderer {
                         acc[type] = new RegExp(`\\[${type}:([a-f\\d-]+)\\](.*?)\\[\\/${type}\\]`, 'g');
                         return acc;
                     }, {}),
-                    doubleBracket: /\[\[(.*?)\|(.*?)\]\]/g
+                    doubleBracket: /\[\[(.*?)\|(.*?)\]\]/g,
                 };
 
                 const parseBio = (text) => {
@@ -2923,12 +2923,23 @@ export class UIRenderer {
 
                     let parsed = text;
 
-                    linkTypes.forEach(type => {
-                        parsed = parsed.replace(regexCache.wimp[type], (m, id, name) => `<span class="bio-link" data-type="${type}" data-id="${id}">${name}</span>`);
-                        parsed = parsed.replace(regexCache.legacy[type], (m, id, name) => `<span class="bio-link" data-type="${type}" data-id="${id}">${name}</span>`);
+                    linkTypes.forEach((type) => {
+                        parsed = parsed.replace(
+                            regexCache.wimp[type],
+                            (_m, id, name) =>
+                                `<span class="bio-link" data-type="${type}" data-id="${id}">${name}</span>`
+                        );
+                        parsed = parsed.replace(
+                            regexCache.legacy[type],
+                            (_m, id, name) =>
+                                `<span class="bio-link" data-type="${type}" data-id="${id}">${name}</span>`
+                        );
                     });
 
-                    parsed = parsed.replace(regexCache.doubleBracket, (m, name, id) => `<span class="bio-link" data-type="artist" data-id="${id}">${name}</span>`);
+                    parsed = parsed.replace(
+                        regexCache.doubleBracket,
+                        (_m, name, id) => `<span class="bio-link" data-type="artist" data-id="${id}">${name}</span>`
+                    );
 
                     return parsed.replace(/\n/g, '<br>');
                 };
@@ -2937,14 +2948,14 @@ export class UIRenderer {
                 const stripBioTags = (text) => {
                     if (!text) return '';
                     let clean = text;
-                    linkTypes.forEach(type => {
+                    linkTypes.forEach((type) => {
                         // [wimpLink artistId="..."]Name[/wimpLink] -> Name
-                        clean = clean.replace(regexCache.wimp[type], (m, id, name) => name);
+                        clean = clean.replace(regexCache.wimp[type], (_m, _id, name) => name);
                         // [artist:...]Name[/artist] -> Name
-                        clean = clean.replace(regexCache.legacy[type], (m, id, name) => name);
+                        clean = clean.replace(regexCache.legacy[type], (_m, _id, name) => name);
                     });
                     // [[Name|ID]] -> Name
-                    clean = clean.replace(regexCache.doubleBracket, (m, name, id) => name);
+                    clean = clean.replace(regexCache.doubleBracket, (_m, name, _id) => name);
                     return clean;
                 };
 
@@ -2984,18 +2995,22 @@ export class UIRenderer {
 
                     // Ensure links are clickable by attaching the listener to the modal body
                     const modalBody = modal.querySelector('.modal-body');
-                    modalBody.addEventListener('click', (e) => {
-                        const link = e.target.closest('.bio-link');
-                        if (link) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            const { type, id } = link.dataset;
-                            if (type && id) {
-                                modal.remove();
-                                navigate(`/${type}/t/${id}`);
+                    modalBody.addEventListener(
+                        'click',
+                        (e) => {
+                            const link = e.target.closest('.bio-link');
+                            if (link) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const { type, id } = link.dataset;
+                                if (type && id) {
+                                    modal.remove();
+                                    navigate(`/${type}/t/${id}`);
+                                }
                             }
-                        }
-                    }, true); // Use capture phase to ensure it's hit
+                        },
+                        true
+                    ); // Use capture phase to ensure it's hit
                 };
 
                 const renderBioPreview = (bio) => {
@@ -3005,7 +3020,7 @@ export class UIRenderer {
                         const cleanText = stripBioTags(text);
                         const isLong = cleanText.length > 200;
                         const previewText = isLong ? cleanText.substring(0, 200).trim() + '...' : cleanText;
-                        
+
                         bioEl.innerHTML = previewText.replace(/\n/g, '<br>');
                         bioEl.style.display = 'block';
                         bioEl.style.webkitLineClamp = 'unset';
