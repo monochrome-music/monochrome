@@ -59,7 +59,6 @@ export function initializeSettings(scrobbler, player, api, ui) {
     const toggleEmailBtn = document.getElementById('toggle-email-auth-btn');
     const cancelEmailBtn = document.getElementById('cancel-email-auth-btn');
     const authModal = document.getElementById('email-auth-modal');
-    const authButtonsContainer = document.getElementById('auth-buttons-container');
     const emailInput = document.getElementById('auth-email');
     const passwordInput = document.getElementById('auth-password');
     const signInBtn = document.getElementById('email-signin-btn');

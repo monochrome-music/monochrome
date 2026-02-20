@@ -2287,7 +2287,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (contextMenu.style.display === 'block') {
                         const track = contextMenu._contextTrack;
                         const albumItem = contextMenu.querySelector('[data-action="go-to-album"]');
-                        const artistItem = contextMenu.querySelector('[data-action="go-to-artist"]');
 
                         if (track) {
                             if (albumItem) {
