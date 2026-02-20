@@ -1,6 +1,6 @@
 //storage.js
 export const apiSettings = {
-    STORAGE_KEY: 'monochrome-api-instances-v7',
+    STORAGE_KEY: 'monochrome-api-instances-v8',
     INSTANCES_URL: 'instances.json',
     defaultInstances: { api: [], streaming: [] },
     instancesLoaded: false,
@@ -59,8 +59,6 @@ export const apiSettings = {
                     'https://triton.squid.wtf',
                     'https://wolf.qqdl.site',
                     'https://monochrome-api.samidy.com',
-                    'https://hifi-one.spotisaver.net',
-                    'https://hifi-two.spotisaver.net',
                     'https://maus.qqdl.site',
                     'https://tidal.kinoplus.online',
                     'https://hund.qqdl.site',
@@ -74,9 +72,6 @@ export const apiSettings = {
                     'https://vogel.qqdl.site',
                     'https://katze.qqdl.site',
                     'https://hund.qqdl.site',
-                    'https://tidal.kinoplus.online',
-                    'https://hifi-one.spotisaver.net',
-                    'https://hifi-two.spotisaver.net',
                 ],
             };
             this.instancesLoaded = true;
