@@ -33,7 +33,6 @@ const saveProfileBtn = document.getElementById('edit-profile-save');
 const cancelProfileBtn = document.getElementById('edit-profile-cancel');
 const usernameError = document.getElementById('username-error');
 
-let currentProfileUsername = null;
 let currentFavoriteAlbums = [];
 const api = new MusicAPI(apiSettings);
 
@@ -103,7 +102,7 @@ function setupImageUploadControl(idPrefix) {
             setTimeout(() => {
                 statusEl.style.display = 'none';
             }, 2000);
-        } catch (error) {
+        } catch {
             statusEl.textContent = 'Failed - try URL';
             statusEl.style.color = '#ef4444';
         } finally {
@@ -170,8 +169,6 @@ export async function loadProfile(username) {
         return;
     }
 
-    currentProfileUsername = username;
-
     document.getElementById('profile-display-name').textContent = profile.display_name || username;
     if (profile.banner) document.getElementById('profile-banner').style.backgroundImage = `url('${profile.banner}')`;
     if (profile.avatar_url) document.getElementById('profile-avatar').src = profile.avatar_url;
@@ -232,8 +229,6 @@ export async function loadProfile(username) {
                 .join('');
         }
     }
-
-    const dataSource = profile.profile_data_source || (profile.lastfm_username ? 'lastfm' : null);
 
     if (profile.lastfm_username && profile.privacy?.lastfm !== 'private') {
         const lfmEl = document.getElementById('profile-lastfm');
@@ -856,7 +851,7 @@ async function fetchFallbackCover(title, artist, imgId) {
         if (!foundCover) {
             await fetchFallbackArtistImage(artist, imgId);
         }
-    } catch (e) {
+    } catch {
         await fetchFallbackArtistImage(artist, imgId);
     }
 }
@@ -883,7 +878,7 @@ async function fetchFallbackAlbumCover(title, artist, imgId) {
         if (!foundCover) {
             await fetchFallbackArtistImage(artist, imgId);
         }
-    } catch (e) {
+    } catch {
         await fetchFallbackArtistImage(artist, imgId);
     }
 }
@@ -900,7 +895,9 @@ async function fetchFallbackArtistImage(artistName, imgId) {
                 if (imgEl) imgEl.src = newUrl;
             }
         }
-    } catch (e) {}
+    } catch {
+        // Silently ignore errors
+    }
 }
 
 async function fetchLastFmRecentTracks(username) {

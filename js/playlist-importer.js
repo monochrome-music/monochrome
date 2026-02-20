@@ -198,7 +198,7 @@ export async function parseCSV(csvText, api, onProgress) {
                     } else {
                         missingTracks.push({ title: trackTitle, artist: artistNames, album: albumName });
                     }
-                } catch (e) {
+                } catch {
                     missingTracks.push({ title: trackTitle, artist: artistNames, album: albumName });
                 }
             }
@@ -255,7 +255,7 @@ export async function parseJSPF(jspfText, api, onProgress) {
                     } else {
                         missingTracks.push({ title: trackTitle, artist: trackCreator, album: trackAlbum });
                     }
-                } catch (e) {
+                } catch {
                     missingTracks.push({ title: trackTitle, artist: trackCreator, album: trackAlbum });
                 }
             }
@@ -319,7 +319,7 @@ export async function parseXSPF(xspfText, api, onProgress) {
                 } else {
                     missingTracks.push({ title, artist: creator, album });
                 }
-            } catch (e) {
+            } catch {
                 missingTracks.push({ title, artist: creator, album });
             }
         }
@@ -397,7 +397,7 @@ export async function parseXML(xmlText, api, onProgress) {
                 } else {
                     missingTracks.push({ title, artist, album });
                 }
-            } catch (e) {
+            } catch {
                 missingTracks.push({ title, artist, album });
             }
         }
@@ -472,7 +472,7 @@ export async function parseM3U(m3uText, api, onProgress) {
                 } else {
                     missingTracks.push({ title: info.title, artist: info.artist, album: '' });
                 }
-            } catch (e) {
+            } catch {
                 missingTracks.push({ title: info.title, artist: info.artist, album: '' });
             }
         }

@@ -327,7 +327,6 @@ export class UIRenderer {
         const trackNumberHTML = `<div class="track-number">${showCover ? trackImageHTML : displayIndex}</div>`;
         const explicitBadge = hasExplicitContent(track) ? this.createExplicitBadge() : '';
         const qualityBadge = createQualityBadgeHTML(track);
-        const trackArtists = getTrackArtists(track);
         const trackTitle = getTrackTitle(track);
         const isCurrentTrack = this.player?.currentTrack?.id === track.id;
 
@@ -3746,13 +3745,9 @@ export class UIRenderer {
         const albumSection = document.getElementById('track-album-section');
         const albumTracksContainer = document.getElementById('track-detail-album-tracks');
         const similarSection = document.getElementById('track-similar-section');
-        const similarTracksContainer = document.getElementById('track-detail-similar-tracks');
 
         const playBtn = document.getElementById('play-track-btn');
-        const lyricsBtn = document.getElementById('track-lyrics-btn');
-        const shareBtn = document.getElementById('share-track-btn');
         const likeBtn = document.getElementById('like-track-btn');
-        const downloadBtn = document.getElementById('download-track-btn');
 
         imageEl.src = '';
         imageEl.style.backgroundColor = 'var(--muted)';

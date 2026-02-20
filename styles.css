@@ -7517,31 +7517,3 @@ textarea:focus {
     text-align: left;
     justify-content: flex-start;
 }
-
-.dropdown-menu {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 0.5rem;
-    z-index: 2000;
-    min-width: 200px;
-    margin-top: 0.5rem;
-    box-shadow: var(--shadow-lg);
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-.dropdown-menu.active {
-    display: flex;
-    animation: scale-in 0.1s ease-out;
-}
-
-.dropdown-menu button {
-    width: 100%;
-    text-align: left;
-    justify-content: flex-start;
-}

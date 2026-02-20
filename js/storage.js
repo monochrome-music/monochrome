@@ -29,7 +29,7 @@ export const apiSettings = {
                     if (isSimpleArray) {
                         groupedInstances.api = [...data.api];
                     } else {
-                        for (const [_key, config] of Object.entries(data.api)) {
+                        for (const [, config] of Object.entries(data.api)) {
                             if (config.cors === false && Array.isArray(config.urls)) {
                                 groupedInstances.api.push(...config.urls);
                             }
