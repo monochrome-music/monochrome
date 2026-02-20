@@ -2419,6 +2419,7 @@ export class UIRenderer {
         if (playBtn) playBtn.innerHTML = `${SVG_PLAY}<span>Play</span>`;
         const dlBtn = document.getElementById('download-playlist-btn');
         if (dlBtn) dlBtn.innerHTML = `${SVG_DOWNLOAD}<span>Download</span>`;
+        const addPlaylistBtn = document.getElementById('add-playlist-to-playlist-btn');
 
         imageEl.src = '';
         imageEl.style.backgroundColor = 'var(--muted)';
@@ -2464,6 +2465,7 @@ export class UIRenderer {
 
             if (playlistData) {
                 // ... (rest of the logic)
+                if (addPlaylistBtn) addPlaylistBtn.style.display = 'none';
 
                 if (playlistData.cover) {
                     imageEl.src = playlistData.cover;
@@ -2623,6 +2625,8 @@ export class UIRenderer {
                 // Setup playlist search
                 this.setupTracklistSearch();
             } else {
+                if (addPlaylistBtn) addPlaylistBtn.style.display = 'flex';
+
                 // If source was explicitly 'user' and we didn't find it, fail.
                 if (source === 'user') {
                     throw new Error('Playlist not found. If this is a custom playlist, make sure it is set to Public.');
@@ -3767,9 +3771,7 @@ export class UIRenderer {
         }
 
         try {
-            const track = await this.api.getTrackMetadata(trackId, provider);
-            const displayTitle = getTrackTitle(track);
-            const artistName = getTrackArtists(track);
+            const { track } = await this.api.getTrack(trackId, provider);
 
             const coverUrl = this.api.getCoverUrl(track.album?.cover);
             imageEl.src = coverUrl;
@@ -3782,174 +3784,46 @@ export class UIRenderer {
 
             const explicitBadge = hasExplicitContent(track) ? this.createExplicitBadge() : '';
             const qualityBadge = createQualityBadgeHTML(track);
-            titleEl.innerHTML = `${escapeHtml(displayTitle)} ${explicitBadge} ${qualityBadge}`;
-            this.adjustTitleFontSize(titleEl, displayTitle);
+            titleEl.innerHTML = `${escapeHtml(track.title)} ${explicitBadge} ${qualityBadge}`;
+            this.adjustTitleFontSize(titleEl, track.title);
 
-            let artistId = null;
-            if (track.artist) {
-                artistId = track.artist.id;
-            } else if (track.artists && track.artists.length > 0) {
-                artistId = track.artists[0].id;
-            }
-
-            if (artistId) {
-                artistEl.innerHTML = `<a href="/artist/${artistId}">${escapeHtml(artistName)}</a>`;
-            } else {
-                artistEl.textContent = artistName;
-            }
+            artistEl.innerHTML = getTrackArtistsHTML(track);
 
             if (track.album) {
                 albumEl.innerHTML = `<a href="/album/${track.album.id}">${escapeHtml(track.album.title)}</a>`;
-                if (track.album.releaseDate) {
-                    const date = new Date(track.album.releaseDate);
-                    yearEl.textContent = date.getFullYear();
-                }
+            }
 
-                if (track.copyright || track.album.copyright) {
-                    yearEl.textContent += ` • ${track.copyright || track.album.copyright}`;
+            if (track.album?.releaseDate) {
+                const date = new Date(track.album.releaseDate);
+                if (!isNaN(date.getTime())) {
+                    yearEl.textContent = date.getFullYear();
                 }
             }
 
             playBtn.onclick = () => {
-                this.player.setQueue([track]);
+                this.player.setQueue([track], 0);
                 this.player.playTrackFromQueue();
             };
 
-            lyricsBtn.onclick = () => {
-                if (this.player.currentTrack && this.player.currentTrack.id === track.id) {
-                    document.getElementById('toggle-lyrics-btn').click();
-                } else {
-                    this.player.setQueue([track]);
-                    this.player.playTrackFromQueue();
-                    setTimeout(() => document.getElementById('toggle-lyrics-btn').click(), 500);
-                }
-            };
+            if (likeBtn) {
+                const isLiked = await db.isFavorite('track', track.id);
+                likeBtn.innerHTML = this.createHeartIcon(isLiked);
+                likeBtn.classList.toggle('active', isLiked);
+            }
 
-            shareBtn.onclick = () => {
-                const url = getShareUrl(`/track/${track.id}`);
-                navigator.clipboard.writeText(url).then(() => {
-                    showNotification('Link copied to clipboard!');
-                });
-            };
-
-            this.updateLikeState(likeBtn, 'track', track.id);
-            trackDataStore.set(likeBtn, track);
-
-            downloadBtn.dataset.action = 'download';
-            downloadBtn.classList.add('track-action-btn');
-            trackDataStore.set(downloadBtn, track);
-
-            if (track.album && track.album.id) {
-                try {
-                    const albumData = await this.api.getAlbum(track.album.id);
-                    const tracks = albumData.tracks;
-                    if (tracks.length > 1) {
-                        albumSection.style.display = 'block';
-                        const otherTracks = tracks.filter((t) => t.id != track.id);
-                        this.renderListWithTracks(albumTracksContainer, otherTracks, false, false, true);
-                    }
-                } catch (err) {
-                    console.warn('Failed to load album tracks:', err);
+            if (track.album?.id) {
+                const { tracks } = await this.api.getAlbum(track.album.id);
+                if (tracks && tracks.length > 0) {
+                    albumSection.style.display = 'block';
+                    this.renderListWithTracks(albumTracksContainer, tracks, false);
                 }
             }
 
-            this.api
-                .getRecommendedTracksForPlaylist([track], 5)
-                .then((similarTracks) => {
-                    if (similarTracks.length > 0) {
-                        this.renderListWithTracks(similarTracksContainer, similarTracks, true);
-                        similarSection.style.display = 'block';
-                    } else {
-                        similarSection.style.display = 'none';
-                    }
-                })
-                .catch(() => (similarSection.style.display = 'none'));
-
-            document.title = `${displayTitle} - ${artistName}`;
-        } catch (e) {
-            console.error(e);
-            titleEl.textContent = 'Error loading track';
-            artistEl.textContent = e.message || 'Track not found or unavailable';
+            document.title = `${track.title} - ${getTrackArtists(track)}`;
+        } catch (error) {
+            console.error('Failed to load track:', error);
+            titleEl.textContent = 'Track not found';
+            artistEl.innerHTML = '';
         }
-    }
-
-    renderSearchHistory() {
-        const historyEl = document.getElementById('search-history');
-        if (!historyEl) return;
-
-        const history = JSON.parse(localStorage.getItem('search-history') || '[]');
-        if (history.length === 0) {
-            historyEl.style.display = 'none';
-            return;
-        }
-
-        historyEl.innerHTML =
-            history
-                .map(
-                    (query) => `
-            <div class="search-history-item" data-query="${escapeHtml(query)}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="history-icon">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
-                <span class="query-text">${escapeHtml(query)}</span>
-                <span class="delete-history-btn" title="Remove from history">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </span>
-            </div>
-        `
-                )
-                .join('') +
-            `
-            <div class="search-history-clear-all" id="clear-search-history">
-                Clear all history
-            </div>
-        `;
-
-        historyEl.style.display = 'block';
-
-        // Add event listeners
-        historyEl.querySelectorAll('.search-history-item').forEach((item) => {
-            item.addEventListener('click', (e) => {
-                if (e.target.closest('.delete-history-btn')) {
-                    e.stopPropagation();
-                    this.removeFromSearchHistory(item.dataset.query);
-                    return;
-                }
-                const query = item.dataset.query;
-                const searchInput = document.getElementById('search-input');
-                if (searchInput) {
-                    searchInput.value = query;
-                    searchInput.dispatchEvent(new Event('input'));
-                    historyEl.style.display = 'none';
-                }
-            });
-        });
-
-        const clearBtn = document.getElementById('clear-search-history');
-        if (clearBtn) {
-            clearBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                localStorage.removeItem('search-history');
-                this.renderSearchHistory();
-            });
-        }
-    }
-
-    removeFromSearchHistory(query) {
-        let history = JSON.parse(localStorage.getItem('search-history') || '[]');
-        history = history.filter((q) => q !== query);
-        localStorage.setItem('search-history', JSON.stringify(history));
-        this.renderSearchHistory();
-    }
-
-    addToSearchHistory(query) {
-        if (!query || query.trim().length === 0) return;
-        let history = JSON.parse(localStorage.getItem('search-history') || '[]');
-        history = history.filter((q) => q !== query);
-        history.unshift(query);
-        history = history.slice(0, 10);
-        localStorage.setItem('search-history', JSON.stringify(history));
     }
 }

@@ -1,6 +1,6 @@
 //storage.js
 export const apiSettings = {
-    STORAGE_KEY: 'monochrome-api-instances-v6',
+    STORAGE_KEY: 'monochrome-api-instances-v7',
     INSTANCES_URL: 'instances.json',
     defaultInstances: { api: [], streaming: [] },
     instancesLoaded: false,
@@ -58,7 +58,6 @@ export const apiSettings = {
                     'https://api.monochrome.tf',
                     'https://triton.squid.wtf',
                     'https://wolf.qqdl.site',
-                    'https://tidal-api.binimum.org',
                     'https://monochrome-api.samidy.com',
                     'https://hifi-one.spotisaver.net',
                     'https://hifi-two.spotisaver.net',
@@ -76,7 +75,6 @@ export const apiSettings = {
                     'https://katze.qqdl.site',
                     'https://hund.qqdl.site',
                     'https://tidal.kinoplus.online',
-                    'https://tidal-api.binimum.org',
                     'https://hifi-one.spotisaver.net',
                     'https://hifi-two.spotisaver.net',
                 ],
