@@ -2493,6 +2493,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         authManager.onAuthStateChanged(async (user) => {
+            // Refresh dropdown content so it reflects the new auth state
+            if (headerAccountDropdown.classList.contains('active')) {
+                updateAccountDropdown();
+            }
+
             if (user) {
                 const data = await syncManager.getUserData();
                 if (data && data.profile && data.profile.avatar_url) {

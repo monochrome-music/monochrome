@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Monochrome - Sign in with Google</title>
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                margin: 0;
+                background: #1a1a1a;
+                color: #e0e0e0;
+            }
+            .container {
+                text-align: center;
+                padding: 2rem;
+                max-width: 400px;
+            }
+            #status {
+                font-size: 14px;
+                color: #aaa;
+            }
+            .error {
+                color: #ef5350;
+            }
+            .success {
+                color: #66bb6a;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div id="status">Redirecting to Google sign-in...</div>
+        </div>
+
+        <script type="module">
+            import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+            import {
+                getAuth,
+                GoogleAuthProvider,
+                signInWithRedirect,
+                getRedirectResult,
+            } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+            const params = new URLSearchParams(window.location.search);
+            let sessionId = params.get('sessionId');
+            let configB64 = params.get('config');
+            let port = params.get('port') || window.location.port;
+
+            // Restore params from sessionStorage (lost after Google redirect)
+            if (!sessionId || !configB64) {
+                try {
+                    const saved = JSON.parse(sessionStorage.getItem('__mono_auth'));
+                    if (saved) {
+                        sessionId = saved.sessionId;
+                        configB64 = saved.configB64;
+                        port = saved.port;
+                    }
+                } catch {}
+            }
+
+            const status = document.getElementById('status');
+
+            if (!sessionId || !configB64) {
+                status.textContent = 'Missing parameters. Please initiate sign-in from the app.';
+                status.className = 'error';
+            } else {
+                let firebaseConfig;
+                try {
+                    firebaseConfig = JSON.parse(atob(configB64));
+                } catch {
+                    status.textContent = 'Invalid configuration.';
+                    status.className = 'error';
+                }
+
+                if (firebaseConfig) {
+                    const app = initializeApp(firebaseConfig);
+                    const auth = getAuth(app);
+                    const provider = new GoogleAuthProvider();
+
+                    // Check if we're returning from Google redirect
+                    getRedirectResult(auth)
+                        .then(async (result) => {
+                            if (result) {
+                                // Returning from Google — extract tokens and send to app
+                                sessionStorage.removeItem('__mono_auth');
+                                const credential = GoogleAuthProvider.credentialFromResult(result);
+                                status.textContent = 'Sending credentials to app...';
+
+                                const response = await fetch(`http://localhost:${port}/api/auth/desktop-callback`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        sessionId,
+                                        idToken: credential.idToken,
+                                        accessToken: credential.accessToken,
+                                    }),
+                                });
+
+                                if (response.ok) {
+                                    status.textContent = 'Signed in successfully! You can close this tab.';
+                                    status.className = 'success';
+                                } else {
+                                    throw new Error('Failed to send credentials to app');
+                                }
+                            } else {
+                                // First load — save params and redirect to Google
+                                sessionStorage.setItem('__mono_auth', JSON.stringify({ sessionId, configB64, port }));
+                                signInWithRedirect(auth, provider);
+                            }
+                        })
+                        .catch((error) => {
+                            console.error('Sign-in failed:', error);
+                            status.textContent = `Sign-in failed: ${error.message}`;
+                            status.className = 'error';
+                        });
+                }
+            }
+        </script>
+    </body>
+</html>

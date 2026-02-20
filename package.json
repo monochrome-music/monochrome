@@ -6,7 +6,7 @@
     "main": "sw.js",
     "scripts": {
         "dev": "vite",
-        "dev:desktop": "start npm run dev & node scripts/dev-runner.js",
+        "dev:desktop": "npm run dev & node scripts/dev-runner.js",
         "build": "vite build --mode neutralino && bun x neu build",
         "postbuild": "node -e \"const fs = require('fs'); const path = require('path'); const src = 'extensions'; const dest = path.join('dist', 'Monochrome', 'extensions'); if (fs.existsSync(src)) { fs.mkdirSync(dest, { recursive: true }); fs.cpSync(src, dest, { recursive: true }); console.log('Extensions manually copied to ' + dest); }\"",
         "preview": "vite preview",
