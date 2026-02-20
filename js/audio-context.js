@@ -312,14 +312,33 @@ class AudioContextManager {
 
         try {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
-            this.audioContext = new AudioContext();
+
+            // "playback" latency hint maximizes buffer size to prevent audio glitches (stuttering),
+            // which is critical for high-fidelity music listening.
+            // We also attempt to request 192kHz sample rate for high-res audio support.
+            const highResOptions = { sampleRate: 192000, latencyHint: 'playback' };
+
+            try {
+                this.audioContext = new AudioContext(highResOptions);
+                console.log(`[AudioContext] Created with high-res settings: ${this.audioContext.sampleRate}Hz`);
+            } catch (e) {
+                console.warn('[AudioContext] 192kHz/playback init failed, falling back to system defaults:', e);
+                // Fallback: Try just playback latency preference without forcing sample rate
+                try {
+                    this.audioContext = new AudioContext({ latencyHint: 'playback' });
+                    console.log(`[AudioContext] Created with system default rate: ${this.audioContext.sampleRate}Hz`);
+                } catch (e2) {
+                    console.warn('[AudioContext] Playback latency hint failed, using defaults:', e2);
+                    this.audioContext = new AudioContext();
+                }
+            }
 
             // Create the media element source
             this.source = this.audioContext.createMediaElementSource(audioElement);
 
             // Create analyser for visualizer
             this.analyser = this.audioContext.createAnalyser();
-            this.analyser.fftSize = 512;
+            this.analyser.fftSize = 1024;
             this.analyser.smoothingTimeConstant = 0.7;
 
             // Create biquad filters for EQ with dynamic band count
@@ -411,7 +430,6 @@ class AudioContextManager {
                 lastNode.connect(this.analyser);
                 this.analyser.connect(this.volumeNode);
                 this.volumeNode.connect(this.audioContext.destination);
-                console.log('[AudioContext] EQ bypassed');
             }
 
             // Notify visualizers that graph has been reconnected
