@@ -2302,10 +2302,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 albumItem.textContent = `Go to ${label}`;
                                 albumItem.style.display = track.album ? 'block' : 'none';
                             }
-                            if (artistItem) {
-                                const hasArtist = track.artist || (track.artists && track.artists.length > 0);
-                                artistItem.style.display = hasArtist ? 'block' : 'none';
-                            }
                         }
                     }
                 }

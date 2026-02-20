@@ -4866,6 +4866,16 @@ input:checked + .slider::before {
     text-decoration: underline;
 }
 
+.track-item .artist .artist-link {
+    cursor: pointer;
+    transition: color var(--transition);
+}
+
+.track-item .artist .artist-link:hover {
+    color: var(--highlight);
+    text-decoration: underline;
+}
+
 /* Updated Volume Controls Layout */
 
 .player-actions-row {

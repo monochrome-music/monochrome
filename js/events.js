@@ -765,7 +765,8 @@ export async function handleTrackAction(
     lyricsManager,
     type = 'track',
     ui = null,
-    scrobbler = null
+    scrobbler = null,
+    extraData = null
 ) {
     if (!item) return;
 
@@ -1171,8 +1172,12 @@ export async function handleTrackAction(
 
         modal.classList.add('active');
     } else if (action === 'go-to-artist') {
-        const artistId = item.artist?.id || item.artists?.[0]?.id;
-        if (artistId) {
+        const artistId = extraData?.artistId || item.artist?.id || item.artists?.[0]?.id;
+        const trackerSheetId = extraData?.trackerSheetId || (item.isTracker ? item.trackerInfo?.sheetId : null);
+
+        if (trackerSheetId) {
+            navigate(`/unreleased/${trackerSheetId}`);
+        } else if (artistId) {
             navigate(`/artist/${artistId}`);
         }
     } else if (action === 'go-to-album') {
@@ -1499,6 +1504,30 @@ async function updateContextMenuLikeState(contextMenu, contextTrack) {
             item.textContent = label;
         }
     });
+
+    // Handle multiple artists for "Go to artist"
+    const artistItem = contextMenu.querySelector('li[data-action="go-to-artist"]');
+    if (artistItem) {
+        const artists = Array.isArray(contextTrack.artists)
+            ? contextTrack.artists
+            : contextTrack.artist
+              ? [contextTrack.artist]
+              : [];
+        const canShowArtist = type === 'track' || type === 'album';
+
+        if (artists.length > 1 && canShowArtist) {
+            artistItem.style.display = 'block';
+            artistItem.textContent = 'Go to artists';
+            artistItem.dataset.hasMultipleArtists = 'true';
+        } else {
+            const hasArtist = artists.length > 0;
+            artistItem.style.display = hasArtist && canShowArtist ? 'block' : 'none';
+            artistItem.dataset.hasMultipleArtists = 'false';
+            artistItem.textContent = artists.length > 1 ? 'Go to artists' : 'Go to artist';
+            delete artistItem.dataset.artistId;
+            delete artistItem.dataset.trackerSheetId;
+        }
+    }
 }
 
 export function initializeTrackInteractions(player, api, mainContent, contextMenu, lyricsManager, ui, scrobbler) {
@@ -1561,6 +1590,11 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                 item = { id, uuid: id, title: card.querySelector('.card-title')?.textContent || 'Item' };
             }
 
+            if (contextMenu._originalHTML) {
+                contextMenu.innerHTML = contextMenu._originalHTML;
+                contextMenu._originalHTML = null;
+            }
+
             contextTrack = item;
             contextMenu._contextTrack = item;
             contextMenu._contextType = type;
@@ -1586,12 +1620,21 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                     clickedTrack &&
                     contextTrack.id === clickedTrack.id
                 ) {
+                    if (contextMenu._originalHTML) {
+                        contextMenu.innerHTML = contextMenu._originalHTML;
+                    }
                     contextMenu.style.display = 'none';
+                    contextMenu._contextType = null;
+                    contextMenu._originalHTML = null;
                     return;
                 }
 
                 contextTrack = clickedTrack;
                 if (contextTrack) {
+                    if (contextMenu._originalHTML) {
+                        contextMenu.innerHTML = contextMenu._originalHTML;
+                        contextMenu._originalHTML = null;
+                    }
                     contextMenu._contextTrack = contextTrack;
                     contextMenu._contextType = 'track';
                     await updateContextMenuLikeState(contextMenu, contextTrack);
@@ -1606,7 +1649,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
         if (trackItem && (trackItem.classList.contains('unavailable') || trackItem.classList.contains('blocked'))) {
             return;
         }
-        if (trackItem && !trackItem.dataset.queueIndex && !e.target.closest('.remove-from-playlist-btn')) {
+        if (trackItem && !trackItem.dataset.queueIndex && !e.target.closest('.remove-from-playlist-btn') && !e.target.closest('.artist-link')) {
             const parentList = trackItem.closest('.track-list');
             const allTrackElements = Array.from(parentList.querySelectorAll('.track-item'));
             const trackList = allTrackElements.map((el) => trackDataStore.get(el)).filter(Boolean);
@@ -1619,6 +1662,20 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                 document.getElementById('shuffle-btn').classList.remove('active');
                 player.playTrackFromQueue();
             }
+        }
+
+        // Handle artist link clicks in track lists
+        const artistLink = e.target.closest('.artist-link');
+        if (artistLink) {
+            e.stopPropagation();
+            const artistId = artistLink.dataset.artistId;
+            const trackerSheetId = artistLink.dataset.trackerSheetId;
+            if (trackerSheetId) {
+                navigate(`/unreleased/${trackerSheetId}`);
+            } else if (artistId) {
+                navigate(`/artist/${artistId}`);
+            }
+            return;
         }
 
         const card = e.target.closest('.card');
@@ -1661,6 +1718,11 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             if (contextTrack) {
                 if (contextTrack.isLocal) return;
 
+                if (contextMenu._originalHTML) {
+                    contextMenu.innerHTML = contextMenu._originalHTML;
+                    contextMenu._originalHTML = null;
+                }
+
                 // Hide actions for unavailable tracks
                 const unavailableActions = ['play-next', 'add-to-queue', 'download', 'track-mix'];
                 contextMenu.querySelectorAll('[data-action]').forEach((btn) => {
@@ -1692,6 +1754,12 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                 uuid: id,
                 title: card.querySelector('.card-title')?.textContent,
             };
+
+            if (contextMenu._originalHTML) {
+                contextMenu.innerHTML = contextMenu._originalHTML;
+                contextMenu._originalHTML = null;
+            }
+
             contextTrack = item;
             contextMenu._contextTrack = item;
             contextMenu._contextType = type.replace('userplaylist', 'user-playlist');
@@ -1703,7 +1771,14 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
     });
 
     document.addEventListener('click', () => {
-        contextMenu.style.display = 'none';
+        if (contextMenu.style.display === 'block') {
+            if (contextMenu._originalHTML) {
+                contextMenu.innerHTML = contextMenu._originalHTML;
+            }
+            contextMenu.style.display = 'none';
+            contextMenu._contextType = null;
+            contextMenu._originalHTML = null;
+        }
     });
 
     contextMenu.addEventListener('click', async (e) => {
@@ -1714,10 +1789,45 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
         const action = target.dataset.action;
         const track = contextMenu._contextTrack || contextTrack;
         const type = contextMenu._contextType || 'track';
+
+        if (action === 'go-to-artists' || (action === 'go-to-artist' && target.dataset.hasMultipleArtists === 'true')) {
+            const artists = Array.isArray(track.artists) ? track.artists : track.artist ? [track.artist] : [];
+            if (artists.length > 1) {
+                // Save original HTML if not already saved
+                if (!contextMenu._originalHTML) {
+                    contextMenu._originalHTML = contextMenu.innerHTML;
+                }
+
+                // Render sub-menu
+                let subMenuHTML = '<li data-action="back-to-main-menu" style="font-weight: bold; border-bottom: 1px solid var(--border); margin-bottom: 0.5rem; padding: 0.75rem 1rem; cursor: pointer;">← Back</li>';
+                artists.forEach((artist) => {
+                    subMenuHTML += `<li data-action="go-to-artist" data-artist-id="${artist.id}" style="padding: 0.75rem 1rem; cursor: pointer;">${escapeHtml(artist.name || 'Unknown Artist')}</li>`;
+                });
+                contextMenu.innerHTML = `<ul>${subMenuHTML}</ul>`;
+                return;
+            }
+        }
+
+        if (action === 'back-to-main-menu') {
+            if (contextMenu._originalHTML) {
+                contextMenu.innerHTML = contextMenu._originalHTML;
+                contextMenu._originalHTML = null;
+                // Re-update like state since we replaced the HTML
+                await updateContextMenuLikeState(contextMenu, track);
+            }
+            return;
+        }
+
         if (action && track) {
             // Track context menu action
             trackContextMenuAction(action, type, track);
-            await handleTrackAction(action, track, player, api, lyricsManager, type, ui, scrobbler);
+            await handleTrackAction(action, track, player, api, lyricsManager, type, ui, scrobbler, target.dataset);
+        }
+
+        // Reset menu state before closing
+        if (contextMenu._originalHTML) {
+            contextMenu.innerHTML = contextMenu._originalHTML;
+            contextMenu._originalHTML = null;
         }
         contextMenu.style.display = 'none';
         contextMenu._contextType = null;

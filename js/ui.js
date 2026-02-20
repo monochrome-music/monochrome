@@ -12,6 +12,7 @@ import {
     trackDataStore,
     hasExplicitContent,
     getTrackArtists,
+    getTrackArtistsHTML,
     getTrackTitle,
     getTrackYearDisplay,
     createQualityBadgeHTML,
@@ -371,7 +372,7 @@ export class UIRenderer {
                             ${explicitBadge}
                             ${qualityBadge}
                         </div>
-                        <div class="artist">${escapeHtml(trackArtists)}${yearDisplay}</div>
+                        <div class="artist">${getTrackArtistsHTML(track)}${yearDisplay}</div>
                     </div>
                 </div>
                 <div class="track-item-duration">${isUnavailable || isBlocked ? '--:--' : track.duration ? formatTime(track.duration) : '--:--'}</div>
