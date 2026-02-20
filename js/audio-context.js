@@ -312,12 +312,12 @@ class AudioContextManager {
 
         try {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
-            
+
             // "playback" latency hint maximizes buffer size to prevent audio glitches (stuttering),
             // which is critical for high-fidelity music listening.
             // We also attempt to request 192kHz sample rate for high-res audio support.
             const highResOptions = { sampleRate: 192000, latencyHint: 'playback' };
-            
+
             try {
                 this.audioContext = new AudioContext(highResOptions);
                 console.log(`[AudioContext] Created with high-res settings: ${this.audioContext.sampleRate}Hz`);

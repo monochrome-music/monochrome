@@ -288,14 +288,14 @@ export class LCDPreset {
         // Sample rate and bin size
         const sampleRate = analyser?.context?.sampleRate || 48000;
         const binSize = sampleRate / (totalBins * 2);
-        
+
         // Define frequency range to map
         const minFreq = 40; // Start at 40Hz
         const maxFreq = 22000; // End at 22kHz
 
         for (let i = 0; i < center; i++) {
             const p = i / (center - 1);
-            
+
             // Logarithmic frequency mapping: F = min * (max/min)^p
             const targetStartFreq = minFreq * Math.pow(maxFreq / minFreq, p);
             // Calculate next frequency to determine bandwidth of this bar
@@ -308,14 +308,14 @@ export class LCDPreset {
 
             let sum = 0,
                 count = 0;
-            
+
             // Sum bins for this column
             for (let k = startBin; k < endBin && k < totalBins; k++) {
                 sum += dataArray[k];
                 count++;
             }
             let val = count > 0 ? sum / count : 0;
-            
+
             // Fallback: if range was too narrow (startBin >= endBin or count=0), sample the startBin directly
             if (count === 0 && startBin < totalBins) {
                 val = dataArray[startBin];

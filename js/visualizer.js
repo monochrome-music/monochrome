@@ -192,22 +192,22 @@ export class Visualizer {
 
         // Bass (dynamic bins based on sample rate)
         const volume = 10 * Math.max(this.audio.volume, 0.1);
-        
+
         // Robust bass detection: sum bins up to ~250Hz
         const binSize = this.audioContext.sampleRate / this.analyser.fftSize;
         const startBin = 1; // Skip DC offset
         // Calculate how many bins cover the bass range (up to 250Hz)
         let numBins = Math.floor(250 / binSize);
         if (numBins < 1) numBins = 1; // Ensure at least one bin is checked
-        
+
         let maxVal = 0;
-        for (let i = 0; i < numBins && (startBin + i) < this.dataArray.length; i++) {
+        for (let i = 0; i < numBins && startBin + i < this.dataArray.length; i++) {
             const val = this.dataArray[startBin + i];
             if (val > maxVal) maxVal = val;
         }
-        
+
         // Normalize: (Max / 255) / Volume
-        let bass = (maxVal) / 255 / volume;
+        let bass = maxVal / 255 / volume;
 
         const intensity = bass * bass * 10;
         const stats = this.stats;

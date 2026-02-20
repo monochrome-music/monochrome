@@ -615,8 +615,6 @@ export class UnknownPleasuresWebGL {
             gl.drawArrays(gl.TRIANGLES, 0, vertices.length / 3);
         }
 
-
-
         // MUST DISABLE BLEND for post-processing passes so we strictly overwrite FBO contents!
         gl.disable(gl.BLEND);
 
