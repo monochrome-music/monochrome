@@ -76,6 +76,18 @@ export class MusicAPI {
         return api.getArtist(cleanId);
     }
 
+    async getArtistBiography(id, provider = null) {
+        const p = provider || this.getProviderFromId(id) || this.getCurrentProvider();
+        if (p !== 'tidal') return null; // Biography only supported for Tidal
+
+        const api = this.getAPI(p);
+        const cleanId = this.stripProviderPrefix(id);
+        if (typeof api.getArtistBiography === 'function') {
+            return api.getArtistBiography(cleanId);
+        }
+        return null;
+    }
+
     async getPlaylist(id, _provider = null) {
         // Playlists are always Tidal for now
         return this.tidalAPI.getPlaylist(id);

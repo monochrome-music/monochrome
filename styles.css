@@ -2360,6 +2360,59 @@ input[type='search']::-webkit-search-cancel-button {
     color: var(--highlight);
 }
 
+/* Artist Biography Styles */
+.artist-bio {
+    color: var(--muted-foreground);
+    margin-top: 1rem;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    max-width: 600px;
+    display: block;
+    overflow: hidden;
+    transition: color var(--transition);
+}
+
+.artist-bio:hover {
+    color: var(--foreground);
+}
+
+.bio-link {
+    color: var(--highlight) !important;
+    text-decoration: underline !important;
+    cursor: pointer !important;
+    font-weight: 500 !important;
+    pointer-events: auto !important;
+}
+
+.bio-link:hover {
+    color: var(--primary) !important;
+    text-decoration: none !important;
+}
+
+.bio-read-more {
+    display: block;
+    color: var(--highlight);
+    text-decoration: underline;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.95rem;
+    margin-top: 0.5rem;
+}
+
+.bio-read-more:hover {
+    color: var(--primary);
+}
+
+.bio-source {
+    display: block;
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+    opacity: 0.6;
+    font-style: italic;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+}
+
 .detail-header-actions {
     display: flex;
     gap: 0.5rem;
@@ -4997,6 +5050,10 @@ img[src=''] {
 
 .modal-content.wide {
     max-width: 600px;
+}
+
+.modal-content.extra-wide {
+    max-width: 1000px;
 }
 
 .modal-content.medium {
