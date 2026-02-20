@@ -1649,7 +1649,12 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
         if (trackItem && (trackItem.classList.contains('unavailable') || trackItem.classList.contains('blocked'))) {
             return;
         }
-        if (trackItem && !trackItem.dataset.queueIndex && !e.target.closest('.remove-from-playlist-btn') && !e.target.closest('.artist-link')) {
+        if (
+            trackItem &&
+            !trackItem.dataset.queueIndex &&
+            !e.target.closest('.remove-from-playlist-btn') &&
+            !e.target.closest('.artist-link')
+        ) {
             const parentList = trackItem.closest('.track-list');
             const allTrackElements = Array.from(parentList.querySelectorAll('.track-item'));
             const trackList = allTrackElements.map((el) => trackDataStore.get(el)).filter(Boolean);
@@ -1799,7 +1804,8 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                 }
 
                 // Render sub-menu
-                let subMenuHTML = '<li data-action="back-to-main-menu" style="font-weight: bold; border-bottom: 1px solid var(--border); margin-bottom: 0.5rem; padding: 0.75rem 1rem; cursor: pointer;">← Back</li>';
+                let subMenuHTML =
+                    '<li data-action="back-to-main-menu" style="font-weight: bold; border-bottom: 1px solid var(--border); margin-bottom: 0.5rem; padding: 0.75rem 1rem; cursor: pointer;">← Back</li>';
                 artists.forEach((artist) => {
                     subMenuHTML += `<li data-action="go-to-artist" data-artist-id="${artist.id}" style="padding: 0.75rem 1rem; cursor: pointer;">${escapeHtml(artist.name || 'Unknown Artist')}</li>`;
                 });
