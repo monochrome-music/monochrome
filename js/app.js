@@ -2302,15 +2302,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 albumItem.textContent = `Go to ${label}`;
                                 albumItem.style.display = track.album ? 'block' : 'none';
                             }
-                            if (artistItem) {
-                                const artists = track.artists || (track.artist ? [track.artist] : []);
-                                if (artists.length === 1) {
-                                    artistItem.style.display = 'block';
-                                    artistItem.textContent = `Go to ${artists[0].name || 'artist'}`;
-                                } else {
-                                    artistItem.style.display = 'none';
-                                }
-                            }
                         }
                     }
                 }
