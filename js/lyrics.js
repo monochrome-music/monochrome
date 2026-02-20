@@ -1039,6 +1039,41 @@ async function renderLyricsComponent(container, track, audioPlayer, lyricsManage
 
         await waitForLyrics();
 
+        // Inject custom Hardware Acceleration & Wavy Karaoke styles into am-lyrics Shadow DOM
+        const root = amLyrics.shadowRoot || amLyrics;
+        if (!root.querySelector('#custom-lyrics-tuning')) {
+            const style = document.createElement('style');
+            style.id = 'custom-lyrics-tuning';
+            style.textContent = `
+                /* Hardware acceleration for ultra-smooth performance */
+                p, .line, .lyric-line, .lrc-line, .word, .lyric-word, span {
+                    will-change: transform, opacity, filter, color !important;
+                    transform: translateZ(0); 
+                    backface-visibility: hidden;
+                }
+                
+                /* Smooth wavy animation for the actively singing line */
+                p[active], p[data-active], p[data-active="true"], .is-active, p.active, .line.active, .lyric-line.active, .lrc-line.active {
+                    animation: karaoke-wavy-float 5s ease-in-out infinite alternate !important;
+                    transform-origin: center center;
+                }
+                
+                @keyframes karaoke-wavy-float {
+                    0% { transform: translate3d(0, 0px, 0) scale(1.05); text-shadow: 0 0 10px rgba(255, 255, 255, 0.05); }
+                    33% { transform: translate3d(0, -4px, 0) scale(1.06); text-shadow: 0 0 20px rgba(255, 255, 255, 0.2); }
+                    66% { transform: translate3d(0, 3px, 0) scale(1.05); text-shadow: 0 0 15px rgba(255, 255, 255, 0.1); }
+                    100% { transform: translate3d(0, -2px, 0) scale(1.06); text-shadow: 0 0 25px rgba(255, 255, 255, 0.25); }
+                }
+
+                /* Ensure parent containers also get layer separation */
+                .lyrics-container, .container, main, article {
+                    transform: translateZ(0);
+                    will-change: transform;
+                }
+            `;
+            root.appendChild(style);
+        }
+
         // Convert immediately after lyrics detected
         if (lyricsManager.isRomajiMode) {
             await lyricsManager.convertLyricsContent(amLyrics);
