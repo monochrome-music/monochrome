@@ -1045,6 +1045,13 @@ async function renderLyricsComponent(container, track, audioPlayer, lyricsManage
             const style = document.createElement('style');
             style.id = 'custom-lyrics-tuning';
             style.textContent = `
+                /* Prevent words from splitting mid-letter on lyrics lines, without breaking component layout */
+                p, .line, .lyric-line, .lrc-line {
+                    word-break: keep-all !important;
+                    overflow-wrap: normal !important;
+                    hyphens: none !important;
+                }
+
                 /* Hardware acceleration for ultra-smooth performance */
                 p, .line, .lyric-line, .lrc-line, .word, .lyric-word, span {
                     will-change: transform, opacity, filter, color !important;
