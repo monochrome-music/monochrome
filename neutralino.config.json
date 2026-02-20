@@ -44,5 +44,5 @@
             "commandWindows": "powershell.exe -ExecutionPolicy Bypass -File \"${NL_PATH}/extensions/js.neutralino.discordrpc/bridge.ps1\""
         }
     ],
-    "nativeAllowList": ["app.exit", "window.*", "extensions.*", "events.*", "os.*", "filesystem.*"]
+    "nativeAllowList": ["app.*", "window.*", "extensions.*", "events.*", "os.*", "filesystem.*", "debug.*", "storage.*", "computer.*", "clipboard.*", "updater.*"]
 }

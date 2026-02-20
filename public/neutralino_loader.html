@@ -129,9 +129,6 @@
 
             // Listen for specific events to forward
             // Add more here if the app needs them (e.g., tray events)
-            Neutralino.events.on('windowClose', async () => {
-                await Neutralino.window.hide();
-            });
             Neutralino.events.on('windowFocus', () => forwardEvent('windowFocus'));
             Neutralino.events.on('windowBlur', () => forwardEvent('windowBlur'));
 

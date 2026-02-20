@@ -26,7 +26,7 @@
             "borderless": false,
             "enableInspector": true,
             "openInspectorOnStartup": true,
-            "exitProcessOnClose": false
+            "exitProcessOnClose": true
         }
     },
     "port": 5050,
@@ -44,5 +44,5 @@
             "commandWindows": "powershell.exe -ExecutionPolicy Bypass -File \"${NL_PATH}/extensions/js.neutralino.discordrpc/bridge.ps1\""
         }
     ],
-    "nativeAllowList": ["app.exit", "window.*", "extensions.*", "filesystem.*", "events.*", "os.*"]
+    "nativeAllowList": ["app.*", "window.*", "extensions.*", "events.*", "os.*", "filesystem.*", "debug.*", "storage.*", "computer.*", "clipboard.*", "updater.*"]
 }
