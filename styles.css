@@ -1698,7 +1698,6 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 @keyframes pulse {
-
     0%,
     100% {
         opacity: 1;
@@ -2115,7 +2114,6 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 @media (max-width: 1100px) {
-
     #home-recommended-songs,
     #artist-detail-tracks,
     #playlist-detail-recommended {
@@ -2762,11 +2760,11 @@ select.input {
     margin-bottom: 0;
 }
 
-.sidebar-settings-section .sidebar-settings-section-label+.setting-item {
+.sidebar-settings-section .sidebar-settings-section-label + .setting-item {
     margin-top: var(--spacing-sm);
 }
 
-.sidebar-settings-section .setting-item+.setting-item {
+.sidebar-settings-section .setting-item + .setting-item {
     margin-top: var(--spacing-md);
 }
 
@@ -3122,11 +3120,11 @@ select.input {
     box-shadow: 0 2px 4px rgb(0, 0, 0, 0.2);
 }
 
-input:checked+.slider {
+input:checked + .slider {
     background-color: var(--primary);
 }
 
-input:checked+.slider::before {
+input:checked + .slider::before {
     transform: translateX(16px);
     background-color: var(--primary-foreground);
     box-shadow: -2px 2px 4px rgb(0, 0, 0, 0.1);
@@ -3138,29 +3136,29 @@ input:checked+.slider::before {
     /* Hover scale effect */
 }
 
-.toggle-switch:hover input:checked+.slider::before {
+.toggle-switch:hover input:checked + .slider::before {
     transform: translateX(16px) scale(1.1);
 }
 
-.toggle-switch input:disabled+.slider {
+.toggle-switch input:disabled + .slider {
     opacity: 0.5;
     cursor: not-allowed;
 }
 
-.toggle-switch input:disabled+.slider::before {
+.toggle-switch input:disabled + .slider::before {
     box-shadow: none;
     transform: translateX(0);
 }
 
-.toggle-switch input:disabled:checked+.slider::before {
+.toggle-switch input:disabled:checked + .slider::before {
     transform: translateX(16px);
 }
 
-.toggle-switch:hover input:disabled+.slider::before {
+.toggle-switch:hover input:disabled + .slider::before {
     transform: translateX(0);
 }
 
-.toggle-switch:hover input:disabled:checked+.slider::before {
+.toggle-switch:hover input:disabled:checked + .slider::before {
     transform: translateX(16px);
 }
 
@@ -3785,14 +3783,16 @@ input:checked+.slider::before {
         /* Outer edge lip */
         radial-gradient(circle at center, transparent 98%, rgb(255, 255, 255, 0.05) 98.5%, #050505 99%, #000 100%),
         /* Inner grooves - multiple tightly packed rings */
-        repeating-radial-gradient(circle at center,
-            #111 0,
-            #111 2px,
-            #0a0a0a 2.5px,
-            #0f0f0f 3px,
-            #111 4.5px,
-            #080808 5px,
-            #121212 6px),
+        repeating-radial-gradient(
+                circle at center,
+                #111 0,
+                #111 2px,
+                #0a0a0a 2.5px,
+                #0f0f0f 3px,
+                #111 4.5px,
+                #080808 5px,
+                #121212 6px
+            ),
         #0a0a0a;
     box-shadow:
         0 20px 50px rgb(0, 0, 0, 0.8),
@@ -3811,18 +3811,20 @@ input:checked+.slider::before {
     position: absolute;
     inset: 0;
     border-radius: var(--radius-full);
-    background: conic-gradient(from 0deg at 50% 50%,
-            rgb(255, 255, 255, 0) 0deg,
-            rgb(255, 255, 255, 0.03) 15deg,
-            rgb(255, 255, 255, 0.25) 30deg,
-            rgb(255, 255, 255, 0.03) 45deg,
-            rgb(255, 255, 255, 0) 60deg,
-            rgb(255, 255, 255, 0) 180deg,
-            rgb(255, 255, 255, 0.03) 195deg,
-            rgb(255, 255, 255, 0.25) 210deg,
-            rgb(255, 255, 255, 0.03) 225deg,
-            rgb(255, 255, 255, 0) 240deg,
-            rgb(255, 255, 255, 0) 360deg);
+    background: conic-gradient(
+        from 0deg at 50% 50%,
+        rgb(255, 255, 255, 0) 0deg,
+        rgb(255, 255, 255, 0.03) 15deg,
+        rgb(255, 255, 255, 0.25) 30deg,
+        rgb(255, 255, 255, 0.03) 45deg,
+        rgb(255, 255, 255, 0) 60deg,
+        rgb(255, 255, 255, 0) 180deg,
+        rgb(255, 255, 255, 0.03) 195deg,
+        rgb(255, 255, 255, 0.25) 210deg,
+        rgb(255, 255, 255, 0.03) 225deg,
+        rgb(255, 255, 255, 0) 240deg,
+        rgb(255, 255, 255, 0) 360deg
+    );
     mix-blend-mode: screen;
     pointer-events: none;
     z-index: 2;
@@ -3846,8 +3848,7 @@ input:checked+.slider::before {
     box-shadow:
         inset 0 2px 5px rgb(0, 0, 0, 0.9),
         0 0 0 1px rgb(255, 255, 255, 0.2),
-        /* white paper edge of the hole */
-        0 0 5px rgb(0, 0, 0, 0.6);
+        /* white paper edge of the hole */ 0 0 5px rgb(0, 0, 0, 0.6);
     z-index: 3;
 
     /* Top most */
@@ -4927,6 +4928,7 @@ input:checked+.slider::before {
     top: 0;
     bottom: 0;
     width: var(--side-panel-width, 600px);
+
     /* Use CSS variable with fallback */
     max-width: 80vw;
     min-width: 300px;
@@ -4944,6 +4946,7 @@ input:checked+.slider::before {
 
 .side-panel.resizing {
     transition: none !important;
+
     /* Disable transitions during live drag */
 }
 
