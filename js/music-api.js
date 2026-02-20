@@ -98,6 +98,16 @@ export class MusicAPI {
         return this.tidalAPI.getMix(id);
     }
 
+    async getTrackRecommendations(id) {
+        const p = this.getProviderFromId(id) || this.getCurrentProvider();
+        const api = this.getAPI(p);
+        const cleanId = this.stripProviderPrefix(id);
+        if (typeof api.getTrackRecommendations === 'function') {
+            return api.getTrackRecommendations(cleanId);
+        }
+        return [];
+    }
+
     // Stream methods
     async getStreamUrl(id, quality, provider = null) {
         const p = provider || this.getProviderFromId(id) || this.getCurrentProvider();

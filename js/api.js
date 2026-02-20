@@ -971,6 +971,26 @@ export class LosslessAPI {
         throw new Error('Track metadata not found');
     }
 
+    async getTrackRecommendations(id) {
+        const cached = await this.cache.get('recommendations', id);
+        if (cached) return cached;
+
+        try {
+            const response = await this.fetchWithRetry(`/recommendations/?id=${id}`, { type: 'api' });
+            const json = await response.json();
+            const data = json.data || json;
+
+            const items = data.items || [];
+            const tracks = items.map((item) => this.prepareTrack(item.track || item));
+
+            await this.cache.set('recommendations', id, tracks);
+            return tracks;
+        } catch (error) {
+            console.error('Failed to fetch recommendations:', error);
+            return [];
+        }
+    }
+
     async getTrack(id, quality = 'HI_RES_LOSSLESS') {
         const cacheKey = `${id}_${quality}`;
         const cached = await this.cache.get('track', cacheKey);

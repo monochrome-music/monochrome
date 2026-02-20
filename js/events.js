@@ -1655,17 +1655,35 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             !e.target.closest('.remove-from-playlist-btn') &&
             !e.target.closest('.artist-link')
         ) {
-            const parentList = trackItem.closest('.track-list');
-            const allTrackElements = Array.from(parentList.querySelectorAll('.track-item'));
-            const trackList = allTrackElements.map((el) => trackDataStore.get(el)).filter(Boolean);
+            const clickedTrackId = trackItem.dataset.trackId;
+            const isSearch = window.location.pathname.startsWith('/search/');
 
-            if (trackList.length > 0) {
-                const clickedTrackId = trackItem.dataset.trackId;
-                const startIndex = trackList.findIndex((t) => t.id == clickedTrackId);
+            if (isSearch) {
+                const clickedTrack = trackDataStore.get(trackItem);
+                if (clickedTrack) {
+                    player.setQueue([clickedTrack], 0);
+                    document.getElementById('shuffle-btn').classList.remove('active');
+                    player.playTrackFromQueue();
 
-                player.setQueue(trackList, startIndex);
-                document.getElementById('shuffle-btn').classList.remove('active');
-                player.playTrackFromQueue();
+                    api.getTrackRecommendations(clickedTrack.id).then((recs) => {
+                        if (recs && recs.length > 0) {
+                            player.addToQueue(recs);
+                            showNotification(`Added ${recs.length} recommendations to queue`);
+                        }
+                    });
+                }
+            } else {
+                const parentList = trackItem.closest('.track-list');
+                const allTrackElements = Array.from(parentList.querySelectorAll('.track-item'));
+                const trackList = allTrackElements.map((el) => trackDataStore.get(el)).filter(Boolean);
+
+                if (trackList.length > 0) {
+                    const startIndex = trackList.findIndex((t) => t.id == clickedTrackId);
+
+                    player.setQueue(trackList, startIndex);
+                    document.getElementById('shuffle-btn').classList.remove('active');
+                    player.playTrackFromQueue();
+                }
             }
         }
 
