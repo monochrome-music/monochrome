@@ -260,6 +260,8 @@ export const themeManager = {
                 this.applyCustomTheme(customTheme);
             }
         }
+
+        window.dispatchEvent(new CustomEvent('theme-changed', { detail: { theme } }));
     },
 
     getCustomTheme() {

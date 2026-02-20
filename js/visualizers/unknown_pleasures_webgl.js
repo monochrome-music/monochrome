@@ -13,8 +13,9 @@ export class UnknownPleasuresWebGL {
     static PROPAGATION_SPEED = 0.7;
 
     // Glow intensity: controls how strong the glow effect is
-    // Lower = subtler glow (0.5 = subtle, 1.0 = normal, 2.0 = strong)
-    static GLOW_INTENSITY = 0.7;
+    static GLOW_INTENSITY = 5.0;
+
+    static NOISE_STRENGTH = 0.04;
 
     constructor() {
         this.name = 'Unknown Pleasures';
@@ -92,28 +93,34 @@ export class UnknownPleasuresWebGL {
         if (this.lineProgram) return;
         this.gl = gl;
 
-        // === LINE SHADER (draws thick colored lines as quads) ===
+        // === LINE SHADER (draws thick colored lines as quads with AA edges) ===
         const lineVS = `
-            attribute vec2 a_position;
+            attribute vec3 a_posEdge; // xy = position, z = edge distance (-1 to +1)
+            varying float v_edge;
             
             void main() {
-                gl_Position = vec4(a_position, 0.0, 1.0);
+                gl_Position = vec4(a_posEdge.xy, 0.0, 1.0);
+                v_edge = a_posEdge.z;
             }
         `;
 
         const lineFS = `
             precision mediump float;
             uniform vec3 u_color;
+            varying float v_edge;
             
             void main() {
-                gl_FragColor = vec4(u_color, 1.0);
+                // Smooth antialiasing at edges
+                float edge = abs(v_edge);
+                float aa = 1.0 - smoothstep(0.6, 1.0, edge);
+                gl_FragColor = vec4(u_color * aa, aa);
             }
         `;
 
         this.lineProgram = this._createProgram(gl, lineVS, lineFS);
         if (!this.lineProgram) return;
 
-        this.line_a_position = gl.getAttribLocation(this.lineProgram, 'a_position');
+        this.line_a_posEdge = gl.getAttribLocation(this.lineProgram, 'a_posEdge');
         this.line_u_color = gl.getUniformLocation(this.lineProgram, 'u_color');
 
         // === BRIGHTNESS EXTRACTION SHADER ===
@@ -136,30 +143,10 @@ export class UnknownPleasuresWebGL {
             uniform float u_isDarkTheme;
             
             void main() {
-                vec4 color = texture2D(u_texture, v_uv);
-                
-                float contribution;
-                float outputMult;
-                
-                if (u_isDarkTheme > 0.5) {
-                    // Dark mode: use brightness (bright lines on dark background)
-                    float brightness = max(color.r, max(color.g, color.b));
-                    contribution = max(0.0, brightness - u_threshold) / (1.0 - u_threshold);
-                    outputMult = 0.75;
-                } else {
-                    // Light mode: use saturation (colored lines on gray background)
-                    float maxC = max(color.r, max(color.g, color.b));
-                    float minC = min(color.r, min(color.g, color.b));
-                    float saturation = maxC > 0.0 ? (maxC - minC) / maxC : 0.0;
-                    // Lower threshold to capture more of the line, boost output
-                    contribution = max(0.0, saturation - 0.15) / 0.85;
-                    // Boost contribution with power curve for stronger glow
-                    contribution = pow(contribution, 0.7);
-                    outputMult = 1.5;
-                }
-                
-                // Output the glowing parts
-                gl_FragColor = vec4(color.rgb * contribution * outputMult, 1.0);
+                // Since Pass 1 now clears to transparent, the scene texture only contains the isolated lines.
+                // We don't need to extract brightness by darkening the background anymore.
+                // Just pass the lines through so they can be blurred.
+                gl_FragColor = texture2D(u_texture, v_uv);
             }
         `;
 
@@ -190,27 +177,21 @@ export class UnknownPleasuresWebGL {
             uniform sampler2D u_texture;
             uniform vec2 u_resolution;
             uniform vec2 u_direction;
-            uniform float u_radius;
+            uniform float u_spread; // Used instead of u_radius
             
+            // 9-tap Gaussian with expanding offsets
             void main() {
-                vec2 texelSize = 1.0 / u_resolution;
-                // Fixed small step (1.5 pixels) for smooth gradient
-                // Multiple passes will extend the blur
-                vec2 step = u_direction * texelSize * 1.5;
+                // Expanding offsets for stronger glow (Thread Ripper Style)
+                vec2 off1 = vec2(1.3846153846) * u_direction * u_spread;
+                vec2 off2 = vec2(3.2307692308) * u_direction * u_spread;
                 
-                // 9-tap Gaussian weights (sum = 1.0)
-                vec4 result = 
-                    texture2D(u_texture, v_uv - 4.0 * step) * 0.0162 +
-                    texture2D(u_texture, v_uv - 3.0 * step) * 0.0540 +
-                    texture2D(u_texture, v_uv - 2.0 * step) * 0.1216 +
-                    texture2D(u_texture, v_uv - 1.0 * step) * 0.1945 +
-                    texture2D(u_texture, v_uv)              * 0.2270 +
-                    texture2D(u_texture, v_uv + 1.0 * step) * 0.1945 +
-                    texture2D(u_texture, v_uv + 2.0 * step) * 0.1216 +
-                    texture2D(u_texture, v_uv + 3.0 * step) * 0.0540 +
-                    texture2D(u_texture, v_uv + 4.0 * step) * 0.0162;
+                vec4 color = texture2D(u_texture, v_uv) * 0.2270270270;
+                color += texture2D(u_texture, v_uv + (off1 / u_resolution)) * 0.3162162162;
+                color += texture2D(u_texture, v_uv - (off1 / u_resolution)) * 0.3162162162;
+                color += texture2D(u_texture, v_uv + (off2 / u_resolution)) * 0.0702702703;
+                color += texture2D(u_texture, v_uv - (off2 / u_resolution)) * 0.0702702703;
                 
-                gl_FragColor = result;
+                gl_FragColor = color;
             }
         `;
 
@@ -221,39 +202,65 @@ export class UnknownPleasuresWebGL {
         this.blur_u_texture = gl.getUniformLocation(this.blurProgram, 'u_texture');
         this.blur_u_resolution = gl.getUniformLocation(this.blurProgram, 'u_resolution');
         this.blur_u_direction = gl.getUniformLocation(this.blurProgram, 'u_direction');
-        this.blur_u_radius = gl.getUniformLocation(this.blurProgram, 'u_radius');
+        this.blur_u_spread = gl.getUniformLocation(this.blurProgram, 'u_spread');
 
         // === COMPOSITE SHADER (combines original + blurred glow) ===
+        // === COMPOSITE SHADER (exact copy from Thread Ripper) ===
         const compositeFS = `
             precision mediump float;
             varying vec2 v_uv;
             uniform sampler2D u_scene;
             uniform sampler2D u_blur;
             uniform float u_glowStrength;
-            uniform float u_isDarkTheme;
+            uniform float u_noiseStrength;
+            uniform float u_isDarkTheme; // Kept for compatibility but unused in logic below
+            uniform float u_time;
             
+            float rand(vec2 co) {
+                return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+            }
+
             void main() {
                 vec4 original = texture2D(u_scene, v_uv);
                 vec4 blur = texture2D(u_blur, v_uv);
                 
-                vec3 finalColor;
+                // Additive glow on top of original lines
+                vec3 rgb = original.rgb + blur.rgb * u_glowStrength;
                 
-                if (u_isDarkTheme > 0.5) {
-                    // Dark mode: additive glow (adds brightness to dark background)
-                    vec3 glow = blur.rgb * u_glowStrength;
-                    finalColor = original.rgb + glow;
-                } else {
-                    // Light mode: TINT toward glow color instead of adding
-                    // This shifts the gray background toward the line color
-                    float glowIntensity = max(blur.r, max(blur.g, blur.b));
-                    float tintStrength = glowIntensity * u_glowStrength * 0.8; // Boosted from 0.4
-                    // Mix original with glow color based on intensity
-                    vec3 glowColor = blur.rgb / max(glowIntensity, 0.001); // Normalize to get pure color
-                    finalColor = mix(original.rgb, glowColor, tintStrength);
-                }
+                // Vignette: blur edges for depth
+                float dist = distance(v_uv, vec2(0.5));
+                float vignette = smoothstep(0.4, 0.8, dist);
+                // We handle scaling in the final mix later to avoid breaking the HDR mapping above.
+                // The rgb here is the base scene before the final exponential glow math.
+
+                float noise = rand(v_uv * 10.0); 
+                float noiseStrength = 0.06; 
+                rgb += (noise - 0.5) * noiseStrength;
+
+                // In light mode (u_isDarkTheme == 0.0), the additive glow effect naturally appears weaker 
+                // against the bright background. We apply a 1.5x perceptual boost to match dark mode intensity.
+                float themeBoost = mix(1.5, 1.0, u_isDarkTheme);
+                // Using 1.0 - exp(-x) gives butter-smooth HDR-like falloff, eliminating harsh banding.
+                // We square the intensity (gamma 2.0) to dramatically increase the "core" opacity of the glow
+                // making it much more visible while preserving the smooth edges.
+                vec3 rawGlow = blur.rgb * (u_glowStrength * themeBoost);
+                float glowIntensity = max(rawGlow.r, max(rawGlow.g, rawGlow.b));
                 
-                // Preserve alpha from scene (needed for semi-transparent backgrounds)
-                gl_FragColor = vec4(finalColor, original.a);
+                // Boost density significantly before applying HDR curve
+                float density = glowIntensity * glowIntensity * 1.5;
+                float smoothGlowAlpha = 1.0 - exp(-density);
+                
+                // Keep the color strictly within valid premultiplied alpha bounds (rgb <= alpha)
+                vec3 safeGlowRgb = glowIntensity > 0.0 ? (rawGlow / glowIntensity) * smoothGlowAlpha : vec3(0.0);
+                
+                // Additive over the core lines
+                rgb = original.rgb + safeGlowRgb;
+
+                // Final alpha is the line's alpha plus the glow's alpha
+                float finalAlpha = clamp(original.a + smoothGlowAlpha, 0.0, 1.0);
+
+                // Output RGB and Alpha for PREMULTIPLIED alpha blending
+                gl_FragColor = vec4(rgb, finalAlpha); 
             }
         `;
 
@@ -264,7 +271,9 @@ export class UnknownPleasuresWebGL {
         this.composite_u_scene = gl.getUniformLocation(this.compositeProgram, 'u_scene');
         this.composite_u_blur = gl.getUniformLocation(this.compositeProgram, 'u_blur');
         this.composite_u_glowStrength = gl.getUniformLocation(this.compositeProgram, 'u_glowStrength');
+        this.composite_u_noiseStrength = gl.getUniformLocation(this.compositeProgram, 'u_noiseStrength');
         this.composite_u_isDarkTheme = gl.getUniformLocation(this.compositeProgram, 'u_isDarkTheme');
+        this.composite_u_time = gl.getUniformLocation(this.compositeProgram, 'u_time');
 
         // === FULLSCREEN QUAD BUFFER ===
         this.quadBuffer = gl.createBuffer();
@@ -333,7 +342,7 @@ export class UnknownPleasuresWebGL {
         this.blurTexture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, this.blurTexture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); // LINEAR!
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -353,6 +362,11 @@ export class UnknownPleasuresWebGL {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.blurFinalTexture, 0);
+
+        const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+        if (status !== gl.FRAMEBUFFER_COMPLETE) {
+            console.error('Framebuffer incomplete:', status);
+        }
 
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
@@ -393,62 +407,70 @@ export class UnknownPleasuresWebGL {
     }
 
     /**
-     * Generate quad vertices for a thick line segment with round joints
-     * Returns triangles for each segment + circles at joints
+     * Generate quad vertices for a thick line with proper miter joints.
+     * Precomputes averaged normals at shared vertices so segments connect seamlessly.
      */
     _generateLineQuads(points, thickness, width, height) {
+        if (points.length < 2) return new Float32Array(0);
+
         const vertices = [];
-
-        // Convert to clip space helper
         const toClip = (x, y) => [(x / width) * 2 - 1, 1 - (y / height) * 2];
+        const n = points.length;
 
-        // Generate circle at a point (for round joints/caps)
-        const addCircle = (px, py, radius, segments = 8) => {
-            const [cx, cy] = toClip(px, py);
-            const rw = (radius / width) * 2;
-            const rh = (radius / height) * 2;
-
-            for (let s = 0; s < segments; s++) {
-                const a1 = (s / segments) * Math.PI * 2;
-                const a2 = ((s + 1) / segments) * Math.PI * 2;
-
-                vertices.push(cx, cy);
-                vertices.push(cx + Math.cos(a1) * rw, cy + Math.sin(a1) * rh);
-                vertices.push(cx + Math.cos(a2) * rw, cy + Math.sin(a2) * rh);
+        // Precompute per-segment normals
+        const segNx = new Float32Array(n - 1);
+        const segNy = new Float32Array(n - 1);
+        for (let i = 0; i < n - 1; i++) {
+            const dx = points[i + 1].x - points[i].x;
+            const dy = points[i + 1].y - points[i].y;
+            const len = Math.sqrt(dx * dx + dy * dy);
+            if (len < 0.001) {
+                segNx[i] = 0;
+                segNy[i] = -1;
+            } else {
+                segNx[i] = -dy / len;
+                segNy[i] = dx / len;
             }
-        };
-
-        // Add start cap
-        if (points.length > 0) {
-            addCircle(points[0].x, points[0].y, thickness);
         }
 
-        for (let i = 0; i < points.length - 1; i++) {
+        // Compute miter normals at each point (average of adjacent segment normals)
+        const miterNx = new Float32Array(n);
+        const miterNy = new Float32Array(n);
+        // First point: use first segment normal
+        miterNx[0] = segNx[0];
+        miterNy[0] = segNy[0];
+        // Last point: use last segment normal
+        miterNx[n - 1] = segNx[n - 2];
+        miterNy[n - 1] = segNy[n - 2];
+        // Interior points: average
+        for (let i = 1; i < n - 1; i++) {
+            let mx = segNx[i - 1] + segNx[i];
+            let my = segNy[i - 1] + segNy[i];
+            const ml = Math.sqrt(mx * mx + my * my);
+            if (ml < 0.001) {
+                mx = segNx[i];
+                my = segNy[i];
+            } else {
+                mx /= ml;
+                my /= ml;
+            }
+            miterNx[i] = mx;
+            miterNy[i] = my;
+        }
+
+        // Build quads using miter normals
+        for (let i = 0; i < n - 1; i++) {
             const p1 = points[i];
             const p2 = points[i + 1];
 
-            // Direction vector
-            const dx = p2.x - p1.x;
-            const dy = p2.y - p1.y;
-            const len = Math.sqrt(dx * dx + dy * dy);
-            if (len < 0.001) continue;
+            const [x1a, y1a] = toClip(p1.x - miterNx[i] * thickness, p1.y - miterNy[i] * thickness);
+            const [x1b, y1b] = toClip(p1.x + miterNx[i] * thickness, p1.y + miterNy[i] * thickness);
+            const [x2a, y2a] = toClip(p2.x - miterNx[i + 1] * thickness, p2.y - miterNy[i + 1] * thickness);
+            const [x2b, y2b] = toClip(p2.x + miterNx[i + 1] * thickness, p2.y + miterNy[i + 1] * thickness);
 
-            // Perpendicular (normal) vector
-            const nx = (-dy / len) * thickness;
-            const ny = (dx / len) * thickness;
-
-            const [x1a, y1a] = toClip(p1.x - nx, p1.y - ny);
-            const [x1b, y1b] = toClip(p1.x + nx, p1.y + ny);
-            const [x2a, y2a] = toClip(p2.x - nx, p2.y - ny);
-            const [x2b, y2b] = toClip(p2.x + nx, p2.y + ny);
-
-            // Triangle 1
-            vertices.push(x1a, y1a, x1b, y1b, x2a, y2a);
-            // Triangle 2
-            vertices.push(x1b, y1b, x2b, y2b, x2a, y2a);
-
-            // Add round joint at p2 (connection point)
-            addCircle(p2.x, p2.y, thickness);
+            // Each vertex: [x, y, edge] where edge = -1 (bottom) or +1 (top)
+            vertices.push(x1a, y1a, -1.0, x1b, y1b, 1.0, x2a, y2a, -1.0);
+            vertices.push(x1b, y1b, 1.0, x2b, y2b, 1.0, x2a, y2a, -1.0);
         }
 
         return new Float32Array(vertices);
@@ -459,15 +481,8 @@ export class UnknownPleasuresWebGL {
         const { width, height } = canvas;
         const isDark = document.documentElement.getAttribute('data-theme') !== 'white';
 
-        // Set CSS blend mode based on mode and theme
-        // Solid: normal (opaque background)
-        // Blended + Dark: screen (black=transparent, bright=visible)
-        // Blended + Light: normal (semi-transparent background overlay)
-        if (params.mode === 'blended' && isDark) {
-            canvas.style.mixBlendMode = 'screen';
-        } else {
-            canvas.style.mixBlendMode = 'normal';
-        }
+        // FORCE Normal blending as requested - no more screen blend tricks
+        canvas.style.mixBlendMode = 'normal';
 
         // Initialize WebGL on first draw
         if (!this.lineProgram) {
@@ -491,7 +506,12 @@ export class UnknownPleasuresWebGL {
         if (this._propagationAccum >= 1.0) {
             this._propagationAccum -= 1.0;
 
-            const len = dataArray.length | 0;
+            const sampleRate = analyser.context.sampleRate;
+            const nyquist = sampleRate / 2;
+            const targetFreq = 22000; // Visualizing up to 22kHz
+            const scale = Math.min(1.0, targetFreq / nyquist);
+            const len = Math.floor(dataArray.length * scale);
+
             const line = this.history[this.writeIndex];
             if (line) {
                 for (let i = 0; i < pts; i++) {
@@ -511,24 +531,11 @@ export class UnknownPleasuresWebGL {
         const rotatedH = Math.abs(width * this._sin) + Math.abs(height * this._cos);
         const size = Math.max(rotatedW, rotatedH) * 1.15;
 
-        // === PASS 1: Render lines to framebuffer ===
+        // === PASS 1: Scene ===
+        // We render lines to a transparent texture so we can composite them properly later
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
         gl.viewport(0, 0, width, height);
-
-        // Clear color based on mode and theme
-        // Solid: dark/light solid background
-        // Blended + Dark (screen): black (black=transparent in screen blend)
-        // Blended + Light: semi-transparent light (album art shows through)
-        if (params.mode !== 'blended') {
-            const bg = isDark ? [0.02, 0.02, 0.02, 1] : [0.9, 0.9, 0.9, 1];
-            gl.clearColor(bg[0], bg[1], bg[2], bg[3]);
-        } else if (isDark) {
-            // Dark: black for screen blend (black=transparent)
-            gl.clearColor(0, 0, 0, 1);
-        } else {
-            // Light: semi-transparent white overlay (frosted glass effect)
-            gl.clearColor(0.92, 0.92, 0.92, 0.85);
-        }
+        gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
         // Perspective constants - extended for better corner coverage
@@ -539,9 +546,15 @@ export class UnknownPleasuresWebGL {
         const B = totalH / (1 - 1 / (1 + depth));
         const A = frontY - B;
 
-        // Enable blending for anti-aliased edges and proper alpha
+        // Lines output premultiplied alpha (color * aa, aa).
         gl.enable(gl.BLEND);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        if (isDark) {
+            // Additive premultiplied
+            gl.blendFunc(gl.ONE, gl.ONE);
+        } else {
+            // Standard premultiplied
+            gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+        }
 
         gl.useProgram(this.lineProgram);
 
@@ -591,18 +604,23 @@ export class UnknownPleasuresWebGL {
             gl.bindBuffer(gl.ARRAY_BUFFER, this.lineBuffer);
             gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW);
 
-            gl.enableVertexAttribArray(this.line_a_position);
-            gl.vertexAttribPointer(this.line_a_position, 2, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(this.line_a_posEdge);
+            gl.vertexAttribPointer(this.line_a_posEdge, 3, gl.FLOAT, false, 0, 0);
 
-            // Set color
+            // Set raw palette color
             const color = this._paletteRGB[i] || [1, 1, 1];
             gl.uniform3f(this.line_u_color, color[0], color[1], color[2]);
 
-            // Draw
-            gl.drawArrays(gl.TRIANGLES, 0, vertices.length / 2);
+            // Draw (vertices.length / 3 because each vertex is [x, y, edge])
+            gl.drawArrays(gl.TRIANGLES, 0, vertices.length / 3);
         }
 
-        // === PASS 2: Extract bright pixels ===
+
+
+        // MUST DISABLE BLEND for post-processing passes so we strictly overwrite FBO contents!
+        gl.disable(gl.BLEND);
+
+        // === PASS 2: Bloom ===
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.blurFramebuffer);
         gl.viewport(0, 0, width, height);
         gl.clearColor(0, 0, 0, 0);
@@ -613,7 +631,8 @@ export class UnknownPleasuresWebGL {
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.sceneTexture);
         gl.uniform1i(this.brightness_u_texture, 0);
-        gl.uniform1f(this.brightness_u_threshold, 0.1); // Low threshold for dark mode
+        // NO THRESHOLD - EVERYTHING GLOWS (Thread Ripper Style)
+        gl.uniform1f(this.brightness_u_threshold, 0.0);
         gl.uniform1f(this.brightness_u_isDarkTheme, isDark ? 1.0 : 0.0);
 
         gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuffer);
@@ -621,74 +640,72 @@ export class UnknownPleasuresWebGL {
         gl.vertexAttribPointer(this.brightness_a_position, 2, gl.FLOAT, false, 0, 0);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
 
-        // === PASS 3: Horizontal Gaussian blur ===
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.blurFinalFramebuffer);
-        gl.viewport(0, 0, width, height);
-        gl.clearColor(0, 0, 0, 0);
-        gl.clear(gl.COLOR_BUFFER_BIT);
-
+        // === PASS 3: Gaussian Blur (Ping Pong) ===
         gl.useProgram(this.blurProgram);
 
-        // Multiple blur passes with increasing step sizes for smooth wide blur
-        // This prevents banding by using overlapping samples
-        const numPasses = 3;
-        for (let pass = 0; pass < numPasses; pass++) {
-            const stepMultiplier = Math.pow(2, pass); // 1, 2, 4
+        // More iterations for wider, smoother glow (Thread Ripper uses 8 * 2 passes)
+        // We have 2 framebuffers: blurFramebuffer (holds brightness extract), blurFinalFramebuffer (temp)
+        // thread_ripper uses ping-pong. Let's adapt.
 
-            // Horizontal blur
-            gl.bindFramebuffer(gl.FRAMEBUFFER, this.blurFinalFramebuffer);
+        // We start with 'blurFramebuffer' having the bright pixels.
+        // We want to ping-pong between blurFramebuffer and blurFinalFramebuffer.
+
+        const iterations = 8;
+        let horizontal = true;
+
+        for (let i = 0; i < iterations * 2; i++) {
+            // Thread Ripper ping-pong: horizontal toggles each iteration
+            const destFBO = horizontal ? this.blurFinalFramebuffer : this.blurFramebuffer;
+            const srcTex = horizontal ? this.blurTexture : this.blurFinalTexture;
+
+            // Thread Ripper spread: grows linearly with i (not i/2)
+            // Increased by 50% from 0.375 to 0.5625 for wider glow
+            const spread = 1.0 + i * 0.5625;
+
+            gl.bindFramebuffer(gl.FRAMEBUFFER, destFBO);
             gl.viewport(0, 0, width, height);
-            gl.clearColor(0, 0, 0, 0);
-            gl.clear(gl.COLOR_BUFFER_BIT);
 
             gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, this.blurTexture);
+            gl.bindTexture(gl.TEXTURE_2D, srcTex);
             gl.uniform1i(this.blur_u_texture, 0);
             gl.uniform2f(this.blur_u_resolution, width, height);
-            gl.uniform2f(this.blur_u_direction, stepMultiplier, 0.0); // Horizontal with scaled step
-            gl.uniform1f(this.blur_u_radius, 32.0);
+
+            gl.uniform2f(this.blur_u_direction, horizontal ? 1.0 : 0.0, horizontal ? 0.0 : 1.0);
+            gl.uniform1f(this.blur_u_spread, spread);
 
             gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuffer);
             gl.enableVertexAttribArray(this.blur_a_position);
             gl.vertexAttribPointer(this.blur_a_position, 2, gl.FLOAT, false, 0, 0);
             gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-            // Vertical blur
-            gl.bindFramebuffer(gl.FRAMEBUFFER, this.blurFramebuffer);
-            gl.viewport(0, 0, width, height);
-            gl.clearColor(0, 0, 0, 0);
-            gl.clear(gl.COLOR_BUFFER_BIT);
-
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, this.blurFinalTexture);
-            gl.uniform1i(this.blur_u_texture, 0);
-            gl.uniform2f(this.blur_u_direction, 0.0, stepMultiplier); // Vertical with scaled step
-
-            gl.drawArrays(gl.TRIANGLES, 0, 6);
+            horizontal = !horizontal;
         }
 
-        // === PASS 4: Composite original + blur ===
+        // Final result is in the LAST written framebuffer.
+        // iter 0 -> writes Final
+        // iter 1 -> writes Blur
+        // ...
+        // iter 15 -> writes Blur
+
+        // So 'blurTexture' holds the final blurred result.
+
+        // === PASS 4: Composite ===
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.viewport(0, 0, width, height);
 
-        // Clear color based on mode and theme
-        // Solid: opaque background
-        // Blended + Dark: black (for screen blend)
-        // Blended + Light: transparent (composite has the semi-transparent background in it)
+        // Clear color for MAIN canvas
         if (params.mode !== 'blended') {
             const bg = isDark ? [0.02, 0.02, 0.02, 1] : [0.9, 0.9, 0.9, 1];
             gl.clearColor(bg[0], bg[1], bg[2], bg[3]);
         } else if (isDark) {
-            gl.clearColor(0, 0, 0, 1);
+            gl.clearColor(0, 0, 0, 0.4); // Dark blended
         } else {
-            // Light blended: composite will output semi-transparent, clear is transparent
-            gl.clearColor(0, 0, 0, 0);
+            gl.clearColor(0.95, 0.95, 0.95, 0.4); // Light frosted
         }
         gl.clear(gl.COLOR_BUFFER_BIT);
 
-        // Blending for final composite
+        // Classic normal blending for the final composite quad over the canvas background!
         gl.enable(gl.BLEND);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+        gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
         gl.useProgram(this.compositeProgram);
 
@@ -697,13 +714,16 @@ export class UnknownPleasuresWebGL {
         gl.uniform1i(this.composite_u_scene, 0);
 
         gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, this.blurTexture); // V-blur result
+        // Use last output: horizontal toggles, so pick the right texture (Thread Ripper pattern)
+        gl.bindTexture(gl.TEXTURE_2D, horizontal ? this.blurTexture : this.blurFinalTexture);
         gl.uniform1i(this.composite_u_blur, 1);
 
-        // Glow strength reacts to kick, scaled by GLOW_INTENSITY
-        const baseGlow = 1.8 + params.kick * 2.5;
-        const glowStrength = baseGlow * UnknownPleasuresWebGL.GLOW_INTENSITY;
+        // Glow strength - EXACT Thread Ripper formula
+        const glowBoost = 1.0 + params.kick; // Pulse with kick
+        const glowStrength = UnknownPleasuresWebGL.GLOW_INTENSITY * glowBoost;
+
         gl.uniform1f(this.composite_u_glowStrength, glowStrength);
+        gl.uniform1f(this.composite_u_noiseStrength, UnknownPleasuresWebGL.NOISE_STRENGTH);
         gl.uniform1f(this.composite_u_isDarkTheme, isDark ? 1.0 : 0.0);
 
         gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuffer);

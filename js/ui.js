@@ -96,6 +96,11 @@ export class UIRenderer {
         window.addEventListener('reset-dynamic-color', () => {
             this.resetVibrantColor();
         });
+
+        // Listen for theme changes to re-apply vibrant colors
+        window.addEventListener('theme-changed', () => {
+            this.updateGlobalTheme();
+        });
     }
 
     // Helper for Heart Icon

@@ -200,7 +200,7 @@ export class LCDPreset {
         }
 
         // --- Audio Data Processing ---
-        const data = this.processAudio(dataArray);
+        const data = this.processAudio(dataArray, analyser);
 
         // --- Perspective Constants ---
         const centerX = width / 2;
@@ -279,28 +279,47 @@ export class LCDPreset {
     }
 
     // Process audio with improved dynamics
-    processAudio(dataArray) {
+    processAudio(dataArray, analyser) {
         const result = new Float32Array(this.gridCols);
         const center = Math.floor(this.gridCols / 2);
         const totalBins = dataArray.length;
         let peakVal = 0;
 
+        // Sample rate and bin size
+        const sampleRate = analyser?.context?.sampleRate || 48000;
+        const binSize = sampleRate / (totalBins * 2);
+        
+        // Define frequency range to map
+        const minFreq = 40; // Start at 40Hz
+        const maxFreq = 22000; // End at 22kHz
+
         for (let i = 0; i < center; i++) {
             const p = i / (center - 1);
+            
+            // Logarithmic frequency mapping: F = min * (max/min)^p
+            const targetStartFreq = minFreq * Math.pow(maxFreq / minFreq, p);
+            // Calculate next frequency to determine bandwidth of this bar
+            const pNext = (i + 1) / (center - 1);
+            const targetEndFreq = minFreq * Math.pow(maxFreq / minFreq, pNext); // Use pNext for end freq
 
-            // Logarithmic frequency mapping
-            const minBin = 2;
-            const maxBin = totalBins * 0.65;
-            const startBin = Math.floor(minBin * Math.pow(maxBin / minBin, p));
-            const endBin = Math.max(startBin + 1, Math.floor(minBin * Math.pow(maxBin / minBin, p + 1 / center)));
+            // Convert frequencies to bin indices
+            const startBin = Math.max(1, Math.floor(targetStartFreq / binSize));
+            const endBin = Math.max(startBin + 1, Math.floor(targetEndFreq / binSize));
 
             let sum = 0,
                 count = 0;
+            
+            // Sum bins for this column
             for (let k = startBin; k < endBin && k < totalBins; k++) {
                 sum += dataArray[k];
                 count++;
             }
             let val = count > 0 ? sum / count : 0;
+            
+            // Fallback: if range was too narrow (startBin >= endBin or count=0), sample the startBin directly
+            if (count === 0 && startBin < totalBins) {
+                val = dataArray[startBin];
+            }
 
             // Pink noise compensation (boost highs)
             val *= 1 + p * 1.8;
