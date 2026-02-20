@@ -1,373 +1,379 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <title>Monochrome Shell</title>
-        <style>
-            body,
-            html {
-                margin: 0;
-                padding: 0;
-                width: 100%;
-                height: 100%;
-                overflow: hidden;
-                background-color: #000;
-                /* Seamless blend */
-            }
 
-            iframe {
-                width: 100%;
-                height: 100%;
-                border: none;
-                display: block;
-            }
-        </style>
-    </head>
+<head>
+    <meta charset="UTF-8" />
+    <title>Monochrome Shell</title>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            /* Seamless blend */
+        }
 
-    <body>
-        <script src="__neutralino_globals.js"></script>
-        <script src="neutralino.js"></script>
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+    </style>
+</head>
 
-        <!-- Load the app from the local Neutralino server -->
-        <iframe id="app-frame" allow="autoplay; fullscreen; microphone; clipboard-read; clipboard-write"></iframe>
+<body>
+    <script src="__neutralino_globals.js"></script>
+    <script src="neutralino.js"></script>
 
-        <script>
-            // initialize Neutralino in the Shell (Local Context)
-            try {
-                Neutralino.init();
-                console.log('[Shell] Neutralino initialized.');
+    <!-- Load the app from the local Neutralino server -->
+    <iframe id="app-frame" allow="autoplay; fullscreen; microphone; clipboard-read; clipboard-write"></iframe>
 
-                const setupTray = async () => {
-                    const isDev = (window.NL_ARGS || []).some((a) => a.includes('--neu-dev-auto-reload'));
-                    const iconPath = isDev ? '/public/assets/trayicon.png' : '/dist/assets/trayicon.png';
-                    console.log('[Shell] Setting tray icon:', iconPath);
-                    const tray = {
-                        icon: iconPath,
-                        menuItems: [
-                            { id: 'show', text: 'Show Monochrome' },
-                            { id: 'sep', text: '-' },
-                            { id: 'quit', text: 'Quit' },
-                        ],
-                    };
-                    try {
-                        await Neutralino.os.setTray(tray);
-                        console.log('[Shell] Tray set successfully');
-                    } catch (e) {
-                        console.error('[Shell] Tray error:', e);
-                        await Neutralino.os.showMessageBox(
-                            'Tray Error',
-                            `Failed to set tray: ${JSON.stringify(e)}`,
-                            'ERROR'
-                        );
-                    }
+    <script>
+        // initialize Neutralino in the Shell (Local Context)
+        try {
+            Neutralino.init();
+            console.log('[Shell] Neutralino initialized.');
+
+            const setupTray = async () => {
+                const isDev = (window.NL_ARGS || []).some((a) => a.includes('--neu-dev-auto-reload'));
+                const iconPath = isDev ? '/public/assets/trayicon.png' : '/dist/assets/trayicon.png';
+                console.log('[Shell] Setting tray icon:', iconPath);
+                const tray = {
+                    icon: iconPath,
+                    menuItems: [
+                        { id: 'show', text: 'Show Monochrome' },
+                        { id: 'sep', text: '-' },
+                        { id: 'quit', text: 'Quit' },
+                    ],
                 };
-
-                Neutralino.events.on('ready', setupTray);
-
-                // Graceful exit: kill process via SIGTERM to avoid macOS crash.
-                // Neutralino.app.exit() calls [NSWindow _close] from the WebSocket
-                // thread instead of the main thread, triggering an AppKit assertion.
-                const safeExit = async () => {
-                    try {
-                        const port = window.NL_PORT;
-                        const r = await Neutralino.os.execCommand(`lsof -ti tcp:${port} -sTCP:LISTEN`);
-                        const pid = r.stdOut.trim().split('\n')[0];
-                        if (pid) {
-                            await Neutralino.os.execCommand(`kill ${pid}`);
-                            return;
-                        }
-                    } catch (e) {
-                        console.error('[Shell] Safe exit failed, falling back:', e);
-                    }
-                    Neutralino.app.exit();
-                };
-
-                Neutralino.events.on('trayMenuItemClicked', async (event) => {
-                    switch (event.detail.id) {
-                        case 'show':
-                            await Neutralino.window.show();
-                            await Neutralino.window.unminimize();
-                            await Neutralino.window.focus();
-                            break;
-                        case 'quit':
-                            await safeExit();
-                            break;
-                    }
-                });
-            } catch (e) {
-                console.error('[Shell] Failed to init Neutralino:', e);
-            }
-
-            // Point iframe to local server using the port from Neutralino
-            // NL_PORT is available globally after init (or we can parse it/wait for it)
-            // Neutralino.init() usually populates window.NL_PORT or we read it from sessionStorage
-
-            const initFrame = async () => {
-                // Simplified Dev Mode Detection using Neutralino's internal args
-                // 'neu run' adds --neu-dev-auto-reload, which we can use to detect dev environment.
-                const args = window.NL_ARGS || [];
-                const isDev = args.some((arg) => arg.includes('--neu-dev-auto-reload') || arg.includes('--debug-mode'));
-
-                // Static Dev Port
-                const DEV_PORT = '5173';
-
-                let port = window.NL_PORT || sessionStorage.getItem('NL_PORT') || '5050';
-                const iframe = document.getElementById('app-frame');
-
-                const targetPort = isDev ? DEV_PORT : port;
-                const targetUrl = `http://localhost:${targetPort}/?mode=neutralino`;
-
-                if (isDev) {
-                    console.log(`[Shell] Dev mode detected via NL_ARGS. Waiting 2s for Vite on port ${targetPort}...`);
-                    await new Promise((r) => setTimeout(r, 2000));
-                } else {
-                    console.log(`[Shell] Production mode detected.`);
-                }
-
-                console.log(`[Shell] Loading app from: ${targetUrl}`);
-                iframe.src = targetUrl;
-            };
-
-            initFrame();
-
-            const iframe = document.getElementById('app-frame');
-
-            // Forward generic Neutralino events to the Iframe
-            const forwardEvent = (eventName, detail) => {
-                if (iframe && iframe.contentWindow) {
-                    iframe.contentWindow.postMessage(
-                        {
-                            type: 'NL_EVENT',
-                            eventName: eventName,
-                            detail: detail,
-                        },
-                        '*'
+                try {
+                    await Neutralino.os.setTray(tray);
+                    console.log('[Shell] Tray set successfully');
+                } catch (e) {
+                    console.error('[Shell] Tray error:', e);
+                    await Neutralino.os.showMessageBox(
+                        'Tray Error',
+                        `Failed to set tray: ${JSON.stringify(e)}`,
+                        'ERROR'
                     );
                 }
             };
 
-            // Listen for specific events to forward
-            // Add more here if the app needs them (e.g., tray events)
-            Neutralino.events.on('windowFocus', () => forwardEvent('windowFocus'));
-            Neutralino.events.on('windowBlur', () => forwardEvent('windowBlur'));
+            Neutralino.events.on('ready', setupTray);
 
-            // Media Key Events (Linux Fix)
-            Neutralino.events.on('mediaNext', () => forwardEvent('mediaNext'));
-            Neutralino.events.on('mediaPrevious', () => forwardEvent('mediaPrevious'));
-            Neutralino.events.on('mediaPlayPause', () => forwardEvent('mediaPlayPause'));
-            Neutralino.events.on('mediaStop', () => forwardEvent('mediaStop'));
+            // Graceful exit: kill process via SIGTERM to avoid macOS crash.
+            // Neutralino.app.exit() calls [NSWindow _close] from the WebSocket
+            // thread instead of the main thread, triggering an AppKit assertion.
+            const safeExit = async () => {
+                try {
+                    const port = window.NL_PORT;
+                    const r = await Neutralino.os.execCommand(`lsof -ti tcp:${port} -sTCP:LISTEN`);
+                    const pid = r.stdOut.trim().split('\n')[0];
+                    if (pid) {
+                        await Neutralino.os.execCommand(`kill ${pid}`);
+                        return;
+                    }
+                } catch (e) {
+                    console.error('[Shell] Safe exit failed, falling back:', e);
+                }
+                Neutralino.app.exit();
+            };
 
-            // Handle commands from the Iframe (via Bridge)
-            window.addEventListener('message', async (event) => {
-                const { type, eventName, data, extensionId } = event.data;
-
-                // Security: In a real scenario, check event.origin if possible.
-                // But since this loads valid HTTPS content, it's generally safe for this context.
-
-                switch (type) {
-                    case 'NL_INIT':
-                        console.log('[Shell] Bridge connected.');
+            Neutralino.events.on('trayMenuItemClicked', async (event) => {
+                switch (event.detail.id) {
+                    case 'show':
+                        await Neutralino.window.show();
+                        await Neutralino.window.unminimize();
+                        await Neutralino.window.focus();
                         break;
-
-                    case 'NL_BROADCAST':
-                        // e.g. Discord RPC updates
-                        try {
-                            // console.log('[Shell] Broadcasting:', eventName, data);
-                            await Neutralino.events.broadcast(eventName, data);
-                        } catch (e) {
-                            console.error('[Shell] Broadcast failed:', e);
-                        }
-                        break;
-
-                    case 'NL_EXTENSION':
-                        // e.g. specific extension dispatch
-                        try {
-                            // console.log('[Shell] Dispatching to extension:', extensionId, eventName);
-                            await Neutralino.extensions.dispatch(extensionId, eventName, data);
-                        } catch (e) {
-                            console.error('[Shell] Extension dispatch failed:', e);
-                        }
-                        break;
-
-                    case 'NL_APP_EXIT':
-                        safeExit();
-                        break;
-
-                    case 'NL_WINDOW_MIN':
-                        Neutralino.window.minimize();
-                        break;
-
-                    case 'NL_WINDOW_MAX':
-                        try {
-                            const isMax = await Neutralino.window.isMaximized();
-                            if (isMax) Neutralino.window.unmaximize();
-                            else Neutralino.window.maximize();
-                        } catch (e) {
-                            console.error('[Shell] Window toggle failed:', e);
-                        }
-                        break;
-
-                    case 'NL_WINDOW_SET_TITLE':
-                        try {
-                            await Neutralino.window.setTitle(event.data.title);
-                        } catch (e) {
-                            console.error('[Shell] Set title failed:', e);
-                        }
-                        break;
-
-                    case 'NL_OS_OPEN':
-                        try {
-                            console.log('[Shell] Opening external URL:', event.data.url);
-                            await Neutralino.os.open(event.data.url);
-                        } catch (e) {
-                            console.error('[Shell] Failed to open URL:', e);
-                        }
-                        break;
-
-                    case 'NL_OS_SHOW_SAVE_DIALOG':
-                        try {
-                            const result = await Neutralino.os.showSaveDialog(event.data.title, event.data.options);
-                            if (iframe && iframe.contentWindow) {
-                                iframe.contentWindow.postMessage(
-                                    { type: 'NL_RESPONSE', id: event.data.id, result },
-                                    '*'
-                                );
-                            }
-                        } catch (e) {
-                            console.error('[Shell] Show Save Dialog failed:', e);
-                            if (iframe && iframe.contentWindow) {
-                                iframe.contentWindow.postMessage(
-                                    { type: 'NL_RESPONSE', id: event.data.id, error: e },
-                                    '*'
-                                );
-                            }
-                        }
-                        break;
-
-                    case 'NL_OS_SHOW_FOLDER_DIALOG':
-                        try {
-                            const result = await Neutralino.os.showFolderDialog(event.data.title, event.data.options);
-                            if (iframe && iframe.contentWindow) {
-                                iframe.contentWindow.postMessage(
-                                    { type: 'NL_RESPONSE', id: event.data.id, result },
-                                    '*'
-                                );
-                            }
-                        } catch (e) {
-                            console.error('[Shell] Show Folder Dialog failed:', e);
-                            if (iframe && iframe.contentWindow) {
-                                iframe.contentWindow.postMessage(
-                                    { type: 'NL_RESPONSE', id: event.data.id, error: e },
-                                    '*'
-                                );
-                            }
-                        }
-                        break;
-
-                    case 'NL_FS_READ_BINARY':
-                        try {
-                            const result = await Neutralino.filesystem.readBinaryFile(event.data.path);
-                            if (iframe && iframe.contentWindow) {
-                                // result is ArrayBuffer, should be transferable
-                                iframe.contentWindow.postMessage(
-                                    { type: 'NL_RESPONSE', id: event.data.id, result },
-                                    '*',
-                                    [result]
-                                );
-                            }
-                        } catch (e) {
-                            console.error('[Shell] Read Binary File failed:', e);
-                            if (iframe && iframe.contentWindow) {
-                                iframe.contentWindow.postMessage(
-                                    { type: 'NL_RESPONSE', id: event.data.id, error: e },
-                                    '*'
-                                );
-                            }
-                        }
-                        break;
-
-                    case 'NL_FS_READ_DIR':
-                        try {
-                            const result = await Neutralino.filesystem.readDirectory(event.data.path);
-                            if (iframe && iframe.contentWindow) {
-                                iframe.contentWindow.postMessage(
-                                    { type: 'NL_RESPONSE', id: event.data.id, result },
-                                    '*'
-                                );
-                            }
-                        } catch (e) {
-                            console.error('[Shell] Read Directory failed:', e);
-                            if (iframe && iframe.contentWindow) {
-                                iframe.contentWindow.postMessage(
-                                    { type: 'NL_RESPONSE', id: event.data.id, error: e },
-                                    '*'
-                                );
-                            }
-                        }
-                        break;
-
-                    case 'NL_FS_STATS':
-                        try {
-                            const result = await Neutralino.filesystem.getStats(event.data.path);
-                            if (iframe && iframe.contentWindow) {
-                                iframe.contentWindow.postMessage(
-                                    { type: 'NL_RESPONSE', id: event.data.id, result },
-                                    '*'
-                                );
-                            }
-                        } catch (e) {
-                            console.error('[Shell] Get Stats failed:', e);
-                            if (iframe && iframe.contentWindow) {
-                                iframe.contentWindow.postMessage(
-                                    { type: 'NL_RESPONSE', id: event.data.id, error: e },
-                                    '*'
-                                );
-                            }
-                        }
-                        break;
-
-                    case 'NL_FS_WRITE_BINARY':
-                        try {
-                            // buffer comes as ArrayBuffer in event.data.buffer (if transferred) or event.data.buffer
-                            await Neutralino.filesystem.writeBinaryFile(event.data.path, event.data.buffer);
-                            if (iframe && iframe.contentWindow) {
-                                iframe.contentWindow.postMessage(
-                                    { type: 'NL_RESPONSE', id: event.data.id, result: 'success' },
-                                    '*'
-                                );
-                            }
-                        } catch (e) {
-                            console.error('[Shell] Write Binary File failed:', e);
-                            if (iframe && iframe.contentWindow) {
-                                iframe.contentWindow.postMessage(
-                                    { type: 'NL_RESPONSE', id: event.data.id, error: e },
-                                    '*'
-                                );
-                            }
-                        }
-                        break;
-
-                    case 'NL_FS_APPEND_BINARY':
-                        try {
-                            await Neutralino.filesystem.appendBinaryFile(event.data.path, event.data.buffer);
-                            if (iframe && iframe.contentWindow) {
-                                iframe.contentWindow.postMessage(
-                                    { type: 'NL_RESPONSE', id: event.data.id, result: 'success' },
-                                    '*'
-                                );
-                            }
-                        } catch (e) {
-                            console.error('[Shell] Append Binary File failed:', e);
-                            if (iframe && iframe.contentWindow) {
-                                iframe.contentWindow.postMessage(
-                                    { type: 'NL_RESPONSE', id: event.data.id, error: e },
-                                    '*'
-                                );
-                            }
-                        }
+                    case 'quit':
+                        await safeExit();
                         break;
                 }
             });
-        </script>
-    </body>
+        } catch (e) {
+            console.error('[Shell] Failed to init Neutralino:', e);
+        }
+
+        // Point iframe to local server using the port from Neutralino
+        // NL_PORT is available globally after init (or we can parse it/wait for it)
+        // Neutralino.init() usually populates window.NL_PORT or we read it from sessionStorage
+
+        const initFrame = async () => {
+            // Simplified Dev Mode Detection using Neutralino's internal args
+            // 'neu run' adds --neu-dev-auto-reload, which we can use to detect dev environment.
+            const args = window.NL_ARGS || [];
+            const isDev = args.some((arg) => arg.includes('--neu-dev-auto-reload') || arg.includes('--debug-mode'));
+
+            // Static Dev Port
+            const DEV_PORT = '5173';
+
+            let port = window.NL_PORT || sessionStorage.getItem('NL_PORT') || '5050';
+            const iframe = document.getElementById('app-frame');
+
+            const targetPort = isDev ? DEV_PORT : port;
+            const basePath = isDev ? '' : '/dist';
+            const targetUrl = `http://localhost:${targetPort}${basePath}/?mode=neutralino`;
+
+            if (isDev) {
+                console.log(`[Shell] Dev mode detected via NL_ARGS. Waiting 2s for Vite on port ${targetPort}...`);
+                await new Promise((r) => setTimeout(r, 2000));
+            } else {
+                console.log(`[Shell] Production mode detected.`);
+            }
+
+            console.log(`[Shell] Loading app from: ${targetUrl}`);
+            iframe.src = targetUrl;
+        };
+
+        initFrame();
+
+        const iframe = document.getElementById('app-frame');
+
+        // Forward generic Neutralino events to the Iframe
+        const forwardEvent = (eventName, detail) => {
+            if (iframe && iframe.contentWindow) {
+                iframe.contentWindow.postMessage(
+                    {
+                        type: 'NL_EVENT',
+                        eventName: eventName,
+                        detail: detail,
+                    },
+                    '*'
+                );
+            }
+        };
+
+            // Listen for specific events to forward
+            // Add more here if the app needs them (e.g., tray events)
+            Neutralino.events.on('windowClose', async () => {
+                await Neutralino.window.hide();
+            });
+            Neutralino.events.on('windowFocus', () => forwardEvent('windowFocus'));
+            Neutralino.events.on('windowBlur', () => forwardEvent('windowBlur'));
+
+        // Media Key Events (Linux Fix)
+        Neutralino.events.on('mediaNext', () => forwardEvent('mediaNext'));
+        Neutralino.events.on('mediaPrevious', () => forwardEvent('mediaPrevious'));
+        Neutralino.events.on('mediaPlayPause', () => forwardEvent('mediaPlayPause'));
+        Neutralino.events.on('mediaStop', () => forwardEvent('mediaStop'));
+
+        // Handle commands from the Iframe (via Bridge)
+        window.addEventListener('message', async (event) => {
+            const { type, eventName, data, extensionId } = event.data;
+
+            // Security: In a real scenario, check event.origin if possible.
+            // But since this loads valid HTTPS content, it's generally safe for this context.
+
+            switch (type) {
+                case 'NL_INIT':
+                    console.log('[Shell] Bridge connected.');
+                    break;
+
+                case 'NL_BROADCAST':
+                    // e.g. Discord RPC updates
+                    try {
+                        // console.log('[Shell] Broadcasting:', eventName, data);
+                        await Neutralino.events.broadcast(eventName, data);
+                    } catch (e) {
+                        console.error('[Shell] Broadcast failed:', e);
+                    }
+                    break;
+
+                case 'NL_EXTENSION':
+                    // e.g. specific extension dispatch
+                    try {
+                        // console.log('[Shell] Dispatching to extension:', extensionId, eventName);
+                        await Neutralino.extensions.dispatch(extensionId, eventName, data);
+                    } catch (e) {
+                        console.error('[Shell] Extension dispatch failed:', e);
+                    }
+                    break;
+
+                case 'NL_APP_EXIT':
+                    safeExit();
+                    break;
+
+                case 'NL_WINDOW_MIN':
+                    Neutralino.window.minimize();
+                    break;
+
+                case 'NL_WINDOW_MAX':
+                    try {
+                        const isMax = await Neutralino.window.isMaximized();
+                        if (isMax) Neutralino.window.unmaximize();
+                        else Neutralino.window.maximize();
+                    } catch (e) {
+                        console.error('[Shell] Window toggle failed:', e);
+                    }
+                    break;
+
+                case 'NL_WINDOW_SET_TITLE':
+                    try {
+                        await Neutralino.window.setTitle(event.data.title);
+                    } catch (e) {
+                        console.error('[Shell] Set title failed:', e);
+                    }
+                    break;
+
+                case 'NL_OS_OPEN':
+                    try {
+                        console.log('[Shell] Opening external URL:', event.data.url);
+                        await Neutralino.os.open(event.data.url);
+                    } catch (e) {
+                        console.error('[Shell] Failed to open URL:', e);
+                    }
+                    break;
+
+                case 'NL_OS_SHOW_SAVE_DIALOG':
+                    try {
+                        const result = await Neutralino.os.showSaveDialog(event.data.title, event.data.options);
+                        if (iframe && iframe.contentWindow) {
+                            iframe.contentWindow.postMessage(
+                                { type: 'NL_RESPONSE', id: event.data.id, result },
+                                '*'
+                            );
+                        }
+                    } catch (e) {
+                        console.error('[Shell] Show Save Dialog failed:', e);
+                        if (iframe && iframe.contentWindow) {
+                            iframe.contentWindow.postMessage(
+                                { type: 'NL_RESPONSE', id: event.data.id, error: e },
+                                '*'
+                            );
+                        }
+                    }
+                    break;
+
+                case 'NL_OS_SHOW_FOLDER_DIALOG':
+                    try {
+                        const result = await Neutralino.os.showFolderDialog(event.data.title, event.data.options);
+                        if (iframe && iframe.contentWindow) {
+                            iframe.contentWindow.postMessage(
+                                { type: 'NL_RESPONSE', id: event.data.id, result },
+                                '*'
+                            );
+                        }
+                    } catch (e) {
+                        console.error('[Shell] Show Folder Dialog failed:', e);
+                        if (iframe && iframe.contentWindow) {
+                            iframe.contentWindow.postMessage(
+                                { type: 'NL_RESPONSE', id: event.data.id, error: e },
+                                '*'
+                            );
+                        }
+                    }
+                    break;
+
+                case 'NL_FS_READ_BINARY':
+                    try {
+                        const result = await Neutralino.filesystem.readBinaryFile(event.data.path);
+                        if (iframe && iframe.contentWindow) {
+                            // result is ArrayBuffer, should be transferable
+                            iframe.contentWindow.postMessage(
+                                { type: 'NL_RESPONSE', id: event.data.id, result },
+                                '*',
+                                [result]
+                            );
+                        }
+                    } catch (e) {
+                        console.error('[Shell] Read Binary File failed:', e);
+                        if (iframe && iframe.contentWindow) {
+                            iframe.contentWindow.postMessage(
+                                { type: 'NL_RESPONSE', id: event.data.id, error: e },
+                                '*'
+                            );
+                        }
+                    }
+                    break;
+
+                case 'NL_FS_READ_DIR':
+                    try {
+                        const result = await Neutralino.filesystem.readDirectory(event.data.path);
+                        if (iframe && iframe.contentWindow) {
+                            iframe.contentWindow.postMessage(
+                                { type: 'NL_RESPONSE', id: event.data.id, result },
+                                '*'
+                            );
+                        }
+                    } catch (e) {
+                        console.error('[Shell] Read Directory failed:', e);
+                        if (iframe && iframe.contentWindow) {
+                            iframe.contentWindow.postMessage(
+                                { type: 'NL_RESPONSE', id: event.data.id, error: e },
+                                '*'
+                            );
+                        }
+                    }
+                    break;
+
+                case 'NL_FS_STATS':
+                    try {
+                        const result = await Neutralino.filesystem.getStats(event.data.path);
+                        if (iframe && iframe.contentWindow) {
+                            iframe.contentWindow.postMessage(
+                                { type: 'NL_RESPONSE', id: event.data.id, result },
+                                '*'
+                            );
+                        }
+                    } catch (e) {
+                        console.error('[Shell] Get Stats failed:', e);
+                        if (iframe && iframe.contentWindow) {
+                            iframe.contentWindow.postMessage(
+                                { type: 'NL_RESPONSE', id: event.data.id, error: e },
+                                '*'
+                            );
+                        }
+                    }
+                    break;
+
+                case 'NL_FS_WRITE_BINARY':
+                    try {
+                        // buffer comes as ArrayBuffer in event.data.buffer (if transferred) or event.data.buffer
+                        await Neutralino.filesystem.writeBinaryFile(event.data.path, event.data.buffer);
+                        if (iframe && iframe.contentWindow) {
+                            iframe.contentWindow.postMessage(
+                                { type: 'NL_RESPONSE', id: event.data.id, result: 'success' },
+                                '*'
+                            );
+                        }
+                    } catch (e) {
+                        console.error('[Shell] Write Binary File failed:', e);
+                        if (iframe && iframe.contentWindow) {
+                            iframe.contentWindow.postMessage(
+                                { type: 'NL_RESPONSE', id: event.data.id, error: e },
+                                '*'
+                            );
+                        }
+                    }
+                    break;
+
+                case 'NL_FS_APPEND_BINARY':
+                    try {
+                        await Neutralino.filesystem.appendBinaryFile(event.data.path, event.data.buffer);
+                        if (iframe && iframe.contentWindow) {
+                            iframe.contentWindow.postMessage(
+                                { type: 'NL_RESPONSE', id: event.data.id, result: 'success' },
+                                '*'
+                            );
+                        }
+                    } catch (e) {
+                        console.error('[Shell] Append Binary File failed:', e);
+                        if (iframe && iframe.contentWindow) {
+                            iframe.contentWindow.postMessage(
+                                { type: 'NL_RESPONSE', id: event.data.id, error: e },
+                                '*'
+                            );
+                        }
+                    }
+                    break;
+            }
+        });
+    </script>
+</body>
+
 </html>
