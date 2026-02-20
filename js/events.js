@@ -1800,11 +1800,9 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
 
                 // Render sub-menu
                 let subMenuHTML = '<li data-action="back-to-main-menu" style="font-weight: bold; border-bottom: 1px solid var(--border); margin-bottom: 0.5rem; padding: 0.75rem 1rem; cursor: pointer;">← Back</li>';
-                [...artists]
-                    .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-                    .forEach((artist) => {
-                        subMenuHTML += `<li data-action="go-to-artist" data-artist-id="${artist.id}" style="padding: 0.75rem 1rem; cursor: pointer;">${escapeHtml(artist.name || 'Unknown Artist')}</li>`;
-                    });
+                artists.forEach((artist) => {
+                    subMenuHTML += `<li data-action="go-to-artist" data-artist-id="${artist.id}" style="padding: 0.75rem 1rem; cursor: pointer;">${escapeHtml(artist.name || 'Unknown Artist')}</li>`;
+                });
                 contextMenu.innerHTML = `<ul>${subMenuHTML}</ul>`;
                 return;
             }
