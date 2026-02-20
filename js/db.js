@@ -1,7 +1,7 @@
 export class MusicDatabase {
     constructor() {
         this.dbName = 'MonochromeDB';
-        this.version = 8;
+        this.version = 9;
         this.db = null;
     }
 
@@ -63,6 +63,27 @@ export class MusicDatabase {
                 if (!db.objectStoreNames.contains('pinned_items')) {
                     const store = db.createObjectStore('pinned_items', { keyPath: 'id' });
                     store.createIndex('pinnedAt', 'pinnedAt', { unique: false });
+                }
+                // Friends system stores
+                if (!db.objectStoreNames.contains('friends')) {
+                    const store = db.createObjectStore('friends', { keyPath: 'uid' });
+                    store.createIndex('addedAt', 'addedAt', { unique: false });
+                }
+                if (!db.objectStoreNames.contains('friend_requests')) {
+                    const store = db.createObjectStore('friend_requests', { keyPath: 'uid' });
+                    store.createIndex('requestedAt', 'requestedAt', { unique: false });
+                }
+                if (!db.objectStoreNames.contains('shared_tracks')) {
+                    const store = db.createObjectStore('shared_tracks', { keyPath: 'id' });
+                    store.createIndex('sharedAt', 'sharedAt', { unique: false });
+                }
+                if (!db.objectStoreNames.contains('collaborative_playlists')) {
+                    const store = db.createObjectStore('collaborative_playlists', { keyPath: 'id' });
+                    store.createIndex('createdAt', 'createdAt', { unique: false });
+                }
+                if (!db.objectStoreNames.contains('collab_playlist_members')) {
+                    const store = db.createObjectStore('collab_playlist_members', { keyPath: 'id' });
+                    store.createIndex('playlistId', 'playlistId', { unique: false });
                 }
             };
         });
@@ -814,6 +835,270 @@ export class MusicDatabase {
 
     async getSetting(key) {
         return await this.performTransaction('settings', 'readonly', (store) => store.get(key));
+    }
+
+    // ========== FRIENDS SYSTEM ==========
+
+    // Add a friend
+    async addFriend(friend) {
+        const entry = {
+            uid: friend.uid,
+            username: friend.username || '',
+            displayName: friend.displayName || friend.username || '',
+            avatarUrl: friend.avatarUrl || '',
+            addedAt: Date.now(),
+        };
+        await this.performTransaction('friends', 'readwrite', (store) => store.put(entry));
+        return entry;
+    }
+
+    // Remove a friend
+    async removeFriend(uid) {
+        await this.performTransaction('friends', 'readwrite', (store) => store.delete(uid));
+    }
+
+    // Get all friends
+    async getFriends() {
+        const db = await this.open();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction('friends', 'readonly');
+            const store = transaction.objectStore('friends');
+            const index = store.index('addedAt');
+            const request = index.getAll();
+            request.onsuccess = () => resolve(request.result.reverse());
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    // Check if user is friend
+    async isFriend(uid) {
+        const friend = await this.performTransaction('friends', 'readonly', (store) => store.get(uid));
+        return !!friend;
+    }
+
+    // ========== FRIEND REQUESTS ==========
+
+    // Send friend request
+    async sendFriendRequest(request) {
+        const entry = {
+            uid: request.uid,
+            username: request.username || '',
+            displayName: request.displayName || request.username || '',
+            avatarUrl: request.avatarUrl || '',
+            requestedAt: Date.now(),
+            status: 'pending', // pending, accepted, rejected
+            outgoing: true, // This is an outgoing request
+        };
+        await this.performTransaction('friend_requests', 'readwrite', (store) => store.put(entry));
+        return entry;
+    }
+
+    // Receive incoming friend request
+    async receiveFriendRequest(request) {
+        const entry = {
+            uid: request.uid,
+            username: request.username || '',
+            displayName: request.displayName || request.username || '',
+            avatarUrl: request.avatarUrl || '',
+            requestedAt: request.requestedAt || Date.now(),
+            status: 'pending',
+            outgoing: false, // This is an incoming request
+        };
+        await this.performTransaction('friend_requests', 'readwrite', (store) => store.put(entry));
+        return entry;
+    }
+
+    // Get all friend requests (both incoming and outgoing)
+    async getFriendRequests() {
+        const db = await this.open();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction('friend_requests', 'readonly');
+            const store = transaction.objectStore('friend_requests');
+            const index = store.index('requestedAt');
+            const request = index.getAll();
+            request.onsuccess = () => resolve(request.result.reverse());
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    // Get incoming friend requests only
+    async getIncomingFriendRequests() {
+        const requests = await this.getFriendRequests();
+        return requests.filter((r) => !r.outgoing && r.status === 'pending');
+    }
+
+    // Accept friend request
+    async acceptFriendRequest(uid) {
+        const request = await this.performTransaction('friend_requests', 'readonly', (store) => store.get(uid));
+        if (request) {
+            // Add as friend
+            await this.addFriend(request);
+            // Update request status
+            request.status = 'accepted';
+            await this.performTransaction('friend_requests', 'readwrite', (store) => store.put(request));
+        }
+    }
+
+    // Reject friend request
+    async rejectFriendRequest(uid) {
+        const request = await this.performTransaction('friend_requests', 'readonly', (store) => store.get(uid));
+        if (request) {
+            request.status = 'rejected';
+            await this.performTransaction('friend_requests', 'readwrite', (store) => store.put(request));
+        }
+    }
+
+    // Cancel outgoing friend request
+    async cancelFriendRequest(uid) {
+        await this.performTransaction('friend_requests', 'readwrite', (store) => store.delete(uid));
+    }
+
+    // ========== SHARED TRACKS ==========
+
+    // Share a track with a friend
+    async shareTrack(track, withUid, message = '') {
+        const entry = {
+            id: crypto.randomUUID(),
+            track: this._minifyItem('track', track),
+            sharedWith: withUid,
+            sharedBy: track.sharedBy || '', // User ID of sender
+            sharedByName: track.sharedByName || '', // Name of sender
+            message: message,
+            sharedAt: Date.now(),
+            played: false,
+        };
+        await this.performTransaction('shared_tracks', 'readwrite', (store) => store.put(entry));
+        return entry;
+    }
+
+    // Get shared tracks from friends
+    async getSharedTracks() {
+        const db = await this.open();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction('shared_tracks', 'readonly');
+            const store = transaction.objectStore('shared_tracks');
+            const index = store.index('sharedAt');
+            const request = index.getAll();
+            request.onsuccess = () => resolve(request.result.reverse());
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    // Mark shared track as played
+    async markSharedTrackPlayed(id) {
+        const track = await this.performTransaction('shared_tracks', 'readonly', (store) => store.get(id));
+        if (track) {
+            track.played = true;
+            await this.performTransaction('shared_tracks', 'readwrite', (store) => store.put(track));
+        }
+    }
+
+    // Delete shared track
+    async deleteSharedTrack(id) {
+        await this.performTransaction('shared_tracks', 'readwrite', (store) => store.delete(id));
+    }
+
+    // ========== COLLABORATIVE PLAYLISTS ==========
+
+    // Create collaborative playlist
+    async createCollaborativePlaylist(name, memberIds = []) {
+        const id = crypto.randomUUID();
+        const playlist = {
+            id: id,
+            name: name,
+            description: '',
+            cover: '',
+            tracks: [],
+            members: memberIds,
+            owner: memberIds[0] || '',
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            isCollaborative: true,
+        };
+        await this.performTransaction('collaborative_playlists', 'readwrite', (store) => store.put(playlist));
+        return playlist;
+    }
+
+    // Get collaborative playlists
+    async getCollaborativePlaylists() {
+        const db = await this.open();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction('collaborative_playlists', 'readonly');
+            const store = transaction.objectStore('collaborative_playlists');
+            const index = store.index('createdAt');
+            const request = index.getAll();
+            request.onsuccess = () => resolve(request.result.reverse());
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    // Get collaborative playlist by ID
+    async getCollaborativePlaylist(id) {
+        return await this.performTransaction('collaborative_playlists', 'readonly', (store) => store.get(id));
+    }
+
+    // Add member to collaborative playlist
+    async addCollaborativePlaylistMember(playlistId, memberId) {
+        const playlist = await this.getCollaborativePlaylist(playlistId);
+        if (playlist && playlist.members) {
+            if (!playlist.members.includes(memberId)) {
+                playlist.members.push(memberId);
+                playlist.updatedAt = Date.now();
+                await this.performTransaction('collaborative_playlists', 'readwrite', (store) => store.put(playlist));
+            }
+        }
+        return playlist;
+    }
+
+    // Remove member from collaborative playlist
+    async removeCollaborativePlaylistMember(playlistId, memberId) {
+        const playlist = await this.getCollaborativePlaylist(playlistId);
+        if (playlist && playlist.members) {
+            playlist.members = playlist.members.filter((m) => m !== memberId);
+            playlist.updatedAt = Date.now();
+            await this.performTransaction('collaborative_playlists', 'readwrite', (store) => store.put(playlist));
+        }
+        return playlist;
+    }
+
+    // Add tracks to collaborative playlist
+    async addTracksToCollaborativePlaylist(playlistId, tracks) {
+        const playlist = await this.getCollaborativePlaylist(playlistId);
+        if (!playlist) throw new Error('Playlist not found');
+        playlist.tracks = playlist.tracks || [];
+
+        for (const track of tracks) {
+            if (!playlist.tracks.some((t) => t.id === track.id)) {
+                const trackWithDate = { ...track, addedAt: Date.now() };
+                playlist.tracks.push(this._minifyItem('track', trackWithDate));
+            }
+        }
+        playlist.updatedAt = Date.now();
+        await this.performTransaction('collaborative_playlists', 'readwrite', (store) => store.put(playlist));
+        return playlist;
+    }
+
+    // Remove track from collaborative playlist
+    async removeTrackFromCollaborativePlaylist(playlistId, trackId) {
+        const playlist = await this.getCollaborativePlaylist(playlistId);
+        if (!playlist) throw new Error('Playlist not found');
+        playlist.tracks = playlist.tracks || [];
+        playlist.tracks = playlist.tracks.filter((t) => t.id !== trackId);
+        playlist.updatedAt = Date.now();
+        await this.performTransaction('collaborative_playlists', 'readwrite', (store) => store.put(playlist));
+        return playlist;
+    }
+
+    // Delete collaborative playlist
+    async deleteCollaborativePlaylist(playlistId) {
+        await this.performTransaction('collaborative_playlists', 'readwrite', (store) => store.delete(playlistId));
+    }
+
+    // Update collaborative playlist
+    async updateCollaborativePlaylist(playlist) {
+        playlist.updatedAt = Date.now();
+        await this.performTransaction('collaborative_playlists', 'readwrite', (store) => store.put(playlist));
+        return playlist;
     }
 }
 

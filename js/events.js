@@ -1171,6 +1171,34 @@ export async function handleTrackAction(
         list.addEventListener('click', handleOptionClick);
 
         modal.classList.add('active');
+    } else if (action === 'share-with-friend') {
+        const shareModal = document.getElementById('share-track-modal');
+        if (shareModal) {
+            document.getElementById('share-track-title').textContent = item.title || '';
+            document.getElementById('share-track-artist').textContent =
+                item.artist?.name || item.artists?.[0]?.name || '';
+            const coverImg = document.getElementById('share-track-cover');
+            if (coverImg && item.album?.cover) {
+                coverImg.src = api.getCoverUrl(item.album.cover, '160');
+            }
+            shareModal.dataset.trackId = item.id;
+
+            // Populate friends dropdown
+            const friendSelect = document.getElementById('share-track-friend-select');
+            if (friendSelect) {
+                const friends = await db.getFriends();
+                friendSelect.innerHTML = '<option value="">Select a friend</option>';
+                if (friends && friends.length > 0) {
+                    friends.forEach((f) => {
+                        const opt = document.createElement('option');
+                        opt.value = f.uid;
+                        opt.textContent = f.displayName || f.username;
+                        friendSelect.appendChild(opt);
+                    });
+                }
+            }
+            shareModal.classList.add('active');
+        }
     } else if (action === 'go-to-artist') {
         const artistId = extraData?.artistId || item.artist?.id || item.artists?.[0]?.id;
         const trackerSheetId = extraData?.trackerSheetId || (item.isTracker ? item.trackerInfo?.sheetId : null);

@@ -33,6 +33,7 @@ import {
     musicProviderSettings,
     analyticsSettings,
     modalSettings,
+    rotatingCoverSettings,
 } from './storage.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
 import { getButterchurnPresets } from './visualizers/butterchurn.js';
@@ -2215,6 +2216,17 @@ export function initializeSettings(scrobbler, player, api, ui) {
             });
         });
         observer.observe(audioTabContent, { attributes: true });
+    }
+
+    // Rotating Cover Toggle
+    const rotatingCoverToggle = document.getElementById('rotating-cover-toggle');
+    if (rotatingCoverToggle) {
+        rotatingCoverToggle.checked = rotatingCoverSettings.isEnabled();
+
+        rotatingCoverToggle.addEventListener('change', (e) => {
+            rotatingCoverSettings.setEnabled(e.target.checked);
+            window.dispatchEvent(new CustomEvent('rotating-cover-changed', { detail: { enabled: e.target.checked } }));
+        });
     }
 
     // Visualizer Mode Select

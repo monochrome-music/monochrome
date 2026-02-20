@@ -31,6 +31,7 @@ import {
     homePageSettings,
     fontSettings,
     contentBlockingSettings,
+    rotatingCoverSettings,
 } from './storage.js';
 import { db } from './db.js';
 import { getVibrantColorFromImage } from './vibrant-color.js';
@@ -842,6 +843,29 @@ export class UIRenderer {
             hoverColor = `rgba(${r}, ${g}, ${b}, 0.15)`;
         }
         root.style.setProperty('--track-hover-bg', hoverColor);
+
+        // Update dynamic theme gradient if active
+        if (theme === 'dynamic') {
+            // Create complementary colors for gradient
+            const r2 = Math.min(255, r + 40);
+            const g2 = Math.max(0, g - 30);
+            const b2 = Math.min(255, b + 20);
+            const r3 = Math.max(0, r - 30);
+            const g3 = Math.min(255, g + 40);
+            const b3 = Math.max(0, b - 20);
+
+            const gradient = `linear-gradient(135deg, 
+                rgb(${Math.floor(r * 0.3)}, ${Math.floor(g * 0.3)}, ${Math.floor(b * 0.3)}) 0%, 
+                rgb(${Math.floor(r2 * 0.35)}, ${Math.floor(g2 * 0.35)}, ${Math.floor(b2 * 0.35)}) 25%, 
+                rgb(${Math.floor(r3 * 0.25)}, ${Math.floor(g3 * 0.25)}, ${Math.floor(b3 * 0.25)}) 50%, 
+                rgb(${Math.floor(r * 0.2)}, ${Math.floor(g * 0.2)}, ${Math.floor(b * 0.2)}) 75%, 
+                rgb(${Math.floor(r2 * 0.3)}, ${Math.floor(g2 * 0.3)}, ${Math.floor(b2 * 0.3)}) 100%)`;
+
+            // Compute brightness to keep it from being too bright
+            const dynamicBrightness = brightness > 150 ? 0.3 : brightness > 100 ? 0.4 : 0.5;
+            root.style.setProperty('--dynamic-gradient', gradient);
+            root.style.setProperty('--dynamic-brightness', dynamicBrightness.toString());
+        }
     }
 
     resetVibrantColor() {
@@ -853,6 +877,8 @@ export class UIRenderer {
         root.style.removeProperty('--active-highlight');
         root.style.removeProperty('--ring');
         root.style.removeProperty('--track-hover-bg');
+        root.style.removeProperty('--dynamic-gradient');
+        root.style.removeProperty('--dynamic-brightness');
     }
 
     updateFullscreenMetadata(track, nextTrack) {
@@ -896,8 +922,20 @@ export class UIRenderer {
         const overlay = document.getElementById('fullscreen-cover-overlay');
         const nextTrackEl = document.getElementById('fullscreen-next-track');
         const lyricsToggleBtn = document.getElementById('toggle-fullscreen-lyrics-btn');
+        const fullscreenCover = document.getElementById('fullscreen-cover-image');
 
         this.updateFullscreenMetadata(track, nextTrack);
+
+        // Apply rotating disc effect if enabled
+        const vinylContainer = document.getElementById('vinyl-disc-container');
+        if (fullscreenCover && vinylContainer && rotatingCoverSettings.isEnabled()) {
+            vinylContainer.classList.add('rotating-disc');
+            if (audioPlayer && !audioPlayer.paused) {
+                vinylContainer.classList.remove('paused');
+            } else {
+                vinylContainer.classList.add('paused');
+            }
+        }
 
         if (nextTrack) {
             nextTrackEl.classList.remove('animate-in');
@@ -975,6 +1013,12 @@ export class UIRenderer {
     closeFullscreenCover() {
         const overlay = document.getElementById('fullscreen-cover-overlay');
         overlay.style.display = 'none';
+
+        // Remove rotating disc class
+        const vinylContainer = document.getElementById('vinyl-disc-container');
+        if (vinylContainer) {
+            vinylContainer.classList.remove('rotating-disc', 'paused');
+        }
 
         const playerBar = document.querySelector('.now-playing-bar');
         if (playerBar) playerBar.style.removeProperty('display');
@@ -1466,6 +1510,38 @@ export class UIRenderer {
         const contentEl = document.getElementById('home-content');
         const editorsPicksSectionEmpty = document.getElementById('home-editors-picks-section-empty');
         const editorsPicksSection = document.getElementById('home-editors-picks-section');
+
+        // Set time-based greeting
+        const hour = new Date().getHours();
+        let greeting = '';
+        let message = '';
+        if (hour >= 5 && hour < 12) {
+            greeting = 'Good morning!';
+            message = "Let's kickstart your day with freshly curated music";
+        } else if (hour >= 12 && hour < 17) {
+            greeting = 'Good afternoon!';
+            message = 'Time for some fresh tunes to keep you going';
+        } else if (hour >= 17 && hour < 21) {
+            greeting = 'Good evening!';
+            message = 'Wind down with some great music';
+        } else {
+            greeting = 'Good night!';
+            message = 'Perfect time for some late-night listening';
+        }
+
+        // Update greeting element if it exists, otherwise create it
+        let greetingEl = document.getElementById('home-greeting');
+        if (!greetingEl) {
+            greetingEl = document.createElement('div');
+            greetingEl.id = 'home-greeting';
+            greetingEl.style.cssText = 'padding: 2rem 0 1rem; font-size: 2.5rem; font-weight: 700; line-height: 1.2;';
+            if (contentEl && contentEl.firstChild) {
+                contentEl.insertBefore(greetingEl, contentEl.firstChild);
+            }
+        }
+        if (greetingEl) {
+            greetingEl.innerHTML = `<div>${greeting}</div><div style="font-size: 1rem; color: var(--muted-foreground); font-weight: 400; margin-top: 0.5rem;">${message}</div>`;
+        }
 
         const history = await db.getHistory();
         const favorites = await db.getFavorites('track');
@@ -3361,6 +3437,288 @@ export class UIRenderer {
             container.innerHTML = createPlaceholder('Failed to load history.');
             if (clearBtn) clearBtn.style.display = 'none';
         }
+    }
+
+    async renderFriendsPage() {
+        this.showPage('friends');
+
+        const greetingText = document.getElementById('friends-greeting-text');
+        const friendsGrid = document.getElementById('friends-grid');
+        const noFriendsMessage = document.getElementById('no-friends-message');
+        const friendRequestsSection = document.getElementById('friends-requests-section');
+        const friendRequestsList = document.getElementById('friend-requests-list');
+        const friendRequestsCount = document.getElementById('friend-requests-count');
+        const sharedTracksSection = document.getElementById('shared-tracks-section');
+        const sharedTracksList = document.getElementById('shared-tracks-list');
+        const collabPlaylistsSection = document.getElementById('collab-playlists-section');
+        const collabPlaylistsGrid = document.getElementById('collab-playlists-grid');
+        const noCollabPlaylistsMessage = document.getElementById('no-collab-playlists-message');
+
+        // Set greeting based on time of day
+        const hour = new Date().getHours();
+        let greeting = 'Welcome';
+        if (hour >= 5 && hour < 12) greeting = 'Good morning';
+        else if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
+        else if (hour >= 17 && hour < 21) greeting = 'Good evening';
+        else greeting = 'Good night';
+
+        if (greetingText) {
+            greetingText.textContent = `${greeting}!`;
+        }
+
+        try {
+            // Get friends list
+            const friends = await db.getFriends();
+
+            // Render friends grid
+            if (friends && friends.length > 0) {
+                friendsGrid.innerHTML = friends
+                    .map(
+                        (friend) => `
+                    <div class="friend-card" data-uid="${friend.uid}">
+                        <div class="friend-avatar">
+                            <img src="${friend.avatarUrl || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'}" alt="${friend.displayName}">
+                        </div>
+                        <div class="friend-name">${friend.displayName}</div>
+                        <div class="friend-username">@${friend.username}</div>
+                    </div>
+                `
+                    )
+                    .join('');
+                if (noFriendsMessage) noFriendsMessage.style.display = 'none';
+            } else {
+                friendsGrid.innerHTML = '';
+                if (noFriendsMessage) noFriendsMessage.style.display = 'block';
+            }
+
+            // Get friend requests
+            const requests = await db.getIncomingFriendRequests();
+            if (requests && requests.length > 0) {
+                friendRequestsSection.style.display = 'block';
+                friendRequestsCount.style.display = 'inline';
+                friendRequestsCount.textContent = requests.length;
+                friendRequestsList.innerHTML = requests
+                    .map(
+                        (request) => `
+                    <div class="friend-request-item" data-uid="${request.uid}">
+                        <div class="friend-request-avatar">
+                            <img src="${request.avatarUrl || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'}" alt="${request.displayName}">
+                        </div>
+                        <div class="friend-request-info">
+                            <div class="friend-request-name">${request.displayName}</div>
+                            <div class="friend-request-username">@${request.username}</div>
+                        </div>
+                        <div class="friend-request-actions">
+                            <button class="btn-primary accept-friend-btn" data-uid="${request.uid}">Accept</button>
+                            <button class="btn-secondary reject-friend-btn" data-uid="${request.uid}">Reject</button>
+                        </div>
+                    </div>
+                `
+                    )
+                    .join('');
+            } else {
+                friendRequestsSection.style.display = 'none';
+            }
+
+            // Get shared tracks
+            const sharedTracks = await db.getSharedTracks();
+            if (sharedTracks && sharedTracks.length > 0) {
+                sharedTracksSection.style.display = 'block';
+                // Render shared tracks
+                const tempContainer = document.createElement('div');
+                this.renderListWithTracks(
+                    tempContainer,
+                    sharedTracks.map((s) => s.track),
+                    true
+                );
+                sharedTracksList.innerHTML = tempContainer.innerHTML;
+            } else {
+                sharedTracksSection.style.display = 'none';
+            }
+
+            // Get collaborative playlists
+            const collabPlaylists = await db.getCollaborativePlaylists();
+            if (collabPlaylists && collabPlaylists.length > 0) {
+                collabPlaylistsGrid.innerHTML = collabPlaylists
+                    .map(
+                        (playlist) => `
+                    <div class="card collab-playlist-card" data-id="${playlist.id}">
+                        <div class="card-image">
+                            <img src="${playlist.cover || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'}" alt="${playlist.name}">
+                        </div>
+                        <div class="card-info">
+                            <div class="card-title">${playlist.name}</div>
+                            <div class="card-meta">${playlist.members?.length || 0} members</div>
+                        </div>
+                    </div>
+                `
+                    )
+                    .join('');
+                if (noCollabPlaylistsMessage) noCollabPlaylistsMessage.style.display = 'none';
+            } else {
+                collabPlaylistsGrid.innerHTML = '';
+                if (noCollabPlaylistsMessage) noCollabPlaylistsMessage.style.display = 'block';
+            }
+
+            // Setup event listeners
+            this.setupFriendsPageEventListeners();
+        } catch (error) {
+            console.error('Failed to load friends page:', error);
+        }
+    }
+
+    setupFriendsPageEventListeners() {
+        // Add friend button
+        const addFriendBtn = document.getElementById('add-friend-btn');
+        const addFriendModal = document.getElementById('add-friend-modal');
+        const cancelAddFriendBtn = document.getElementById('cancel-add-friend-btn');
+        const confirmAddFriendBtn = document.getElementById('confirm-add-friend-btn');
+        const addFriendUsername = document.getElementById('add-friend-username');
+
+        if (addFriendBtn && addFriendModal) {
+            addFriendBtn.addEventListener('click', () => {
+                addFriendModal.classList.add('active');
+            });
+
+            if (cancelAddFriendBtn) {
+                cancelAddFriendBtn.addEventListener('click', () => {
+                    addFriendModal.classList.remove('active');
+                });
+            }
+
+            addFriendModal.querySelector('.modal-overlay')?.addEventListener('click', () => {
+                addFriendModal.classList.remove('active');
+            });
+
+            if (confirmAddFriendBtn) {
+                confirmAddFriendBtn.addEventListener('click', async () => {
+                    const username = addFriendUsername?.value?.trim();
+                    if (!username) {
+                        alert('Please enter a username');
+                        return;
+                    }
+
+                    try {
+                        if (window.syncManager && window.syncManager.sendFriendRequestToUser) {
+                            await window.syncManager.sendFriendRequestToUser(username);
+                        } else {
+                            // Local-only: store friend request directly
+                            await db.sendFriendRequest({
+                                uid: crypto.randomUUID(),
+                                username: username,
+                                displayName: username,
+                            });
+                        }
+                        alert('Friend request sent!');
+                        addFriendModal.classList.remove('active');
+                        if (addFriendUsername) addFriendUsername.value = '';
+                        this.renderFriendsPage();
+                    } catch (error) {
+                        console.error('Failed to send friend request:', error);
+                        alert('Failed to send friend request. Please try again.');
+                    }
+                });
+            }
+        }
+
+        // Accept/Reject friend requests
+        document.querySelectorAll('.accept-friend-btn').forEach((btn) => {
+            btn.addEventListener('click', async (e) => {
+                const uid = e.target.dataset.uid;
+                try {
+                    await db.acceptFriendRequest(uid);
+                    this.renderFriendsPage(); // Refresh
+                } catch (error) {
+                    console.error('Failed to accept friend request:', error);
+                }
+            });
+        });
+
+        document.querySelectorAll('.reject-friend-btn').forEach((btn) => {
+            btn.addEventListener('click', async (e) => {
+                const uid = e.target.dataset.uid;
+                try {
+                    await db.rejectFriendRequest(uid);
+                    this.renderFriendsPage(); // Refresh
+                } catch (error) {
+                    console.error('Failed to reject friend request:', error);
+                }
+            });
+        });
+
+        // Create collaborative playlist button
+        const createCollabBtn = document.getElementById('create-collab-playlist-btn');
+        const createCollabModal = document.getElementById('create-collab-playlist-modal');
+        const cancelCollabBtn = document.getElementById('cancel-collab-playlist-btn');
+        const confirmCollabBtn = document.getElementById('confirm-collab-playlist-btn');
+        const collabPlaylistName = document.getElementById('collab-playlist-name');
+
+        if (createCollabBtn && createCollabModal) {
+            createCollabBtn.addEventListener('click', async () => {
+                // Populate friends list in modal
+                const friendsSelect = document.getElementById('collab-friends-select');
+                const friends = await db.getFriends();
+
+                if (friends && friends.length > 0) {
+                    friendsSelect.innerHTML = friends
+                        .map(
+                            (friend) => `
+                        <label style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" value="${friend.uid}" name="collab-friends">
+                            <img src="${friend.avatarUrl || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'}" style="width: 24px; height: 24px; border-radius: 50%;">
+                            <span>${friend.displayName}</span>
+                        </label>
+                    `
+                        )
+                        .join('');
+                }
+
+                createCollabModal.classList.add('active');
+            });
+
+            if (cancelCollabBtn) {
+                cancelCollabBtn.addEventListener('click', () => {
+                    createCollabModal.classList.remove('active');
+                });
+            }
+
+            createCollabModal.querySelector('.modal-overlay')?.addEventListener('click', () => {
+                createCollabModal.classList.remove('active');
+            });
+
+            if (confirmCollabBtn) {
+                confirmCollabBtn.addEventListener('click', async () => {
+                    const name = collabPlaylistName?.value?.trim();
+                    if (!name) {
+                        alert('Please enter a playlist name');
+                        return;
+                    }
+
+                    const selectedFriends = Array.from(
+                        document.querySelectorAll('input[name="collab-friends"]:checked')
+                    ).map((cb) => cb.value);
+
+                    try {
+                        await db.createCollaborativePlaylist(name, selectedFriends);
+                        createCollabModal.classList.remove('active');
+                        if (collabPlaylistName) collabPlaylistName.value = '';
+                        this.renderFriendsPage(); // Refresh
+                    } catch (error) {
+                        console.error('Failed to create collaborative playlist:', error);
+                    }
+                });
+            }
+        }
+
+        // Click on collaborative playlist card
+        document.querySelectorAll('.collab-playlist-card').forEach((card) => {
+            card.addEventListener('click', () => {
+                const playlistId = card.dataset.id;
+                if (playlistId) {
+                    navigate(`/collabplaylist/${playlistId}`);
+                }
+            });
+        });
     }
 
     async renderUnreleasedPage() {

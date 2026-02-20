@@ -16,6 +16,7 @@ import {
     trackDateSettings,
     exponentialVolumeSettings,
     audioEffectsSettings,
+    rotatingCoverSettings,
 } from './storage.js';
 import { audioContextManager } from './audio-context.js';
 

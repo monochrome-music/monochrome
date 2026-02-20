@@ -8,6 +8,7 @@ import {
     sidebarSettings,
     pwaUpdateSettings,
     modalSettings,
+    rotatingCoverSettings,
 } from './storage.js';
 import { UIRenderer } from './ui.js';
 import { Player } from './player.js';
@@ -2212,7 +2213,106 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     audioPlayer.addEventListener('play', () => {
         updateTabTitle(player);
+
+        // Handle rotating cover
+        const coverEl = document.querySelector('.now-playing-bar .cover');
+        if (coverEl && rotatingCoverSettings.isEnabled()) {
+            coverEl.classList.add('rotating');
+            coverEl.classList.remove('paused');
+        }
+
+        // Handle fullscreen rotating disc
+        const vinylContainer = document.getElementById('vinyl-disc-container');
+        if (vinylContainer && rotatingCoverSettings.isEnabled()) {
+            vinylContainer.classList.add('rotating-disc');
+            vinylContainer.classList.remove('paused');
+        }
     });
+
+    audioPlayer.addEventListener('pause', () => {
+        // Handle rotating cover - pause animation
+        const coverEl = document.querySelector('.now-playing-bar .cover');
+        if (coverEl && rotatingCoverSettings.isEnabled()) {
+            coverEl.classList.add('paused');
+        }
+
+        // Handle fullscreen rotating disc - pause animation
+        const vinylContainer = document.getElementById('vinyl-disc-container');
+        if (vinylContainer && rotatingCoverSettings.isEnabled()) {
+            vinylContainer.classList.add('paused');
+        }
+    });
+
+    // Listen for rotating cover setting changes
+    window.addEventListener('rotating-cover-changed', (e) => {
+        const coverEl = document.querySelector('.now-playing-bar .cover');
+        if (coverEl) {
+            if (e.detail.enabled && !audioPlayer.paused) {
+                coverEl.classList.add('rotating');
+                coverEl.classList.remove('paused');
+            } else if (!e.detail.enabled) {
+                coverEl.classList.remove('rotating', 'paused');
+            }
+        }
+
+        // Handle fullscreen rotating disc
+        const vinylContainer = document.getElementById('vinyl-disc-container');
+        if (vinylContainer) {
+            if (e.detail.enabled && !audioPlayer.paused) {
+                vinylContainer.classList.add('rotating-disc');
+                vinylContainer.classList.remove('paused');
+            } else if (!e.detail.enabled) {
+                vinylContainer.classList.remove('rotating-disc', 'paused');
+            }
+        }
+    });
+
+    // Share Track Modal
+    const shareTrackModal = document.getElementById('share-track-modal');
+    const cancelShareTrackBtn = document.getElementById('cancel-share-track-btn');
+    const confirmShareTrackBtn = document.getElementById('confirm-share-track-btn');
+
+    if (shareTrackModal) {
+        shareTrackModal.querySelector('.modal-overlay')?.addEventListener('click', () => {
+            shareTrackModal.classList.remove('active');
+        });
+    }
+    if (cancelShareTrackBtn) {
+        cancelShareTrackBtn.addEventListener('click', () => {
+            shareTrackModal?.classList.remove('active');
+        });
+    }
+    if (confirmShareTrackBtn) {
+        confirmShareTrackBtn.addEventListener('click', async () => {
+            const friendSelect = document.getElementById('share-track-friend-select');
+            const messageInput = document.getElementById('share-track-message');
+            const friendUid = friendSelect?.value;
+            const message = messageInput?.value?.trim() || '';
+
+            if (!friendUid) {
+                alert('Please select a friend to share with');
+                return;
+            }
+
+            const trackData = shareTrackModal?.dataset;
+            if (trackData?.trackId) {
+                try {
+                    const track = {
+                        id: trackData.trackId,
+                        title: document.getElementById('share-track-title')?.textContent || '',
+                        sharedByName: authManager.user?.name || 'A friend',
+                    };
+                    await db.shareTrack(track, friendUid, message);
+                    shareTrackModal.classList.remove('active');
+                    if (messageInput) messageInput.value = '';
+                    alert('Track shared!');
+                } catch (error) {
+                    console.error('Failed to share track:', error);
+                    alert('Failed to share track');
+                }
+            }
+        });
+    }
 
     // PWA Update Logic
     if (window.__AUTH_GATE__) {
@@ -2279,6 +2379,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    // Listeners for Real-time PocketBase events
+    window.addEventListener('pb-user-updated', () => {
+        const path = window.location.pathname;
+        if (path === '/friends') {
+            ui.renderFriendsPage();
+        }
+    });
+
+    window.addEventListener('pb-friend-updated', () => {
+        const path = window.location.pathname;
+        if (path === '/friends') {
+            ui.renderFriendsPage();
+        }
+    });
+
     const contextMenu = document.getElementById('context-menu');
     if (contextMenu) {
         const observer = new MutationObserver((mutations) => {
@@ -2315,6 +2430,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const headerAccountDropdown = document.getElementById('header-account-dropdown');
     const headerAccountImg = document.getElementById('header-account-img');
     const headerAccountIcon = document.getElementById('header-account-icon');
+    const sidebarAccountName = document.getElementById('sidebar-account-name');
 
     if (headerAccountBtn && headerAccountDropdown) {
         headerAccountBtn.addEventListener('click', (e) => {
@@ -2374,11 +2490,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         authManager.onAuthStateChanged(async (user) => {
             if (user) {
                 const data = await syncManager.getUserData();
+                if (sidebarAccountName) {
+                    sidebarAccountName.textContent = data?.profile?.display_name || data?.profile?.username || 'Account';
+                }
                 if (data && data.profile && data.profile.avatar_url) {
                     headerAccountImg.src = data.profile.avatar_url;
                     headerAccountImg.style.display = 'block';
                     headerAccountIcon.style.display = 'none';
                     return;
+                }
+            } else {
+                if (sidebarAccountName) {
+                    sidebarAccountName.textContent = 'Account';
                 }
             }
             headerAccountImg.style.display = 'none';

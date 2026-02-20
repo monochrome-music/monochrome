@@ -139,6 +139,32 @@ const syncManager = {
         }
     },
 
+    _realtimeSubscribed: false,
+
+    async setupRealtimeSubscriptions() {
+        const user = authManager.user;
+        if (!user || this._realtimeSubscribed) return;
+
+        try {
+            await this.pb.collection('DB_users').subscribe('*', (e) => {
+                if (!authManager.user) return;
+
+                // If it's our own record
+                if (e.record.firebase_id === authManager.user.uid) {
+                    this._userRecordCache = e.record;
+                    window.dispatchEvent(new CustomEvent('pb-user-updated', { detail: e.record }));
+                } else {
+                    // It might be a friend's record (e.g., status update)
+                    window.dispatchEvent(new CustomEvent('pb-friend-updated', { detail: e.record }));
+                }
+            });
+            this._realtimeSubscribed = true;
+            console.log('[PocketBase] Real-time subscriptions active');
+        } catch (err) {
+            console.error('[PocketBase] Failed to initialize real-time subscriptions:', err);
+        }
+    },
+
     async syncLibraryItem(type, item, added) {
         const user = authManager.user;
         if (!user) return;
@@ -182,14 +208,14 @@ const syncManager = {
                 artists: item.artists?.map((a) => ({ id: a.id, name: a.name || null })) || [],
                 album: item.album
                     ? {
-                          id: item.album.id,
-                          title: item.album.title || null,
-                          cover: item.album.cover || null,
-                          releaseDate: item.album.releaseDate || null,
-                          vibrantColor: item.album.vibrantColor || null,
-                          artist: item.album.artist || null,
-                          numberOfTracks: item.album.numberOfTracks || null,
-                      }
+                        id: item.album.id,
+                        title: item.album.title || null,
+                        cover: item.album.cover || null,
+                        releaseDate: item.album.releaseDate || null,
+                        vibrantColor: item.album.vibrantColor || null,
+                        artist: item.album.artist || null,
+                        numberOfTracks: item.album.numberOfTracks || null,
+                    }
                     : null,
                 copyright: item.copyright || null,
                 isrc: item.isrc || null,
@@ -210,8 +236,8 @@ const syncManager = {
                 artist: item.artist
                     ? { name: item.artist.name || null, id: item.artist.id }
                     : item.artists?.[0]
-                      ? { name: item.artists[0].name || null, id: item.artists[0].id }
-                      : null,
+                        ? { name: item.artists[0].name || null, id: item.artists[0].id }
+                        : null,
                 type: item.type || null,
                 numberOfTracks: item.numberOfTracks || null,
             };
@@ -507,8 +533,236 @@ const syncManager = {
         }
     },
 
+    // ========== FRIENDS SYNC ==========
+
+    // Sync friends list to cloud
+    async syncFriends(friends) {
+        const user = authManager.user;
+        if (!user) return;
+
+        const record = await this._getUserRecord(user.uid);
+        if (!record) return;
+
+        const friendsData = friends.map((f) => ({
+            uid: f.uid,
+            username: f.username || '',
+            displayName: f.displayName || f.username || '',
+            avatarUrl: f.avatarUrl || '',
+            addedAt: f.addedAt || Date.now(),
+        }));
+
+        try {
+            await this.pb
+                .collection('DB_users')
+                .update(record.id, { friends: JSON.stringify(friendsData) }, { f_id: user.uid });
+        } catch (error) {
+            console.error('[PocketBase] Failed to sync friends:', error);
+        }
+    },
+
+    // Get friends from cloud
+    async getCloudFriends() {
+        const user = authManager.user;
+        if (!user) return [];
+
+        const record = await this._getUserRecord(user.uid);
+        if (!record) return [];
+
+        const friendsStr = record.friends || '[]';
+        return this.safeParseInternal(friendsStr, 'friends', []);
+    },
+
+    // Sync friend requests
+    async syncFriendRequests(requests) {
+        const user = authManager.user;
+        if (!user) return;
+
+        const record = await this._getUserRecord(user.uid);
+        if (!record) return;
+
+        const requestsData = requests.map((r) => ({
+            uid: r.uid,
+            username: r.username || '',
+            displayName: r.displayName || r.username || '',
+            avatarUrl: r.avatarUrl || '',
+            requestedAt: r.requestedAt || Date.now(),
+            status: r.status || 'pending',
+            outgoing: r.outgoing || false,
+        }));
+
+        try {
+            await this.pb
+                .collection('DB_users')
+                .update(record.id, { friend_requests: JSON.stringify(requestsData) }, { f_id: user.uid });
+        } catch (error) {
+            console.error('[PocketBase] Failed to sync friend requests:', error);
+        }
+    },
+
+    // Get friend requests from cloud
+    async getCloudFriendRequests() {
+        const user = authManager.user;
+        if (!user) return [];
+
+        const record = await this._getUserRecord(user.uid);
+        if (!record) return [];
+
+        const requestsStr = record.friend_requests || '[]';
+        return this.safeParseInternal(requestsStr, 'friend_requests', []);
+    },
+
+    // Send friend request to another user
+    async sendFriendRequestToUser(targetUsername) {
+        const user = authManager.user;
+        if (!user) return null;
+
+        try {
+            // Find target user
+            const targetUser = await this.pb.collection('DB_users').getFirstListItem(`username="${targetUsername}"`);
+            if (!targetUser) return null;
+
+            // Create outgoing request record
+            const outgoingRequests = await this.getCloudFriendRequests();
+            const newRequest = {
+                uid: targetUser.firebase_id,
+                username: targetUser.username,
+                displayName: targetUser.display_name || targetUser.username,
+                avatarUrl: targetUser.avatar_url || '',
+                requestedAt: Date.now(),
+                status: 'pending',
+                outgoing: true,
+            };
+
+            // Add to outgoing requests
+            const existingOutgoing = outgoingRequests.filter((r) => r.outgoing);
+            existingOutgoing.push(newRequest);
+            await this.syncFriendRequests([...outgoingRequests.filter((r) => !r.outgoing), ...existingOutgoing]);
+
+            return newRequest;
+        } catch (error) {
+            console.error('[PocketBase] Failed to send friend request:', error);
+            return null;
+        }
+    },
+
+    // ========== COLLABORATIVE PLAYLISTS SYNC ==========
+
+    // Sync collaborative playlists to cloud
+    async syncCollaborativePlaylists(playlists) {
+        const user = authManager.user;
+        if (!user) return;
+
+        const record = await this._getUserRecord(user.uid);
+        if (!record) return;
+
+        const playlistsData = playlists.map((p) => ({
+            id: p.id,
+            name: p.name,
+            description: p.description || '',
+            cover: p.cover || '',
+            tracks: p.tracks ? p.tracks.map((t) => this._minifyItem('track', t)) : [],
+            members: p.members || [],
+            owner: p.owner || '',
+            createdAt: p.createdAt || Date.now(),
+            updatedAt: p.updatedAt || Date.now(),
+            isCollaborative: true,
+        }));
+
+        try {
+            await this.pb
+                .collection('DB_users')
+                .update(record.id, { collaborative_playlists: JSON.stringify(playlistsData) }, { f_id: user.uid });
+        } catch (error) {
+            console.error('[PocketBase] Failed to sync collaborative playlists:', error);
+        }
+    },
+
+    // Get collaborative playlists from cloud
+    async getCloudCollaborativePlaylists() {
+        const user = authManager.user;
+        if (!user) return [];
+
+        const record = await this._getUserRecord(user.uid);
+        if (!record) return [];
+
+        const playlistsStr = record.collaborative_playlists || '[]';
+        return this.safeParseInternal(playlistsStr, 'collaborative_playlists', []);
+    },
+
+    // ========== SHARED TRACKS SYNC ==========
+
+    // Share a track with a friend
+    async shareTrackWithFriend(track, friendUid, message = '') {
+        const user = authManager.user;
+        if (!user) return null;
+
+        const record = await this._getUserRecord(user.uid);
+        if (!record) return null;
+
+        // Get existing shared tracks
+        const sharedTracks = this.safeParseInternal(record.shared_tracks || '[]', 'shared_tracks', []);
+
+        const newShare = {
+            id: crypto.randomUUID(),
+            track: this._minifyItem('track', track),
+            sharedWith: friendUid,
+            sharedBy: user.uid,
+            sharedByName: record.display_name || record.username || 'Anonymous',
+            message: message,
+            sharedAt: Date.now(),
+            played: false,
+        };
+
+        sharedTracks.push(newShare);
+
+        try {
+            await this.pb
+                .collection('DB_users')
+                .update(record.id, { shared_tracks: JSON.stringify(sharedTracks) }, { f_id: user.uid });
+            return newShare;
+        } catch (error) {
+            console.error('[PocketBase] Failed to share track:', error);
+            return null;
+        }
+    },
+
+    // Get shared tracks from cloud
+    async getCloudSharedTracks() {
+        const user = authManager.user;
+        if (!user) return [];
+
+        const record = await this._getUserRecord(user.uid);
+        if (!record) return [];
+
+        const sharedTracksStr = record.shared_tracks || '[]';
+        return this.safeParseInternal(sharedTracksStr, 'shared_tracks', []);
+    },
+
+    // Get user profile by UID (for friends)
+    async getUserProfileByUid(uid) {
+        try {
+            const record = await this.pb.collection('DB_users').getFirstListItem(`firebase_id="${uid}"`, {
+                fields: 'firebase_id,username,display_name,avatar_url,banner,status,about,website',
+            });
+            return {
+                uid: record.firebase_id,
+                username: record.username,
+                displayName: record.display_name,
+                avatarUrl: record.avatar_url,
+                banner: record.banner,
+                status: record.status,
+                about: record.about,
+                website: record.website,
+            };
+        } catch (error) {
+            return null;
+        }
+    },
+
     async onAuthStateChanged(user) {
         if (user) {
+            this.setupRealtimeSubscriptions();
+
             if (this._isSyncing) return;
 
             this._isSyncing = true;
@@ -640,6 +894,16 @@ const syncManager = {
         } else {
             this._userRecordCache = null;
             this._isSyncing = false;
+
+            if (this._realtimeSubscribed) {
+                try {
+                    this.pb.collection('DB_users').unsubscribe('*');
+                    this._realtimeSubscribed = false;
+                    console.log('[PocketBase] Real-time subscriptions disabled');
+                } catch (err) {
+                    console.error('[PocketBase] Failed to unsubscribe:', err);
+                }
+            }
         }
     },
 };

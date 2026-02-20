@@ -87,6 +87,9 @@ export function createRouter(ui) {
             case 'recent':
                 await ui.renderRecentPage();
                 break;
+            case 'friends':
+                await ui.renderFriendsPage();
+                break;
             case 'unreleased':
                 if (param) {
                     const parts = param.split('/');

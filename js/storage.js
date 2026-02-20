@@ -234,6 +234,7 @@ export const themeManager = {
         macchiato: {},
         frappe: {},
         latte: {},
+        dynamic: {},
     },
 
     getTheme() {
@@ -539,6 +540,20 @@ export const coverArtSizeSettings = {
     },
 };
 
+export const rotatingCoverSettings = {
+    STORAGE_KEY: 'rotating-cover-enabled',
+    isEnabled() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) === 'true';
+        } catch {
+            return false;
+        }
+    },
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+};
+
 export const waveformSettings = {
     STORAGE_KEY: 'waveform-seekbar-enabled',
 
@@ -727,9 +742,9 @@ export const visualizerSettings = {
     isEnabled() {
         try {
             const val = localStorage.getItem(this.ENABLED_KEY);
-            return val === null ? true : val === 'true';
+            return val === null ? false : val === 'true';
         } catch {
-            return true;
+            return false;
         }
     },
 
