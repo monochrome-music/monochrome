@@ -108,6 +108,9 @@ export class MusicAPI {
 
     // Cover/artwork methods
     getCoverUrl(id, size = '320') {
+        if (typeof id === 'string' && id.startsWith('blob:')) {
+            return id;
+        }
         if (typeof id === 'string' && id.startsWith('q:')) {
             return this.qobuzAPI.getCoverUrl(id.slice(2), size);
         }

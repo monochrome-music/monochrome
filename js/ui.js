@@ -330,7 +330,7 @@ export class UIRenderer {
         const trackTitle = getTrackTitle(track);
         const isCurrentTrack = this.player?.currentTrack?.id === track.id;
 
-        if (track.isLocal) {
+        if (track.isLocal && (!track.album?.cover || track.album.cover === 'assets/appicon.png')) {
             showCover = false;
         }
 
@@ -1443,7 +1443,7 @@ export class UIRenderer {
                     headerDiv.querySelector('h3').textContent = `Local Files (${window.localFilesCache.length})`;
                 }
                 if (listContainer) {
-                    this.renderListWithTracks(listContainer, window.localFilesCache, false);
+                    this.renderListWithTracks(listContainer, window.localFilesCache, true);
                 }
             } else {
                 if (introDiv) introDiv.style.display = 'block';

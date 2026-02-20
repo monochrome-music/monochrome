@@ -62,7 +62,7 @@ export async function addMetadataToAudio(audioBlob, track, api, _quality) {
  * @param {File} file
  * @returns {Promise<Object>} Track metadata
  */
-export async function readTrackMetadata(file) {
+export async function readTrackMetadata(file, siblings = []) {
     const metadata = {
         title: file.name.replace(/\.[^/.]+$/, ''),
         artists: [],
@@ -90,6 +90,23 @@ export async function readTrackMetadata(file) {
         metadata.artist = metadata.artists[0];
     }
 
+    if (metadata.album.cover === 'assets/appicon.png' && siblings.length > 0) {
+        const baseName = file.name.substring(0, file.name.lastIndexOf('.'));
+        const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+        const coverFile = siblings.find((f) => {
+            const fName = f.name;
+            const lastDot = fName.lastIndexOf('.');
+            if (lastDot === -1) return false;
+            const fBase = fName.substring(0, lastDot);
+            const fExt = fName.substring(lastDot).toLowerCase();
+            return fBase === baseName && imageExtensions.includes(fExt);
+        });
+
+        if (coverFile) {
+            metadata.album.cover = URL.createObjectURL(coverFile);
+        }
+    }
+
     return metadata;
 }
 
@@ -101,6 +118,7 @@ async function readFlacMetadata(file, metadata) {
 
     const blocks = parseFlacBlocks(dataView);
     const vorbisBlock = blocks.find((b) => b.type === 4);
+    const pictureBlock = blocks.find((b) => b.type === 6);
 
     const artists = [];
     if (vorbisBlock) {
@@ -132,6 +150,28 @@ async function readFlacMetadata(file, metadata) {
 
     if (artists.length > 0) {
         metadata.artists = artists.flatMap((a) => a.split(/; |\/|\\/)).map((name) => ({ name: name.trim() }));
+    }
+
+    if (pictureBlock) {
+        try {
+            let pos = pictureBlock.offset;
+            pos += 4;
+            const mimeLen = dataView.getUint32(pos, false);
+            pos += 4;
+            const mime = new TextDecoder().decode(new Uint8Array(arrayBuffer, pos, mimeLen));
+            pos += mimeLen;
+            const descLen = dataView.getUint32(pos, false);
+            pos += 4;
+            pos += descLen;
+            pos += 16;
+            const dataLen = dataView.getUint32(pos, false);
+            pos += 4;
+            const pictureData = new Uint8Array(arrayBuffer, pos, dataLen);
+            const blob = new Blob([pictureData], { type: mime });
+            metadata.album.cover = URL.createObjectURL(blob);
+        } catch (e) {
+            console.warn('Error parsing FLAC picture:', e);
+        }
     }
 }
 
@@ -194,6 +234,11 @@ async function readM4aMetadata(file, metadata) {
                     metadata.album.title = new TextDecoder().decode(
                         new Uint8Array(view.buffer, contentOffset, contentLen)
                     );
+                } else if (item.type === 'covr') {
+                    const pictureData = new Uint8Array(view.buffer, contentOffset, contentLen);
+                    const mime = getMimeType(pictureData);
+                    const blob = new Blob([pictureData], { type: mime });
+                    metadata.album.cover = URL.createObjectURL(blob);
                 }
             }
         }
@@ -253,6 +298,37 @@ async function readMp3Metadata(file, metadata) {
                 const year = readID3Text(frameData);
                 if (year) metadata.album.releaseDate = year;
             }
+            if (frameId === 'APIC') {
+                try {
+                    const encoding = frameData.getUint8(0);
+                    let mimeType = '';
+                    let pos = 1;
+                    while (pos < frameData.byteLength && frameData.getUint8(pos) !== 0) {
+                        mimeType += String.fromCharCode(frameData.getUint8(pos));
+                        pos++;
+                    }
+                    pos++;
+                    pos++;
+                    let terminator = encoding === 1 || encoding === 2 ? 2 : 1;
+                    while (pos < frameData.byteLength) {
+                        if (frameData.getUint8(pos) === 0) {
+                            if (terminator === 1) {
+                                pos++;
+                                break;
+                            } else if (pos + 1 < frameData.byteLength && frameData.getUint8(pos + 1) === 0) {
+                                pos += 2;
+                                break;
+                            }
+                        }
+                        pos++;
+                    }
+                    const pictureData = new Uint8Array(buffer, offset + pos, frameSize - pos);
+                    const blob = new Blob([pictureData], { type: mimeType || 'image/jpeg' });
+                    metadata.album.cover = URL.createObjectURL(blob);
+                } catch (e) {
+                    console.warn('Error parsing APIC:', e);
+                }
+            }
 
             offset += frameSize;
         }
@@ -307,6 +383,12 @@ function readID3Text(view) {
     else decoder = new TextDecoder('utf-8');
 
     return decoder.decode(buffer).replace(/\0/g, '');
+}
+
+function getMimeType(data) {
+    if (data.length >= 2 && data[0] === 0xff && data[1] === 0xd8) return 'image/jpeg';
+    if (data.length >= 8 && data[0] === 0x89 && data[1] === 0x50 && data[2] === 0x4e && data[3] === 0x47) return 'image/png';
+    return 'image/jpeg';
 }
 
 /**
