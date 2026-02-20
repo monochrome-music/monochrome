@@ -387,7 +387,8 @@ function readID3Text(view) {
 
 function getMimeType(data) {
     if (data.length >= 2 && data[0] === 0xff && data[1] === 0xd8) return 'image/jpeg';
-    if (data.length >= 8 && data[0] === 0x89 && data[1] === 0x50 && data[2] === 0x4e && data[3] === 0x47) return 'image/png';
+    if (data.length >= 8 && data[0] === 0x89 && data[1] === 0x50 && data[2] === 0x4e && data[3] === 0x47)
+        return 'image/png';
     return 'image/jpeg';
 }
 
