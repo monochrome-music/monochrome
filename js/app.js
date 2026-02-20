@@ -2491,7 +2491,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (user) {
                 const data = await syncManager.getUserData();
                 if (sidebarAccountName) {
-                    sidebarAccountName.textContent = data?.profile?.display_name || data?.profile?.username || 'Account';
+                    sidebarAccountName.textContent =
+                        data?.profile?.display_name || data?.profile?.username || 'Account';
                 }
                 if (data && data.profile && data.profile.avatar_url) {
                     headerAccountImg.src = data.profile.avatar_url;

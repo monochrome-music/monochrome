@@ -17,24 +17,34 @@
 
     /* Typography Scale - Base 16px (1rem) */
     --text-xs: 0.75rem;
+
     /* 12px - Captions, badges, timestamps */
     --text-sm: 0.875rem;
+
     /* 14px - Secondary text, labels */
     --text-base: 1rem;
+
     /* 16px - Body text (default) */
     --text-md: 1.125rem;
+
     /* 18px - Lead paragraphs */
     --text-lg: 1.25rem;
+
     /* 20px - Small headings */
     --text-xl: 1.5rem;
+
     /* 24px - H4, card titles */
     --text-2xl: 1.875rem;
+
     /* 30px - H3 */
     --text-3xl: 2.25rem;
+
     /* 36px - H2 */
     --text-4xl: 3rem;
+
     /* 48px - H1 */
     --text-5xl: 3.75rem;
+
     /* 60px - Display text */
 
     /* Font Weights */
@@ -56,28 +66,40 @@
        ------------------------------------------------------------------------- */
     --space-0: 0;
     --space-1: 0.25rem;
+
     /* 4px */
     --space-2: 0.5rem;
+
     /* 8px */
     --space-3: 0.75rem;
+
     /* 12px */
     --space-4: 1rem;
+
     /* 16px */
     --space-5: 1.25rem;
+
     /* 20px */
     --space-6: 1.5rem;
+
     /* 24px */
     --space-8: 2rem;
+
     /* 32px */
     --space-10: 2.5rem;
+
     /* 40px */
     --space-12: 3rem;
+
     /* 48px */
     --space-16: 4rem;
+
     /* 64px */
     --space-20: 5rem;
+
     /* 80px */
     --space-24: 6rem;
+
     /* 96px */
 
     /* Legacy spacing aliases (deprecated, use --space-* instead) */
@@ -95,18 +117,25 @@
        ------------------------------------------------------------------------- */
     --radius-none: 0;
     --radius-xs: 2px;
+
     /* Small badges, tags */
     --radius-sm: 4px;
+
     /* Inputs, small buttons */
     --radius-md: 8px;
+
     /* Cards, panels */
     --radius-lg: 12px;
+
     /* Large cards, modals */
     --radius-xl: 16px;
+
     /* Hero elements */
     --radius-2xl: 24px;
+
     /* Extra large elements */
     --radius-full: 9999px;
+
     /* Circles, pills, avatars */
 
     /* Legacy radius aliases (deprecated, use --radius-md for default) */
@@ -441,16 +470,16 @@
 
     --background: #0a0a0a;
     --foreground: #f5f5f5;
-    --card: rgba(20, 20, 20, 0.8);
+    --card: rgb(20, 20, 20, 0.8);
     --card-foreground: #f5f5f5;
     --primary: #f5f5f5;
     --primary-foreground: #0a0a0a;
-    --secondary: rgba(30, 30, 30, 0.8);
+    --secondary: rgb(30, 30, 30, 0.8);
     --secondary-foreground: #e0e0e0;
-    --muted: rgba(30, 30, 30, 0.8);
+    --muted: rgb(30, 30, 30, 0.8);
     --muted-foreground: #a0a0a0;
-    --border: rgba(50, 50, 50, 0.6);
-    --input: rgba(30, 30, 30, 0.8);
+    --border: rgb(50, 50, 50, 0.6);
+    --input: rgb(30, 30, 30, 0.8);
     --ring: #f5f5f5;
     --highlight: #f5f5f5;
     --highlight-rgb: 245, 245, 245;
@@ -1669,7 +1698,6 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 @keyframes pulse {
-
     0%,
     100% {
         opacity: 1;
@@ -2086,7 +2114,6 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 @media (max-width: 1100px) {
-
     #home-recommended-songs,
     #artist-detail-tracks,
     #playlist-detail-recommended {
@@ -2648,7 +2675,8 @@ input[type='search']::-webkit-search-cancel-button {
     font-size: var(--text-base);
     font-family: inherit;
     outline: none;
-    transition: border-color var(--duration-fast) var(--ease-in-out),
+    transition:
+        border-color var(--duration-fast) var(--ease-in-out),
         box-shadow var(--duration-fast) var(--ease-in-out);
 }
 
@@ -2732,11 +2760,11 @@ select.input {
     margin-bottom: 0;
 }
 
-.sidebar-settings-section .sidebar-settings-section-label+.setting-item {
+.sidebar-settings-section .sidebar-settings-section-label + .setting-item {
     margin-top: var(--spacing-sm);
 }
 
-.sidebar-settings-section .setting-item+.setting-item {
+.sidebar-settings-section .setting-item + .setting-item {
     margin-top: var(--spacing-md);
 }
 
@@ -2804,6 +2832,7 @@ select.input {
     border-radius: var(--radius);
     padding: 0.5rem;
     appearance: auto;
+
     /* Force native dropdown for Tesla/Mobile */
 }
 
@@ -3091,11 +3120,11 @@ select.input {
     box-shadow: 0 2px 4px rgb(0, 0, 0, 0.2);
 }
 
-input:checked+.slider {
+input:checked + .slider {
     background-color: var(--primary);
 }
 
-input:checked+.slider::before {
+input:checked + .slider::before {
     transform: translateX(16px);
     background-color: var(--primary-foreground);
     box-shadow: -2px 2px 4px rgb(0, 0, 0, 0.1);
@@ -3107,29 +3136,29 @@ input:checked+.slider::before {
     /* Hover scale effect */
 }
 
-.toggle-switch:hover input:checked+.slider::before {
+.toggle-switch:hover input:checked + .slider::before {
     transform: translateX(16px) scale(1.1);
 }
 
-.toggle-switch input:disabled+.slider {
+.toggle-switch input:disabled + .slider {
     opacity: 0.5;
     cursor: not-allowed;
 }
 
-.toggle-switch input:disabled+.slider::before {
+.toggle-switch input:disabled + .slider::before {
     box-shadow: none;
     transform: translateX(0);
 }
 
-.toggle-switch input:disabled:checked+.slider::before {
+.toggle-switch input:disabled:checked + .slider::before {
     transform: translateX(16px);
 }
 
-.toggle-switch:hover input:disabled+.slider::before {
+.toggle-switch:hover input:disabled + .slider::before {
     transform: translateX(0);
 }
 
-.toggle-switch:hover input:disabled:checked+.slider::before {
+.toggle-switch:hover input:disabled:checked + .slider::before {
     transform: translateX(16px);
 }
 
@@ -3750,26 +3779,21 @@ input:checked+.slider::before {
     width: min(45vh, 45vw);
     height: min(45vh, 45vw);
     border-radius: var(--radius-full);
-    background: radial-gradient(circle,
-            #1a1a1a 0%,
-            #1a1a1a 28%,
-            transparent 28.5%),
-        repeating-radial-gradient(circle,
-            rgba(255, 255, 255, 0.03) 0px,
-            rgba(255, 255, 255, 0.03) 1px,
+    background:
+        radial-gradient(circle, #1a1a1a 0%, #1a1a1a 28%, transparent 28.5%),
+        repeating-radial-gradient(
+            circle,
+            rgb(255, 255, 255, 0.03) 0,
+            rgb(255, 255, 255, 0.03) 1px,
             transparent 1px,
-            transparent 3px),
-        radial-gradient(circle,
-            #222 0%,
-            #1c1c1c 30%,
-            #181818 50%,
-            #111 70%,
-            #0d0d0d 100%);
+            transparent 3px
+        ),
+        radial-gradient(circle, #222 0%, #1c1c1c 30%, #181818 50%, #111 70%, #0d0d0d 100%);
     box-shadow:
-        inset 0 0 30px rgba(0, 0, 0, 0.5),
-        0 0 0 3px rgba(60, 60, 60, 0.6),
-        0 0 0 6px rgba(20, 20, 20, 0.9),
-        0 20px 60px rgba(0, 0, 0, 0.6);
+        inset 0 0 30px rgb(0, 0, 0, 0.5),
+        0 0 0 3px rgb(60, 60, 60, 0.6),
+        0 0 0 6px rgb(20, 20, 20, 0.9),
+        0 20px 60px rgb(0, 0, 0, 0.6);
     animation: rotate-disc-fullscreen 4s linear infinite;
 }
 
@@ -3779,11 +3803,13 @@ input:checked+.slider::before {
     width: 100%;
     height: 100%;
     border-radius: var(--radius-full);
-    background: repeating-radial-gradient(circle,
-            transparent 0px,
-            transparent 2px,
-            rgba(255, 255, 255, 0.015) 2px,
-            rgba(255, 255, 255, 0.015) 3px);
+    background: repeating-radial-gradient(
+        circle,
+        transparent 0,
+        transparent 2px,
+        rgb(255, 255, 255, 0.015) 2px,
+        rgb(255, 255, 255, 0.015) 3px
+    );
     pointer-events: none;
     z-index: 1;
 }
@@ -3794,12 +3820,14 @@ input:checked+.slider::before {
     width: 12%;
     height: 12%;
     border-radius: var(--radius-full);
-    background: radial-gradient(circle,
-            rgba(80, 80, 80, 0.8) 0%,
-            rgba(40, 40, 40, 0.9) 40%,
-            rgba(60, 60, 60, 0.7) 60%,
-            rgba(30, 30, 30, 0.8) 100%);
-    box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.5);
+    background: radial-gradient(
+        circle,
+        rgb(80, 80, 80, 0.8) 0%,
+        rgb(40, 40, 40, 0.9) 40%,
+        rgb(60, 60, 60, 0.7) 60%,
+        rgb(30, 30, 30, 0.8) 100%
+    );
+    box-shadow: inset 0 0 4px rgb(0, 0, 0, 0.5);
     z-index: 3;
     pointer-events: none;
 }
@@ -3812,8 +3840,8 @@ input:checked+.slider::before {
     max-height: none;
     border-radius: var(--radius-full);
     box-shadow:
-        0 0 0 2px rgba(60, 60, 60, 0.4),
-        inset 0 0 20px rgba(0, 0, 0, 0.3);
+        0 0 0 2px rgb(60, 60, 60, 0.4),
+        inset 0 0 20px rgb(0, 0, 0, 0.3);
     object-fit: cover;
     z-index: 2;
     margin-bottom: 0;
@@ -5128,7 +5156,7 @@ input:checked+.slider::before {
 .now-playing-bar .cover.rotating {
     border-radius: 50%;
     animation: rotate-disc 3s linear infinite;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 20px rgb(0, 0, 0, 0.3);
 }
 
 .now-playing-bar .cover.rotating.paused {
@@ -5158,13 +5186,15 @@ input:checked+.slider::before {
     padding: 1.5rem;
     text-align: center;
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition:
+        transform 0.2s,
+        box-shadow 0.2s;
     border: 1px solid var(--border);
 }
 
 .friend-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 24px rgb(0, 0, 0, 0.2);
 }
 
 .friend-card .friend-avatar {
@@ -5239,12 +5269,14 @@ input:checked+.slider::before {
 /* Collaborative Playlist Card */
 .collab-playlist-card {
     cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition:
+        transform 0.2s,
+        box-shadow 0.2s;
 }
 
 .collab-playlist-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 24px rgb(0, 0, 0, 0.2);
 }
 
 /* Window Controls Overlay */
