@@ -7,6 +7,72 @@ export class SidePanelManager {
         this.controlsElement = document.getElementById('side-panel-controls');
         this.contentElement = document.getElementById('side-panel-content');
         this.currentView = null; // 'queue' or 'lyrics'
+
+        // Resize logic initialization
+        this.resizer = document.getElementById('side-panel-resizer');
+        this.isResizing = false;
+
+        // Load saved width from preferences or default
+        const savedWidth = localStorage.getItem('sidePanelWidth');
+        if (savedWidth) {
+            this.panel.style.setProperty('--side-panel-width', `${savedWidth}px`);
+        }
+
+        if (this.resizer) {
+            this.resizer.addEventListener('mousedown', this.initResize.bind(this));
+        }
+    }
+
+    initResize(e) {
+        this.isResizing = true;
+        this.panel.classList.add('resizing');
+        this.resizer.classList.add('active');
+
+        // Prevent text selection while dragging
+        document.body.style.userSelect = 'none';
+        document.body.style.cursor = 'ew-resize';
+
+        // Bind handlers to "this" context
+        this.onMouseMove = this.resize.bind(this);
+        this.onMouseUp = this.stopResize.bind(this);
+
+        document.addEventListener('mousemove', this.onMouseMove);
+        document.addEventListener('mouseup', this.onMouseUp);
+    }
+
+    resize(e) {
+        if (!this.isResizing) return;
+
+        // Calculate new width: viewport width - cursor X position
+        // This makes it act like resizing from the *right edge* of the screen
+        let newWidth = window.innerWidth - e.clientX;
+
+        // Enforce basic minimum limits visually mapped to the CSS values
+        if (newWidth < 300) newWidth = 300;
+
+        // Math for 80vw constraint max
+        const maxVw = window.innerWidth * 0.8;
+        if (newWidth > maxVw) newWidth = maxVw;
+
+        this.panel.style.setProperty('--side-panel-width', `${newWidth}px`);
+    }
+
+    stopResize(e) {
+        this.isResizing = false;
+        this.panel.classList.remove('resizing');
+        this.resizer.classList.remove('active');
+
+        document.body.style.userSelect = '';
+        document.body.style.cursor = '';
+
+        document.removeEventListener('mousemove', this.onMouseMove);
+        document.removeEventListener('mouseup', this.onMouseUp);
+
+        // Save width preference
+        const finalWidth = parseInt(getComputedStyle(this.panel).getPropertyValue('--side-panel-width'));
+        if (!isNaN(finalWidth)) {
+            localStorage.setItem('sidePanelWidth', finalWidth);
+        }
     }
 
     open(view, title, renderControlsCallback, renderContentCallback, forceOpen = false) {
