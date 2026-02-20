@@ -7291,7 +7291,6 @@ textarea:focus {
     left: 0;
     z-index: 0;
     mask-image: linear-gradient(to bottom, rgb(0, 0, 0, 1) 50%, rgb(0, 0, 0, 0));
-    mask-image: linear-gradient(to bottom, rgb(0, 0, 0, 1) 50%, rgb(0, 0, 0, 0));
 }
 
 .profile-info-section {
