@@ -38,12 +38,8 @@
                 console.log('[Shell] Neutralino initialized.');
 
                 const setupTray = async () => {
-                    const isDev = (window.NL_ARGS || []).some(
-                        (a) => a.includes('--neu-dev-auto-reload')
-                    );
-                    const iconPath = isDev
-                        ? '/public/assets/trayicon.png'
-                        : '/dist/assets/trayicon.png';
+                    const isDev = (window.NL_ARGS || []).some((a) => a.includes('--neu-dev-auto-reload'));
+                    const iconPath = isDev ? '/public/assets/trayicon.png' : '/dist/assets/trayicon.png';
                     console.log('[Shell] Setting tray icon:', iconPath);
                     const tray = {
                         icon: iconPath,
@@ -74,9 +70,7 @@
                 const safeExit = async () => {
                     try {
                         const port = window.NL_PORT;
-                        const r = await Neutralino.os.execCommand(
-                            `lsof -ti tcp:${port} -sTCP:LISTEN`
-                        );
+                        const r = await Neutralino.os.execCommand(`lsof -ti tcp:${port} -sTCP:LISTEN`);
                         const pid = r.stdOut.trim().split('\n')[0];
                         if (pid) {
                             await Neutralino.os.execCommand(`kill ${pid}`);
@@ -198,23 +192,6 @@
                     case 'NL_APP_EXIT':
                         safeExit();
                         break;
-
-                    case 'NL_AUTH_GOOGLE': {
-                        // Break out of the iframe for Google OAuth.
-                        // Google/Firebase blocks auth pages in iframes (403).
-                        // Navigate the top-level Neutralino window to the app
-                        // URL directly so signInWithRedirect can work.
-                        const authIframe = document.getElementById('app-frame');
-                        const appUrl = authIframe.src;
-                        const shellUrl = window.location.href;
-                        const sep = appUrl.includes('?') ? '&' : '?';
-                        window.location.href =
-                            appUrl +
-                            sep +
-                            'initiateGoogleAuth=true&shellUrl=' +
-                            encodeURIComponent(shellUrl);
-                        break;
-                    }
 
                     case 'NL_WINDOW_MIN':
                         Neutralino.window.minimize();

@@ -5,7 +5,7 @@
     "description": "[<img src=\"https://github.com/monochrome-music/monochrome/blob/main/assets/512.png?raw=true\" alt=\"Monochrome Logo\">](https://monochrome.tf)",
     "scripts": {
         "dev": "vite",
-        "dev:desktop": "start bun run dev & node scripts/dev-runner.js",
+        "dev:desktop": "bun run dev & node scripts/dev-runner.js",
         "build": "vite build --mode neutralino && bun x neu build",
         "postbuild": "node -e \"const fs = require('fs'); const path = require('path'); const src = 'extensions'; const dest = path.join('dist', 'Monochrome', 'extensions'); if (fs.existsSync(src)) { fs.mkdirSync(dest, { recursive: true }); fs.cpSync(src, dest, { recursive: true }); console.log('Extensions manually copied to ' + dest); }\"",
         "preview": "vite preview",
