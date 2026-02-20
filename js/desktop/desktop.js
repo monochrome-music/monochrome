@@ -1,6 +1,7 @@
 // js/desktop/desktop.js
 import Neutralino from './neutralino-bridge.js';
 import { initializeDiscordRPC } from './discord-rpc.js';
+import { initStorageSync } from './storage-sync.js';
 
 export async function initDesktop(player) {
     console.log('[Desktop] Initializing desktop features...');
@@ -9,6 +10,9 @@ export async function initDesktop(player) {
     window.Neutralino = Neutralino;
 
     try {
+        // Restore localStorage from disk BEFORE anything reads it
+        await initStorageSync();
+
         await Neutralino.init();
         console.log('[Desktop] Neutralino initialized.');
 
