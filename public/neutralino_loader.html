@@ -117,7 +117,8 @@
 
             const targetPort = isDev ? DEV_PORT : port;
             const basePath = isDev ? '' : '/dist';
-            const targetUrl = `http://localhost:${targetPort}${basePath}/?mode=neutralino`;
+            const hostname = window.location.hostname || '127.0.0.1';
+            const targetUrl = `http://${hostname}:${targetPort}${basePath}/?mode=neutralino`;
 
             if (isDev) {
                 console.log(`[Shell] Dev mode detected via NL_ARGS. Waiting 2s for Vite on port ${targetPort}...`);
@@ -363,6 +364,62 @@
                         }
                     } catch (e) {
                         console.error('[Shell] Append Binary File failed:', e);
+                        if (iframe && iframe.contentWindow) {
+                            iframe.contentWindow.postMessage(
+                                { type: 'NL_RESPONSE', id: event.data.id, error: e },
+                                '*'
+                            );
+                        }
+                    }
+                    break;
+
+                case 'NL_STORAGE_LOAD':
+                    try {
+                        const homeDir = await Neutralino.os.execCommand('echo $HOME');
+                        const storagePath = homeDir.stdOut.trim() + '/.monochrome/localStorage.json';
+                        let storageData = '{}';
+                        try {
+                            const buf = await Neutralino.filesystem.readBinaryFile(storagePath);
+                            storageData = new TextDecoder().decode(buf);
+                        } catch (readErr) {
+                            console.log('[Shell] No existing storage file, starting fresh.');
+                        }
+                        if (iframe && iframe.contentWindow) {
+                            iframe.contentWindow.postMessage(
+                                { type: 'NL_RESPONSE', id: event.data.id, result: storageData },
+                                '*'
+                            );
+                        }
+                    } catch (e) {
+                        console.error('[Shell] Storage load failed:', e);
+                        if (iframe && iframe.contentWindow) {
+                            iframe.contentWindow.postMessage(
+                                { type: 'NL_RESPONSE', id: event.data.id, result: '{}' },
+                                '*'
+                            );
+                        }
+                    }
+                    break;
+
+                case 'NL_STORAGE_SAVE':
+                    try {
+                        const homeDir2 = await Neutralino.os.execCommand('echo $HOME');
+                        const dir = homeDir2.stdOut.trim() + '/.monochrome';
+                        const storagePath2 = dir + '/localStorage.json';
+                        // Ensure directory exists
+                        try { await Neutralino.os.execCommand(`mkdir -p "${dir}"`); } catch (e) { }
+                        const encoder = new TextEncoder();
+                        const data = encoder.encode(event.data.data);
+                        await Neutralino.filesystem.writeBinaryFile(storagePath2, data.buffer);
+                        console.log('[Shell] Storage saved to disk.');
+                        if (iframe && iframe.contentWindow) {
+                            iframe.contentWindow.postMessage(
+                                { type: 'NL_RESPONSE', id: event.data.id, result: 'success' },
+                                '*'
+                            );
+                        }
+                    } catch (e) {
+                        console.error('[Shell] Storage save failed:', e);
                         if (iframe && iframe.contentWindow) {
                             iframe.contentWindow.postMessage(
                                 { type: 'NL_RESPONSE', id: event.data.id, error: e },

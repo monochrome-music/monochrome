@@ -302,6 +302,21 @@ async function uploadCoverImage(file) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Restore localStorage from disk BEFORE anything reads it (WKWebView doesn't persist localStorage)
+    const isNeutralinoMode =
+        typeof window !== 'undefined' &&
+        (window.NL_MODE ||
+            window.location.search.includes('mode=neutralino') ||
+            window.location.search.includes('nl_port='));
+    if (isNeutralinoMode) {
+        try {
+            const { initStorageSync } = await import('./desktop/storage-sync.js');
+            await initStorageSync();
+        } catch (e) {
+            console.error('[App] Storage sync failed:', e);
+        }
+    }
+
     // Initialize analytics
     initAnalytics();
 
