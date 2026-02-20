@@ -3,19 +3,24 @@ FROM node:lts-alpine
 
 WORKDIR /app
 
-# wget is needed for Docker healthcheck
-RUN apk add --no-cache wget
+# Install system dependencies required for Bun and Neutralino
+RUN apk add --no-cache wget curl bash
+
+# Install Bun
+RUN curl -fsSL https://bun.sh/install | bash
+# Add Bun to PATH so it can be used in subsequent steps
+ENV PATH="/root/.bun/bin:${PATH}"
 
 # Copy package files first for caching
 COPY package.json package-lock.json ./
 
-# Install dependencies
+# Install dependencies (Node)
 RUN npm install
 
 # Copy the rest of the project
 COPY . .
 
-# Build the project
+# Build the project (Bun is now available for "bun x neu build")
 RUN npm run build
 
 # Expose Vite preview port
