@@ -3766,7 +3766,14 @@ export class UIRenderer {
         }
 
         try {
-            const { track } = await this.api.getTrack(trackId, provider);
+            let track;
+            try {
+                const result = await this.api.getTrack(trackId, provider);
+                track = result.track;
+            } catch (e) {
+                console.warn('getTrack failed, trying getTrackMetadata', e);
+                track = await this.api.getTrackMetadata(trackId, provider);
+            }
 
             const coverUrl = this.api.getCoverUrl(track.album?.cover);
             imageEl.src = coverUrl;
