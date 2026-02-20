@@ -15,16 +15,16 @@ ENV PATH="/root/.bun/bin:${PATH}"
 COPY package.json package-lock.json ./
 
 # Install dependencies (Node)
-RUN npm install
+RUN bun install
 
 # Copy the rest of the project
 COPY . .
 
 # Build the project (Bun is now available for "bun x neu build")
-RUN npm run build
+RUN bun run build
 
 # Expose Vite preview port
 EXPOSE 4173
 
 # Run the built project
-CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0"]
+CMD ["bun", "run", "preview", "--", "--host", "0.0.0.0"]
