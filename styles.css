@@ -4303,6 +4303,7 @@ input:checked + .slider::before {
     gap: 1rem;
     margin: 1.5rem 0;
     flex-wrap: wrap;
+    justify-content: center;
 }
 
 .github-link {
