@@ -1698,6 +1698,7 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 @keyframes pulse {
+
     0%,
     100% {
         opacity: 1;
@@ -2114,6 +2115,7 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 @media (max-width: 1100px) {
+
     #home-recommended-songs,
     #artist-detail-tracks,
     #playlist-detail-recommended {
@@ -2760,11 +2762,11 @@ select.input {
     margin-bottom: 0;
 }
 
-.sidebar-settings-section .sidebar-settings-section-label + .setting-item {
+.sidebar-settings-section .sidebar-settings-section-label+.setting-item {
     margin-top: var(--spacing-sm);
 }
 
-.sidebar-settings-section .setting-item + .setting-item {
+.sidebar-settings-section .setting-item+.setting-item {
     margin-top: var(--spacing-md);
 }
 
@@ -3120,11 +3122,11 @@ select.input {
     box-shadow: 0 2px 4px rgb(0, 0, 0, 0.2);
 }
 
-input:checked + .slider {
+input:checked+.slider {
     background-color: var(--primary);
 }
 
-input:checked + .slider::before {
+input:checked+.slider::before {
     transform: translateX(16px);
     background-color: var(--primary-foreground);
     box-shadow: -2px 2px 4px rgb(0, 0, 0, 0.1);
@@ -3136,29 +3138,29 @@ input:checked + .slider::before {
     /* Hover scale effect */
 }
 
-.toggle-switch:hover input:checked + .slider::before {
+.toggle-switch:hover input:checked+.slider::before {
     transform: translateX(16px) scale(1.1);
 }
 
-.toggle-switch input:disabled + .slider {
+.toggle-switch input:disabled+.slider {
     opacity: 0.5;
     cursor: not-allowed;
 }
 
-.toggle-switch input:disabled + .slider::before {
+.toggle-switch input:disabled+.slider::before {
     box-shadow: none;
     transform: translateX(0);
 }
 
-.toggle-switch input:disabled:checked + .slider::before {
+.toggle-switch input:disabled:checked+.slider::before {
     transform: translateX(16px);
 }
 
-.toggle-switch:hover input:disabled + .slider::before {
+.toggle-switch:hover input:disabled+.slider::before {
     transform: translateX(0);
 }
 
-.toggle-switch:hover input:disabled:checked + .slider::before {
+.toggle-switch:hover input:disabled:checked+.slider::before {
     transform: translateX(16px);
 }
 
@@ -3780,70 +3782,92 @@ input:checked + .slider::before {
     height: min(45vh, 45vw);
     border-radius: var(--radius-full);
     background:
-        radial-gradient(circle, #1a1a1a 0%, #1a1a1a 28%, transparent 28.5%),
-        repeating-radial-gradient(
-            circle,
-            rgb(255, 255, 255, 0.03) 0,
-            rgb(255, 255, 255, 0.03) 1px,
-            transparent 1px,
-            transparent 3px
-        ),
-        radial-gradient(circle, #222 0%, #1c1c1c 30%, #181818 50%, #111 70%, #0d0d0d 100%);
+        /* Outer edge lip */
+        radial-gradient(circle at center, transparent 98%, rgba(255, 255, 255, 0.05) 98.5%, #050505 99%, #000 100%),
+        /* Inner grooves - multiple tightly packed rings */
+        repeating-radial-gradient(circle at center,
+            #111 0,
+            #111 2px,
+            #0a0a0a 2.5px,
+            #0f0f0f 3px,
+            #111 4.5px,
+            #080808 5px,
+            #121212 6px),
+        #0a0a0a;
     box-shadow:
-        inset 0 0 30px rgb(0, 0, 0, 0.5),
-        0 0 0 3px rgb(60, 60, 60, 0.6),
-        0 0 0 6px rgb(20, 20, 20, 0.9),
-        0 20px 60px rgb(0, 0, 0, 0.6);
+        0 20px 50px rgba(0, 0, 0, 0.8),
+        inset 0 0 0 2px rgba(255, 255, 255, 0.1),
+        inset 0 0 10px rgba(0, 0, 0, 1);
     animation: rotate-disc-fullscreen 4s linear infinite;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
+/* Light reflections (anisotropic highlights) on the vinyl */
 #vinyl-disc-container.rotating-disc::before {
     content: '';
     position: absolute;
-    width: 100%;
-    height: 100%;
+    inset: 0;
     border-radius: var(--radius-full);
-    background: repeating-radial-gradient(
-        circle,
-        transparent 0,
-        transparent 2px,
-        rgb(255, 255, 255, 0.015) 2px,
-        rgb(255, 255, 255, 0.015) 3px
-    );
+    background: conic-gradient(from 0deg at 50% 50%,
+            rgba(255, 255, 255, 0.0) 0deg,
+            rgba(255, 255, 255, 0.03) 15deg,
+            rgba(255, 255, 255, 0.25) 30deg,
+            rgba(255, 255, 255, 0.03) 45deg,
+            rgba(255, 255, 255, 0.0) 60deg,
+            rgba(255, 255, 255, 0.0) 180deg,
+            rgba(255, 255, 255, 0.03) 195deg,
+            rgba(255, 255, 255, 0.25) 210deg,
+            rgba(255, 255, 255, 0.03) 225deg,
+            rgba(255, 255, 255, 0.0) 240deg,
+            rgba(255, 255, 255, 0.0) 360deg);
+    mix-blend-mode: screen;
     pointer-events: none;
-    z-index: 1;
+    z-index: 2;
+    /* Above the base grooves and the label */
+    animation: rotate-disc-fullscreen 4s linear infinite reverse;
 }
 
+#vinyl-disc-container.rotating-disc.paused::before {
+    animation-play-state: paused;
+}
+
+/* The spindle hole in the very center */
 #vinyl-disc-container.rotating-disc::after {
     content: '';
     position: absolute;
-    width: 12%;
-    height: 12%;
+    width: 3%;
+    height: 3%;
     border-radius: var(--radius-full);
-    background: radial-gradient(
-        circle,
-        rgb(80, 80, 80, 0.8) 0%,
-        rgb(40, 40, 40, 0.9) 40%,
-        rgb(60, 60, 60, 0.7) 60%,
-        rgb(30, 30, 30, 0.8) 100%
-    );
-    box-shadow: inset 0 0 4px rgb(0, 0, 0, 0.5);
+    background: #000;
+    box-shadow:
+        inset 0 2px 5px rgba(0, 0, 0, 0.9),
+        0 0 0 1px rgba(255, 255, 255, 0.2),
+        /* white paper edge of the hole */
+        0 0 5px rgba(0, 0, 0, 0.6);
     z-index: 3;
+    /* Top most */
     pointer-events: none;
 }
 
 /* Album art inside vinyl disc - becomes the label */
 #vinyl-disc-container.rotating-disc #fullscreen-cover-image {
-    width: 55%;
-    height: 55%;
+    width: 35%;
+    /* Realistic label size relative to the vinyl body */
+    height: 35%;
     max-width: none;
     max-height: none;
     border-radius: var(--radius-full);
     box-shadow:
-        0 0 0 2px rgb(60, 60, 60, 0.4),
-        inset 0 0 20px rgb(0, 0, 0, 0.3);
+        0 0 0 4px #1a1a1a,
+        0 0 0 5px #0a0a0a,
+        0 0 20px rgba(0, 0, 0, 0.9),
+        inset 0 0 15px rgba(0, 0, 0, 0.4);
     object-fit: cover;
-    z-index: 2;
+    z-index: 1;
+    /* Below the glossy reflection overlay */
     margin-bottom: 0;
     position: absolute;
 }
