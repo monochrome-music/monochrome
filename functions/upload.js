@@ -1,20 +1,20 @@
-const API_BASE = "https://temp.imgur.gg/api/upload";
-const COMPLETE_URL = "https://temp.imgur.gg/api/upload/complete";
-const PING_URL = "https://temp.imgur.gg/api/ping";
+const API_BASE = 'https://temp.imgur.gg/api/upload';
+const COMPLETE_URL = 'https://temp.imgur.gg/api/upload/complete';
+const PING_URL = 'https://temp.imgur.gg/api/ping';
 
 export async function onRequest(context) {
     const { request } = context;
 
-    if (request.method === "OPTIONS") {
+    if (request.method === 'OPTIONS') {
         return new Response(null, { status: 204, headers: corsHeaders() });
     }
 
-    if (request.method !== "POST") {
-        return jsonError("Method not allowed", 405);
+    if (request.method !== 'POST') {
+        return jsonError('Method not allowed', 405);
     }
 
     try {
-        const contentType = request.headers.get("content-type") || "";
+        const contentType = request.headers.get('content-type') || '';
         let file;
         let fileName;
         let fileType;
@@ -23,28 +23,28 @@ export async function onRequest(context) {
         /*        GET FILE           */
         /* ========================= */
 
-        if (contentType.includes("application/json")) {
+        if (contentType.includes('application/json')) {
             const body = await request.json();
-            if (!body.fileUrl) return jsonError("No fileUrl provided", 400);
+            if (!body.fileUrl) return jsonError('No fileUrl provided', 400);
 
             const res = await fetch(body.fileUrl);
-            if (!res.ok) throw new Error("Failed to fetch remote file");
+            if (!res.ok) throw new Error('Failed to fetch remote file');
 
             file = await res.arrayBuffer();
-            fileName = body.fileName || body.fileUrl.split("/").pop();
-            fileType = res.headers.get("content-type") || "application/octet-stream";
+            fileName = body.fileName || body.fileUrl.split('/').pop();
+            fileType = res.headers.get('content-type') || 'application/octet-stream';
         } else {
             const form = await request.formData();
-            const uploaded = form.get("file");
-            if (!uploaded) return jsonError("No file provided", 400);
+            const uploaded = form.get('file');
+            if (!uploaded) return jsonError('No file provided', 400);
 
             if (uploaded.size > 500 * 1024 * 1024) {
-                return jsonError("File exceeds 500MB", 400);
+                return jsonError('File exceeds 500MB', 400);
             }
 
             file = await uploaded.arrayBuffer();
             fileName = uploaded.name;
-            fileType = uploaded.type || "application/octet-stream";
+            fileType = uploaded.type || 'application/octet-stream';
         }
 
         /* ========================= */
@@ -52,34 +52,33 @@ export async function onRequest(context) {
         /* ========================= */
 
         const ping = await fetch(PING_URL, {
-            method: "GET",
-            headers: userAgentHeaders()
+            method: 'GET',
+            headers: userAgentHeaders(),
         });
 
-        const setCookie = ping.headers.get("set-cookie") || "";
-        const sessionCookie =
-            setCookie.split(";").find(c => c.trim().startsWith("_s=")) || "";
+        const setCookie = ping.headers.get('set-cookie') || '';
+        const sessionCookie = setCookie.split(';').find((c) => c.trim().startsWith('_s=')) || '';
 
         /* ========================= */
         /*       GET METADATA        */
         /* ========================= */
 
         const metadataResp = await fetch(API_BASE, {
-            method: "POST",
+            method: 'POST',
             headers: {
-                "Content-Type": "application/json",
-                "Cookie": sessionCookie,
-                ...userAgentHeaders()
+                'Content-Type': 'application/json',
+                Cookie: sessionCookie,
+                ...userAgentHeaders(),
             },
             body: JSON.stringify({
                 files: [
                     {
                         fileName,
                         fileType,
-                        fileSize: file.byteLength
-                    }
-                ]
-            })
+                        fileSize: file.byteLength,
+                    },
+                ],
+            }),
         });
 
         const metadataText = await metadataResp.text();
@@ -92,7 +91,7 @@ export async function onRequest(context) {
         const fileInfo = metadata.files?.[0];
 
         if (!fileInfo || !fileInfo.success) {
-            throw new Error("Invalid metadata response");
+            throw new Error('Invalid metadata response');
         }
 
         /* ========================= */
@@ -113,9 +112,8 @@ export async function onRequest(context) {
             success: true,
             url: publicUrl,
             fileId: fileInfo.fileId,
-            fileName: fileInfo.fileName
+            fileName: fileInfo.fileName,
         });
-
     } catch (err) {
         return jsonError(err.message, 500);
     }
@@ -126,14 +124,14 @@ export async function onRequest(context) {
 /* ===================================================== */
 
 async function handleSingle(uploadUrl, fileBuffer, fileType) {
-    if (!uploadUrl) throw new Error("Missing uploadUrl");
+    if (!uploadUrl) throw new Error('Missing uploadUrl');
 
     const res = await fetch(uploadUrl, {
-        method: "PUT",
+        method: 'PUT',
         body: fileBuffer,
         headers: {
-            "Content-Type": fileType
-        }
+            'Content-Type': fileType,
+        },
     });
 
     if (!res.ok) {
@@ -152,7 +150,7 @@ async function handleMultipart(fileInfo, fileBuffer, sessionCookie) {
     const { partUrls, partSize, uploadId, fileId } = fileInfo;
 
     if (!partUrls || !uploadId) {
-        throw new Error("Invalid multipart metadata");
+        throw new Error('Invalid multipart metadata');
     }
 
     const parts = [];
@@ -163,8 +161,8 @@ async function handleMultipart(fileInfo, fileBuffer, sessionCookie) {
         const chunk = fileBuffer.slice(start, end);
 
         const uploadRes = await fetch(partUrls[i].url, {
-            method: "PUT",
-            body: chunk
+            method: 'PUT',
+            body: chunk,
         });
 
         if (!uploadRes.ok) {
@@ -172,12 +170,12 @@ async function handleMultipart(fileInfo, fileBuffer, sessionCookie) {
             throw new Error(`Multipart part ${i + 1} failed: ${txt}`);
         }
 
-        let etag = uploadRes.headers.get("etag") || "";
-        etag = etag.replace(/"/g, "");
+        let etag = uploadRes.headers.get('etag') || '';
+        etag = etag.replace(/"/g, '');
 
         parts.push({
             PartNumber: i + 1,
-            ETag: `"${etag}"`
+            ETag: `"${etag}"`,
         });
     }
 
@@ -186,17 +184,17 @@ async function handleMultipart(fileInfo, fileBuffer, sessionCookie) {
     /* ========================= */
 
     const completeResp = await fetch(COMPLETE_URL, {
-        method: "PUT",
+        method: 'PUT',
         headers: {
-            "Content-Type": "application/json",
-            "Cookie": sessionCookie,
-            ...userAgentHeaders()
+            'Content-Type': 'application/json',
+            Cookie: sessionCookie,
+            ...userAgentHeaders(),
         },
         body: JSON.stringify({
             fileId,
             uploadId,
-            parts
-        })
+            parts,
+        }),
     });
 
     const completeText = await completeResp.text();
@@ -208,7 +206,7 @@ async function handleMultipart(fileInfo, fileBuffer, sessionCookie) {
     const completeData = JSON.parse(completeText);
 
     if (!completeData.success) {
-        throw new Error("Multipart finalize returned failure");
+        throw new Error('Multipart finalize returned failure');
     }
 
     return completeData;
@@ -222,9 +220,9 @@ function jsonResponse(obj, status = 200) {
     return new Response(JSON.stringify(obj), {
         status,
         headers: {
-            "Content-Type": "application/json",
-            ...corsHeaders()
-        }
+            'Content-Type': 'application/json',
+            ...corsHeaders(),
+        },
     });
 }
 
@@ -234,15 +232,14 @@ function jsonError(message, status) {
 
 function corsHeaders() {
     return {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "*"
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': '*',
     };
 }
 
 function userAgentHeaders() {
     return {
-        "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0',
     };
 }
