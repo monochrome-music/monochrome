@@ -544,6 +544,7 @@ function parseFlacBlocks(dataView) {
 function createVorbisCommentBlock(track) {
     // Vorbis comment structure
     const comments = [];
+    const discNumber = track.volumeNumber ?? track.discNumber;
 
     // Add standard tags
     if (track.title) {
@@ -561,6 +562,9 @@ function createVorbisCommentBlock(track) {
     }
     if (track.trackNumber) {
         comments.push(['TRACKNUMBER', String(track.trackNumber)]);
+    }
+    if (discNumber) {
+        comments.push(['DISCNUMBER', String(discNumber)]);
     }
     if (track.album?.numberOfTracks) {
         comments.push(['TRACKTOTAL', String(track.album.numberOfTracks)]);
@@ -920,7 +924,18 @@ function createMp4MetadataAtoms(track) {
     }
 
     if (track.trackNumber) {
-        tags['trkn'] = track.trackNumber;
+        tags['trkn'] = {
+            current: track.trackNumber,
+            total: track.album?.numberOfTracks,
+        };
+    }
+
+    const discNumber = track.volumeNumber ?? track.discNumber;
+    if (discNumber) {
+        tags['disk'] = {
+            current: discNumber,
+            total: 0,
+        };
     }
 
     const releaseDateStr =
@@ -1055,7 +1070,7 @@ function createMetadataBlock(metadataAtoms) {
 
     // Text tags
     for (const [key, value] of Object.entries(tags)) {
-        if (key === 'trkn') {
+        if (key === 'trkn' || key === 'disk') {
             ilstChildren.push(createIntAtom(key, value));
         } else {
             ilstChildren.push(createStringAtom(key, value));
@@ -1190,7 +1205,7 @@ function createStringAtom(type, value) {
 }
 
 function createIntAtom(type, value) {
-    // trkn is special: data is 8 bytes.
+    // trkn/disk are special: data is 8 bytes.
     // reserved(2) + track(2) + total(2) + reserved(2)
     const dataSize = 16 + 8;
     const atomSize = 8 + dataSize;
@@ -1214,16 +1229,18 @@ function createIntAtom(type, value) {
     buf[offset++] = 0;
     buf[offset++] = 0;
 
-    // Track data
+    const current = typeof value === 'object' ? value.current : value;
+    const total = typeof value === 'object' ? value.total : 0;
+
+    // Numbering payload (track/disc number + total)
     buf[offset++] = 0;
     buf[offset++] = 0;
-    // Track num
-    const trk = parseInt(value) || 0;
-    buf[offset++] = (trk >> 8) & 0xff;
-    buf[offset++] = trk & 0xff;
-    // Total (0 for now)
-    buf[offset++] = 0;
-    buf[offset++] = 0;
+    const numberValue = parseInt(current, 10) || 0;
+    buf[offset++] = (numberValue >> 8) & 0xff;
+    buf[offset++] = numberValue & 0xff;
+    const totalValue = parseInt(total, 10) || 0;
+    buf[offset++] = (totalValue >> 8) & 0xff;
+    buf[offset++] = totalValue & 0xff;
     buf[offset++] = 0;
     buf[offset++] = 0;
 
