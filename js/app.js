@@ -297,6 +297,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize analytics
     initAnalytics();
 
+    // Apply carousel mode on initial load
+    const { responsiveSettings } = await import('./storage.js');
+    if (responsiveSettings.isCarouselMode()) {
+        document.documentElement.classList.add('carousel-mode');
+    }
+
     const api = new MusicAPI(apiSettings);
     const audioPlayer = document.getElementById('audio-player');
 

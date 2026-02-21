@@ -2,7 +2,7 @@
 // Shared Audio Context Manager - handles EQ and provides context for visualizer
 // Supports 3-32 parametric EQ bands
 
-import { equalizerSettings, monoAudioSettings } from './storage.js';
+import { equalizerSettings, monoAudioSettings, performanceModeSettings } from './storage.js';
 
 // Generate frequency array for given number of bands using logarithmic spacing
 function generateFrequencies(bandCount, minFreq = 20, maxFreq = 20000) {
@@ -113,6 +113,53 @@ class AudioContextManager {
 
         // Load saved settings
         this._loadSettings();
+    }
+
+    /**
+     * Get latency hint based on performance mode
+     * @returns {string} Latency hint for AudioContext
+     */
+    getLatencyHint() {
+        const mode = performanceModeSettings.getMode();
+        switch (mode) {
+            case 'extreme':
+                return 'interactive'; // Lowest latency, best for real-time
+            case 'performance':
+                return 'interactive';
+            case 'balanced':
+                return 'balanced'; // Balance between latency and power
+            case 'quality':
+            default:
+                return 'playback'; // Best for uninterrupted playback
+        }
+    }
+
+    /**
+     * Update analyser configuration based on performance mode
+     */
+    updateAnalyserForPerformance() {
+        if (!this.analyser) return;
+
+        const mode = performanceModeSettings.getMode();
+        switch (mode) {
+            case 'extreme':
+                this.analyser.fftSize = 256; // Smaller for better performance
+                this.analyser.smoothingTimeConstant = 0.5;
+                break;
+            case 'performance':
+                this.analyser.fftSize = 512;
+                this.analyser.smoothingTimeConstant = 0.6;
+                break;
+            case 'balanced':
+                this.analyser.fftSize = 512;
+                this.analyser.smoothingTimeConstant = 0.7;
+                break;
+            case 'quality':
+            default:
+                this.analyser.fftSize = 1024; // Higher resolution
+                this.analyser.smoothingTimeConstant = 0.8;
+                break;
+        }
     }
 
     /**
@@ -312,7 +359,14 @@ class AudioContextManager {
 
         try {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
-            this.audioContext = new AudioContext();
+
+            // Get latency hint based on performance mode
+            const latencyHint = this.getLatencyHint();
+
+            this.audioContext = new AudioContext({
+                latencyHint: latencyHint,
+                sampleRate: 48000, // Standard high-quality sample rate
+            });
 
             // Create the media element source
             this.source = this.audioContext.createMediaElementSource(audioElement);

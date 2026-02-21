@@ -17,8 +17,10 @@ import {
     exponentialVolumeSettings,
     audioEffectsSettings,
     rotatingCoverSettings,
+    performanceModeSettings,
 } from './storage.js';
 import { audioContextManager } from './audio-context.js';
+import { performanceMode } from './performance-mode.js';
 
 export class Player {
     constructor(audioElement, api, quality = 'HI_RES_LOSSLESS') {
@@ -298,7 +300,10 @@ export class Player {
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
         const tracksToPreload = [];
 
-        for (let i = 1; i <= 2; i++) {
+        // Get preload count from performance mode (2-5 tracks based on mode)
+        const preloadCount = this.getPreloadCount();
+
+        for (let i = 1; i <= preloadCount; i++) {
             const nextIndex = this.currentQueueIndex + i;
             if (nextIndex < currentQueue.length) {
                 tracksToPreload.push({ track: currentQueue[nextIndex], index: nextIndex });
@@ -326,6 +331,57 @@ export class Player {
                 }
             }
         }
+    }
+
+    /**
+     * Get the number of tracks to preload based on performance mode
+     * @returns {number} Number of tracks to preload
+     */
+    getPreloadCount() {
+        const mode = performanceModeSettings.getMode();
+        switch (mode) {
+            case 'extreme':
+                return 5; // Aggressive preloading for best performance
+            case 'performance':
+                return 3;
+            case 'balanced':
+                return 2;
+            case 'quality':
+            default:
+                return 2;
+        }
+    }
+
+    /**
+     * Optimize the queue for performance mode
+     * Clears old cached tracks to free memory in extreme mode
+     */
+    optimizeQueue() {
+        const mode = performanceModeSettings.getMode();
+        const maxCacheSize = mode === 'extreme' ? 10 : mode === 'performance' ? 20 : 50;
+
+        // Keep only recent tracks in cache
+        if (this.preloadCache.size > maxCacheSize) {
+            const entriesToRemove = this.preloadCache.size - maxCacheSize;
+            let removed = 0;
+            for (const key of this.preloadCache.keys()) {
+                if (removed >= entriesToRemove) break;
+                // Don't remove the current track
+                if (this.currentTrack && key === this.currentTrack.id) continue;
+                this.preloadCache.delete(key);
+                removed++;
+            }
+        }
+    }
+
+    /**
+     * Clear all cached preloaded tracks
+     */
+    clearPreloadCache() {
+        if (this.preloadAbortController) {
+            this.preloadAbortController.abort();
+        }
+        this.preloadCache.clear();
     }
 
     async playTrackFromQueue(startTime = 0, recursiveCount = 0) {

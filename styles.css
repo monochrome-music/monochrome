@@ -232,6 +232,48 @@
     --cover-radius: var(--radius-md);
 
     /* -------------------------------------------------------------------------
+       RESPONSIVE CALCULATION VARIABLES
+       Algorithmic UI calculations based on viewport
+       ------------------------------------------------------------------------- */
+    --viewport-width: 100vw;
+    --viewport-height: 100vh;
+    --container-padding: clamp(0.75rem, 2vw, 2rem);
+
+    /* Fluid typography scale using clamp() */
+    --text-base-fluid: clamp(0.875rem, 0.8rem + 0.25vw, 1rem);
+    --text-lg-fluid: clamp(1rem, 0.9rem + 0.35vw, 1.25rem);
+    --text-xl-fluid: clamp(1.25rem, 1rem + 0.75vw, 1.5rem);
+    --text-2xl-fluid: clamp(1.5rem, 1.25rem + 1vw, 1.875rem);
+    --text-3xl-fluid: clamp(1.75rem, 1.5rem + 1.25vw, 2.25rem);
+    --text-4xl-fluid: clamp(2rem, 1.5rem + 2vw, 3rem);
+
+    /* Fluid spacing */
+    --space-fluid-sm: clamp(0.5rem, 0.25rem + 1vw, 1rem);
+    --space-fluid-md: clamp(1rem, 0.5rem + 2vw, 2rem);
+    --space-fluid-lg: clamp(1.5rem, 0.75rem + 3vw, 3rem);
+
+    /* Dynamic layout dimensions */
+    --sidebar-width-fluid: clamp(180px, 15vw, 240px);
+    --sidebar-collapsed-width-fluid: clamp(60px, 5vw, 70px);
+    --player-bar-height-fluid: clamp(80px, 10vh, 90px);
+    --player-bar-height-mobile-fluid: clamp(120px, 15vh, 140px);
+
+    /* Card dimensions */
+    --card-min-width: clamp(140px, 15vw, 200px);
+    --card-max-width: clamp(180px, 20vw, 250px);
+    --card-gap-fluid: clamp(0.75rem, 1.5vw, 1.5rem);
+
+    /* Touch target sizes for accessibility */
+    --touch-target-min: 44px; /* WCAG minimum */
+    --touch-target-comfortable: 48px;
+
+    /* Animation multiplier (controlled by JS for performance modes) */
+    --animation-multiplier: 1;
+
+    /* Background blur intensity */
+    --background-blur: 20px;
+
+    /* -------------------------------------------------------------------------
        SEMANTIC COLORS (will be overridden by themes)
        ------------------------------------------------------------------------- */
     --color-danger: #ef4444;
@@ -1630,64 +1672,64 @@ input[type='search']::-webkit-search-cancel-button {
 @keyframes fade-in-slide-up {
     from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translate3d(0, 10px, 0);
     }
 
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translate3d(0, 0, 0);
     }
 }
 
 @keyframes scale-in {
     from {
         opacity: 0;
-        transform: scale(0.95);
+        transform: scale3d(0.95, 0.95, 1);
     }
 
     to {
         opacity: 1;
-        transform: scale(1);
+        transform: scale3d(1, 1, 1);
     }
 }
 
 @keyframes pop-in {
     0% {
         opacity: 0;
-        transform: scale(0.9);
+        transform: scale3d(0.9, 0.9, 1);
     }
 
     70% {
-        transform: scale(1.02);
+        transform: scale3d(1.02, 1.02, 1);
     }
 
     100% {
         opacity: 1;
-        transform: scale(1);
+        transform: scale3d(1, 1, 1);
     }
 }
 
 @keyframes slide-in {
     from {
         opacity: 0;
-        transform: translateX(20px);
+        transform: translate3d(20px, 0, 0);
     }
 
     to {
         opacity: 1;
-        transform: translateX(0);
+        transform: translate3d(0, 0, 0);
     }
 }
 
 @keyframes slide-out {
     from {
         opacity: 1;
-        transform: translateX(0);
+        transform: translate3d(0, 0, 0);
     }
 
     to {
         opacity: 0;
-        transform: translateX(20px);
+        transform: translate3d(20px, 0, 0);
     }
 }
 
@@ -1706,6 +1748,453 @@ input[type='search']::-webkit-search-cancel-button {
     50% {
         opacity: 0.5;
     }
+}
+
+/* =========================================
+   LOAD ANIMATIONS - Text and UI Elements
+   ========================================= */
+
+/* Text reveal animation - characters slide up and fade in */
+@keyframes text-reveal {
+    0% {
+        opacity: 0;
+        transform: translate3d(0, 100%, 0);
+        filter: blur(4px);
+    }
+    100% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+        filter: blur(0);
+    }
+}
+
+/* Staggered text animation for headings */
+@keyframes heading-reveal {
+    0% {
+        opacity: 0;
+        transform: translate3d(-20px, 0, 0);
+        letter-spacing: 0.2em;
+    }
+    100% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+        letter-spacing: normal;
+    }
+}
+
+/* Card grid stagger animation */
+@keyframes card-enter {
+    0% {
+        opacity: 0;
+        transform: translate3d(0, 30px, 0) scale3d(0.95, 0.95, 1);
+    }
+    100% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
+    }
+}
+
+/* Shimmer loading effect */
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* Glow pulse for featured content */
+@keyframes glow-pulse {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(var(--accent-rgb, 255, 255, 255), 0.3);
+    }
+    50% {
+        box-shadow: 0 0 40px rgba(var(--accent-rgb, 255, 255, 255), 0.5);
+    }
+}
+
+/* Float animation for hero elements */
+@keyframes float {
+    0%, 100% {
+        transform: translate3d(0, 0, 0);
+    }
+    50% {
+        transform: translate3d(0, -10px, 0);
+    }
+}
+
+/* Gradient shift for backgrounds */
+@keyframes gradient-shift {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* Text typewriter effect */
+@keyframes typewriter {
+    from {
+        width: 0;
+    }
+    to {
+        width: 100%;
+    }
+}
+
+@keyframes blink-caret {
+    from, to {
+        border-color: transparent;
+    }
+    50% {
+        border-color: var(--primary);
+    }
+}
+
+/* Animation utility classes */
+.animate-text-reveal {
+    animation: text-reveal 0.6s var(--ease-out-back) forwards;
+}
+
+.animate-heading-reveal {
+    animation: heading-reveal 0.8s var(--ease-out-back) forwards;
+}
+
+.animate-card-enter {
+    animation: card-enter 0.5s var(--ease-out-back) forwards;
+}
+
+.animate-shimmer {
+    background: linear-gradient(
+        90deg,
+        var(--card) 0%,
+        var(--card-hover) 50%,
+        var(--card) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+.animate-glow-pulse {
+    animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.animate-float {
+    animation: float 3s ease-in-out infinite;
+}
+
+.animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient-shift 8s ease infinite;
+}
+
+/* Staggered animation delays for lists */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
+.stagger-7 { animation-delay: 0.35s; }
+.stagger-8 { animation-delay: 0.4s; }
+.stagger-9 { animation-delay: 0.45s; }
+.stagger-10 { animation-delay: 0.5s; }
+
+/* Initial state for animated elements */
+.animate-on-load {
+    opacity: 0;
+}
+
+.animate-on-load.animated {
+    opacity: 1;
+}
+
+/* =========================================
+   CAROUSEL COMPONENT - YouTube Music Style
+   ========================================= */
+
+.carousel-container {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    padding: var(--space-fluid-sm) 0;
+}
+
+.carousel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 0 var(--container-padding);
+}
+
+.carousel-title {
+    font-size: var(--text-xl-fluid);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.carousel-nav {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.carousel-nav-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--card);
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.carousel-nav-btn:hover {
+    background: var(--card-hover);
+    transform: scale(1.05);
+}
+
+.carousel-nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.carousel-track {
+    display: flex;
+    gap: var(--card-gap-fluid);
+    padding: 0 var(--container-padding);
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-snap-type: x mandatory;
+}
+
+.carousel-track::-webkit-scrollbar {
+    display: none;
+}
+
+.carousel-item {
+    flex-shrink: 0;
+    scroll-snap-align: start;
+    animation: card-enter 0.5s var(--ease-out-back) forwards;
+    opacity: 0;
+}
+
+/* Large carousel cards for featured content */
+.carousel-item-large {
+    width: clamp(280px, 40vw, 400px);
+}
+
+.carousel-item-large .card-image {
+    aspect-ratio: 16/9;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+/* Artist carousel with circular images */
+.carousel-item-artist {
+    width: clamp(140px, 15vw, 180px);
+    text-align: center;
+}
+
+.carousel-item-artist .card-image {
+    aspect-ratio: 1;
+    border-radius: 50%;
+    overflow: hidden;
+    margin-bottom: 0.75rem;
+}
+
+.carousel-item-artist .card-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--transition-normal);
+}
+
+.carousel-item-artist:hover .card-image img {
+    transform: scale(1.1);
+}
+
+/* Album carousel */
+.carousel-item-album {
+    width: var(--card-min-width);
+    max-width: var(--card-max-width);
+}
+
+.carousel-item-album .card-image {
+    aspect-ratio: 1;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+/* Carousel progress indicator */
+.carousel-progress {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.carousel-progress-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--border-color);
+    transition: all var(--transition-fast);
+}
+
+.carousel-progress-dot.active {
+    width: 24px;
+    border-radius: 3px;
+    background: var(--primary);
+}
+
+/* Carousel fade edges */
+.carousel-container::before,
+.carousel-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 60px;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.carousel-container::before {
+    left: 0;
+    background: linear-gradient(to right, var(--background), transparent);
+}
+
+.carousel-container::after {
+    right: 0;
+    background: linear-gradient(to left, var(--background), transparent);
+}
+
+/* Hide fade edges on mobile */
+@media (max-width: 768px) {
+    .carousel-container::before,
+    .carousel-container::after {
+        display: none;
+    }
+}
+
+/* =========================================
+   CAROUSEL MODE - Toggle between Grid/Carousel
+   When carousel-mode class is on root, show carousels
+   ========================================= */
+
+/* Default: Show card grids as regular grids */
+.card-grid {
+    display: grid;
+}
+
+/* When carousel mode is enabled, make card grids horizontal scrollable */
+html.carousel-mode .card-grid,
+.carousel-mode .card-grid {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-snap-type: x mandatory;
+    gap: var(--card-gap-fluid);
+    padding-bottom: var(--space-2);
+    margin: 0 calc(-1 * var(--container-padding));
+    padding-left: var(--container-padding);
+    padding-right: var(--container-padding);
+    -webkit-overflow-scrolling: touch;
+}
+
+html.carousel-mode .card-grid::-webkit-scrollbar,
+.carousel-mode .card-grid::-webkit-scrollbar {
+    display: none;
+}
+
+/* Make cards not shrink in carousel mode */
+html.carousel-mode .card-grid > .card,
+.carousel-mode .card-grid > .card {
+    flex-shrink: 0;
+    scroll-snap-align: start;
+    width: var(--card-min-width);
+    min-width: var(--card-min-width);
+    max-width: var(--card-max-width);
+}
+
+/* Also handle any direct children that might not have .card class */
+html.carousel-mode .card-grid > *,
+.carousel-mode .card-grid > * {
+    flex-shrink: 0;
+    scroll-snap-align: start;
+}
+
+/* Hide carousel wrappers (we use card-grid directly) */
+.carousel-wrapper {
+    display: none;
+}
+
+/* Non-carousel mode: hide carousel containers */
+:not(.carousel-mode) .carousel-container {
+    display: none;
+}
+
+/* Carousel loading indicators */
+.carousel-loading-indicator {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 100%;
+    z-index: 20;
+    pointer-events: none;
+}
+
+.carousel-loading-indicator.left {
+    left: 0;
+    background: linear-gradient(to right, var(--background), transparent);
+}
+
+.carousel-loading-indicator.right {
+    right: 0;
+    background: linear-gradient(to left, var(--background), transparent);
+}
+
+.carousel-loading-indicator .loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border-color);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+/* Carousel track drag styling */
+.carousel-track.dragging {
+    cursor: grabbing !important;
+}
+
+.carousel-track * {
+    pointer-events: none; /* Prevent selecting text while dragging */
+}
+
+.carousel-track:not(.dragging) * {
+    pointer-events: auto;
 }
 
 @keyframes heart-beat {
@@ -1734,6 +2223,116 @@ input[type='search']::-webkit-search-cancel-button {
     100% {
         background-position: -200% 0;
     }
+}
+
+/* ==========================================================================
+   HARDWARE ACCELERATION
+   Force GPU layer creation for animated elements
+   ========================================================================== */
+
+/* Elements that should always be GPU-accelerated */
+.card,
+.card-image-wrapper,
+.modal,
+.modal-content,
+.sidebar,
+.now-playing-bar,
+.track-item,
+.btn-icon,
+.page,
+.slide-panel,
+.dropdown-menu,
+.toast {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+}
+
+/* Will-change hints for interactive elements (used sparingly) */
+.card:hover {
+    will-change: transform, box-shadow;
+}
+
+.card-image-wrapper {
+    will-change: transform;
+}
+
+.modal.active {
+    will-change: opacity, transform;
+}
+
+.sidebar {
+    will-change: transform;
+}
+
+/* Remove will-change after animation completes */
+.animation-complete {
+    will-change: auto;
+}
+
+/* ==========================================================================
+   REDUCED MOTION SUPPORT
+   Respect user preferences for reduced motion
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .card:hover {
+        transform: none;
+    }
+
+    .card:hover .card-image {
+        transform: none;
+    }
+
+    .sidebar {
+        transition: none;
+    }
+
+    /* Keep essential state changes but remove motion */
+    .page.active {
+        animation: none;
+    }
+
+    /* Show elements that would animate in */
+    .modal.active .modal-content {
+        transform: none;
+        opacity: 1;
+    }
+}
+
+/* Enhanced motion for users who prefer it */
+@media (prefers-reduced-motion: no-preference) {
+    .card:hover {
+        transform: translateY(-6px) scale(1.01);
+    }
+}
+
+/* Animation intensity classes (controlled by JS) */
+.animations-none *,
+.animations-none *::before,
+.animations-none *::after {
+    animation-duration: 0ms !important;
+    transition-duration: 0ms !important;
+}
+
+.animations-reduced *,
+.animations-reduced *::before,
+.animations-reduced *::after {
+    animation-duration: calc(var(--duration-normal) * 0.5) !important;
+    transition-duration: calc(var(--duration-normal) * 0.5) !important;
+}
+
+.animations-enhanced .card:hover {
+    transform: translateY(-10px) scale(1.02);
 }
 
 .animate-spin {
@@ -1852,6 +2451,64 @@ input[type='search']::-webkit-search-cancel-button {
 .settings-tab-content.active {
     display: block;
     animation: fade-in-slide-up 0.4s var(--ease-out-back);
+}
+
+/* ==========================================================================
+   CONTAINER QUERIES
+   Enable component-level responsiveness
+   ========================================================================== */
+
+/* Enable container queries on parent elements */
+.main-content,
+.page,
+.card-grid,
+.track-list,
+.content-section {
+    container-type: inline-size;
+    container-name: content;
+}
+
+/* Container-based card sizing */
+@container content (min-width: 600px) {
+    .card-grid {
+        grid-template-columns: repeat(auto-fill, minmax(var(--card-min-width), 1fr));
+    }
+}
+
+@container content (max-width: 400px) {
+    .card {
+        padding: var(--space-2);
+    }
+    .card-title {
+        font-size: var(--text-sm);
+    }
+    .card-subtitle {
+        font-size: var(--text-xs);
+    }
+}
+
+/* Container-based track list */
+@container content (max-width: 500px) {
+    .track-item {
+        gap: var(--space-2);
+    }
+    .track-item-actions {
+        display: none;
+    }
+    .track-item-duration {
+        font-size: var(--text-xs);
+    }
+}
+
+/* Container-based detail header */
+@container content (max-width: 600px) {
+    .detail-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .detail-header .cover-container {
+        margin-bottom: var(--space-4);
+    }
 }
 
 .card-grid {

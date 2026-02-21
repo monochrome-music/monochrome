@@ -2475,3 +2475,251 @@ export const contentBlockingSettings = {
         localStorage.removeItem(this.BLOCKED_ALBUMS_KEY);
     },
 };
+
+// ==========================================================================
+// PERFORMANCE MODE SETTINGS
+// ==========================================================================
+export const performanceModeSettings = {
+    STORAGE_KEY: 'performance-mode-settings',
+    MODE_KEY: 'performance-mode',
+
+    defaultSettings: {
+        mode: 'beast', // Default to Beast Mode for ultimate experience
+        animations: true,
+        animationIntensity: 'enhanced',
+        backgroundBlur: true,
+        blurIntensity: 'high',
+        visualizer: true,
+        visualizerQuality: 'ultra',
+        dynamicColors: true,
+        colorExtraction: 'full',
+        lowLatencyAudio: false,
+        imageQuality: 'highest',
+        imageUpscaling: true,
+        cardPreload: 8,
+        eqBands: 32,
+        particleEffects: true,
+        smoothTransitions: true,
+        carouselAnimations: true,
+        loadAnimations: true,
+        gpuAcceleration: true,
+    },
+
+    getSettings() {
+        try {
+            const stored = localStorage.getItem(this.STORAGE_KEY);
+            return stored ? { ...this.defaultSettings, ...JSON.parse(stored) } : this.defaultSettings;
+        } catch {
+            return this.defaultSettings;
+        }
+    },
+
+    setSettings(settings) {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(settings));
+    },
+
+    getMode() {
+        return localStorage.getItem(this.MODE_KEY) || 'beast';
+    },
+
+    setMode(mode) {
+        localStorage.setItem(this.MODE_KEY, mode);
+    },
+
+    isAnimationsEnabled() {
+        return this.getSettings().animations;
+    },
+
+    setAnimations(enabled) {
+        const settings = this.getSettings();
+        settings.animations = enabled;
+        this.setSettings(settings);
+    },
+
+    isBackgroundBlurEnabled() {
+        return this.getSettings().backgroundBlur;
+    },
+
+    setBackgroundBlur(enabled) {
+        const settings = this.getSettings();
+        settings.backgroundBlur = enabled;
+        this.setSettings(settings);
+    },
+
+    isVisualizerEnabled() {
+        return this.getSettings().visualizer;
+    },
+
+    setVisualizer(enabled) {
+        const settings = this.getSettings();
+        settings.visualizer = enabled;
+        this.setSettings(settings);
+    },
+
+    getImageQuality() {
+        return this.getSettings().imageQuality;
+    },
+
+    setImageQuality(quality) {
+        const settings = this.getSettings();
+        settings.imageQuality = quality;
+        this.setSettings(settings);
+    },
+
+    isLowLatencyAudioEnabled() {
+        return this.getSettings().lowLatencyAudio;
+    },
+
+    setLowLatencyAudio(enabled) {
+        const settings = this.getSettings();
+        settings.lowLatencyAudio = enabled;
+        this.setSettings(settings);
+    },
+};
+
+// ==========================================================================
+// ANIMATION SETTINGS
+// ==========================================================================
+export const animationSettings = {
+    STORAGE_KEY: 'animation-settings',
+
+    defaultSettings: {
+        intensity: 'normal', // 'none', 'reduced', 'normal', 'enhanced'
+        cardHover: true,
+        pageTransitions: true,
+        listStagger: true,
+        rippleEffects: true,
+        skeletonLoading: true,
+    },
+
+    getSettings() {
+        try {
+            const stored = localStorage.getItem(this.STORAGE_KEY);
+            return stored ? { ...this.defaultSettings, ...JSON.parse(stored) } : this.defaultSettings;
+        } catch {
+            return this.defaultSettings;
+        }
+    },
+
+    setSettings(settings) {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(settings));
+    },
+
+    getIntensity() {
+        return this.getSettings().intensity;
+    },
+
+    setIntensity(intensity) {
+        const settings = this.getSettings();
+        settings.intensity = intensity;
+        this.setSettings(settings);
+    },
+
+    isCardHoverEnabled() {
+        return this.getSettings().cardHover;
+    },
+
+    setCardHover(enabled) {
+        const settings = this.getSettings();
+        settings.cardHover = enabled;
+        this.setSettings(settings);
+    },
+
+    isPageTransitionsEnabled() {
+        return this.getSettings().pageTransitions;
+    },
+
+    setPageTransitions(enabled) {
+        const settings = this.getSettings();
+        settings.pageTransitions = enabled;
+        this.setSettings(settings);
+    },
+
+    isRippleEffectsEnabled() {
+        return this.getSettings().rippleEffects;
+    },
+
+    setRippleEffects(enabled) {
+        const settings = this.getSettings();
+        settings.rippleEffects = enabled;
+        this.setSettings(settings);
+    },
+};
+
+// ==========================================================================
+// RESPONSIVE LAYOUT SETTINGS
+// ==========================================================================
+export const responsiveSettings = {
+    STORAGE_KEY: 'responsive-settings',
+
+    defaultSettings: {
+        sidebarDefault: 'auto', // 'expanded', 'collapsed', 'auto'
+        cardSize: 'auto', // 'small', 'medium', 'large', 'auto'
+        compactTrackList: false,
+        showArtwork: true,
+        carouselMode: true, // Enable carousel mode by default (YouTube Music style)
+    },
+
+    getSettings() {
+        try {
+            const stored = localStorage.getItem(this.STORAGE_KEY);
+            return stored ? { ...this.defaultSettings, ...JSON.parse(stored) } : this.defaultSettings;
+        } catch {
+            return this.defaultSettings;
+        }
+    },
+
+    setSettings(settings) {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(settings));
+    },
+
+    getSidebarDefault() {
+        return this.getSettings().sidebarDefault;
+    },
+
+    setSidebarDefault(value) {
+        const settings = this.getSettings();
+        settings.sidebarDefault = value;
+        this.setSettings(settings);
+    },
+
+    getCardSize() {
+        return this.getSettings().cardSize;
+    },
+
+    setCardSize(size) {
+        const settings = this.getSettings();
+        settings.cardSize = size;
+        this.setSettings(settings);
+    },
+
+    isCompactTrackList() {
+        return this.getSettings().compactTrackList;
+    },
+
+    setCompactTrackList(compact) {
+        const settings = this.getSettings();
+        settings.compactTrackList = compact;
+        this.setSettings(settings);
+    },
+
+    isShowArtwork() {
+        return this.getSettings().showArtwork;
+    },
+
+    setShowArtwork(show) {
+        const settings = this.getSettings();
+        settings.showArtwork = show;
+        this.setSettings(settings);
+    },
+
+    isCarouselMode() {
+        return this.getSettings().carouselMode;
+    },
+
+    setCarouselMode(enabled) {
+        const settings = this.getSettings();
+        settings.carouselMode = enabled;
+        this.setSettings(settings);
+    },
+};

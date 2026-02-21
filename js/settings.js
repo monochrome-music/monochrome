@@ -34,6 +34,9 @@ import {
     analyticsSettings,
     modalSettings,
     rotatingCoverSettings,
+    performanceModeSettings,
+    animationSettings,
+    responsiveSettings,
 } from './storage.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
 import { getButterchurnPresets } from './visualizers/butterchurn.js';
@@ -41,6 +44,9 @@ import { db } from './db.js';
 import { authManager } from './accounts/auth.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { saveFirebaseConfig, clearFirebaseConfig } from './accounts/config.js';
+import { performanceMode } from './performance-mode.js';
+import { animationManager } from './animation-utils.js';
+import { responsiveManager } from './responsive-utils.js';
 
 export function initializeSettings(scrobbler, player, api, ui) {
     // Restore last active settings tab
@@ -863,6 +869,160 @@ export function initializeSettings(scrobbler, player, api, ui) {
 
         playbackSpeedInput.addEventListener('change', handleInputChange);
         playbackSpeedInput.addEventListener('blur', handleInputChange);
+    }
+
+    // ========================================
+    // Performance Mode Settings
+    // ========================================
+    const performanceModeSelect = document.getElementById('performance-mode-select');
+    const lowLatencyAudioToggle = document.getElementById('low-latency-audio-toggle');
+    const imageQualitySelect = document.getElementById('image-quality-select');
+
+    if (performanceModeSelect) {
+        performanceModeSelect.value = performanceModeSettings.getMode();
+        performanceModeSelect.addEventListener('change', (e) => {
+            performanceMode.setMode(e.target.value);
+            // Update related UI elements
+            if (lowLatencyAudioToggle) {
+                lowLatencyAudioToggle.checked = performanceMode.getSetting('lowLatency');
+            }
+            if (imageQualitySelect) {
+                imageQualitySelect.value = performanceMode.getSetting('imageQuality');
+            }
+        });
+    }
+
+    if (lowLatencyAudioToggle) {
+        lowLatencyAudioToggle.checked = performanceModeSettings.isLowLatencyAudioEnabled();
+        lowLatencyAudioToggle.addEventListener('change', (e) => {
+            performanceModeSettings.setLowLatencyAudio(e.target.checked);
+            if (audioContextManager && typeof audioContextManager.setLowLatencyMode === 'function') {
+                audioContextManager.setLowLatencyMode(e.target.checked);
+            }
+        });
+    }
+
+    if (imageQualitySelect) {
+        imageQualitySelect.value = performanceModeSettings.getImageQuality();
+        imageQualitySelect.addEventListener('change', (e) => {
+            performanceModeSettings.setImageQuality(e.target.value);
+        });
+    }
+
+    // ========================================
+    // Animation Settings
+    // ========================================
+    const animationIntensitySelect = document.getElementById('animation-intensity-select');
+    const cardHoverToggle = document.getElementById('card-hover-toggle');
+    const pageTransitionsToggle = document.getElementById('page-transitions-toggle');
+    const rippleEffectsToggle = document.getElementById('ripple-effects-toggle');
+
+    const applyAnimationIntensity = (intensity) => {
+        const root = document.documentElement;
+        root.classList.remove('animations-none', 'animations-reduced', 'animations-enhanced');
+
+        if (intensity !== 'normal') {
+            root.classList.add(`animations-${intensity}`);
+        }
+
+        // Update CSS custom property for animation duration multiplier
+        const multipliers = {
+            none: 0,
+            reduced: 0.5,
+            normal: 1,
+            enhanced: 1.5,
+        };
+        root.style.setProperty('--animation-multiplier', String(multipliers[intensity] || 1));
+    };
+
+    if (animationIntensitySelect) {
+        animationIntensitySelect.value = animationSettings.getIntensity();
+        animationIntensitySelect.addEventListener('change', (e) => {
+            animationSettings.setIntensity(e.target.value);
+            applyAnimationIntensity(e.target.value);
+        });
+    }
+
+    if (cardHoverToggle) {
+        cardHoverToggle.checked = animationSettings.isCardHoverEnabled();
+        cardHoverToggle.addEventListener('change', (e) => {
+            animationSettings.setCardHover(e.target.checked);
+            document.documentElement.classList.toggle('disable-card-hover', !e.target.checked);
+        });
+    }
+
+    if (pageTransitionsToggle) {
+        pageTransitionsToggle.checked = animationSettings.isPageTransitionsEnabled();
+        pageTransitionsToggle.addEventListener('change', (e) => {
+            animationSettings.setPageTransitions(e.target.checked);
+        });
+    }
+
+    if (rippleEffectsToggle) {
+        rippleEffectsToggle.checked = animationSettings.isRippleEffectsEnabled();
+        rippleEffectsToggle.addEventListener('change', (e) => {
+            animationSettings.setRippleEffects(e.target.checked);
+        });
+    }
+
+    // ========================================
+    // Responsive Layout Settings
+    // ========================================
+    const sidebarDefaultSelect = document.getElementById('sidebar-default-select');
+    const cardSizeSelect = document.getElementById('card-size-select');
+    const compactTrackListToggle = document.getElementById('compact-track-list-toggle');
+
+    const applyCardSize = (size) => {
+        const root = document.documentElement;
+        const sizes = {
+            small: { minWidth: '140px', maxWidth: '180px' },
+            medium: { minWidth: '160px', maxWidth: '200px' },
+            large: { minWidth: '180px', maxWidth: '240px' },
+            auto: { minWidth: 'clamp(140px, 15vw, 200px)', maxWidth: 'clamp(180px, 20vw, 250px)' },
+        };
+
+        const config = sizes[size] || sizes.auto;
+        root.style.setProperty('--card-min-width', config.minWidth);
+        root.style.setProperty('--card-max-width', config.maxWidth);
+    };
+
+    if (sidebarDefaultSelect) {
+        sidebarDefaultSelect.value = responsiveSettings.getSidebarDefault();
+        sidebarDefaultSelect.addEventListener('change', (e) => {
+            responsiveSettings.setSidebarDefault(e.target.value);
+        });
+    }
+
+    if (cardSizeSelect) {
+        cardSizeSelect.value = responsiveSettings.getCardSize();
+        cardSizeSelect.addEventListener('change', (e) => {
+            responsiveSettings.setCardSize(e.target.value);
+            applyCardSize(e.target.value);
+        });
+    }
+
+    if (compactTrackListToggle) {
+        compactTrackListToggle.checked = responsiveSettings.isCompactTrackList();
+        compactTrackListToggle.addEventListener('change', (e) => {
+            responsiveSettings.setCompactTrackList(e.target.checked);
+            document.documentElement.classList.toggle('compact-tracks', e.target.checked);
+        });
+    }
+
+    // Carousel Mode Toggle
+    const carouselModeToggle = document.getElementById('carousel-mode-toggle');
+    if (carouselModeToggle) {
+        carouselModeToggle.checked = responsiveSettings.isCarouselMode();
+        carouselModeToggle.addEventListener('change', (e) => {
+            responsiveSettings.setCarouselMode(e.target.checked);
+            document.documentElement.classList.toggle('carousel-mode', e.target.checked);
+            // Dispatch event for UI components to re-render
+            window.dispatchEvent(new CustomEvent('carousel-mode-changed', { 
+                detail: { enabled: e.target.checked } 
+            }));
+        });
+        // Apply initial state
+        document.documentElement.classList.toggle('carousel-mode', responsiveSettings.isCarouselMode());
     }
 
     // ========================================
