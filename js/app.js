@@ -2123,6 +2123,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         ui.renderSearchHistory();
     });
 
+    searchInput.addEventListener('click', () => {
+        ui.renderSearchHistory();
+    });
+
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.search-bar')) {
             const historyEl = document.getElementById('search-history');

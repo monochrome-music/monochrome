@@ -2078,6 +2078,82 @@ export class UIRenderer {
         }
     }
 
+    renderSearchHistory() {
+        const historyEl = document.getElementById('search-history');
+        if (!historyEl) return;
+        const history = JSON.parse(localStorage.getItem('search-history') || '[]');
+        if (history.length === 0) {
+            historyEl.style.display = 'none';
+            return;
+        }
+        historyEl.innerHTML =
+            history
+                .map(
+                    (query) => `
+            <div class="search-history-item" data-query="${escapeHtml(query)}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="history-icon">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span class="query-text">${escapeHtml(query)}</span>
+                <span class="delete-history-btn" title="Remove from history">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </span>
+            </div>
+        `
+                )
+                .join('') +
+            `
+            <div class="search-history-clear-all" id="clear-search-history">
+                Clear all history
+            </div>
+        `;
+        historyEl.style.display = 'block';
+
+        historyEl.querySelectorAll('.search-history-item').forEach((item) => {
+            item.addEventListener('click', (e) => {
+                if (e.target.closest('.delete-history-btn')) {
+                    e.stopPropagation();
+                    this.removeFromSearchHistory(item.dataset.query);
+                    return;
+                }
+                const query = item.dataset.query;
+                const searchInput = document.getElementById('search-input');
+                if (searchInput) {
+                    searchInput.value = query;
+                    searchInput.dispatchEvent(new Event('input'));
+                    historyEl.style.display = 'none';
+                }
+            });
+        });
+
+        const clearBtn = document.getElementById('clear-search-history');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                localStorage.removeItem('search-history');
+                this.renderSearchHistory();
+            });
+        }
+    }
+
+    removeFromSearchHistory(query) {
+        let history = JSON.parse(localStorage.getItem('search-history') || '[]');
+        history = history.filter((q) => q !== query);
+        localStorage.setItem('search-history', JSON.stringify(history));
+        this.renderSearchHistory();
+    }
+
+    addToSearchHistory(query) {
+        if (!query || query.trim().length === 0) return;
+        let history = JSON.parse(localStorage.getItem('search-history') || '[]');
+        history = history.filter((q) => q !== query);
+        history.unshift(query);
+        history = history.slice(0, 10);
+        localStorage.setItem('search-history', JSON.stringify(history));
+    }
+
     async renderAlbumPage(albumId, provider = null) {
         this.showPage('album');
 
