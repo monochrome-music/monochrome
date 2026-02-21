@@ -241,7 +241,9 @@ async function readM4aMetadata(file, metadata) {
                 } else if (item.type === 'ISRC') {
                     metadata.isrc = new TextDecoder().decode(new Uint8Array(view.buffer, contentOffset, contentLen));
                 } else if (item.type === 'cprt') {
-                    metadata.copyright = new TextDecoder().decode(new Uint8Array(view.buffer, contentOffset, contentLen));
+                    metadata.copyright = new TextDecoder().decode(
+                        new Uint8Array(view.buffer, contentOffset, contentLen)
+                    );
                 } else if (item.type === 'covr') {
                     const pictureData = new Uint8Array(view.buffer, contentOffset, contentLen);
                     const mime = getMimeType(pictureData);

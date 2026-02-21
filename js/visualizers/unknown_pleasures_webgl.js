@@ -92,10 +92,14 @@ export class UnknownPleasuresWebGL {
     _createBuffers() {
         this.quadBuffer = this.gl.createBuffer();
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.quadBuffer);
-        this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]), this.gl.STATIC_DRAW);
+        this.gl.bufferData(
+            this.gl.ARRAY_BUFFER,
+            new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
+            this.gl.STATIC_DRAW
+        );
 
         this.lineBuffer = this.gl.createBuffer();
-        
+
         // Pre-allocate vertex buffer (max possible size: historySize * dataPoints * 6 vertices * 3 floats)
         const maxVertices = this.historySize * this.dataPoints * 6; // 6 vertices per segment
         this.vertexBuffer = new Float32Array(maxVertices * 3); // 3 floats per vertex (x,y,edge)
@@ -380,10 +384,10 @@ export class UnknownPleasuresWebGL {
 
         gl.bindTexture(gl.TEXTURE_2D, this.sceneTexture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-        
+
         gl.bindTexture(gl.TEXTURE_2D, this.blurTexture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, blurW, blurH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-        
+
         gl.bindTexture(gl.TEXTURE_2D, this.blurFinalTexture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, blurW, blurH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     }
@@ -422,7 +426,7 @@ export class UnknownPleasuresWebGL {
 
         // Precompute normals (reuse internal arrays if possible, but for now stack var is fine)
         // Optimization: Single pass miter calculation
-        
+
         // Helper to clip X,Y
         const wInv = 2 / width;
         const hInv = 2 / height;
@@ -436,12 +440,18 @@ export class UnknownPleasuresWebGL {
             let dy = p2.y - p1.y;
             let len = Math.sqrt(dx * dx + dy * dy);
             let nx, ny;
-            
-            if (len < 0.001) { nx = 0; ny = -1; } 
-            else { nx = -dy / len; ny = dx / len; }
+
+            if (len < 0.001) {
+                nx = 0;
+                ny = -1;
+            } else {
+                nx = -dy / len;
+                ny = dx / len;
+            }
 
             // Previous normal (for miter)
-            let prevNx = nx, prevNy = ny;
+            let prevNx = nx,
+                prevNy = ny;
             if (i > 0) {
                 const p0 = points[i - 1];
                 const dx0 = p1.x - p0.x;
@@ -457,10 +467,14 @@ export class UnknownPleasuresWebGL {
             let m1x = nx + prevNx;
             let m1y = ny + prevNy;
             let m1l = Math.sqrt(m1x * m1x + m1y * m1y);
-            if (m1l > 0.001) { m1x /= m1l; m1y /= m1l; }
+            if (m1l > 0.001) {
+                m1x /= m1l;
+                m1y /= m1l;
+            }
 
             // Next normal (for P2 miter)
-            let nextNx = nx, nextNy = ny;
+            let nextNx = nx,
+                nextNy = ny;
             if (i < n - 2) {
                 const p3 = points[i + 2];
                 const dx2 = p3.x - p2.x;
@@ -476,13 +490,16 @@ export class UnknownPleasuresWebGL {
             let m2x = nx + nextNx;
             let m2y = ny + nextNy;
             let m2l = Math.sqrt(m2x * m2x + m2y * m2y);
-            if (m2l > 0.001) { m2x /= m2l; m2y /= m2l; }
+            if (m2l > 0.001) {
+                m2x /= m2l;
+                m2y /= m2l;
+            }
 
             // Generate vertices
             // P1 Top
             const x1a = (p1.x - m1x * thickness) * wInv - 1;
             const y1a = 1 - (p1.y - m1y * thickness) * hInv;
-            
+
             // P1 Bottom
             const x1b = (p1.x + m1x * thickness) * wInv - 1;
             const y1b = 1 - (p1.y + m1y * thickness) * hInv;
@@ -496,14 +513,26 @@ export class UnknownPleasuresWebGL {
             const y2b = 1 - (p2.y + m2y * thickness) * hInv;
 
             // Triangle 1
-            outBuffer[ptr++] = x1a; outBuffer[ptr++] = y1a; outBuffer[ptr++] = -1.0;
-            outBuffer[ptr++] = x1b; outBuffer[ptr++] = y1b; outBuffer[ptr++] = 1.0;
-            outBuffer[ptr++] = x2a; outBuffer[ptr++] = y2a; outBuffer[ptr++] = -1.0;
+            outBuffer[ptr++] = x1a;
+            outBuffer[ptr++] = y1a;
+            outBuffer[ptr++] = -1.0;
+            outBuffer[ptr++] = x1b;
+            outBuffer[ptr++] = y1b;
+            outBuffer[ptr++] = 1.0;
+            outBuffer[ptr++] = x2a;
+            outBuffer[ptr++] = y2a;
+            outBuffer[ptr++] = -1.0;
 
             // Triangle 2
-            outBuffer[ptr++] = x1b; outBuffer[ptr++] = y1b; outBuffer[ptr++] = 1.0;
-            outBuffer[ptr++] = x2b; outBuffer[ptr++] = y2b; outBuffer[ptr++] = 1.0;
-            outBuffer[ptr++] = x2a; outBuffer[ptr++] = y2a; outBuffer[ptr++] = -1.0;
+            outBuffer[ptr++] = x1b;
+            outBuffer[ptr++] = y1b;
+            outBuffer[ptr++] = 1.0;
+            outBuffer[ptr++] = x2b;
+            outBuffer[ptr++] = y2b;
+            outBuffer[ptr++] = 1.0;
+            outBuffer[ptr++] = x2a;
+            outBuffer[ptr++] = y2a;
+            outBuffer[ptr++] = -1.0;
         }
 
         return ptr - offset;
@@ -558,7 +587,11 @@ export class UnknownPleasuresWebGL {
         gl.clear(gl.COLOR_BUFFER_BIT);
 
         // Constants
-        const size = Math.max(Math.abs(width * this._cos) + Math.abs(height * this._sin), Math.abs(width * this._sin) + Math.abs(height * this._cos)) * 1.15;
+        const size =
+            Math.max(
+                Math.abs(width * this._cos) + Math.abs(height * this._sin),
+                Math.abs(width * this._sin) + Math.abs(height * this._cos)
+            ) * 1.15;
         const horizonY = size * 0.05;
         const frontY = size * 0.9;
         const depth = 2.0;
@@ -571,7 +604,7 @@ export class UnknownPleasuresWebGL {
         let bufferOffset = 0;
         // Store draw commands to execute later: { start, count, colorIndex }
         const drawCommands = [];
-        
+
         // Reuse temporary points array
         if (!this._tempPoints) this._tempPoints = [];
         const points = this._tempPoints;
@@ -608,13 +641,20 @@ export class UnknownPleasuresWebGL {
             }
 
             // Write to buffer
-            const vertexCount = this._generateLineQuads(points, lineWidth / 2, width, height, this.vertexBuffer, bufferOffset);
-            
+            const vertexCount = this._generateLineQuads(
+                points,
+                lineWidth / 2,
+                width,
+                height,
+                this.vertexBuffer,
+                bufferOffset
+            );
+
             if (vertexCount > 0) {
                 drawCommands.push({
                     start: bufferOffset / 3, // Start vertex index
-                    count: vertexCount / 3,  // Number of vertices
-                    colorIndex: i
+                    count: vertexCount / 3, // Number of vertices
+                    colorIndex: i,
                 });
                 bufferOffset += vertexCount; // Advance by number of floats
             }
@@ -667,14 +707,14 @@ export class UnknownPleasuresWebGL {
 
         // === PASS 3: Gaussian Blur (Ping Pong) ===
         gl.useProgram(this.blurProgram);
-        
+
         const iterations = 4;
         let horizontal = true;
 
         for (let i = 0; i < iterations * 2; i++) {
             const destFBO = horizontal ? this.blurFinalFramebuffer : this.blurFramebuffer;
             const srcTex = horizontal ? this.blurTexture : this.blurFinalTexture;
-            const spread = 1.0 + i * 0.75; 
+            const spread = 1.0 + i * 0.75;
 
             gl.bindFramebuffer(gl.FRAMEBUFFER, destFBO);
             gl.activeTexture(gl.TEXTURE0);
