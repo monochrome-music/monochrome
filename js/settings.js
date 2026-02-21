@@ -1017,9 +1017,11 @@ export function initializeSettings(scrobbler, player, api, ui) {
             responsiveSettings.setCarouselMode(e.target.checked);
             document.documentElement.classList.toggle('carousel-mode', e.target.checked);
             // Dispatch event for UI components to re-render
-            window.dispatchEvent(new CustomEvent('carousel-mode-changed', { 
-                detail: { enabled: e.target.checked } 
-            }));
+            window.dispatchEvent(
+                new CustomEvent('carousel-mode-changed', {
+                    detail: { enabled: e.target.checked },
+                })
+            );
         });
         // Apply initial state
         document.documentElement.classList.toggle('carousel-mode', responsiveSettings.isCarouselMode());
