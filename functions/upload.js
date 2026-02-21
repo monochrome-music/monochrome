@@ -2,15 +2,11 @@
 // Handles cover image uploads via imgur.gg API
 
 const API_BASE = 'https://temp.imgur.gg/api/upload';
+const PING_URL = 'https://temp.imgur.gg/api/ping';
 
 export async function onRequest(context) {
     const { request } = context;
 
-    console.log('Incoming request:', request.method);
-
-    // -------------------------
-    // CORS Preflight
-    // -------------------------
     if (request.method === 'OPTIONS') {
         return new Response(null, {
             status: 204,
@@ -23,37 +19,25 @@ export async function onRequest(context) {
     }
 
     if (request.method !== 'POST') {
-        return new Response(
-            JSON.stringify({ error: 'Method not allowed' }),
-            {
-                status: 405,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*',
-                },
-            }
-        );
+        return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+            status: 405,
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+            },
+        });
     }
 
     try {
-        // -------------------------
-        // Parse form data
-        // -------------------------
         const formData = await request.formData();
         const file = formData.get('file');
 
         if (!file) {
-            return new Response(
-                JSON.stringify({ error: 'No file provided' }),
-                { status: 400 }
-            );
+            return new Response(JSON.stringify({ error: 'No file provided' }), { status: 400 });
         }
 
         if (!file.type || !file.type.startsWith('image/')) {
-            return new Response(
-                JSON.stringify({ error: 'File must be an image' }),
-                { status: 400 }
-            );
+            return new Response(JSON.stringify({ error: 'File must be an image' }), { status: 400 });
         }
 
         const maxSize = 10 * 1024 * 1024;
@@ -70,11 +54,16 @@ export async function onRequest(context) {
 
         const fileBytes = await file.arrayBuffer();
 
-        // -------------------------
-        // STEP 1 — Metadata Request
-        // -------------------------
+        const pingResponse = await fetch(PING_URL, {
+            method: 'GET',
+            headers: {
+                'User-Agent':
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            },
+        });
 
-        const cookies = request.headers.get('cookie');
+        const setCookie = pingResponse.headers.get('set-cookie') || '';
+        const sessionCookie = setCookie.split(';').find((c) => c.trim().startsWith('_s=')) || '';
 
         const metadataPayload = {
             files: [
@@ -86,17 +75,25 @@ export async function onRequest(context) {
             ],
         };
 
-        console.log('Sending metadata request...');
-
         const metadataResponse = await fetch(API_BASE, {
             method: 'POST',
             headers: {
+                Accept: '*/*',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Cache-Control': 'no-cache',
                 'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'User-Agent': 'Mozilla/5.0',
-                'Referer': 'https://temp.imgur.gg/',
-                'Origin': 'https://temp.imgur.gg',
-                ...(cookies ? { Cookie: cookies } : {}),
+                Origin: 'https://temp.imgur.gg',
+                Pragma: 'no-cache',
+                Referer: 'https://temp.imgur.gg/',
+                'Sec-Ch-Ua': '"Not A(Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+                'Sec-Ch-Ua-Mobile': '?0',
+                'Sec-Ch-Ua-Platform': '"Windows"',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin',
+                'User-Agent':
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                Cookie: sessionCookie,
             },
             body: JSON.stringify(metadataPayload),
         });
@@ -104,9 +101,7 @@ export async function onRequest(context) {
         const metadataText = await metadataResponse.text();
 
         if (!metadataResponse.ok) {
-            throw new Error(
-                `Metadata request failed: ${metadataResponse.status} - ${metadataText}`
-            );
+            throw new Error(`Metadata request failed: ${metadataResponse.status} - ${metadataText}`);
         }
 
         let metadata;
@@ -127,10 +122,6 @@ export async function onRequest(context) {
             throw new Error('No uploadUrl returned from metadata');
         }
 
-        // -------------------------
-        // STEP 2 — Upload File
-        // -------------------------
-
         const uploadResponse = await fetch(uploadUrl, {
             method: 'PUT',
             body: fileBytes,
@@ -139,12 +130,9 @@ export async function onRequest(context) {
             },
         });
 
-        const uploadText = await uploadResponse.text();
-
         if (!uploadResponse.ok) {
-            throw new Error(
-                `File upload failed: ${uploadResponse.status} - ${uploadText}`
-            );
+            const uploadText = await uploadResponse.text();
+            throw new Error(`File upload failed: ${uploadResponse.status} - ${uploadText}`);
         }
 
         const publicUrl = `https://i.imgur.gg/${fileInfo.fileId}-${fileInfo.fileName}`;
