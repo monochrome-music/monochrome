@@ -1,6 +1,3 @@
-// functions/upload.js
-// Handles cover image uploads via imgur.gg API
-
 const API_BASE = 'https://temp.imgur.gg/api/upload';
 const PING_URL = 'https://temp.imgur.gg/api/ping';
 
@@ -29,38 +26,63 @@ export async function onRequest(context) {
     }
 
     try {
-        const formData = await request.formData();
-        const file = formData.get('file');
+        const contentType = request.headers.get('content-type') || '';
+        let file;
+        let fileName;
+        let fileType;
 
-        if (!file) {
-            return new Response(JSON.stringify({ error: 'No file provided' }), {
-                status: 400,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*',
-                },
-            });
-        }
-
-        const maxSize = 500 * 1024 * 1024;
-
-        if (file.size > maxSize) {
-            return new Response(
-                JSON.stringify({
-                    error: 'File size exceeds 500MB limit',
-                    size: file.size,
-                }),
-                {
+        if (contentType.includes('application/json')) {
+            const body = await request.json();
+            if (!body.fileUrl) {
+                return new Response(JSON.stringify({ error: 'No fileUrl provided' }), {
                     status: 400,
                     headers: {
                         'Content-Type': 'application/json',
                         'Access-Control-Allow-Origin': '*',
                     },
-                }
-            );
-        }
+                });
+            }
 
-        const fileBytes = await file.arrayBuffer();
+            const fileResponse = await fetch(body.fileUrl);
+            if (!fileResponse.ok) {
+                throw new Error('Failed to fetch remote file');
+            }
+
+            const buffer = await fileResponse.arrayBuffer();
+            file = buffer;
+            fileName = body.fileName || body.fileUrl.split('/').pop() || 'file';
+            fileType = fileResponse.headers.get('content-type') || 'application/octet-stream';
+        } else {
+            const formData = await request.formData();
+            const uploadedFile = formData.get('file');
+
+            if (!uploadedFile) {
+                return new Response(JSON.stringify({ error: 'No file provided' }), {
+                    status: 400,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*',
+                    },
+                });
+            }
+
+            if (uploadedFile.size > 500 * 1024 * 1024) {
+                return new Response(JSON.stringify({
+                    error: 'File size exceeds 500MB limit',
+                    size: uploadedFile.size,
+                }), {
+                    status: 400,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*',
+                    },
+                });
+            }
+
+            file = await uploadedFile.arrayBuffer();
+            fileName = uploadedFile.name;
+            fileType = uploadedFile.type || 'application/octet-stream';
+        }
 
         const pingResponse = await fetch(PING_URL, {
             method: 'GET',
@@ -76,9 +98,9 @@ export async function onRequest(context) {
         const metadataPayload = {
             files: [
                 {
-                    fileName: file.name,
-                    fileType: file.type || 'application/octet-stream',
-                    fileSize: file.size,
+                    fileName,
+                    fileType,
+                    fileSize: file.byteLength || 0,
                 },
             ],
         };
@@ -112,12 +134,7 @@ export async function onRequest(context) {
             throw new Error(`Metadata request failed: ${metadataResponse.status} - ${metadataText}`);
         }
 
-        let metadata;
-        try {
-            metadata = JSON.parse(metadataText);
-        } catch {
-            throw new Error('Metadata response not valid JSON');
-        }
+        const metadata = JSON.parse(metadataText);
 
         if (!metadata.success || !metadata.files || !metadata.files[0]) {
             throw new Error('Metadata missing required fields');
@@ -132,9 +149,9 @@ export async function onRequest(context) {
 
         const uploadResponse = await fetch(uploadUrl, {
             method: 'PUT',
-            body: fileBytes,
+            body: file,
             headers: {
-                'Content-Type': file.type || 'application/octet-stream',
+                'Content-Type': fileType,
             },
         });
 
@@ -145,36 +162,28 @@ export async function onRequest(context) {
 
         const publicUrl = `https://i.imgur.gg/${fileInfo.fileId}-${fileInfo.fileName}`;
 
-        return new Response(
-            JSON.stringify({
-                success: true,
-                url: publicUrl,
-                fileId: fileInfo.fileId,
-                fileName: fileInfo.fileName,
-            }),
-            {
-                status: 200,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*',
-                },
-            }
-        );
+        return new Response(JSON.stringify({
+            success: true,
+            url: publicUrl,
+            fileId: fileInfo.fileId,
+            fileName: fileInfo.fileName,
+        }), {
+            status: 200,
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+            },
+        });
     } catch (error) {
-        console.error('Upload failed:', error);
-
-        return new Response(
-            JSON.stringify({
-                error: 'Upload failed',
-                message: error.message,
-            }),
-            {
-                status: 500,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*',
-                },
-            }
-        );
+        return new Response(JSON.stringify({
+            error: 'Upload failed',
+            message: error.message,
+        }), {
+            status: 500,
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+            },
+        });
     }
 }
