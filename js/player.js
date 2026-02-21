@@ -37,6 +37,10 @@ export class Player {
         this.userVolume = parseFloat(localStorage.getItem('volume') || '0.7');
         this.isFallbackRetry = false;
         this.autoplayBlocked = false;
+        this.isIOS = typeof window !== 'undefined' && window.__IS_IOS__ === true;
+        this.isPwa =
+            typeof window !== 'undefined' &&
+            (window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator?.standalone === true);
 
         // Sleep timer properties
         this.sleepTimer = null;
@@ -439,27 +443,8 @@ export class Player {
                 this.audio.src = streamUrl;
 
                 // Wait for audio to be ready before playing (prevents restart issues with blob URLs)
-                await new Promise((resolve, reject) => {
-                    const onCanPlay = () => {
-                        this.audio.removeEventListener('canplay', onCanPlay);
-                        this.audio.removeEventListener('error', onError);
-                        resolve();
-                    };
-                    const onError = (e) => {
-                        this.audio.removeEventListener('canplay', onCanPlay);
-                        this.audio.removeEventListener('error', onError);
-                        reject(e);
-                    };
-                    this.audio.addEventListener('canplay', onCanPlay);
-                    this.audio.addEventListener('error', onError);
-
-                    // Timeout after 10 seconds
-                    setTimeout(() => {
-                        this.audio.removeEventListener('canplay', onCanPlay);
-                        this.audio.removeEventListener('error', onError);
-                        reject(new Error('Timeout waiting for audio to load'));
-                    }, 10000);
-                });
+                const canPlay = await this.waitForCanPlayOrTimeout();
+                if (!canPlay) return;
 
                 if (startTime > 0) {
                     this.audio.currentTime = startTime;
@@ -479,27 +464,8 @@ export class Player {
                 this.audio.src = streamUrl;
 
                 // Wait for audio to be ready before playing
-                await new Promise((resolve, reject) => {
-                    const onCanPlay = () => {
-                        this.audio.removeEventListener('canplay', onCanPlay);
-                        this.audio.removeEventListener('error', onError);
-                        resolve();
-                    };
-                    const onError = (e) => {
-                        this.audio.removeEventListener('canplay', onCanPlay);
-                        this.audio.removeEventListener('error', onError);
-                        reject(e);
-                    };
-                    this.audio.addEventListener('canplay', onCanPlay);
-                    this.audio.addEventListener('error', onError);
-
-                    // Timeout after 10 seconds
-                    setTimeout(() => {
-                        this.audio.removeEventListener('canplay', onCanPlay);
-                        this.audio.removeEventListener('error', onError);
-                        reject(new Error('Timeout waiting for audio to load'));
-                    }, 10000);
-                });
+                const canPlay = await this.waitForCanPlayOrTimeout();
+                if (!canPlay) return;
 
                 if (startTime > 0) {
                     this.audio.currentTime = startTime;
@@ -567,27 +533,8 @@ export class Player {
                     this.audio.src = streamUrl;
 
                     // Wait for audio to be ready before playing
-                    await new Promise((resolve, reject) => {
-                        const onCanPlay = () => {
-                            this.audio.removeEventListener('canplay', onCanPlay);
-                            this.audio.removeEventListener('error', onError);
-                            resolve();
-                        };
-                        const onError = (e) => {
-                            this.audio.removeEventListener('canplay', onCanPlay);
-                            this.audio.removeEventListener('error', onError);
-                            reject(e);
-                        };
-                        this.audio.addEventListener('canplay', onCanPlay);
-                        this.audio.addEventListener('error', onError);
-
-                        // Timeout after 10 seconds
-                        setTimeout(() => {
-                            this.audio.removeEventListener('canplay', onCanPlay);
-                            this.audio.removeEventListener('error', onError);
-                            reject(new Error('Timeout waiting for audio to load'));
-                        }, 10000);
-                    });
+                    const canPlay = await this.waitForCanPlayOrTimeout();
+                    if (!canPlay) return;
 
                     if (startTime > 0) {
                         this.audio.currentTime = startTime;
@@ -988,6 +935,39 @@ export class Player {
             }
             throw error;
         }
+    }
+
+    async waitForCanPlayOrTimeout(timeoutMs = 10000) {
+        if (this.audio.readyState >= 2) {
+            return true;
+        }
+
+        return await new Promise((resolve, reject) => {
+            const onCanPlay = () => {
+                this.audio.removeEventListener('canplay', onCanPlay);
+                this.audio.removeEventListener('error', onError);
+                resolve(true);
+            };
+            const onError = (e) => {
+                this.audio.removeEventListener('canplay', onCanPlay);
+                this.audio.removeEventListener('error', onError);
+                reject(e);
+            };
+            this.audio.addEventListener('canplay', onCanPlay);
+            this.audio.addEventListener('error', onError);
+
+            // Timeout after 10 seconds. Treat as autoplay blocked when backgrounded (esp. iOS PWA).
+            setTimeout(() => {
+                this.audio.removeEventListener('canplay', onCanPlay);
+                this.audio.removeEventListener('error', onError);
+                if (document.visibilityState === 'hidden' || (this.isIOS && this.isPwa)) {
+                    this.autoplayBlocked = true;
+                    resolve(false);
+                    return;
+                }
+                reject(new Error('Timeout waiting for audio to load'));
+            }, timeoutMs);
+        });
     }
 
     // Sleep Timer Methods
