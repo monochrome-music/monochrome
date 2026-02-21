@@ -91,6 +91,7 @@ export class UIRenderer {
         this.searchAbortController = null;
         this.vibrantColorCache = new Map();
         this.visualizer = null;
+        this.renderLock = false;
 
         // Listen for dynamic color reset events
         window.addEventListener('reset-dynamic-color', () => {
@@ -575,13 +576,19 @@ export class UIRenderer {
         else if (album.type === 'SINGLE') typeLabel = ' • Single';
 
         const isCompact = cardSettings.isCompactAlbum();
+        let artistName = '';
+        if (album.artist) {
+            artistName = typeof album.artist === 'string' ? album.artist : album.artist.name;
+        } else if (album.artists?.length) {
+            artistName = album.artists.map((a) => a.name).join(', ');
+        }
 
         return this.createBaseCardHTML({
             type: 'album',
             id: album.id,
             href: `/album/${album.id}`,
             title: `${escapeHtml(album.title)} ${explicitBadge} ${qualityBadge}`,
-            subtitle: `${escapeHtml(album.artist?.name ?? '')} • ${yearDisplay}${typeLabel}`,
+            subtitle: `${escapeHtml(artistName)} • ${yearDisplay}${typeLabel}`,
             imageHTML: `<img src="${this.api.getCoverUrl(album.cover)}" alt="${escapeHtml(album.title)}" class="card-image" loading="lazy">`,
             actionButtonsHTML: `
                 <button class="like-btn card-like-btn" data-action="toggle-like" data-type="album" title="Add to Liked">
@@ -1464,66 +1471,78 @@ export class UIRenderer {
     }
 
     async renderHomePage() {
-        this.showPage('home');
+        if (this.renderLock) return;
+        this.renderLock = true;
 
-        const welcomeEl = document.getElementById('home-welcome');
-        const contentEl = document.getElementById('home-content');
-        const editorsPicksSectionEmpty = document.getElementById('home-editors-picks-section-empty');
-        const editorsPicksSection = document.getElementById('home-editors-picks-section');
+        try {
+            this.showPage('home');
 
-        const history = await db.getHistory();
-        const favorites = await db.getFavorites('track');
-        const playlists = await db.getPlaylists(true);
+            const welcomeEl = document.getElementById('home-welcome');
+            const contentEl = document.getElementById('home-content');
+            const editorsPicksSectionEmpty = document.getElementById('home-editors-picks-section-empty');
+            const editorsPicksSection = document.getElementById('home-editors-picks-section');
 
-        const hasActivity = history.length > 0 || favorites.length > 0 || playlists.length > 0;
+            const history = await db.getHistory();
+            const favorites = await db.getFavorites('track');
+            const playlists = await db.getPlaylists(true);
 
-        // Handle Editor's Picks visibility based on settings
-        if (!homePageSettings.shouldShowEditorsPicks()) {
-            if (editorsPicksSectionEmpty) editorsPicksSectionEmpty.style.display = 'none';
-            if (editorsPicksSection) editorsPicksSection.style.display = 'none';
-        } else {
-            // Show empty-state section at top when no activity, hide the bottom one
-            if (editorsPicksSectionEmpty) editorsPicksSectionEmpty.style.display = hasActivity ? 'none' : '';
-            // Show bottom section when has activity, render it
-            if (editorsPicksSection) editorsPicksSection.style.display = hasActivity ? '' : 'none';
+            const hasActivity = history.length > 0 || favorites.length > 0 || playlists.length > 0;
+
+            // Handle Editor's Picks visibility based on settings
+            if (!homePageSettings.shouldShowEditorsPicks()) {
+                if (editorsPicksSectionEmpty) editorsPicksSectionEmpty.style.display = 'none';
+                if (editorsPicksSection) editorsPicksSection.style.display = 'none';
+            } else {
+                // Show empty-state section at top when no activity, hide the bottom one
+                if (editorsPicksSectionEmpty) editorsPicksSectionEmpty.style.display = hasActivity ? 'none' : '';
+                // Show bottom section when has activity, render it
+                if (editorsPicksSection) editorsPicksSection.style.display = hasActivity ? '' : 'none';
+            }
+
+            // Render editor's picks in the visible container
+            if (hasActivity) {
+                this.renderHomeEditorsPicks(false, 'home-editors-picks');
+            } else {
+                this.renderHomeEditorsPicks(false, 'home-editors-picks-empty');
+            }
+
+            if (!hasActivity) {
+                if (welcomeEl) welcomeEl.style.display = 'block';
+                if (contentEl) contentEl.style.display = 'none';
+                return;
+            }
+
+            if (welcomeEl) welcomeEl.style.display = 'none';
+            if (contentEl) contentEl.style.display = 'block';
+
+            const refreshSongsBtn = document.getElementById('refresh-songs-btn');
+            const refreshAlbumsBtn = document.getElementById('refresh-albums-btn');
+            const refreshArtistsBtn = document.getElementById('refresh-artists-btn');
+            const clearRecentBtn = document.getElementById('clear-recent-btn');
+
+            if (refreshSongsBtn) refreshSongsBtn.onclick = () => this.renderHomeSongs(true);
+            if (refreshAlbumsBtn) refreshAlbumsBtn.onclick = () => this.renderHomeAlbums(true);
+            if (refreshArtistsBtn) refreshArtistsBtn.onclick = () => this.renderHomeArtists(true);
+            if (clearRecentBtn)
+                clearRecentBtn.onclick = () => {
+                    if (confirm('Clear recent activity?')) {
+                        recentActivityManager.clear();
+                        this.renderHomeRecent();
+                    }
+                };
+
+            this.renderHomeRecent();
+
+            // Load dynamic sections in parallel with pre-fetched seeds
+            const seeds = await this.getSeeds();
+            await Promise.all([
+                this.renderHomeSongs(false, seeds),
+                this.renderHomeAlbums(false, seeds),
+                this.renderHomeArtists(false, seeds),
+            ]);
+        } finally {
+            this.renderLock = false;
         }
-
-        // Render editor's picks in the visible container
-        if (hasActivity) {
-            this.renderHomeEditorsPicks(false, 'home-editors-picks');
-        } else {
-            this.renderHomeEditorsPicks(false, 'home-editors-picks-empty');
-        }
-
-        if (!hasActivity) {
-            if (welcomeEl) welcomeEl.style.display = 'block';
-            if (contentEl) contentEl.style.display = 'none';
-            return;
-        }
-
-        if (welcomeEl) welcomeEl.style.display = 'none';
-        if (contentEl) contentEl.style.display = 'block';
-
-        const refreshSongsBtn = document.getElementById('refresh-songs-btn');
-        const refreshAlbumsBtn = document.getElementById('refresh-albums-btn');
-        const refreshArtistsBtn = document.getElementById('refresh-artists-btn');
-        const clearRecentBtn = document.getElementById('clear-recent-btn');
-
-        if (refreshSongsBtn) refreshSongsBtn.onclick = () => this.renderHomeSongs(true);
-        if (refreshAlbumsBtn) refreshAlbumsBtn.onclick = () => this.renderHomeAlbums(true);
-        if (refreshArtistsBtn) refreshArtistsBtn.onclick = () => this.renderHomeArtists(true);
-        if (clearRecentBtn)
-            clearRecentBtn.onclick = () => {
-                if (confirm('Clear recent activity?')) {
-                    recentActivityManager.clear();
-                    this.renderHomeRecent();
-                }
-            };
-
-        this.renderHomeSongs();
-        this.renderHomeAlbums();
-        this.renderHomeArtists();
-        this.renderHomeRecent();
     }
 
     async getSeeds() {
@@ -1545,7 +1564,7 @@ export class UIRenderer {
         return shuffle(seeds);
     }
 
-    async renderHomeSongs(forceRefresh = false) {
+    async renderHomeSongs(forceRefresh = false, providedSeeds = null) {
         const songsContainer = document.getElementById('home-recommended-songs');
         const section = songsContainer?.closest('.content-section');
 
@@ -1564,7 +1583,7 @@ export class UIRenderer {
             }
 
             try {
-                const seeds = await this.getSeeds();
+                const seeds = providedSeeds || (await this.getSeeds());
                 const trackSeeds = seeds.slice(0, 5);
                 const recommendedTracks = await this.api.getRecommendedTracksForPlaylist(trackSeeds, 20, {
                     skipCache: forceRefresh,
@@ -1584,7 +1603,7 @@ export class UIRenderer {
         }
     }
 
-    async renderHomeAlbums(forceRefresh = false) {
+    async renderHomeAlbums(forceRefresh = false, providedSeeds = null) {
         const albumsContainer = document.getElementById('home-recommended-albums');
         const section = albumsContainer?.closest('.content-section');
 
@@ -1603,7 +1622,7 @@ export class UIRenderer {
             }
 
             try {
-                const seeds = await this.getSeeds();
+                const seeds = providedSeeds || (await this.getSeeds());
                 const albumSeed = seeds.find((t) => t.album && t.album.id);
                 if (albumSeed) {
                     const similarAlbums = await this.api.getSimilarAlbums(albumSeed.album.id);
@@ -1790,7 +1809,7 @@ export class UIRenderer {
         }
     }
 
-    async renderHomeArtists(forceRefresh = false) {
+    async renderHomeArtists(forceRefresh = false, providedSeeds = null) {
         const artistsContainer = document.getElementById('home-recommended-artists');
         const section = artistsContainer?.closest('.content-section');
 
@@ -1809,7 +1828,7 @@ export class UIRenderer {
             }
 
             try {
-                const seeds = await this.getSeeds();
+                const seeds = providedSeeds || (await this.getSeeds());
                 const artistSeed = seeds.find((t) => (t.artist && t.artist.id) || (t.artists && t.artists.length > 0));
                 const artistId = artistSeed ? artistSeed.artist?.id || artistSeed.artists?.[0]?.id : null;
 

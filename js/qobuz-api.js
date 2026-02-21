@@ -330,6 +330,17 @@ export class QobuzAPI {
         }
     }
 
+    // Similar/recommendation methods
+    async getSimilarArtists(artistId) {
+        // Qobuz doesn't have a direct similar artists endpoint in this simplified API
+        return [];
+    }
+
+    async getSimilarAlbums(albumId) {
+        // Qobuz doesn't have a direct similar albums endpoint in this simplified API
+        return [];
+    }
+
     // Unified search - search all types at once
     async search(query, options = {}) {
         const offset = options.offset || 0;
