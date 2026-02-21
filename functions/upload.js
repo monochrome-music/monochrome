@@ -99,7 +99,7 @@ export async function onRequest(context) {
             headers: {
                 'Content-Type': 'application/json',
                 'User-Agent': 'Mozilla/5.0',
-                Origin: 'https://your-domain.com',
+                Origin: 'https://imgur.gg',
             },
             body: JSON.stringify(metadataPayload),
         });
