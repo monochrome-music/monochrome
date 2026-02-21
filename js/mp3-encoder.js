@@ -37,24 +37,10 @@ function resampleBuffer(audioBuffer, targetSampleRate) {
     return offlineContext.startRendering();
 }
 
-export async function encodeToMp3(audioBlob, onProgress = null) {
-    try {
-        if (onProgress) {
-            onProgress({ stage: 'decoding', message: 'Decoding audio...' });
-        }
-
-        let audioBuffer = await decodeAudioData(audioBlob);
-
-        if (audioBuffer.sampleRate !== SAMPLE_RATE) {
-            if (onProgress) {
-                onProgress({ stage: 'resampling', message: 'Resampling to 44.1kHz...' });
-            }
-            audioBuffer = await resampleBuffer(audioBuffer, SAMPLE_RATE);
-        }
-
-        if (onProgress) {
-            onProgress({ stage: 'encoding', message: 'Encoding to MP3 320kbps...' });
-        }
+async function encodeToMp3MainThread(audioBuffer, onProgress = null) {
+    if (onProgress) {
+        onProgress({ stage: 'encoding', message: 'Encoding to MP3 320kbps...' });
+    }
 
         const channels = audioBuffer.numberOfChannels;
         
@@ -128,8 +114,79 @@ export async function encodeToMp3(audioBlob, onProgress = null) {
             onProgress({ stage: 'finalizing', message: 'Finalizing MP3...' });
         }
 
-        const mp3Blob = new Blob(mp3Data, { type: 'audio/mpeg' });
-        return mp3Blob;
+    const mp3Blob = new Blob(mp3Data, { type: 'audio/mpeg' });
+    return mp3Blob;
+}
+
+async function encodeToMp3Worker(audioBuffer, onProgress = null) {
+    return new Promise((resolve, reject) => {
+        const worker = new Worker(new URL('./mp3-encoder.worker.js', import.meta.url), { type: 'module' });
+        
+        worker.onmessage = (e) => {
+            const { type, blob, message, stage, progress } = e.data;
+            
+            if (type === 'complete') {
+                worker.terminate();
+                resolve(blob);
+            } else if (type === 'error') {
+                worker.terminate();
+                reject(new Error(message));
+            } else if (type === 'progress' && onProgress) {
+                onProgress({ stage, message, progress });
+            } else if (type === 'warning') {
+                console.warn(message);
+            }
+        };
+        
+        worker.onerror = (error) => {
+            worker.terminate();
+            reject(new Error('Worker failed: ' + error.message));
+        };
+        
+        // Transfer audio buffer data to worker
+        const channels = audioBuffer.numberOfChannels;
+        const channelData = [];
+        const transferList = [];
+        
+        for (let i = 0; i < Math.min(channels, 2); i++) {
+            const data = audioBuffer.getChannelData(i);
+            channelData.push(data);
+            transferList.push(data.buffer);
+        }
+        
+        worker.postMessage({
+            channelData,
+            numberOfChannels: channels
+        }, transferList);
+    });
+}
+
+export async function encodeToMp3(audioBlob, onProgress = null) {
+    try {
+        if (onProgress) {
+            onProgress({ stage: 'decoding', message: 'Decoding audio...' });
+        }
+
+        let audioBuffer = await decodeAudioData(audioBlob);
+
+        if (audioBuffer.sampleRate !== SAMPLE_RATE) {
+            if (onProgress) {
+                onProgress({ stage: 'resampling', message: 'Resampling to 44.1kHz...' });
+            }
+            audioBuffer = await resampleBuffer(audioBuffer, SAMPLE_RATE);
+        }
+
+        // Try Web Worker first for non-blocking encoding
+        if (typeof Worker !== 'undefined') {
+            try {
+                return await encodeToMp3Worker(audioBuffer, onProgress);
+            } catch (workerError) {
+                console.warn('Web Worker encoding failed, falling back to main thread:', workerError);
+            }
+        }
+        
+        // Fallback to main thread encoding
+        return await encodeToMp3MainThread(audioBuffer, onProgress);
     } catch (error) {
         console.error('MP3 encoding failed:', error);
         throw new Error('Failed to encode MP3: ' + error.message);
