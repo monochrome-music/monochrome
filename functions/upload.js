@@ -12,8 +12,8 @@ export async function onRequest(context) {
             status: 204,
             headers: {
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'POST',
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                'Access-Control-Allow-Headers': '*',
             },
         });
     }
@@ -33,11 +33,13 @@ export async function onRequest(context) {
         const file = formData.get('file');
 
         if (!file) {
-            return new Response(JSON.stringify({ error: 'No file provided' }), { status: 400 });
-        }
-
-        if (!file.type || !file.type.startsWith('image/')) {
-            return new Response(JSON.stringify({ error: 'File must be an image' }), { status: 400 });
+            return new Response(JSON.stringify({ error: 'No file provided' }), {
+                status: 400,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                },
+            });
         }
 
         const maxSize = 10 * 1024 * 1024;
@@ -48,7 +50,13 @@ export async function onRequest(context) {
                     error: 'File size exceeds 10MB limit',
                     size: file.size,
                 }),
-                { status: 400 }
+                {
+                    status: 400,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*',
+                    },
+                }
             );
         }
 
@@ -69,7 +77,7 @@ export async function onRequest(context) {
             files: [
                 {
                     fileName: file.name,
-                    fileType: file.type,
+                    fileType: file.type || 'application/octet-stream',
                     fileSize: file.size,
                 },
             ],
@@ -126,7 +134,7 @@ export async function onRequest(context) {
             method: 'PUT',
             body: fileBytes,
             headers: {
-                'Content-Type': file.type,
+                'Content-Type': file.type || 'application/octet-stream',
             },
         });
 
