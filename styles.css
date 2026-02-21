@@ -6123,6 +6123,16 @@ img[src=''] {
 }
 
 @media (hover: none) and (pointer: coarse) {
+    /* Allow play button to float outside square cover on mobile */
+    .card-image-wrapper {
+        overflow: visible;
+    }
+
+    .card:not(.artist) .card-image-wrapper .card-image,
+    .card:not(.artist) .card-image-wrapper .card-collage {
+        clip-path: inset(0 round var(--radius));
+    }
+
     .main-content {
         padding: var(--spacing-sm);
         grid-area: main;
