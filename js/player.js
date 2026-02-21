@@ -318,7 +318,7 @@ export class Player {
                 // Warm connection/cache
                 // For Blob URLs (DASH), this head request is not needed and can cause errors.
                 if (!streamUrl.startsWith('blob:')) {
-                    fetch(streamUrl, { method: 'HEAD', signal: this.preloadAbortController.signal }).catch(() => {});
+                    fetch(streamUrl, { method: 'HEAD', signal: this.preloadAbortController.signal }).catch(() => { });
                 }
             } catch (error) {
                 if (error.name !== 'AbortError') {
@@ -892,7 +892,7 @@ export class Player {
                     }
                 }
             })
-            .catch(() => {});
+            .catch(() => { });
     }
 
     updatePlayingTrackIndicator() {
