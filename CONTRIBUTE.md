@@ -105,7 +105,7 @@ monochrome/
 ├── 📁 public/               # Static assets
 │   ├── assets/             # Images, icons, fonts
 │   ├── manifest.json       # PWA manifest
-│   └── instances.json      # API instances configuration
+│   └── instances.json      # API instances configuration (deprecated)
 ├── 📄 index.html           # Application entry point
 ├── 📄 vite.config.js       # Build and PWA configuration
 ├── 📄 package.json         # Dependencies and scripts

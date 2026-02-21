@@ -1,120 +1,133 @@
 //storage.js
 export const apiSettings = {
-    STORAGE_KEY: 'monochrome-api-instances-v8',
-    INSTANCES_URL: 'instances.json',
+    STORAGE_KEY: 'monochrome-api-instances-v9',
+    INSTANCES_URLS: [
+        'https://tidal-uptime.jiffy-puffs-1j.workers.dev/',
+        'https://tidal-uptime.props-76styles.workers.dev/',
+    ],
     defaultInstances: { api: [], streaming: [] },
     instancesLoaded: false,
+    _loadPromise: null,
 
     async loadInstancesFromGitHub() {
         if (this.instancesLoaded) {
             return this.defaultInstances;
         }
 
-        try {
-            const response = await fetch(this.INSTANCES_URL);
-            if (!response.ok) throw new Error('Failed to fetch instances');
+        if (this._loadPromise) {
+            return this._loadPromise;
+        }
 
-            const data = await response.json();
+        this._loadPromise = (async () => {
+            const cachedData = localStorage.getItem(this.STORAGE_KEY);
+            if (cachedData) {
+                try {
+                    const parsed = JSON.parse(cachedData);
+                    const now = Date.now();
+                    // Check if cached data is less than 15 minutes old
+                    if (parsed.timestamp && now - parsed.timestamp < 15 * 60 * 1000) {
+                        this.defaultInstances = parsed.data;
+                        this.instancesLoaded = true;
+                        this._loadPromise = null;
+                        return this.defaultInstances;
+                    }
+                } catch (e) {
+                    console.warn('Failed to parse cached instances:', e);
+                }
+            }
+
+            let data = null;
+            let fetchError = null;
+
+            // Shuffle URLs to pick a random one first
+            const urls = [...this.INSTANCES_URLS].sort(() => Math.random() - 0.5);
+
+            for (const url of urls) {
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    data = await response.json();
+                    break; // Success, exit loop
+                } catch (error) {
+                    console.warn(`Failed to fetch from ${url}:`, error);
+                    fetchError = error;
+                }
+            }
+
+            if (!data) {
+                console.error('Failed to load instances from all uptime APIs:', fetchError);
+                this.defaultInstances = {
+                    api: [
+                        { url: 'https://eu-central.monochrome.tf', version: '2.4' },
+                        { url: 'https://us-west.monochrome.tf', version: '2.4' },
+                        { url: 'https://arran.monochrome.tf', version: '2.4' },
+                        { url: 'https://triton.squid.wtf', version: '2.4' },
+                        { url: 'https://api.monochrome.tf', version: '2.3' },
+                        { url: 'https://monochrome-api.samidy.com', version: '2.3' },
+                        { url: 'https://maus.qqdl.site', version: '2.2' },
+                        { url: 'https://vogel.qqdl.site', version: '2.2' },
+                        { url: 'https://katze.qqdl.site', version: '2.2' },
+                        { url: 'https://hund.qqdl.site', version: '2.2' },
+                        { url: 'https://tidal.kinoplus.online', version: '2.2' },
+                        { url: 'https://wolf.qqdl.site', version: '2.2' },
+                    ],
+                    streaming: [
+                        { url: 'https://arran.monochrome.tf', version: '2.4' },
+                        { url: 'https://triton.squid.wtf', version: '2.4' },
+                        { url: 'https://api.monochrome.tf', version: '2.3' },
+                        { url: 'https://monochrome-api.samidy.com', version: '2.3' },
+                        { url: 'https://maus.qqdl.site', version: '2.2' },
+                        { url: 'https://vogel.qqdl.site', version: '2.2' },
+                        { url: 'https://katze.qqdl.site', version: '2.2' },
+                        { url: 'https://hund.qqdl.site', version: '2.2' },
+                        { url: 'https://wolf.qqdl.site', version: '2.2' },
+                    ],
+                };
+                this.instancesLoaded = true;
+                this._loadPromise = null;
+                return this.defaultInstances;
+            }
 
             let groupedInstances = { api: [], streaming: [] };
 
-            if (Array.isArray(data)) {
-                // Legacy array format
-                groupedInstances.api = [...data];
-                groupedInstances.streaming = [...data];
-            } else {
-                // New object format or legacy object format
-                if (data.api && Array.isArray(data.api)) {
-                    const isSimpleArray = data.api.length > 0 && typeof data.api[0] === 'string';
-                    if (isSimpleArray) {
-                        groupedInstances.api = [...data.api];
-                    } else {
-                        for (const [, config] of Object.entries(data.api)) {
-                            if (config.cors === false && Array.isArray(config.urls)) {
-                                groupedInstances.api.push(...config.urls);
-                            }
-                        }
-                    }
-                }
+            if (data.api && Array.isArray(data.api)) {
+                groupedInstances.api = data.api.filter((instance) => !instance.url.includes('spotisaver.net'));
+            }
 
-                if (data.streaming && Array.isArray(data.streaming)) {
-                    groupedInstances.streaming = [...data.streaming];
-                } else if (groupedInstances.api.length > 0) {
-                    groupedInstances.streaming = [...groupedInstances.api];
-                }
+            if (data.streaming && Array.isArray(data.streaming)) {
+                groupedInstances.streaming = data.streaming.filter(
+                    (instance) => !instance.url.includes('spotisaver.net')
+                );
+            } else if (groupedInstances.api.length > 0) {
+                groupedInstances.streaming = [...groupedInstances.api];
             }
 
             this.defaultInstances = groupedInstances;
             this.instancesLoaded = true;
 
+            try {
+                localStorage.setItem(
+                    this.STORAGE_KEY,
+                    JSON.stringify({
+                        timestamp: Date.now(),
+                        data: groupedInstances,
+                    })
+                );
+            } catch (e) {
+                console.warn('Failed to cache instances:', e);
+            }
+
+            this._loadPromise = null;
             return groupedInstances;
-        } catch (error) {
-            console.error('Failed to load instances from GitHub:', error);
-            this.defaultInstances = {
-                api: [
-                    'https://eu-central.monochrome.tf',
-                    'https://us-west.monochrome.tf',
-                    'https://arran.monochrome.tf',
-                    'https://api.monochrome.tf',
-                    'https://triton.squid.wtf',
-                    'https://wolf.qqdl.site',
-                    'https://monochrome-api.samidy.com',
-                    'https://maus.qqdl.site',
-                    'https://tidal.kinoplus.online',
-                    'https://hund.qqdl.site',
-                    'https://vogel.qqdl.site',
-                ],
-                streaming: [
-                    'https://arran.monochrome.tf',
-                    'https://triton.squid.wtf',
-                    'https://wolf.qqdl.site',
-                    'https://maus.qqdl.site',
-                    'https://vogel.qqdl.site',
-                    'https://katze.qqdl.site',
-                    'https://hund.qqdl.site',
-                ],
-            };
-            this.instancesLoaded = true;
-            return this.defaultInstances;
-        }
+        })();
+
+        return this._loadPromise;
     },
 
     async getInstances(type = 'api', _sortBySpeed = false) {
         let instancesObj;
 
-        const stored = localStorage.getItem(this.STORAGE_KEY);
-        if (stored) {
-            instancesObj = JSON.parse(stored);
-
-            // love it when local storage doesnt update
-            if (instancesObj?.api?.length === 2) {
-                const hasBinimum = instancesObj.api.some((url) => {
-                    try {
-                        const urlObj = new URL(url);
-                        return urlObj.hostname === 'tidal-api.binimum.org';
-                    } catch {
-                        return false;
-                    }
-                });
-                const hasSamidy = instancesObj.api.some((url) => {
-                    try {
-                        const urlObj = new URL(url);
-                        return urlObj.hostname === 'monochrome-api.samidy.com';
-                    } catch {
-                        return false;
-                    }
-                });
-
-                if (hasBinimum && hasSamidy) {
-                    localStorage.removeItem(this.STORAGE_KEY);
-                    instancesObj = null;
-                }
-            }
-        }
-
-        if (!instancesObj) {
-            instancesObj = await this.loadInstancesFromGitHub();
-        }
+        instancesObj = await this.loadInstancesFromGitHub();
 
         const targetUrls = instancesObj[type] || instancesObj.api || [];
         if (targetUrls.length === 0) return [];

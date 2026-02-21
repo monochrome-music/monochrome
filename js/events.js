@@ -27,7 +27,6 @@ import {
     trackSkipTrack,
     trackToggleShuffle,
     trackToggleRepeat,
-    trackSeek,
     trackAddToQueue,
     trackPlayNext,
     trackLikeTrack,
@@ -136,9 +135,6 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
             const currentTimeEl = document.getElementById('current-time');
             progressFill.style.width = `${(currentTime / duration) * 100}%`;
             currentTimeEl.textContent = formatTime(currentTime);
-
-            // Track seek milestones
-            trackSeek(currentTime, duration);
 
             // Log to history after 10 seconds of playback
             if (currentTime >= 10 && player.currentTrack && player.currentTrack.id !== historyLoggedTrackId) {
@@ -1668,7 +1664,6 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                     api.getTrackRecommendations(clickedTrack.id).then((recs) => {
                         if (recs && recs.length > 0) {
                             player.addToQueue(recs);
-                            showNotification(`Added ${recs.length} recommendations to queue`);
                         }
                     });
                 }

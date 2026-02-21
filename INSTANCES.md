@@ -31,7 +31,12 @@ These instances provide the tidal-ui web interface, not monochrome:
 
 ## API Instances
 
-Monochrome uses the Hi-Fi API under the hood. These are available API endpoints that can be used with Monochrome or other Hi-Fi based applications:
+Monochrome uses the Hi-Fi API under the hood. Live, up-to-date status trackers (which return JSON) can be found below:
+
+- https://tidal-uptime.jiffy-puffs-1j.workers.dev/
+- https://tidal-uptime.props-76styles.workers.dev/
+
+These are available API endpoints that can be used with Monochrome or other Hi-Fi based applications:
 
 ### Official & Community APIs
 

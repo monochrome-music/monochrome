@@ -106,19 +106,7 @@ export function trackToggleMute(muted) {
     trackEvent('Toggle Mute', { muted });
 }
 
-export function trackSeek(position, duration) {
-    const progress = duration ? Math.round((position / duration) * 100) : 0;
-    // Track seek at 25%, 50%, 75% milestones
-    if (progress >= 25 && progress < 30) {
-        trackEvent('Seek', { milestone: '25%', position });
-    } else if (progress >= 50 && progress < 55) {
-        trackEvent('Seek', { milestone: '50%', position });
-    } else if (progress >= 75 && progress < 80) {
-        trackEvent('Seek', { milestone: '75%', position });
-    }
-}
-
-// Track listening progress milestones (10%, 25%, 50%, 75%, 90%, 100%)
+// Track listening progress milestones (10%, 50%, 90%, 100%)
 export function trackListeningProgress(track, percent) {
     trackEvent('Listening Progress', {
         track_id: track?.id || 'unknown',
