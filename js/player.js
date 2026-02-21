@@ -682,8 +682,8 @@ export class Player {
             }
 
             for (let i = tracksToShuffle.length - 1; i > 0; i--) {
-                 const j = Math.floor(Math.random() * (i + 1));
-                 [tracksToShuffle[i], tracksToShuffle[j]] = [tracksToShuffle[j], tracksToShuffle[i]];
+                const j = Math.floor(Math.random() * (i + 1));
+                [tracksToShuffle[i], tracksToShuffle[j]] = [tracksToShuffle[j], tracksToShuffle[i]];
             }
 
             if (currentTrack) {
