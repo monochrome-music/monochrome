@@ -1,4 +1,5 @@
-import { getCoverBlob } from './utils.js';
+import { getCoverBlob, detectAudioFormat } from './utils.js';
+import { addMp3Metadata } from './id3-writer.js';
 
 const VENDOR_STRING = 'Monochrome';
 const DEFAULT_TITLE = 'Unknown Title';
@@ -6,7 +7,7 @@ const DEFAULT_ARTIST = 'Unknown Artist';
 const DEFAULT_ALBUM = 'Unknown Album';
 
 /**
- * Adds metadata tags to audio files (FLAC or M4A)
+ * Adds metadata tags to audio files (FLAC, M4A or MP3)
  * @param {Blob} audioBlob - The audio file blob
  * @param {Object} track - Track metadata
  * @param {Object} api - API instance for fetching album art
@@ -18,43 +19,21 @@ export async function addMetadataToAudio(audioBlob, track, api, _quality) {
     // DASH Hi-Res streams may return fragmented MP4 instead of raw FLAC
     const buffer = await audioBlob.slice(0, 12).arrayBuffer();
     const view = new DataView(buffer);
-
-    // Check for FLAC signature: "fLaC" (0x66 0x4C 0x61 0x43)
-    const isFlac =
-        view.byteLength >= 4 &&
-        view.getUint8(0) === 0x66 && // f
-        view.getUint8(1) === 0x4c && // L
-        view.getUint8(2) === 0x61 && // a
-        view.getUint8(3) === 0x43; // C
-
-    if (isFlac) {
-        return await addFlacMetadata(audioBlob, track, api);
+    
+    const format = detectAudioFormat(view, audioBlob.type);
+    
+    switch (format) {
+        case 'flac':
+            return await addFlacMetadata(audioBlob, track, api);
+        case 'mp4':
+            return await addM4aMetadata(audioBlob, track, api);
+        case 'mp3':
+            return await addMp3Metadata(audioBlob, track, api);
+        default:
+            // Unknown format - return original without modification
+            console.warn(`Unknown audio format (mime: ${audioBlob.type}), returning original blob`);
+            return audioBlob;
     }
-
-    // Check for MP4/M4A signature: "ftyp" at offset 4
-    const isMp4 =
-        view.byteLength >= 8 &&
-        view.getUint8(4) === 0x66 && // f
-        view.getUint8(5) === 0x74 && // t
-        view.getUint8(6) === 0x79 && // y
-        view.getUint8(7) === 0x70; // p
-
-    if (isMp4) {
-        return await addM4aMetadata(audioBlob, track, api);
-    }
-
-    // Fallback: check MIME type from blob
-    const mime = audioBlob.type;
-    if (mime === 'audio/flac') {
-        return await addFlacMetadata(audioBlob, track, api);
-    }
-    if (mime === 'audio/mp4' || mime === 'audio/x-m4a') {
-        return await addM4aMetadata(audioBlob, track, api);
-    }
-
-    // Unknown format - return original without modification
-    console.warn(`Unknown audio format (mime: ${mime}), returning original blob`);
-    return audioBlob;
 }
 
 /**
