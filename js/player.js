@@ -36,6 +36,7 @@ export class Player {
         this.currentRgValues = null;
         this.userVolume = parseFloat(localStorage.getItem('volume') || '0.7');
         this.isFallbackRetry = false;
+        this.autoplayBlocked = false;
 
         // Sleep timer properties
         this.sleepTimer = null;
@@ -68,6 +69,10 @@ export class Player {
                     audioContextManager.init(this.audio);
                 }
                 audioContextManager.resume();
+            }
+            if (document.visibilityState === 'visible' && this.autoplayBlocked) {
+                this.autoplayBlocked = false;
+                this.audio.play().catch(() => {});
             }
         });
     }
@@ -459,7 +464,8 @@ export class Player {
                 if (startTime > 0) {
                     this.audio.currentTime = startTime;
                 }
-                await this.audio.play();
+                const played = await this.safePlay();
+                if (!played) return;
             } else if (track.isLocal && track.file) {
                 if (this.dashInitialized) {
                     this.dashPlayer.reset(); // Ensure dash is off
@@ -498,7 +504,8 @@ export class Player {
                 if (startTime > 0) {
                     this.audio.currentTime = startTime;
                 }
-                await this.audio.play();
+                const played = await this.safePlay();
+                if (!played) return;
             } else {
                 const isQobuz = String(track.id).startsWith('q:');
 
@@ -585,12 +592,17 @@ export class Player {
                     if (startTime > 0) {
                         this.audio.currentTime = startTime;
                     }
-                    await this.audio.play();
+                    const played = await this.safePlay();
+                    if (!played) return;
                 }
             }
 
             this.preloadNextTracks();
         } catch (error) {
+            if (error && (error.name === 'NotAllowedError' || error.name === 'AbortError')) {
+                this.autoplayBlocked = true;
+                return;
+            }
             console.error(`Could not play track: ${trackTitle}`, error);
             // Skip to next track on unexpected error
             if (recursiveCount < currentQueue.length) {
@@ -684,7 +696,7 @@ export class Player {
         }
 
         if (this.audio.paused) {
-            this.audio.play().catch((e) => {
+            this.safePlay().catch((e) => {
                 if (e.name === 'NotAllowedError' || e.name === 'AbortError') return;
                 console.error('Play failed, reloading track:', e);
                 if (this.currentTrack) {
@@ -961,6 +973,20 @@ export class Player {
             });
         } catch (error) {
             console.log('Failed to update Media Session position:', error);
+        }
+    }
+
+    async safePlay() {
+        try {
+            await this.audio.play();
+            this.autoplayBlocked = false;
+            return true;
+        } catch (error) {
+            if (error && (error.name === 'NotAllowedError' || error.name === 'AbortError')) {
+                this.autoplayBlocked = true;
+                return false;
+            }
+            throw error;
         }
     }
 
