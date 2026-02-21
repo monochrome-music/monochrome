@@ -42,12 +42,12 @@ export async function onRequest(context) {
             });
         }
 
-        const maxSize = 10 * 1024 * 1024;
+        const maxSize = 500 * 1024 * 1024;
 
         if (file.size > maxSize) {
             return new Response(
                 JSON.stringify({
-                    error: 'File size exceeds 10MB limit',
+                    error: 'File size exceeds 500MB limit',
                     size: file.size,
                 }),
                 {
