@@ -89,6 +89,18 @@ export class UnknownPleasuresWebGL {
         }
     }
 
+    _createBuffers() {
+        this.quadBuffer = this.gl.createBuffer();
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.quadBuffer);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]), this.gl.STATIC_DRAW);
+
+        this.lineBuffer = this.gl.createBuffer();
+        
+        // Pre-allocate vertex buffer (max possible size: historySize * dataPoints * 6 vertices * 3 floats)
+        const maxVertices = this.historySize * this.dataPoints * 6; // 6 vertices per segment
+        this.vertexBuffer = new Float32Array(maxVertices * 3); // 3 floats per vertex (x,y,edge)
+    }
+
     _initGL(gl, width, height) {
         if (this.lineProgram) return;
         this.gl = gl;
@@ -275,15 +287,7 @@ export class UnknownPleasuresWebGL {
         this.composite_u_isDarkTheme = gl.getUniformLocation(this.compositeProgram, 'u_isDarkTheme');
         this.composite_u_time = gl.getUniformLocation(this.compositeProgram, 'u_time');
 
-        // === FULLSCREEN QUAD BUFFER ===
-        this.quadBuffer = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]), gl.STATIC_DRAW);
-
-        // === LINE GEOMETRY BUFFER (dynamic) ===
-        this.lineBuffer = gl.createBuffer();
-
-        // === FRAMEBUFFER FOR POST-PROCESSING ===
+        this._createBuffers(); // Use helper
         this._createFramebuffer(gl, width, height);
 
         gl.enable(gl.BLEND);
@@ -321,7 +325,7 @@ export class UnknownPleasuresWebGL {
     }
 
     _createFramebuffer(gl, width, height) {
-        // Framebuffer 1: Scene (lines)
+        // Framebuffer 1: Scene (lines) - FULL RESOLUTION
         this.framebuffer = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
 
@@ -335,27 +339,31 @@ export class UnknownPleasuresWebGL {
 
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.sceneTexture, 0);
 
-        // Framebuffer 2: Blur intermediate (for horizontal pass)
+        // Blur Resolution (Half size for performance)
+        const blurW = Math.max(1, width >> 1);
+        const blurH = Math.max(1, height >> 1);
+
+        // Framebuffer 2: Blur intermediate
         this.blurFramebuffer = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.blurFramebuffer);
 
         this.blurTexture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, this.blurTexture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); // LINEAR!
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, blurW, blurH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.blurTexture, 0);
 
-        // Framebuffer 3: Blur final (for vertical pass result)
+        // Framebuffer 3: Blur final
         this.blurFinalFramebuffer = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.blurFinalFramebuffer);
 
         this.blurFinalTexture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, this.blurFinalTexture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, blurW, blurH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -363,21 +371,21 @@ export class UnknownPleasuresWebGL {
 
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.blurFinalTexture, 0);
 
-        const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-        if (status !== gl.FRAMEBUFFER_COMPLETE) {
-            console.error('Framebuffer incomplete:', status);
-        }
-
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
 
     _resizeFramebuffer(gl, width, height) {
+        const blurW = Math.max(1, width >> 1);
+        const blurH = Math.max(1, height >> 1);
+
         gl.bindTexture(gl.TEXTURE_2D, this.sceneTexture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        
         gl.bindTexture(gl.TEXTURE_2D, this.blurTexture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, blurW, blurH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        
         gl.bindTexture(gl.TEXTURE_2D, this.blurFinalTexture);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, blurW, blurH, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
     }
 
     _buildPalette(color) {
@@ -406,74 +414,99 @@ export class UnknownPleasuresWebGL {
         this._paletteColor = color;
     }
 
-    /**
-     * Generate quad vertices for a thick line with proper miter joints.
-     * Precomputes averaged normals at shared vertices so segments connect seamlessly.
-     */
-    _generateLineQuads(points, thickness, width, height) {
-        if (points.length < 2) return new Float32Array(0);
+    _generateLineQuads(points, thickness, width, height, outBuffer, offset) {
+        if (points.length < 2) return 0;
 
-        const vertices = [];
-        const toClip = (x, y) => [(x / width) * 2 - 1, 1 - (y / height) * 2];
         const n = points.length;
+        let ptr = offset;
 
-        // Precompute per-segment normals
-        const segNx = new Float32Array(n - 1);
-        const segNy = new Float32Array(n - 1);
-        for (let i = 0; i < n - 1; i++) {
-            const dx = points[i + 1].x - points[i].x;
-            const dy = points[i + 1].y - points[i].y;
-            const len = Math.sqrt(dx * dx + dy * dy);
-            if (len < 0.001) {
-                segNx[i] = 0;
-                segNy[i] = -1;
-            } else {
-                segNx[i] = -dy / len;
-                segNy[i] = dx / len;
-            }
-        }
+        // Precompute normals (reuse internal arrays if possible, but for now stack var is fine)
+        // Optimization: Single pass miter calculation
+        
+        // Helper to clip X,Y
+        const wInv = 2 / width;
+        const hInv = 2 / height;
 
-        // Compute miter normals at each point (average of adjacent segment normals)
-        const miterNx = new Float32Array(n);
-        const miterNy = new Float32Array(n);
-        // First point: use first segment normal
-        miterNx[0] = segNx[0];
-        miterNy[0] = segNy[0];
-        // Last point: use last segment normal
-        miterNx[n - 1] = segNx[n - 2];
-        miterNy[n - 1] = segNy[n - 2];
-        // Interior points: average
-        for (let i = 1; i < n - 1; i++) {
-            let mx = segNx[i - 1] + segNx[i];
-            let my = segNy[i - 1] + segNy[i];
-            const ml = Math.sqrt(mx * mx + my * my);
-            if (ml < 0.001) {
-                mx = segNx[i];
-                my = segNy[i];
-            } else {
-                mx /= ml;
-                my /= ml;
-            }
-            miterNx[i] = mx;
-            miterNy[i] = my;
-        }
-
-        // Build quads using miter normals
         for (let i = 0; i < n - 1; i++) {
             const p1 = points[i];
             const p2 = points[i + 1];
 
-            const [x1a, y1a] = toClip(p1.x - miterNx[i] * thickness, p1.y - miterNy[i] * thickness);
-            const [x1b, y1b] = toClip(p1.x + miterNx[i] * thickness, p1.y + miterNy[i] * thickness);
-            const [x2a, y2a] = toClip(p2.x - miterNx[i + 1] * thickness, p2.y - miterNy[i + 1] * thickness);
-            const [x2b, y2b] = toClip(p2.x + miterNx[i + 1] * thickness, p2.y + miterNy[i + 1] * thickness);
+            // Calculate segment normal
+            let dx = p2.x - p1.x;
+            let dy = p2.y - p1.y;
+            let len = Math.sqrt(dx * dx + dy * dy);
+            let nx, ny;
+            
+            if (len < 0.001) { nx = 0; ny = -1; } 
+            else { nx = -dy / len; ny = dx / len; }
 
-            // Each vertex: [x, y, edge] where edge = -1 (bottom) or +1 (top)
-            vertices.push(x1a, y1a, -1.0, x1b, y1b, 1.0, x2a, y2a, -1.0);
-            vertices.push(x1b, y1b, 1.0, x2b, y2b, 1.0, x2a, y2a, -1.0);
+            // Previous normal (for miter)
+            let prevNx = nx, prevNy = ny;
+            if (i > 0) {
+                const p0 = points[i - 1];
+                const dx0 = p1.x - p0.x;
+                const dy0 = p1.y - p0.y;
+                const len0 = Math.sqrt(dx0 * dx0 + dy0 * dy0);
+                if (len0 >= 0.001) {
+                    prevNx = -dy0 / len0;
+                    prevNy = dx0 / len0;
+                }
+            }
+
+            // Miter at P1
+            let m1x = nx + prevNx;
+            let m1y = ny + prevNy;
+            let m1l = Math.sqrt(m1x * m1x + m1y * m1y);
+            if (m1l > 0.001) { m1x /= m1l; m1y /= m1l; }
+
+            // Next normal (for P2 miter)
+            let nextNx = nx, nextNy = ny;
+            if (i < n - 2) {
+                const p3 = points[i + 2];
+                const dx2 = p3.x - p2.x;
+                const dy2 = p3.y - p2.y;
+                const len2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+                if (len2 >= 0.001) {
+                    nextNx = -dy2 / len2;
+                    nextNy = dx2 / len2;
+                }
+            }
+
+            // Miter at P2
+            let m2x = nx + nextNx;
+            let m2y = ny + nextNy;
+            let m2l = Math.sqrt(m2x * m2x + m2y * m2y);
+            if (m2l > 0.001) { m2x /= m2l; m2y /= m2l; }
+
+            // Generate vertices
+            // P1 Top
+            const x1a = (p1.x - m1x * thickness) * wInv - 1;
+            const y1a = 1 - (p1.y - m1y * thickness) * hInv;
+            
+            // P1 Bottom
+            const x1b = (p1.x + m1x * thickness) * wInv - 1;
+            const y1b = 1 - (p1.y + m1y * thickness) * hInv;
+
+            // P2 Top
+            const x2a = (p2.x - m2x * thickness) * wInv - 1;
+            const y2a = 1 - (p2.y - m2y * thickness) * hInv;
+
+            // P2 Bottom
+            const x2b = (p2.x + m2x * thickness) * wInv - 1;
+            const y2b = 1 - (p2.y + m2y * thickness) * hInv;
+
+            // Triangle 1
+            outBuffer[ptr++] = x1a; outBuffer[ptr++] = y1a; outBuffer[ptr++] = -1.0;
+            outBuffer[ptr++] = x1b; outBuffer[ptr++] = y1b; outBuffer[ptr++] = 1.0;
+            outBuffer[ptr++] = x2a; outBuffer[ptr++] = y2a; outBuffer[ptr++] = -1.0;
+
+            // Triangle 2
+            outBuffer[ptr++] = x1b; outBuffer[ptr++] = y1b; outBuffer[ptr++] = 1.0;
+            outBuffer[ptr++] = x2b; outBuffer[ptr++] = y2b; outBuffer[ptr++] = 1.0;
+            outBuffer[ptr++] = x2a; outBuffer[ptr++] = y2a; outBuffer[ptr++] = -1.0;
         }
 
-        return new Float32Array(vertices);
+        return ptr - offset;
     }
 
     draw(ctx, canvas, analyser, dataArray, params) {
@@ -481,84 +514,75 @@ export class UnknownPleasuresWebGL {
         const { width, height } = canvas;
         const isDark = document.documentElement.getAttribute('data-theme') !== 'white';
 
-        // FORCE Normal blending as requested - no more screen blend tricks
         canvas.style.mixBlendMode = 'normal';
 
-        // Initialize WebGL on first draw
         if (!this.lineProgram) {
             this._initGL(gl, width, height);
-            if (!this.lineProgram) {
-                console.error('WebGL init failed');
-                return;
-            }
         }
 
-        // Reset if needed
         if (this.history.length === 0) {
             this.reset();
         }
 
-        // Update history with propagation speed control
-        // Higher PROPAGATION_SPEED = faster wave propagation
-        this._propagationAccum += UnknownPleasuresWebGL.PROPAGATION_SPEED;
-        const pts = this.dataPoints;
+        if (!params.paused) {
+            this._propagationAccum += UnknownPleasuresWebGL.PROPAGATION_SPEED;
+            const pts = this.dataPoints;
 
-        if (this._propagationAccum >= 1.0) {
-            this._propagationAccum -= 1.0;
+            if (this._propagationAccum >= 1.0) {
+                this._propagationAccum -= 1.0;
 
-            const sampleRate = analyser.context.sampleRate;
-            const nyquist = sampleRate / 2;
-            const targetFreq = 22000; // Visualizing up to 22kHz
-            const scale = Math.min(1.0, targetFreq / nyquist);
-            const len = Math.floor(dataArray.length * scale);
+                const sampleRate = analyser.context.sampleRate;
+                const nyquist = sampleRate / 2;
+                const targetFreq = 22000;
+                const scale = Math.min(1.0, targetFreq / nyquist);
+                const len = Math.floor(dataArray.length * scale);
 
-            const line = this.history[this.writeIndex];
-            if (line) {
-                for (let i = 0; i < pts; i++) {
-                    line[i] = (dataArray[(this.xLookup[i] * len) | 0] / 255) * this.pLookup[i];
+                const line = this.history[this.writeIndex];
+                if (line) {
+                    for (let i = 0; i < pts; i++) {
+                        line[i] = (dataArray[(this.xLookup[i] * len) | 0] / 255) * this.pLookup[i];
+                    }
                 }
+                this.writeIndex = (this.writeIndex + 1) % this.historySize;
             }
-            this.writeIndex = (this.writeIndex + 1) % this.historySize;
         }
 
-        // Update palette if color changed
         if (this._paletteColor !== params.primaryColor) {
             this._buildPalette(params.primaryColor);
         }
 
-        // Compute size for rotated bounding box
-        const rotatedW = Math.abs(width * this._cos) + Math.abs(height * this._sin);
-        const rotatedH = Math.abs(width * this._sin) + Math.abs(height * this._cos);
-        const size = Math.max(rotatedW, rotatedH) * 1.15;
-
         // === PASS 1: Scene ===
-        // We render lines to a transparent texture so we can composite them properly later
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
         gl.viewport(0, 0, width, height);
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
-        // Perspective constants - extended for better corner coverage
-        const horizonY = size * 0.05; // Further back (was 0.1)
-        const frontY = size * 0.9; // Closer to edge (was 0.8)
+        // Constants
+        const size = Math.max(Math.abs(width * this._cos) + Math.abs(height * this._sin), Math.abs(width * this._sin) + Math.abs(height * this._cos)) * 1.15;
+        const horizonY = size * 0.05;
+        const frontY = size * 0.9;
         const depth = 2.0;
         const totalH = frontY - horizonY;
         const B = totalH / (1 - 1 / (1 + depth));
         const A = frontY - B;
 
-        // Lines output premultiplied alpha (color * aa, aa).
-        gl.enable(gl.BLEND);
-        if (isDark) {
-            // Additive premultiplied
-            gl.blendFunc(gl.ONE, gl.ONE);
-        } else {
-            // Standard premultiplied
-            gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-        }
+        // --- BATCH GEOMETRY GENERATION ---
+        // Fill the vertex buffer with ALL lines for this frame
+        let bufferOffset = 0;
+        // Store draw commands to execute later: { start, count, colorIndex }
+        const drawCommands = [];
+        
+        // Reuse temporary points array
+        if (!this._tempPoints) this._tempPoints = [];
+        const points = this._tempPoints;
+        const pts = this.dataPoints;
+        const cx = width / 2;
+        const cy = height / 2;
+        const cosR = this._cos;
+        const sinR = this._sin;
+        const offsetX = -size / 2;
+        const offsetY = -size / 2;
 
-        gl.useProgram(this.lineProgram);
-
-        // Draw each line (back to front)
         for (let i = this.historySize - 1; i >= 0; i--) {
             const idx = (this.writeIndex + i) % this.historySize;
             const historyLine = this.history[idx];
@@ -573,63 +597,66 @@ export class UnknownPleasuresWebGL {
             const amp = 200 * scale;
             const lineWidth = Math.max(1, 8 * scale + params.kick * 3);
 
-            // Generate line points (in rotated space, then transform to screen)
-            const points = [];
-            const cx = width / 2;
-            const cy = height / 2;
-            const cosR = this._cos;
-            const sinR = this._sin;
-            const offsetX = -size / 2;
-            const offsetY = -size / 2;
-
+            // Generate points
+            points.length = 0;
             for (let j = 0; j < pts; j++) {
-                // Position in rotated coordinate system
                 const rx = margin + this.xLookup[j] * lw;
                 const ry = y - historyLine[j] * amp;
-
-                // Apply rotation and translate to screen
                 const dx = rx + offsetX;
                 const dy = ry + offsetY;
-                const screenX = dx * cosR - dy * sinR + cx;
-                const screenY = dx * sinR + dy * cosR + cy;
-
-                points.push({ x: screenX, y: screenY });
+                points.push({ x: dx * cosR - dy * sinR + cx, y: dx * sinR + dy * cosR + cy });
             }
 
-            // Generate quad geometry for thick line
-            const vertices = this._generateLineQuads(points, lineWidth / 2, width, height);
-            if (vertices.length === 0) continue;
-
-            // Upload vertices
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.lineBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW);
-
-            gl.enableVertexAttribArray(this.line_a_posEdge);
-            gl.vertexAttribPointer(this.line_a_posEdge, 3, gl.FLOAT, false, 0, 0);
-
-            // Set raw palette color
-            const color = this._paletteRGB[i] || [1, 1, 1];
-            gl.uniform3f(this.line_u_color, color[0], color[1], color[2]);
-
-            // Draw (vertices.length / 3 because each vertex is [x, y, edge])
-            gl.drawArrays(gl.TRIANGLES, 0, vertices.length / 3);
+            // Write to buffer
+            const vertexCount = this._generateLineQuads(points, lineWidth / 2, width, height, this.vertexBuffer, bufferOffset);
+            
+            if (vertexCount > 0) {
+                drawCommands.push({
+                    start: bufferOffset / 3, // Start vertex index
+                    count: vertexCount / 3,  // Number of vertices
+                    colorIndex: i
+                });
+                bufferOffset += vertexCount; // Advance by number of floats
+            }
         }
 
-        // MUST DISABLE BLEND for post-processing passes so we strictly overwrite FBO contents!
+        // --- UPLOAD ONCE ---
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.lineBuffer);
+        // Upload only the used portion of the pre-allocated buffer
+        gl.bufferData(gl.ARRAY_BUFFER, this.vertexBuffer.subarray(0, bufferOffset), gl.DYNAMIC_DRAW);
+        gl.enableVertexAttribArray(this.line_a_posEdge);
+        gl.vertexAttribPointer(this.line_a_posEdge, 3, gl.FLOAT, false, 0, 0);
+
+        // --- DRAW BATCH ---
+        gl.useProgram(this.lineProgram);
+        gl.enable(gl.BLEND);
+        if (isDark) {
+            gl.blendFunc(gl.ONE, gl.ONE);
+        } else {
+            gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+        }
+
+        for (const cmd of drawCommands) {
+            const color = this._paletteRGB[cmd.colorIndex] || [1, 1, 1];
+            gl.uniform3f(this.line_u_color, color[0], color[1], color[2]);
+            gl.drawArrays(gl.TRIANGLES, cmd.start, cmd.count);
+        }
+
         gl.disable(gl.BLEND);
 
-        // === PASS 2: Bloom ===
+        // === PASS 2: Bloom (Half Res) ===
+        const blurW = Math.max(1, width >> 1);
+        const blurH = Math.max(1, height >> 1);
+
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.blurFramebuffer);
-        gl.viewport(0, 0, width, height);
+        gl.viewport(0, 0, blurW, blurH);
         gl.clearColor(0, 0, 0, 0);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
         gl.useProgram(this.brightnessProgram);
-
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.sceneTexture);
         gl.uniform1i(this.brightness_u_texture, 0);
-        // NO THRESHOLD - EVERYTHING GLOWS (Thread Ripper Style)
         gl.uniform1f(this.brightness_u_threshold, 0.0);
         gl.uniform1f(this.brightness_u_isDarkTheme, isDark ? 1.0 : 0.0);
 
@@ -640,89 +667,58 @@ export class UnknownPleasuresWebGL {
 
         // === PASS 3: Gaussian Blur (Ping Pong) ===
         gl.useProgram(this.blurProgram);
-
-        // More iterations for wider, smoother glow (Thread Ripper uses 8 * 2 passes)
-        // We have 2 framebuffers: blurFramebuffer (holds brightness extract), blurFinalFramebuffer (temp)
-        // thread_ripper uses ping-pong. Let's adapt.
-
-        // We start with 'blurFramebuffer' having the bright pixels.
-        // We want to ping-pong between blurFramebuffer and blurFinalFramebuffer.
-
-        const iterations = 8;
+        
+        const iterations = 4;
         let horizontal = true;
 
         for (let i = 0; i < iterations * 2; i++) {
-            // Thread Ripper ping-pong: horizontal toggles each iteration
             const destFBO = horizontal ? this.blurFinalFramebuffer : this.blurFramebuffer;
             const srcTex = horizontal ? this.blurTexture : this.blurFinalTexture;
-
-            // Thread Ripper spread: grows linearly with i (not i/2)
-            // Increased by 50% from 0.375 to 0.5625 for wider glow
-            const spread = 1.0 + i * 0.5625;
+            const spread = 1.0 + i * 0.75; 
 
             gl.bindFramebuffer(gl.FRAMEBUFFER, destFBO);
-            gl.viewport(0, 0, width, height);
-
             gl.activeTexture(gl.TEXTURE0);
             gl.bindTexture(gl.TEXTURE_2D, srcTex);
             gl.uniform1i(this.blur_u_texture, 0);
-            gl.uniform2f(this.blur_u_resolution, width, height);
-
+            gl.uniform2f(this.blur_u_resolution, blurW, blurH);
             gl.uniform2f(this.blur_u_direction, horizontal ? 1.0 : 0.0, horizontal ? 0.0 : 1.0);
             gl.uniform1f(this.blur_u_spread, spread);
 
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuffer);
-            gl.enableVertexAttribArray(this.blur_a_position);
-            gl.vertexAttribPointer(this.blur_a_position, 2, gl.FLOAT, false, 0, 0);
             gl.drawArrays(gl.TRIANGLES, 0, 6);
             horizontal = !horizontal;
         }
-
-        // Final result is in the LAST written framebuffer.
-        // iter 0 -> writes Final
-        // iter 1 -> writes Blur
-        // ...
-        // iter 15 -> writes Blur
-
-        // So 'blurTexture' holds the final blurred result.
 
         // === PASS 4: Composite ===
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.viewport(0, 0, width, height);
 
-        // Clear color for MAIN canvas
         if (params.mode !== 'blended') {
             const bg = isDark ? [0.02, 0.02, 0.02, 1] : [0.9, 0.9, 0.9, 1];
             gl.clearColor(bg[0], bg[1], bg[2], bg[3]);
         } else if (isDark) {
-            gl.clearColor(0, 0, 0, 0.4); // Dark blended
+            gl.clearColor(0, 0, 0, 0.4);
         } else {
-            gl.clearColor(0.95, 0.95, 0.95, 0.4); // Light frosted
+            gl.clearColor(0.95, 0.95, 0.95, 0.4);
         }
         gl.clear(gl.COLOR_BUFFER_BIT);
 
-        // Classic normal blending for the final composite quad over the canvas background!
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
         gl.useProgram(this.compositeProgram);
-
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.sceneTexture);
         gl.uniform1i(this.composite_u_scene, 0);
 
         gl.activeTexture(gl.TEXTURE1);
-        // Use last output: horizontal toggles, so pick the right texture (Thread Ripper pattern)
         gl.bindTexture(gl.TEXTURE_2D, horizontal ? this.blurTexture : this.blurFinalTexture);
         gl.uniform1i(this.composite_u_blur, 1);
 
-        // Glow strength - EXACT Thread Ripper formula
-        const glowBoost = 1.0 + params.kick; // Pulse with kick
-        const glowStrength = UnknownPleasuresWebGL.GLOW_INTENSITY * glowBoost;
-
-        gl.uniform1f(this.composite_u_glowStrength, glowStrength);
+        const glowBoost = 1.0 + params.kick;
+        gl.uniform1f(this.composite_u_glowStrength, UnknownPleasuresWebGL.GLOW_INTENSITY * glowBoost);
         gl.uniform1f(this.composite_u_noiseStrength, UnknownPleasuresWebGL.NOISE_STRENGTH);
         gl.uniform1f(this.composite_u_isDarkTheme, isDark ? 1.0 : 0.0);
+        gl.uniform1f(this.composite_u_time, performance.now() / 1000.0);
 
         gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuffer);
         gl.enableVertexAttribArray(this.composite_a_position);
