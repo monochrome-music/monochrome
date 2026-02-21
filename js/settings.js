@@ -2533,6 +2533,14 @@ export function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
+    const separateDiscsZipToggle = document.getElementById('separate-discs-zip-toggle');
+    if (separateDiscsZipToggle) {
+        separateDiscsZipToggle.checked = playlistSettings.shouldSeparateDiscsInZip();
+        separateDiscsZipToggle.addEventListener('change', (e) => {
+            playlistSettings.setSeparateDiscsInZip(e.target.checked);
+        });
+    }
+
     // API settings
     document.getElementById('refresh-speed-test-btn')?.addEventListener('click', async () => {
         const btn = document.getElementById('refresh-speed-test-btn');
