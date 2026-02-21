@@ -837,7 +837,74 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.target.closest('#shuffle-artist-btn')) {
             const btn = e.target.closest('#shuffle-artist-btn');
             if (btn.disabled) return;
-            document.getElementById('play-artist-radio-btn')?.click();
+            const artistId = window.location.pathname.split('/')[2];
+            if (!artistId) return;
+
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML =
+                '<svg class="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Shuffling...</span>';
+
+            try {
+                const artist = await api.getArtist(artistId);
+                const allReleases = [...(artist.albums || []), ...(artist.eps || [])];
+                const trackSet = new Set();
+                const allTracks = [];
+
+                // Fetch full artist discography tracks (albums + EPs), deduped by track ID.
+                const chunkSize = 8;
+                for (let i = 0; i < allReleases.length; i += chunkSize) {
+                    const chunk = allReleases.slice(i, i + chunkSize);
+                    await Promise.all(
+                        chunk.map(async (album) => {
+                            try {
+                                const { tracks } = await api.getAlbum(album.id);
+                                tracks.forEach((track) => {
+                                    if (!trackSet.has(track.id)) {
+                                        trackSet.add(track.id);
+                                        allTracks.push(track);
+                                    }
+                                });
+                            } catch (err) {
+                                console.warn(`Failed to fetch tracks for album ${album.title}:`, err);
+                            }
+                        })
+                    );
+                }
+
+                // Fallback to artist top tracks if discography fetch yields nothing.
+                if (allTracks.length === 0 && Array.isArray(artist.tracks)) {
+                    artist.tracks.forEach((track) => {
+                        if (!trackSet.has(track.id)) {
+                            trackSet.add(track.id);
+                            allTracks.push(track);
+                        }
+                    });
+                }
+
+                if (allTracks.length === 0) {
+                    throw new Error('No tracks found for this artist');
+                }
+
+                const shuffledTracks = [...allTracks].sort(() => Math.random() - 0.5);
+                player.setQueue(shuffledTracks, 0);
+                const shuffleBtn = document.getElementById('shuffle-btn');
+                if (shuffleBtn) shuffleBtn.classList.remove('active');
+                player.shuffleActive = false;
+                player.playTrackFromQueue();
+
+                const { showNotification } = await loadDownloadsModule();
+                showNotification('Shuffling artist discography');
+            } catch (error) {
+                console.error('Failed to shuffle artist tracks:', error);
+                const { showNotification } = await loadDownloadsModule();
+                showNotification('Failed to shuffle artist tracks');
+            } finally {
+                if (document.body.contains(btn)) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                }
+            }
         }
         if (e.target.closest('#download-mix-btn')) {
             const btn = e.target.closest('#download-mix-btn');
