@@ -473,84 +473,94 @@ export function initializeUIInteractions(player, api, ui) {
         });
     });
 
-    // Tooltip for truncated text
-    let tooltipEl = document.getElementById('custom-tooltip');
-    if (!tooltipEl) {
-        tooltipEl = document.createElement('div');
-        tooltipEl.id = 'custom-tooltip';
-        document.body.appendChild(tooltipEl);
+    // Tooltip for truncated text (desktop hover only)
+    const canUseHoverTooltips = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    let tooltipEl = null;
+
+    if (canUseHoverTooltips) {
+        tooltipEl = document.getElementById('custom-tooltip');
+        if (!tooltipEl) {
+            tooltipEl = document.createElement('div');
+            tooltipEl.id = 'custom-tooltip';
+            document.body.appendChild(tooltipEl);
+        }
+
+        const updateTooltipPosition = (e) => {
+            const x = e.clientX + 15;
+            const y = e.clientY + 15;
+
+            // Prevent going off-screen
+            const rect = tooltipEl.getBoundingClientRect();
+            const winWidth = window.innerWidth;
+            const winHeight = window.innerHeight;
+
+            let finalX = x;
+            let finalY = y;
+
+            if (x + rect.width > winWidth) {
+                finalX = e.clientX - rect.width - 10;
+            }
+
+            if (y + rect.height > winHeight) {
+                finalY = e.clientY - rect.height - 10;
+            }
+
+            // Ensure it stays within viewport
+            if (finalX < 5) finalX = 5;
+            if (finalY < 5) finalY = 5;
+            if (finalX + rect.width > winWidth - 5) finalX = winWidth - rect.width - 5;
+            if (finalY + rect.height > winHeight - 5) finalY = winHeight - rect.height - 5;
+
+            tooltipEl.style.transform = `translate(${finalX}px, ${finalY}px)`;
+            // Reset top/left to 0 since we use transform
+            tooltipEl.style.top = '0';
+            tooltipEl.style.left = '0';
+        };
+
+        document.body.addEventListener('mouseover', (e) => {
+            const selector =
+                '.card-title, .card-subtitle, .track-item-details .title, .track-item-details .artist, .now-playing-bar .title, .now-playing-bar .artist, .now-playing-bar .album, .pinned-item-name';
+            const target = e.target.closest(selector);
+
+            if (target) {
+                // Remove native title if present to avoid double tooltip
+                if (target.hasAttribute('title')) {
+                    target.removeAttribute('title');
+                }
+
+                if (target.scrollWidth > target.clientWidth) {
+                    tooltipEl.innerHTML = target.innerHTML.trim();
+                    tooltipEl.classList.add('visible');
+                    updateTooltipPosition(e);
+
+                    const moveHandler = (moveEvent) => {
+                        updateTooltipPosition(moveEvent);
+                    };
+
+                    const outHandler = () => {
+                        tooltipEl.classList.remove('visible');
+                        target.removeEventListener('mousemove', moveHandler);
+                        target.removeEventListener('mouseleave', outHandler);
+                        target.removeEventListener('click', outHandler);
+                    };
+
+                    target.addEventListener('mousemove', moveHandler);
+                    target.addEventListener('mouseleave', outHandler);
+                    target.addEventListener('click', outHandler);
+                }
+            }
+        });
     }
 
-    const updateTooltipPosition = (e) => {
-        const x = e.clientX + 15;
-        const y = e.clientY + 15;
-
-        // Prevent going off-screen
-        const rect = tooltipEl.getBoundingClientRect();
-        const winWidth = window.innerWidth;
-        const winHeight = window.innerHeight;
-
-        let finalX = x;
-        let finalY = y;
-
-        if (x + rect.width > winWidth) {
-            finalX = e.clientX - rect.width - 10;
-        }
-
-        if (y + rect.height > winHeight) {
-            finalY = e.clientY - rect.height - 10;
-        }
-
-        // Ensure it stays within viewport
-        if (finalX < 5) finalX = 5;
-        if (finalY < 5) finalY = 5;
-        if (finalX + rect.width > winWidth - 5) finalX = winWidth - rect.width - 5;
-        if (finalY + rect.height > winHeight - 5) finalY = winHeight - rect.height - 5;
-
-        tooltipEl.style.transform = `translate(${finalX}px, ${finalY}px)`;
-        // Reset top/left to 0 since we use transform
-        tooltipEl.style.top = '0';
-        tooltipEl.style.left = '0';
-    };
-
-    document.body.addEventListener('mouseover', (e) => {
-        const selector =
-            '.card-title, .card-subtitle, .track-item-details .title, .track-item-details .artist, .now-playing-bar .title, .now-playing-bar .artist, .now-playing-bar .album, .pinned-item-name';
-        const target = e.target.closest(selector);
-
-        if (target) {
-            // Remove native title if present to avoid double tooltip
-            if (target.hasAttribute('title')) {
-                target.removeAttribute('title');
-            }
-
-            if (target.scrollWidth > target.clientWidth) {
-                tooltipEl.innerHTML = target.innerHTML.trim();
-                tooltipEl.classList.add('visible');
-                updateTooltipPosition(e);
-
-                const moveHandler = (moveEvent) => {
-                    updateTooltipPosition(moveEvent);
-                };
-
-                const outHandler = () => {
-                    tooltipEl.classList.remove('visible');
-                    target.removeEventListener('mousemove', moveHandler);
-                    target.removeEventListener('mouseleave', outHandler);
-                    target.removeEventListener('click', outHandler);
-                };
-
-                target.addEventListener('mousemove', moveHandler);
-                target.addEventListener('mouseleave', outHandler);
-                target.addEventListener('click', outHandler);
-            }
-        }
-    });
-
-    // Hide tooltip on any click to be safe
-    document.addEventListener('mousedown', () => {
+    // Hide tooltip and context menu on any click to be safe
+    document.addEventListener('mousedown', (e) => {
         if (tooltipEl) {
             tooltipEl.classList.remove('visible');
+        }
+
+        const contextMenu = document.getElementById('context-menu');
+        if (contextMenu && contextMenu.style.display === 'block' && !contextMenu.contains(e.target)) {
+            contextMenu.style.display = 'none';
         }
     });
 }
