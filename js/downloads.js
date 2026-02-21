@@ -1047,7 +1047,8 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                 const discLayout = await createDiscLayoutContext(tracks, api);
                 const separateByDisc = discLayout.separateByDisc;
                 const playlistPathResolver = separateByDisc
-                    ? (_track, filename, index) => `${getDiscFolderName(discLayout.resolveDiscNumber(index))}/${filename}`
+                    ? (_track, filename, index) =>
+                          `${getDiscFolderName(discLayout.resolveDiscNumber(index))}/${filename}`
                     : null;
 
                 if (playlistSettings.shouldGenerateM3U()) {
