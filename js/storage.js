@@ -3,7 +3,7 @@ export const apiSettings = {
     STORAGE_KEY: 'monochrome-api-instances-v9',
     INSTANCES_URLS: [
         'https://tidal-uptime.jiffy-puffs-1j.workers.dev/',
-        'https://tidal-uptime.props-76styles.workers.dev/'
+        'https://tidal-uptime.props-76styles.workers.dev/',
     ],
     defaultInstances: { api: [], streaming: [] },
     instancesLoaded: false,
@@ -58,30 +58,30 @@ export const apiSettings = {
                 console.error('Failed to load instances from all uptime APIs:', fetchError);
                 this.defaultInstances = {
                     api: [
-                        { url: "https://eu-central.monochrome.tf", version: "2.4" },
-                        { url: "https://us-west.monochrome.tf", version: "2.4" },
-                        { url: "https://arran.monochrome.tf", version: "2.4" },
-                        { url: "https://triton.squid.wtf", version: "2.4" },
-                        { url: "https://api.monochrome.tf", version: "2.3" },
-                        { url: "https://monochrome-api.samidy.com", version: "2.3" },
-                        { url: "https://maus.qqdl.site", version: "2.2" },
-                        { url: "https://vogel.qqdl.site", version: "2.2" },
-                        { url: "https://katze.qqdl.site", version: "2.2" },
-                        { url: "https://hund.qqdl.site", version: "2.2" },
-                        { url: "https://tidal.kinoplus.online", version: "2.2" },
-                        { url: "https://wolf.qqdl.site", version: "2.2" }
+                        { url: 'https://eu-central.monochrome.tf', version: '2.4' },
+                        { url: 'https://us-west.monochrome.tf', version: '2.4' },
+                        { url: 'https://arran.monochrome.tf', version: '2.4' },
+                        { url: 'https://triton.squid.wtf', version: '2.4' },
+                        { url: 'https://api.monochrome.tf', version: '2.3' },
+                        { url: 'https://monochrome-api.samidy.com', version: '2.3' },
+                        { url: 'https://maus.qqdl.site', version: '2.2' },
+                        { url: 'https://vogel.qqdl.site', version: '2.2' },
+                        { url: 'https://katze.qqdl.site', version: '2.2' },
+                        { url: 'https://hund.qqdl.site', version: '2.2' },
+                        { url: 'https://tidal.kinoplus.online', version: '2.2' },
+                        { url: 'https://wolf.qqdl.site', version: '2.2' },
                     ],
                     streaming: [
-                        { url: "https://arran.monochrome.tf", version: "2.4" },
-                        { url: "https://triton.squid.wtf", version: "2.4" },
-                        { url: "https://api.monochrome.tf", version: "2.3" },
-                        { url: "https://monochrome-api.samidy.com", version: "2.3" },
-                        { url: "https://maus.qqdl.site", version: "2.2" },
-                        { url: "https://vogel.qqdl.site", version: "2.2" },
-                        { url: "https://katze.qqdl.site", version: "2.2" },
-                        { url: "https://hund.qqdl.site", version: "2.2" },
-                        { url: "https://wolf.qqdl.site", version: "2.2" }
-                    ]
+                        { url: 'https://arran.monochrome.tf', version: '2.4' },
+                        { url: 'https://triton.squid.wtf', version: '2.4' },
+                        { url: 'https://api.monochrome.tf', version: '2.3' },
+                        { url: 'https://monochrome-api.samidy.com', version: '2.3' },
+                        { url: 'https://maus.qqdl.site', version: '2.2' },
+                        { url: 'https://vogel.qqdl.site', version: '2.2' },
+                        { url: 'https://katze.qqdl.site', version: '2.2' },
+                        { url: 'https://hund.qqdl.site', version: '2.2' },
+                        { url: 'https://wolf.qqdl.site', version: '2.2' },
+                    ],
                 };
                 this.instancesLoaded = true;
                 this._loadPromise = null;
@@ -91,11 +91,13 @@ export const apiSettings = {
             let groupedInstances = { api: [], streaming: [] };
 
             if (data.api && Array.isArray(data.api)) {
-                groupedInstances.api = data.api.filter(instance => !instance.url.includes('spotisaver.net'));
+                groupedInstances.api = data.api.filter((instance) => !instance.url.includes('spotisaver.net'));
             }
 
             if (data.streaming && Array.isArray(data.streaming)) {
-                groupedInstances.streaming = data.streaming.filter(instance => !instance.url.includes('spotisaver.net'));
+                groupedInstances.streaming = data.streaming.filter(
+                    (instance) => !instance.url.includes('spotisaver.net')
+                );
             } else if (groupedInstances.api.length > 0) {
                 groupedInstances.streaming = [...groupedInstances.api];
             }
@@ -104,10 +106,13 @@ export const apiSettings = {
             this.instancesLoaded = true;
 
             try {
-                localStorage.setItem(this.STORAGE_KEY, JSON.stringify({
-                    timestamp: Date.now(),
-                    data: groupedInstances
-                }));
+                localStorage.setItem(
+                    this.STORAGE_KEY,
+                    JSON.stringify({
+                        timestamp: Date.now(),
+                        data: groupedInstances,
+                    })
+                );
             } catch (e) {
                 console.warn('Failed to cache instances:', e);
             }

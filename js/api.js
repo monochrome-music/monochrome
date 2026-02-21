@@ -48,7 +48,7 @@ export class LosslessAPI {
         }
 
         if (options.minVersion) {
-            instances = instances.filter(instance => {
+            instances = instances.filter((instance) => {
                 if (!instance.version) return false;
                 return parseFloat(instance.version) >= parseFloat(options.minVersion);
             });
@@ -789,7 +789,10 @@ export class LosslessAPI {
         if (cached) return cached;
 
         try {
-            const response = await this.fetchWithRetry(`/artist/similar/?id=${artistId}`, { type: 'api', minVersion: '2.3' });
+            const response = await this.fetchWithRetry(`/artist/similar/?id=${artistId}`, {
+                type: 'api',
+                minVersion: '2.3',
+            });
             const data = await response.json();
 
             // Handle various response structures
@@ -840,7 +843,10 @@ export class LosslessAPI {
         if (cached) return cached;
 
         try {
-            const response = await this.fetchWithRetry(`/album/similar/?id=${albumId}`, { type: 'api', minVersion: '2.3' });
+            const response = await this.fetchWithRetry(`/album/similar/?id=${albumId}`, {
+                type: 'api',
+                minVersion: '2.3',
+            });
             const data = await response.json();
 
             const items = data.items || data.albums || data.data || (Array.isArray(data) ? data : []);
@@ -987,7 +993,10 @@ export class LosslessAPI {
         if (cached) return cached;
 
         try {
-            const response = await this.fetchWithRetry(`/recommendations/?id=${id}`, { type: 'api', minVersion: '2.4' });
+            const response = await this.fetchWithRetry(`/recommendations/?id=${id}`, {
+                type: 'api',
+                minVersion: '2.4',
+            });
             const json = await response.json();
             const data = json.data || json;
 
