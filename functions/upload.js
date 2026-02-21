@@ -67,16 +67,19 @@ export async function onRequest(context) {
             }
 
             if (uploadedFile.size > 500 * 1024 * 1024) {
-                return new Response(JSON.stringify({
-                    error: 'File size exceeds 500MB limit',
-                    size: uploadedFile.size,
-                }), {
-                    status: 400,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Access-Control-Allow-Origin': '*',
-                    },
-                });
+                return new Response(
+                    JSON.stringify({
+                        error: 'File size exceeds 500MB limit',
+                        size: uploadedFile.size,
+                    }),
+                    {
+                        status: 400,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Access-Control-Allow-Origin': '*',
+                        },
+                    }
+                );
             }
 
             file = await uploadedFile.arrayBuffer();
@@ -162,28 +165,34 @@ export async function onRequest(context) {
 
         const publicUrl = `https://i.imgur.gg/${fileInfo.fileId}-${fileInfo.fileName}`;
 
-        return new Response(JSON.stringify({
-            success: true,
-            url: publicUrl,
-            fileId: fileInfo.fileId,
-            fileName: fileInfo.fileName,
-        }), {
-            status: 200,
-            headers: {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-            },
-        });
+        return new Response(
+            JSON.stringify({
+                success: true,
+                url: publicUrl,
+                fileId: fileInfo.fileId,
+                fileName: fileInfo.fileName,
+            }),
+            {
+                status: 200,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                },
+            }
+        );
     } catch (error) {
-        return new Response(JSON.stringify({
-            error: 'Upload failed',
-            message: error.message,
-        }), {
-            status: 500,
-            headers: {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-            },
-        });
+        return new Response(
+            JSON.stringify({
+                error: 'Upload failed',
+                message: error.message,
+            }),
+            {
+                status: 500,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                },
+            }
+        );
     }
 }
