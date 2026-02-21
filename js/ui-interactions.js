@@ -537,11 +537,20 @@ export function initializeUIInteractions(player, api, ui) {
                     tooltipEl.classList.remove('visible');
                     target.removeEventListener('mousemove', moveHandler);
                     target.removeEventListener('mouseleave', outHandler);
+                    target.removeEventListener('click', outHandler);
                 };
 
                 target.addEventListener('mousemove', moveHandler);
                 target.addEventListener('mouseleave', outHandler);
+                target.addEventListener('click', outHandler);
             }
+        }
+    });
+
+    // Hide tooltip on any click to be safe
+    document.addEventListener('mousedown', () => {
+        if (tooltipEl) {
+            tooltipEl.classList.remove('visible');
         }
     });
 }
