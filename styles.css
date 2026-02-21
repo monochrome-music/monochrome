@@ -5432,6 +5432,18 @@ img[src=''] {
 }
 
 @media (max-width: 768px) {
+    html,
+    body {
+        height: auto;
+        min-height: 100%;
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
+    body {
+        position: static;
+    }
+
     .player-controls .progress-container {
         order: -1;
         max-width: none;
@@ -5467,13 +5479,15 @@ img[src=''] {
             'header' auto
             'main' 1fr
             'player' auto / 1fr;
-        height: 100vh;
-        height: 100dvh;
+        height: auto;
+        min-height: 100vh;
+        min-height: 100dvh;
     }
 
     .main-content {
         padding: var(--spacing-md);
         grid-area: main;
+        overflow-y: visible;
     }
 
     .main-header {
