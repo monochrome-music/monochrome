@@ -88,6 +88,10 @@ export class MusicAPI {
         return null;
     }
 
+    async getArtistSocials(artistName) {
+        return this.tidalAPI.getArtistSocials(artistName);
+    }
+
     async getPlaylist(id, _provider = null) {
         // Playlists are always Tidal for now
         return this.tidalAPI.getPlaylist(id);
