@@ -69,6 +69,8 @@ export async function readTrackMetadata(file, siblings = []) {
         artist: { name: 'Unknown Artist' }, // For fallback/compatibility
         album: { title: 'Unknown Album', cover: 'assets/appicon.png', releaseDate: null },
         duration: 0,
+        isrc: null,
+        copyright: null,
         isLocal: true,
         file: file,
         id: `local-${file.name}-${file.lastModified}`,
@@ -144,6 +146,8 @@ async function readFlacMetadata(file, metadata) {
                     artists.push(value);
                 }
                 if (upperKey === 'ALBUM') metadata.album.title = value;
+                if (upperKey === 'ISRC') metadata.isrc = value;
+                if (upperKey === 'COPYRIGHT') metadata.copyright = value;
             }
         }
     }
@@ -234,6 +238,10 @@ async function readM4aMetadata(file, metadata) {
                     metadata.album.title = new TextDecoder().decode(
                         new Uint8Array(view.buffer, contentOffset, contentLen)
                     );
+                } else if (item.type === 'ISRC') {
+                    metadata.isrc = new TextDecoder().decode(new Uint8Array(view.buffer, contentOffset, contentLen));
+                } else if (item.type === 'cprt') {
+                    metadata.copyright = new TextDecoder().decode(new Uint8Array(view.buffer, contentOffset, contentLen));
                 } else if (item.type === 'covr') {
                     const pictureData = new Uint8Array(view.buffer, contentOffset, contentLen);
                     const mime = getMimeType(pictureData);
@@ -294,6 +302,8 @@ async function readMp3Metadata(file, metadata) {
             if (frameId === 'TPE1') tpe1 = readID3Text(frameData);
             if (frameId === 'TPE2') tpe2 = readID3Text(frameData);
             if (frameId === 'TALB') metadata.album.title = readID3Text(frameData);
+            if (frameId === 'TSRC') metadata.isrc = readID3Text(frameData);
+            if (frameId === 'TCOP') metadata.copyright = readID3Text(frameData);
             if (frameId === 'TYER' || frameId === 'TDRC') {
                 const year = readID3Text(frameData);
                 if (year) metadata.album.releaseDate = year;
@@ -898,6 +908,14 @@ function createMp4MetadataAtoms(track) {
         '©alb': track.album?.title || DEFAULT_ALBUM,
         aART: track.album?.artist?.name || track.artist?.name || DEFAULT_ARTIST,
     };
+
+    if (track.isrc) {
+        tags['ISRC'] = track.isrc;
+    }
+
+    if (track.copyright) {
+        tags['cprt'] = track.copyright;
+    }
 
     if (track.trackNumber) {
         tags['trkn'] = track.trackNumber;
