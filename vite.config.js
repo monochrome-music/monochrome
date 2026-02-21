@@ -62,7 +62,7 @@ export default defineConfig(({ mode }) => {
                         },
                     ],
                 },
-                includeAssets: ['instances.json', 'discord.html'],
+                includeAssets: ['discord.html'],
                 manifest: false, // Use existing public/manifest.json
             }),
         ],
