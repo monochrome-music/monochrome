@@ -42,7 +42,7 @@ export const jamApi = {
             // Add user to participants if not already there using atomic append
             let participants = record.participants || [];
             if (!participants.includes(user.uid)) {
-                await pb.collection('jam_sessions').update(sessionId, {
+                return await pb.collection('jam_sessions').update(sessionId, {
                     'participants+': user.uid
                 });
             }

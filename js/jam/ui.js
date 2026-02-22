@@ -114,15 +114,19 @@ export class JamUI {
             this.updateIdleUI();
         });
 
-        document.getElementById('copy-jam-link-btn').addEventListener('click', () => {
+        document.getElementById('copy-jam-link-btn').addEventListener('click', async () => {
             const linkInput = document.getElementById('jam-invite-link');
-            linkInput.select();
-            document.execCommand('copy');
-            const originalText = document.getElementById('copy-jam-link-btn').textContent;
-            document.getElementById('copy-jam-link-btn').textContent = 'Copied!';
-            setTimeout(() => {
-                document.getElementById('copy-jam-link-btn').textContent = originalText;
-            }, 2000);
+            try {
+                await navigator.clipboard.writeText(linkInput.value);
+                const btn = document.getElementById('copy-jam-link-btn');
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+            }
         });
 
         window.addEventListener('jam-session-left', () => {
@@ -172,13 +176,18 @@ export class JamUI {
 
                     const player = this.jamSyncManager.player;
                     if (player && player.currentTrack !== undefined) {
-                        joinSession();
+                        joinSession().catch(e => console.error("Failed to join jam session", e));
                     } else {
+                        let attempts = 0;
                         const initInterval = setInterval(() => {
                             if (this.jamSyncManager.player && this.jamSyncManager.player.currentTrack !== undefined) {
                                 clearInterval(initInterval);
-                                joinSession();
+                                joinSession().catch(e => console.error("Failed to join jam session", e));
+                            } else if (attempts > 50) {
+                                clearInterval(initInterval);
+                                console.error("Player initialization timed out");
                             }
+                            attempts++;
                         }, 100);
                     }
                 }
@@ -191,20 +200,24 @@ export class JamUI {
     showJamModal() {
         document.getElementById('jam-modal').classList.add('active');
         if (this.jamSyncManager.activeSessionId) {
-            // Re-render link if needed
+            if (this.currentJamToken) {
+                this.updateActiveUI(this.currentJamToken);
+            }
         } else {
             document.getElementById('jam-invite-input').value = '';
         }
     }
 
     updateActiveUI(token) {
+        this.currentJamToken = token;
         document.getElementById('jam-idle-state').style.display = 'none';
         document.getElementById('jam-active-state').style.display = 'block';
 
         const inviteUrl = `${window.location.origin}${window.location.pathname}?jam=${token}`;
         document.getElementById('jam-invite-link').value = inviteUrl;
 
-        document.getElementById('jam-btn').classList.add('active-jam');
+        const jamBtn = document.getElementById('jam-btn');
+        if (jamBtn) jamBtn.classList.add('active-jam');
 
         // Show host controls only to the host
         const hostControls = document.getElementById('jam-host-controls');
@@ -222,6 +235,7 @@ export class JamUI {
     updateIdleUI() {
         document.getElementById('jam-idle-state').style.display = 'block';
         document.getElementById('jam-active-state').style.display = 'none';
-        document.getElementById('jam-btn').classList.remove('active-jam');
+        const jamBtn = document.getElementById('jam-btn');
+        if (jamBtn) jamBtn.classList.remove('active-jam');
     }
 }
