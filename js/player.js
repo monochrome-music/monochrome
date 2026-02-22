@@ -76,7 +76,7 @@ export class Player {
             }
             if (document.visibilityState === 'visible' && this.autoplayBlocked) {
                 this.autoplayBlocked = false;
-                this.audio.play().catch(() => {});
+                this.audio.play().catch(() => { });
             }
         });
     }
@@ -222,6 +222,8 @@ export class Player {
         if (window.renderQueueFunction) {
             window.renderQueueFunction();
         }
+
+        window.dispatchEvent(new CustomEvent('queue-changed'));
     }
 
     setupMediaSession() {
@@ -326,7 +328,7 @@ export class Player {
                 // Warm connection/cache
                 // For Blob URLs (DASH), this head request is not needed and can cause errors.
                 if (!streamUrl.startsWith('blob:')) {
-                    fetch(streamUrl, { method: 'HEAD', signal: this.preloadAbortController.signal }).catch(() => {});
+                    fetch(streamUrl, { method: 'HEAD', signal: this.preloadAbortController.signal }).catch(() => { });
                 }
             } catch (error) {
                 if (error.name !== 'AbortError') {
@@ -397,6 +399,7 @@ export class Player {
         this.updateMediaSession(track);
         this.updateMediaSessionPlaybackState();
         this.updateNativeWindow(track);
+        window.dispatchEvent(new CustomEvent('track-changed', { detail: { track } }));
 
         try {
             let streamUrl;
@@ -853,7 +856,7 @@ export class Player {
                     }
                 }
             })
-            .catch(() => {});
+            .catch(() => { });
     }
 
     updatePlayingTrackIndicator() {
