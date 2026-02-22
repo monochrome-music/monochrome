@@ -10,15 +10,22 @@ const DEFAULT_ALBUM = 'Unknown Album';
  * with any featured artists parsed from the title (feat./with).
  */
 function getFullArtistString(track) {
-    const knownArtists = Array.isArray(track.artists) && track.artists.length > 0
-        ? track.artists.map((a) => (typeof a === 'string' ? a : a.name) || '').filter(Boolean)
-        : track.artist?.name ? [track.artist.name] : [];
+    const knownArtists =
+        Array.isArray(track.artists) && track.artists.length > 0
+            ? track.artists.map((a) => (typeof a === 'string' ? a : a.name) || '').filter(Boolean)
+            : track.artist?.name
+              ? [track.artist.name]
+              : [];
 
     // Parse featured artists from title, e.g. "Song (feat. A, B & C)" or "(with X & Y)"
     // Note: splitting on '&' may incorrectly fragment compound artist names like "Simon & Garfunkel".
     const featPattern = /\(\s*(?:feat\.?|ft\.?|with)\s+(.+?)\s*\)/gi;
-    const allFeatArtists = [...(track.title?.matchAll(featPattern) ?? [])]
-        .flatMap((m) => m[1].split(/\s*[,&]\s*/).map((s) => s.trim()).filter(Boolean));
+    const allFeatArtists = [...(track.title?.matchAll(featPattern) ?? [])].flatMap((m) =>
+        m[1]
+            .split(/\s*[,&]\s*/)
+            .map((s) => s.trim())
+            .filter(Boolean)
+    );
     if (allFeatArtists.length > 0) {
         const knownLower = new Set(knownArtists.map((n) => n.toLowerCase()));
         for (const feat of allFeatArtists) {
