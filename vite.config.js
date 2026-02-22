@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
             },
         },
         optimizeDeps: {
-            exclude: ['pocketbase'],
+            exclude: ['pocketbase', '@ffmpeg/ffmpeg', '@ffmpeg/util'],
         },
         server: {
             fs: {
