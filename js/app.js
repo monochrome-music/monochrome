@@ -48,7 +48,15 @@ import {
     trackOpenLyrics,
     trackCloseLyrics,
 } from './analytics.js';
-import { parseCSV, parseJSPF, parseXSPF, parseXML, parseM3U } from './playlist-importer.js';
+import {
+    parseCSV,
+    parseJSPF,
+    parseXSPF,
+    parseXML,
+    parseM3U,
+    parseDynamicCSV,
+    importToLibrary,
+} from './playlist-importer.js';
 
 // Lazy-loaded modules
 let settingsModule = null;
@@ -1316,8 +1324,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                             }, 1000);
                         }
                     } else if (csvFileInput.files.length > 0) {
-                        // Import from CSV
-                        importSource = 'csv_import';
                         const file = csvFileInput.files[0];
                         const {
                             progressElement,
@@ -1337,20 +1343,60 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             const csvText = await file.text();
                             const lines = csvText.trim().split('\n');
-                            const totalTracks = Math.max(0, lines.length - 1);
-                            progressTotal.textContent = totalTracks.toString();
+                            const totalItems = Math.max(0, lines.length - 1);
+                            progressTotal.textContent = totalItems.toString();
 
-                            const result = await parseCSV(csvText, api, (progress) => {
-                                const percentage = totalTracks > 0 ? (progress.current / totalTracks) * 100 : 0;
+                            const result = await parseDynamicCSV(csvText, api, (progress) => {
+                                const percentage = totalItems > 0 ? (progress.current / totalItems) * 100 : 0;
                                 progressFill.style.width = `${Math.min(percentage, 100)}%`;
                                 progressCurrent.textContent = progress.current.toString();
-                                currentTrackElement.textContent = progress.currentTrack;
-                                if (currentArtistElement)
-                                    currentArtistElement.textContent = progress.currentArtist || '';
+                                currentTrackElement.textContent = progress.currentItem;
+                                if (currentArtistElement) {
+                                    currentArtistElement.textContent = progress.type
+                                        ? `Importing ${progress.type}...`
+                                        : '';
+                                }
                             });
 
+                            const hasMultipleTypes =
+                                result.tracks.length > 0 && (result.albums.length > 0 || result.artists.length > 0);
+
+                            if (hasMultipleTypes) {
+                                currentTrackElement.textContent = 'Adding to library...';
+
+                                const importResults = await importToLibrary(result, db, (progress) => {
+                                    if (progress.action === 'playlist') {
+                                        currentTrackElement.textContent = `Creating playlist: ${progress.item}`;
+                                    } else {
+                                        currentTrackElement.textContent = `Adding ${progress.action}: ${progress.item}`;
+                                    }
+                                });
+
+                                console.log('Import results:', importResults);
+
+                                const summary = [];
+                                if (importResults.tracks.added > 0)
+                                    summary.push(`${importResults.tracks.added} tracks`);
+                                if (importResults.albums.added > 0)
+                                    summary.push(`${importResults.albums.added} albums`);
+                                if (importResults.artists.added > 0)
+                                    summary.push(`${importResults.artists.added} artists`);
+                                if (importResults.playlists.created > 0)
+                                    summary.push(`${importResults.playlists.created} playlists`);
+
+                                alert(
+                                    `Imported to library:\n${summary.join(', ')}\n\n${
+                                        result.missingItems.length > 0
+                                            ? `${result.missingItems.length} items could not be found.`
+                                            : ''
+                                    }`
+                                );
+                                progressElement.style.display = 'none';
+                                return;
+                            }
+
                             tracks = result.tracks;
-                            const missingTracks = result.missingTracks;
+                            const missingTracks = result.missingItems.filter((i) => i.type === 'track');
 
                             if (tracks.length === 0) {
                                 alert('No valid tracks found in the CSV file! Please check the format.');
