@@ -12,9 +12,29 @@ import {
 import { ffmpegNewContainer } from './ffmpeg';
 
 /**
- * Triggers a browser file download for the given blob.
+ * Triggers a file download for the given blob.
+ * In Neutralino mode, attempts to save directly to the configured download folder.
+ * Falls back to browser download if the native save fails or is unavailable.
  */
-export function triggerDownload(blob: Blob, filename: string): void {
+export async function triggerDownload(blob: Blob, filename: string): Promise<void> {
+    // In Neutralino mode, save directly to the configured download folder
+    if (window.NL_MODE || window.location.search.includes('mode=neutralino')) {
+        try {
+            const { downloadLocationSettings } = await import('./storage.js');
+            const downloadPath = downloadLocationSettings.getPath();
+            if (downloadPath) {
+                const bridge = await import('./desktop/neutralino-bridge.js');
+                const fullPath = `${downloadPath}/${filename}`;
+                const arrayBuffer = await blob.arrayBuffer();
+                await bridge.filesystem.writeBinaryFile(fullPath, arrayBuffer);
+                console.log(`[Download] Saved to: ${fullPath}`);
+                return;
+            }
+        } catch (e) {
+            console.error('[Download] Native save failed, falling back to browser download:', e);
+        }
+    }
+
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

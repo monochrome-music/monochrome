@@ -62,9 +62,9 @@ export class SequentialFileWriter implements IBulkDownloadWriter {
             }
 
             if (file.input instanceof Blob) {
-                triggerDownload(file.input, name);
+                await triggerDownload(file.input, name);
             } else {
-                triggerDownload(new Blob([file.input as BlobPart]), name);
+                await triggerDownload(new Blob([file.input as BlobPart]), name);
             }
         }
     }
@@ -103,7 +103,7 @@ export class ZipBlobWriter implements IBulkDownloadWriter {
         const { downloadZip } = await loadClientZip();
         const response = downloadZip(files);
         const blob = await response.blob();
-        triggerDownload(blob, this.filename);
+        await triggerDownload(blob, this.filename);
     }
 }
 

@@ -1501,7 +1501,7 @@ export class LosslessAPI {
                     finalFilename = filename.replace(/\.[^.]+$/, `.${detectedExtension}`);
                 }
 
-                triggerDownload(blob, finalFilename);
+                await triggerDownload(blob, finalFilename);
             }
 
             return blob;

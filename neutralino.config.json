@@ -15,7 +15,7 @@
     "modes": {
         "window": {
             "title": "Monochrome",
-            "icon": "public/assets/appicon.png",
+            "icon": "",
             "width": 1280,
             "height": 800,
             "minWidth": 800,

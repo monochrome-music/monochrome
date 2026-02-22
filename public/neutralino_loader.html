@@ -149,13 +149,13 @@
             }
         };
 
-            // Listen for specific events to forward
-            // Add more here if the app needs them (e.g., tray events)
-            Neutralino.events.on('windowClose', async () => {
-                await Neutralino.window.hide();
-            });
-            Neutralino.events.on('windowFocus', () => forwardEvent('windowFocus'));
-            Neutralino.events.on('windowBlur', () => forwardEvent('windowBlur'));
+        // Listen for specific events to forward
+        // Add more here if the app needs them (e.g., tray events)
+        Neutralino.events.on('windowClose', async () => {
+            await Neutralino.window.hide();
+        });
+        Neutralino.events.on('windowFocus', () => forwardEvent('windowFocus'));
+        Neutralino.events.on('windowBlur', () => forwardEvent('windowBlur'));
 
         // Media Key Events (Linux Fix)
         Neutralino.events.on('mediaNext', () => forwardEvent('mediaNext'));
