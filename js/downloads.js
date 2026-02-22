@@ -397,7 +397,26 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
     return { blob, extension };
 }
 
-function triggerDownload(blob, filename) {
+async function triggerDownload(blob, filename) {
+    // In Neutralino mode, save directly to the configured download folder
+    if (window.NL_MODE || window.location.search.includes('mode=neutralino')) {
+        try {
+            const { downloadLocationSettings } = await import('./storage.js');
+            const downloadPath = downloadLocationSettings.getPath();
+            if (downloadPath) {
+                const bridge = await import('./desktop/neutralino-bridge.js');
+                const fullPath = `${downloadPath}/${filename}`;
+                const arrayBuffer = await blob.arrayBuffer();
+                await bridge.filesystem.writeBinaryFile(fullPath, arrayBuffer);
+                console.log(`[Download] Saved to: ${fullPath}`);
+                return;
+            }
+        } catch (e) {
+            console.error('[Download] Native save failed, falling back to browser download:', e);
+        }
+    }
+
+    // Fallback: browser download
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -422,7 +441,7 @@ async function bulkDownloadSequentially(tracks, api, quality, lyricsManager, not
         try {
             const { blob, extension } = await downloadTrackBlob(track, quality, api, null, signal);
             const filename = buildTrackFilename(track, quality, extension);
-            triggerDownload(blob, filename);
+            await triggerDownload(blob, filename);
 
             if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
                 try {
@@ -432,7 +451,7 @@ async function bulkDownloadSequentially(tracks, api, quality, lyricsManager, not
                         if (lrcContent) {
                             const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
                             const lrcBlob = new Blob([lrcContent], { type: 'text/plain' });
-                            triggerDownload(lrcBlob, lrcFilename);
+                            await triggerDownload(lrcBlob, lrcFilename);
                         }
                     }
                 } catch {
@@ -726,7 +745,7 @@ async function bulkDownloadToZipBlob(
     try {
         const response = downloadZip(yieldFiles());
         const blob = await response.blob();
-        triggerDownload(blob, `${folderName}.zip`);
+        await triggerDownload(blob, `${folderName}.zip`);
     } catch (error) {
         if (error.name === 'AbortError') return;
         throw error;
@@ -1222,7 +1241,7 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
             const { downloadZip } = await loadClientZip();
             const response = downloadZip(yieldDiscography());
             const blob = await response.blob();
-            triggerDownload(blob, `${rootFolder}.zip`);
+            await triggerDownload(blob, `${rootFolder}.zip`);
             completeBulkDownload(notification, true);
         } else {
             // Sequential individual downloads for discography
@@ -1256,12 +1275,12 @@ function createBulkDownloadNotification(type, name, _totalItems) {
         type === 'album'
             ? 'Album'
             : type === 'playlist'
-              ? 'Playlist'
-              : type === 'liked'
-                ? 'Liked Tracks'
-                : type === 'queue'
-                  ? 'Queue'
-                  : 'Discography';
+                ? 'Playlist'
+                : type === 'liked'
+                    ? 'Liked Tracks'
+                    : type === 'queue'
+                        ? 'Queue'
+                        : 'Discography';
 
     notifEl.innerHTML = `
         <div style="display: flex; align-items: start; gap: 0.75rem;">
