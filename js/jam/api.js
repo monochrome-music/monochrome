@@ -12,7 +12,7 @@ export const jamApi = {
             const user = authManager.user;
             if (!user) throw new Error("Must be logged in to create a jam session");
 
-            const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            const token = crypto.randomUUID().replace(/-/g, '').substring(0, 20);
 
             const record = await pb.collection('jam_sessions').create({
                 host: user.uid,
@@ -39,12 +39,11 @@ export const jamApi = {
 
             const record = await pb.collection('jam_sessions').getOne(sessionId);
 
-            // Add user to participants if not already there
+            // Add user to participants if not already there using atomic append
             let participants = record.participants || [];
             if (!participants.includes(user.uid)) {
-                participants.push(user.uid);
                 await pb.collection('jam_sessions').update(sessionId, {
-                    participants: participants
+                    'participants+': user.uid
                 });
             }
 
@@ -63,15 +62,15 @@ export const jamApi = {
             const record = await pb.collection('jam_sessions').getOne(sessionId);
             let participants = record.participants || [];
 
-            // Remove user from participants
-            participants = participants.filter(id => id !== user.uid);
+            // Remove user from participants using atomic removal
+            const updatedParticipants = participants.filter(id => id !== user.uid);
 
-            if (participants.length === 0) {
+            if (updatedParticipants.length === 0) {
                 // If last participant leaves, delete session
                 await pb.collection('jam_sessions').delete(sessionId);
             } else {
                 await pb.collection('jam_sessions').update(sessionId, {
-                    participants: participants
+                    'participants-': user.uid
                 });
             }
         } catch (error) {
@@ -99,7 +98,7 @@ export const jamApi = {
 
     async getSessionFromInvite(token) {
         try {
-            const record = await pb.collection('jam_sessions').getFirstListItem(`token="${token}"`);
+            const record = await pb.collection('jam_sessions').getFirstListItem(pb.filter('token={:token}', { token: token }));
             return record.id;
         } catch (error) {
             console.error('[Jam API] Invalid invite token:', error);

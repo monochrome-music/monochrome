@@ -156,9 +156,22 @@ export class JamSyncManager {
                 const isDifferentTrack = !this.player.currentTrack || this.player.currentTrack.id !== current_track.id;
 
                 if (isDifferentTrack) {
-                    // Set queue to the new track and play it
-                    this.player.setQueue([current_track], 0);
-                    await this.player.playTrackFromQueue(0, 0);
+                    // Start playing the new track from its position in the queue
+                    let trackIndex = -1;
+                    if (queue) {
+                        trackIndex = queue.findIndex(t => t.id === current_track.id);
+                    }
+                    if (trackIndex === -1 && this.player.queue) {
+                        trackIndex = this.player.queue.findIndex(t => t.id === current_track.id);
+                    }
+
+                    if (trackIndex !== -1) {
+                        await this.player.playTrackFromQueue(trackIndex, 0);
+                    } else {
+                        // Fallback: If track is not in queue at all, add it and play
+                        this.player.setQueue([current_track], 0);
+                        await this.player.playTrackFromQueue(0, 0);
+                    }
                 }
             }
 
@@ -218,11 +231,11 @@ export class JamSyncManager {
             current_track: track,
             position: 0,
             playback_state: 'playing',
-            queue: this.player.queue
+            queue: typeof this.player.getCurrentQueue === 'function' ? this.player.getCurrentQueue() : this.player.queue
         });
     }
 
     onQueueChanged() {
-        this.broadcastStateUpdate({ queue: this.player.queue });
+        this.broadcastStateUpdate({ queue: typeof this.player.getCurrentQueue === 'function' ? this.player.getCurrentQueue() : this.player.queue });
     }
 }
