@@ -91,14 +91,12 @@ export const sanitizeForFilename = (value) => {
 };
 
 /**
- * Detects actual audio format from blob signature
- * @param {Blob} blob - Audio blob to analyze
- * @returns {Promise<string>} - Extension: 'flac', 'm4a', or fallback based on mime
+ * Detects audio format from DataView of first bytes
+ * @param {DataView} view - DataView of first 12 bytes of audio file
+ * @param {string} mimeType - MIME type from blob
+ * @returns {string|null} - Format: 'flac', 'mp4', 'mp3', or null
  */
-export const getExtensionFromBlob = async (blob) => {
-    const buffer = await blob.slice(0, 12).arrayBuffer();
-    const view = new DataView(buffer);
-
+export const detectAudioFormat = (view, mimeType = '') => {
     // Check for FLAC signature: "fLaC" (0x66 0x4C 0x61 0x43)
     if (
         view.byteLength >= 4 &&
@@ -118,14 +116,46 @@ export const getExtensionFromBlob = async (blob) => {
         view.getUint8(6) === 0x79 && // y
         view.getUint8(7) === 0x70 // p
     ) {
-        return 'm4a';
+        return 'mp4';
+    }
+
+    // Check for MP3 signature: ID3 tag or MPEG frame sync
+    if (
+        view.byteLength >= 3 &&
+        view.getUint8(0) === 0x49 && // I
+        view.getUint8(1) === 0x44 && // D
+        view.getUint8(2) === 0x33 // 3
+    ) {
+        return 'mp3';
+    }
+
+    // Check for MPEG frame sync (0xFF 0xFB or 0xFF 0xFA)
+    if (view.byteLength >= 2 && view.getUint8(0) === 0xff && (view.getUint8(1) & 0xe0) === 0xe0) {
+        return 'mp3';
     }
 
     // Fallback to MIME type
-    const mime = blob.type;
-    if (mime === 'audio/flac') return 'flac';
-    if (mime === 'audio/mp4' || mime === 'audio/x-m4a') return 'm4a';
+    if (mimeType === 'audio/flac') return 'flac';
+    if (mimeType === 'audio/mp4' || mimeType === 'audio/x-m4a') return 'mp4';
+    if (mimeType === 'audio/mp3' || mimeType === 'audio/mpeg') return 'mp3';
 
+    return null;
+};
+
+/**
+ * Detects actual audio format from blob signature
+ * @param {Blob} blob - Audio blob to analyze
+ * @returns {Promise<string>} - Extension: 'flac', 'm4a', 'mp3', or fallback based on mime
+ */
+export const getExtensionFromBlob = async (blob) => {
+    const buffer = await blob.slice(0, 12).arrayBuffer();
+    const view = new DataView(buffer);
+    
+    const format = detectAudioFormat(view, blob.type);
+    
+    if (format === 'mp4') return 'm4a';
+    if (format) return format;
+    
     // Default fallback
     return 'flac';
 };
@@ -135,6 +165,8 @@ export const getExtensionForQuality = (quality) => {
         case 'LOW':
         case 'HIGH':
             return 'm4a';
+        case 'MP3_320':
+            return 'mp3';
         default:
             return 'flac';
     }
