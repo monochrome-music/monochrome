@@ -24,6 +24,8 @@ import { authManager } from './accounts/auth.js';
 import { registerSW } from 'virtual:pwa-register';
 import './smooth-scrolling.js';
 import { openEditProfile } from './profile.js';
+import { JamSyncManager } from './jam/sync.js';
+import { JamUI } from './jam/ui.js';
 
 import { initTracker } from './tracker.js';
 import {
@@ -328,6 +330,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     const currentQuality = localStorage.getItem('playback-quality') || 'HI_RES_LOSSLESS';
     const player = new Player(audioPlayer, api, currentQuality);
     window.monochromePlayer = player;
+
+    const jamSyncManager = new JamSyncManager(player);
+    const jamUI = new JamUI(jamSyncManager);
+
+    window.addEventListener('track-changed', (e) => jamSyncManager.onTrackChanged(e.detail.track));
+    window.addEventListener('queue-changed', () => jamSyncManager.onQueueChanged());
+    audioPlayer.addEventListener('play', () => jamSyncManager.onPlay());
+    audioPlayer.addEventListener('pause', () => jamSyncManager.onPause());
+    audioPlayer.addEventListener('seeked', () => jamSyncManager.onSeek(audioPlayer.currentTime));
 
     // Initialize tracker
     initTracker(player);
