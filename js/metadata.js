@@ -6,6 +6,33 @@ const DEFAULT_ARTIST = 'Unknown Artist';
 const DEFAULT_ALBUM = 'Unknown Album';
 
 /**
+ * Builds a full artist string by combining the track's listed artists
+ * with any featured artists parsed from the title (feat./with).
+ */
+function getFullArtistString(track) {
+    const knownArtists = Array.isArray(track.artists) && track.artists.length > 0
+        ? track.artists.map((a) => (typeof a === 'string' ? a : a.name) || '').filter(Boolean)
+        : track.artist?.name ? [track.artist.name] : [];
+
+    // Parse featured artists from title, e.g. "Song (feat. A, B & C)" or "(with X & Y)"
+    // Note: splitting on '&' may incorrectly fragment compound artist names like "Simon & Garfunkel".
+    const featPattern = /\(\s*(?:feat\.?|ft\.?|with)\s+(.+?)\s*\)/gi;
+    const allFeatArtists = [...(track.title?.matchAll(featPattern) ?? [])]
+        .flatMap((m) => m[1].split(/\s*[,&]\s*/).map((s) => s.trim()).filter(Boolean));
+    if (allFeatArtists.length > 0) {
+        const knownLower = new Set(knownArtists.map((n) => n.toLowerCase()));
+        for (const feat of allFeatArtists) {
+            if (!knownLower.has(feat.toLowerCase())) {
+                knownArtists.push(feat);
+                knownLower.add(feat.toLowerCase());
+            }
+        }
+    }
+
+    return knownArtists.join('; ') || null;
+}
+
+/**
  * Adds metadata tags to audio files (FLAC or M4A)
  * @param {Blob} audioBlob - The audio file blob
  * @param {Object} track - Track metadata
@@ -550,8 +577,9 @@ function createVorbisCommentBlock(track) {
     if (track.title) {
         comments.push(['TITLE', track.title]);
     }
-    if (track.artist?.name) {
-        comments.push(['ARTIST', track.artist.name]);
+    const artistStr = getFullArtistString(track);
+    if (artistStr) {
+        comments.push(['ARTIST', artistStr]);
     }
     if (track.album?.title) {
         comments.push(['ALBUM', track.album.title]);
@@ -910,7 +938,7 @@ function createMp4MetadataAtoms(track) {
 
     const tags = {
         '©nam': track.title || DEFAULT_TITLE,
-        '©ART': track.artist?.name || DEFAULT_ARTIST,
+        '©ART': getFullArtistString(track) || DEFAULT_ARTIST,
         '©alb': track.album?.title || DEFAULT_ALBUM,
         aART: track.album?.artist?.name || track.artist?.name || DEFAULT_ARTIST,
     };
