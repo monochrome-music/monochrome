@@ -3785,11 +3785,23 @@ export class UIRenderer {
                     if (!instances || instances.length === 0) return '';
 
                     const listHtml = instances
-                        .map((url, index) => {
+                        .map((instance, index) => {
+                            const isObject = instance && typeof instance === 'object';
+                            const instanceUrl = isObject ? instance.url || '' : String(instance || '');
+                            const instanceName = isObject
+                                ? instance.name || instance.displayName || instance.id || instanceUrl
+                                : instanceUrl;
+                            const instanceVersion = isObject && instance.version ? String(instance.version) : '';
+                            const safeName = escapeHtml(instanceName || 'Unknown instance');
+                            const safeUrl = escapeHtml(instanceUrl || '');
+                            const safeVersion = escapeHtml(instanceVersion);
+
                             return `
                         <li data-index="${index}" data-type="${type}">
                             <div style="flex: 1; min-width: 0;">
-                                <div class="instance-url">${url}</div>
+                                <div class="instance-url">${safeName}</div>
+                                ${safeUrl && safeUrl !== safeName ? `<div style="font-size: 0.8rem; color: var(--muted-foreground); margin-top: 0.15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${safeUrl}</div>` : ''}
+                                ${safeVersion ? `<div style="font-size: 0.75rem; color: var(--muted-foreground); margin-top: 0.1rem;">v${safeVersion}</div>` : ''}
                             </div>
                             <div class="controls">
                                 <button class="move-up" title="Move Up" ${index === 0 ? 'disabled' : ''}>
