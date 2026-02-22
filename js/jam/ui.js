@@ -1,4 +1,3 @@
-import { SVG_PLAY } from '../utils.js';
 import { jamApi } from './api.js';
 
 export class JamUI {
@@ -95,7 +94,7 @@ export class JamUI {
             try {
                 const url = new URL(input);
                 token = url.searchParams.get('jam') || input;
-            } catch (e) {
+            } catch {
                 // Not a URL, use raw token
             }
 
@@ -105,7 +104,7 @@ export class JamUI {
                     await this.jamSyncManager.joinSession(sessionId);
                     this.updateActiveUI(token);
                 }
-            } catch (err) {
+            } catch {
                 alert("Invalid or expired invite.");
             }
         });
@@ -160,8 +159,7 @@ export class JamUI {
             try {
                 const sessionId = await jamApi.getSessionFromInvite(jamToken);
                 if (sessionId) {
-                    // Slight delay to ensure player is initialized
-                    setTimeout(async () => {
+                    const joinSession = async () => {
                         await this.jamSyncManager.joinSession(sessionId);
                         this.updateActiveUI(jamToken);
                         const newUrl = new URL(window.location.href);
@@ -170,7 +168,19 @@ export class JamUI {
 
                         const notification = await import('../downloads.js').then(m => m.showNotification);
                         if (notification) notification("Joined Jam Session!");
-                    }, 500);
+                    };
+
+                    const player = this.jamSyncManager.player;
+                    if (player && player.currentTrack !== undefined) {
+                        joinSession();
+                    } else {
+                        const initInterval = setInterval(() => {
+                            if (this.jamSyncManager.player && this.jamSyncManager.player.currentTrack !== undefined) {
+                                clearInterval(initInterval);
+                                joinSession();
+                            }
+                        }, 100);
+                    }
                 }
             } catch (e) {
                 console.error("Failed to join Jam from URL", e);
