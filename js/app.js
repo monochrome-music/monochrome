@@ -24,6 +24,7 @@ import { authManager } from './accounts/auth.js';
 import { registerSW } from 'virtual:pwa-register';
 import './smooth-scrolling.js';
 import { openEditProfile } from './profile.js';
+import { ThemeStore } from './themeStore.js';
 
 import { initTracker } from './tracker.js';
 import {
@@ -295,6 +296,8 @@ async function uploadCoverImage(file) {
 document.addEventListener('DOMContentLoaded', async () => {
     // Initialize analytics
     initAnalytics();
+
+    new ThemeStore();
 
     const api = new MusicAPI(apiSettings);
     const audioPlayer = document.getElementById('audio-player');

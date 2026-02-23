@@ -679,6 +679,61 @@ export function initializeSettings(scrobbler, player, api, ui) {
         });
     });
 
+    const communityThemeContainer = document.getElementById('applied-community-theme-container');
+    const communityThemeBtn = document.getElementById('applied-community-theme-btn');
+    const communityThemeDetails = document.getElementById('community-theme-details-panel');
+    const communityThemeUnapplyBtn = document.getElementById('ct-unapply-btn');
+    const appliedThemeName = document.getElementById('applied-theme-name');
+    const ctDetailsTitle = document.getElementById('ct-details-title');
+    const ctDetailsAuthor = document.getElementById('ct-details-author');
+
+    function updateCommunityThemeUI() {
+        const metadataStr = localStorage.getItem('community-theme');
+        if (metadataStr) {
+            try {
+                const metadata = JSON.parse(metadataStr);
+                if (communityThemeContainer) communityThemeContainer.style.display = 'block';
+                if (appliedThemeName) appliedThemeName.textContent = metadata.name;
+                if (ctDetailsTitle) ctDetailsTitle.textContent = metadata.name;
+                if (ctDetailsAuthor) ctDetailsAuthor.textContent = `by ${metadata.author}`;
+            } catch {
+                if (communityThemeContainer) communityThemeContainer.style.display = 'none';
+            }
+        } else {
+            if (communityThemeContainer) communityThemeContainer.style.display = 'none';
+            if (communityThemeDetails) communityThemeDetails.style.display = 'none';
+        }
+    }
+
+    updateCommunityThemeUI();
+    window.addEventListener('theme-changed', updateCommunityThemeUI);
+
+    if (communityThemeBtn) {
+        communityThemeBtn.addEventListener('click', () => {
+            const isVisible = communityThemeDetails.style.display === 'block';
+            communityThemeDetails.style.display = isVisible ? 'none' : 'block';
+        });
+    }
+
+    if (communityThemeUnapplyBtn) {
+        communityThemeUnapplyBtn.addEventListener('click', () => {
+            if (confirm('Unapply this community theme?')) {
+                localStorage.removeItem('custom_theme_css');
+                localStorage.removeItem('community-theme');
+                const styleEl = document.getElementById('custom-theme-style');
+                if (styleEl) styleEl.remove();
+                themeManager.setTheme('system');
+                
+                const themePicker = document.getElementById('theme-picker');
+                if (themePicker) {
+                    themePicker.querySelectorAll('.theme-option').forEach(opt => opt.classList.remove('active'));
+                    themePicker.querySelector('[data-theme="system"]')?.classList.add('active');
+                }
+                document.getElementById('custom-theme-editor').classList.remove('show');
+            }
+        });
+    }
+
     function renderCustomThemeEditor() {
         const grid = document.getElementById('theme-color-grid');
         const customTheme = themeManager.getCustomTheme() || {
