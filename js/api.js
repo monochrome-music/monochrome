@@ -10,7 +10,7 @@ import { trackDateSettings } from './storage.js';
 import { APICache } from './cache.js';
 import { addMetadataToAudio } from './metadata.js';
 import { DashDownloader } from './dash-downloader.js';
-import { encodeToMp3 } from './mp3-encoder.js';
+import { encodeToMp3, MP3EncodingError } from './mp3-encoder.js';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 const TIDAL_V2_TOKEN = 'txNoH4kkV41MfH25';
@@ -1137,7 +1137,7 @@ export class LosslessAPI {
             // Convert to MP3 320kbps if requested
             if (quality === 'MP3_320') {
                 try {
-                    blob = await encodeToMp3(blob, onProgress);
+                    blob = await encodeToMp3(blob, onProgress, options.signal);
                 } catch (encodingError) {
                     if (onProgress) {
                         onProgress({
@@ -1145,7 +1145,7 @@ export class LosslessAPI {
                             message: `Encoding failed: ${encodingError.message}`,
                         });
                     }
-                    throw new Error(`MP3 encoding failed: ${encodingError.message}`);
+                    throw encodingError;
                 }
             }
 
@@ -1176,7 +1176,7 @@ export class LosslessAPI {
                 throw error;
             }
             console.error('Download failed:', error);
-            if (error.message && error.message.startsWith('MP3 encoding failed:')) {
+            if (error instanceof MP3EncodingError || error.code === 'MP3_ENCODING_FAILED') {
                 throw error;
             }
             if (error.message === RATE_LIMIT_ERROR_MESSAGE) {
