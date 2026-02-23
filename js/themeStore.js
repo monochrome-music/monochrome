@@ -25,12 +25,11 @@ export class ThemeStore {
             this.modal.classList.remove('active');
         });
 
-
         const tabs = this.modal?.querySelectorAll('.search-tab');
-        tabs?.forEach(tab => {
+        tabs?.forEach((tab) => {
             tab.addEventListener('click', () => {
-                tabs.forEach(t => t.classList.remove('active'));
-                this.modal.querySelectorAll('.search-tab-content').forEach(c => c.classList.remove('active'));
+                tabs.forEach((t) => t.classList.remove('active'));
+                this.modal.querySelectorAll('.search-tab-content').forEach((c) => c.classList.remove('active'));
                 tab.classList.add('active');
                 const contentId = tab.dataset.tab === 'browse' ? 'theme-store-browse' : 'theme-store-upload';
                 document.getElementById(contentId)?.classList.add('active');
@@ -46,7 +45,6 @@ export class ThemeStore {
             debounceTimer = setTimeout(() => this.loadThemes(e.target.value), 300);
         });
 
-
         this.uploadForm?.addEventListener('submit', (e) => this.handleUpload(e));
 
         if (authManager) {
@@ -57,12 +55,10 @@ export class ThemeStore {
             });
         }
 
-
         document.getElementById('theme-store-login-btn')?.addEventListener('click', () => {
             this.modal.classList.remove('active');
             document.getElementById('email-auth-modal')?.classList.add('active');
         });
-
 
         this.setupEditorTools();
 
@@ -80,7 +76,11 @@ export class ThemeStore {
             const metadataStr = localStorage.getItem('community-theme');
             let metadata = null;
             if (metadataStr) {
-                try { metadata = JSON.parse(metadataStr); } catch (e) { console.warn(e); }
+                try {
+                    metadata = JSON.parse(metadataStr);
+                } catch (e) {
+                    console.warn(e);
+                }
             }
 
             if (metadata) {
@@ -88,7 +88,7 @@ export class ThemeStore {
                     css: css,
                     id: metadata.id,
                     name: metadata.name,
-                    authorName: metadata.author
+                    authorName: metadata.author,
                 });
             } else {
                 this.applyTheme(css);
@@ -104,7 +104,6 @@ export class ThemeStore {
         let currentUserId = null;
         if (authManager.user) {
             try {
-
                 const record = await syncManager._getUserRecord(authManager.user.uid);
                 currentUserId = record?.id;
             } catch (e) {
@@ -116,14 +115,14 @@ export class ThemeStore {
             const result = await this.pb.collection('themes').getList(1, 50, {
                 sort: '-created',
                 filter: query ? `name ~ "${query}" || description ~ "${query}"` : '',
-                expand: 'author'
+                expand: 'author',
             });
             this.loadingIndicator.style.display = 'none';
             if (result.items.length === 0) {
                 this.grid.innerHTML = '<div class="empty-state">No themes found.</div>';
                 return;
             }
-            result.items.forEach(theme => {
+            result.items.forEach((theme) => {
                 this.grid.appendChild(this.createThemeCard(theme, currentUserId));
             });
         } catch (err) {
@@ -136,14 +135,13 @@ export class ThemeStore {
     createThemeCard(theme, currentUserId) {
         const div = document.createElement('div');
         div.className = 'card theme-card';
-        const authorName = theme.expand?.author?.username
-            || theme.expand?.author?.display_name
-            || theme.authorName
-            || 'Unknown';
-        
+        const authorName =
+            theme.expand?.author?.username || theme.expand?.author?.display_name || theme.authorName || 'Unknown';
 
-        const shortDesc = theme.description ? 
-            (theme.description.length > 80 ? theme.description.substring(0, 80) + '...' : theme.description) 
+        const shortDesc = theme.description
+            ? theme.description.length > 80
+                ? theme.description.substring(0, 80) + '...'
+                : theme.description
             : '';
 
         let authorHtml = this.escapeHtml(authorName);
@@ -213,7 +211,7 @@ export class ThemeStore {
 
     async deleteTheme(themeId) {
         if (!confirm('Are you sure you want to delete this theme?')) return;
-        
+
         try {
             const fbUser = authManager.user;
             if (!fbUser) throw new Error('Not authenticated');
@@ -232,12 +230,12 @@ export class ThemeStore {
         const browseView = document.getElementById('theme-store-browse');
         const tabs = this.modal.querySelector('.search-tabs');
 
-
         document.getElementById('theme-details-name').textContent = theme.name;
-        
-        const authorName = theme.expand?.author?.username || theme.expand?.author?.display_name || theme.authorName || 'Unknown';
+
+        const authorName =
+            theme.expand?.author?.username || theme.expand?.author?.display_name || theme.authorName || 'Unknown';
         const authorEl = document.getElementById('theme-details-author');
-        
+
         if (theme.expand?.author?.username) {
             authorEl.innerHTML = `by <span style="cursor: pointer; text-decoration: underline; color: var(--primary);">${this.escapeHtml(authorName)}</span>`;
             authorEl.querySelector('span').onclick = () => {
@@ -247,12 +245,11 @@ export class ThemeStore {
         } else {
             authorEl.textContent = `by ${authorName}`;
         }
-        
+
         document.getElementById('theme-details-created').textContent = new Date(theme.created).toLocaleDateString();
         document.getElementById('theme-details-updated').textContent = new Date(theme.updated).toLocaleDateString();
         document.getElementById('theme-details-installs').textContent = theme.installs || 0;
         document.getElementById('theme-details-desc').textContent = theme.description || 'No description provided.';
-
 
         const applyBtn = document.getElementById('theme-details-apply-btn');
         applyBtn.onclick = async () => {
@@ -262,18 +259,17 @@ export class ThemeStore {
             try {
                 const latest = await this.pb.collection('themes').getOne(theme.id);
                 await this.pb.collection('themes').update(theme.id, {
-                    installs: (latest.installs || 0) + 1
+                    installs: (latest.installs || 0) + 1,
                 });
             } catch (e) {
                 console.warn('Failed to update theme installs:', e);
             }
         };
 
-
         const previewContainer = document.getElementById('theme-details-preview-container');
         previewContainer.innerHTML = '';
         this.detailsPreviewShadow = previewContainer.attachShadow({ mode: 'open' });
-        
+
         const link = document.createElement('link');
         link.rel = 'stylesheet';
         link.href = '/styles.css';
@@ -300,7 +296,6 @@ export class ThemeStore {
         `;
         this.detailsPreviewShadow.appendChild(wrapper);
 
-
         browseView.style.display = 'none';
         tabs.style.display = 'none';
         detailsView.style.display = 'flex';
@@ -314,7 +309,6 @@ export class ThemeStore {
         detailsView.style.display = 'none';
         browseView.style.display = 'block';
         tabs.style.display = 'flex';
-        
 
         document.getElementById('theme-details-preview-container').innerHTML = '';
     }
@@ -322,7 +316,7 @@ export class ThemeStore {
     extractPreviewStyles(css) {
         const vars = ['--background', '--foreground', '--primary', '--card', '--border', '--muted-foreground'];
         let style = '';
-        vars.forEach(v => {
+        vars.forEach((v) => {
             const regex = new RegExp(`${v}\\s*:\\s*([^;]+)`);
             const match = css.match(regex);
             if (match) {
@@ -341,11 +335,12 @@ export class ThemeStore {
 
         localStorage.setItem('custom_theme_css', css);
         localStorage.setItem('monochrome-theme', 'custom');
-        
+
         const metadata = {
             id: theme.id,
             name: theme.name,
-            author: theme.authorName || theme.expand?.author?.username || theme.expand?.author?.display_name || 'Unknown',
+            author:
+                theme.authorName || theme.expand?.author?.username || theme.expand?.author?.display_name || 'Unknown',
         };
         localStorage.setItem('community-theme', JSON.stringify(metadata));
 
@@ -362,15 +357,34 @@ export class ThemeStore {
         if (fontMatch && fontMatch[1]) {
             const fontFamilyValue = fontMatch[1].trim();
             const mainFont = fontFamilyValue.split(',')[0].trim().replace(/['"]/g, '');
-            
+
             const genericFamilies = [
-                'serif', 'sans-serif', 'monospace', 'cursive', 'fantasy', 
-                'system-ui', 'inter', 'ibm plex mono', 'roboto', 'open sans', 
-                'lato', 'montserrat', 'poppins', 'apple music', 'sf pro display',
-                'courier new', 'times new roman', 'arial', 'helvetica', 'verdana',
-                'tahoma', 'trebuchet ms', 'impact', 'gill sans'
+                'serif',
+                'sans-serif',
+                'monospace',
+                'cursive',
+                'fantasy',
+                'system-ui',
+                'inter',
+                'ibm plex mono',
+                'roboto',
+                'open sans',
+                'lato',
+                'montserrat',
+                'poppins',
+                'apple music',
+                'sf pro display',
+                'courier new',
+                'times new roman',
+                'arial',
+                'helvetica',
+                'verdana',
+                'tahoma',
+                'trebuchet ms',
+                'impact',
+                'gill sans',
             ];
-            const isPresetOrGeneric = genericFamilies.some(generic => mainFont.toLowerCase() === generic);
+            const isPresetOrGeneric = genericFamilies.some((generic) => mainFont.toLowerCase() === generic);
 
             if (!isPresetOrGeneric) {
                 const FONT_LINK_ID = 'monochrome-dynamic-font';
@@ -418,14 +432,15 @@ export class ThemeStore {
 
         styleEl.textContent = css;
 
-
         const root = document.documentElement;
-        ['background', 'foreground', 'primary', 'secondary', 'muted', 'border', 'highlight', 'font-family'].forEach(key => {
-            root.style.removeProperty(`--${key}`);
-        });
+        ['background', 'foreground', 'primary', 'secondary', 'muted', 'border', 'highlight', 'font-family'].forEach(
+            (key) => {
+                root.style.removeProperty(`--${key}`);
+            }
+        );
         root.setAttribute('data-theme', 'custom');
 
-        document.querySelectorAll('.theme-option').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.theme-option').forEach((el) => el.classList.remove('active'));
         document.querySelector('[data-theme="custom"]')?.classList.add('active');
 
         document.documentElement.style.display = 'none';
@@ -438,7 +453,6 @@ export class ThemeStore {
     async checkAuth() {
         if (this._isCheckingAuth) return;
         this._isCheckingAuth = true;
-
 
         const isLoggedIn = !!authManager?.user;
 
@@ -487,7 +501,6 @@ export class ThemeStore {
         let userName = null;
 
         try {
-
             const dbUser = await syncManager._getUserRecord(fbUser.uid);
             if (!dbUser) {
                 throw new Error('Could not find or create your user record. Please try again.');
@@ -499,7 +512,7 @@ export class ThemeStore {
             if (userId.length !== 15) {
                 throw new Error(
                     `Your user ID is corrupted (${userId.length} chars, expected 15). ` +
-                    `Please go to Settings > System > Clear Cloud Data, then log out and back in.`
+                        `Please go to Settings > System > Clear Cloud Data, then log out and back in.`
                 );
             }
 
@@ -513,12 +526,10 @@ export class ThemeStore {
             formData.append('authorName', userName);
             if (website) formData.append('authorUrl', website);
 
-
             await this.pb.collection('themes').create(formData, { f_id: fbUser.uid });
 
             alert('Theme uploaded successfully!');
             e.target.reset();
-            
 
             const previewWindow = document.getElementById('theme-preview-window');
             const togglePreviewBtn = document.getElementById('te-toggle-preview');
@@ -530,7 +541,6 @@ export class ThemeStore {
 
             this.modal.querySelector('[data-tab="browse"]').click();
             this.loadThemes();
-
         } catch (err) {
             console.error('Upload failed:', err);
             console.error('Response data:', err.data);
@@ -562,7 +572,7 @@ export class ThemeStore {
         const insertTemplateBtn = document.getElementById('te-insert-template');
         const togglePreviewBtn = document.getElementById('te-toggle-preview');
         const previewWindow = document.getElementById('theme-preview-window');
-        
+
         const colorMap = {
             'te-bg-color': '--background',
             'te-fg-color': '--foreground',
@@ -571,7 +581,7 @@ export class ThemeStore {
             'te-accent-color': '--highlight',
             'te-card-color': '--card',
             'te-border-color': '--border',
-            'te-muted-color': '--muted-foreground'
+            'te-muted-color': '--muted-foreground',
         };
 
         Object.entries(colorMap).forEach(([id, variable]) => {
@@ -583,7 +593,7 @@ export class ThemeStore {
 
         const styleMap = {
             'te-font-family': '--font-family',
-            'te-radius': '--radius'
+            'te-radius': '--radius',
         };
 
         Object.entries(styleMap).forEach(([id, variable]) => {
@@ -591,7 +601,7 @@ export class ThemeStore {
                 if (e.target.value) {
                     this.updateCssVariable(cssInput, variable, e.target.value);
                     this.updatePreview();
-                    e.target.value = "";
+                    e.target.value = '';
                 }
             });
         });
@@ -655,7 +665,7 @@ export class ThemeStore {
         let css = textarea.value;
         const regex = new RegExp(`${variable}:\\s*[^;\\}]+(?:;|(?=\\}))`, 'g');
         const newLine = `${variable}: ${value};`;
-        
+
         if (regex.test(css)) {
             css = css.replace(regex, newLine);
         } else {
@@ -672,7 +682,7 @@ export class ThemeStore {
         const container = document.getElementById('theme-preview-window');
         if (!this.previewShadow) {
             this.previewShadow = container.attachShadow({ mode: 'open' });
-            
+
             const link = document.createElement('link');
             link.rel = 'stylesheet';
             link.href = '/styles.css';
@@ -688,7 +698,7 @@ export class ThemeStore {
             wrapper.style.background = 'var(--background)';
             wrapper.style.color = 'var(--foreground)';
             wrapper.style.overflow = 'auto';
-            
+
             wrapper.innerHTML = `
                 <h3 style="margin-top: 0;">Preview</h3>
                 <div class="card" style="margin-bottom: 1rem;">

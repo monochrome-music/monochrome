@@ -711,7 +711,16 @@ export class LosslessAPI {
             const links = [];
             if (detailsData.relations) {
                 for (const rel of detailsData.relations) {
-                    if (['social network', 'streaming', 'official homepage', 'youtube', 'soundcloud', 'bandcamp'].includes(rel.type)) {
+                    if (
+                        [
+                            'social network',
+                            'streaming',
+                            'official homepage',
+                            'youtube',
+                            'soundcloud',
+                            'bandcamp',
+                        ].includes(rel.type)
+                    ) {
                         links.push({ type: rel.type, url: rel.url.resource });
                     }
                 }

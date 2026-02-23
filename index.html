@@ -1260,92 +1260,233 @@
 
         <div id="theme-store-modal" class="modal">
             <div class="modal-overlay"></div>
-            <div class="modal-content wide" style="height: 80vh; display: flex; flex-direction: column; max-height: 80vh;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h3 style="margin: 0;">Theme Store</h3>
-                    <button class="close-modal-btn" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:var(--muted-foreground);">&times;</button>
+            <div
+                class="modal-content wide"
+                style="height: 80vh; display: flex; flex-direction: column; max-height: 80vh"
+            >
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem">
+                    <h3 style="margin: 0">Theme Store</h3>
+                    <button
+                        class="close-modal-btn"
+                        style="
+                            background: none;
+                            border: none;
+                            font-size: 1.5rem;
+                            cursor: pointer;
+                            color: var(--muted-foreground);
+                        "
+                    >
+                        &times;
+                    </button>
                 </div>
-                
-                <div class="search-tabs" style="margin-bottom: 1rem;">
+
+                <div class="search-tabs" style="margin-bottom: 1rem">
                     <button class="search-tab active" data-tab="browse">Browse</button>
                     <button class="search-tab" data-tab="upload">Upload</button>
                 </div>
 
-                <div id="theme-store-details" style="display: none; flex-direction: column; height: 100%; overflow: hidden;">
-                    <button class="btn-secondary" id="theme-details-back-btn" style="align-self: flex-start; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                <div
+                    id="theme-store-details"
+                    style="display: none; flex-direction: column; height: 100%; overflow: hidden"
+                >
+                    <button
+                        class="btn-secondary"
+                        id="theme-details-back-btn"
+                        style="
+                            align-self: flex-start;
+                            margin-bottom: 1rem;
+                            display: flex;
+                            align-items: center;
+                            gap: 0.5rem;
+                        "
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path d="m15 18-6-6 6-6" />
+                        </svg>
                         Back
                     </button>
-                    <div style="flex: 1; overflow-y: auto; padding-right: 0.5rem;">
-                        <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 2rem;">
-                             <div id="theme-details-preview-container" style="width: 300px; height: 220px; flex-shrink: 0; border: 1px solid var(--border); border-radius: var(--radius);"></div>
-                             <div style="flex: 1; min-width: 250px;">
-                                 <h2 id="theme-details-name" style="font-size: 2rem; margin-bottom: 0.5rem;"></h2>
-                                 <div class="meta" style="color: var(--muted-foreground); font-size: 0.9rem; margin-bottom: 1rem; line-height: 1.6;">
-                                     <div id="theme-details-author"></div>
-                                     <div>Created: <span id="theme-details-created"></span> - Updated: <span id="theme-details-updated"></span></div>
-                                     <div>Installs: <span id="theme-details-installs">0</span></div>
-                                 </div>
-                                 <button id="theme-details-apply-btn" class="btn-primary" style="width: 100%; max-width: 200px;">Apply Theme</button>
-                             </div>
+                    <div style="flex: 1; overflow-y: auto; padding-right: 0.5rem">
+                        <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 2rem">
+                            <div
+                                id="theme-details-preview-container"
+                                style="
+                                    width: 300px;
+                                    height: 220px;
+                                    flex-shrink: 0;
+                                    border: 1px solid var(--border);
+                                    border-radius: var(--radius);
+                                "
+                            ></div>
+                            <div style="flex: 1; min-width: 250px">
+                                <h2 id="theme-details-name" style="font-size: 2rem; margin-bottom: 0.5rem"></h2>
+                                <div
+                                    class="meta"
+                                    style="
+                                        color: var(--muted-foreground);
+                                        font-size: 0.9rem;
+                                        margin-bottom: 1rem;
+                                        line-height: 1.6;
+                                    "
+                                >
+                                    <div id="theme-details-author"></div>
+                                    <div>
+                                        Created: <span id="theme-details-created"></span> - Updated:
+                                        <span id="theme-details-updated"></span>
+                                    </div>
+                                    <div>Installs: <span id="theme-details-installs">0</span></div>
+                                </div>
+                                <button
+                                    id="theme-details-apply-btn"
+                                    class="btn-primary"
+                                    style="width: 100%; max-width: 200px"
+                                >
+                                    Apply Theme
+                                </button>
+                            </div>
                         </div>
-                        <div style="margin-bottom: 2rem;">
-                            <h3 style="font-size: 1.2rem; margin-bottom: 0.5rem;">Description</h3>
-                            <p id="theme-details-desc" style="white-space: pre-wrap; color: var(--foreground); line-height: 1.6;"></p>
+                        <div style="margin-bottom: 2rem">
+                            <h3 style="font-size: 1.2rem; margin-bottom: 0.5rem">Description</h3>
+                            <p
+                                id="theme-details-desc"
+                                style="white-space: pre-wrap; color: var(--foreground); line-height: 1.6"
+                            ></p>
                         </div>
                     </div>
                 </div>
 
-                <div id="theme-store-browse" class="search-tab-content active" style="flex: 1; overflow-y: auto; min-height: 0;">
-                    <div class="track-list-search-container" style="margin: 0 0 1rem 0;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="search-icon"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                        <input type="search" id="theme-store-search" placeholder="Search themes..." class="track-list-search-input" autocomplete="off">
+                <div
+                    id="theme-store-browse"
+                    class="search-tab-content active"
+                    style="flex: 1; overflow-y: auto; min-height: 0"
+                >
+                    <div class="track-list-search-container" style="margin: 0 0 1rem 0">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            class="search-icon"
+                        >
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <input
+                            type="search"
+                            id="theme-store-search"
+                            placeholder="Search themes..."
+                            class="track-list-search-input"
+                            autocomplete="off"
+                        />
                     </div>
-                    <div id="community-themes-grid" class="card-grid">
-                    </div>
-                    <div id="theme-store-loading" style="text-align: center; padding: 2rem; display: none;">
-                        <div class="animate-spin" style="display: inline-block;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                    <div id="community-themes-grid" class="card-grid"></div>
+                    <div id="theme-store-loading" style="text-align: center; padding: 2rem; display: none">
+                        <div class="animate-spin" style="display: inline-block">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                            </svg>
                         </div>
                     </div>
                 </div>
 
-                <div id="theme-store-upload" class="search-tab-content" style="flex: 1; overflow-y: auto; min-height: 0;">
-                    <div id="theme-upload-auth-message" style="display: none; text-align: center; padding: 2rem; flex-direction: column; align-items: center; gap: 1rem;">
+                <div
+                    id="theme-store-upload"
+                    class="search-tab-content"
+                    style="flex: 1; overflow-y: auto; min-height: 0"
+                >
+                    <div
+                        id="theme-upload-auth-message"
+                        style="
+                            display: none;
+                            text-align: center;
+                            padding: 2rem;
+                            flex-direction: column;
+                            align-items: center;
+                            gap: 1rem;
+                        "
+                    >
                         <p>You need to be logged in to upload themes.</p>
                         <button class="btn-primary" id="theme-store-login-btn">Go to Login</button>
                     </div>
                     <form id="theme-upload-form">
-                        <div style="margin-bottom: 1rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem;">Theme Name</label>
-                            <input type="text" id="theme-upload-name" class="template-input" placeholder="My Awesome Theme" required>
+                        <div style="margin-bottom: 1rem">
+                            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem">Theme Name</label>
+                            <input
+                                type="text"
+                                id="theme-upload-name"
+                                class="template-input"
+                                placeholder="My Awesome Theme"
+                                required
+                            />
                         </div>
-                        <div style="margin-bottom: 1rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem;">Description</label>
-                            <textarea id="theme-upload-desc" class="template-input" placeholder="Describe your theme..." style="min-height: 80px; resize: vertical;"></textarea>
+                        <div style="margin-bottom: 1rem">
+                            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem">Description</label>
+                            <textarea
+                                id="theme-upload-desc"
+                                class="template-input"
+                                placeholder="Describe your theme..."
+                                style="min-height: 80px; resize: vertical"
+                            ></textarea>
                         </div>
-                        <div style="margin-bottom: 1rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem;">Author Website (Optional)</label>
-                            <input type="url" id="theme-upload-website" class="template-input" placeholder="https://example.com">
-                            <p style="font-size: 0.8rem; color: var(--muted-foreground); margin-top: 0.25rem;">
+                        <div style="margin-bottom: 1rem">
+                            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem"
+                                >Author Website (Optional)</label
+                            >
+                            <input
+                                type="url"
+                                id="theme-upload-website"
+                                class="template-input"
+                                placeholder="https://example.com"
+                            />
+                            <p style="font-size: 0.8rem; color: var(--muted-foreground); margin-top: 0.25rem">
                                 It is recommended to create a Monochrome profile instead.
                             </p>
                         </div>
-                        <div style="margin-bottom: 1rem;">
-                            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem;">CSS</label>
-                            <p style="font-size: 0.8rem; color: var(--muted-foreground); margin-bottom: 0.5rem;">
-                                Define your CSS variables or custom styles here. <a href="https://github.com/monochrome-music/monochrome/blob/main/THEME_GUIDE.md" target="_blank" style="text-decoration: underline; color: var(--primary);">Read the Theme Guide</a>.
+                        <div style="margin-bottom: 1rem">
+                            <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem">CSS</label>
+                            <p style="font-size: 0.8rem; color: var(--muted-foreground); margin-bottom: 0.5rem">
+                                Define your CSS variables or custom styles here.
+                                <a
+                                    href="https://github.com/monochrome-music/monochrome/blob/main/THEME_GUIDE.md"
+                                    target="_blank"
+                                    style="text-decoration: underline; color: var(--primary)"
+                                    >Read the Theme Guide</a
+                                >.
                             </p>
                             <div class="theme-editor-toolbar">
                                 <div class="color-picker-group">
-                                    <input type="color" id="te-bg-color" title="Background">
-                                    <input type="color" id="te-fg-color" title="Foreground">
-                                    <input type="color" id="te-primary-color" title="Primary">
-                                    <input type="color" id="te-sec-color" title="Secondary">
-                                    <input type="color" id="te-accent-color" title="Accent/Highlight">
-                                    <input type="color" id="te-card-color" title="Card Background">
-                                    <input type="color" id="te-border-color" title="Border Color">
-                                    <input type="color" id="te-muted-color" title="Muted Text">
+                                    <input type="color" id="te-bg-color" title="Background" />
+                                    <input type="color" id="te-fg-color" title="Foreground" />
+                                    <input type="color" id="te-primary-color" title="Primary" />
+                                    <input type="color" id="te-sec-color" title="Secondary" />
+                                    <input type="color" id="te-accent-color" title="Accent/Highlight" />
+                                    <input type="color" id="te-card-color" title="Card Background" />
+                                    <input type="color" id="te-border-color" title="Border Color" />
+                                    <input type="color" id="te-muted-color" title="Muted Text" />
                                 </div>
                                 <div class="style-picker-group">
                                     <select id="te-font-family" title="Font Family">
@@ -1355,7 +1496,21 @@
                                         <option value="'Courier New', monospace">Mono</option>
                                         <option value="'Times New Roman', serif">Serif</option>
                                     </select>
-                                    <input type="text" id="te-font-custom" placeholder="Custom Font..." style="height: 24px; padding: 0 4px; font-size: 0.75rem; width: 100px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--input); color: var(--foreground);">
+                                    <input
+                                        type="text"
+                                        id="te-font-custom"
+                                        placeholder="Custom Font..."
+                                        style="
+                                            height: 24px;
+                                            padding: 0 4px;
+                                            font-size: 0.75rem;
+                                            width: 100px;
+                                            border: 1px solid var(--border);
+                                            border-radius: var(--radius-sm);
+                                            background: var(--input);
+                                            color: var(--foreground);
+                                        "
+                                    />
                                     <select id="te-radius" title="Border Radius">
                                         <option value="">Radius...</option>
                                         <option value="0px">Square</option>
@@ -1365,11 +1520,31 @@
                                     </select>
                                 </div>
                                 <div class="editor-actions">
-                                    <button type="button" id="te-insert-template" class="btn-secondary" style="padding: 2px 8px; font-size: 0.8rem;">Template</button>
-                                    <button type="button" id="te-toggle-preview" class="btn-secondary" style="padding: 2px 8px; font-size: 0.8rem;">Preview</button>
+                                    <button
+                                        type="button"
+                                        id="te-insert-template"
+                                        class="btn-secondary"
+                                        style="padding: 2px 8px; font-size: 0.8rem"
+                                    >
+                                        Template
+                                    </button>
+                                    <button
+                                        type="button"
+                                        id="te-toggle-preview"
+                                        class="btn-secondary"
+                                        style="padding: 2px 8px; font-size: 0.8rem"
+                                    >
+                                        Preview
+                                    </button>
                                 </div>
                             </div>
-                            <textarea id="theme-upload-css" class="template-input" style="min-height: 200px; font-family: monospace; white-space: pre;" placeholder=":root {&#10;    --background: #000000;&#10;    --foreground: #ffffff;&#10;    /* ... */&#10;}" required></textarea>
+                            <textarea
+                                id="theme-upload-css"
+                                class="template-input"
+                                style="min-height: 200px; font-family: monospace; white-space: pre"
+                                placeholder=":root {&#10;    --background: #000000;&#10;    --foreground: #ffffff;&#10;    /* ... */&#10;}"
+                                required
+                            ></textarea>
                         </div>
                         <div class="modal-actions">
                             <button type="submit" class="btn-primary">Upload Theme</button>
@@ -1379,7 +1554,7 @@
             </div>
         </div>
 
-        <div id="theme-preview-window" style="display: none;"></div>
+        <div id="theme-preview-window" style="display: none"></div>
 
         <div id="tracker-modal" class="modal tracker-modal">
             <div class="modal-overlay"></div>
@@ -3120,15 +3295,50 @@
                                     <div class="theme-option" data-theme="latte">Latte</div>
                                     <div class="theme-option" data-theme="custom">Custom</div>
                                 </div>
-                                <div id="applied-community-theme-container" style="display: none; margin-top: 1rem;">
-                                    <button id="applied-community-theme-btn" class="btn-secondary" style="width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 1rem;">
+                                <div id="applied-community-theme-container" style="display: none; margin-top: 1rem">
+                                    <button
+                                        id="applied-community-theme-btn"
+                                        class="btn-secondary"
+                                        style="
+                                            width: 100%;
+                                            display: flex;
+                                            justify-content: space-between;
+                                            align-items: center;
+                                            padding: 1rem;
+                                        "
+                                    >
                                         <span>Applied Community Theme</span>
-                                        <span id="applied-theme-name" style="color: var(--muted-foreground); font-size: 0.9rem;"></span>
+                                        <span
+                                            id="applied-theme-name"
+                                            style="color: var(--muted-foreground); font-size: 0.9rem"
+                                        ></span>
                                     </button>
-                                    <div id="community-theme-details-panel" style="display: none; padding: 1rem; background: var(--secondary); border-radius: var(--radius); margin-top: 0.5rem; border: 1px solid var(--border);">
-                                        <div style="margin-bottom: 0.5rem; font-weight: 600;" id="ct-details-title"></div>
-                                        <div style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--muted-foreground);" id="ct-details-author"></div>
-                                        <button id="ct-unapply-btn" class="btn-secondary danger" style="width: 100%;">Unapply Theme</button>
+                                    <div
+                                        id="community-theme-details-panel"
+                                        style="
+                                            display: none;
+                                            padding: 1rem;
+                                            background: var(--secondary);
+                                            border-radius: var(--radius);
+                                            margin-top: 0.5rem;
+                                            border: 1px solid var(--border);
+                                        "
+                                    >
+                                        <div
+                                            style="margin-bottom: 0.5rem; font-weight: 600"
+                                            id="ct-details-title"
+                                        ></div>
+                                        <div
+                                            style="
+                                                margin-bottom: 1rem;
+                                                font-size: 0.9rem;
+                                                color: var(--muted-foreground);
+                                            "
+                                            id="ct-details-author"
+                                        ></div>
+                                        <button id="ct-unapply-btn" class="btn-secondary danger" style="width: 100%">
+                                            Unapply Theme
+                                        </button>
                                     </div>
                                 </div>
                                 <div class="custom-theme-editor" id="custom-theme-editor">
@@ -3142,7 +3352,9 @@
                                 <div class="setting-item">
                                     <div class="info">
                                         <span class="label">Community Themes</span>
-                                        <span class="description">Browse and apply themes created by the community</span>
+                                        <span class="description"
+                                            >Browse and apply themes created by the community</span
+                                        >
                                     </div>
                                     <button id="open-theme-store-btn" class="btn-secondary">Open Theme Store</button>
                                 </div>

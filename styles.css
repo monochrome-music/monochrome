@@ -7641,7 +7641,7 @@ textarea:focus {
     cursor: pointer;
 }
 
-.theme-editor-toolbar input[type="color"] {
+.theme-editor-toolbar input[type='color'] {
     width: 24px;
     height: 24px;
     padding: 0;
@@ -7663,7 +7663,7 @@ textarea:focus {
     right: 20px;
     width: 300px;
     height: 400px;
-    background: var(--background); 
+    background: var(--background);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: var(--shadow-xl);
