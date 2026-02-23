@@ -638,6 +638,7 @@ export const playlistSettings = {
     NFO_KEY: 'playlist-generate-nfo',
     JSON_KEY: 'playlist-generate-json',
     RELATIVE_PATHS_KEY: 'playlist-relative-paths',
+    SEPARATE_DISCS_KEY: 'playlist-separate-discs-in-zip',
 
     shouldGenerateM3U() {
         try {
@@ -689,6 +690,15 @@ export const playlistSettings = {
         }
     },
 
+    shouldSeparateDiscsInZip() {
+        try {
+            const val = localStorage.getItem(this.SEPARATE_DISCS_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
     setGenerateM3U(enabled) {
         localStorage.setItem(this.M3U_KEY, enabled ? 'true' : 'false');
     },
@@ -711,6 +721,10 @@ export const playlistSettings = {
 
     setUseRelativePaths(enabled) {
         localStorage.setItem(this.RELATIVE_PATHS_KEY, enabled ? 'true' : 'false');
+    },
+
+    setSeparateDiscsInZip(enabled) {
+        localStorage.setItem(this.SEPARATE_DISCS_KEY, enabled ? 'true' : 'false');
     },
 };
 

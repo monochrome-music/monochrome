@@ -957,15 +957,25 @@ export class LosslessAPI {
         const recommendedTracks = [];
         const seenTrackIds = new Set(tracks.map((t) => t.id));
 
-        const artistsToProcess = artists.slice(0, Math.min(5, artists.length));
+        // Shuffle artists if refreshing to get different results
+        let shuffledArtists = artists;
+        if (options.refresh) {
+            shuffledArtists = [...artists].sort(() => Math.random() - 0.5);
+        }
+
+        const artistsToProcess = shuffledArtists.slice(0, Math.min(5, shuffledArtists.length));
 
         const artistPromises = artistsToProcess.map(async (artist) => {
             try {
                 console.log(`Fetching tracks for artist: ${artist.name} (ID: ${artist.id})`);
-                const artistData = await this.getArtist(artist.id, { lightweight: true, skipCache: options.skipCache });
+                const artistData = await this.getArtist(artist.id, { lightweight: true, skipCache: options.refresh });
                 if (artistData && artistData.tracks && artistData.tracks.length > 0) {
-                    const newTracks = artistData.tracks.filter((track) => !seenTrackIds.has(track.id)).slice(0, 4);
-                    return newTracks;
+                    const availableTracks = artistData.tracks.filter((track) => !seenTrackIds.has(track.id));
+                    // Shuffle and pick different tracks when refreshing
+                    const shuffled = options.refresh
+                        ? availableTracks.sort(() => Math.random() - 0.5)
+                        : availableTracks;
+                    return shuffled.slice(0, 4);
                 } else {
                     console.warn(`No tracks found for artist ${artist.name}`);
                     return [];

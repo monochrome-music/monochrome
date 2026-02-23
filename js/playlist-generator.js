@@ -5,9 +5,11 @@ import { sanitizeForFilename } from './utils.js';
  * @param {Object} playlist - Playlist metadata (title, artist, etc.)
  * @param {Array} tracks - Array of track objects
  * @param {boolean} useRelativePaths - Whether to use relative paths
+ * @param {Function|null} pathResolver - Optional resolver for per-track relative path
+ * @param {string} audioExtension - Audio file extension used in generated paths
  * @returns {string} M3U content
  */
-export function generateM3U(playlist, tracks, useRelativePaths = true) {
+export function generateM3U(playlist, tracks, useRelativePaths = true, pathResolver = null, audioExtension = 'flac') {
     let content = '#EXTM3U\n';
 
     if (playlist.title) {
@@ -29,8 +31,9 @@ export function generateM3U(playlist, tracks, useRelativePaths = true) {
 
         content += `#EXTINF:${duration},${displayName}\n`;
 
-        const filename = getTrackFilename(track, index + 1);
-        const path = useRelativePaths ? filename : filename;
+        const filename = getTrackFilename(track, index + 1, audioExtension);
+        const relativePath = typeof pathResolver === 'function' ? pathResolver(track, filename, index) : filename;
+        const path = useRelativePaths ? relativePath : relativePath;
 
         content += `${path}\n\n`;
     });
@@ -43,9 +46,11 @@ export function generateM3U(playlist, tracks, useRelativePaths = true) {
  * @param {Object} playlist - Playlist metadata
  * @param {Array} tracks - Array of track objects
  * @param {boolean} useRelativePaths - Whether to use relative paths
+ * @param {Function|null} pathResolver - Optional resolver for per-track relative path
+ * @param {string} audioExtension - Audio file extension used in generated paths
  * @returns {string} M3U8 content
  */
-export function generateM3U8(playlist, tracks, useRelativePaths = true) {
+export function generateM3U8(playlist, tracks, useRelativePaths = true, pathResolver = null, audioExtension = 'flac') {
     let content = '#EXTM3U\n';
     content += '#EXT-X-VERSION:3\n';
     content += '#EXT-X-PLAYLIST-TYPE:VOD\n';
@@ -72,8 +77,9 @@ export function generateM3U8(playlist, tracks, useRelativePaths = true) {
 
         content += `#EXTINF:${duration}.000,${displayName}\n`;
 
-        const filename = getTrackFilename(track, index + 1);
-        const path = useRelativePaths ? filename : filename;
+        const filename = getTrackFilename(track, index + 1, audioExtension);
+        const relativePath = typeof pathResolver === 'function' ? pathResolver(track, filename, index) : filename;
+        const path = useRelativePaths ? relativePath : relativePath;
 
         content += `${path}\n\n`;
     });
@@ -242,7 +248,7 @@ function getTrackArtists(track) {
 /**
  * Helper function to get track filename
  */
-function getTrackFilename(track, trackNumber = 1) {
+function getTrackFilename(track, trackNumber = 1, audioExtension = 'flac') {
     const paddedNumber = String(trackNumber).padStart(2, '0');
     const artists = getTrackArtists(track);
     const title = track.title || 'Unknown Title';
@@ -250,7 +256,7 @@ function getTrackFilename(track, trackNumber = 1) {
     const sanitizedArtists = sanitizeForFilename(artists);
     const sanitizedTitle = sanitizeForFilename(title);
 
-    return `${paddedNumber} - ${sanitizedArtists} - ${sanitizedTitle}.flac`;
+    return `${paddedNumber} - ${sanitizedArtists} - ${sanitizedTitle}.${audioExtension}`;
 }
 
 /**

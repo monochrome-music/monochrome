@@ -49,7 +49,15 @@ import {
     trackOpenLyrics,
     trackCloseLyrics,
 } from './analytics.js';
-import { parseCSV, parseJSPF, parseXSPF, parseXML, parseM3U } from './playlist-importer.js';
+import {
+    parseCSV,
+    parseJSPF,
+    parseXSPF,
+    parseXML,
+    parseM3U,
+    parseDynamicCSV,
+    importToLibrary,
+} from './playlist-importer.js';
 
 // Lazy-loaded modules
 let settingsModule = null;
@@ -840,7 +848,74 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.target.closest('#shuffle-artist-btn')) {
             const btn = e.target.closest('#shuffle-artist-btn');
             if (btn.disabled) return;
-            document.getElementById('play-artist-radio-btn')?.click();
+            const artistId = window.location.pathname.split('/')[2];
+            if (!artistId) return;
+
+            btn.disabled = true;
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML =
+                '<svg class="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Shuffling...</span>';
+
+            try {
+                const artist = await api.getArtist(artistId);
+                const allReleases = [...(artist.albums || []), ...(artist.eps || [])];
+                const trackSet = new Set();
+                const allTracks = [];
+
+                // Fetch full artist discography tracks (albums + EPs), deduped by track ID.
+                const chunkSize = 8;
+                for (let i = 0; i < allReleases.length; i += chunkSize) {
+                    const chunk = allReleases.slice(i, i + chunkSize);
+                    await Promise.all(
+                        chunk.map(async (album) => {
+                            try {
+                                const { tracks } = await api.getAlbum(album.id);
+                                tracks.forEach((track) => {
+                                    if (!trackSet.has(track.id)) {
+                                        trackSet.add(track.id);
+                                        allTracks.push(track);
+                                    }
+                                });
+                            } catch (err) {
+                                console.warn(`Failed to fetch tracks for album ${album.title}:`, err);
+                            }
+                        })
+                    );
+                }
+
+                // Fallback to artist top tracks if discography fetch yields nothing.
+                if (allTracks.length === 0 && Array.isArray(artist.tracks)) {
+                    artist.tracks.forEach((track) => {
+                        if (!trackSet.has(track.id)) {
+                            trackSet.add(track.id);
+                            allTracks.push(track);
+                        }
+                    });
+                }
+
+                if (allTracks.length === 0) {
+                    throw new Error('No tracks found for this artist');
+                }
+
+                const shuffledTracks = [...allTracks].sort(() => Math.random() - 0.5);
+                player.setQueue(shuffledTracks, 0);
+                const shuffleBtn = document.getElementById('shuffle-btn');
+                if (shuffleBtn) shuffleBtn.classList.remove('active');
+                player.shuffleActive = false;
+                player.playTrackFromQueue();
+
+                const { showNotification } = await loadDownloadsModule();
+                showNotification('Shuffling artist discography');
+            } catch (error) {
+                console.error('Failed to shuffle artist tracks:', error);
+                const { showNotification } = await loadDownloadsModule();
+                showNotification('Failed to shuffle artist tracks');
+            } finally {
+                if (document.body.contains(btn)) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalHTML;
+                }
+            }
         }
         if (e.target.closest('#download-mix-btn')) {
             const btn = e.target.closest('#download-mix-btn');
@@ -1252,8 +1327,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                             }, 1000);
                         }
                     } else if (csvFileInput.files.length > 0) {
-                        // Import from CSV
-                        importSource = 'csv_import';
                         const file = csvFileInput.files[0];
                         const {
                             progressElement,
@@ -1273,20 +1346,60 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             const csvText = await file.text();
                             const lines = csvText.trim().split('\n');
-                            const totalTracks = Math.max(0, lines.length - 1);
-                            progressTotal.textContent = totalTracks.toString();
+                            const totalItems = Math.max(0, lines.length - 1);
+                            progressTotal.textContent = totalItems.toString();
 
-                            const result = await parseCSV(csvText, api, (progress) => {
-                                const percentage = totalTracks > 0 ? (progress.current / totalTracks) * 100 : 0;
+                            const result = await parseDynamicCSV(csvText, api, (progress) => {
+                                const percentage = totalItems > 0 ? (progress.current / totalItems) * 100 : 0;
                                 progressFill.style.width = `${Math.min(percentage, 100)}%`;
                                 progressCurrent.textContent = progress.current.toString();
-                                currentTrackElement.textContent = progress.currentTrack;
-                                if (currentArtistElement)
-                                    currentArtistElement.textContent = progress.currentArtist || '';
+                                currentTrackElement.textContent = progress.currentItem;
+                                if (currentArtistElement) {
+                                    currentArtistElement.textContent = progress.type
+                                        ? `Importing ${progress.type}...`
+                                        : '';
+                                }
                             });
 
+                            const hasMultipleTypes =
+                                result.tracks.length > 0 && (result.albums.length > 0 || result.artists.length > 0);
+
+                            if (hasMultipleTypes) {
+                                currentTrackElement.textContent = 'Adding to library...';
+
+                                const importResults = await importToLibrary(result, db, (progress) => {
+                                    if (progress.action === 'playlist') {
+                                        currentTrackElement.textContent = `Creating playlist: ${progress.item}`;
+                                    } else {
+                                        currentTrackElement.textContent = `Adding ${progress.action}: ${progress.item}`;
+                                    }
+                                });
+
+                                console.log('Import results:', importResults);
+
+                                const summary = [];
+                                if (importResults.tracks.added > 0)
+                                    summary.push(`${importResults.tracks.added} tracks`);
+                                if (importResults.albums.added > 0)
+                                    summary.push(`${importResults.albums.added} albums`);
+                                if (importResults.artists.added > 0)
+                                    summary.push(`${importResults.artists.added} artists`);
+                                if (importResults.playlists.created > 0)
+                                    summary.push(`${importResults.playlists.created} playlists`);
+
+                                alert(
+                                    `Imported to library:\n${summary.join(', ')}\n\n${
+                                        result.missingItems.length > 0
+                                            ? `${result.missingItems.length} items could not be found.`
+                                            : ''
+                                    }`
+                                );
+                                progressElement.style.display = 'none';
+                                return;
+                            }
+
                             tracks = result.tracks;
-                            const missingTracks = result.missingTracks;
+                            const missingTracks = result.missingItems.filter((i) => i.type === 'track');
 
                             if (tracks.length === 0) {
                                 alert('No valid tracks found in the CSV file! Please check the format.');

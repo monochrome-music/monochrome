@@ -501,7 +501,7 @@ export class UIRenderer {
         });
     }
 
-    createUserPlaylistCardHTML(playlist) {
+    createUserPlaylistCardHTML(playlist, customSubtitle = null) {
         let imageHTML = '';
         if (playlist.cover) {
             imageHTML = `<img src="${playlist.cover}" alt="${playlist.name}" class="card-image" loading="lazy">`;
@@ -538,6 +538,8 @@ export class UIRenderer {
         }
 
         const isCompact = cardSettings.isCompactAlbum();
+        const subtitle =
+            customSubtitle || `${playlist.tracks ? playlist.tracks.length : playlist.numberOfTracks || 0} tracks`;
 
         return this.createBaseCardHTML({
             type: 'user-playlist', // Note: data-type logic in base might need adjustment if it uses this for buttons.
@@ -545,7 +547,7 @@ export class UIRenderer {
             id: playlist.id,
             href: `/userplaylist/${playlist.id}`,
             title: escapeHtml(playlist.name),
-            subtitle: `${playlist.tracks ? playlist.tracks.length : playlist.numberOfTracks || 0} tracks`,
+            subtitle,
             imageHTML: imageHTML,
             actionButtonsHTML: `
                 <button class="edit-playlist-btn" data-action="edit-playlist" title="Edit Playlist">
@@ -1791,6 +1793,26 @@ export class UIRenderer {
                                     itemsToStore.push({ el: null, data: track, type: 'track' });
                                 }
                             }
+                        } else if (item.type === 'user-playlist') {
+                            if (item.id && item.name) {
+                                const playlist = {
+                                    id: item.id,
+                                    name: item.name,
+                                    cover: item.cover,
+                                    tracks: item.tracks || [],
+                                    numberOfTracks: item.numberOfTracks || (item.tracks ? item.tracks.length : 0),
+                                };
+                                const subtitle = item.username ? `by ${item.username}` : null;
+                                cardsHTML.push(this.createUserPlaylistCardHTML(playlist, subtitle));
+                                itemsToStore.push({ el: null, data: playlist, type: 'user-playlist' });
+                            } else {
+                                const playlist = await syncManager.getPublicPlaylist(item.id);
+                                if (playlist) {
+                                    const subtitle = item.username ? `by ${item.username}` : null;
+                                    cardsHTML.push(this.createUserPlaylistCardHTML(playlist, subtitle));
+                                    itemsToStore.push({ el: null, data: playlist, type: 'user-playlist' });
+                                }
+                            }
                         }
                     } catch (e) {
                         console.warn(`Failed to load ${item.type} ${item.id}:`, e);
@@ -2413,7 +2435,7 @@ export class UIRenderer {
         }
     }
 
-    async loadRecommendedSongsForPlaylist(tracks) {
+    async loadRecommendedSongsForPlaylist(tracks, forceRefresh = false) {
         const recommendedSection = document.getElementById('playlist-section-recommended');
         const recommendedContainer = document.getElementById('playlist-detail-recommended');
 
@@ -2422,8 +2444,14 @@ export class UIRenderer {
             return;
         }
 
+        if (forceRefresh) {
+            recommendedContainer.innerHTML = this.createSkeletonTracks(5, true);
+        }
+
         try {
-            let recommendedTracks = await this.api.getRecommendedTracksForPlaylist(tracks, 20);
+            let recommendedTracks = await this.api.getRecommendedTracksForPlaylist(tracks, 20, {
+                refresh: forceRefresh,
+            });
 
             // Filter out blocked tracks
             const { contentBlockingSettings } = await import('./storage.js');
@@ -2689,6 +2717,18 @@ export class UIRenderer {
                 // Load recommended songs thingy
                 if (ownedPlaylist) {
                     this.loadRecommendedSongsForPlaylist(tracks);
+
+                    const refreshBtn = document.getElementById('refresh-recommended-songs-btn');
+                    if (refreshBtn) {
+                        refreshBtn.onclick = async () => {
+                            const icon = refreshBtn.querySelector('svg');
+                            if (icon) icon.style.animation = 'spin 1s linear infinite';
+                            refreshBtn.disabled = true;
+                            await this.loadRecommendedSongsForPlaylist(tracks, true);
+                            if (icon) icon.style.animation = '';
+                            refreshBtn.disabled = false;
+                        };
+                    }
                 }
 
                 // Render Actions (Sort, Shuffle, Edit, Delete, Share)
@@ -3836,11 +3876,23 @@ export class UIRenderer {
                     if (!instances || instances.length === 0) return '';
 
                     const listHtml = instances
-                        .map((url, index) => {
+                        .map((instance, index) => {
+                            const isObject = instance && typeof instance === 'object';
+                            const instanceUrl = isObject ? instance.url || '' : String(instance || '');
+                            const instanceName = isObject
+                                ? instance.name || instance.displayName || instance.id || instanceUrl
+                                : instanceUrl;
+                            const instanceVersion = isObject && instance.version ? String(instance.version) : '';
+                            const safeName = escapeHtml(instanceName || 'Unknown instance');
+                            const safeUrl = escapeHtml(instanceUrl || '');
+                            const safeVersion = escapeHtml(instanceVersion);
+
                             return `
                         <li data-index="${index}" data-type="${type}">
                             <div style="flex: 1; min-width: 0;">
-                                <div class="instance-url">${url}</div>
+                                <div class="instance-url">${safeName}</div>
+                                ${safeUrl && safeUrl !== safeName ? `<div style="font-size: 0.8rem; color: var(--muted-foreground); margin-top: 0.15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${safeUrl}</div>` : ''}
+                                ${safeVersion ? `<div style="font-size: 0.75rem; color: var(--muted-foreground); margin-top: 0.1rem;">v${safeVersion}</div>` : ''}
                             </div>
                             <div class="controls">
                                 <button class="move-up" title="Move Up" ${index === 0 ? 'disabled' : ''}>

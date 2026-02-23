@@ -6,6 +6,40 @@ const DEFAULT_ARTIST = 'Unknown Artist';
 const DEFAULT_ALBUM = 'Unknown Album';
 
 /**
+ * Builds a full artist string by combining the track's listed artists
+ * with any featured artists parsed from the title (feat./with).
+ */
+function getFullArtistString(track) {
+    const knownArtists =
+        Array.isArray(track.artists) && track.artists.length > 0
+            ? track.artists.map((a) => (typeof a === 'string' ? a : a.name) || '').filter(Boolean)
+            : track.artist?.name
+              ? [track.artist.name]
+              : [];
+
+    // Parse featured artists from title, e.g. "Song (feat. A, B & C)" or "(with X & Y)"
+    // Note: splitting on '&' may incorrectly fragment compound artist names like "Simon & Garfunkel".
+    const featPattern = /\(\s*(?:feat\.?|ft\.?|with)\s+(.+?)\s*\)/gi;
+    const allFeatArtists = [...(track.title?.matchAll(featPattern) ?? [])].flatMap((m) =>
+        m[1]
+            .split(/\s*[,&]\s*/)
+            .map((s) => s.trim())
+            .filter(Boolean)
+    );
+    if (allFeatArtists.length > 0) {
+        const knownLower = new Set(knownArtists.map((n) => n.toLowerCase()));
+        for (const feat of allFeatArtists) {
+            if (!knownLower.has(feat.toLowerCase())) {
+                knownArtists.push(feat);
+                knownLower.add(feat.toLowerCase());
+            }
+        }
+    }
+
+    return knownArtists.join('; ') || null;
+}
+
+/**
  * Adds metadata tags to audio files (FLAC or M4A)
  * @param {Blob} audioBlob - The audio file blob
  * @param {Object} track - Track metadata
@@ -544,13 +578,15 @@ function parseFlacBlocks(dataView) {
 function createVorbisCommentBlock(track) {
     // Vorbis comment structure
     const comments = [];
+    const discNumber = track.volumeNumber ?? track.discNumber;
 
     // Add standard tags
     if (track.title) {
         comments.push(['TITLE', track.title]);
     }
-    if (track.artist?.name) {
-        comments.push(['ARTIST', track.artist.name]);
+    const artistStr = getFullArtistString(track);
+    if (artistStr) {
+        comments.push(['ARTIST', artistStr]);
     }
     if (track.album?.title) {
         comments.push(['ALBUM', track.album.title]);
@@ -561,6 +597,9 @@ function createVorbisCommentBlock(track) {
     }
     if (track.trackNumber) {
         comments.push(['TRACKNUMBER', String(track.trackNumber)]);
+    }
+    if (discNumber) {
+        comments.push(['DISCNUMBER', String(discNumber)]);
     }
     if (track.album?.numberOfTracks) {
         comments.push(['TRACKTOTAL', String(track.album.numberOfTracks)]);
@@ -906,7 +945,7 @@ function createMp4MetadataAtoms(track) {
 
     const tags = {
         '©nam': track.title || DEFAULT_TITLE,
-        '©ART': track.artist?.name || DEFAULT_ARTIST,
+        '©ART': getFullArtistString(track) || DEFAULT_ARTIST,
         '©alb': track.album?.title || DEFAULT_ALBUM,
         aART: track.album?.artist?.name || track.artist?.name || DEFAULT_ARTIST,
     };
@@ -920,7 +959,18 @@ function createMp4MetadataAtoms(track) {
     }
 
     if (track.trackNumber) {
-        tags['trkn'] = track.trackNumber;
+        tags['trkn'] = {
+            current: track.trackNumber,
+            total: track.album?.numberOfTracks,
+        };
+    }
+
+    const discNumber = track.volumeNumber ?? track.discNumber;
+    if (discNumber) {
+        tags['disk'] = {
+            current: discNumber,
+            total: 0,
+        };
     }
 
     const releaseDateStr =
@@ -1055,7 +1105,7 @@ function createMetadataBlock(metadataAtoms) {
 
     // Text tags
     for (const [key, value] of Object.entries(tags)) {
-        if (key === 'trkn') {
+        if (key === 'trkn' || key === 'disk') {
             ilstChildren.push(createIntAtom(key, value));
         } else {
             ilstChildren.push(createStringAtom(key, value));
@@ -1190,7 +1240,7 @@ function createStringAtom(type, value) {
 }
 
 function createIntAtom(type, value) {
-    // trkn is special: data is 8 bytes.
+    // trkn/disk are special: data is 8 bytes.
     // reserved(2) + track(2) + total(2) + reserved(2)
     const dataSize = 16 + 8;
     const atomSize = 8 + dataSize;
@@ -1214,16 +1264,18 @@ function createIntAtom(type, value) {
     buf[offset++] = 0;
     buf[offset++] = 0;
 
-    // Track data
+    const current = typeof value === 'object' ? value.current : value;
+    const total = typeof value === 'object' ? value.total : 0;
+
+    // Numbering payload (track/disc number + total)
     buf[offset++] = 0;
     buf[offset++] = 0;
-    // Track num
-    const trk = parseInt(value) || 0;
-    buf[offset++] = (trk >> 8) & 0xff;
-    buf[offset++] = trk & 0xff;
-    // Total (0 for now)
-    buf[offset++] = 0;
-    buf[offset++] = 0;
+    const numberValue = parseInt(current, 10) || 0;
+    buf[offset++] = (numberValue >> 8) & 0xff;
+    buf[offset++] = numberValue & 0xff;
+    const totalValue = parseInt(total, 10) || 0;
+    buf[offset++] = (totalValue >> 8) & 0xff;
+    buf[offset++] = totalValue & 0xff;
     buf[offset++] = 0;
     buf[offset++] = 0;
 

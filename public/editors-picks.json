@@ -1,5 +1,12 @@
 [
     {
+        "type": "user-playlist",
+        "id": "e64ed040-57ab-4583-b047-8fb590b04750",
+        "name": "2edi",
+        "cover": "https://i.imgur.gg/jgYh3K6-favicon_(2).png",
+        "username": "edideaur"
+    },
+    {
         "type": "album",
         "id": 89313048,
         "title": "DAYTONA",
@@ -12,9 +19,20 @@
     },
     {
         "type": "album",
-        "id": 118353565,
+        "id": 324660713,
+        "title": "JOECHILLWORLD",
+        "artist": { "id": 3972883, "name": "Devon Hendryx" },
+        "releaseDate": "2010-08-10",
+        "cover": "25d45544-3e82-4184-b8c2-2c2c6f0f152a",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 418729278,
         "title": "I LAY DOWN MY LIFE FOR YOU: DIRECTOR'S CUT",
-        "artist": { "id": 439890147, "name": "JPEGMAFIA" },
+        "artist": { "id": 7958797, "name": "JPEGMAFIA" },
         "releaseDate": "2025-02-03",
         "cover": "9c84302b-2584-4c0a-9db7-e648542f459f",
         "explicit": true,

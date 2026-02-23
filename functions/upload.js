@@ -38,8 +38,8 @@ export async function onRequest(context) {
             const uploaded = form.get('file');
             if (!uploaded) return jsonError('No file provided', 400);
 
-            if (uploaded.size > 500 * 1024 * 1024) {
-                return jsonError('File exceeds 500MB', 400);
+            if (uploaded.size > 100 * 1024 * 1024) {
+                return jsonError('File exceeds 100MB', 400);
             }
 
             file = await uploaded.arrayBuffer();

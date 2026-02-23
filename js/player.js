@@ -681,7 +681,10 @@ export class Player {
                 tracksToShuffle.splice(this.currentQueueIndex, 1);
             }
 
-            tracksToShuffle.sort(() => Math.random() - 0.5);
+            for (let i = tracksToShuffle.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [tracksToShuffle[i], tracksToShuffle[j]] = [tracksToShuffle[j], tracksToShuffle[i]];
+            }
 
             if (currentTrack) {
                 this.shuffledQueue = [currentTrack, ...tracksToShuffle];
