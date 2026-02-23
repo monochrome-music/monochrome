@@ -1627,6 +1627,17 @@ input[type='search']::-webkit-search-cancel-button {
     margin-bottom: var(--spacing-lg);
 }
 
+.section-header-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+}
+
+.section-header-row .section-title {
+    margin-bottom: 0;
+}
+
 .search-tabs {
     display: flex;
     gap: var(--spacing-xs);
