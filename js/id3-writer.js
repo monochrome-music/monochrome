@@ -29,7 +29,6 @@ async function writeID3v2Tag(mp3Blob, metadata, coverBlob = null) {
         const year = new Date(metadata.album.releaseDate).getFullYear();
         if (!Number.isNaN(year) && Number.isFinite(year)) {
             frames.push(createTextFrame('TYER', year.toString()));
-            frames.push(createTextFrame('TDRC', year.toString()));
         }
     }
 
