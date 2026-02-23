@@ -2440,7 +2440,9 @@ export class UIRenderer {
         }
 
         try {
-            let recommendedTracks = await this.api.getRecommendedTracksForPlaylist(tracks, 20, forceRefresh);
+            let recommendedTracks = await this.api.getRecommendedTracksForPlaylist(tracks, 20, {
+                refresh: forceRefresh,
+            });
 
             // Filter out blocked tracks
             const { contentBlockingSettings } = await import('./storage.js');
