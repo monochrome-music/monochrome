@@ -131,6 +131,14 @@ export class MusicAPI {
         return this.tidalAPI.getCoverUrl(id, size);
     }
 
+    getVideoCoverUrl(videoCoverId, fallbackCoverId, size = '1280') {
+        if (videoCoverId) {
+            const videoUrl = this.tidalAPI.getVideoCoverUrl(videoCoverId, size);
+            if (videoUrl) return videoUrl;
+        }
+        return this.getCoverUrl(fallbackCoverId, size);
+    }
+
     getArtistPictureUrl(id, size = '320') {
         if (typeof id === 'string' && id.startsWith('q:')) {
             return this.qobuzAPI.getArtistPictureUrl(id.slice(2), size);

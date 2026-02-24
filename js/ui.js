@@ -334,7 +334,7 @@ export class UIRenderer {
         const isUnavailable = track.isUnavailable;
         const isBlocked = contentBlockingSettings?.shouldHideTrack(track);
         const trackImageHTML = showCover
-            ? `<img src="${this.api.getCoverUrl(track.album?.cover)}" alt="Track Cover" class="track-item-cover" loading="lazy">`
+            ? this.getCoverHTML(track.album?.videoCover, track.album?.cover, 'Track Cover', 'track-item-cover')
             : '';
 
         let displayIndex;
@@ -403,6 +403,14 @@ export class UIRenderer {
                 </div>
             </div>
         `;
+    }
+
+    getCoverHTML(videoCover, cover, alt, className = 'card-image', loading = 'lazy') {
+        const videoUrl = videoCover ? this.api.tidalAPI.getVideoCoverUrl(videoCover) : null;
+        if (videoUrl) {
+            return `<video src="${videoUrl}" class="${className}" alt="${alt}" autoplay loop muted playsinline></video>`;
+        }
+        return `<img src="${this.api.getCoverUrl(cover)}" class="${className}" alt="${alt}" loading="${loading}">`;
     }
 
     createBaseCardHTML({
@@ -608,7 +616,7 @@ export class UIRenderer {
             href: `/album/${album.id}`,
             title: `${escapeHtml(album.title)} ${explicitBadge} ${qualityBadge}`,
             subtitle: `${escapeHtml(artistName)} • ${yearDisplay}${typeLabel}`,
-            imageHTML: `<img src="${this.api.getCoverUrl(album.cover)}" alt="${escapeHtml(album.title)}" class="card-image" loading="lazy">`,
+            imageHTML: this.getCoverHTML(album.videoCover, album.cover, escapeHtml(album.title)),
             actionButtonsHTML: `
                 <button class="like-btn card-like-btn" data-action="toggle-like" data-type="album" title="Add to Liked">
                     ${this.createHeartIcon(false)}
@@ -893,18 +901,44 @@ export class UIRenderer {
         const artist = document.getElementById('fullscreen-track-artist');
         const nextTrackEl = document.getElementById('fullscreen-next-track');
 
-        const coverUrl = this.api.getCoverUrl(track.album?.cover, '1280');
+        const videoCoverUrl = track.album?.videoCover
+            ? this.api.tidalAPI.getVideoCoverUrl(track.album.videoCover, '1280')
+            : null;
+        const coverUrl = videoCoverUrl || this.api.getCoverUrl(track.album?.cover, '1280');
 
         const fsLikeBtn = document.getElementById('fs-like-btn');
         if (fsLikeBtn) {
             this.updateLikeState(fsLikeBtn.parentElement, 'track', track.id);
         }
 
-        if (image.src !== coverUrl) {
-            image.src = coverUrl;
-            overlay.style.setProperty('--bg-image', `url('${coverUrl}')`);
-            this.extractAndApplyColor(coverUrl);
+        if (videoCoverUrl) {
+            if (image.tagName === 'IMG') {
+                const video = document.createElement('video');
+                video.src = videoCoverUrl;
+                video.autoplay = true;
+                video.loop = true;
+                video.muted = true;
+                video.playsInline = true;
+                video.id = image.id;
+                video.className = image.className;
+                image.replaceWith(video);
+            }
+        } else {
+            if (image.tagName === 'VIDEO') {
+                const img = document.createElement('img');
+                img.src = coverUrl;
+                img.id = image.id;
+                img.className = image.className;
+                image.replaceWith(img);
+            }
         }
+
+        const currentImage = document.getElementById('fullscreen-cover-image');
+        if (currentImage.src !== coverUrl || !videoCoverUrl) {
+            currentImage.src = coverUrl;
+        }
+        overlay.style.setProperty('--bg-image', `url('${coverUrl}')`);
+        this.extractAndApplyColor(this.api.getCoverUrl(track.album?.cover, '80'));
 
         const qualityBadge = createQualityBadgeHTML(track);
         title.innerHTML = `${escapeHtml(track.title)} ${qualityBadge}`;
@@ -1683,7 +1717,7 @@ export class UIRenderer {
             href: `/track/${track.id}`,
             title: `${escapeHtml(getTrackTitle(track))} ${explicitBadge} ${qualityBadge}`,
             subtitle: escapeHtml(getTrackArtists(track)),
-            imageHTML: `<img src="${this.api.getCoverUrl(track.album?.cover)}" alt="${escapeHtml(track.title)}" class="card-image" loading="lazy">`,
+            imageHTML: this.getCoverHTML(track.album?.videoCover, track.album?.cover, escapeHtml(track.title)),
             actionButtonsHTML: `
                 <button class="like-btn card-like-btn" data-action="toggle-like" data-type="track" title="Add to Liked">
                     ${this.createHeartIcon(false)}
@@ -2245,8 +2279,32 @@ export class UIRenderer {
         try {
             const { album, tracks } = await this.api.getAlbum(albumId, provider);
 
-            const coverUrl = this.api.getCoverUrl(album.cover);
-            imageEl.src = coverUrl;
+            const videoCoverUrl = album.videoCover ? this.api.tidalAPI.getVideoCoverUrl(album.videoCover) : null;
+            const coverUrl = videoCoverUrl || this.api.getCoverUrl(album.cover);
+
+            if (videoCoverUrl) {
+                if (imageEl.tagName === 'IMG') {
+                    const video = document.createElement('video');
+                    video.src = videoCoverUrl;
+                    video.autoplay = true;
+                    video.loop = true;
+                    video.muted = true;
+                    video.playsInline = true;
+                    video.className = imageEl.className;
+                    imageEl.replaceWith(video);
+                } else {
+                    imageEl.src = videoCoverUrl;
+                }
+            } else {
+                if (imageEl.tagName === 'VIDEO') {
+                    const img = document.createElement('img');
+                    img.src = coverUrl;
+                    img.className = imageEl.className;
+                    imageEl.replaceWith(img);
+                } else {
+                    imageEl.src = coverUrl;
+                }
+            }
             imageEl.style.backgroundColor = '';
 
             // Set background and vibrant color
@@ -2970,8 +3028,35 @@ export class UIRenderer {
             } else {
                 // Try to get cover from first track album
                 if (tracks.length > 0 && tracks[0].album?.cover) {
-                    imageEl.src = this.api.getCoverUrl(tracks[0].album.cover);
-                    this.setPageBackground(imageEl.src);
+                    const videoCoverUrl = tracks[0].album?.videoCover
+                        ? this.api.tidalAPI.getVideoCoverUrl(tracks[0].album.videoCover)
+                        : null;
+                    const coverUrl = videoCoverUrl || this.api.getCoverUrl(tracks[0].album.cover);
+
+                    if (videoCoverUrl) {
+                        if (imageEl.tagName === 'IMG') {
+                            const video = document.createElement('video');
+                            video.src = videoCoverUrl;
+                            video.autoplay = true;
+                            video.loop = true;
+                            video.muted = true;
+                            video.playsInline = true;
+                            video.className = imageEl.className;
+                            imageEl.replaceWith(video);
+                        } else {
+                            imageEl.src = videoCoverUrl;
+                        }
+                    } else {
+                        if (imageEl.tagName === 'VIDEO') {
+                            const img = document.createElement('img');
+                            img.src = coverUrl;
+                            img.className = imageEl.className;
+                            imageEl.replaceWith(img);
+                        } else {
+                            imageEl.src = coverUrl;
+                        }
+                    }
+                    this.setPageBackground(coverUrl);
                     this.extractAndApplyColor(this.api.getCoverUrl(tracks[0].album.cover, '160'));
                 } else {
                     imageEl.src = '/assets/appicon.png';
@@ -3986,8 +4071,34 @@ export class UIRenderer {
                 track = await this.api.getTrackMetadata(trackId, provider);
             }
 
-            const coverUrl = this.api.getCoverUrl(track.album?.cover);
-            imageEl.src = coverUrl;
+            const videoCoverUrl = track.album?.videoCover
+                ? this.api.tidalAPI.getVideoCoverUrl(track.album.videoCover)
+                : null;
+            const coverUrl = videoCoverUrl || this.api.getCoverUrl(track.album?.cover);
+
+            if (videoCoverUrl) {
+                if (imageEl.tagName === 'IMG') {
+                    const video = document.createElement('video');
+                    video.src = videoCoverUrl;
+                    video.autoplay = true;
+                    video.loop = true;
+                    video.muted = true;
+                    video.playsInline = true;
+                    video.className = imageEl.className;
+                    imageEl.replaceWith(video);
+                } else {
+                    imageEl.src = videoCoverUrl;
+                }
+            } else {
+                if (imageEl.tagName === 'VIDEO') {
+                    const img = document.createElement('img');
+                    img.src = coverUrl;
+                    img.className = imageEl.className;
+                    imageEl.replaceWith(img);
+                } else {
+                    imageEl.src = coverUrl;
+                }
+            }
             imageEl.style.backgroundColor = '';
 
             this.setPageBackground(coverUrl);

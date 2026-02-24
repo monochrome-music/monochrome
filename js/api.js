@@ -1247,6 +1247,19 @@ export class LosslessAPI {
         return `https://resources.tidal.com/images/${formattedId}/${size}x${size}.jpg`;
     }
 
+    getVideoCoverUrl(id, size = '1280') {
+        if (!id) {
+            return null;
+        }
+
+        const parts = id.split('-');
+        if (parts.length !== 5) {
+            return null;
+        }
+
+        return `https://resources.tidal.com/videos/${parts[0]}/${parts[1]}/${parts[2]}/${parts[3]}/${parts[4]}/${size}x${size}.mp4`;
+    }
+
     getArtistPictureUrl(id, size = '320') {
         if (!id) {
             return `https://picsum.photos/seed/${Math.random()}/${size}`;

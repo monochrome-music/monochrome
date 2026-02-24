@@ -173,7 +173,34 @@ export class Player {
                 const albumEl = document.querySelector('.now-playing-bar .album');
                 const artistEl = document.querySelector('.now-playing-bar .artist');
 
-                if (coverEl) coverEl.src = this.api.getCoverUrl(track.album?.cover);
+                if (coverEl) {
+                    const videoCoverUrl = track.album?.videoCover
+                        ? this.api.tidalAPI.getVideoCoverUrl(track.album.videoCover)
+                        : null;
+                    const coverUrl = videoCoverUrl || this.api.getCoverUrl(track.album?.cover);
+
+                    if (videoCoverUrl) {
+                        if (coverEl.tagName === 'IMG') {
+                            const video = document.createElement('video');
+                            video.src = videoCoverUrl;
+                            video.autoplay = true;
+                            video.loop = true;
+                            video.muted = true;
+                            video.playsInline = true;
+                            video.className = coverEl.className;
+                            coverEl.replaceWith(video);
+                        }
+                    } else {
+                        if (coverEl.tagName === 'VIDEO') {
+                            const img = document.createElement('img');
+                            img.src = coverUrl;
+                            img.className = coverEl.className;
+                            coverEl.replaceWith(img);
+                        } else {
+                            coverEl.src = coverUrl;
+                        }
+                    }
+                }
                 if (titleEl) {
                     const qualityBadge = createQualityBadgeHTML(track);
                     titleEl.innerHTML = `${escapeHtml(trackTitle)} ${qualityBadge}`;
@@ -365,7 +392,35 @@ export class Player {
         const trackArtistsHTML = getTrackArtistsHTML(track);
         const yearDisplay = getTrackYearDisplay(track);
 
-        document.querySelector('.now-playing-bar .cover').src = this.api.getCoverUrl(track.album?.cover);
+        const coverEl = document.querySelector('.now-playing-bar .cover');
+        if (coverEl) {
+            const videoCoverUrl = track.album?.videoCover
+                ? this.api.tidalAPI.getVideoCoverUrl(track.album.videoCover)
+                : null;
+            const coverUrl = videoCoverUrl || this.api.getCoverUrl(track.album?.cover);
+
+            if (videoCoverUrl) {
+                if (coverEl.tagName === 'IMG') {
+                    const video = document.createElement('video');
+                    video.src = videoCoverUrl;
+                    video.autoplay = true;
+                    video.loop = true;
+                    video.muted = true;
+                    video.playsInline = true;
+                    video.className = coverEl.className;
+                    coverEl.replaceWith(video);
+                }
+            } else {
+                if (coverEl.tagName === 'VIDEO') {
+                    const img = document.createElement('img');
+                    img.src = coverUrl;
+                    img.className = coverEl.className;
+                    coverEl.replaceWith(img);
+                } else {
+                    coverEl.src = coverUrl;
+                }
+            }
+        }
         document.querySelector('.now-playing-bar .title').innerHTML =
             `${escapeHtml(trackTitle)} ${createQualityBadgeHTML(track)}`;
         const albumEl = document.querySelector('.now-playing-bar .album');
