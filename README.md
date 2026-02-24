@@ -17,7 +17,7 @@
   <a href="#installation">Installation</a> •
   <a href="#usage">Usage</a> •
   <a href="#self-hosting">Self-Hosting</a> •
-  <a href="CONTRIBUTE.md">Contributing</a>
+  <a href="CONTRIBUTING.md">Contributing</a>
 </p>
 
 <p align="center">
@@ -199,7 +199,7 @@ To sync your library, history, and playlists across devices:
 
 ## Contributing
 
-We welcome contributions from the community! Please see our [Contributing Guide](CONTRIBUTE.md) for:
+We welcome contributions from the community! Please see our [Contributing Guide](CONTRIBUTING.md) for:
 
 - Setting up your development environment
 - Code style and linting
