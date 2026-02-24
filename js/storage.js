@@ -74,8 +74,6 @@ export const apiSettings = {
                     streaming: [
                         { url: 'https://arran.monochrome.tf', version: '2.4' },
                         { url: 'https://triton.squid.wtf', version: '2.4' },
-                        { url: 'https://api.monochrome.tf', version: '2.3' },
-                        { url: 'https://monochrome-api.samidy.com', version: '2.3' },
                         { url: 'https://maus.qqdl.site', version: '2.2' },
                         { url: 'https://vogel.qqdl.site', version: '2.2' },
                         { url: 'https://katze.qqdl.site', version: '2.2' },
