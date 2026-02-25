@@ -19,8 +19,14 @@ export default defineConfig(({ mode }) => {
         server: {
             fs: {
                 allow: ['.', 'node_modules'],
+                // host: true,
+                // allowedHosts: ['<device_specific_tailscale_magic_dns_name>'], // e.g. pi5.tailf5f622.ts.net
             },
         },
+        // preview: {
+        //     host: true,
+        //     allowedHosts: ['<device_specific_tailscale_magic_dns_name>'], // e.g. pi5.tailf5f622.ts.net
+        // },
         build: {
             outDir: 'dist',
             emptyOutDir: true,
