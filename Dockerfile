@@ -5,9 +5,11 @@ WORKDIR /app
 
 # Install system dependencies required for Bun and Neutralino
 RUN apk add --no-cache wget curl bash
+RUN apk add --no-cache python3 make g++ && ln -sf python3 /usr/bin/python
 
 # Install Bun
 RUN curl -fsSL https://bun.sh/install | bash
+
 # Add Bun to PATH so it can be used in subsequent steps
 ENV PATH="/root/.bun/bin:${PATH}"
 
