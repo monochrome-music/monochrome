@@ -58,6 +58,7 @@
 
 - Dark, minimalist interface optimized for focus
 - Customizable themes
+- Community Theme Store
 - Accurate and unique audio visualizer
 - Offline-capable Progressive Web App (PWA)
 - Media Session API integration for system controls
@@ -80,6 +81,7 @@
 ### Integrations
 
 - Account system for cross-device syncing
+- Customizable & Public Profiles
 - Last.fm and ListenBrainz integration for scrobbling
 - Unreleased music from [ArtistGrid](https://artistgrid.cx)
 - Dynamic Discord Embeds
@@ -105,7 +107,7 @@ For alternative instances, check [INSTANCES.md](INSTANCES.md).
 
 ## Self-Hosting
 
-NOTE: Accounts wont work on self-hosted instances.
+NOTE: We only allow authorized domains to use our firebase authentication system, so unless you switch to your own firebase project, accounts wont work.
 
 ### Option 1: Docker (Recommended)
 
@@ -204,6 +206,7 @@ We welcome contributions from the community! Please see our [Contributing Guide]
 - Setting up your development environment
 - Code style and linting
 - Project structure
+- Before You Contribute
 - Commit message conventions
 - Deployment information
 

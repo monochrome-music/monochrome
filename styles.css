@@ -1,64 +1,46 @@
-/* stylelint-disable no-descending-specificity */
-
-/* ==========================================================================
-   DESIGN SYSTEM - Monochrome
-   A comprehensive design language for consistent UI/UX
-   ========================================================================== */
-
 :root {
     color-scheme: light dark;
 
-    /* -------------------------------------------------------------------------
-       TYPOGRAPHY SCALE
-       Use these variables for ALL font sizes
-       ------------------------------------------------------------------------- */
     --font-family: 'Inter', -apple-system, blinkmacsystemfont, 'Segoe UI', roboto, sans-serif;
     --font-size-scale: 100%;
 
-    /* Typography Scale - Base 16px (1rem) */
-    --text-xs: 0.75rem; /* 12px - Captions, badges, timestamps */
-    --text-sm: 0.875rem; /* 14px - Secondary text, labels */
-    --text-base: 1rem; /* 16px - Body text (default) */
-    --text-md: 1.125rem; /* 18px - Lead paragraphs */
-    --text-lg: 1.25rem; /* 20px - Small headings */
-    --text-xl: 1.5rem; /* 24px - H4, card titles */
-    --text-2xl: 1.875rem; /* 30px - H3 */
-    --text-3xl: 2.25rem; /* 36px - H2 */
-    --text-4xl: 3rem; /* 48px - H1 */
-    --text-5xl: 3.75rem; /* 60px - Display text */
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-md: 1.125rem;
+    --text-lg: 1.25rem;
+    --text-xl: 1.5rem;
+    --text-2xl: 1.875rem;
+    --text-3xl: 2.25rem;
+    --text-4xl: 3rem; 
+    --text-5xl: 3.75rem;
 
-    /* Font Weights */
     --font-normal: 400;
     --font-medium: 500;
     --font-semibold: 600;
     --font-bold: 700;
 
-    /* Line Heights */
     --leading-none: 1;
     --leading-tight: 1.25;
     --leading-snug: 1.375;
     --leading-normal: 1.5;
     --leading-relaxed: 1.625;
 
-    /* -------------------------------------------------------------------------
-       SPACING SCALE
-       Use these variables for ALL spacing (margin, padding, gap)
-       ------------------------------------------------------------------------- */
-    --space-0: 0;
-    --space-1: 0.25rem; /* 4px */
-    --space-2: 0.5rem; /* 8px */
-    --space-3: 0.75rem; /* 12px */
-    --space-4: 1rem; /* 16px */
-    --space-5: 1.25rem; /* 20px */
-    --space-6: 1.5rem; /* 24px */
-    --space-8: 2rem; /* 32px */
-    --space-10: 2.5rem; /* 40px */
-    --space-12: 3rem; /* 48px */
-    --space-16: 4rem; /* 64px */
-    --space-20: 5rem; /* 80px */
-    --space-24: 6rem; /* 96px */
 
-    /* Legacy spacing aliases (deprecated, use --space-* instead) */
+    --space-0: 0;
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --space-10: 2.5rem;
+    --space-12: 3rem;
+    --space-16: 4rem;
+    --space-20: 5rem;
+    --space-24: 6rem;
+
     --spacing-xs: var(--space-1);
     --spacing-sm: var(--space-2);
     --spacing-md: var(--space-4);
@@ -67,33 +49,24 @@
     --spacing-2xl: var(--space-12);
     --spacing-3xl: var(--space-16);
 
-    /* -------------------------------------------------------------------------
-       BORDER RADIUS SCALE
-       Use these variables for ALL border-radius values
-       ------------------------------------------------------------------------- */
-    --radius-none: 0;
-    --radius-xs: 2px; /* Small badges, tags */
-    --radius-sm: 4px; /* Inputs, small buttons */
-    --radius-md: 8px; /* Cards, panels */
-    --radius-lg: 12px; /* Large cards, modals */
-    --radius-xl: 16px; /* Hero elements */
-    --radius-2xl: 24px; /* Extra large elements */
-    --radius-full: 9999px; /* Circles, pills, avatars */
 
-    /* Legacy radius aliases (deprecated, use --radius-md for default) */
+    --radius-none: 0;
+    --radius-xs: 2px;
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-2xl: 24px;
+    --radius-full: 9999px;
+
     --radius: var(--radius-md);
 
-    /* -------------------------------------------------------------------------
-       LAYOUT DIMENSIONS
-       ------------------------------------------------------------------------- */
     --player-bar-height-desktop: 90px;
     --player-bar-height-mobile: 130px;
     --sidebar-width: 240px;
     --sidebar-collapsed-width: 70px;
 
-    /* -------------------------------------------------------------------------
-       TRANSITIONS & ANIMATIONS
-       ------------------------------------------------------------------------- */
+
     --duration-instant: 0ms;
     --duration-fast: 150ms;
     --duration-normal: 300ms;
@@ -106,15 +79,12 @@
     --ease-elastic: cubic-bezier(0.68, -0.55, 0.265, 1.55);
     --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
-    /* Legacy transition aliases */
     --transition-fast: var(--duration-fast) var(--ease-in-out);
     --transition-normal: var(--duration-normal) var(--ease-in-out);
     --transition-slow: var(--duration-slow) var(--ease-in-out);
     --transition: var(--transition-normal);
 
-    /* -------------------------------------------------------------------------
-       SHADOWS
-       ------------------------------------------------------------------------- */
+
     --shadow-none: none;
     --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
@@ -125,9 +95,7 @@
     --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
     --shadow-glow: 0 0 20px rgb(var(--highlight-rgb) / 0.5);
 
-    /* -------------------------------------------------------------------------
-       Z-INDEX SCALE
-       ------------------------------------------------------------------------- */
+
     --z-hide: -1;
     --z-base: 0;
     --z-docked: 10;
@@ -140,9 +108,6 @@
     --z-tooltip: 1600;
     --z-toast: 1700;
 
-    /* -------------------------------------------------------------------------
-       COMPONENT TOKENS
-       ------------------------------------------------------------------------- */
 
     /* Buttons */
     --btn-height-sm: 32px;
@@ -173,9 +138,6 @@
     --cover-filter: blur(50px) brightness(0.4);
     --cover-radius: var(--radius-md);
 
-    /* -------------------------------------------------------------------------
-       SEMANTIC COLORS (will be overridden by themes)
-       ------------------------------------------------------------------------- */
     --color-danger: #ef4444;
     --color-danger-hover: #dc2626;
     --color-success: #10b981;
@@ -470,10 +432,6 @@ kbd {
     box-shadow: var(--shadow-sm);
 }
 
-/* ==========================================================================
-   UTILITY CLASSES
-   Consistent utility classes for common patterns
-   ========================================================================== */
 
 /* Typography utilities */
 .text-xs {
@@ -971,9 +929,7 @@ kbd {
     transition: all var(--duration-slow) var(--ease-in-out);
 }
 
-/* ==========================================================================
-   APP LAYOUT
-   ========================================================================== */
+
 
 .app-container {
     display: grid;
@@ -6605,9 +6561,6 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     }
 }
 
-/* =========================================
-   Global Design System Standardization
-   ========================================= */
 
 /* Scrollbars */
 ::-webkit-scrollbar {
@@ -6668,10 +6621,6 @@ textarea:focus {
 .nav-item a:active {
     transform: scale(0.97);
 }
-
-/* =========================================
-   16-Band Equalizer
-   ========================================= */
 
 .equalizer-container {
     margin-top: var(--spacing-md);

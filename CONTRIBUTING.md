@@ -332,14 +332,6 @@ bun run build
 
 ---
 
-## Questions?
-
-- 💬 Join our community discussions
-- 🐛 Open an issue for bugs or feature requests
-- 📧 Contact the maintainers
-
----
-
 ## Code of Conduct
 
 - Be respectful and inclusive

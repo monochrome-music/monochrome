@@ -1,6 +1,6 @@
 # Monochrome Design System
 
-A comprehensive design language for consistent UI/UX across the Monochrome music streaming application.
+A comprehensive design language for consistent UI/UX across Monochrome.
 
 ## Design Tokens
 
