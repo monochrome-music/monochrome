@@ -25,6 +25,16 @@ debug_log() {
     fi
 }
 
+detach_mode=0
+launcher_args=()
+for arg in "$@"; do
+    if [ "${arg}" = "--detach" ]; then
+        detach_mode=1
+    else
+        launcher_args+=("${arg}")
+    fi
+done
+
 is_dark_theme_name() {
     local theme_name="${1,,}"
     [[ "${theme_name}" == *":dark" || "${theme_name}" == *"-dark" ]]
@@ -309,4 +319,14 @@ fi
 
 debug_log "Final backend env: GDK_BACKEND=${GDK_BACKEND:-unset}, GTK_THEME=${GTK_THEME:-unset}, GTK_CSD=${GTK_CSD:-unset}, WEBKIT_DISABLE_DMABUF_RENDERER=${WEBKIT_DISABLE_DMABUF_RENDERER:-unset}"
 
-exec "${binary_path}" "$@"
+if [ "${detach_mode}" -eq 1 ]; then
+    debug_log "Detach mode enabled"
+    if command -v setsid >/dev/null 2>&1; then
+        setsid -f "${binary_path}" "${launcher_args[@]}" >/dev/null 2>&1
+    else
+        nohup "${binary_path}" "${launcher_args[@]}" >/dev/null 2>&1 &
+    fi
+    exit 0
+fi
+
+exec "${binary_path}" "${launcher_args[@]}"

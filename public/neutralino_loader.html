@@ -96,10 +96,6 @@
 
                     const setupTray = async () => {
                         const onWayland = await detectWaylandSession();
-                        if (onWayland) {
-                            console.log('[Shell] Wayland session detected. Tray setup skipped.');
-                            return;
-                        }
                         const isDev = (window.NL_ARGS || []).some((a) => a.includes('--neu-dev-auto-reload'));
                         const iconPath = isDev ? '/public/assets/trayicon.png' : '/dist/assets/trayicon.png';
                         console.log('[Shell] Setting tray icon:', iconPath);
@@ -111,11 +107,28 @@
                                 { id: 'quit', text: 'Quit' },
                             ],
                         };
-                        try {
-                            await Neutralino.os.setTray(tray);
-                            console.log('[Shell] Tray set successfully');
-                        } catch (e) {
-                            console.error('[Shell] Tray error:', e);
+
+                        const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+                        const maxAttempts = onWayland ? 4 : 2;
+
+                        for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+                            try {
+                                await Neutralino.os.setTray(tray);
+                                console.log(`[Shell] Tray set successfully (attempt ${attempt}/${maxAttempts})`);
+                                return;
+                            } catch (e) {
+                                if (attempt >= maxAttempts) {
+                                    console.error('[Shell] Tray error:', e);
+                                    if (onWayland) {
+                                        console.warn(
+                                            '[Shell] Wayland tray host may be unavailable (AppIndicator/KStatusNotifier extension missing).' +
+                                                ' Ensure your desktop provides a StatusNotifier watcher.'
+                                        );
+                                    }
+                                    return;
+                                }
+                                await wait(350 * attempt);
+                            }
                         }
                     };
 
