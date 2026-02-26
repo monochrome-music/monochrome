@@ -60,6 +60,17 @@ jobs:
           cp dist/Monochrome/${{ matrix.binary_source }} release/${{ matrix.binary_dest }}
           if [ "${{ matrix.platform }}" = "linux" ]; then
             cp scripts/linux-wayland-launcher.sh release/Monochrome-launcher
+            cat > release/Monochrome.desktop <<'EOF'
+            [Desktop Entry]
+            Type=Application
+            Version=1.0
+            Name=Monochrome
+            Comment=Monochrome music streaming app
+            Exec=sh -c 'cd "$(dirname "%k")" && ./Monochrome-launcher --detach'
+            Terminal=false
+            Categories=Audio;Player;
+            StartupNotify=true
+            EOF
           fi
         shell: bash
 
@@ -69,6 +80,7 @@ jobs:
           chmod +x release/${{ matrix.binary_dest }}
           if [ "${{ matrix.platform }}" = "linux" ]; then
             chmod +x release/Monochrome-launcher
+            chmod +x release/Monochrome.desktop
           fi
 
       - name: Zip for R2 (Windows)
