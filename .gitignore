@@ -4,6 +4,8 @@ dist
 *.local
 .vite
 .vscode
+.idea
+release
 
 # Docker
 .env
