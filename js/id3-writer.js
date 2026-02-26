@@ -53,13 +53,13 @@ function createTextFrame(frameId, text) {
     // ID3v2.3 UTF-16 encoding with BOM
     const bom = new Uint8Array([0xff, 0xfe]); // UTF-16LE BOM
     const utf16Bytes = new Uint8Array(text.length * 2);
-    
+
     for (let i = 0; i < text.length; i++) {
         const charCode = text.charCodeAt(i);
         utf16Bytes[i * 2] = charCode & 0xff;
         utf16Bytes[i * 2 + 1] = (charCode >> 8) & 0xff;
     }
-    
+
     const frameSize = 1 + bom.length + utf16Bytes.length;
     const frame = new Uint8Array(10 + frameSize);
     const view = new DataView(frame.buffer);

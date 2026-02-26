@@ -53,9 +53,9 @@ export async function addMetadataToAudio(audioBlob, track, api, _quality) {
     // DASH Hi-Res streams may return fragmented MP4 instead of raw FLAC
     const buffer = await audioBlob.slice(0, 12).arrayBuffer();
     const view = new DataView(buffer);
-    
+
     const format = detectAudioFormat(view, audioBlob.type);
-    
+
     switch (format) {
         case 'flac':
             return await addFlacMetadata(audioBlob, track, api);

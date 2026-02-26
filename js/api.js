@@ -1113,7 +1113,7 @@ export class LosslessAPI {
         try {
             // MP3_320 is not a native TIDAL quality, we download LOSSLESS and convert
             const downloadQuality = quality === 'MP3_320' ? 'LOSSLESS' : quality;
-            
+
             const lookup = await this.getTrack(id, downloadQuality);
             let streamUrl;
             let blob;
