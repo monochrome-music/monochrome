@@ -137,6 +137,13 @@ preview: {
 },
 ```
 
+3. Restart with a fresh container (if already running):
+
+```bash
+docker compose down
+docker compose up -d
+```
+
 For PocketBase, development mode, and advanced setups, see [DOCKER.md](DOCKER.md).
 
 ### Option 2: Manual Installation
