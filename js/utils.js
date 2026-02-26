@@ -150,12 +150,12 @@ export const detectAudioFormat = (view, mimeType = '') => {
 export const getExtensionFromBlob = async (blob) => {
     const buffer = await blob.slice(0, 12).arrayBuffer();
     const view = new DataView(buffer);
-    
+
     const format = detectAudioFormat(view, blob.type);
-    
+
     if (format === 'mp4') return 'm4a';
     if (format) return format;
-    
+
     // Default fallback
     return 'flac';
 };

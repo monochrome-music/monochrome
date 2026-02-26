@@ -6,63 +6,68 @@ let loadingPromise = null;
 
 async function loadFFmpeg() {
     if (loadingPromise) return loadingPromise;
-    
+
     loadingPromise = (async () => {
         ffmpeg = new FFmpeg();
-        
+
         ffmpeg.on('log', ({ message }) => {
             self.postMessage({ type: 'log', message });
         });
-        
+
         ffmpeg.on('progress', ({ progress, time }) => {
-            self.postMessage({ 
-                type: 'progress', 
-                stage: 'encoding', 
+            self.postMessage({
+                type: 'progress',
+                stage: 'encoding',
                 progress: progress * 100,
-                time 
+                time,
             });
         });
-        
+
         self.postMessage({ type: 'progress', stage: 'loading', message: 'Loading FFmpeg...' });
-        
+
         const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
         await ffmpeg.load({
             coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-            wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm')
+            wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
         });
     })();
-    
+
     return loadingPromise;
 }
 
 self.onmessage = async (e) => {
     const { audioData } = e.data;
-    
+
     try {
         await loadFFmpeg();
-        
+
         self.postMessage({ type: 'progress', stage: 'encoding', message: 'Encoding to MP3 320kbps...' });
-        
+
         try {
             // Write input file to FFmpeg virtual filesystem
             await ffmpeg.writeFile('input', new Uint8Array(audioData));
-            
+
             // Encode to MP3 with 320kbps CBR, strip source metadata to avoid duplicate ID3 tags
             await ffmpeg.exec([
-                '-i', 'input',
-                '-map_metadata', '-1',
-                '-c:a', 'libmp3lame',
-                '-b:a', '320k',
-                '-ar', '44100',
-                'output.mp3'
+                '-i',
+                'input',
+                '-map_metadata',
+                '-1',
+                '-c:a',
+                'libmp3lame',
+                '-b:a',
+                '320k',
+                '-ar',
+                '44100',
+                'output.mp3',
             ]);
-            
+
             self.postMessage({ type: 'progress', stage: 'finalizing', message: 'Finalizing MP3...' });
-            
+
             // Read output file - use Uint8Array directly to avoid extra bytes from ArrayBuffer
             const data = await ffmpeg.readFile('output.mp3');
             const mp3Blob = new Blob([data], { type: 'audio/mpeg' });
-            
+
             self.postMessage({ type: 'complete', blob: mp3Blob });
         } finally {
             // Always cleanup virtual filesystem files
