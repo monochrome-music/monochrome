@@ -58,11 +58,18 @@ jobs:
           cp neutralino.config.json release/
           cp -r dist/Monochrome/extensions release/
           cp dist/Monochrome/${{ matrix.binary_source }} release/${{ matrix.binary_dest }}
+          if [ "${{ matrix.platform }}" = "linux" ]; then
+            cp scripts/linux-wayland-launcher.sh release/Monochrome-launcher
+          fi
         shell: bash
 
       - name: Set Permissions (Linux/macOS)
         if: matrix.platform != 'windows'
-        run: chmod +x release/${{ matrix.binary_dest }}
+        run: |
+          chmod +x release/${{ matrix.binary_dest }}
+          if [ "${{ matrix.platform }}" = "linux" ]; then
+            chmod +x release/Monochrome-launcher
+          fi
 
       - name: Zip for R2 (Windows)
         if: matrix.platform == 'windows'
