@@ -47,6 +47,8 @@
         "source-map": "^0.7.4"
     },
     "dependencies": {
+        "@ffmpeg/ffmpeg": "^0.12.10",
+        "@ffmpeg/util": "^0.12.1",
         "@neutralinojs/lib": "^6.5.0",
         "butterchurn": "^2.6.7",
         "butterchurn-presets": "^2.4.7",
