@@ -119,6 +119,24 @@ docker compose up -d
 
 Visit `http://localhost:3000`
 
+### Tailscale Access
+
+Visit `http://<tailscale_server_hostname_or_ip>:3000`
+
+By default, the app uses Vite preview, which restricts access to localhost.  
+To allow access over Tailscale:
+
+1. Open `vite.config.js`
+
+2. Uncomment and configure the `preview` section:
+
+```js
+preview: {
+    host: true,
+    allowedHosts: ['<your_tailscale_hostname>'], // e.g. pi5.tailf5f622.ts.net
+},
+```
+
 For PocketBase, development mode, and advanced setups, see [DOCKER.md](DOCKER.md).
 
 ### Option 2: Manual Installation

@@ -20,12 +20,12 @@ export default defineConfig(({ mode }) => {
             fs: {
                 allow: ['.', 'node_modules'],
                 // host: true,
-                // allowedHosts: ['<device_specific_tailscale_magic_dns_name>'], // e.g. pi5.tailf5f622.ts.net
+                // allowedHosts: ['<your_tailscale_hostname>'], // e.g. pi5.tailf5f622.ts.net
             },
         },
         // preview: {
         //     host: true,
-        //     allowedHosts: ['<device_specific_tailscale_magic_dns_name>'], // e.g. pi5.tailf5f622.ts.net
+        //     allowedHosts: ['<your_tailscale_hostname>'], // e.g. pi5.tailf5f622.ts.net
         // },
         build: {
             outDir: 'dist',
