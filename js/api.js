@@ -10,6 +10,7 @@ import { trackDateSettings } from './storage.js';
 import { APICache } from './cache.js';
 import { addMetadataToAudio } from './metadata.js';
 import { DashDownloader } from './dash-downloader.js';
+import { encodeToMp3, MP3EncodingError } from './mp3-encoder.js';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 const TIDAL_V2_TOKEN = 'txNoH4kkV41MfH25';
@@ -1110,7 +1111,10 @@ export class LosslessAPI {
         const { onProgress, track } = options;
 
         try {
-            const lookup = await this.getTrack(id, quality);
+            // MP3_320 is not a native TIDAL quality, we download LOSSLESS and convert
+            const downloadQuality = quality === 'MP3_320' ? 'LOSSLESS' : quality;
+            
+            const lookup = await this.getTrack(id, downloadQuality);
             let streamUrl;
             let blob;
 
@@ -1133,8 +1137,8 @@ export class LosslessAPI {
                     });
                 } catch (dashError) {
                     console.error('DASH download failed:', dashError);
-                    // Fallback to LOSSLESS if DASH fails
-                    if (quality !== 'LOSSLESS') {
+                    // Fallback to LOSSLESS if DASH fails, but not if we're already downloading LOSSLESS
+                    if (downloadQuality !== 'LOSSLESS') {
                         console.warn('Falling back to LOSSLESS (16-bit) download.');
                         return this.downloadTrack(id, 'LOSSLESS', filename, options);
                     }
@@ -1189,6 +1193,21 @@ export class LosslessAPI {
                 }
             }
 
+            // Convert to MP3 320kbps if requested
+            if (quality === 'MP3_320') {
+                try {
+                    blob = await encodeToMp3(blob, onProgress, options.signal);
+                } catch (encodingError) {
+                    if (onProgress) {
+                        onProgress({
+                            stage: 'error',
+                            message: `Encoding failed: ${encodingError.message}`,
+                        });
+                    }
+                    throw encodingError;
+                }
+            }
+
             // Add metadata if track information is provided
             if (track) {
                 if (onProgress) {
@@ -1216,6 +1235,9 @@ export class LosslessAPI {
                 throw error;
             }
             console.error('Download failed:', error);
+            if (error instanceof MP3EncodingError || error.code === 'MP3_ENCODING_FAILED') {
+                throw error;
+            }
             if (error.message === RATE_LIMIT_ERROR_MESSAGE) {
                 throw error;
             }
