@@ -6,11 +6,12 @@ import {
     isTrackUnavailable,
     getExtensionFromBlob,
 } from './utils.js';
-import { trackDateSettings } from './storage.js';
+import { trackDateSettings, losslessContainerSettings } from './storage.js';
 import { APICache } from './cache.js';
 import { addMetadataToAudio } from './metadata.js';
 import { DashDownloader } from './dash-downloader.js';
 import { encodeToMp3, MP3EncodingError } from './mp3-encoder.js';
+import { ffmpeg } from './ffmpeg.js';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 const TIDAL_V2_TOKEN = 'txNoH4kkV41MfH25';
@@ -1205,6 +1206,43 @@ export class LosslessAPI {
                         });
                     }
                     throw encodingError;
+                }
+            }
+
+            if (quality.endsWith('LOSSLESS')) {
+                try {
+                    switch (losslessContainerSettings.getContainer()) {
+                        case 'flac':
+                            if ((await getExtensionFromBlob(blob)) != 'flac') {
+                                blob = await ffmpeg(
+                                    blob,
+                                    { args: ['-c:a', 'flac'] },
+                                    'output.flac',
+                                    'audio/flac',
+                                    onProgress,
+                                    options.signal
+                                );
+                            }
+                            break;
+                        case 'alac':
+                            blob = await ffmpeg(
+                                blob,
+                                { args: ['-c:a', 'alac'] },
+                                'output.m4a',
+                                'audio/m4a',
+                                onProgress,
+                                options.signal
+                            );
+                            break;
+                        default:
+                            break;
+                    }
+                } catch (error) {
+                    if (error?.name === 'AbortError') {
+                        throw error;
+                    }
+
+                    console.error('Lossless container conversion failed:', error);
                 }
             }
 
