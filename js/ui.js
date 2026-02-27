@@ -1009,7 +1009,13 @@ export class UIRenderer {
             if (this.visualizer) {
                 this.visualizer.start();
             }
+
+            // Add visualizer-active class for enhanced drop shadow
+            overlay.classList.add('visualizer-active');
         };
+
+        // Setup UI toggle button
+        this.setupUIToggleButton(overlay);
 
         if (localStorage.getItem('epilepsy-warning-dismissed') === 'true') {
             startVisualizer();
@@ -1039,6 +1045,7 @@ export class UIRenderer {
     closeFullscreenCover() {
         const overlay = document.getElementById('fullscreen-cover-overlay');
         overlay.style.display = 'none';
+        overlay.classList.remove('visualizer-active', 'ui-hidden');
 
         const playerBar = document.querySelector('.now-playing-bar');
         if (playerBar) playerBar.style.removeProperty('display');
@@ -1051,6 +1058,78 @@ export class UIRenderer {
         if (this.visualizer) {
             this.visualizer.stop();
         }
+
+        // Clear UI toggle button timers
+        if (this.uiToggleMouseTimer) {
+            clearTimeout(this.uiToggleMouseTimer);
+            this.uiToggleMouseTimer = null;
+        }
+    }
+
+    setupUIToggleButton(overlay) {
+        const toggleBtn = document.getElementById('toggle-ui-btn');
+        if (!toggleBtn) return;
+
+        let isUIHidden = false;
+
+        // Show button
+        const showButton = () => {
+            toggleBtn.classList.add('visible');
+        };
+
+        // Hide button
+        const hideButton = () => {
+            toggleBtn.classList.remove('visible');
+        };
+
+        // Mouse move handler
+        const handleMouseMove = (e) => {
+            const rect = overlay.getBoundingClientRect();
+            // Check if mouse is near the top-right corner (within 150px from right, 100px from top)
+            const isNearTopRight = e.clientY < 100 && e.clientX > rect.width - 150;
+
+            if (isUIHidden) {
+                // When UI is hidden, only show button when mouse is near top-right
+                if (isNearTopRight) {
+                    showButton();
+                } else {
+                    hideButton();
+                }
+            }
+            // When UI is visible, button stays visible (no auto-hide)
+        };
+
+        // Toggle UI visibility
+        const toggleUI = () => {
+            isUIHidden = !isUIHidden;
+            overlay.classList.toggle('ui-hidden', isUIHidden);
+            toggleBtn.classList.toggle('active', isUIHidden);
+            toggleBtn.title = isUIHidden ? 'Show UI' : 'Hide UI';
+
+            if (isUIHidden) {
+                // When UI is hidden, immediately hide the button
+                // It will reappear when mouse nears top-right
+                hideButton();
+            } else {
+                // When UI is shown, keep button visible
+                showButton();
+            }
+        };
+
+        // Add event listeners
+        toggleBtn.addEventListener('click', toggleUI);
+        overlay.addEventListener('mousemove', handleMouseMove);
+        overlay.addEventListener('mouseleave', () => {
+            if (isUIHidden) {
+                hideButton();
+            }
+        });
+
+        // Store cleanup function
+        this.uiToggleCleanup = () => {
+            toggleBtn.removeEventListener('click', toggleUI);
+            overlay.removeEventListener('mousemove', handleMouseMove);
+        };
     }
 
     setupFullscreenControls(audioPlayer) {
