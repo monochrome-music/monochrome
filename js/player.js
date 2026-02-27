@@ -497,9 +497,9 @@ export class Player {
 
                 this.currentRgValues = null;
                 this.applyReplayGain();
-                this.applyAudioEffects();
 
                 this.audio.src = streamUrl;
+                this.applyAudioEffects();
 
                 // Wait for audio to be ready before playing (prevents restart issues with blob URLs)
                 const canPlay = await this.waitForCanPlayOrTimeout();
@@ -518,9 +518,9 @@ export class Player {
                 streamUrl = URL.createObjectURL(track.file);
                 this.currentRgValues = null; // No replaygain for local files yet
                 this.applyReplayGain();
-                this.applyAudioEffects();
 
                 this.audio.src = streamUrl;
+                this.applyAudioEffects();
 
                 // Wait for audio to be ready before playing
                 const canPlay = await this.waitForCanPlayOrTimeout();
@@ -580,6 +580,7 @@ export class Player {
                         this.dashPlayer.initialize(this.audio, streamUrl, true);
                         this.dashInitialized = true;
                     }
+                    this.applyAudioEffects();
 
                     if (startTime > 0) {
                         this.dashPlayer.seek(startTime);
@@ -590,6 +591,7 @@ export class Player {
                         this.dashInitialized = false;
                     }
                     this.audio.src = streamUrl;
+                    this.applyAudioEffects();
 
                     // Wait for audio to be ready before playing
                     const canPlay = await this.waitForCanPlayOrTimeout();
