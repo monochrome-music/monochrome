@@ -36,39 +36,41 @@ async function loadFFmpeg() {
 }
 
 self.onmessage = async (e) => {
-    const { audioData } = e.data;
+    const {
+        audioData,
+        args = [],
+        output = {
+            name: 'output',
+            mime: 'application/octet-stream',
+        },
+        encodeStartMessage = 'Encoding...',
+        encodeEndMessage = 'Finalizing...',
+    } = e.data;
 
     try {
         await loadFFmpeg();
 
-        self.postMessage({ type: 'progress', stage: 'encoding', message: 'Encoding to MP3 320kbps...' });
+        self.postMessage({ type: 'progress', stage: 'encoding', message: encodeStartMessage });
 
         try {
             // Write input file to FFmpeg virtual filesystem
             await ffmpeg.writeFile('input', new Uint8Array(audioData));
 
-            // Encode to MP3 with 320kbps CBR, strip source metadata to avoid duplicate ID3 tags
-            await ffmpeg.exec([
-                '-i',
-                'input',
-                '-map_metadata',
-                '-1',
-                '-c:a',
-                'libmp3lame',
-                '-b:a',
-                '320k',
-                '-ar',
-                '44100',
-                'output.mp3',
-            ]);
+            const ffmpegArgs = ['-i', 'input', ...args, output.name];
 
-            self.postMessage({ type: 'progress', stage: 'finalizing', message: 'Finalizing MP3...' });
+            // Log the exact FFmpeg command being run for debugging.
+            self.postMessage({ type: 'log', message: `Running with args: ${ffmpegArgs.join(' ')}` });
+
+            // Run FFMPEG with the provided arguments.
+            await ffmpeg.exec(ffmpegArgs);
+
+            self.postMessage({ type: 'progress', stage: 'finalizing', message: encodeEndMessage });
 
             // Read output file - use Uint8Array directly to avoid extra bytes from ArrayBuffer
-            const data = await ffmpeg.readFile('output.mp3');
-            const mp3Blob = new Blob([data], { type: 'audio/mpeg' });
+            const data = await ffmpeg.readFile(output.name);
+            const outputBlob = new Blob([data], { type: output.mime });
 
-            self.postMessage({ type: 'complete', blob: mp3Blob });
+            self.postMessage({ type: 'complete', blob: outputBlob });
         } finally {
             // Always cleanup virtual filesystem files
             try {
@@ -77,7 +79,7 @@ self.onmessage = async (e) => {
                 // File may not exist if writeFile failed
             }
             try {
-                await ffmpeg.deleteFile('output.mp3');
+                await ffmpeg.deleteFile(output.name);
             } catch {
                 // File may not exist if exec failed
             }
