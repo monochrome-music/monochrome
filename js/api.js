@@ -1229,7 +1229,7 @@ export class LosslessAPI {
                                 blob,
                                 { args: ['-c:a', 'alac'] },
                                 'output.m4a',
-                                'audio/m4a',
+                                'audio/mp4',
                                 onProgress,
                                 options.signal
                             );
