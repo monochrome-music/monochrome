@@ -446,7 +446,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         ui.setCurrentTrack(player.currentTrack);
     }
 
-    document.querySelector('.now-playing-bar .cover').addEventListener('click', async () => {
+    document.querySelector('.now-playing-bar').addEventListener('click', async (e) => {
+        if (!e.target.closest('.cover')) return;
+
         if (!player.currentTrack) {
             alert('No track is currently playing');
             return;

@@ -2291,6 +2291,7 @@ export class UIRenderer {
                     video.muted = true;
                     video.playsInline = true;
                     video.className = imageEl.className;
+                    video.id = imageEl.id;
                     imageEl.replaceWith(video);
                 } else {
                     imageEl.src = videoCoverUrl;
@@ -2300,6 +2301,7 @@ export class UIRenderer {
                     const img = document.createElement('img');
                     img.src = coverUrl;
                     img.className = imageEl.className;
+                    img.id = imageEl.id;
                     imageEl.replaceWith(img);
                 } else {
                     imageEl.src = coverUrl;
@@ -3042,6 +3044,7 @@ export class UIRenderer {
                             video.muted = true;
                             video.playsInline = true;
                             video.className = imageEl.className;
+                            video.id = imageEl.id;
                             imageEl.replaceWith(video);
                         } else {
                             imageEl.src = videoCoverUrl;
@@ -3051,6 +3054,7 @@ export class UIRenderer {
                             const img = document.createElement('img');
                             img.src = coverUrl;
                             img.className = imageEl.className;
+                            img.id = imageEl.id;
                             imageEl.replaceWith(img);
                         } else {
                             imageEl.src = coverUrl;
@@ -4085,6 +4089,7 @@ export class UIRenderer {
                     video.muted = true;
                     video.playsInline = true;
                     video.className = imageEl.className;
+                    video.id = imageEl.id;
                     imageEl.replaceWith(video);
                 } else {
                     imageEl.src = videoCoverUrl;
@@ -4094,6 +4099,7 @@ export class UIRenderer {
                     const img = document.createElement('img');
                     img.src = coverUrl;
                     img.className = imageEl.className;
+                    img.id = imageEl.id;
                     imageEl.replaceWith(img);
                 } else {
                     imageEl.src = coverUrl;
