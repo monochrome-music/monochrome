@@ -3496,10 +3496,86 @@ input:checked + .slider::before {
     padding: 1rem;
 }
 
-#close-fullscreen-cover-btn {
+/* UI Toggle Button for Visualizer Mode - Rightmost position */
+#toggle-ui-btn {
     position: absolute;
     top: 1rem;
     right: 1rem;
+    background-color: var(--background);
+    border: none;
+    color: var(--foreground);
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+        opacity 0.3s ease,
+        transform 0.2s ease,
+        right 0.3s ease;
+    z-index: 10;
+    opacity: 0.5;
+    pointer-events: auto;
+}
+
+#toggle-ui-btn:hover {
+    opacity: 0.8;
+    transform: scale(1.05);
+}
+
+#toggle-ui-btn.active {
+    color: var(--primary);
+    opacity: 0.8;
+}
+
+/* When UI is hidden, toggle button is hidden by default */
+#fullscreen-cover-overlay.ui-hidden #toggle-ui-btn {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* When UI is hidden and mouse is near, show the toggle button */
+#fullscreen-cover-overlay.ui-hidden #toggle-ui-btn.visible {
+    opacity: 0.5;
+    pointer-events: auto;
+}
+
+/* Lyrics Toggle - Middle position */
+.fullscreen-lyrics-toggle {
+    position: absolute;
+    top: 1rem;
+    right: 4.5rem;
+    background: rgb(0, 0, 0, 0.5);
+    border: none;
+    color: white;
+    padding: 0.75rem;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    z-index: 1001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+        all 0.2s ease,
+        right 0.3s ease;
+}
+
+.fullscreen-lyrics-toggle:hover {
+    background: rgb(0, 0, 0, 0.7);
+    transform: scale(1.1);
+}
+
+.fullscreen-lyrics-toggle.active {
+    background: var(--primary);
+}
+
+/* Close Button - Leftmost position */
+#close-fullscreen-cover-btn {
+    position: absolute;
+    top: 1rem;
+    right: 8rem;
     background-color: var(--background);
     border: none;
     color: var(--foreground);
@@ -3522,6 +3598,36 @@ input:checked + .slider::before {
     opacity: 0.8;
 }
 
+/* UI Hidden State for Visualizer Mode */
+#fullscreen-cover-overlay.ui-hidden .fullscreen-main-view,
+#fullscreen-cover-overlay.ui-hidden .fullscreen-controls,
+#fullscreen-cover-overlay.ui-hidden #fullscreen-next-track {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+}
+
+/* When UI is hidden, only toggle button stays visible at right edge */
+#fullscreen-cover-overlay.ui-hidden #toggle-ui-btn {
+    right: 1rem;
+    opacity: 0.5;
+    pointer-events: auto;
+}
+
+#fullscreen-cover-overlay.ui-hidden .fullscreen-lyrics-toggle,
+#fullscreen-cover-overlay.ui-hidden #close-fullscreen-cover-btn {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#fullscreen-cover-overlay:not(.ui-hidden) .fullscreen-main-view,
+#fullscreen-cover-overlay:not(.ui-hidden) .fullscreen-controls,
+#fullscreen-cover-overlay:not(.ui-hidden) #fullscreen-next-track {
+    opacity: 1;
+    pointer-events: auto;
+    transition: opacity 0.5s ease;
+}
+
 #fullscreen-cover-image {
     max-width: 55vw;
     max-height: 45vh;
@@ -3530,6 +3636,14 @@ input:checked + .slider::before {
     object-fit: contain;
     margin-bottom: 1rem;
     z-index: 1;
+}
+
+/* Enhanced drop shadow for album cover in visualizer mode */
+#fullscreen-cover-overlay.visualizer-active #fullscreen-cover-image {
+    box-shadow:
+        0 25px 60px rgb(0, 0, 0, 0.6),
+        0 10px 30px rgb(0, 0, 0, 0.4),
+        0 0 100px rgb(0, 0, 0, 0.3);
 }
 
 .fullscreen-track-info {
@@ -4959,34 +5073,6 @@ img[src=''] {
         flex 0.3s ease,
         padding-right 0.3s ease,
         margin-right 0.3s ease;
-}
-
-.fullscreen-lyrics-toggle {
-    position: absolute;
-    top: 1rem;
-    right: 4.5rem;
-    background: rgb(0, 0, 0, 0.5);
-    border: none;
-    color: white;
-    padding: 0.75rem;
-    border-radius: var(--radius-full);
-    cursor: pointer;
-    z-index: 1001;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition:
-        all 0.2s ease,
-        right 0.3s ease;
-}
-
-.fullscreen-lyrics-toggle:hover {
-    background: rgb(0, 0, 0, 0.7);
-    transform: scale(1.1);
-}
-
-.fullscreen-lyrics-toggle.active {
-    background: var(--primary);
 }
 
 /* Modals */

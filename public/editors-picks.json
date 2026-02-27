@@ -45,17 +45,6 @@
     },
     {
         "type": "album",
-        "id": 487053581,
-        "title": "USB A (Deluxe)",
-        "artist": { "id": 46882510, "name": "PRODYSGROUP" },
-        "releaseDate": "2025-08-9",
-        "cover": "6409de67-1a4e-421b-9820-cc67a21792ec",
-        "explicit": true,
-        "audioQuality": "LOSSLESS",
-        "mediaMetadata": { "tags": ["LOSSLESS"] }
-    },
-    {
-        "type": "album",
         "id": 4527433,
         "title": "Flockaveli",
         "artist": { "id": 3654061, "name": "Waka Flocka Flame" },
