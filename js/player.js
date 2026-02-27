@@ -188,6 +188,7 @@ export class Player {
                             video.muted = true;
                             video.playsInline = true;
                             video.className = coverEl.className;
+                            video.id = coverEl.id;
                             coverEl.replaceWith(video);
                         }
                     } else {
@@ -195,6 +196,7 @@ export class Player {
                             const img = document.createElement('img');
                             img.src = coverUrl;
                             img.className = coverEl.className;
+                            img.id = coverEl.id;
                             coverEl.replaceWith(img);
                         } else {
                             coverEl.src = coverUrl;
@@ -408,6 +410,7 @@ export class Player {
                     video.muted = true;
                     video.playsInline = true;
                     video.className = coverEl.className;
+                    video.id = coverEl.id;
                     coverEl.replaceWith(video);
                 }
             } else {
@@ -415,6 +418,7 @@ export class Player {
                     const img = document.createElement('img');
                     img.src = coverUrl;
                     img.className = coverEl.className;
+                    img.id = coverEl.id;
                     coverEl.replaceWith(img);
                 } else {
                     coverEl.src = coverUrl;
