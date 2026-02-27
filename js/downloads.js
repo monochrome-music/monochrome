@@ -371,7 +371,7 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
                         blob,
                         { args: ['-c:a', 'alac'] },
                         'output.m4a',
-                        'audio/m4a',
+                        'audio/mp4',
                         () => undefined,
                         signal
                     );
