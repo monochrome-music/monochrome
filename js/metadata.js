@@ -161,6 +161,7 @@ async function readFlacMetadata(file, metadata) {
                 if (upperKey === 'ALBUM') metadata.album.title = value;
                 if (upperKey === 'ISRC') metadata.isrc = value;
                 if (upperKey === 'COPYRIGHT') metadata.copyright = value;
+                if (upperKey === 'ITUNESADVISORY') metadata.explicit = value === '1';
             }
         }
     }
@@ -262,6 +263,9 @@ async function readM4aMetadata(file, metadata) {
                     const mime = getMimeType(pictureData);
                     const blob = new Blob([pictureData], { type: mime });
                     metadata.album.cover = URL.createObjectURL(blob);
+                } else if (item.type === 'rtng') {
+                    metadata.explicit =
+                        contentLen > 0 && new Uint8Array(view.buffer, contentOffset, contentLen)[0] === 1;
                 }
             }
         }
@@ -603,6 +607,9 @@ function createVorbisCommentBlock(track) {
     if (track.isrc) {
         comments.push(['ISRC', track.isrc]);
     }
+    if (track.explicit) {
+        comments.push(['ITUNESADVISORY', '1']);
+    }
 
     // Calculate total size
     const vendor = VENDOR_STRING;
@@ -943,6 +950,9 @@ function createMp4MetadataAtoms(track) {
             total: track.album?.numberOfTracks,
         };
     }
+    if (track.explicit) {
+        tags['rtng'] = 1; // 1 = Explicit, 2 = Clean, 0 = Unknown
+    }
 
     const discNumber = track.volumeNumber ?? track.discNumber;
     if (discNumber) {
@@ -1086,6 +1096,8 @@ function createMetadataBlock(metadataAtoms) {
     for (const [key, value] of Object.entries(tags)) {
         if (key === 'trkn' || key === 'disk') {
             ilstChildren.push(createIntAtom(key, value));
+        } else if (key === 'rtng') {
+            ilstChildren.push(createRatingAtom(value));
         } else {
             ilstChildren.push(createStringAtom(key, value));
         }
@@ -1214,6 +1226,42 @@ function createStringAtom(type, value) {
     buf[offset++] = 0;
 
     buf.set(textBytes, offset);
+
+    return buf;
+}
+
+
+/**
+ * Constructs an MP4 `rtng` metadata atom that encodes an explicit-content rating.
+ *
+ * @param {number} value - The rating to embed (0 = Unrated, 1 = Explicit, 2 = Clean).
+ * @returns {Uint8Array} The serialized atom buffer ready to be inserted into metadata.
+ */
+function createRatingAtom(value) {
+    const dataSize = 17; // 8 (data atom header) + 8 (flags/null) + Rating
+    const atomSize = 8 + dataSize;
+
+    const buf = new Uint8Array(atomSize);
+    let offset = 0;
+
+    // Wrapper atom (e.g., ©nam)
+    writeAtomHeader(buf, offset, atomSize, 'rtng');
+    offset += 8;
+
+    // Data atom
+    writeAtomHeader(buf, offset, dataSize, 'data');
+    offset += 8;
+
+    // Data Type ((21 = Rating) + Locale (0))
+    buf[offset++] = 0;
+    buf[offset++] = 0;
+    buf[offset++] = 0;
+    buf[offset++] = 21; // Type 21
+    buf[offset++] = 0;
+    buf[offset++] = 0;
+    buf[offset++] = 0;
+    buf[offset++] = 0;
+    buf[offset++] = value;
 
     return buf;
 }
