@@ -1230,7 +1230,6 @@ function createStringAtom(type, value) {
     return buf;
 }
 
-
 /**
  * Constructs an MP4 `rtng` metadata atom that encodes an explicit-content rating.
  *
