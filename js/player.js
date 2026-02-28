@@ -258,8 +258,8 @@ export class Player {
 
         const setHandlers = () => {
             navigator.mediaSession.setActionHandler('play', async () => {
-            // Initialize and resume audio context first (required for iOS lock screen)
-            // Must happen before audio.play() or audio won't route through Web Audio
+                // Initialize and resume audio context first (required for iOS lock screen)
+                // Must happen before audio.play() or audio won't route through Web Audio
                 if (!audioContextManager.isReady()) {
                     audioContextManager.init(this.audio);
                     this.applyReplayGain();
@@ -270,7 +270,7 @@ export class Player {
                     await this.audio.play();
                 } catch (e) {
                     console.error('MediaSession play failed:', e);
-                // If play fails, try to handle it like a regular play/pause
+                    // If play fails, try to handle it like a regular play/pause
                     this.handlePlayPause();
                 }
             });
@@ -280,7 +280,7 @@ export class Player {
             });
 
             navigator.mediaSession.setActionHandler('previoustrack', async () => {
-            // Ensure audio context is active for iOS lock screen controls
+                // Ensure audio context is active for iOS lock screen controls
                 if (!audioContextManager.isReady()) {
                     audioContextManager.init(this.audio);
                     this.applyReplayGain();
@@ -290,7 +290,7 @@ export class Player {
             });
 
             navigator.mediaSession.setActionHandler('nexttrack', async () => {
-            // Ensure audio context is active for iOS lock screen controls
+                // Ensure audio context is active for iOS lock screen controls
                 if (!audioContextManager.isReady()) {
                     audioContextManager.init(this.audio);
                     this.applyReplayGain();
