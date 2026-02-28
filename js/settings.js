@@ -11,7 +11,6 @@ import {
     replayGainSettings,
     smoothScrollingSettings,
     downloadQualitySettings,
-    losslessContainerSettings,
     coverArtSizeSettings,
     qualityBadgeSettings,
     trackDateSettings,
@@ -803,15 +802,6 @@ export function initializeSettings(scrobbler, player, api, ui) {
 
         downloadQualitySetting.addEventListener('change', (e) => {
             downloadQualitySettings.setQuality(e.target.value);
-        });
-    }
-
-    const losslessContainerSetting = document.getElementById('lossless-container-setting');
-    if (losslessContainerSetting) {
-        losslessContainerSetting.value = losslessContainerSettings.getContainer();
-
-        losslessContainerSetting.addEventListener('change', (e) => {
-            losslessContainerSettings.setContainer(e.target.value);
         });
     }
 

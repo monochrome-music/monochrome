@@ -533,20 +533,6 @@ export const downloadQualitySettings = {
     },
 };
 
-export const losslessContainerSettings = {
-    STORAGE_KEY: 'lossless-container',
-    getContainer() {
-        try {
-            return localStorage.getItem(this.STORAGE_KEY) || 'flac';
-        } catch {
-            return 'flac';
-        }
-    },
-    setContainer(container) {
-        localStorage.setItem(this.STORAGE_KEY, container);
-    },
-};
-
 export const coverArtSizeSettings = {
     STORAGE_KEY: 'cover-art-size',
     getSize() {
