@@ -136,14 +136,31 @@ export class Player {
 
     applyAudioEffects() {
         const speed = audioEffectsSettings.getSpeed();
-        if (this.audio.playbackRate !== speed) {
-            this.audio.playbackRate = speed;
+
+        if (this.dashInitialized && this.dashPlayer) {
+            if (this.dashPlayer.getPlaybackRate() !== speed) {
+                this.dashPlayer.setPlaybackRate(speed);
+            }
+        } else {
+            if (this.audio.playbackRate !== speed) {
+                this.audio.playbackRate = speed;
+            }
+        }
+
+        const preservePitch = audioEffectsSettings.isPreservePitchEnabled();
+        if (this.audio.preservesPitch !== preservePitch) {
+            this.audio.preservesPitch = preservePitch;
         }
     }
 
     setPlaybackSpeed(speed) {
         const validSpeed = Math.max(0.01, Math.min(100, parseFloat(speed) || 1.0));
         audioEffectsSettings.setSpeed(validSpeed);
+        this.applyAudioEffects();
+    }
+
+    setPreservePitch(enabled) {
+        audioEffectsSettings.setPreservePitch(enabled);
         this.applyAudioEffects();
     }
 

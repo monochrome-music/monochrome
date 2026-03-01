@@ -929,6 +929,18 @@ export function initializeSettings(scrobbler, player, api, ui) {
     }
 
     // ========================================
+    // Preserve Pitch Toggle
+    // ========================================
+    const preservePitchToggle = document.getElementById('preserve-pitch-toggle');
+    if (preservePitchToggle) {
+        preservePitchToggle.checked = audioEffectsSettings.isPreservePitchEnabled();
+
+        preservePitchToggle.addEventListener('change', (e) => {
+            player.setPreservePitch(e.target.checked);
+        });
+    }
+
+    // ========================================
     // Parametric Equalizer Settings (3-32 bands with custom ranges)
     // ========================================
     const eqToggle = document.getElementById('equalizer-enabled-toggle');
