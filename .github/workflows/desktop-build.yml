@@ -118,16 +118,16 @@ jobs:
             if [ "${{ matrix.platform }}" = "linux" ]; then
               cp scripts/linux-wayland-launcher.sh release/Monochrome-launcher
               cat > release/Monochrome.desktop <<'EOF'
-              [Desktop Entry]
-              Type=Application
-              Version=1.0
-              Name=Monochrome
-              Comment=Monochrome music streaming app
-              Exec=sh -c 'cd "$(dirname "%k")" && ./Monochrome-launcher --detach'
-              Terminal=false
-              Categories=Audio;Player;
-              StartupNotify=true
-              EOF
+          [Desktop Entry]
+          Type=Application
+          Version=1.0
+          Name=Monochrome
+          Comment=Monochrome music streaming app
+          Exec=sh -c 'cd "$(dirname "%k")" && ./Monochrome-launcher --detach'
+          Terminal=false
+          Categories=Audio;Player;
+          StartupNotify=true
+          EOF
             fi
           fi
         shell: bash
