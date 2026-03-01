@@ -1254,7 +1254,18 @@ export class LosslessAPI {
                         message: 'Adding metadata...',
                     });
                 }
-                blob = await addMetadataToAudio(blob, track, this, quality);
+
+                const enrichedTrack = { ...track };
+                if (lookup.info) {
+                    enrichedTrack.replayGain = {
+                        trackReplayGain: lookup.info.trackReplayGain,
+                        trackPeakAmplitude: lookup.info.trackPeakAmplitude,
+                        albumReplayGain: lookup.info.albumReplayGain,
+                        albumPeakAmplitude: lookup.info.albumPeakAmplitude,
+                    };
+                }
+
+                blob = await addMetadataToAudio(blob, enrichedTrack, this, quality);
             }
 
             // Detect actual format and fix filename extension if needed
