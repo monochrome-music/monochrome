@@ -972,26 +972,22 @@ export class Player {
         // Force a refresh for picky Bluetooth systems by clearing metadata first
         navigator.mediaSession.metadata = null;
 
-        const artwork = [];
-        const sizes = ['320'];
         const coverId = track.album?.cover;
         const trackTitle = getTrackTitle(track);
-
-        if (coverId) {
-            sizes.forEach((size) => {
-                artwork.push({
-                    src: this.api.getCoverUrl(coverId, size),
-                    sizes: `${size}x${size}`,
-                    type: 'image/jpeg',
-                });
-            });
-        }
 
         navigator.mediaSession.metadata = new MediaMetadata({
             title: trackTitle || 'Unknown Title',
             artist: getTrackArtists(track) || 'Unknown Artist',
             album: track.album?.title || 'Unknown Album',
-            artwork: artwork.length > 0 ? artwork : undefined,
+            artwork: coverId
+                ? [
+                      {
+                          src: this.api.getCoverUrl(coverId, '1280'),
+                          sizes: '1280x1280',
+                          type: 'image/jpeg',
+                      },
+                  ]
+                : undefined,
         });
 
         this.updateMediaSessionPlaybackState();
