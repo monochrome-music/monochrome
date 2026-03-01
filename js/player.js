@@ -47,6 +47,11 @@ export class Player {
         this.sleepTimerEndTime = null;
         this.sleepTimerInterval = null;
 
+        // Apply audio effects when track is ready
+        this.audio.addEventListener('canplay', () => {
+            this.applyAudioEffects();
+        });
+
         // Initialize dash.js player
         this.dashPlayer = MediaPlayer().create();
         this.dashPlayer.updateSettings({
@@ -150,6 +155,10 @@ export class Player {
         const preservePitch = audioEffectsSettings.isPreservePitchEnabled();
         if (this.audio.preservesPitch !== preservePitch) {
             this.audio.preservesPitch = preservePitch;
+            // Firefox support
+            if (this.audio.mozPreservesPitch !== undefined) {
+                this.audio.mozPreservesPitch = preservePitch;
+            }
         }
     }
 
