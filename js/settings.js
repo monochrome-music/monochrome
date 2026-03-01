@@ -813,8 +813,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
     const downloadLocationBrowseBtn = document.getElementById('download-location-browse-btn');
     const downloadLocationResetBtn = document.getElementById('download-location-reset-btn');
 
-    const isNeutralinoDesktop = !!(window.NL_MODE || window.location.search.includes('mode=neutralino'));
-    if (downloadLocationSetting && isNeutralinoDesktop) {
+    if (downloadLocationSetting && isNeutralinoDesktop()) {
         downloadLocationSetting.style.display = 'flex';
 
         const updateDownloadLocationUI = () => {
