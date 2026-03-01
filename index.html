@@ -4773,18 +4773,32 @@
                     <div class="settings-tab-content" id="settings-tab-downloads">
                         <div class="settings-list">
                             <div class="settings-group">
-                                <div class="setting-item" id="download-location-setting" style="display: none;">
+                                <div class="setting-item" id="download-location-setting" style="display: none">
                                     <div class="info">
                                         <span class="label">Download Location</span>
                                         <span class="description">Folder where downloaded files are saved</span>
                                     </div>
-                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem">
                                         <span
                                             id="download-location-path"
-                                            style="font-size: 0.8rem; color: var(--muted-foreground); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
-                                        >Default (browser downloads)</span>
+                                            style="
+                                                font-size: 0.8rem;
+                                                color: var(--muted-foreground);
+                                                max-width: 200px;
+                                                overflow: hidden;
+                                                text-overflow: ellipsis;
+                                                white-space: nowrap;
+                                            "
+                                            >Default (browser downloads)</span
+                                        >
                                         <button id="download-location-browse-btn" class="btn-secondary">Browse</button>
-                                        <button id="download-location-reset-btn" class="btn-secondary" style="display: none;">Reset</button>
+                                        <button
+                                            id="download-location-reset-btn"
+                                            class="btn-secondary"
+                                            style="display: none"
+                                        >
+                                            Reset
+                                        </button>
                                     </div>
                                 </div>
                                 <div class="setting-item">

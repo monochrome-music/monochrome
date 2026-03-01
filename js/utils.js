@@ -63,20 +63,21 @@ export const isNeutralinoDesktop = () => {
     if (typeof window === 'undefined') return false;
 
     // Direct checks
-    if (window.NL_MODE ||
+    if (
+        window.NL_MODE ||
         window.location.search.includes('mode=neutralino') ||
-        window.location.search.includes('nl_port=')) {
+        window.location.search.includes('nl_port=')
+    ) {
         return true;
     }
 
     // Protect against non-neutralino iframes by checking if the parent has neutralino globals
     try {
-        if (window.parent !== window &&
-            (window.parent.NL_MODE || typeof window.parent.Neutralino !== 'undefined')) {
+        if (window.parent !== window && (window.parent.NL_MODE || typeof window.parent.Neutralino !== 'undefined')) {
             return true;
         }
-    } catch (e) {
-        // Cross-origin iframe or unexpected error
+    } catch {
+        // Cross-origin iframe
         return false;
     }
 
