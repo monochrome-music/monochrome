@@ -643,6 +643,26 @@ export const bulkDownloadSettings = {
     },
 };
 
+export const downloadLocationSettings = {
+    STORAGE_KEY: 'download-location',
+
+    getPath() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) || '';
+        } catch {
+            return '';
+        }
+    },
+
+    setPath(path) {
+        localStorage.setItem(this.STORAGE_KEY, path || '');
+    },
+
+    hasCustomPath() {
+        return !!this.getPath();
+    },
+};
+
 export const playlistSettings = {
     M3U_KEY: 'playlist-generate-m3u',
     M3U8_KEY: 'playlist-generate-m3u8',

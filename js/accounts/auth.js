@@ -4,6 +4,8 @@ import {
     signInWithPopup,
     signInWithRedirect,
     getRedirectResult,
+    signInWithCredential,
+    GoogleAuthProvider,
     signOut as firebaseSignOut,
     onAuthStateChanged,
     signInWithEmailAndPassword,
@@ -47,6 +49,40 @@ export class AuthManager {
     async signInWithGoogle() {
         if (!auth) {
             alert('Firebase is not configured. Please check console.');
+            return;
+        }
+
+        // Neutralino: open Google sign-in in the system browser,
+        // then poll for the credential tokens via Vite middleware.
+        if (window.Neutralino) {
+            const sessionId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+            const config = auth.app.options;
+            const port = window.location.port || '5173';
+            const configB64 = btoa(JSON.stringify(config));
+            const callbackUrl = `http://localhost:${port}/__auth_callback.html?sessionId=${encodeURIComponent(sessionId)}&config=${encodeURIComponent(configB64)}&port=${port}`;
+
+            window.Neutralino.os.open(callbackUrl);
+
+            // Poll for credential from the system browser callback
+            for (let i = 0; i < 120; i++) {
+                await new Promise((r) => setTimeout(r, 1500));
+                try {
+                    const res = await fetch(`/api/auth/desktop-poll?sessionId=${encodeURIComponent(sessionId)}`);
+                    const data = await res.json();
+                    if (data.ok) {
+                        const credential = GoogleAuthProvider.credential(data.idToken, data.accessToken);
+                        const result = await signInWithCredential(auth, credential);
+                        this.user = result.user;
+                        this.updateUI(result.user);
+                        this.authListeners.forEach((listener) => listener(result.user));
+                        console.log('Google sign-in successful:', result.user.email);
+                        return result.user;
+                    }
+                } catch (e) {
+                    console.error('[Auth] Poll error:', e);
+                }
+            }
+            console.warn('[Auth] Google sign-in polling timed out');
             return;
         }
 

@@ -16,7 +16,7 @@ import { LyricsManager, openLyricsPanel, clearLyricsPanelSync } from './lyrics.j
 import { createRouter, updateTabTitle, navigate } from './router.js';
 import { initializePlayerEvents, initializeTrackInteractions, handleTrackAction } from './events.js';
 import { initializeUIInteractions } from './ui-interactions.js';
-import { debounce, SVG_PLAY, getShareUrl } from './utils.js';
+import { debounce, SVG_PLAY, getShareUrl, isNeutralinoDesktop } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 import { db } from './db.js';
 import { syncManager } from './accounts/pocketbase.js';
@@ -302,6 +302,17 @@ async function uploadCoverImage(file) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    // Restore localStorage from disk BEFORE anything reads it (WKWebView doesn't persist localStorage)
+    const isNeutralinoMode = isNeutralinoDesktop();
+    if (isNeutralinoMode) {
+        try {
+            const { initStorageSync } = await import('./desktop/storage-sync.js');
+            await initStorageSync();
+        } catch (e) {
+            console.error('[App] Storage sync failed:', e);
+        }
+    }
+
     // Initialize analytics
     initAnalytics();
 
@@ -344,7 +355,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initTracker(player);
 
     // Linux Media Keys Fix
-    if (window.NL_MODE) {
+    if (isNeutralinoDesktop()) {
         import('./desktop/neutralino-bridge.js').then(({ events }) => {
             events.on('mediaNext', () => player.playNext());
             events.on('mediaPrevious', () => player.playPrev());
@@ -358,12 +369,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Initialize desktop features if in Neutralino mode
-    if (
-        typeof window !== 'undefined' &&
-        (window.NL_MODE ||
-            window.location.search.includes('mode=neutralino') ||
-            window.location.search.includes('nl_port='))
-    ) {
+    if (isNeutralinoDesktop()) {
         window.NL_MODE = true;
         try {
             const desktopModule = await import('./desktop/desktop.js');
@@ -388,10 +394,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const ua = navigator.userAgent;
         const isChromeOrEdge = (ua.indexOf('Chrome') > -1 || ua.indexOf('Edg') > -1) && !/Mobile|Android/.test(ua);
         const hasFileSystemApi = 'showDirectoryPicker' in window;
-        const isNeutralino =
-            window.NL_MODE ||
-            window.location.search.includes('mode=neutralino') ||
-            window.location.search.includes('nl_port=');
+        const isNeutralino = isNeutralinoDesktop();
 
         if (!isNeutralino && (!isChromeOrEdge || !hasFileSystemApi)) {
             selectLocalBtn.style.display = 'none';
@@ -2093,13 +2096,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.target.closest('#select-local-folder-btn') || e.target.closest('#change-local-folder-btn')) {
             const isChange = e.target.closest('#change-local-folder-btn') !== null;
             try {
-                const isNeutralino =
-                    window.Neutralino && (window.NL_MODE || window.location.search.includes('mode=neutralino'));
+                const isNeutralino = isNeutralinoDesktop();
                 let handle;
                 let path;
 
                 if (isNeutralino) {
-                    path = await window.Neutralino.os.showFolderDialog('Select Music Folder');
+                    const bridge = await import('./desktop/neutralino-bridge.js');
+                    path = await bridge.os.showFolderDialog('Select Music Folder');
                     if (!path) return;
                     // Mock a handle object for UI compatibility
                     handle = { name: path.split(/[/\\]/).pop() || path, isNeutralino: true, path };
@@ -2493,6 +2496,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         authManager.onAuthStateChanged(async (user) => {
+            // Refresh dropdown content so it reflects the new auth state
+            if (headerAccountDropdown.classList.contains('active')) {
+                updateAccountDropdown();
+            }
+
             if (user) {
                 const data = await syncManager.getUserData();
                 if (data && data.profile && data.profile.avatar_url) {

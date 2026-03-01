@@ -17,6 +17,7 @@ import {
     trackDateSettings,
     visualizerSettings,
     bulkDownloadSettings,
+    downloadLocationSettings,
     playlistSettings,
     equalizerSettings,
     listenBrainzSettings,
@@ -804,6 +805,53 @@ export function initializeSettings(scrobbler, player, api, ui) {
         downloadQualitySetting.addEventListener('change', (e) => {
             downloadQualitySettings.setQuality(e.target.value);
         });
+    }
+
+    // Download Location setting (desktop only)
+    const downloadLocationSetting = document.getElementById('download-location-setting');
+    const downloadLocationPath = document.getElementById('download-location-path');
+    const downloadLocationBrowseBtn = document.getElementById('download-location-browse-btn');
+    const downloadLocationResetBtn = document.getElementById('download-location-reset-btn');
+
+    if (downloadLocationSetting && isNeutralinoDesktop()) {
+        downloadLocationSetting.style.display = 'flex';
+
+        const updateDownloadLocationUI = () => {
+            const path = downloadLocationSettings.getPath();
+            if (path) {
+                downloadLocationPath.textContent = path;
+                downloadLocationPath.title = path;
+                downloadLocationResetBtn.style.display = 'inline-flex';
+            } else {
+                downloadLocationPath.textContent = 'Default (browser downloads)';
+                downloadLocationPath.title = '';
+                downloadLocationResetBtn.style.display = 'none';
+            }
+        };
+
+        updateDownloadLocationUI();
+
+        if (downloadLocationBrowseBtn) {
+            downloadLocationBrowseBtn.addEventListener('click', async () => {
+                try {
+                    const bridge = await import('./desktop/neutralino-bridge.js');
+                    const result = await bridge.os.showFolderDialog('Choose download folder');
+                    if (result) {
+                        downloadLocationSettings.setPath(result);
+                        updateDownloadLocationUI();
+                    }
+                } catch (e) {
+                    console.error('[Settings] Failed to open folder dialog:', e);
+                }
+            });
+        }
+
+        if (downloadLocationResetBtn) {
+            downloadLocationResetBtn.addEventListener('click', () => {
+                downloadLocationSettings.setPath('');
+                updateDownloadLocationUI();
+            });
+        }
     }
 
     const losslessContainerSetting = document.getElementById('lossless-container-setting');

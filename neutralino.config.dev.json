@@ -1,7 +1,7 @@
 {
     "applicationId": "com.monochrome.app",
     "applicationName": "Monochrome",
-    "applicationIcon": "public/assets/appicon.png",
+    "applicationIcon": "public/appicon.png",
     "author": "Monochrome",
     "description": "Monochrome - Lossless music streaming",
     "version": "1.0.0",
@@ -15,18 +15,20 @@
     "modes": {
         "window": {
             "title": "Monochrome (DEV)",
-            "icon": "public/assets/appicon.png",
+            "icon": "",
             "width": 1280,
             "height": 800,
             "minWidth": 800,
             "minHeight": 600,
-            "center": true,
+            "center": false,
+            "x": 120,
+            "y": 80,
             "resizable": true,
             "hidden": false,
             "borderless": false,
             "enableInspector": true,
             "openInspectorOnStartup": true,
-            "exitProcessOnClose": true
+            "exitProcessOnClose": false
         }
     },
     "port": 5050,

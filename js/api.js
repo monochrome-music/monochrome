@@ -5,6 +5,7 @@ import {
     delay,
     isTrackUnavailable,
     getExtensionFromBlob,
+    isNeutralinoDesktop,
 } from './utils.js';
 import { trackDateSettings, losslessContainerSettings } from './storage.js';
 import { APICache } from './cache.js';
@@ -1278,7 +1279,7 @@ export class LosslessAPI {
                 finalFilename = filename.replace(/\.[^.]+$/, `.${detectedExtension}`);
             }
 
-            this.triggerDownload(blob, finalFilename);
+            await this.triggerDownload(blob, finalFilename);
         } catch (error) {
             if (error.name === 'AbortError') {
                 throw error;
@@ -1294,7 +1295,26 @@ export class LosslessAPI {
         }
     }
 
-    triggerDownload(blob, filename) {
+    async triggerDownload(blob, filename) {
+        // In Neutralino mode, save directly to the configured download folder
+        if (isNeutralinoDesktop()) {
+            try {
+                const { downloadLocationSettings } = await import('./storage.js');
+                const downloadPath = downloadLocationSettings.getPath();
+                if (downloadPath) {
+                    const bridge = await import('./desktop/neutralino-bridge.js');
+                    const fullPath = `${downloadPath}/${filename}`;
+                    const arrayBuffer = await blob.arrayBuffer();
+                    await bridge.filesystem.writeBinaryFile(fullPath, arrayBuffer);
+                    console.log(`[Download] Saved to: ${fullPath}`);
+                    return;
+                }
+            } catch (e) {
+                console.error('[Download] Native save failed, falling back to browser download:', e);
+            }
+        }
+
+        // Fallback: browser download
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
