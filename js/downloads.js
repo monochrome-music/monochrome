@@ -323,6 +323,15 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
         }
     }
 
+    if (lookup.info) {
+        enrichedTrack.replayGain = {
+            trackReplayGain: lookup.info.trackReplayGain,
+            trackPeakAmplitude: lookup.info.trackPeakAmplitude,
+            albumReplayGain: lookup.info.albumReplayGain,
+            albumPeakAmplitude: lookup.info.albumPeakAmplitude,
+        };
+    }
+
     // Handle DASH streams (blob URLs)
     let blob;
     if (streamUrl.startsWith('blob:')) {
