@@ -264,7 +264,7 @@ export class Player {
                     audioContextManager.init(this.audio);
                     this.applyReplayGain();
                 }
-                await audioContextManager.resume(); 
+                await audioContextManager.resume();
 
                 try {
                     await this.audio.play();
