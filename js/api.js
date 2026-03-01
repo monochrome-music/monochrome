@@ -5,6 +5,7 @@ import {
     delay,
     isTrackUnavailable,
     getExtensionFromBlob,
+    isNeutralinoDesktop,
 } from './utils.js';
 import { trackDateSettings, losslessContainerSettings } from './storage.js';
 import { APICache } from './cache.js';
@@ -1285,7 +1286,7 @@ export class LosslessAPI {
 
     async triggerDownload(blob, filename) {
         // In Neutralino mode, save directly to the configured download folder
-        if (window.NL_MODE || window.location.search.includes('mode=neutralino')) {
+        if (isNeutralinoDesktop()) {
             try {
                 const { downloadLocationSettings } = await import('./storage.js');
                 const downloadPath = downloadLocationSettings.getPath();

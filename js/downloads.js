@@ -10,6 +10,7 @@ import {
     getCoverBlob,
     getExtensionFromBlob,
     escapeHtml,
+    isNeutralinoDesktop,
 } from './utils.js';
 import { lyricsSettings, bulkDownloadSettings, losslessContainerSettings, playlistSettings } from './storage.js';
 import { addMetadataToAudio } from './metadata.js';
@@ -399,7 +400,7 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
 
 async function triggerDownload(blob, filename) {
     // In Neutralino mode, save directly to the configured download folder
-    if (window.NL_MODE || window.location.search.includes('mode=neutralino')) {
+    if (isNeutralinoDesktop()) {
         try {
             const { downloadLocationSettings } = await import('./storage.js');
             const downloadPath = downloadLocationSettings.getPath();
@@ -952,7 +953,7 @@ async function startBulkDownload(
     const notification = createBulkDownloadNotification(type, name, tracks.length);
 
     try {
-        const isNeutralino = window.NL_MODE === true;
+        const isNeutralino = isNeutralinoDesktop();
         const hasFileSystemAccess =
             'showSaveFilePicker' in window && 'createWritable' in FileSystemFileHandle.prototype;
         const forceIndividual = bulkDownloadSettings.shouldForceIndividual();

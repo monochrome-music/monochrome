@@ -9,6 +9,7 @@
         "dev:desktop": "node scripts/dev-runner.js",
         "build": "vite build --mode neutralino && bun x neu build",
         "build:linux": "npm run build && bash scripts/package-linux-release.sh",
+        "build:mac": "npm run build && bash scripts/package-mac-release.sh",
         "postbuild": "node -e \"const fs = require('fs'); const path = require('path'); const src = 'extensions'; const dest = path.join('dist', 'Monochrome', 'extensions'); if (fs.existsSync(src)) { fs.mkdirSync(dest, { recursive: true }); fs.cpSync(src, dest, { recursive: true }); console.log('Extensions manually copied to ' + dest); }\"",
         "preview": "vite preview",
         "lint:js": "eslint .",
