@@ -16,7 +16,6 @@ export async function initDesktop(player) {
         await Neutralino.init();
         console.log('[Desktop] Neutralino initialized.');
 
-
         // Intercept external links → open in system browser
         interceptExternalLinks();
 
@@ -61,4 +60,3 @@ function interceptExternalLinks() {
         return originalOpen(url, ...args);
     };
 }
-

@@ -865,7 +865,6 @@ export function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
-
     // Download Location setting (desktop only)
     const downloadLocationSetting = document.getElementById('download-location-setting');
     const downloadLocationPath = document.getElementById('download-location-path');
@@ -912,7 +911,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
                 updateDownloadLocationUI();
             });
         }
-	}
+    }
 
     const losslessContainerSetting = document.getElementById('lossless-container-setting');
     const losslessContainerSettingItem = losslessContainerSetting?.closest('.setting-item');
