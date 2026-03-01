@@ -1,4 +1,4 @@
-import { getCoverBlob, detectAudioFormat } from './utils.js';
+import { getCoverBlob, detectAudioFormat, getTrackTitle } from './utils.js';
 import { addMp3Metadata } from './id3-writer.js';
 
 const VENDOR_STRING = 'Monochrome';
@@ -565,7 +565,7 @@ function createVorbisCommentBlock(track) {
 
     // Add standard tags
     if (track.title) {
-        comments.push(['TITLE', track.title]);
+        comments.push(['TITLE', getTrackTitle(track)]);
     }
     const artistStr = getFullArtistString(track);
     if (artistStr) {
@@ -930,7 +930,7 @@ function createMp4MetadataAtoms(track) {
     // We'll create basic iTunes-style metadata
 
     const tags = {
-        '©nam': track.title || DEFAULT_TITLE,
+        '©nam': getTrackTitle(track) || DEFAULT_TITLE,
         '©ART': getFullArtistString(track) || DEFAULT_ARTIST,
         '©alb': track.album?.title || DEFAULT_ALBUM,
         aART: track.album?.artist?.name || track.artist?.name || DEFAULT_ARTIST,
