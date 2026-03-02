@@ -533,7 +533,11 @@ export class ThemeStore {
                 );
             }
 
-            console.log(this.editingThemeId ? 'Updating theme:' : 'Uploading theme:', { name, author: userId, authorName: userName });
+            console.log(this.editingThemeId ? 'Updating theme:' : 'Uploading theme:', {
+                name,
+                author: userId,
+                authorName: userName,
+            });
 
             const formData = new FormData();
             formData.append('name', name);
