@@ -2562,12 +2562,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     const headerAccountImg = document.getElementById('header-account-img');
     const headerAccountIcon = document.getElementById('header-account-icon');
 
+    // Temporarily disable accounts - show popup
+    const isAccountsDisabled = true;
+
     if (headerAccountBtn && headerAccountDropdown) {
-        headerAccountBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            headerAccountDropdown.classList.toggle('active');
-            updateAccountDropdown();
-        });
+        if (isAccountsDisabled) {
+            headerAccountBtn.style.opacity = '0.5';
+            headerAccountBtn.style.cursor = 'not-allowed';
+            headerAccountBtn.title = 'Accounts temporarily unavailable';
+            headerAccountBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                alert(
+                    "We're moving authentication and data storing systems.\n\nAccounts, profiles, playlists, and community themes will not work during this period (approximately 2 days).\n\nYou will need to re-login after the migration is complete."
+                );
+            });
+        } else {
+            headerAccountBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                headerAccountDropdown.classList.toggle('active');
+                updateAccountDropdown();
+            });
+        }
 
         document.addEventListener('click', (e) => {
             if (!headerAccountBtn.contains(e.target) && !headerAccountDropdown.contains(e.target)) {
