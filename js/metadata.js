@@ -587,6 +587,12 @@ function createVorbisCommentBlock(track) {
     if (track.album?.numberOfTracks) {
         comments.push(['TRACKTOTAL', String(track.album.numberOfTracks)]);
     }
+    if (track.bpm != null) {
+        const bpm = Number(track.bpm);
+        if (Number.isFinite(bpm)) {
+            comments.push(['TEMPO', String(Math.round(bpm))]);
+        }
+    }
     if (track.replayGain) {
         const { albumReplayGain, albumPeakAmplitude, trackReplayGain, trackPeakAmplitude } = track.replayGain;
         if (albumReplayGain) comments.push(['REPLAYGAIN_ALBUM_GAIN', String(albumReplayGain)]);
@@ -974,6 +980,10 @@ function createMp4MetadataAtoms(track) {
         };
     }
 
+    if (track.bpm) {
+        tags['tmpo'] = Math.round(track.bpm);
+    }
+
     const releaseDateStr =
         track.album?.releaseDate || (track.streamStartDate ? track.streamStartDate.split('T')[0] : '');
     if (releaseDateStr) {
@@ -1127,7 +1137,9 @@ function createMetadataBlock(metadataAtoms) {
         if (key === 'trkn' || key === 'disk') {
             ilstChildren.push(createIntAtom(key, value));
         } else if (key === 'rtng') {
-            ilstChildren.push(createRatingAtom(value));
+            ilstChildren.push(createUintAtom(key, value, 1));
+        } else if (key === 'tmpo') {
+            ilstChildren.push(createUintAtom(key, value, 2));
         } else {
             ilstChildren.push(createStringAtom(key, value));
         }
@@ -1303,27 +1315,70 @@ function createUserAtom(namespace, name, value) {
 }
 
 /**
- * Constructs an MP4 `rtng` metadata atom that encodes an explicit-content rating.
+ * Converts a number or BigInt value to a big-endian byte array.
+ * @param {number|BigInt|null} value - The value to convert to bytes. If null, returns null.
+ * @param {number|null} [byteLength=null] - Optional fixed byte length. If provided, the result will be padded or truncated to this length. If not provided, returns the minimal byte representation.
+ * @returns {Uint8Array} A Uint8Array representing the value in big-endian format, or null if value is null.
+ * @throws {Error} If the value is a negative number.
+ * @example
+ * // Variable length (minimal bytes)
+ * toBigEndianBytes(256); // Uint8Array [ 1, 0 ]
+ * toBigEndianBytes(0); // Uint8Array [ 0 ]
  *
- * @param {number} value - The rating to embed (0 = Unrated, 1 = Explicit, 2 = Clean).
- * @returns {Uint8Array} The serialized atom buffer ready to be inserted into metadata.
+ * // Fixed length with padding
+ * toBigEndianBytes(1, 4); // Uint8Array [ 0, 0, 0, 1 ]
+ *
+ * // With BigInt
+ * toBigEndianBytes(0xDEADBEEFn, 4); // Uint8Array [ 222, 173, 190, 239 ]
  */
-function createRatingAtom(value) {
-    const dataSize = 17; // 8 (data atom header) + 8 (flags/null) + Rating
+function toBigEndianBytes(value, byteLength = null) {
+    if (value == null) return new Uint8Array(0);
+
+    if (!Number.isSafeInteger(value) || value < 0) {
+        throw new Error('Value must be a non-negative safe integer.');
+    }
+
+    // Fixed-length mode
+    if (byteLength != null) {
+        const bytes = new Uint8Array(byteLength);
+        for (let i = byteLength - 1; i >= 0; i--) {
+            bytes[i] = value & 0xff;
+            value = Math.floor(value / 256);
+        }
+        return bytes;
+    }
+
+    // Variable (minimal) mode
+    if (value === 0) return new Uint8Array([0]);
+
+    const result = [];
+    while (value > 0) {
+        result.push(value & 0xff);
+        value = Math.floor(value / 256);
+    }
+
+    result.reverse();
+
+    return new Uint8Array(result);
+}
+
+function createUintAtom(key, value, intByteLength = 1) {
+    const numberBytes = toBigEndianBytes(value, intByteLength);
+    const dataSize = 16 + intByteLength; // Atom header (8) + number bytes
     const atomSize = 8 + dataSize;
 
     const buf = new Uint8Array(atomSize);
     let offset = 0;
 
     // Wrapper atom (e.g., ©nam)
-    writeAtomHeader(buf, offset, atomSize, 'rtng');
+    writeAtomHeader(buf, offset, atomSize, key);
     offset += 8;
 
     // Data atom
     writeAtomHeader(buf, offset, dataSize, 'data');
     offset += 8;
 
-    // Data Type ((21 = Rating) + Locale (0))
+    // Data Type ((Big Endian Unsigned Integer) + Locale (0))
     buf[offset++] = 0;
     buf[offset++] = 0;
     buf[offset++] = 0;
@@ -1332,7 +1387,7 @@ function createRatingAtom(value) {
     buf[offset++] = 0;
     buf[offset++] = 0;
     buf[offset++] = 0;
-    buf[offset++] = value;
+    buf.set(numberBytes, offset++);
 
     return buf;
 }
