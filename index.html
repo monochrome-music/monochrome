@@ -1644,6 +1644,33 @@
             </div>
         </div>
 
+        <div id="donate-modal" class="modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <h3 style="text-align: center; margin-bottom: 1rem">Support Monochrome</h3>
+                <p style="text-align: center; margin-bottom: 1.5rem; line-height: 1.6; color: var(--muted-foreground)">
+                    If Monochrome has been useful to you and you're able to, consider making a donation. It helps pay for
+                    the server and domain, and you get to support us :)
+                </p>
+                <div style="display: flex; justify-content: center; margin-bottom: 2rem">
+                    <a href="https://ko-fi.com/monochromemusic" target="_blank" rel="noopener noreferrer" class="btn-primary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem">
+                        Donate on Ko-fi
+                    </a>
+                </div>
+                <div style="text-align: center; padding-top: 1rem; border-top: 1px solid var(--border)">
+                    <p style="font-size: 0.9rem; color: var(--muted-foreground); margin-bottom: 0.5rem">
+                        An alternative way to support us is by starring us on GitHub, and it's completely free!
+                    </p>
+                    <a href="https://github.com/monochrome-music/monochrome" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem">
+                        Star on GitHub
+                    </a>
+                </div>
+                <div class="modal-actions" style="justify-content: center; margin-top: 1.5rem">
+                    <button id="close-donate-modal-btn" class="btn-secondary">Close</button>
+                </div>
+            </div>
+        </div>
+
         <div id="sidebar-overlay"></div>
 
         <div id="csv-import-progress" class="csv-import-progress" style="display: none">
@@ -1796,7 +1823,7 @@
                                 </a>
                             </li>
                             <li class="nav-item" id="sidebar-nav-donate">
-                                <a href="https://ko-fi.com/monochromemusic" target="_blank" rel="noopener noreferrer">
+                                <a id="sidebar-donate-link" style="cursor: pointer">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
                                         width="24"
@@ -5141,9 +5168,7 @@
                                 It helps pay for the server and domain, and you get to support us :)
                             </p>
                             <div
-                                class="donate-button"
-                                id="donate-button-container"
-                                style="
+                                class="donate-button" id="donate-button-container" style="
                                     display: flex;
                                     gap: 20px;
                                     align-items: center;
@@ -5152,9 +5177,7 @@
                                     flex-wrap: wrap;
                                 "
                             >
-                                <a href="https://ko-fi.com/monochromemusic">
-                                    <button id="donate-btn" class="btn-secondary">Donate to Monochrome</button>
-                                </a>
+                                <button id="donate-btn" class="btn-secondary">Donate to Monochrome</button>
                             </div>
                         </div>
                         <br /><br /><br />
@@ -5369,9 +5392,7 @@
                             If Monochrome has been useful to you and you're able to, consider making a donation. <br />
                             It helps pay for the domain, and you get to support us :)
                         </p>
-                        <a href="https://ko-fi.com/monochromemusic">
-                            <button id="donate-btn-page" class="btn-secondary">Donate to Monochrome</button>
-                        </a>
+                        <button id="donate-btn-page" class="btn-secondary">Donate to Monochrome</button>
                     </div>
                 </div>
             </main>
