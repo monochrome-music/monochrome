@@ -949,6 +949,7 @@ function createMp4MetadataAtoms(track) {
 
     if (track.isrc) {
         tags['ISRC'] = track.isrc;
+        tags['xid '] = ':isrc:' + track.isrc;
     }
 
     if (track.copyright) {
