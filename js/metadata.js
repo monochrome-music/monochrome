@@ -936,6 +936,10 @@ function createMp4MetadataAtoms(track) {
     // MP4 metadata atoms are more complex than FLAC
     // We'll create basic iTunes-style metadata
 
+    /**
+     * Array of arrays: [namespace, name, value]
+     */
+    const userTags = [];
     const tags = {
         '©nam': getTrackTitle(track) || DEFAULT_TITLE,
         '©ART': getFullArtistString(track) || DEFAULT_ARTIST,
@@ -982,7 +986,25 @@ function createMp4MetadataAtoms(track) {
         }
     }
 
-    return { tags };
+    if (track.replayGain) {
+        const { albumReplayGain, albumPeakAmplitude, trackReplayGain, trackPeakAmplitude } = track.replayGain;
+        let trackPeakAmplitudeString = String(trackPeakAmplitude);
+        let albumPeakAmplitudeString = String(albumPeakAmplitude);
+
+        if (trackPeakAmplitudeString.indexOf('.') === -1) {
+            trackPeakAmplitudeString += '.000000';
+        }
+        if (albumPeakAmplitudeString.indexOf('.') === -1) {
+            albumPeakAmplitudeString += '.000000';
+        }
+
+        if (trackPeakAmplitude) userTags.push(['com.apple.iTunes', 'replaygain_track_peak', trackPeakAmplitudeString]);
+        if (trackReplayGain) userTags.push(['com.apple.iTunes', 'replaygain_track_gain', `${trackReplayGain} dB`]);
+        if (albumPeakAmplitude) userTags.push(['com.apple.iTunes', 'replaygain_album_peak', albumPeakAmplitudeString]);
+        if (albumReplayGain) userTags.push(['com.apple.iTunes', 'replaygain_album_gain', `${albumReplayGain} dB`]);
+    }
+
+    return { tags, userTags };
 }
 
 function rebuildMp4WithMetadata(dataView, atoms, metadataAtoms) {
@@ -1095,7 +1117,7 @@ function rebuildMp4WithMetadata(dataView, atoms, metadataAtoms) {
 }
 
 function createMetadataBlock(metadataAtoms) {
-    const { tags, cover } = metadataAtoms;
+    const { tags, userTags, cover } = metadataAtoms;
 
     const ilstChildren = [];
 
@@ -1108,6 +1130,11 @@ function createMetadataBlock(metadataAtoms) {
         } else {
             ilstChildren.push(createStringAtom(key, value));
         }
+    }
+
+    // User tags
+    for (const [namespace, name, value] of userTags) {
+        ilstChildren.push(createUserAtom(namespace, name, value));
     }
 
     // Cover art
@@ -1206,17 +1233,18 @@ function createMetadataBlock(metadataAtoms) {
     return udta;
 }
 
-function createStringAtom(type, value) {
+function createStringAtom(type, value, truncateType = true) {
+    const typeLength = truncateType ? 4 : type.length;
     const textBytes = new TextEncoder().encode(value);
     const dataSize = 16 + textBytes.length; // 8 (data atom header) + 8 (flags/null) + text
-    const atomSize = 8 + dataSize;
+    const atomSize = 4 + typeLength + dataSize;
 
     const buf = new Uint8Array(atomSize);
     let offset = 0;
 
     // Wrapper atom (e.g., ©nam)
-    writeAtomHeader(buf, offset, atomSize, type);
-    offset += 8;
+    writeAtomHeader(buf, offset, atomSize, type, truncateType);
+    offset += 4 + typeLength;
 
     // Data atom
     writeAtomHeader(buf, offset, dataSize, 'data');
@@ -1233,6 +1261,39 @@ function createStringAtom(type, value) {
     buf[offset++] = 0;
 
     buf.set(textBytes, offset);
+
+    return buf;
+}
+
+function createUserAtom(namespace, name, value) {
+    const dashBytes = new TextEncoder().encode('----'); // User-defined atom type
+    const namespaceBytes = new TextEncoder().encode('\x00\x00\x00\x00' + namespace);
+    const meanBytes = new TextEncoder().encode('mean'); // Standard 'mean' atom for namespace
+    const valueBytes = createStringAtom(name, value, false); // Reuse string atom for value encoding
+
+    /**
+     * - 4 bytes for atom length
+     * - 4 bytes for atom type ('----')
+     * - 4 bytes for `mean` length
+     * - 'mean' string (namespace)
+     * - 4 bytes for namespace bytes length
+     * - namespace string
+     * - length of the string atom of the name with the value
+     * - string atom of the name with the value
+     */
+    const atomSize = 4 + dashBytes.length + 4 + meanBytes.length + 4 + namespaceBytes.length + 4 + valueBytes.length;
+
+    const buf = new Uint8Array(atomSize);
+    let offset = 0;
+    writeAtomHeader(buf, offset, atomSize, '----');
+    offset += 8; // Skip header
+    writeAtomHeader(buf, offset, namespaceBytes.length + 8, 'mean');
+    offset += 8;
+    buf.set(namespaceBytes, offset);
+    offset += namespaceBytes.length;
+    writeAtomHeader(buf, offset, valueBytes.length - 16, 'name');
+    offset += 8;
+    buf.set(valueBytes, offset);
 
     return buf;
 }
@@ -1350,13 +1411,13 @@ function createCoverAtom(imageBytes) {
     return buf;
 }
 
-function writeAtomHeader(buf, offset, size, type) {
+function writeAtomHeader(buf, offset, size, type, truncate = true) {
     buf[offset++] = (size >> 24) & 0xff;
     buf[offset++] = (size >> 16) & 0xff;
     buf[offset++] = (size >> 8) & 0xff;
     buf[offset++] = size & 0xff;
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < (truncate ? 4 : type.length); i++) {
         buf[offset++] = type.charCodeAt(i);
     }
 }
