@@ -1,4 +1,4 @@
-import { getCoverBlob, detectAudioFormat } from './utils.js';
+import { getCoverBlob, detectAudioFormat, getTrackTitle } from './utils.js';
 import { addMp3Metadata } from './id3-writer.js';
 
 const VENDOR_STRING = 'Monochrome';
@@ -565,7 +565,7 @@ function createVorbisCommentBlock(track) {
 
     // Add standard tags
     if (track.title) {
-        comments.push(['TITLE', track.title]);
+        comments.push(['TITLE', getTrackTitle(track)]);
     }
     const artistStr = getFullArtistString(track);
     if (artistStr) {
@@ -586,6 +586,13 @@ function createVorbisCommentBlock(track) {
     }
     if (track.album?.numberOfTracks) {
         comments.push(['TRACKTOTAL', String(track.album.numberOfTracks)]);
+    }
+    if (track.replayGain) {
+        const { albumReplayGain, albumPeakAmplitude, trackReplayGain, trackPeakAmplitude } = track.replayGain;
+        if (albumReplayGain) comments.push(['REPLAYGAIN_ALBUM_GAIN', String(albumReplayGain)]);
+        if (albumPeakAmplitude) comments.push(['REPLAYGAIN_ALBUM_PEAK', String(albumPeakAmplitude)]);
+        if (trackReplayGain) comments.push(['REPLAYGAIN_TRACK_GAIN', String(trackReplayGain)]);
+        if (trackPeakAmplitude) comments.push(['REPLAYGAIN_TRACK_PEAK', String(trackPeakAmplitude)]);
     }
 
     const releaseDateStr =
@@ -930,7 +937,7 @@ function createMp4MetadataAtoms(track) {
     // We'll create basic iTunes-style metadata
 
     const tags = {
-        '©nam': track.title || DEFAULT_TITLE,
+        '©nam': getTrackTitle(track) || DEFAULT_TITLE,
         '©ART': getFullArtistString(track) || DEFAULT_ARTIST,
         '©alb': track.album?.title || DEFAULT_ALBUM,
         aART: track.album?.artist?.name || track.artist?.name || DEFAULT_ARTIST,

@@ -1,10 +1,10 @@
-import { getCoverBlob } from './utils.js';
+import { getCoverBlob, getTrackTitle } from './utils.js';
 
 async function writeID3v2Tag(mp3Blob, metadata, coverBlob = null) {
     const frames = [];
 
     if (metadata.title) {
-        frames.push(createTextFrame('TIT2', metadata.title));
+        frames.push(createTextFrame('TIT2', getTrackTitle(metadata)));
     }
 
     const artistName = metadata.artist?.name || metadata.artists?.[0]?.name;

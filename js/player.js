@@ -47,6 +47,11 @@ export class Player {
         this.sleepTimerEndTime = null;
         this.sleepTimerInterval = null;
 
+        // Apply audio effects when track is ready
+        this.audio.addEventListener('canplay', () => {
+            this.applyAudioEffects();
+        });
+
         // Initialize dash.js player
         this.dashPlayer = MediaPlayer().create();
         this.dashPlayer.updateSettings({
@@ -136,14 +141,35 @@ export class Player {
 
     applyAudioEffects() {
         const speed = audioEffectsSettings.getSpeed();
-        if (this.audio.playbackRate !== speed) {
-            this.audio.playbackRate = speed;
+
+        if (this.dashInitialized && this.dashPlayer) {
+            if (this.dashPlayer.getPlaybackRate() !== speed) {
+                this.dashPlayer.setPlaybackRate(speed);
+            }
+        } else {
+            if (this.audio.playbackRate !== speed) {
+                this.audio.playbackRate = speed;
+            }
+        }
+
+        const preservePitch = audioEffectsSettings.isPreservePitchEnabled();
+        if (this.audio.preservesPitch !== preservePitch) {
+            this.audio.preservesPitch = preservePitch;
+            // Firefox support
+            if (this.audio.mozPreservesPitch !== undefined) {
+                this.audio.mozPreservesPitch = preservePitch;
+            }
         }
     }
 
     setPlaybackSpeed(speed) {
         const validSpeed = Math.max(0.01, Math.min(100, parseFloat(speed) || 1.0));
         audioEffectsSettings.setSpeed(validSpeed);
+        this.applyAudioEffects();
+    }
+
+    setPreservePitch(enabled) {
+        audioEffectsSettings.setPreservePitch(enabled);
         this.applyAudioEffects();
     }
 
@@ -256,70 +282,81 @@ export class Player {
     setupMediaSession() {
         if (!('mediaSession' in navigator)) return;
 
-        navigator.mediaSession.setActionHandler('play', async () => {
-            // Initialize and resume audio context first (required for iOS lock screen)
-            // Must happen before audio.play() or audio won't route through Web Audio
-            if (!audioContextManager.isReady()) {
-                audioContextManager.init(this.audio);
-                this.applyReplayGain();
+        const setHandlers = () => {
+            navigator.mediaSession.setActionHandler('play', async () => {
+                // Initialize and resume audio context first (required for iOS lock screen)
+                // Must happen before audio.play() or audio won't route through Web Audio
+                if (!audioContextManager.isReady()) {
+                    audioContextManager.init(this.audio);
+                    this.applyReplayGain();
+                }
+                await audioContextManager.resume();
+
+                try {
+                    await this.audio.play();
+                } catch (e) {
+                    console.error('MediaSession play failed:', e);
+                    // If play fails, try to handle it like a regular play/pause
+                    this.handlePlayPause();
+                }
+            });
+
+            navigator.mediaSession.setActionHandler('pause', () => {
+                this.audio.pause();
+            });
+
+            navigator.mediaSession.setActionHandler('previoustrack', async () => {
+                // Ensure audio context is active for iOS lock screen controls
+                if (!audioContextManager.isReady()) {
+                    audioContextManager.init(this.audio);
+                    this.applyReplayGain();
+                }
+                await audioContextManager.resume();
+                this.playPrev();
+            });
+
+            navigator.mediaSession.setActionHandler('nexttrack', async () => {
+                // Ensure audio context is active for iOS lock screen controls
+                if (!audioContextManager.isReady()) {
+                    audioContextManager.init(this.audio);
+                    this.applyReplayGain();
+                }
+                await audioContextManager.resume();
+                this.playNext();
+            });
+
+            if (!this.isIOS) {
+                navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+                    const skipTime = details.seekOffset || 10;
+                    this.seekBackward(skipTime);
+                });
+                navigator.mediaSession.setActionHandler('seekforward', (details) => {
+                    const skipTime = details.seekOffset || 10;
+                    this.seekForward(skipTime);
+                });
             }
-            await audioContextManager.resume();
 
-            try {
-                await this.audio.play();
-            } catch (e) {
-                console.error('MediaSession play failed:', e);
-                // If play fails, try to handle it like a regular play/pause
-                this.handlePlayPause();
-            }
-        });
+            navigator.mediaSession.setActionHandler('seekto', (details) => {
+                if (details.seekTime !== undefined) {
+                    this.audio.currentTime = Math.max(0, details.seekTime);
+                    this.updateMediaSessionPositionState();
+                }
+            });
 
-        navigator.mediaSession.setActionHandler('pause', () => {
-            this.audio.pause();
-        });
+            navigator.mediaSession.setActionHandler('stop', () => {
+                this.audio.pause();
+                this.audio.currentTime = 0;
+                this.updateMediaSessionPlaybackState();
+            });
+        };
 
-        navigator.mediaSession.setActionHandler('previoustrack', async () => {
-            // Ensure audio context is active for iOS lock screen controls
-            if (!audioContextManager.isReady()) {
-                audioContextManager.init(this.audio);
-                this.applyReplayGain();
-            }
-            await audioContextManager.resume();
-            this.playPrev();
-        });
-
-        navigator.mediaSession.setActionHandler('nexttrack', async () => {
-            // Ensure audio context is active for iOS lock screen controls
-            if (!audioContextManager.isReady()) {
-                audioContextManager.init(this.audio);
-                this.applyReplayGain();
-            }
-            await audioContextManager.resume();
-            this.playNext();
-        });
-
-        navigator.mediaSession.setActionHandler('seekbackward', (details) => {
-            const skipTime = details.seekOffset || 10;
-            this.seekBackward(skipTime);
-        });
-
-        navigator.mediaSession.setActionHandler('seekforward', (details) => {
-            const skipTime = details.seekOffset || 10;
-            this.seekForward(skipTime);
-        });
-
-        navigator.mediaSession.setActionHandler('seekto', (details) => {
-            if (details.seekTime !== undefined) {
-                this.audio.currentTime = Math.max(0, details.seekTime);
-                this.updateMediaSessionPositionState();
-            }
-        });
-
-        navigator.mediaSession.setActionHandler('stop', () => {
-            this.audio.pause();
-            this.audio.currentTime = 0;
-            this.updateMediaSessionPlaybackState();
-        });
+        if (this.isIOS) {
+            // iOS: set handlers only when playback starts. Setting them in the constructor makes
+            // the lock screen show +10/-10. Registering on first 'playing' gives next/previous track
+            this.audio.addEventListener('playing', () => setHandlers(), { once: true });
+        } else {
+            setHandlers();
+        }
     }
 
     setQuality(quality) {
@@ -935,26 +972,22 @@ export class Player {
         // Force a refresh for picky Bluetooth systems by clearing metadata first
         navigator.mediaSession.metadata = null;
 
-        const artwork = [];
-        const sizes = ['320'];
         const coverId = track.album?.cover;
         const trackTitle = getTrackTitle(track);
-
-        if (coverId) {
-            sizes.forEach((size) => {
-                artwork.push({
-                    src: this.api.getCoverUrl(coverId, size),
-                    sizes: `${size}x${size}`,
-                    type: 'image/jpeg',
-                });
-            });
-        }
 
         navigator.mediaSession.metadata = new MediaMetadata({
             title: trackTitle || 'Unknown Title',
             artist: getTrackArtists(track) || 'Unknown Artist',
             album: track.album?.title || 'Unknown Album',
-            artwork: artwork.length > 0 ? artwork : undefined,
+            artwork: coverId
+                ? [
+                      {
+                          src: this.api.getCoverUrl(coverId, '1280'),
+                          sizes: '1280x1280',
+                          type: 'image/jpeg',
+                      },
+                  ]
+                : undefined,
         });
 
         this.updateMediaSessionPlaybackState();

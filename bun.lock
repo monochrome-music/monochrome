@@ -5,27 +5,27 @@
     "": {
       "name": "monochrome",
       "dependencies": {
-        "@ffmpeg/ffmpeg": "^0.12.10",
-        "@ffmpeg/util": "^0.12.1",
+        "@ffmpeg/ffmpeg": "^0.12.15",
+        "@ffmpeg/util": "^0.12.2",
         "@neutralinojs/lib": "^6.5.0",
         "butterchurn": "^2.6.7",
         "butterchurn-presets": "^2.4.7",
-        "cookie-session": "^2.1.0",
+        "cookie-session": "^2.1.1",
         "dashjs": "^5.1.1",
-        "jose": "^6.0.11",
-        "pocketbase": "^0.26.5",
+        "jose": "^6.1.3",
+        "pocketbase": "^0.26.8",
       },
       "devDependencies": {
         "@neutralinojs/neu": "^11.7.0",
-        "eslint": "^9.39.2",
+        "eslint": "^9.39.3",
         "eslint-config-prettier": "^10.1.8",
-        "globals": "^17.0.0",
-        "htmlhint": "^1.8.0",
-        "prettier": "^3.7.4",
+        "globals": "^17.3.0",
+        "htmlhint": "^1.9.1",
+        "prettier": "^3.8.1",
         "stylelint": "^16.26.1",
         "stylelint-config-standard": "^39.0.1",
         "stylelint-config-standard-scss": "^16.0.0",
-        "vite": "^7.3.0",
+        "vite": "^7.3.1",
         "vite-plugin-neutralino": "^1.0.3",
         "vite-plugin-pwa": "^1.2.0",
       },
@@ -722,7 +722,7 @@
 
     "global-prefix": ["global-prefix@3.0.0", "", { "dependencies": { "ini": "^1.3.5", "kind-of": "^6.0.2", "which": "^1.3.1" } }, "sha512-awConJSVCHVGND6x3tmMaKcQvwXLhjdkmomy2W+Goaui8YPgYgXJZewhg3fWC+DlfqqQuWg8AwqjGTD2nAPVWg=="],
 
-    "globals": ["globals@17.3.0", "", {}, "sha512-yMqGUQVVCkD4tqjOJf3TnrvaaHDMYp4VlUSObbkIiuCPe/ofdMBFIAcBbCSRFWOnos6qRiTVStDwqPLUclaxIw=="],
+    "globals": ["globals@17.4.0", "", {}, "sha512-hjrNztw/VajQwOLsMNT1cbJiH2muO3OROCHnbehc8eY5JyD2gqz4AcMHPqgaOR59DjgUjYAYLeH699g/eWi2jw=="],
 
     "globalthis": ["globalthis@1.0.4", "", { "dependencies": { "define-properties": "^1.2.1", "gopd": "^1.0.1" } }, "sha512-DpLKbNU4WylpxJykQujfCcwYWiV/Jhm50Goo0wrVILAv5jOr9d+H+UR3PhSCD2rCCEIg0uc+G+muBTwD54JhDQ=="],
 
