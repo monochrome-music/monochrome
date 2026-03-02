@@ -12,6 +12,7 @@ export class ThemeStore {
         this.loadingIndicator = document.getElementById('theme-store-loading');
         this._isCheckingAuth = false;
         this.previewShadow = null;
+        this.editingThemeId = null;
         this.init();
     }
 
@@ -35,6 +36,8 @@ export class ThemeStore {
                 document.getElementById(contentId)?.classList.add('active');
                 if (tab.dataset.tab === 'upload') {
                     this.checkAuth();
+                } else {
+                    this.resetEditState();
                 }
             });
         });
@@ -58,6 +61,10 @@ export class ThemeStore {
         document.getElementById('theme-store-login-btn')?.addEventListener('click', () => {
             this.modal.classList.remove('active');
             document.getElementById('email-auth-modal')?.classList.add('active');
+        });
+
+        document.getElementById('theme-upload-cancel-edit')?.addEventListener('click', () => {
+            this.resetEditState();
         });
 
         this.setupEditorTools();
@@ -154,12 +161,17 @@ export class ThemeStore {
             authorHtml = `<a href="${this.escapeHtml(theme.authorUrl)}" target="_blank" style="color: inherit; text-decoration: underline;" onclick="event.stopPropagation();">${this.escapeHtml(authorName)}</a>`;
         }
 
-        let deleteBtnHtml = '';
+        let actionBtnsHtml = '';
         if (currentUserId && theme.author === currentUserId) {
-            deleteBtnHtml = `
-                <button class="btn-icon delete-theme-btn" title="Delete Theme" style="position: absolute; top: 0.5rem; right: 0.5rem; background: rgba(0,0,0,0.6); color: white; border-radius: 50%; padding: 0.25rem; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; z-index: 10;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                </button>
+            actionBtnsHtml = `
+                <div style="position: absolute; top: 0.5rem; right: 0.5rem; display: flex; gap: 0.25rem; z-index: 10;">
+                    <button class="btn-icon edit-theme-btn" title="Edit Theme" style="background: rgba(0,0,0,0.6); color: white; border-radius: 50%; padding: 0.25rem; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    </button>
+                    <button class="btn-icon delete-theme-btn" title="Delete Theme" style="background: rgba(0,0,0,0.6); color: white; border-radius: 50%; padding: 0.25rem; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                    </button>
+                </div>
             `;
         }
 
@@ -176,7 +188,7 @@ export class ThemeStore {
 
         div.innerHTML = `
             <div style="position: relative;">
-                ${deleteBtnHtml}
+                ${actionBtnsHtml}
                 ${previewHtml}
             </div>
             <div class="card-info" style="margin-top: 0.75rem;">
@@ -192,6 +204,11 @@ export class ThemeStore {
             if (e.target.closest('.delete-theme-btn')) {
                 e.stopPropagation();
                 this.deleteTheme(theme.id);
+                return;
+            }
+            if (e.target.closest('.edit-theme-btn')) {
+                e.stopPropagation();
+                this.startEditTheme(theme);
                 return;
             }
             this.openThemeDetails(theme);
@@ -516,20 +533,25 @@ export class ThemeStore {
                 );
             }
 
-            console.log('Uploading theme:', { name, author: userId, authorName: userName });
+            console.log(this.editingThemeId ? 'Updating theme:' : 'Uploading theme:', { name, author: userId, authorName: userName });
 
             const formData = new FormData();
             formData.append('name', name);
             formData.append('description', desc);
             formData.append('css', css);
-            formData.append('author', userId);
             formData.append('authorName', userName);
-            if (website) formData.append('authorUrl', website);
+            formData.append('authorUrl', website || '');
 
-            await this.pb.collection('themes').create(formData, { f_id: fbUser.uid });
+            if (this.editingThemeId) {
+                await this.pb.collection('themes').update(this.editingThemeId, formData, { f_id: fbUser.uid });
+                alert('Theme updated successfully!');
+            } else {
+                formData.append('author', userId);
+                await this.pb.collection('themes').create(formData, { f_id: fbUser.uid });
+                alert('Theme uploaded successfully!');
+            }
 
-            alert('Theme uploaded successfully!');
-            e.target.reset();
+            this.resetEditState();
 
             const previewWindow = document.getElementById('theme-preview-window');
             const togglePreviewBtn = document.getElementById('te-toggle-preview');
@@ -559,6 +581,39 @@ export class ThemeStore {
                 alert(`Failed to upload theme: ${message}${debugInfo}`);
             }
         }
+    }
+
+    startEditTheme(theme) {
+        this.editingThemeId = theme.id;
+
+        const uploadTab = this.modal.querySelector('[data-tab="upload"]');
+        if (uploadTab) uploadTab.click();
+
+        document.getElementById('theme-upload-name').value = theme.name;
+        document.getElementById('theme-upload-desc').value = theme.description || '';
+        document.getElementById('theme-upload-website').value = theme.authorUrl || '';
+        document.getElementById('theme-upload-css').value = theme.css;
+
+        const submitBtn = document.getElementById('theme-upload-submit-btn');
+        if (submitBtn) submitBtn.textContent = 'Update Theme';
+
+        const cancelBtn = document.getElementById('theme-upload-cancel-edit');
+        if (cancelBtn) cancelBtn.style.display = 'inline-block';
+
+        this.updatePreview();
+    }
+
+    resetEditState() {
+        this.editingThemeId = null;
+        document.getElementById('theme-upload-form')?.reset();
+
+        const submitBtn = document.getElementById('theme-upload-submit-btn');
+        if (submitBtn) submitBtn.textContent = 'Upload Theme';
+
+        const cancelBtn = document.getElementById('theme-upload-cancel-edit');
+        if (cancelBtn) cancelBtn.style.display = 'none';
+
+        this.updatePreview();
     }
 
     escapeHtml(str) {
