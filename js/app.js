@@ -4,6 +4,7 @@ import {
     apiSettings,
     themeManager,
     nowPlayingSettings,
+    fullscreenCoverClickSettings,
     downloadQualitySettings,
     sidebarSettings,
     pwaUpdateSettings,
@@ -518,10 +519,47 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.getElementById('fullscreen-cover-image')?.addEventListener('click', () => {
-        if (window.location.hash === '#fullscreen') {
-            window.history.back();
-        } else {
-            ui.closeFullscreenCover();
+        const action = fullscreenCoverClickSettings.getAction();
+        const overlay = document.getElementById('fullscreen-cover-overlay');
+        const playerInstance = window.monochromePlayer;
+
+        switch (action) {
+            case 'exit':
+                if (window.location.hash === '#fullscreen') {
+                    window.history.back();
+                } else {
+                    ui.closeFullscreenCover();
+                }
+                break;
+            case 'hide-ui':
+                if (overlay) {
+                    overlay.classList.toggle('ui-hidden');
+                    const toggleBtn = document.getElementById('toggle-ui-btn');
+                    if (toggleBtn) {
+                        const isUIHidden = overlay.classList.contains('ui-hidden');
+                        toggleBtn.classList.toggle('active', isUIHidden);
+                        toggleBtn.classList.toggle('visible', true);
+                        toggleBtn.title = isUIHidden ? 'Show UI' : 'Hide UI';
+                    }
+                }
+                break;
+            case 'pause-resume':
+                if (playerInstance) playerInstance.handlePlayPause();
+                break;
+            case 'next':
+                if (playerInstance) playerInstance.playNext();
+                break;
+            case 'previous':
+                if (playerInstance) playerInstance.playPrev();
+                break;
+            case 'nothing':
+                break;
+            default:
+                if (window.location.hash === '#fullscreen') {
+                    window.history.back();
+                } else {
+                    ui.closeFullscreenCover();
+                }
         }
     });
 
