@@ -1295,7 +1295,7 @@ function createUserAtom(namespace, name, value) {
     offset += 12;
     buf.set(nameBytes, offset);
     offset += nameBytes.length;
-    writeAtomHeader(buf, offset, valueBytes.length + 12, 'data');
+    writeAtomHeader(buf, offset, valueBytes.length + 8, 'data');
     offset += 8;
     buf.set(valueBytes, offset);
 
