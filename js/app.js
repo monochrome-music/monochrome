@@ -2288,18 +2288,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (query) {
             navigate(`/search/${encodeURIComponent(query)}`);
         }
-    }, 300);
+    }, 0);
+
+    const handleExternalLink = (query) => {
+        const isExternalLink =
+            query.includes('monochrome.tf/') ||
+            query.includes('monochrome.samidy.com/') ||
+            query.includes('tidal.com/');
+
+        if (isExternalLink) {
+            const url = query.startsWith('http') ? query : 'https://' + query;
+            try {
+                const urlObj = new URL(url);
+                const path = urlObj.pathname;
+                navigate(path);
+                return true;
+            } catch {
+                return false;
+            }
+        }
+        return false;
+    };
 
     searchInput.addEventListener('input', (e) => {
         const query = e.target.value.trim();
-        if (query.length > 2) {
+        if (!query) return;
+
+        if (!handleExternalLink(query)) {
             performSearch(query);
         }
     });
 
     searchInput.addEventListener('change', (e) => {
         const query = e.target.value.trim();
-        if (query.length > 2) {
+        if (query) {
             ui.addToSearchHistory(query);
         }
     });
@@ -2322,7 +2344,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     searchForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const query = searchInput.value.trim();
-        if (query) {
+        if (!query) return;
+
+        if (!handleExternalLink(query)) {
             ui.addToSearchHistory(query);
             navigate(`/search/${encodeURIComponent(query)}`);
             const historyEl = document.getElementById('search-history');
