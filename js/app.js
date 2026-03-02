@@ -533,13 +533,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                 break;
             case 'hide-ui':
                 if (overlay) {
-                    overlay.classList.toggle('ui-hidden');
-                    const toggleBtn = document.getElementById('toggle-ui-btn');
-                    if (toggleBtn) {
-                        const isUIHidden = overlay.classList.contains('ui-hidden');
-                        toggleBtn.classList.toggle('active', isUIHidden);
-                        toggleBtn.classList.toggle('visible', true);
-                        toggleBtn.title = isUIHidden ? 'Show UI' : 'Hide UI';
+                    const isCurrentlyHidden = overlay.classList.contains('ui-hidden');
+                    if (isCurrentlyHidden) {
+                        overlay.classList.remove('ui-hidden');
+                        const toggleBtn = document.getElementById('toggle-ui-btn');
+                        if (toggleBtn) {
+                            toggleBtn.classList.remove('active');
+                            toggleBtn.classList.add('visible');
+                            toggleBtn.title = 'Hide UI';
+                        }
+                    } else {
+                        overlay.classList.add('ui-hidden');
+                        const toggleBtn = document.getElementById('toggle-ui-btn');
+                        if (toggleBtn) {
+                            toggleBtn.classList.add('active');
+                            toggleBtn.classList.remove('visible');
+                            toggleBtn.title = 'Show UI';
+                        }
+                    }
+                    if (ui && typeof ui.setupUIToggleButton === 'function') {
+                        if (ui.uiToggleCleanup) {
+                            ui.uiToggleCleanup();
+                        }
+                        ui.setupUIToggleButton(overlay);
                     }
                 }
                 break;
