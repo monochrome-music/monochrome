@@ -9,22 +9,24 @@ function findBestMatch(items, targetArtist, targetAlbum, options) {
     if (!items || items.length === 0) return null;
     if (!options?.strictArtistMatch && !options?.albumMatch) return items[0];
 
-    return items.find((item) => {
-        let artistOk = true;
-        let albumOk = true;
+    return (
+        items.find((item) => {
+            let artistOk = true;
+            let albumOk = true;
 
-        if (options.strictArtistMatch && targetArtist) {
-            const itemArtist = item.artist?.name || item.artists?.[0]?.name;
-            if (!isFuzzyMatch(itemArtist, targetArtist)) artistOk = false;
-        }
+            if (options.strictArtistMatch && targetArtist) {
+                const itemArtist = item.artist?.name || item.artists?.[0]?.name;
+                if (!isFuzzyMatch(itemArtist, targetArtist)) artistOk = false;
+            }
 
-        if (options.albumMatch && targetAlbum) {
-            const itemAlbum = item.album?.title;
-            if (itemAlbum && !isFuzzyMatch(itemAlbum, targetAlbum)) albumOk = false;
-        }
+            if (options.albumMatch && targetAlbum) {
+                const itemAlbum = item.album?.title;
+                if (itemAlbum && !isFuzzyMatch(itemAlbum, targetAlbum)) albumOk = false;
+            }
 
-        return artistOk && albumOk;
-    }) || null;
+            return artistOk && albumOk;
+        }) || null
+    );
 }
 
 /**

@@ -1210,14 +1210,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                             const totalTracks = songs.length;
                             progressTotal.textContent = totalTracks.toString();
 
-                            const result = await parseCSV(csvText, api, (progress) => {
-                                const percentage = totalTracks > 0 ? (progress.current / totalTracks) * 100 : 0;
-                                progressFill.style.width = `${Math.min(percentage, 100)}%`;
-                                progressCurrent.textContent = progress.current.toString();
-                                currentTrackElement.textContent = progress.currentTrack;
-                                if (currentArtistElement)
-                                    currentArtistElement.textContent = progress.currentArtist || '';
-                            }, importOptions);
+                            const result = await parseCSV(
+                                csvText,
+                                api,
+                                (progress) => {
+                                    const percentage = totalTracks > 0 ? (progress.current / totalTracks) * 100 : 0;
+                                    progressFill.style.width = `${Math.min(percentage, 100)}%`;
+                                    progressCurrent.textContent = progress.current.toString();
+                                    currentTrackElement.textContent = progress.currentTrack;
+                                    if (currentArtistElement)
+                                        currentArtistElement.textContent = progress.currentArtist || '';
+                                },
+                                importOptions
+                            );
 
                             tracks = result.tracks;
                             const missingTracks = result.missingTracks;
@@ -1354,17 +1359,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                             const totalItems = Math.max(0, lines.length - 1);
                             progressTotal.textContent = totalItems.toString();
 
-                            const result = await parseDynamicCSV(csvText, api, (progress) => {
-                                const percentage = totalItems > 0 ? (progress.current / totalItems) * 100 : 0;
-                                progressFill.style.width = `${Math.min(percentage, 100)}%`;
-                                progressCurrent.textContent = progress.current.toString();
-                                currentTrackElement.textContent = progress.currentItem;
-                                if (currentArtistElement) {
-                                    currentArtistElement.textContent = progress.type
-                                        ? `Importing ${progress.type}...`
-                                        : '';
-                                }
-                            }, importOptions);
+                            const result = await parseDynamicCSV(
+                                csvText,
+                                api,
+                                (progress) => {
+                                    const percentage = totalItems > 0 ? (progress.current / totalItems) * 100 : 0;
+                                    progressFill.style.width = `${Math.min(percentage, 100)}%`;
+                                    progressCurrent.textContent = progress.current.toString();
+                                    currentTrackElement.textContent = progress.currentItem;
+                                    if (currentArtistElement) {
+                                        currentArtistElement.textContent = progress.type
+                                            ? `Importing ${progress.type}...`
+                                            : '';
+                                    }
+                                },
+                                importOptions
+                            );
 
                             const hasMultipleTypes =
                                 result.tracks.length > 0 && (result.albums.length > 0 || result.artists.length > 0);
@@ -2402,7 +2412,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (donateModal) {
         if (closeDonateModalBtn) closeDonateModalBtn.addEventListener('click', closeDonateModal);
         donateModal.querySelector('.modal-overlay')?.addEventListener('click', closeDonateModal);
-        
+
         if (sidebarDonateLink) sidebarDonateLink.addEventListener('click', openDonateModal);
         if (donateBtnAbout) donateBtnAbout.addEventListener('click', openDonateModal);
         if (donateBtnPage) donateBtnPage.addEventListener('click', openDonateModal);
@@ -2606,7 +2616,9 @@ function showMissingTracksNotification(missingTracks) {
         newCopyBtn.addEventListener('click', () => {
             const textToCopy = missingTracks
                 .map((track) => {
-                    return typeof track === 'string' ? track : `${track.artist ? track.artist + ' - ' : ''}${track.title}`;
+                    return typeof track === 'string'
+                        ? track
+                        : `${track.artist ? track.artist + ' - ' : ''}${track.title}`;
                 })
                 .join('\n');
 
