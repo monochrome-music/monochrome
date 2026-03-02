@@ -5078,6 +5078,24 @@
                                 </div>
                                 <div class="setting-item">
                                     <div class="info">
+                                        <span class="label">Export All Settings</span>
+                                        <span class="description"
+                                            >Export all app settings as JSON</span
+                                        >
+                                    </div>
+                                    <div style="display: flex; gap: 0.5rem">
+                                        <button id="export-settings-btn" class="btn-secondary">Export</button>
+                                        <button id="import-settings-btn" class="btn-secondary">Import</button>
+                                        <input
+                                            type="file"
+                                            id="import-settings-input"
+                                            style="display: none"
+                                            accept=".json"
+                                        />
+                                    </div>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
                                         <span class="label">ADVANCED: Custom Database/Auth</span>
                                         <span class="description"
                                             >Configure custom PocketBase and Firebase instances</span

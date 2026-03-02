@@ -2750,6 +2750,59 @@ export function initializeSettings(scrobbler, player, api, ui) {
         reader.readAsText(file);
     });
 
+    // Export All Settings
+    document.getElementById('export-settings-btn')?.addEventListener('click', () => {
+        const settingsToExport = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('monochrome-')) {
+                try {
+                    settingsToExport[key] = JSON.parse(localStorage.getItem(key));
+                } catch {
+                    settingsToExport[key] = localStorage.getItem(key);
+                }
+            }
+        }
+        const blob = new Blob([JSON.stringify(settingsToExport, null, 2)], {
+            type: 'application/json',
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `monochrome-settings-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    // Import All Settings
+    const settingsImportInput = document.getElementById('import-settings-input');
+    document.getElementById('import-settings-btn')?.addEventListener('click', () => {
+        settingsImportInput.click();
+    });
+
+    settingsImportInput?.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+            try {
+                const settingsToImport = JSON.parse(event.target.result);
+                for (const [key, value] of Object.entries(settingsToImport)) {
+                    if (key.startsWith('monochrome-')) {
+                        localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+                    }
+                }
+                alert('Settings imported successfully! Please reload the app.');
+                window.location.reload();
+            } catch (err) {
+                console.error('Import failed:', err);
+                alert('Failed to import settings. Please check the file format.');
+            }
+        };
+        reader.readAsText(file);
+    });
+
     const customDbBtn = document.getElementById('custom-db-btn');
     const customDbModal = document.getElementById('custom-db-modal');
     const customPbUrlInput = document.getElementById('custom-pb-url');
