@@ -3,6 +3,7 @@ import {
     themeManager,
     lastFMStorage,
     nowPlayingSettings,
+    fullscreenCoverClickSettings,
     lyricsSettings,
     backgroundSettings,
     dynamicColorSettings,
@@ -1983,6 +1984,15 @@ export function initializeSettings(scrobbler, player, api, ui) {
         nowPlayingMode.value = nowPlayingSettings.getMode();
         nowPlayingMode.addEventListener('change', (e) => {
             nowPlayingSettings.setMode(e.target.value);
+        });
+    }
+
+    // Fullscreen Cover Click Action
+    const fullscreenCoverClickAction = document.getElementById('fullscreen-cover-click-action');
+    if (fullscreenCoverClickAction) {
+        fullscreenCoverClickAction.value = fullscreenCoverClickSettings.getAction();
+        fullscreenCoverClickAction.addEventListener('change', (e) => {
+            fullscreenCoverClickSettings.setAction(e.target.value);
         });
     }
 
