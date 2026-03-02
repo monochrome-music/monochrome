@@ -1134,6 +1134,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const xspfFileInput = document.getElementById('xspf-file-input');
                     const xmlFileInput = document.getElementById('xml-file-input');
                     const m3uFileInput = document.getElementById('m3u-file-input');
+
+                    const importOptions = { strictArtistMatch: true, albumMatch: true };
+
                     let tracks = [];
                     let importSource = 'manual';
                     let cover = document.getElementById('playlist-cover-input').value.trim();
@@ -1214,7 +1217,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 currentTrackElement.textContent = progress.currentTrack;
                                 if (currentArtistElement)
                                     currentArtistElement.textContent = progress.currentArtist || '';
-                            });
+                            }, importOptions);
 
                             tracks = result.tracks;
                             const missingTracks = result.missingTracks;
@@ -1361,7 +1364,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                         ? `Importing ${progress.type}...`
                                         : '';
                                 }
-                            });
+                            }, importOptions);
 
                             const hasMultipleTypes =
                                 result.tracks.length > 0 && (result.albums.length > 0 || result.artists.length > 0);
@@ -2559,6 +2562,7 @@ function escapeHtml(text) {
 function showMissingTracksNotification(missingTracks) {
     const modal = document.getElementById('missing-tracks-modal');
     const listUl = document.getElementById('missing-tracks-list-ul');
+    const copyBtn = document.getElementById('copy-missing-tracks-btn');
 
     listUl.innerHTML = missingTracks
         .map((track) => {
@@ -2567,6 +2571,25 @@ function showMissingTracksNotification(missingTracks) {
             return `<li>${escapeHtml(text)}</li>`;
         })
         .join('');
+
+    if (copyBtn) {
+        const newCopyBtn = copyBtn.cloneNode(true);
+        copyBtn.parentNode.replaceChild(newCopyBtn, copyBtn);
+
+        newCopyBtn.addEventListener('click', () => {
+            const textToCopy = missingTracks
+                .map((track) => {
+                    return typeof track === 'string' ? track : `${track.artist ? track.artist + ' - ' : ''}${track.title}`;
+                })
+                .join('\n');
+
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const originalText = newCopyBtn.textContent;
+                newCopyBtn.textContent = 'Copied!';
+                setTimeout(() => (newCopyBtn.textContent = originalText), 2000);
+            });
+        });
+    }
 
     const closeModal = () => modal.classList.remove('active');
 
