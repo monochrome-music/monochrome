@@ -2300,7 +2300,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             const url = query.startsWith('http') ? query : 'https://' + query;
             try {
                 const urlObj = new URL(url);
-                const path = urlObj.pathname;
+                let path = urlObj.pathname;
+                // Remove trailing slashes and get just endpoint/id
+                path = path.replace(/\/+$/, '');
+                // Get just the first two segments (e.g., /album/382839956)
+                const segments = path.split('/').filter((s) => s);
+                if (segments.length >= 2) {
+                    path = '/' + segments[0] + '/' + segments[1];
+                }
                 navigate(path);
                 return true;
             } catch {
