@@ -421,6 +421,22 @@ export const nowPlayingSettings = {
     },
 };
 
+export const fullscreenCoverClickSettings = {
+    STORAGE_KEY: 'fullscreen-cover-click-action',
+
+    getAction() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) || 'exit';
+        } catch {
+            return 'exit';
+        }
+    },
+
+    setAction(action) {
+        localStorage.setItem(this.STORAGE_KEY, action);
+    },
+};
+
 export const lyricsSettings = {
     DOWNLOAD_WITH_TRACKS: 'lyrics-download-with-tracks',
 

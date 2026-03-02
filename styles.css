@@ -3607,11 +3607,10 @@ input:checked + .slider::before {
     transition: opacity 0.5s ease;
 }
 
-/* When UI is hidden, only toggle button stays visible at right edge */
+/* When UI is hidden, only toggle button stays visible at right edge (when .visible class is added) */
 #fullscreen-cover-overlay.ui-hidden #toggle-ui-btn {
-    right: 1rem;
-    opacity: 0.5;
-    pointer-events: auto;
+    opacity: 0;
+    pointer-events: none;
 }
 
 #fullscreen-cover-overlay.ui-hidden .fullscreen-lyrics-toggle,

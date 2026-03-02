@@ -4,6 +4,7 @@ import {
     apiSettings,
     themeManager,
     nowPlayingSettings,
+    fullscreenCoverClickSettings,
     downloadQualitySettings,
     sidebarSettings,
     pwaUpdateSettings,
@@ -518,10 +519,63 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.getElementById('fullscreen-cover-image')?.addEventListener('click', () => {
-        if (window.location.hash === '#fullscreen') {
-            window.history.back();
-        } else {
-            ui.closeFullscreenCover();
+        const action = fullscreenCoverClickSettings.getAction();
+        const overlay = document.getElementById('fullscreen-cover-overlay');
+        const playerInstance = window.monochromePlayer;
+
+        switch (action) {
+            case 'exit':
+                if (window.location.hash === '#fullscreen') {
+                    window.history.back();
+                } else {
+                    ui.closeFullscreenCover();
+                }
+                break;
+            case 'hide-ui':
+                if (overlay) {
+                    const isCurrentlyHidden = overlay.classList.contains('ui-hidden');
+                    if (isCurrentlyHidden) {
+                        overlay.classList.remove('ui-hidden');
+                        const toggleBtn = document.getElementById('toggle-ui-btn');
+                        if (toggleBtn) {
+                            toggleBtn.classList.remove('active');
+                            toggleBtn.classList.add('visible');
+                            toggleBtn.title = 'Hide UI';
+                        }
+                    } else {
+                        overlay.classList.add('ui-hidden');
+                        const toggleBtn = document.getElementById('toggle-ui-btn');
+                        if (toggleBtn) {
+                            toggleBtn.classList.add('active');
+                            toggleBtn.classList.remove('visible');
+                            toggleBtn.title = 'Show UI';
+                        }
+                    }
+                    if (ui && typeof ui.setupUIToggleButton === 'function') {
+                        if (ui.uiToggleCleanup) {
+                            ui.uiToggleCleanup();
+                        }
+                        ui.setupUIToggleButton(overlay);
+                    }
+                }
+                break;
+            case 'pause-resume':
+                if (playerInstance) playerInstance.handlePlayPause();
+                break;
+            case 'next':
+                if (playerInstance) playerInstance.playNext();
+                break;
+            case 'previous':
+                if (playerInstance) playerInstance.playPrev();
+                break;
+            case 'nothing':
+                break;
+            default:
+                if (window.location.hash === '#fullscreen') {
+                    window.history.back();
+                } else {
+                    ui.closeFullscreenCover();
+                }
         }
     });
 
