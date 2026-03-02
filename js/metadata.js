@@ -1266,32 +1266,35 @@ function createStringAtom(type, value, truncateType = true) {
 }
 
 function createUserAtom(namespace, name, value) {
-    const dashBytes = new TextEncoder().encode('----'); // User-defined atom type
-    const namespaceBytes = new TextEncoder().encode('\x00\x00\x00\x00' + namespace);
-    const meanBytes = new TextEncoder().encode('mean'); // Standard 'mean' atom for namespace
-    const valueBytes = createStringAtom(name, value, false); // Reuse string atom for value encoding
+    const encoder = new TextEncoder();
+    const dashBytes = encoder.encode('----'); // User-defined atom type
+    const namespaceBytes = encoder.encode(namespace);
+    const meanBytes = encoder.encode('mean'); // Standard 'mean' atom for namespace
+    const nameBytes = encoder.encode(name);
+    const valueBytes = encoder.encode('\x00\x00\x00\x01\x00\x00\x00\x00' + value);
 
     /**
-     * - 4 bytes for atom length
-     * - 4 bytes for atom type ('----')
-     * - 4 bytes for `mean` length
-     * - 'mean' string (namespace)
-     * - 4 bytes for namespace bytes length
-     * - namespace string
-     * - length of the string atom of the name with the value
-     * - string atom of the name with the value
+     * Atom structure:
+     * [----] (atom header)
+     *   [mean] (namespace)
+     *   [name] (name)
+     *   [data] (value)
      */
-    const atomSize = 4 + dashBytes.length + 4 + meanBytes.length + 4 + namespaceBytes.length + 4 + valueBytes.length;
+    const atomSize = 8 + 12 + namespaceBytes.length + 12 + nameBytes.length + 8 + valueBytes.length;
 
     const buf = new Uint8Array(atomSize);
     let offset = 0;
     writeAtomHeader(buf, offset, atomSize, '----');
     offset += 8; // Skip header
-    writeAtomHeader(buf, offset, namespaceBytes.length + 8, 'mean');
-    offset += 8;
+    writeAtomHeader(buf, offset, namespaceBytes.length + 12, 'mean');
+    offset += 12;
     buf.set(namespaceBytes, offset);
     offset += namespaceBytes.length;
-    writeAtomHeader(buf, offset, valueBytes.length - 16, 'name');
+    writeAtomHeader(buf, offset, nameBytes.length + 12, 'name');
+    offset += 12;
+    buf.set(nameBytes, offset);
+    offset += nameBytes.length;
+    writeAtomHeader(buf, offset, valueBytes.length + 12, 'data');
     offset += 8;
     buf.set(valueBytes, offset);
 
@@ -1411,15 +1414,38 @@ function createCoverAtom(imageBytes) {
     return buf;
 }
 
-function writeAtomHeader(buf, offset, size, type, truncate = true) {
-    buf[offset++] = (size >> 24) & 0xff;
-    buf[offset++] = (size >> 16) & 0xff;
-    buf[offset++] = (size >> 8) & 0xff;
-    buf[offset++] = size & 0xff;
+/**
+ * Creates an atom header for MP4 metadata.
+ * @param {number} size - The size of the atom in bytes.
+ * @param {string} type - The 4-character atom type identifier.
+ * @param {boolean} [truncate=false] - Whether to truncate the type to 4 characters or use full length.
+ * @returns {Uint8Array} A byte array containing the atom header with size and type information.
+ */
+function getAtomHeader(size, type, truncate = false) {
+    const buf = new Uint8Array(4 + (truncate ? 4 : type.length));
+    buf[0] = (size >> 24) & 0xff;
+    buf[1] = (size >> 16) & 0xff;
+    buf[2] = (size >> 8) & 0xff;
+    buf[3] = size & 0xff;
 
     for (let i = 0; i < (truncate ? 4 : type.length); i++) {
-        buf[offset++] = type.charCodeAt(i);
+        buf[4 + i] = type.charCodeAt(i);
     }
+
+    return buf;
+}
+
+/**
+ * Writes an atom header to a buffer at the specified offset.
+ * @param {Uint8Array} buf - The buffer to write the atom header to.
+ * @param {number} offset - The offset in the buffer where the atom header should be written.
+ * @param {number} size - The size of the atom.
+ * @param {string} type - The type of the atom (typically a 4-character code).
+ * @param {boolean} [truncate=true] - Whether to truncate the atom header. Defaults to true.
+ * @returns {void}
+ */
+function writeAtomHeader(buf, offset, size, type, truncate = true) {
+    buf.set(getAtomHeader(size, type, truncate), offset);
 }
 
 function updateChunkOffsets(buffer, moovOffset, moovSize, shift) {
