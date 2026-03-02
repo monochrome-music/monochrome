@@ -1319,6 +1319,7 @@ export const exponentialVolumeSettings = {
 
 export const audioEffectsSettings = {
     SPEED_KEY: 'audio-effects-speed',
+    PITCH_PRESERVE_KEY: 'audio-effects-pitch-preserve',
 
     // Playback speed (0.01 to 100, default 1.0)
     getSpeed() {
@@ -1333,6 +1334,20 @@ export const audioEffectsSettings = {
     setSpeed(speed) {
         const validSpeed = Math.max(0.01, Math.min(100, parseFloat(speed) || 1.0));
         localStorage.setItem(this.SPEED_KEY, validSpeed.toString());
+    },
+
+    // Preserve pitch when changing speed (default true)
+    isPreservePitchEnabled() {
+        try {
+            const val = localStorage.getItem(this.PITCH_PRESERVE_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setPreservePitch(enabled) {
+        localStorage.setItem(this.PITCH_PRESERVE_KEY, enabled ? 'true' : 'false');
     },
 };
 
