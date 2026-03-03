@@ -1,10 +1,9 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg';
-import { toBlobURL } from '@ffmpeg/util';
 
 let ffmpeg = null;
 let loadingPromise = null;
 
-async function loadFFmpeg() {
+async function loadFFmpeg(loadOptions = {}) {
     if (loadingPromise) return loadingPromise;
 
     loadingPromise = (async () => {
@@ -25,11 +24,7 @@ async function loadFFmpeg() {
 
         self.postMessage({ type: 'progress', stage: 'loading', message: 'Loading FFmpeg...' });
 
-        const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
-        await ffmpeg.load({
-            coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-            wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
-        });
+        await ffmpeg.load(loadOptions);
     })();
 
     return loadingPromise;
@@ -45,10 +40,12 @@ self.onmessage = async (e) => {
         },
         encodeStartMessage = 'Encoding...',
         encodeEndMessage = 'Finalizing...',
+        loadOptions = {},
     } = e.data;
 
     try {
-        await loadFFmpeg();
+        console.log(loadOptions);
+        await loadFFmpeg(loadOptions);
 
         self.postMessage({ type: 'progress', stage: 'encoding', message: encodeStartMessage });
 
