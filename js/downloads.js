@@ -11,6 +11,7 @@ import {
     getExtensionFromBlob,
     escapeHtml,
     isNeutralinoDesktop,
+    joinNativePath,
 } from './utils.js';
 import { lyricsSettings, bulkDownloadSettings, losslessContainerSettings, playlistSettings } from './storage.js';
 import { addMetadataToAudio } from './metadata.js';
@@ -406,7 +407,7 @@ async function triggerDownload(blob, filename) {
             const downloadPath = downloadLocationSettings.getPath();
             if (downloadPath) {
                 const bridge = await import('./desktop/neutralino-bridge.js');
-                const fullPath = `${downloadPath}/${filename}`;
+                const fullPath = joinNativePath(downloadPath, filename);
                 const arrayBuffer = await blob.arrayBuffer();
                 await bridge.filesystem.writeBinaryFile(fullPath, arrayBuffer);
                 console.log(`[Download] Saved to: ${fullPath}`);

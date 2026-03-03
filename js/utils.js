@@ -115,6 +115,17 @@ export const sanitizeForFilename = (value) => {
         .trim();
 };
 
+export const joinNativePath = (basePath, segment) => {
+    if (!basePath) return segment;
+    if (!segment) return basePath;
+
+    const separator = basePath.includes('\\') ? '\\' : '/';
+    const normalizedBase = basePath.replace(/[\\/]+$/, '');
+    const normalizedSegment = segment.replace(/^[\\/]+/, '');
+
+    return `${normalizedBase}${separator}${normalizedSegment}`;
+};
+
 /**
  * Detects audio format from DataView of first bytes
  * @param {DataView} view - DataView of first 12 bytes of audio file
