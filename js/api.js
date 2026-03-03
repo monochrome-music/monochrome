@@ -12,6 +12,7 @@ import { addMetadataToAudio } from './metadata.js';
 import { DashDownloader } from './dash-downloader.js';
 import { encodeToMp3, MP3EncodingError } from './mp3-encoder.js';
 import { ffmpeg } from './ffmpeg.js';
+import { initTagLib } from './taglib.js';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 const TIDAL_V2_TOKEN = 'txNoH4kkV41MfH25';
@@ -1109,6 +1110,8 @@ export class LosslessAPI {
     }
 
     async downloadTrack(id, quality = 'HI_RES_LOSSLESS', filename, options = {}) {
+        // Initialize taglib in the background.
+        initTagLib().catch(console.error);
         const { onProgress, track } = options;
 
         try {

@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
         base: './',
         resolve: {
             alias: {
+                '!': '/node_modules',
                 pocketbase: '/node_modules/pocketbase/dist/pocketbase.es.js',
             },
         },
