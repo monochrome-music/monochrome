@@ -398,6 +398,9 @@ function resizeImageBlob(blob, size) {
 
 /**
  * Fetches and caches cover art as a Blob
+ * @param {Object} api - API instance with getCoverUrl method
+ * @param {string} coverId - ID of the cover art to fetch
+ * @returns {Promise<Blob|null>} - Cover art blob or null if not available
  */
 export async function getCoverBlob(api, coverId) {
     if (!coverId) return null;

@@ -98,6 +98,8 @@ let settingsModule = null;
 let downloadsModule = null;
 let metadataModule = null;
 
+export const managers = {};
+
 async function loadSettingsModule() {
     if (!settingsModule) {
         settingsModule = await import('./settings.js');
@@ -496,6 +498,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.monochromeScrobbler = scrobbler;
     const lyricsManager = new LyricsManager(api);
     ui.lyricsManager = lyricsManager;
+    managers.lyricsManager = lyricsManager;
 
     // Check browser support for local files
     const selectLocalBtn = document.getElementById('select-local-folder-btn');
