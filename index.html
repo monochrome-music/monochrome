@@ -1975,6 +1975,27 @@
                                             <span>Discord</span>
                                         </a>
                                     </li>
+                                    <li class="nav-item" id="sidebar-nav-githubbtn" style="display: none">
+                                        <a href="https://github.com/monochrome-music/monochrome" target="_blank">
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                width="24"
+                                                height="24"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            >
+                                                <path
+                                                    d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"
+                                                />
+                                                <path d="M9 18c-4.51 2-5-2-7-2" />
+                                            </svg>
+                                            <span>GitHub</span>
+                                        </a>
+                                    </li>
                                     <li class="nav-item" id="sidebar-nav-download-bottom">
                                         <a href="/download">
                                             <svg
@@ -3914,6 +3935,18 @@
                                             <span class="slider"></span>
                                         </label>
                                     </div>
+                                    <div class="setting-item">
+                                        <div class="info">
+                                            <span class="label">Show GitHub in Sidebar</span>
+                                            <span class="description"
+                                                >Display the GitHub link in the sidebar navigation</span
+                                            >
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" id="sidebar-show-githubbtn-toggle" checked />
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
 
@@ -5180,7 +5213,7 @@
                 </div>
 
                 <div id="page-about" class="page">
-                    <h2 class="section-title">About Monochrome</h2>
+                    <h2 class="section-title" style="text-align: center">About Monochrome</h2>
                     <div class="about-content">
                         <p class="about-description">
                             Monochrome is a lightweight, privacy-focused music streaming client designed for
@@ -5188,36 +5221,16 @@
                             distraction-free listening experience.
                             <br />
                         </p>
-                        <br />
-                        <div class="about-features">
-                            <h4>Features</h4>
-                            <ul>
-                                <li>High-quality lossless audio streaming</li>
-                                <li>Lyrics support with karaoke mode</li>
-                                <li>Recently Played tracking for easy history access</li>
-                                <li>Comprehensive Personal Library for favorites</li>
-                                <li>Intelligent API caching for improved performance</li>
-                                <li>Offline-capable Progressive Web App (PWA)</li>
-                                <li>Media Session API integration for system controls</li>
-                                <li>Queue management with shuffle and repeat modes</li>
-                                <li>Track downloads with automatic metadata embedding</li>
-                                <li>Multiple API instance support with failover</li>
-                                <li>Dark, minimalist interface optimized for focus</li>
-                                <li>Customizable themes</li>
-                                <li>Keyboard shortcuts for power users</li>
-                            </ul>
-                        </div>
-                        <div class="about-tech">
-                            <h4>Technology Stack</h4>
-                            <p>Vanilla JavaScript • ES6 Modules • IndexedDB • Service Workers • Media Session API</p>
-                        </div>
-                        <br /><br /><br />
                         <div class="about-donate">
-                            <h2 class="section-title" style="text-align: center">Donate to Monochrome</h2>
+                            <h2 class="section-title" style="text-align: center">Support Monochrome</h2>
                             <p style="text-align: center" class="donate-description">
                                 If Monochrome has been useful to you and you're able to, consider making a donation.
                                 <br />
                                 It helps pay for the server and domain, and you get to support us :)
+                            </p>
+                            <p style="text-align: center; color: var(--muted-foreground); margin-top: 1rem">
+                                If you cannot financially support us, please consider starring the project on GitHub and
+                                sharing with friends!
                             </p>
                             <div
                                 class="donate-button"
@@ -5227,40 +5240,39 @@
                                     gap: 20px;
                                     align-items: center;
                                     justify-content: center;
-                                    margin-top: 50px;
+                                    margin-top: 30px;
                                     flex-wrap: wrap;
                                 "
                             >
-                                <button id="donate-btn" class="btn-secondary">Donate to Monochrome</button>
-                            </div>
-                        </div>
-                        <br /><br /><br />
-                        <div class="about-links">
-                            <a
-                                href="https://github.com/monochrome-music/monochrome"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="github-link"
-                            >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="24"
-                                    height="24"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    class="lucide lucide-github-icon lucide-github"
+                                <a
+                                    href="https://ko-fi.com/monochromemusic"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="btn-secondary"
+                                    style="
+                                        text-decoration: none;
+                                        display: inline-flex;
+                                        align-items: center;
+                                        gap: 0.5rem;
+                                    "
                                 >
-                                    <path
-                                        d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"
-                                    />
-                                    <path d="M9 18c-4.51 2-5-2-7-2" />
-                                </svg>
-                                View on GitHub
-                            </a>
+                                    Donate to Monochrome
+                                </a>
+                                <a
+                                    href="https://github.com/monochrome-music/monochrome"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="btn-secondary"
+                                    style="
+                                        text-decoration: none;
+                                        display: inline-flex;
+                                        align-items: center;
+                                        gap: 0.5rem;
+                                    "
+                                >
+                                    Star on GitHub
+                                </a>
+                            </div>
                         </div>
                         <p style="text-align: center; color: grey">
                             made with ‪‪❤︎‬ by
@@ -5446,7 +5458,15 @@
                             If Monochrome has been useful to you and you're able to, consider making a donation. <br />
                             It helps pay for the domain, and you get to support us :)
                         </p>
-                        <button id="donate-btn-page" class="btn-secondary">Donate to Monochrome</button>
+                        <a
+                            href="https://ko-fi.com/monochromemusic"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="btn-secondary"
+                            style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem"
+                        >
+                            Donate to Monochrome
+                        </a>
                     </div>
                 </div>
             </main>

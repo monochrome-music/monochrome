@@ -4319,26 +4319,58 @@ input:checked + .slider::before {
 }
 
 .about-content {
-    padding: 1rem 0;
+    padding: 2rem 0;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.about-donate {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    margin: 2rem 0;
+    text-align: center;
+}
+
+.about-donate .section-title {
+    margin-bottom: 1rem;
+}
+
+.donate-description {
+    color: var(--muted-foreground);
+    line-height: 1.6;
+}
+
+.about-donate .btn-secondary {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.95rem;
 }
 
 .about-description {
     color: var(--foreground);
-    line-height: 1.6;
+    line-height: 1.8;
     margin-bottom: 1.5rem;
+    font-size: 1.05rem;
 }
 
 .about-features,
 .about-tech {
-    margin-bottom: 1.5rem;
+    margin-bottom: 2rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
 }
 
 .about-features h4,
 .about-tech h4 {
     font-size: 1rem;
     font-weight: 600;
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem;
     color: var(--foreground);
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
 }
 
 .about-features ul {
@@ -4411,9 +4443,10 @@ input:checked + .slider::before {
 }
 
 .about-footer {
-    margin-top: 2rem;
-    padding-top: 1.5rem;
+    margin-top: 3rem;
+    padding-top: 2rem;
     border-top: 1px solid var(--border);
+    text-align: center;
 }
 
 .about-footer p {
