@@ -59,6 +59,31 @@ export const SVG_BIN =
 export const SVG_MIX =
     '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>';
 
+export const isNeutralinoDesktop = () => {
+    if (typeof window === 'undefined') return false;
+
+    // Direct checks
+    if (
+        window.NL_MODE ||
+        window.location.search.includes('mode=neutralino') ||
+        window.location.search.includes('nl_port=')
+    ) {
+        return true;
+    }
+
+    // Protect against non-neutralino iframes by checking if the parent has neutralino globals
+    try {
+        if (window.parent !== window && (window.parent.NL_MODE || typeof window.parent.Neutralino !== 'undefined')) {
+            return true;
+        }
+    } catch {
+        // Cross-origin iframe
+        return false;
+    }
+
+    return false;
+};
+
 export const formatTime = (seconds) => {
     if (isNaN(seconds)) return '0:00';
     const m = Math.floor(seconds / 60);
