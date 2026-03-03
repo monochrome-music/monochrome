@@ -16,7 +16,7 @@ import { addMetadataToAudio } from './metadata.js';
 import { DashDownloader } from './dash-downloader.js';
 import { generateM3U, generateM3U8, generateCUE, generateNFO, generateJSON } from './playlist-generator.js';
 import { encodeToMp3 } from './mp3-encoder.js';
-import { ffmpeg } from './ffmpeg.js';
+import { ffmpeg, loadFfmpeg } from './ffmpeg.js';
 import { initTagLib } from './taglib.js';
 
 const downloadTasks = new Map();
@@ -272,6 +272,9 @@ function removeBulkDownloadTask(notifEl) {
 async function downloadTrackBlob(track, quality, api, lyricsManager = null, signal = null) {
     // Initialize taglib in the background.
     initTagLib().catch(console.error);
+
+    // Load ffmpeg in the background.
+    loadFfmpeg().catch(console.error);
 
     let enrichedTrack = {
         ...track,
