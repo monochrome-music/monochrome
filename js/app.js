@@ -60,11 +60,17 @@ import {
     parseDynamicCSV,
     importToLibrary,
 } from './playlist-importer.js';
+import { initTagLib } from './taglib.js';
 
 // Lazy-loaded modules
 let settingsModule = null;
 let downloadsModule = null;
 let metadataModule = null;
+
+// Load taglib in the background so it's ready when needed.
+//initTagLib().catch(console.error);
+
+export const managers = {};
 
 async function loadSettingsModule() {
     if (!settingsModule) {
@@ -422,6 +428,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.monochromeUi = ui;
     const scrobbler = new MultiScrobbler();
     const lyricsManager = new LyricsManager(api);
+    managers.lyricsManager = lyricsManager;
 
     // Check browser support for local files
     const selectLocalBtn = document.getElementById('select-local-folder-btn');
