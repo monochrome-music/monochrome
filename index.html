@@ -1124,6 +1124,27 @@
                     <div class="shortcut-item"><kbd>L</kbd><span>Toggle lyrics</span></div>
                     <div class="shortcut-item"><kbd>/</kbd><span>Focus search</span></div>
                     <div class="shortcut-item"><kbd>Esc</kbd><span>Close modals</span></div>
+                    <div class="shortcut-item"><kbd>[</kbd><span>Previous visualizer preset</span></div>
+                    <div class="shortcut-item"><kbd>]</kbd><span>Next visualizer preset</span></div>
+                    <div class="shortcut-item"><kbd>\</kbd><span>Toggle visualizer auto-cycle</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="customize-shortcuts-modal" class="modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content medium">
+                <div class="shortcuts-header">
+                    <h3>Customize Shortcuts</h3>
+                    <button class="close-customize-shortcuts">&times;</button>
+                </div>
+                <div class="customize-shortcuts-content">
+                    <p class="shortcut-hint">Click on a shortcut to rebind it. Press the new key combination.</p>
+                    <div id="shortcuts-list" class="shortcuts-list"></div>
+                </div>
+                <div class="customize-shortcuts-actions">
+                    <button id="reset-shortcuts-btn" class="btn-secondary">Reset to Defaults</button>
+                    <button id="close-customize-shortcuts-btn" class="btn-primary">Done</button>
                 </div>
             </div>
         </div>
@@ -5001,9 +5022,9 @@
                                 <div class="setting-item">
                                     <div class="info">
                                         <span class="label">Keyboard Shortcuts</span>
-                                        <span class="description">View available keyboard shortcuts</span>
+                                        <span class="description">View and customize keyboard shortcuts</span>
                                     </div>
-                                    <button id="show-shortcuts-btn" class="btn-secondary">Show Shortcuts</button>
+                                    <button id="customize-shortcuts-btn" class="btn-secondary">Customize</button>
                                 </div>
                                 <div class="setting-item">
                                     <div class="info">

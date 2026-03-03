@@ -110,6 +110,15 @@ export class ButterchurnPreset {
         this.presets = cachedPresets || {};
         this.presetKeys = cachedPresetKeys || [];
 
+        // Shuffled queue for random mode
+        this.shuffledQueue = [];
+        this.shuffledIndex = 0;
+
+        // Generate shuffled queue if presets are already loaded
+        if (this.presetKeys.length > 0) {
+            this.generateShuffledQueue();
+        }
+
         // Transition settings
         this.blendProgress = 0;
         this.blendDuration = 2.7; // seconds for preset transitions
@@ -119,6 +128,7 @@ export class ButterchurnPreset {
             onButterchurnPresetsLoaded((presets, keys) => {
                 this.presets = presets;
                 this.presetKeys = keys;
+                this.generateShuffledQueue();
 
                 // Notify system that presets are ready (for settings dropdown)
                 window.dispatchEvent(new CustomEvent('butterchurn-presets-loaded'));
@@ -128,6 +138,44 @@ export class ButterchurnPreset {
                     this.loadNextPreset();
                 }
             });
+        }
+    }
+
+    /**
+     * Generate a shuffled queue of preset indices
+     */
+    generateShuffledQueue() {
+        const indices = this.presetKeys.map((_, i) => i);
+        // Fisher-Yates shuffle
+        for (let i = indices.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [indices[i], indices[j]] = [indices[j], indices[i]];
+        }
+        this.shuffledQueue = indices;
+        this.shuffledIndex = 0;
+    }
+
+    /**
+     * Get the current preset index based on mode
+     */
+    getCurrentIndex() {
+        const randomize = visualizerSettings.isButterchurnRandomizeEnabled();
+        if (randomize && this.shuffledQueue.length > 0) {
+            return this.shuffledQueue[this.shuffledIndex];
+        }
+        return this.currentPresetIndex;
+    }
+
+    /**
+     * Set the current preset index based on mode
+     */
+    setCurrentIndex(index) {
+        const randomize = visualizerSettings.isButterchurnRandomizeEnabled();
+        if (randomize && this.shuffledQueue.length > 0) {
+            this.shuffledIndex = this.shuffledQueue.indexOf(index);
+            if (this.shuffledIndex === -1) this.shuffledIndex = 0;
+        } else {
+            this.currentPresetIndex = index;
         }
     }
 
@@ -218,7 +266,16 @@ export class ButterchurnPreset {
         const randomize = visualizerSettings.isButterchurnRandomizeEnabled();
 
         if (randomize) {
-            this.currentPresetIndex = Math.floor(Math.random() * this.presetKeys.length);
+            if (this.shuffledQueue.length === 0) {
+                this.generateShuffledQueue();
+            }
+            this.shuffledIndex = (this.shuffledIndex + 1) % this.shuffledQueue.length;
+            if (this.shuffledIndex === 0) {
+                // Re-shuffle when we've gone through all presets
+                this.generateShuffledQueue();
+                this.shuffledIndex = 0;
+            }
+            this.currentPresetIndex = this.shuffledQueue[this.shuffledIndex];
         } else {
             this.currentPresetIndex = (this.currentPresetIndex + 1) % this.presetKeys.length;
         }
@@ -253,7 +310,7 @@ export class ButterchurnPreset {
             // Update current index if found
             const index = this.presetKeys.indexOf(presetName);
             if (index !== -1) {
-                this.currentPresetIndex = index;
+                this.setCurrentIndex(index);
             }
         }
     }
@@ -269,15 +326,83 @@ export class ButterchurnPreset {
      * Get current preset name
      */
     getCurrentPresetName() {
-        return this.presetKeys[this.currentPresetIndex] || 'Unknown';
+        const index = this.getCurrentIndex();
+        return this.presetKeys[index] || 'Unknown';
     }
 
     /**
      * Skip to next preset (manually triggered)
+     * Uses shuffled queue in random mode, sequential in normal mode
      */
     nextPreset() {
-        this.loadNextPreset();
+        if (!this.visualizer || this.presetKeys.length === 0) return;
+
+        const randomize = visualizerSettings.isButterchurnRandomizeEnabled();
+
+        if (randomize) {
+            this.shuffledIndex = (this.shuffledIndex + 1) % this.shuffledQueue.length;
+            if (this.shuffledIndex === 0) {
+                // Re-shuffle when we've gone through all presets
+                this.generateShuffledQueue();
+                this.shuffledIndex = 0;
+            }
+            this.currentPresetIndex = this.shuffledQueue[this.shuffledIndex];
+        } else {
+            this.currentPresetIndex = (this.currentPresetIndex + 1) % this.presetKeys.length;
+        }
+
+        const presetKey = this.presetKeys[this.currentPresetIndex];
+        const preset = this.presets[presetKey];
+
+        if (preset) {
+            try {
+                this.visualizer.loadPreset(preset, this.blendDuration);
+            } catch (error) {
+                console.warn('[Butterchurn] Failed to load preset:', presetKey, error);
+                if (this.presetKeys.length > 1) {
+                    this.nextPreset();
+                }
+            }
+        }
         this.lastPresetChange = performance.now();
+    }
+
+    /**
+     * Skip to previous preset (manually triggered)
+     * Uses shuffled queue in random mode, sequential in normal mode
+     */
+    prevPreset() {
+        if (!this.visualizer || this.presetKeys.length === 0) return;
+
+        const randomize = visualizerSettings.isButterchurnRandomizeEnabled();
+
+        if (randomize) {
+            this.shuffledIndex = (this.shuffledIndex - 1 + this.shuffledQueue.length) % this.shuffledQueue.length;
+            this.currentPresetIndex = this.shuffledQueue[this.shuffledIndex];
+        } else {
+            this.currentPresetIndex = (this.currentPresetIndex - 1 + this.presetKeys.length) % this.presetKeys.length;
+        }
+
+        const presetKey = this.presetKeys[this.currentPresetIndex];
+        const preset = this.presets[presetKey];
+
+        if (preset) {
+            try {
+                this.visualizer.loadPreset(preset, this.blendDuration);
+            } catch (error) {
+                console.warn('[Butterchurn] Failed to load preset:', presetKey, error);
+            }
+        }
+        this.lastPresetChange = performance.now();
+    }
+
+    /**
+     * Toggle auto-cycle on/off
+     */
+    toggleCycle() {
+        const current = visualizerSettings.isButterchurnCycleEnabled();
+        visualizerSettings.setButterchurnCycleEnabled(!current);
+        return !current;
     }
 
     /**

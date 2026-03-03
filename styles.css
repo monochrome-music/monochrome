@@ -4635,6 +4635,116 @@ input:checked + .slider::before {
     border-bottom: none;
 }
 
+.customize-shortcuts-content {
+    padding: 1rem;
+}
+
+.shortcut-hint {
+    color: var(--muted-foreground);
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+}
+
+.shortcuts-list {
+    /* list scrolls with modal */
+}
+
+.customize-shortcut-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.customize-shortcut-item:last-child {
+    border-bottom: none;
+}
+
+.customize-shortcut-item .shortcut-description {
+    flex: 1;
+}
+
+.customize-shortcut-item .shortcut-key {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+}
+
+.customize-shortcut-item kbd {
+    background: var(--secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    font-family: inherit;
+    min-width: 28px;
+    text-align: center;
+}
+
+.customize-shortcut-item kbd.recording {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border-color: var(--primary);
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.customize-shortcut-item .shortcut-btn {
+    background: transparent;
+    border: none;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    padding: 0.25rem;
+    margin-left: 0.5rem;
+    opacity: 0;
+    transition: opacity var(--transition);
+}
+
+.customize-shortcut-item:hover .shortcut-btn {
+    opacity: 1;
+}
+
+.customize-shortcut-item .shortcut-btn:hover {
+    color: var(--foreground);
+}
+
+.customize-shortcuts-actions {
+    display: flex;
+    justify-content: space-between;
+    padding: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+.close-customize-shortcuts {
+    background: transparent;
+    border: none;
+    color: var(--muted-foreground);
+    font-size: 1.5rem;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius);
+    transition: all var(--transition);
+}
+
+.close-customize-shortcuts:hover {
+    background: var(--secondary);
+    color: var(--foreground);
+}
+
 #playlist-detail-description,
 #mix-detail-description {
     color: var(--foreground);
