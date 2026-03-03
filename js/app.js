@@ -18,7 +18,7 @@ import { LyricsManager, openLyricsPanel, clearLyricsPanelSync } from './lyrics.j
 import { createRouter, updateTabTitle, navigate } from './router.js';
 import { initializePlayerEvents, initializeTrackInteractions, handleTrackAction } from './events.js';
 import { initializeUIInteractions } from './ui-interactions.js';
-import { debounce, SVG_PLAY, getShareUrl, isNeutralinoDesktop } from './utils.js';
+import { debounce, SVG_PLAY, getShareUrl, isNeutralinoDesktop, joinNativePath } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 import { db } from './db.js';
 import { showNotification } from './downloads.js';
@@ -2335,7 +2335,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const entries = await window.Neutralino.filesystem.readDirectory(dirPath);
                         for (const entry of entries) {
                             if (entry.entry === '.' || entry.entry === '..') continue;
-                            const fullPath = `${dirPath}/${entry.entry}`;
+                            const fullPath = joinNativePath(dirPath, entry.entry);
                             if (entry.type === 'FILE') {
                                 const name = entry.entry.toLowerCase();
                                 if (

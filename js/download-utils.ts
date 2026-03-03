@@ -1,5 +1,5 @@
 import { losslessContainerSettings } from './storage';
-import { getExtensionFromBlob } from './utils';
+import { getExtensionFromBlob, joinNativePath } from './utils';
 import { rebuildFlacWithoutMetadata } from './metadata.flac.js';
 import {
     type ProgressEvent,
@@ -24,8 +24,7 @@ export async function triggerDownload(blob: Blob, filename: string): Promise<voi
             const downloadPath = downloadLocationSettings.getPath();
             if (downloadPath) {
                 const bridge = await import('./desktop/neutralino-bridge.js');
-                const fullPath = `${downloadPath}/${filename}`;
-                const arrayBuffer = await blob.arrayBuffer();
+                                    const fullPath = joinNativePath(downloadPath, filename);                const arrayBuffer = await blob.arrayBuffer();
                 await bridge.filesystem.writeBinaryFile(fullPath, arrayBuffer);
                 console.log(`[Download] Saved to: ${fullPath}`);
                 return;
