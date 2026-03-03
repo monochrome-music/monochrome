@@ -35,6 +35,7 @@ import {
     musicProviderSettings,
     analyticsSettings,
     modalSettings,
+    keyboardShortcuts,
 } from './storage.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
 import { getButterchurnPresets } from './visualizers/butterchurn.js';
