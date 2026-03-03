@@ -57,7 +57,17 @@ export class AuthManager {
         // Neutralino: open Google sign-in in the system browser,
         // then poll for the credential tokens via Vite middleware.
         if (window.Neutralino) {
-            const sessionId = Math.random().toString(36).substring(2) + Date.now().toString(36);
+            const sessionId =
+                typeof globalThis.crypto?.randomUUID === 'function'
+                    ? globalThis.crypto.randomUUID()
+                    : (() => {
+                          if (typeof globalThis.crypto?.getRandomValues !== 'function') {
+                              throw new Error('Secure random generator is not available in this environment.');
+                          }
+                          const bytes = new Uint8Array(16);
+                          globalThis.crypto.getRandomValues(bytes);
+                          return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+                      })();
             const config = auth.app.options;
             const port = window.location.port || '5173';
             const configB64 = btoa(JSON.stringify(config));
