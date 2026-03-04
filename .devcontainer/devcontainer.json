@@ -1,0 +1,25 @@
+{
+  "name": "debian-bun-fish-devcontainer",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+
+  "remoteUser": "devuser",
+
+  "features": {},
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  },
+
+  "postCreateCommand": "bun --version && code --version",
+
+  "remoteEnv": {
+    "SHELL": "/usr/bin/fish"
+  }
+}
