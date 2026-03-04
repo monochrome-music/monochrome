@@ -117,12 +117,14 @@ jobs:
             cp dist/Monochrome/${{ matrix.binary_source }} release/${{ matrix.binary_dest }}
             if [ "${{ matrix.platform }}" = "linux" ]; then
               cp scripts/linux-wayland-launcher.sh release/Monochrome-launcher
+              cp public/appicon.png release/Monochrome.png
               cat > release/Monochrome.desktop <<'EOF'
           [Desktop Entry]
           Type=Application
           Version=1.0
           Name=Monochrome
           Comment=Monochrome music streaming app
+          Icon=./Monochrome.png
           Exec=sh -c 'cd "$(dirname "%k")" && ./Monochrome-launcher --detach'
           Terminal=false
           Categories=Audio;Player;
