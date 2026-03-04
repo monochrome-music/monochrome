@@ -5058,13 +5058,17 @@
                                         <span class="label">Download Location</span>
                                         <span class="description">Folder where downloaded files are saved</span>
                                     </div>
-                                    <div style="display: flex; align-items: center; gap: 0.5rem">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; min-width: 0">
                                         <span
                                             id="download-location-path"
+                                            aria-live="polite"
+                                            title="Default (browser downloads)"
                                             style="
+                                                flex: 1;
+                                                min-width: 0;
                                                 font-size: 0.8rem;
                                                 color: var(--muted-foreground);
-                                                max-width: 200px;
+                                                max-width: min(320px, 40vw);
                                                 overflow: hidden;
                                                 text-overflow: ellipsis;
                                                 white-space: nowrap;
