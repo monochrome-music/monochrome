@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import neutralino from 'vite-plugin-neutralino';
 import authGatePlugin from './vite-plugin-auth-gate.js';
+import path from 'path';
 
 export default defineConfig(({ mode }) => {
     const IS_NEUTRALINO = mode === 'neutralino';
@@ -15,7 +16,8 @@ export default defineConfig(({ mode }) => {
             },
         },
         optimizeDeps: {
-            exclude: ['pocketbase', '@ffmpeg/ffmpeg', '@ffmpeg/util'],
+            exclude: ['pocketbase', '@ffmpeg/ffmpeg', '@ffmpeg/util', 'taglib-wasm'],
+            external: ['taglib-wasm'],
         },
         server: {
             fs: {
@@ -72,6 +74,34 @@ export default defineConfig(({ mode }) => {
                 includeAssets: ['discord.html'],
                 manifest: false, // Use existing public/manifest.json
             }),
+            {
+                name: 'ignore-taglib',
+                resolveId(id) {
+                    if (
+                        id == './dist/taglib-wrapper.js' ||
+                        id == '../../build/taglib-wrapper.js' ||
+                        id == '../../dist/taglib-wrapper.js'
+                    ) {
+                        return path.resolve('node_modules/taglib-wasm/dist/taglib-wrapper.js');
+                    }
+
+                    return id;
+                },
+                load(id) {
+                    if (id.endsWith('taglib-wasm/dist/src/worker-pool.js')) {
+                        return 'export const getGlobalWorkerPool = () => { throw new Error("Worker pool is not supported in this environment"); }; export class TagLibWorkerPool { constructor() { throw new Error("Worker pool is not supported in this environment"); } } export function createWorkerPool() { throw new Error("Worker pool is not supported in this environment"); } export function terminateGlobalWorkerPool() { throw new Error("Worker pool is not supported in this environment"); }';
+                    }
+
+                    if (id.endsWith('taglib-wasm/dist/src/runtime/wasmer-sdk-loader.js')) {
+                        return [
+                            'export const initializeWasmer = null;',
+                            'export const loadWasmerWasi = null',
+                            'export const isWasmerAvailable = null;',
+                            'export const WasmerExecutionError = null;',
+                        ].join('\n');
+                    }
+                },
+            },
         ],
     };
 });
