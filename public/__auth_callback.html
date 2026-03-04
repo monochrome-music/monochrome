@@ -47,9 +47,17 @@
             } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
             const params = new URLSearchParams(window.location.search);
+            const sanitizePort = (value) => {
+                const portString = String(value ?? '').trim();
+                if (!/^\d{1,5}$/.test(portString)) return '';
+                const portNumber = Number(portString);
+                if (portNumber < 1 || portNumber > 65535) return '';
+                return String(portNumber);
+            };
+
             let sessionId = params.get('sessionId');
             let configB64 = params.get('config');
-            let port = params.get('port') || window.location.port;
+            let port = sanitizePort(params.get('port')) || sanitizePort(window.location.port);
 
             // Restore params from sessionStorage (lost after Google redirect)
             if (!sessionId || !configB64) {
@@ -58,7 +66,7 @@
                     if (saved) {
                         sessionId = saved.sessionId;
                         configB64 = saved.configB64;
-                        port = saved.port;
+                        port = sanitizePort(saved.port) || port;
                     }
                 } catch {}
             }
@@ -89,15 +97,30 @@
                                 // Returning from Google — extract tokens and send to app
                                 sessionStorage.removeItem('__mono_auth');
                                 const credential = GoogleAuthProvider.credentialFromResult(result);
+                                if (!credential) {
+                                    throw new Error('Authentication failed: missing credential.');
+                                }
+
+                                const idToken = credential.idToken;
+                                const accessToken = credential.accessToken;
+                                if (!idToken) {
+                                    throw new Error('Authentication failed: missing ID token.');
+                                }
+
+                                const safePort = sanitizePort(port) || sanitizePort(window.location.port);
+                                if (!safePort) {
+                                    throw new Error('Invalid callback port.');
+                                }
+
                                 status.textContent = 'Sending credentials to app...';
 
-                                const response = await fetch(`http://localhost:${port}/api/auth/desktop-callback`, {
+                                const response = await fetch(`http://localhost:${safePort}/api/auth/desktop-callback`, {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
                                         sessionId,
-                                        idToken: credential.idToken,
-                                        accessToken: credential.accessToken,
+                                        idToken,
+                                        accessToken,
                                     }),
                                 });
 
