@@ -5,6 +5,8 @@ import authGatePlugin from './vite-plugin-auth-gate.js';
 
 function desktopAuthPlugin() {
     const pendingTokens = new Map();
+    const MAX_DESKTOP_AUTH_BODY_SIZE = 64 * 1024;
+
     return {
         name: 'desktop-auth',
         configureServer(server) {
@@ -13,8 +15,31 @@ function desktopAuthPlugin() {
 
                 if (url === '/api/auth/desktop-callback' && req.method === 'POST') {
                     let body = '';
-                    req.on('data', (chunk) => (body += chunk));
+                    let bodySize = 0;
+                    let payloadTooLarge = false;
+
+                    req.on('data', (chunk) => {
+                        if (payloadTooLarge) {
+                            return;
+                        }
+
+                        bodySize += chunk.length;
+                        if (bodySize > MAX_DESKTOP_AUTH_BODY_SIZE) {
+                            payloadTooLarge = true;
+                            res.writeHead(413, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({ error: 'Payload too large' }));
+                            req.destroy();
+                            return;
+                        }
+
+                        body += chunk;
+                    });
+
                     req.on('end', () => {
+                        if (payloadTooLarge) {
+                            return;
+                        }
+
                         try {
                             const { sessionId, idToken, accessToken } = JSON.parse(body);
                             if (sessionId && idToken) {
