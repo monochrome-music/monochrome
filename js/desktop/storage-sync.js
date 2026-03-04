@@ -2,14 +2,9 @@
 // Transparent localStorage persistence for Neutralino (WKWebView doesn't persist localStorage for HTTP origins)
 // Syncs localStorage to ~/.monochrome/localStorage.json via the shell bridge.
 
-const isNeutralino =
-    typeof window !== 'undefined' &&
-    !!(
-        window.NL_MODE ||
-        window.location.search.includes('mode=neutralino') ||
-        window.location.search.includes('nl_port=') ||
-        window.parent !== window
-    );
+import { isNeutralinoDesktop } from '../utils.js';
+
+const isNeutralino = isNeutralinoDesktop();
 
 let saveTimer = null;
 let initialized = false;
