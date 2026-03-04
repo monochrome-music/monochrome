@@ -102,7 +102,7 @@ function startVite(env) {
         const processOutput = (chunk, writer) => {
             const text = chunk.toString();
             writer(text);
-            const match = text.match(/Local:\s+http:\/\/localhost:(\d+)\//);
+            const match = text.match(/Local:\s+http:\/\/[^:\s]+:(\d+)\//);
             if (match && match[1]) {
                 detectedPort = match[1];
             }
