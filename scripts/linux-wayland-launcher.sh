@@ -136,7 +136,7 @@ read_gtk_setting() {
     local settings_file="$1"
     local setting_key="$2"
 
-    if [ ! -f "${settings_file}"; then
+    if [ ! -f "${settings_file}" ]; then
         return
     fi
 
