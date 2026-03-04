@@ -5,23 +5,62 @@
 import { isNeutralinoDesktop } from '../utils.js';
 
 const isNeutralino = isNeutralinoDesktop();
+const SHELL_REQUEST_TIMEOUT_MS = 10000;
 
 let saveTimer = null;
 let initialized = false;
 
 // Send a request to the shell and wait for a response
-function shellRequest(type, extraData = {}) {
+function shellRequest(type, extraData = {}, timeoutMs = SHELL_REQUEST_TIMEOUT_MS) {
     return new Promise((resolve, reject) => {
         const id = Math.random().toString(36).substring(7);
+        let settled = false;
+        let timeoutId;
+
+        const cleanup = (timeoutId, handler) => {
+            clearTimeout(timeoutId);
+            window.removeEventListener('message', handler);
+        };
+
+        const settle = (timeoutId, handler, callback) => {
+            if (settled) return;
+            settled = true;
+            cleanup(timeoutId, handler);
+            callback();
+        };
+
         const handler = (event) => {
+            if (event.source !== window.parent) return;
             if (event.data?.type === 'NL_RESPONSE' && event.data.id === id) {
-                window.removeEventListener('message', handler);
-                if (event.data.error) reject(event.data.error);
-                else resolve(event.data.result);
+                settle(timeoutId, handler, () => {
+                    if (event.data.error) {
+                        const message =
+                            typeof event.data.error === 'string'
+                                ? event.data.error
+                                : event.data.error?.message || `Shell request failed: ${type}`;
+                        reject(new Error(message));
+                    } else {
+                        resolve(event.data.result);
+                    }
+                });
             }
         };
+
+        timeoutId = setTimeout(() => {
+            settle(timeoutId, handler, () => {
+                reject(new Error(`Timeout waiting for ${type}`));
+            });
+        }, timeoutMs);
+
         window.addEventListener('message', handler);
-        window.parent.postMessage({ type, id, ...extraData }, '*');
+
+        try {
+            window.parent.postMessage({ type, id, ...extraData }, '*');
+        } catch (error) {
+            settle(timeoutId, handler, () => {
+                reject(error instanceof Error ? error : new Error(String(error)));
+            });
+        }
     });
 }
 
@@ -74,7 +113,7 @@ function hookLocalStorage() {
 
 // Load stored data from disk into localStorage
 export async function initStorageSync() {
-    if (!isNeutralino) return;
+    if (!isNeutralino || initialized) return;
 
     try {
         const json = await shellRequest('NL_STORAGE_LOAD');
