@@ -1,13 +1,8 @@
 // js/desktop/neutralino-bridge.js
 
-const isNeutralino =
-    typeof window !== 'undefined' &&
-    !!(
-        window.NL_MODE ||
-        window.location.search.includes('mode=neutralino') ||
-        window.location.search.includes('nl_port=') ||
-        window.parent !== window
-    );
+import { isNeutralinoDesktop } from '../utils.js';
+
+const isNeutralino = isNeutralinoDesktop();
 
 const listeners = new Map();
 

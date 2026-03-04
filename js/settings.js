@@ -42,6 +42,8 @@ import { db } from './db.js';
 import { authManager } from './accounts/auth.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { containerFormats, customFormats } from './ffmpegFormats.ts';
+import { saveFirebaseConfig, clearFirebaseConfig } from './accounts/config.js';
+import { isNeutralinoDesktop } from './utils.js';
 
 export function initializeSettings(scrobbler, player, api, ui) {
     // Restore last active settings tab
@@ -882,7 +884,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
                 downloadLocationResetBtn.style.display = 'inline-flex';
             } else {
                 downloadLocationPath.textContent = 'Default (browser downloads)';
-                downloadLocationPath.title = '';
+                downloadLocationPath.title = 'Default (browser downloads)';
                 downloadLocationResetBtn.style.display = 'none';
             }
         };
