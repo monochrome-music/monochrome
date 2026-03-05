@@ -2323,14 +2323,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     const searchForm = document.getElementById('search-form');
     const searchInput = document.getElementById('search-input');
 
-    // Setup clear button for search bar
     ui.setupSearchClearButton(searchInput);
 
-    const performSearch = debounce((query) => {
+    const performSearch = (query) => {
         if (query) {
             navigate(`/search/${encodeURIComponent(query)}`);
         }
-    }, 0);
+    };
+
+    const debouncedSearch = debounce((query) => {
+        if (query && query === searchInput.value.trim()) {
+            performSearch(query);
+        }
+    }, 3000);
 
     const handleExternalLink = (query) => {
         const isExternalLink =
@@ -2343,9 +2348,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const urlObj = new URL(url);
                 let path = urlObj.pathname;
-                // Remove trailing slashes and get just endpoint/id
                 path = path.replace(/\/+$/, '');
-                // Get just the first two segments (e.g., /album/382839956)
                 const segments = path.split('/').filter((s) => s);
                 if (segments.length >= 2) {
                     path = '/' + segments[0] + '/' + segments[1];
@@ -2363,9 +2366,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const query = e.target.value.trim();
         if (!query) return;
 
-        if (!handleExternalLink(query)) {
-            performSearch(query);
+        if (handleExternalLink(query)) {
+            return;
         }
+
+        debouncedSearch(query);
     });
 
     searchInput.addEventListener('change', (e) => {
@@ -2397,7 +2402,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!handleExternalLink(query)) {
             ui.addToSearchHistory(query);
-            navigate(`/search/${encodeURIComponent(query)}`);
+            performSearch(query);
             const historyEl = document.getElementById('search-history');
             if (historyEl) historyEl.style.display = 'none';
         }

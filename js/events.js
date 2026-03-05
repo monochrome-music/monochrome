@@ -1200,6 +1200,10 @@ export async function handleTrackAction(
 
         trackOpenInNewTab(type, item.id || item.uuid);
         window.open(url, '_blank');
+    } else if (action === 'open-in-harmony') {
+        const albumId = item.id;
+        const harmonyUrl = `https://harmony.pulsewidth.org.uk/release?url=${encodeURIComponent(`https://tidal.com/album/${albumId}`)}&gtin=&region=&musicbrainz=&deezer=&itunes=&spotify=&tidal=&beatport=`;
+        window.open(harmonyUrl, '_blank');
     } else if (action === 'track-info') {
         // Show detailed track info modal
         const isTracker = item.isTracker;
@@ -1428,9 +1432,11 @@ export async function handleTrackAction(
 async function updateContextMenuLikeState(contextMenu, contextTrack) {
     if (!contextMenu || !contextTrack) return;
 
+    const type = contextMenu._contextType || 'track';
+
     const likeItem = contextMenu.querySelector('li[data-action="toggle-like"]');
     if (likeItem) {
-        const isLiked = await db.isFavorite('track', contextTrack.id);
+        const isLiked = await db.isFavorite(type, contextTrack.id);
         likeItem.textContent = isLiked ? 'Unlike' : 'Like';
     }
 
@@ -1455,7 +1461,6 @@ async function updateContextMenuLikeState(contextMenu, contextTrack) {
 
     // Update block/unblock labels
     const { contentBlockingSettings } = await import('./storage.js');
-    const type = contextMenu._contextType || 'track';
 
     const blockTrackItem = contextMenu.querySelector('li[data-action="block-track"]');
     if (blockTrackItem) {
@@ -1572,7 +1577,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             return;
         }
 
-        const cardMenuBtn = e.target.closest('.card-menu-btn');
+        const cardMenuBtn = e.target.closest('.card-menu-btn, #album-menu-btn');
         if (cardMenuBtn) {
             e.stopPropagation();
             const card = cardMenuBtn.closest('.card');
@@ -1582,8 +1587,13 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             let item = card ? trackDataStore.get(card) : null;
 
             if (!item) {
+                // Check if item is stored on the button itself (e.g., album page header menu)
+                item = trackDataStore.get(cardMenuBtn);
+            }
+
+            if (!item) {
                 // Fallback: create a shell item
-                item = { id, uuid: id, title: card.querySelector('.card-title')?.textContent || 'Item' };
+                item = { id, uuid: id, title: card?.querySelector('.card-title')?.textContent || 'Item' };
             }
 
             if (contextMenu._originalHTML) {
