@@ -1,4 +1,4 @@
-import { toBlobURL } from '@ffmpeg/util';
+import { fetchBlobURL } from './utils';
 const ffmpegBase = 'https://unpkg.com/@ffmpeg/core/dist/esm';
 const coreJs = `${ffmpegBase}/ffmpeg-core.js`;
 const coreWasm = `${ffmpegBase}/ffmpeg-core.wasm`;
@@ -16,8 +16,8 @@ export function loadFfmpeg() {
         loadFfmpeg.promise ||
         (loadFfmpeg.promise = (async () => {
             const data = {
-                coreURL: await toBlobURL(coreJs, 'text/javascript'),
-                wasmURL: await toBlobURL(coreWasm, 'application/wasm'),
+                coreURL: await fetchBlobURL(coreJs),
+                wasmURL: await fetchBlobURL(coreWasm),
             };
 
             return data;
