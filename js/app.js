@@ -2609,7 +2609,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const headerAccountIcon = document.getElementById('header-account-icon');
 
     // Temporarily disable accounts - show popup
-    const isAccountsDisabled = true;
+    const isAccountsDisabled = false;
 
     if (headerAccountBtn && headerAccountDropdown) {
         if (isAccountsDisabled) {
