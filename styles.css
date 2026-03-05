@@ -2401,6 +2401,13 @@ input[type='search']::-webkit-search-cancel-button {
     flex-shrink: 0;
 }
 
+.detail-header-actions .card-menu-btn,
+.detail-header-actions #album-menu-btn {
+    position: static !important;
+    opacity: 1 !important;
+    transform: none !important;
+}
+
 .detail-header-actions .btn-primary span,
 .detail-header-actions .btn-secondary span {
     display: none;

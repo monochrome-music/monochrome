@@ -2473,6 +2473,13 @@ export class UIRenderer {
                 albumLikeBtn.classList.toggle('active', isLiked);
             }
 
+            // Store album data for menu button
+            const albumMenuBtn = document.getElementById('album-menu-btn');
+            if (albumMenuBtn) {
+                albumMenuBtn.dataset.id = album.id;
+                trackDataStore.set(albumMenuBtn, album);
+            }
+
             document.title = `${album.title} - ${album.artist.name}`;
 
             // "More from Artist" and Related Sections
