@@ -8,11 +8,10 @@ import {
 } from './utils.js';
 import { trackDateSettings, losslessContainerSettings } from './storage.js';
 import { APICache } from './cache.js';
-import { addMetadataToAudio } from './metadata.js';
+import { addMetadataToAudio, prefetchMetadataObjects } from './metadata.js';
 import { DashDownloader } from './dash-downloader.js';
 import { encodeToMp3, MP3EncodingError } from './mp3-encoder.js';
 import { ffmpeg, loadFfmpeg } from './ffmpeg.js';
-import { initTagLib } from './taglib.js';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 const TIDAL_V2_TOKEN = 'txNoH4kkV41MfH25';
@@ -1110,12 +1109,11 @@ export class LosslessAPI {
     }
 
     async downloadTrack(id, quality = 'HI_RES_LOSSLESS', filename, options = {}) {
-        // Initialize taglib in the background.
-        initTagLib().catch(console.error);
-
         // Load ffmpeg in the background.
         loadFfmpeg().catch(console.error);
+
         const { onProgress, track } = options;
+        const prefetchPromises = prefetchMetadataObjects(track, this);
 
         try {
             // MP3_320 is not a native TIDAL quality, we download LOSSLESS and convert
@@ -1271,7 +1269,7 @@ export class LosslessAPI {
                     };
                 }
 
-                blob = await addMetadataToAudio(blob, enrichedTrack, this, quality);
+                blob = await addMetadataToAudio(blob, enrichedTrack, this, quality, prefetchPromises);
             }
 
             // Detect actual format and fix filename extension if needed

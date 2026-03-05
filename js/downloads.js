@@ -12,12 +12,11 @@ import {
     escapeHtml,
 } from './utils.js';
 import { lyricsSettings, bulkDownloadSettings, losslessContainerSettings, playlistSettings } from './storage.js';
-import { addMetadataToAudio } from './metadata.js';
+import { addMetadataToAudio, prefetchMetadataObjects } from './metadata.js';
 import { DashDownloader } from './dash-downloader.js';
 import { generateM3U, generateM3U8, generateCUE, generateNFO, generateJSON } from './playlist-generator.js';
 import { encodeToMp3 } from './mp3-encoder.js';
 import { ffmpeg, loadFfmpeg } from './ffmpeg.js';
-import { initTagLib } from './taglib.js';
 
 const downloadTasks = new Map();
 const bulkDownloadTasks = new Map();
@@ -270,11 +269,10 @@ function removeBulkDownloadTask(notifEl) {
 }
 
 async function downloadTrackBlob(track, quality, api, lyricsManager = null, signal = null) {
-    // Initialize taglib in the background.
-    initTagLib().catch(console.error);
-
     // Load ffmpeg in the background.
     loadFfmpeg().catch(console.error);
+
+    const prefetchPromises = prefetchMetadataObjects(track, api);
 
     let enrichedTrack = {
         ...track,
@@ -408,7 +406,7 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
     const extension = await getExtensionFromBlob(blob);
 
     // Add metadata to the blob
-    blob = await addMetadataToAudio(blob, enrichedTrack, api, quality);
+    blob = await addMetadataToAudio(blob, enrichedTrack, api, quality, prefetchPromises);
 
     return { blob, extension };
 }
