@@ -533,3 +533,11 @@ export const getShareUrl = (path) => {
     const safePath = path.startsWith('/') ? path : `/${path}`;
     return `${baseUrl}${safePath}`;
 };
+
+export function fetchBlob(url) {
+    return fetch(url).then((d) => d.blob());
+}
+
+export async function fetchBlobURL(url) {
+    return await URL.createObjectURL(await fetchBlob(url));
+}
