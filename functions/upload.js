@@ -19,8 +19,8 @@ function buf2hex(buffer) {
         .join('');
 }
 
-async function signature(key, date, region, service, stringToSign) {
-    const kDate = await hmac(new TextEncoder().encode('AWS4' + key), new TextEncoder().encode(date));
+async function signature(secretKey, dateStamp, region, service, stringToSign) {
+    const kDate = await hmac(new TextEncoder().encode('AWS4' + secretKey), new TextEncoder().encode(dateStamp));
     const kRegion = await hmac(kDate, new TextEncoder().encode(region));
     const kService = await hmac(kRegion, new TextEncoder().encode(service));
     const kSigning = await hmac(kService, new TextEncoder().encode('aws4_request'));
@@ -28,13 +28,7 @@ async function signature(key, date, region, service, stringToSign) {
     return buf2hex(sig);
 }
 
-async function createSignature(method, path, headers, payloadHash, accessKeyId, secretAccessKey, dateStamp) {
-    const now = new Date();
-    const amzDate = now
-        .toISOString()
-        .replace(/[:-]|\.\d{3}/g, '')
-        .slice(0, 8);
-    const date = amzDate;
+async function createSignature(method, path, headers, payloadHash, accessKeyId, secretAccessKey, amzDate, dateStamp) {
     const region = 'auto';
     const service = 's3';
 
@@ -102,7 +96,11 @@ export async function onRequest(context) {
             try {
                 const key = `${Date.now()}-${fileName}`;
                 const now = new Date();
-                const amzDate = now.toISOString().replace(/[:-]/g, '').slice(0, 15) + 'Z';
+                const amzDate =
+                    now
+                        .toISOString()
+                        .replace(/[:-]|\.\d{3}/g, '')
+                        .slice(0, 15) + 'Z';
                 const dateStamp = now
                     .toISOString()
                     .replace(/[:-]|\.\d{3}/g, '')
@@ -125,6 +123,7 @@ export async function onRequest(context) {
                     payloadHash,
                     env.R2_ACCESS_KEY_ID,
                     env.R2_SECRET_ACCESS_KEY,
+                    amzDate,
                     dateStamp
                 );
                 headers['Authorization'] = auth;
