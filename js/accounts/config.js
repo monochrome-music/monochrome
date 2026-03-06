@@ -8,11 +8,13 @@ const getEndpoint = () => {
     return 'https://auth.samidy.com/v1';
 };
 
-const client = new Client()
-    .setEndpoint(getEndpoint())
-    .setProject('auth-for-monochrome');
+const client = new Client().setEndpoint(getEndpoint()).setProject('auth-for-monochrome');
 
 const account = new Account(client);
 export { client, account as auth };
-export const saveFirebaseConfig = () => { console.log("ill fix this tomorrow"); };
-export const clearFirebaseConfig = () => { console.log("ill fix this tomorrow"); };
+export const saveFirebaseConfig = () => {
+    console.log('ill fix this tomorrow');
+};
+export const clearFirebaseConfig = () => {
+    console.log('ill fix this tomorrow');
+};
