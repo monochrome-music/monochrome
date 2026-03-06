@@ -114,9 +114,9 @@ export class KawarpPreset {
         // Cache buster forces a fresh CORS request, bypassing the browser's
         // cached non-CORS response from the <img> tag (same pattern as ui.js)
         const sep = url.includes('?') ? '&' : '?';
-        this.kawarp.loadImage(`${url}${sep}not-from-cache-please`).catch((err) =>
-            console.warn('[Kawarp] Failed to load cover:', err),
-        );
+        this.kawarp
+            .loadImage(`${url}${sep}not-from-cache-please`)
+            .catch((err) => console.warn('[Kawarp] Failed to load cover:', err));
     }
 
     resize(_w, _h) {
