@@ -16,6 +16,15 @@ import { ffmpeg } from './ffmpeg.js';
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 const TIDAL_V2_TOKEN = 'txNoH4kkV41MfH25';
 
+function isCapacitorMode() {
+    if (typeof window === 'undefined') return false;
+    return (
+        window.CAP_MODE === true ||
+        window.Capacitor?.isNativePlatform?.() === true ||
+        window.location.search.includes('mode=capacitor')
+    );
+}
+
 export class LosslessAPI {
     constructor(settings) {
         this.settings = settings;
@@ -1278,7 +1287,10 @@ export class LosslessAPI {
                 finalFilename = filename.replace(/\.[^.]+$/, `.${detectedExtension}`);
             }
 
-            this.triggerDownload(blob, finalFilename);
+            const savedToNativeMusic = await this.saveTrackToNativeMusicDirectory(blob, finalFilename, track);
+            if (!savedToNativeMusic) {
+                this.triggerDownload(blob, finalFilename);
+            }
         } catch (error) {
             if (error.name === 'AbortError') {
                 throw error;
@@ -1291,6 +1303,33 @@ export class LosslessAPI {
                 throw error;
             }
             throw new Error('Download failed. The stream may require a proxy.');
+        }
+    }
+
+    async saveTrackToNativeMusicDirectory(blob, filename, track = null) {
+        if (!isCapacitorMode()) {
+            return false;
+        }
+
+        try {
+            const bridge =
+                window.CapacitorBridge || (await import('./desktop/capacitor-bridge.js')).default || null;
+
+            if (!bridge?.downloads?.saveAudioToMusic) {
+                return false;
+            }
+
+            await bridge.downloads.saveAudioToMusic({
+                blob,
+                fileName: filename,
+                albumName: track?.album?.title || null,
+                relativePath: 'Music/Monochrome',
+            });
+
+            return true;
+        } catch (error) {
+            console.warn('[Downloads] Native Music save failed; using browser download fallback.', error);
+            return false;
         }
     }
 

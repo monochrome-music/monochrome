@@ -280,10 +280,30 @@ export class Player {
     }
 
     setupMediaSession() {
-        if (!('mediaSession' in navigator)) return;
+        const hasWebMediaSession = 'mediaSession' in navigator;
+        const hasNativeMediaSession = Boolean(window.CapacitorBridge?.media);
+        if (!hasWebMediaSession && !hasNativeMediaSession) return;
+
+        const setActionHandler = (action, handler) => {
+            if (hasWebMediaSession) {
+                try {
+                    navigator.mediaSession.setActionHandler(action, handler);
+                } catch (error) {
+                    console.warn(`Failed to set web MediaSession handler for ${action}:`, error);
+                }
+            }
+
+            if (hasNativeMediaSession) {
+                window.CapacitorBridge.media
+                    .setActionHandler({ action }, handler)
+                    .catch((error) =>
+                        console.warn(`Failed to set native MediaSession handler for ${action}:`, error)
+                    );
+            }
+        };
 
         const setHandlers = () => {
-            navigator.mediaSession.setActionHandler('play', async () => {
+            setActionHandler('play', async () => {
                 // Initialize and resume audio context first (required for iOS lock screen)
                 // Must happen before audio.play() or audio won't route through Web Audio
                 if (!audioContextManager.isReady()) {
@@ -301,11 +321,11 @@ export class Player {
                 }
             });
 
-            navigator.mediaSession.setActionHandler('pause', () => {
+            setActionHandler('pause', () => {
                 this.audio.pause();
             });
 
-            navigator.mediaSession.setActionHandler('previoustrack', async () => {
+            setActionHandler('previoustrack', async () => {
                 // Ensure audio context is active for iOS lock screen controls
                 if (!audioContextManager.isReady()) {
                     audioContextManager.init(this.audio);
@@ -315,7 +335,7 @@ export class Player {
                 this.playPrev();
             });
 
-            navigator.mediaSession.setActionHandler('nexttrack', async () => {
+            setActionHandler('nexttrack', async () => {
                 // Ensure audio context is active for iOS lock screen controls
                 if (!audioContextManager.isReady()) {
                     audioContextManager.init(this.audio);
@@ -326,31 +346,31 @@ export class Player {
             });
 
             if (!this.isIOS) {
-                navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+                setActionHandler('seekbackward', (details) => {
                     const skipTime = details.seekOffset || 10;
                     this.seekBackward(skipTime);
                 });
-                navigator.mediaSession.setActionHandler('seekforward', (details) => {
+                setActionHandler('seekforward', (details) => {
                     const skipTime = details.seekOffset || 10;
                     this.seekForward(skipTime);
                 });
             }
 
-            navigator.mediaSession.setActionHandler('seekto', (details) => {
+            setActionHandler('seekto', (details) => {
                 if (details.seekTime !== undefined) {
                     this.audio.currentTime = Math.max(0, details.seekTime);
                     this.updateMediaSessionPositionState();
                 }
             });
 
-            navigator.mediaSession.setActionHandler('stop', () => {
+            setActionHandler('stop', () => {
                 this.audio.pause();
                 this.audio.currentTime = 0;
                 this.updateMediaSessionPlaybackState();
             });
         };
 
-        if (this.isIOS) {
+        if (this.isIOS && hasWebMediaSession) {
             // iOS: set handlers only when playback starts. Setting them in the constructor makes
             // the lock screen show +10/-10. Registering on first 'playing' gives next/previous track
             this.audio.addEventListener('playing', () => setHandlers(), { once: true });
@@ -967,56 +987,112 @@ export class Player {
     }
 
     updateMediaSession(track) {
-        if (!('mediaSession' in navigator)) return;
+        if ('mediaSession' in navigator) {
+            // Force a refresh for picky Bluetooth systems by clearing metadata first
+            navigator.mediaSession.metadata = null;
 
-        // Force a refresh for picky Bluetooth systems by clearing metadata first
-        navigator.mediaSession.metadata = null;
+            const coverId = track.album?.cover;
+            const trackTitle = getTrackTitle(track);
 
-        const coverId = track.album?.cover;
-        const trackTitle = getTrackTitle(track);
-
-        navigator.mediaSession.metadata = new MediaMetadata({
-            title: trackTitle || 'Unknown Title',
-            artist: getTrackArtists(track) || 'Unknown Artist',
-            album: track.album?.title || 'Unknown Album',
-            artwork: coverId
-                ? [
-                      {
-                          src: this.api.getCoverUrl(coverId, '1280'),
-                          sizes: '1280x1280',
-                          type: 'image/jpeg',
-                      },
-                  ]
-                : undefined,
-        });
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: trackTitle || 'Unknown Title',
+                artist: getTrackArtists(track) || 'Unknown Artist',
+                album: track.album?.title || 'Unknown Album',
+                artwork: coverId
+                    ? [
+                          {
+                              src: this.api.getCoverUrl(coverId, '1280'),
+                              sizes: '1280x1280',
+                              type: 'image/jpeg',
+                          },
+                      ]
+                    : undefined,
+            });
+        }
 
         this.updateMediaSessionPlaybackState();
         this.updateMediaSessionPositionState();
+        this.updateNativeMediaSession(track);
     }
 
     updateMediaSessionPlaybackState() {
-        if (!('mediaSession' in navigator)) return;
-        navigator.mediaSession.playbackState = this.audio.paused ? 'paused' : 'playing';
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.playbackState = this.audio.paused ? 'paused' : 'playing';
+        }
+        this.updateNativeMediaPlaybackState();
     }
 
     updateMediaSessionPositionState() {
-        if (!('mediaSession' in navigator)) return;
-        if (!('setPositionState' in navigator.mediaSession)) return;
-
         const duration = this.audio.duration;
 
         if (!duration || isNaN(duration) || !isFinite(duration)) {
+            this.updateNativeMediaPlaybackState();
             return;
         }
 
+        if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+            try {
+                navigator.mediaSession.setPositionState({
+                    duration: duration,
+                    playbackRate: this.audio.playbackRate || 1,
+                    position: Math.min(this.audio.currentTime, duration),
+                });
+            } catch (error) {
+                console.log('Failed to update Media Session position:', error);
+            }
+        }
+
+        this.updateNativeMediaPlaybackState();
+    }
+
+    async updateNativeMediaSession(track) {
+        if (!window.CapacitorBridge?.media || !track) return;
+
+        const coverId = track.album?.cover;
+        const artwork = coverId
+            ? [
+                  {
+                      src: this.api.getCoverUrl(coverId, '1280'),
+                      sizes: '1280x1280',
+                      type: 'image/jpeg',
+                  },
+              ]
+            : undefined;
+
         try {
-            navigator.mediaSession.setPositionState({
-                duration: duration,
-                playbackRate: this.audio.playbackRate || 1,
-                position: Math.min(this.audio.currentTime, duration),
+            await window.CapacitorBridge.media.setMetadata({
+                title: getTrackTitle(track) || 'Unknown Title',
+                artist: getTrackArtists(track) || 'Unknown Artist',
+                album: track.album?.title || 'Unknown Album',
+                artwork,
             });
         } catch (error) {
-            console.log('Failed to update Media Session position:', error);
+            console.warn('Failed to update Android media session metadata:', error);
+        }
+    }
+
+    async updateNativeMediaPlaybackState() {
+        if (!window.CapacitorBridge?.media) return;
+
+        const duration = isFinite(this.audio.duration) ? this.audio.duration : (this.currentTrack?.duration || 0);
+        const position = Math.min(this.audio.currentTime || 0, duration || this.audio.currentTime || 0);
+        const playbackRate = this.audio.playbackRate || 1;
+        const playbackState = this.audio.paused ? 'paused' : 'playing';
+
+        try {
+            await window.CapacitorBridge.media.setPlaybackState({
+                playbackState,
+            });
+
+            if (duration && isFinite(duration)) {
+                await window.CapacitorBridge.media.setPositionState({
+                    position: position || 0,
+                    duration,
+                    playbackRate,
+                });
+            }
+        } catch (error) {
+            console.warn('Failed to update Android media session playback state:', error);
         }
     }
 
@@ -1157,12 +1233,12 @@ export class Player {
     }
 
     async updateNativeWindow(track) {
-        if (!window.Neutralino) return;
+        if (!window.CapacitorBridge) return;
 
         const trackTitle = getTrackTitle(track);
         const artist = getTrackArtists(track);
         try {
-            await Neutralino.window.setTitle(`${trackTitle} • ${artist}`);
+            await window.CapacitorBridge.window.setTitle(`${trackTitle} • ${artist}`);
         } catch (e) {
             console.error('Failed to set window title:', e);
         }

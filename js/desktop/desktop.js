@@ -1,16 +1,19 @@
 // js/desktop/desktop.js
-import Neutralino from './neutralino-bridge.js';
+import CapacitorBridge from './capacitor-bridge.js';
 import { initializeDiscordRPC } from './discord-rpc.js';
 
 export async function initDesktop(player) {
     console.log('[Desktop] Initializing desktop features...');
 
-    // Assign to window for modules that use global Neutralino (like Player.js)
-    window.Neutralino = Neutralino;
+    // Expose bridge globally for modules that do runtime native checks
+    window.CapacitorBridge = CapacitorBridge;
 
     try {
-        await Neutralino.init();
-        console.log('[Desktop] Neutralino initialized.');
+        await CapacitorBridge.init();
+        console.log('[Desktop] Capacitor bridge initialized.');
+        if (player && typeof player.setupMediaSession === 'function') {
+            player.setupMediaSession();
+        }
 
         if (player) {
             console.log('[Desktop] Starting Discord RPC...');

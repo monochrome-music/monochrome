@@ -6,9 +6,13 @@
     "main": "sw.js",
     "scripts": {
         "dev": "vite",
-        "dev:desktop": "start npm run dev & node scripts/dev-runner.js",
-        "build": "vite build --mode neutralino && bun x neu build",
-        "postbuild": "node -e \"const fs = require('fs'); const path = require('path'); const src = 'extensions'; const dest = path.join('dist', 'Monochrome', 'extensions'); if (fs.existsSync(src)) { fs.mkdirSync(dest, { recursive: true }); fs.cpSync(src, dest, { recursive: true }); console.log('Extensions manually copied to ' + dest); }\"",
+        "dev:capacitor": "npm run dev",
+        "build": "vite build",
+        "build:native": "vite build && npx cap sync",
+        "cap:copy": "npx cap copy",
+        "cap:sync": "npx cap sync",
+        "cap:open:android": "npx cap open android",
+        "cap:open:ios": "npx cap open ios",
         "preview": "vite preview",
         "lint:js": "eslint .",
         "lint:css": "stylelint \"**/*.css\"",
@@ -29,7 +33,7 @@
     },
     "homepage": "https://github.com/SamidyFR/monochrome#readme",
     "devDependencies": {
-        "@neutralinojs/neu": "^11.7.0",
+        "@capacitor/cli": "^7.4.3",
         "eslint": "^9.39.3",
         "eslint-config-prettier": "^10.1.8",
         "globals": "^17.4.0",
@@ -40,25 +44,31 @@
         "stylelint-config-standard": "^39.0.1",
         "stylelint-config-standard-scss": "^16.0.0",
         "vite": "^7.3.1",
-        "vite-plugin-neutralino": "^1.0.3",
-        "vite-plugin-pwa": "^1.2.0"
+        "vite-plugin-pwa": "^1.2.0",
+        "wrangler": "^4.71.0"
     },
     "overrides": {
         "sourcemap-codec": "npm:@jridgewell/sourcemap-codec@^1.4.14",
         "source-map": "^0.7.4"
     },
     "dependencies": {
+        "@capacitor/android": "^7.6.0",
+        "@capacitor/app": "^7.0.2",
+        "@capacitor/browser": "^7.0.2",
+        "@capacitor/core": "^7.4.3",
+        "@capacitor/dialog": "^7.0.2",
+        "@capacitor/filesystem": "^7.1.4",
         "@ffmpeg/ffmpeg": "^0.12.15",
         "@ffmpeg/util": "^0.12.2",
+        "@jofr/capacitor-media-session": "^4.0.0",
         "@kawarp/core": "^1.1.1",
-        "@neutralinojs/lib": "^6.5.0",
+        "@odion-cloud/capacitor-mediastore": "^1.0.21",
         "appwrite": "^23.0.0",
         "butterchurn": "^2.6.7",
         "butterchurn-presets": "^2.4.7",
         "cookie-session": "^2.1.1",
         "dashjs": "^5.1.1",
         "jose": "^6.1.3",
-        "npm": "^11.11.0",
         "pocketbase": "^0.26.8"
     }
 }

@@ -385,28 +385,44 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize tracker
     initTracker(player);
 
+    const isCapacitorMode =
+        typeof window !== 'undefined' &&
+        (window.CAP_MODE === true ||
+            window.Capacitor?.isNativePlatform?.() === true ||
+            window.location.search.includes('mode=capacitor'));
+
     // Linux Media Keys Fix
-    if (window.NL_MODE) {
-        import('./desktop/neutralino-bridge.js').then(({ events }) => {
+    if (isCapacitorMode) {
+        import('./desktop/capacitor-bridge.js').then(({ events }) => {
             events.on('mediaNext', () => player.playNext());
             events.on('mediaPrevious', () => player.playPrev());
-            events.on('mediaPlayPause', () => player.handlePlayPause());
+            events.on('mediaPlayPause', (detail) => {
+                if (detail?.command === 'play') {
+                    if (player.audio.paused) player.handlePlayPause();
+                    return;
+                }
+                if (detail?.command === 'pause') {
+                    if (!player.audio.paused) player.handlePlayPause();
+                    return;
+                }
+                player.handlePlayPause();
+            });
             events.on('mediaStop', () => {
                 player.audio.pause();
                 player.audio.currentTime = 0;
+            });
+            events.on('backButton', () => {
+                if (window.history.length > 1) {
+                    window.history.back();
+                }
             });
             console.log('Media keys initialized via bridge');
         });
     }
 
-    // Initialize desktop features if in Neutralino mode
-    if (
-        typeof window !== 'undefined' &&
-        (window.NL_MODE ||
-            window.location.search.includes('mode=neutralino') ||
-            window.location.search.includes('nl_port='))
-    ) {
-        window.NL_MODE = true;
+    // Initialize desktop features if in Capacitor mode
+    if (isCapacitorMode) {
+        window.CAP_MODE = true;
         try {
             const desktopModule = await import('./desktop/desktop.js');
             await desktopModule.initDesktop(player);
@@ -431,15 +447,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         const ua = navigator.userAgent;
         const isChromeOrEdge = (ua.indexOf('Chrome') > -1 || ua.indexOf('Edg') > -1) && !/Mobile|Android/.test(ua);
         const hasFileSystemApi = 'showDirectoryPicker' in window;
-        const isNeutralino =
-            window.NL_MODE ||
-            window.location.search.includes('mode=neutralino') ||
-            window.location.search.includes('nl_port=');
+        const isCapacitor =
+            window.CAP_MODE === true ||
+            window.Capacitor?.isNativePlatform?.() === true ||
+            window.location.search.includes('mode=capacitor');
 
-        if (!isNeutralino && (!isChromeOrEdge || !hasFileSystemApi)) {
+        if (!isCapacitor && (!isChromeOrEdge || !hasFileSystemApi)) {
             selectLocalBtn.style.display = 'none';
             browserWarning.style.display = 'block';
-        } else if (isNeutralino) {
+        } else if (isCapacitor) {
             selectLocalBtn.style.display = 'flex';
             browserWarning.style.display = 'none';
         }
@@ -2207,16 +2223,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.target.closest('#select-local-folder-btn') || e.target.closest('#change-local-folder-btn')) {
             const isChange = e.target.closest('#change-local-folder-btn') !== null;
             try {
-                const isNeutralino =
-                    window.Neutralino && (window.NL_MODE || window.location.search.includes('mode=neutralino'));
+                const isCapacitor =
+                    window.CapacitorBridge &&
+                    (window.CAP_MODE === true ||
+                        window.Capacitor?.isNativePlatform?.() === true ||
+                        window.location.search.includes('mode=capacitor'));
                 let handle;
                 let path;
 
-                if (isNeutralino) {
-                    path = await window.Neutralino.os.showFolderDialog('Select Music Folder');
+                if (isCapacitor) {
+                    path = await window.CapacitorBridge.os.showFolderDialog('Select Music Folder');
                     if (!path) return;
                     // Mock a handle object for UI compatibility
-                    handle = { name: path.split(/[/\\]/).pop() || path, isNeutralino: true, path };
+                    handle = { name: path.split(/[/\\]/).pop() || path, isCapacitor: true, path };
                 } else {
                     handle = await window.showDirectoryPicker({
                         id: 'music-folder',
@@ -2241,9 +2260,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let idCounter = 0;
                 const { readTrackMetadata } = await loadMetadataModule();
 
-                if (isNeutralino) {
-                    async function scanDirectoryNeu(dirPath) {
-                        const entries = await window.Neutralino.filesystem.readDirectory(dirPath);
+                if (isCapacitor) {
+                    async function scanDirectoryNative(dirPath) {
+                        const entries = await window.CapacitorBridge.filesystem.readDirectory(dirPath);
                         for (const entry of entries) {
                             if (entry.entry === '.' || entry.entry === '..') continue;
                             const fullPath = `${dirPath}/${entry.entry}`;
@@ -2257,8 +2276,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     name.endsWith('.ogg')
                                 ) {
                                     try {
-                                        const buffer = await window.Neutralino.filesystem.readBinaryFile(fullPath);
-                                        const stats = await window.Neutralino.filesystem.getStats(fullPath);
+                                        const buffer =
+                                            await window.CapacitorBridge.filesystem.readBinaryFile(fullPath);
+                                        const stats = await window.CapacitorBridge.filesystem.getStats(fullPath);
                                         const file = new File([buffer], entry.entry, {
                                             lastModified: stats.mtime,
                                         });
@@ -2270,11 +2290,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     }
                                 }
                             } else if (entry.type === 'DIRECTORY') {
-                                await scanDirectoryNeu(fullPath);
+                                await scanDirectoryNative(fullPath);
                             }
                         }
                     }
-                    await scanDirectoryNeu(path);
+                    await scanDirectoryNative(path);
                 } else {
                     async function scanDirectory(dirHandle) {
                         for await (const entry of dirHandle.values()) {

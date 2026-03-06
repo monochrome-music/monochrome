@@ -742,7 +742,7 @@ async function bulkDownloadToZipBlob(
     }
 }
 
-async function bulkDownloadToZipNeutralino(
+async function bulkDownloadToZipCapacitor(
     tracks,
     folderName,
     api,
@@ -876,8 +876,8 @@ async function bulkDownloadToZipNeutralino(
     }
 
     try {
-        // Load the bridge explicitly to ensure we go through the parent shell
-        const bridge = await import('./desktop/neutralino-bridge.js');
+        // Load bridge explicitly to use the native runtime where available
+        const bridge = await import('./desktop/capacitor-bridge.js');
 
         // Native Save Dialog via Bridge
         const savePath = await bridge.os.showSaveDialog(`Select save location for ${folderName}.zip`, {
@@ -907,10 +907,10 @@ async function bulkDownloadToZipNeutralino(
             const { done, value } = await reader.read();
             if (done) break;
 
-            // 'value' is a Uint8Array. Neutralino filesystem expects ArrayBuffer.
+            // 'value' is a Uint8Array. Native filesystem expects ArrayBuffer.
             // value.buffer might contain the whole backing store, so we should be careful to slice if offset is non-zero
             // but usually read() returns fresh chunks.
-            // However, neutralino bridge's appendBinaryFile takes ArrayBuffer.
+            // The bridge appendBinaryFile method accepts ArrayBuffer.
             const chunk = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength);
 
             await bridge.filesystem.appendBinaryFile(savePath, chunk);
@@ -942,16 +942,16 @@ async function startBulkDownload(
     const notification = createBulkDownloadNotification(type, name, tracks.length);
 
     try {
-        const isNeutralino = window.NL_MODE === true;
+        const isCapacitor = window.CAP_MODE === true || window.Capacitor?.isNativePlatform?.() === true;
         const hasFileSystemAccess =
             'showSaveFilePicker' in window && 'createWritable' in FileSystemFileHandle.prototype;
         const forceIndividual = bulkDownloadSettings.shouldForceIndividual();
         const useZip = hasFileSystemAccess && !forceIndividual;
         const useZipBlob = !hasFileSystemAccess && !forceIndividual;
 
-        if (isNeutralino) {
-            // Neutralino Native Logic
-            await bulkDownloadToZipNeutralino(
+        if (isCapacitor) {
+            // Capacitor native logic
+            await bulkDownloadToZipCapacitor(
                 tracks,
                 defaultName,
                 api,

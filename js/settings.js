@@ -222,7 +222,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
         }
 
         let authWindow = null;
-        if (!window.Neutralino) {
+        if (!window.CapacitorBridge) {
             authWindow = window.open('', '_blank');
         }
 
@@ -232,12 +232,12 @@ export function initializeSettings(scrobbler, player, api, ui) {
         try {
             const { token, url } = await scrobbler.lastfm.getAuthUrl();
 
-            if (window.Neutralino) {
+            if (window.CapacitorBridge) {
                 try {
-                    await Neutralino.os.open(url);
+                    await window.CapacitorBridge.os.open(url);
                 } catch (e) {
-                    // Fallback if os.open fails
-                    console.error('Neutralino open failed, falling back to window.open', e);
+                    // Fallback if native open fails
+                    console.error('Native open failed, falling back to window.open', e);
                     if (!authWindow) authWindow = window.open(url, '_blank');
                     else authWindow.location.href = url;
                 }
@@ -579,7 +579,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
             }
 
             let authWindow = null;
-            if (!window.Neutralino) {
+            if (!window.CapacitorBridge) {
                 authWindow = window.open('', '_blank');
             }
 
@@ -589,8 +589,8 @@ export function initializeSettings(scrobbler, player, api, ui) {
             try {
                 const { token, url } = await scrobbler.librefm.getAuthUrl();
 
-                if (window.Neutralino) {
-                    await Neutralino.os.open(url);
+                if (window.CapacitorBridge) {
+                    await window.CapacitorBridge.os.open(url);
                 } else if (authWindow) {
                     authWindow.location.href = url;
                 } else {

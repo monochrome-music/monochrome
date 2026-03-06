@@ -2,7 +2,9 @@
 import { getTrackTitle, getTrackArtists } from '../utils.js';
 
 export function initializeDiscordRPC(player) {
-    const EXTENSION_ID = 'js.neutralino.discordrpc';
+    const EXTENSION_ID = 'js.capacitor.discordrpc';
+    const nativeBridge = window.CapacitorBridge;
+    if (!nativeBridge) return;
 
     function sendUpdate(track, isPaused = false) {
         if (!track) return;
@@ -32,8 +34,8 @@ export function initializeDiscordRPC(player) {
             data.endTimestamp = Math.floor((now + remaining) / 1000);
         }
 
-        Neutralino.events.broadcast('discord:update', data).catch((e) => console.error('Broadcast failed', e));
-        Neutralino.extensions
+        nativeBridge.events.broadcast('discord:update', data).catch((e) => console.error('Broadcast failed', e));
+        nativeBridge.extensions
             .dispatch(EXTENSION_ID, 'discord:update', data)
             .catch((e) => console.error('Dispatch failed', e));
     }
@@ -56,7 +58,7 @@ export function initializeDiscordRPC(player) {
     if (player.currentTrack) {
         sendUpdate(player.currentTrack, player.audio.paused);
     } else {
-        Neutralino.events
+        nativeBridge.events
             .broadcast('discord:update', {
                 details: 'Idling',
                 state: 'Monochrome',

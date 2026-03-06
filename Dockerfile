@@ -3,7 +3,7 @@ FROM node:lts-alpine
 
 WORKDIR /app
 
-# Install system dependencies required for Bun and Neutralino
+# Install system dependencies required for Bun
 RUN apk add --no-cache wget curl bash
 RUN apk add --no-cache python3 make g++ && ln -sf python3 /usr/bin/python
 
@@ -22,7 +22,7 @@ RUN bun install
 # Copy the rest of the project
 COPY . .
 
-# Build the project (Bun is now available for "bun x neu build")
+# Build the project
 RUN bun run build
 
 # Expose Vite preview port

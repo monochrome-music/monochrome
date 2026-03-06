@@ -1,0 +1,12 @@
+{
+    "appId": "com.monochrome.app",
+    "appName": "Monochrome",
+    "webDir": "dist",
+    "bundledWebRuntime": false,
+    "android": {
+        "adjustMarginsForEdgeToEdge": "force"
+    },
+    "server": {
+        "androidScheme": "https"
+    }
+}

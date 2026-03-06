@@ -1,8 +1,8 @@
-name: Desktop Build
+name: Native Build Prep
 
 on:
   push:
-    branches: [main, neutralino]
+    branches: [main, capacitor]
   workflow_dispatch:
 
 permissions:
@@ -10,26 +10,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    
-    strategy:
-      matrix:
-        include:
-          - os: windows-latest
-            platform: windows
-            binary_source: Monochrome-win_x64.exe
-            binary_dest: Monochrome.exe
-            archive_name: monochrome-windows.zip
-          - os: ubuntu-latest
-            platform: linux
-            binary_source: Monochrome-linux_x64
-            binary_dest: Monochrome
-            archive_name: monochrome-linux.zip
-          - os: macos-latest
-            platform: macos
-            binary_source: Monochrome-mac_universal
-            binary_dest: Monochrome
-            archive_name: monochrome-mac.zip
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -37,49 +18,34 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: '22'
+          cache: 'npm'
 
       - name: Install dependencies
-        run: bun install
+        run: npm ci
 
-      - name: Download Neutralino binaries
-        run: bun x neu update
+      - name: Build web bundle
+        run: npm run build
 
-      - name: Build application
-        run: bun run build
+      - name: Copy web assets into Capacitor
+        run: npm run cap:copy
 
-      - name: Prepare Release Folder
+      - name: Prepare release archive
         run: |
-          mkdir release
-          cp dist/Monochrome/resources.neu release/
-          cp neutralino.config.json release/
-          cp -r dist/Monochrome/extensions release/
-          cp dist/Monochrome/${{ matrix.binary_source }} release/${{ matrix.binary_dest }}
-        shell: bash
-
-      - name: Set Permissions (Linux/macOS)
-        if: matrix.platform != 'windows'
-        run: chmod +x release/${{ matrix.binary_dest }}
-
-      - name: Zip for R2 (Windows)
-        if: matrix.platform == 'windows'
-        run: Compress-Archive -Path release/* -DestinationPath ${{ matrix.archive_name }} -Force
-        shell: pwsh
-
-      - name: Zip for R2 (Linux/macOS)
-        if: matrix.platform != 'windows'
-        run: |
+          mkdir -p release
+          cp -r dist release/dist
+          cp capacitor.config.json release/
           cd release
-          zip -r ../${{ matrix.archive_name }} .
+          zip -r ../monochrome-capacitor-web.zip .
         shell: bash
 
       - name: Isolate Zip File
         run: |
           mkdir out_delivery
-          mv ${{ matrix.archive_name }} out_delivery/
+          mv monochrome-capacitor-web.zip out_delivery/
         shell: bash
 
       - name: Upload to R2
@@ -95,6 +61,6 @@ jobs:
       - name: Upload Artifact (GH Internal)
         uses: actions/upload-artifact@v4
         with:
-          name: Monochrome-${{ matrix.platform }}
+          name: Monochrome-capacitor
           path: release/
           retention-days: 30
