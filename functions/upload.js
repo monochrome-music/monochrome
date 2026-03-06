@@ -28,7 +28,7 @@ async function signature(key, date, region, service, stringToSign) {
     return buf2hex(sig);
 }
 
-async function createSignature(method, path, headers, payloadHash) {
+async function createSignature(method, path, headers, payloadHash, accessKeyId, secretAccessKey) {
     const now = new Date();
     const amzDate = now
         .toISOString()
@@ -49,8 +49,8 @@ async function createSignature(method, path, headers, payloadHash) {
     const credentialScope = `${date}/${region}/${service}/aws4_request`;
     const stringToSign = `AWS4-HMAC-SHA256\n${amzDate}\n${credentialScope}\n${buf2hex(await sha256(new TextEncoder().encode(canonicalRequest)))}`;
 
-    const sig = await signature(env.R2_SECRET_ACCESS_KEY, date, region, service, stringToSign);
-    return `AWS4-HMAC-SHA256 Credential=${env.R2_ACCESS_KEY_ID}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${sig}`;
+    const sig = await signature(secretAccessKey, date, region, service, stringToSign);
+    return `AWS4-HMAC-SHA256 Credential=${accessKeyId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${sig}`;
 }
 
 export async function onRequest(context) {
@@ -117,7 +117,14 @@ export async function onRequest(context) {
                     Host: host,
                 };
 
-                const auth = await createSignature('PUT', `/${R2_BUCKET}/${key}`, headers, payloadHash);
+                const auth = await createSignature(
+                    'PUT',
+                    `/${R2_BUCKET}/${key}`,
+                    headers,
+                    payloadHash,
+                    env.R2_ACCESS_KEY_ID,
+                    env.R2_SECRET_ACCESS_KEY
+                );
                 headers['Authorization'] = auth;
 
                 const res = await fetch(`${R2_ENDPOINT}/${R2_BUCKET}/${key}`, {
