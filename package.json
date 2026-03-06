@@ -49,6 +49,7 @@
     "dependencies": {
         "@ffmpeg/ffmpeg": "^0.12.15",
         "@ffmpeg/util": "^0.12.2",
+        "@kawarp/core": "^1.1.1",
         "@neutralinojs/lib": "^6.5.0",
         "appwrite": "^23.0.0",
         "butterchurn": "^2.6.7",
