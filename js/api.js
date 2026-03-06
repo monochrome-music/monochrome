@@ -8,10 +8,10 @@ import {
 } from './utils.js';
 import { trackDateSettings, losslessContainerSettings } from './storage.js';
 import { APICache } from './cache.js';
-import { addMetadataToAudio } from './metadata.js';
+import { addMetadataToAudio, prefetchMetadataObjects } from './metadata.js';
 import { DashDownloader } from './dash-downloader.js';
 import { encodeToMp3, MP3EncodingError } from './mp3-encoder.js';
-import { ffmpeg } from './ffmpeg.js';
+import { ffmpeg, loadFfmpeg } from './ffmpeg.js';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 const TIDAL_V2_TOKEN = 'txNoH4kkV41MfH25';
@@ -1109,7 +1109,11 @@ export class LosslessAPI {
     }
 
     async downloadTrack(id, quality = 'HI_RES_LOSSLESS', filename, options = {}) {
+        // Load ffmpeg in the background.
+        loadFfmpeg().catch(console.error);
+
         const { onProgress, track } = options;
+        const prefetchPromises = prefetchMetadataObjects(track, this);
 
         try {
             // MP3_320 is not a native TIDAL quality, we download LOSSLESS and convert
@@ -1197,7 +1201,14 @@ export class LosslessAPI {
             // Convert to MP3 320kbps if requested
             if (quality === 'MP3_320') {
                 try {
-                    blob = await encodeToMp3(blob, onProgress, options.signal);
+                    blob = await encodeToMp3(
+                        blob,
+                        (progress) => {
+                            console.log(progress);
+                            onProgress?.(progress);
+                        },
+                        options.signal
+                    );
                 } catch (encodingError) {
                     if (onProgress) {
                         onProgress({
@@ -1219,7 +1230,10 @@ export class LosslessAPI {
                                     { args: ['-c:a', 'copy'] },
                                     'output.flac',
                                     'audio/flac',
-                                    onProgress,
+                                    (progress) => {
+                                        console.log(progress);
+                                        onProgress?.(progress);
+                                    },
                                     options.signal
                                 );
                             }
@@ -1230,7 +1244,10 @@ export class LosslessAPI {
                                 { args: ['-c:a', 'alac'] },
                                 'output.m4a',
                                 'audio/mp4',
-                                onProgress,
+                                (progress) => {
+                                    console.log(progress);
+                                    onProgress?.(progress);
+                                },
                                 options.signal
                             );
                             break;
@@ -1265,7 +1282,7 @@ export class LosslessAPI {
                     };
                 }
 
-                blob = await addMetadataToAudio(blob, enrichedTrack, this, quality);
+                blob = await addMetadataToAudio(blob, enrichedTrack, this, quality, prefetchPromises);
             }
 
             // Detect actual format and fix filename extension if needed

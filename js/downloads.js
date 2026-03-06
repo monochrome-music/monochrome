@@ -12,11 +12,11 @@ import {
     escapeHtml,
 } from './utils.js';
 import { lyricsSettings, bulkDownloadSettings, losslessContainerSettings, playlistSettings } from './storage.js';
-import { addMetadataToAudio } from './metadata.js';
+import { addMetadataToAudio, prefetchMetadataObjects } from './metadata.js';
 import { DashDownloader } from './dash-downloader.js';
 import { generateM3U, generateM3U8, generateCUE, generateNFO, generateJSON } from './playlist-generator.js';
 import { encodeToMp3 } from './mp3-encoder.js';
-import { ffmpeg } from './ffmpeg.js';
+import { ffmpeg, loadFfmpeg } from './ffmpeg.js';
 
 const downloadTasks = new Map();
 const bulkDownloadTasks = new Map();
@@ -269,6 +269,11 @@ function removeBulkDownloadTask(notifEl) {
 }
 
 async function downloadTrackBlob(track, quality, api, lyricsManager = null, signal = null) {
+    // Load ffmpeg in the background.
+    loadFfmpeg().catch(console.error);
+
+    const prefetchPromises = prefetchMetadataObjects(track, api);
+
     let enrichedTrack = {
         ...track,
         artist: track.artist || (track.artists && track.artists.length > 0 ? track.artists[0] : null),
@@ -357,7 +362,7 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
 
     // Convert to MP3 320kbps if requested
     if (quality === 'MP3_320') {
-        blob = await encodeToMp3(blob, () => undefined, signal);
+        blob = await encodeToMp3(blob, console.log, signal);
     }
 
     if (quality.endsWith('LOSSLESS')) {
@@ -370,7 +375,7 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
                             { args: ['-c:a', 'copy'] },
                             'output.flac',
                             'audio/flac',
-                            () => undefined,
+                            console.log,
                             signal
                         );
                     }
@@ -381,7 +386,7 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
                         { args: ['-c:a', 'alac'] },
                         'output.m4a',
                         'audio/mp4',
-                        () => undefined,
+                        console.log,
                         signal
                     );
                     break;
@@ -401,7 +406,7 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
     const extension = await getExtensionFromBlob(blob);
 
     // Add metadata to the blob
-    blob = await addMetadataToAudio(blob, enrichedTrack, api, quality);
+    blob = await addMetadataToAudio(blob, enrichedTrack, api, quality, prefetchPromises);
 
     return { blob, extension };
 }
