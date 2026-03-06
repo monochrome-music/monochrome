@@ -1,7 +1,8 @@
 const API_URL = 'https://catbox.moe/user/api.php';
+const R2_PUBLIC_URL = 'https://cucks.qzz.io';
 
 export async function onRequest(context) {
-    const { request } = context;
+    const { request, env } = context;
 
     if (request.method === 'OPTIONS') {
         return new Response(null, { status: 204, headers: corsHeaders() });
@@ -10,6 +11,8 @@ export async function onRequest(context) {
     if (request.method !== 'POST') {
         return jsonError('Method not allowed', 405);
     }
+
+    const useR2 = env.R2_BUCKET;
 
     try {
         const contentType = request.headers.get('content-type') || '';
@@ -32,8 +35,8 @@ export async function onRequest(context) {
             const uploaded = form.get('file');
             if (!uploaded) return jsonError('No file provided', 400);
 
-            if (uploaded.size > 100 * 1024 * 1024) {
-                return jsonError('File exceeds 100MB', 400);
+            if (uploaded.size > 10 * 1024 * 1024) {
+                return jsonError('File exceeds 10MB', 400);
             }
 
             file = await uploaded.arrayBuffer();
@@ -41,22 +44,30 @@ export async function onRequest(context) {
             fileType = uploaded.type || 'application/octet-stream';
         }
 
-        const formData = new FormData();
-        formData.append('reqtype', 'fileupload');
-        formData.append('fileToUpload', new Blob([file], { type: fileType }), fileName);
+        let url;
 
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            body: formData,
-        });
+        if (useR2) {
+            const key = `${Date.now()}-${fileName}`;
+            await env.R2_BUCKET.put(key, file, { httpMetadata: { contentType: fileType } });
+            url = `${R2_PUBLIC_URL}/${key}`;
+        } else {
+            const formData = new FormData();
+            formData.append('reqtype', 'fileupload');
+            formData.append('fileToUpload', new Blob([file], { type: fileType }), fileName);
 
-        const responseText = await response.text();
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                body: formData,
+            });
 
-        if (!response.ok) {
-            throw new Error(`Upload failed: ${responseText}`);
+            const responseText = await response.text();
+
+            if (!response.ok) {
+                throw new Error(`Upload failed: ${responseText}`);
+            }
+
+            url = responseText.trim();
         }
-
-        const url = responseText.trim();
 
         return jsonResponse({
             success: true,
