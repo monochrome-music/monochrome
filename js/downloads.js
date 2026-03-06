@@ -362,7 +362,7 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
 
     // Convert to MP3 320kbps if requested
     if (quality === 'MP3_320') {
-        blob = await encodeToMp3(blob, () => undefined, signal);
+        blob = await encodeToMp3(blob, console.log, signal);
     }
 
     if (quality.endsWith('LOSSLESS')) {
@@ -375,7 +375,7 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
                             { args: ['-c:a', 'copy'] },
                             'output.flac',
                             'audio/flac',
-                            () => undefined,
+                            console.log,
                             signal
                         );
                     }
@@ -386,7 +386,7 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
                         { args: ['-c:a', 'alac'] },
                         'output.m4a',
                         'audio/mp4',
-                        () => undefined,
+                        console.log,
                         signal
                     );
                     break;
