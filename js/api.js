@@ -1201,10 +1201,14 @@ export class LosslessAPI {
             // Convert to MP3 320kbps if requested
             if (quality === 'MP3_320') {
                 try {
-                    blob = await encodeToMp3(blob, (progress) => {
-                        console.log(progress);
-                        onProgress?.(progress);
-                    }, options.signal);
+                    blob = await encodeToMp3(
+                        blob,
+                        (progress) => {
+                            console.log(progress);
+                            onProgress?.(progress);
+                        },
+                        options.signal
+                    );
                 } catch (encodingError) {
                     if (onProgress) {
                         onProgress({

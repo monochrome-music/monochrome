@@ -1,6 +1,5 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg';
 
-
 let ffmpeg = null;
 let loadingPromise = null;
 
@@ -40,7 +39,6 @@ async function loadFFmpeg(loadOptions = {}) {
     loadingPromise = (async () => {
         ffmpeg = new FFmpeg();
 
-
         ffmpeg.on('log', ({ message }) => {
             self.postMessage({ type: 'log', message });
 
@@ -66,13 +64,12 @@ async function loadFFmpeg(loadOptions = {}) {
                             stage: 'encoding',
                             progress,
                             time: cur,
-                            message: `Encoding: ${progress.toFixed(1)}% (${cur.toFixed(2)}s / ${totalDurationSeconds.toFixed(2)}s)`
+                            message: `Encoding: ${progress.toFixed(1)}% (${cur.toFixed(2)}s / ${totalDurationSeconds.toFixed(2)}s)`,
                         });
                     }
                 }
             }
         });
-
 
         // Optionally keep the original progress event for fallback
         ffmpeg.on('progress', ({ progress, time }) => {
