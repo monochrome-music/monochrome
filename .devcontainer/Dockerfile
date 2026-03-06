@@ -22,7 +22,9 @@ RUN apt-get update && apt-get upgrade -y && \
         xz-utils \
         libatomic1 \
         libc6 \
-        wget && \
+        wget \
+        nodejs \
+        npm && \
     rm -rf /var/lib/apt/lists/*
 
 # ------------------------------------------------------------
