@@ -77,6 +77,21 @@ async function blobToBase64(blob) {
     return arrayBufferToBase64(arrayBuffer);
 }
 
+let audioPermissionGranted = false;
+
+async function ensureAudioMediaStorePermission() {
+    if (audioPermissionGranted) return;
+
+    const status = await CapacitorMediaStore.requestPermissions({ types: ['audio'] });
+    const permissionState = status?.readMediaAudio || status?.readExternalStorage || status?.writeExternalStorage;
+
+    if (permissionState && permissionState !== 'granted') {
+        throw new Error('MediaStore audio permission was not granted');
+    }
+
+    audioPermissionGranted = true;
+}
+
 export const init = async () => {
     if (!isCapacitorRuntime) return;
     try {
@@ -239,7 +254,7 @@ export const downloads = {
         }
 
         try {
-            await CapacitorMediaStore.requestPermissions({ types: ['audio'] });
+            await ensureAudioMediaStorePermission();
 
             const result = await CapacitorMediaStore.saveMedia({
                 data: await blobToBase64(blob),

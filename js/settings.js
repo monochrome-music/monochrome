@@ -43,6 +43,9 @@ import { db } from './db.js';
 import { authManager } from './accounts/auth.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { saveFirebaseConfig, clearFirebaseConfig } from './accounts/config.js';
+import { Share } from '@capacitor/share';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+
 
 export function initializeSettings(scrobbler, player, api, ui) {
     // Restore last active settings tab
@@ -2728,12 +2731,25 @@ export function initializeSettings(scrobbler, player, api, ui) {
         const blob = new Blob([JSON.stringify(data, null, 2)], {
             type: 'application/json',
         });
+        const json = JSON.stringify(data, null, 2);
+        const b642json = btoa(unescape(encodeURIComponent(json)));
+        const file = await Filesystem.writeFile({
+            path : `monochrome-library-${new Date().toISOString().split('T')[0]}.json`,
+            data : b642json,
+            directory : Directory.Cache
+        });
+        await Share.share({
+            title: 'Export Library',
+            url: file.uri,
+        });
+        /*
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = `monochrome-library-${new Date().toISOString().split('T')[0]}.json`;
         a.click();
         URL.revokeObjectURL(url);
+        */
     });
 
     const importInput = document.getElementById('import-library-input');
@@ -2761,7 +2777,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
     });
 
     // Export All Settings
-    document.getElementById('export-settings-btn')?.addEventListener('click', () => {
+    document.getElementById('export-settings-btn')?.addEventListener('click', async () => {
         const settingsToExport = {};
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
@@ -2776,12 +2792,25 @@ export function initializeSettings(scrobbler, player, api, ui) {
         const blob = new Blob([JSON.stringify(settingsToExport, null, 2)], {
             type: 'application/json',
         });
+        const json = JSON.stringify(settingsToExport, null, 2);
+        const b642json = btoa(unescape(encodeURIComponent(json)));
+        const file = await Filesystem.writeFile({
+            path : `monochrome-settings-${new Date().toISOString().split('T')[0]}.json`,
+            data : b642json,
+            directory : Directory.Cache
+        });
+        await Share.share({
+            title: 'Export Settings',
+            url: file.uri,
+        });
+        /*
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = `monochrome-settings-${new Date().toISOString().split('T')[0]}.json`;
         a.click();
         URL.revokeObjectURL(url);
+        */
     });
 
     // Import All Settings

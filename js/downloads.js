@@ -417,6 +417,37 @@ function triggerDownload(blob, filename) {
     URL.revokeObjectURL(url);
 }
 
+function isCapacitorAndroidRuntime() {
+    return (
+        (window.CAP_MODE === true || window.Capacitor?.isNativePlatform?.() === true) &&
+        window.Capacitor?.getPlatform?.() === 'android'
+    );
+}
+
+async function loadCapacitorBridge() {
+    const bridgeModule = await import('./desktop/capacitor-bridge.js');
+    return bridgeModule.default || bridgeModule;
+}
+
+function buildMusicRelativePath(...segments) {
+    const sanitizedSegments = segments
+        .map((segment) => sanitizeForFilename(String(segment || '').trim()))
+        .filter(Boolean);
+    return ['Music', 'Monochrome', ...sanitizedSegments].join('/');
+}
+
+async function saveTrackToCapacitorMusic(bridge, track, quality, api, signal, relativePath) {
+    const { blob, extension } = await downloadTrackBlob(track, quality, api, null, signal);
+    const filename = buildTrackFilename(track, quality, extension);
+
+    await bridge.downloads.saveAudioToMusic({
+        blob,
+        fileName: filename,
+        albumName: track?.album?.title || null,
+        relativePath,
+    });
+}
+
 async function bulkDownloadSequentially(tracks, api, quality, lyricsManager, notification) {
     const { abortController } = bulkDownloadTasks.get(notification);
     const signal = abortController.signal;
@@ -451,6 +482,38 @@ async function bulkDownloadSequentially(tracks, api, quality, lyricsManager, not
         } catch (err) {
             if (err.name === 'AbortError') throw err;
             console.error(`Failed to download track ${trackTitle}:`, err);
+        }
+    }
+}
+
+async function bulkDownloadToMusicCapacitor(tracks, folderName, api, quality, notification) {
+    const { abortController } = bulkDownloadTasks.get(notification);
+    const signal = abortController.signal;
+    const bridge = await loadCapacitorBridge();
+
+    if (!bridge?.downloads?.saveAudioToMusic) {
+        throw new Error('Capacitor MediaStore bridge is unavailable.');
+    }
+
+    const discLayout = await createDiscLayoutContext(tracks, api);
+    const separateByDisc = discLayout.separateByDisc;
+
+    for (let i = 0; i < tracks.length; i++) {
+        if (signal.aborted) break;
+        const track = tracks[i];
+        const trackTitle = getTrackTitle(track);
+        const discNumber = discLayout.resolveDiscNumber(i);
+        const relativePath = separateByDisc
+            ? buildMusicRelativePath(folderName, getDiscFolderName(discNumber))
+            : buildMusicRelativePath(folderName);
+
+        updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
+
+        try {
+            await saveTrackToCapacitorMusic(bridge, track, quality, api, signal, relativePath);
+        } catch (err) {
+            if (err.name === 'AbortError') throw err;
+            console.error(`Failed to save track ${trackTitle} to Music directory:`, err);
         }
     }
 }
@@ -943,14 +1006,36 @@ async function startBulkDownload(
 
     try {
         const isCapacitor = window.CAP_MODE === true || window.Capacitor?.isNativePlatform?.() === true;
+        const isCapacitorAndroid = isCapacitor && window.Capacitor?.getPlatform?.() === 'android';
         const hasFileSystemAccess =
             'showSaveFilePicker' in window && 'createWritable' in FileSystemFileHandle.prototype;
         const forceIndividual = bulkDownloadSettings.shouldForceIndividual();
         const useZip = hasFileSystemAccess && !forceIndividual;
         const useZipBlob = !hasFileSystemAccess && !forceIndividual;
 
-        if (isCapacitor) {
-            // Capacitor native logic
+        if (isCapacitorAndroid) {
+            try {
+                await bulkDownloadToMusicCapacitor(tracks, defaultName, api, quality, notification);
+                completeBulkDownload(notification, true);
+            } catch (nativeError) {
+                console.warn(
+                    '[Downloads] Android Music-directory bulk save unavailable, falling back to ZIP save:',
+                    nativeError
+                );
+                await bulkDownloadToZipCapacitor(
+                    tracks,
+                    defaultName,
+                    api,
+                    quality,
+                    lyricsManager,
+                    notification,
+                    coverBlob,
+                    type,
+                    metadata
+                );
+            }
+        } else if (isCapacitor) {
+            // Capacitor native logic (non-Android fallback)
             await bulkDownloadToZipCapacitor(
                 tracks,
                 defaultName,
@@ -1064,6 +1149,71 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
     const notification = createBulkDownloadNotification('discography', artist.name, selectedReleases.length);
     const { abortController } = bulkDownloadTasks.get(notification);
     const signal = abortController.signal;
+    const isCapacitorAndroid = isCapacitorAndroidRuntime();
+
+    if (isCapacitorAndroid) {
+        try {
+            const bridge = await loadCapacitorBridge();
+            if (!bridge?.downloads?.saveAudioToMusic) {
+                throw new Error('Capacitor MediaStore bridge is unavailable.');
+            }
+
+            for (let albumIndex = 0; albumIndex < selectedReleases.length; albumIndex++) {
+                if (signal.aborted) break;
+                const album = selectedReleases[albumIndex];
+                updateBulkDownloadProgress(notification, albumIndex, selectedReleases.length, album.title);
+
+                try {
+                    const { album: fullAlbum, tracks } = await api.getAlbum(album.id);
+                    const releaseDateStr =
+                        fullAlbum.releaseDate ||
+                        (tracks[0]?.streamStartDate ? tracks[0].streamStartDate.split('T')[0] : '');
+                    const releaseDate = releaseDateStr ? new Date(releaseDateStr) : null;
+                    const year = releaseDate && !isNaN(releaseDate.getTime()) ? releaseDate.getFullYear() : '';
+
+                    const albumFolder = formatTemplate(
+                        localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist}',
+                        {
+                            albumTitle: fullAlbum.title,
+                            albumArtist: fullAlbum.artist?.name,
+                            year: year,
+                        }
+                    );
+
+                    const discLayout = await createDiscLayoutContext(tracks, api);
+                    const separateByDisc = discLayout.separateByDisc;
+
+                    for (let i = 0; i < tracks.length; i++) {
+                        if (signal.aborted) break;
+                        const track = tracks[i];
+                        const discNumber = discLayout.resolveDiscNumber(i);
+                        const relativePath = separateByDisc
+                            ? buildMusicRelativePath(rootFolder, albumFolder, getDiscFolderName(discNumber))
+                            : buildMusicRelativePath(rootFolder, albumFolder);
+
+                        try {
+                            await saveTrackToCapacitorMusic(bridge, track, quality, api, signal, relativePath);
+                        } catch (err) {
+                            if (err.name === 'AbortError') throw err;
+                            console.error(`Failed to save track ${track.title} to Music directory:`, err);
+                        }
+                    }
+                } catch (error) {
+                    if (error.name === 'AbortError') throw error;
+                    console.error(`Failed to download album ${album.title}:`, error);
+                }
+            }
+
+            completeBulkDownload(notification, true);
+            return;
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                removeBulkDownloadTask(notification);
+                return;
+            }
+            console.warn('[Downloads] Android discography Music-directory save unavailable, falling back to ZIP:', error);
+        }
+    }
 
     const hasFileSystemAccess = 'showSaveFilePicker' in window && 'createWritable' in FileSystemFileHandle.prototype;
     const useZip = hasFileSystemAccess && !bulkDownloadSettings.shouldForceIndividual();
