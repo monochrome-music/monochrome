@@ -23,7 +23,7 @@ export class AuthManager {
                 window.history.replaceState({}, '', window.location.pathname);
             }
         } else if (isOAuthRedirect) {
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await new Promise((resolve) => setTimeout(resolve, 500));
             window.history.replaceState({}, '', window.location.pathname);
         }
 
