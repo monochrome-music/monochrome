@@ -234,9 +234,6 @@ async function readM4aMetadata(file, metadata) {
         const moovData = new DataView(view.buffer, moovStart, moovLen);
         const moovAtoms = parseMp4Atoms(moovData);
 
-        const udta = moovAtoms.find((a) => a.type === 'udta');
-        if (!udta) return;
-
 
         // mvhd metadata tag
         const mvhd = moovAtoms.find((a) => a.type === 'mvhd');
@@ -263,6 +260,10 @@ async function readM4aMetadata(file, metadata) {
                 metadata.duration = duration / timeScale;
             }
         }
+
+        const udta = moovAtoms.find((a) => a.type === 'udta');
+        if (!udta) return;
+
 
         const udtaStart = moovStart + udta.offset + 8;
         const udtaLen = udta.size - 8;
