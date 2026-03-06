@@ -13,10 +13,12 @@ const KAWARP_DEFAULTS = {
 const BEAT_THRESHOLD = 0.75;
 const SPEED_MULTIPLIER = 4;
 const SCALE_BOOST_PCT = 2;
+const BOOSTED_SCALE = KAWARP_DEFAULTS.scale + SCALE_BOOST_PCT / 100;
 const SCALE_LERP_UP = 0.5;
 const SCALE_LERP_DOWN = 0.12;
 const SCALE_THRESHOLD = 0.001;
 const ANALYSIS_INTERVAL = 100;
+const CACHE_BUST_PARAM = 'not-from-cache-please';
 
 export class KawarpPreset {
     constructor() {
@@ -115,7 +117,7 @@ export class KawarpPreset {
         // cached non-CORS response from the <img> tag (same pattern as ui.js)
         const sep = url.includes('?') ? '&' : '?';
         this.kawarp
-            .loadImage(`${url}${sep}not-from-cache-please`)
+            .loadImage(`${url}${sep}${CACHE_BUST_PARAM}`)
             .catch((err) => console.warn('[Kawarp] Failed to load cover:', err));
     }
 
@@ -149,7 +151,7 @@ export class KawarpPreset {
                 ? KAWARP_DEFAULTS.animationSpeed * SPEED_MULTIPLIER
                 : KAWARP_DEFAULTS.animationSpeed;
 
-            this._targetScale = isBeat ? KAWARP_DEFAULTS.scale + SCALE_BOOST_PCT / 100 : KAWARP_DEFAULTS.scale;
+            this._targetScale = isBeat ? BOOSTED_SCALE : KAWARP_DEFAULTS.scale;
 
             this._lastAnalysisTime = now;
         }
