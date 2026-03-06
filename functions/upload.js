@@ -28,7 +28,7 @@ async function signature(key, date, region, service, stringToSign) {
     return buf2hex(sig);
 }
 
-async function createSignature(method, path, headers, payloadHash, accessKeyId, secretAccessKey) {
+async function createSignature(method, path, headers, payloadHash, accessKeyId, secretAccessKey, dateStamp) {
     const now = new Date();
     const amzDate = now
         .toISOString()
@@ -46,10 +46,10 @@ async function createSignature(method, path, headers, payloadHash, accessKeyId, 
             .join('\n') + '\n';
 
     const canonicalRequest = `${method}\n${path}\n\n${canonicalHeaders}\n${signedHeaders}\n${payloadHash}`;
-    const credentialScope = `${date}/${region}/${service}/aws4_request`;
+    const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
     const stringToSign = `AWS4-HMAC-SHA256\n${amzDate}\n${credentialScope}\n${buf2hex(await sha256(new TextEncoder().encode(canonicalRequest)))}`;
 
-    const sig = await signature(secretAccessKey, date, region, service, stringToSign);
+    const sig = await signature(secretAccessKey, dateStamp, region, service, stringToSign);
     return `AWS4-HMAC-SHA256 Credential=${accessKeyId}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${sig}`;
 }
 
@@ -102,7 +102,8 @@ export async function onRequest(context) {
             try {
                 const key = `${Date.now()}-${fileName}`;
                 const now = new Date();
-                const amzDate = now
+                const amzDate = now.toISOString().replace(/[:-]/g, '').slice(0, 15) + 'Z';
+                const dateStamp = now
                     .toISOString()
                     .replace(/[:-]|\.\d{3}/g, '')
                     .slice(0, 8);
@@ -123,7 +124,8 @@ export async function onRequest(context) {
                     headers,
                     payloadHash,
                     env.R2_ACCESS_KEY_ID,
-                    env.R2_SECRET_ACCESS_KEY
+                    env.R2_SECRET_ACCESS_KEY,
+                    dateStamp
                 );
                 headers['Authorization'] = auth;
 
