@@ -169,7 +169,7 @@ async function readFlacMetadata(file, metadata) {
 
     if (streamInfo) {
         const offset = streamInfo.offset;
-        
+
         // Sample Rate is 20 bits spanning bytes 10, 11, and the first 4 bits of 12
         const byte10 = dataView.getUint8(offset + 10);
         const byte11 = dataView.getUint8(offset + 11);
@@ -177,14 +177,14 @@ async function readFlacMetadata(file, metadata) {
 
         // since data for some reason spans across multiple bytes, we need to combine them into one int
         const sampleRate = (byte10 << 12) | (byte11 << 4) | (byte12 >> 4);
-        
+
         const byte13 = dataView.getUint8(offset + 13);
         const tsHigh = byte13 & 0x0f;
-        const tsLow = dataView.getUint32(offset + 14, false); 
-        
+        const tsLow = dataView.getUint32(offset + 14, false);
+
         // same thing for total samples
-        const totalSamples = (tsHigh * 0x100000000) + tsLow;
-        
+        const totalSamples = tsHigh * 0x100000000 + tsLow;
+
         if (sampleRate > 0) {
             // beatiful
             metadata.duration = totalSamples / sampleRate;
@@ -234,16 +234,15 @@ async function readM4aMetadata(file, metadata) {
         const moovData = new DataView(view.buffer, moovStart, moovLen);
         const moovAtoms = parseMp4Atoms(moovData);
 
-
         // mvhd metadata tag
         const mvhd = moovAtoms.find((a) => a.type === 'mvhd');
         if (mvhd) {
-            const mvhdStart = moovStart + mvhd.offset + 8; 
-            const version = view.getUint8(mvhdStart); 
-            
+            const mvhdStart = moovStart + mvhd.offset + 8;
+            const version = view.getUint8(mvhdStart);
+
             // resolution and length, basically
             let timeScale, duration;
-            
+
             if (version === 0) {
                 // 32-bit format
                 timeScale = view.getUint32(mvhdStart + 12, false);
@@ -253,9 +252,9 @@ async function readM4aMetadata(file, metadata) {
                 timeScale = view.getUint32(mvhdStart + 20, false);
                 const durHigh = view.getUint32(mvhdStart + 24, false);
                 const durLow = view.getUint32(mvhdStart + 28, false);
-                duration = (durHigh * 0x100000000) + durLow;
+                duration = durHigh * 0x100000000 + durLow;
             }
-            
+
             if (timeScale > 0) {
                 metadata.duration = duration / timeScale;
             }
@@ -263,7 +262,6 @@ async function readM4aMetadata(file, metadata) {
 
         const udta = moovAtoms.find((a) => a.type === 'udta');
         if (!udta) return;
-
 
         const udtaStart = moovStart + udta.offset + 8;
         const udtaLen = udta.size - 8;
@@ -422,7 +420,7 @@ async function readMp3Metadata(file, metadata) {
         }
 
         if (!metadata.duration || metadata.duration === 0) {
-            metadata.duration = await calculateMp3Duration(file, tagSize); 
+            metadata.duration = await calculateMp3Duration(file, tagSize);
         }
     }
 
@@ -454,7 +452,6 @@ async function readMp3Metadata(file, metadata) {
 // since mp3 file don't have metadata about duration, estimating it
 // uses evil bitwise magic
 async function calculateMp3Duration(file, startOffset) {
-
     const buffer = await file.slice(startOffset, startOffset + 32768).arrayBuffer();
     const view = new DataView(buffer);
     const uint8 = new Uint8Array(buffer);
@@ -486,12 +483,11 @@ async function calculateMp3Duration(file, startOffset) {
 
     // this xing header is present in many mp3 files and contains total frame count, which allows for accurate duration calculation
     const channelMode = (header >> 6) & 3; // mono or stereo
-    const xingOffset = offset + 4 + (mpegVer === 3 ? (channelMode === 3 ? 17 : 32) : (channelMode === 3 ? 9 : 17)); // the position of xing header
+    const xingOffset = offset + 4 + (mpegVer === 3 ? (channelMode === 3 ? 17 : 32) : channelMode === 3 ? 9 : 17); // the position of xing header
 
     if (xingOffset + 8 <= view.byteLength) {
         const sig = view.getUint32(xingOffset, false);
-        if ((sig === 0x58696e67 || sig === 0x496e666f) && (view.getUint32(xingOffset + 4, false) & 1)) {
-
+        if ((sig === 0x58696e67 || sig === 0x496e666f) && view.getUint32(xingOffset + 4, false) & 1) {
             const frames = view.getUint32(xingOffset + 8, false);
             // basically, duration = frames * samples per frame / sample rate
             return (frames * (mpegVer === 3 ? 1152 : 576)) / sampleRate;
