@@ -1,5 +1,5 @@
 {
-    "name": "debian-bun-fish-devcontainer",
+    "name": "debian-npm-fish-devcontainer",
     "build": {
         "dockerfile": "Dockerfile"
     },
@@ -14,7 +14,7 @@
         }
     },
 
-    "postCreateCommand": "bun --version && code --version",
+    "postCreateCommand": "npm install",
 
     "remoteEnv": {
         "SHELL": "/usr/bin/fish"

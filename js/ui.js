@@ -1767,16 +1767,16 @@ export class UIRenderer {
                 genresSection.innerHTML = `<h2 class="section-title">Genres</h2>`;
 
                 const genresGrid = document.createElement('div');
-                genresGrid.className = 'card-grid';
-                genresGrid.innerHTML = GENRES
-                    .map(
-                        (genre) => `
-                    <div class="card genre-card" data-genre-id="${genre.id}" data-genre-name="${escapeHtml(genre.name)}" style="cursor: pointer; background: var(--secondary); padding: 1.5rem; display: flex; align-items: center; justify-content: center; text-align: center; min-height: 100px; border-radius: var(--radius); border: 1px solid var(--border);">
-                        <h3 style="margin: 0; font-size: 1.1rem; font-weight: 600;">${escapeHtml(genre.name)}</h3>
+                genresGrid.style.display = 'flex';
+                genresGrid.style.flexWrap = 'wrap';
+                genresGrid.style.gap = '0.5rem';
+                genresGrid.innerHTML = GENRES.map(
+                    (genre) => `
+                    <div class="card genre-card" data-genre-id="${genre.id}" data-genre-name="${escapeHtml(genre.name)}" style="cursor: pointer; background: var(--secondary); padding: 0.6rem 1rem; border-radius: var(--radius); border: 1px solid var(--border);">
+                        <h3 style="margin: 0; font-size: 0.875rem; font-weight: 600;">${escapeHtml(genre.name)}</h3>
                     </div>
                 `
-                    )
-                    .join('');
+                ).join('');
 
                 genresSection.appendChild(genresGrid);
                 container.appendChild(genresSection);

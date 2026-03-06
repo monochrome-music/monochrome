@@ -84,10 +84,7 @@ export class AuthManager {
 
     async sendPasswordReset(email) {
         try {
-            await auth.createRecovery(
-                email,
-                window.location.origin + '/reset-password.html'
-            );
+            await auth.createRecovery(email, window.location.origin + '/reset-password.html');
             alert(`Password reset email sent to ${email}`);
         } catch (error) {
             console.error('Password reset failed:', error);
@@ -115,9 +112,9 @@ export class AuthManager {
     }
 
     updateUI(user) {
-        const connectBtn     = document.getElementById('firebase-connect-btn');
-        const clearDataBtn   = document.getElementById('firebase-clear-cloud-btn');
-        const statusText     = document.getElementById('firebase-status');
+        const connectBtn = document.getElementById('firebase-connect-btn');
+        const clearDataBtn = document.getElementById('firebase-clear-cloud-btn');
+        const statusText = document.getElementById('firebase-status');
         const emailContainer = document.getElementById('email-auth-container');
         const emailToggleBtn = document.getElementById('toggle-email-auth-btn');
 
@@ -128,10 +125,10 @@ export class AuthManager {
             connectBtn.textContent = 'Sign Out';
             connectBtn.classList.add('danger');
             connectBtn.onclick = () => this.signOut();
-            if (clearDataBtn)   clearDataBtn.style.display   = 'none';
+            if (clearDataBtn) clearDataBtn.style.display = 'none';
             if (emailContainer) emailContainer.style.display = 'none';
             if (emailToggleBtn) emailToggleBtn.style.display = 'none';
-            if (statusText)     statusText.textContent = user ? `Signed in as ${user.email}` : 'Signed in';
+            if (statusText) statusText.textContent = user ? `Signed in as ${user.email}` : 'Signed in';
 
             const accountPage = document.getElementById('page-account');
             if (accountPage) {
@@ -161,18 +158,18 @@ export class AuthManager {
             connectBtn.classList.add('danger');
             connectBtn.onclick = () => this.signOut();
 
-            if (clearDataBtn)   clearDataBtn.style.display   = 'block';
+            if (clearDataBtn) clearDataBtn.style.display = 'block';
             if (emailContainer) emailContainer.style.display = 'none';
             if (emailToggleBtn) emailToggleBtn.style.display = 'none';
-            if (statusText)     statusText.textContent = `Signed in as ${user.email}`;
+            if (statusText) statusText.textContent = `Signed in as ${user.email}`;
         } else {
             connectBtn.textContent = 'Connect with Google';
             connectBtn.classList.remove('danger');
             connectBtn.onclick = () => this.signInWithGoogle();
 
-            if (clearDataBtn)   clearDataBtn.style.display   = 'none';
+            if (clearDataBtn) clearDataBtn.style.display = 'none';
             if (emailToggleBtn) emailToggleBtn.style.display = 'inline-block';
-            if (statusText)     statusText.textContent = 'Sync your library across devices';
+            if (statusText) statusText.textContent = 'Sync your library across devices';
         }
     }
 }

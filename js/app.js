@@ -560,7 +560,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    document.getElementById('fullscreen-cover-image')?.addEventListener('click', () => {
+    document.getElementById('fullscreen-cover-overlay')?.addEventListener('click', (e) => {
+        const coverImage = document.getElementById('fullscreen-cover-image');
+        if (!coverImage) return;
+        const isOnCoverImage = e.target.closest('#fullscreen-cover-image') || e.target.id === 'fullscreen-cover-image';
+        if (!isOnCoverImage) return;
+
         const action = fullscreenCoverClickSettings.getAction();
         const overlay = document.getElementById('fullscreen-cover-overlay');
         const playerInstance = window.monochromePlayer;
