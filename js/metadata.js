@@ -134,6 +134,7 @@ async function readFlacMetadata(file, metadata) {
     const blocks = parseFlacBlocks(dataView);
     const vorbisBlock = blocks.find((b) => b.type === 4);
     const pictureBlock = blocks.find((b) => b.type === 6);
+    const streamInfo = blocks.find((b) => b.type === 0);
 
     const artists = [];
     if (vorbisBlock) {
@@ -163,6 +164,30 @@ async function readFlacMetadata(file, metadata) {
                 if (upperKey === 'COPYRIGHT') metadata.copyright = value;
                 if (upperKey === 'ITUNESADVISORY') metadata.explicit = value === '1';
             }
+        }
+    }
+
+    if (streamInfo) {
+        const offset = streamInfo.offset;
+        
+        // Sample Rate is 20 bits spanning bytes 10, 11, and the first 4 bits of 12
+        const byte10 = dataView.getUint8(offset + 10);
+        const byte11 = dataView.getUint8(offset + 11);
+        const byte12 = dataView.getUint8(offset + 12);
+
+        // since data for some reason spans across multiple bytes, we need to combine them into one int
+        const sampleRate = (byte10 << 12) | (byte11 << 4) | (byte12 >> 4);
+        
+        const byte13 = dataView.getUint8(offset + 13);
+        const tsHigh = byte13 & 0x0f;
+        const tsLow = dataView.getUint32(offset + 14, false); 
+        
+        // same thing for total samples
+        const totalSamples = (tsHigh * 0x100000000) + tsLow;
+        
+        if (sampleRate > 0) {
+            // beatiful
+            metadata.duration = totalSamples / sampleRate;
         }
     }
 
@@ -211,6 +236,33 @@ async function readM4aMetadata(file, metadata) {
 
         const udta = moovAtoms.find((a) => a.type === 'udta');
         if (!udta) return;
+
+
+        // mvhd metadata tag
+        const mvhd = moovAtoms.find((a) => a.type === 'mvhd');
+        if (mvhd) {
+            const mvhdStart = moovStart + mvhd.offset + 8; 
+            const version = view.getUint8(mvhdStart); 
+            
+            // resolution and length, basically
+            let timeScale, duration;
+            
+            if (version === 0) {
+                // 32-bit format
+                timeScale = view.getUint32(mvhdStart + 12, false);
+                duration = view.getUint32(mvhdStart + 16, false);
+            } else if (version === 1) {
+                // 64-bit format
+                timeScale = view.getUint32(mvhdStart + 20, false);
+                const durHigh = view.getUint32(mvhdStart + 24, false);
+                const durLow = view.getUint32(mvhdStart + 28, false);
+                duration = (durHigh * 0x100000000) + durLow;
+            }
+            
+            if (timeScale > 0) {
+                metadata.duration = duration / timeScale;
+            }
+        }
 
         const udtaStart = moovStart + udta.offset + 8;
         const udtaLen = udta.size - 8;
