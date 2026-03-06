@@ -34,13 +34,15 @@
         "eslint-config-prettier": "^10.1.8",
         "globals": "^17.4.0",
         "htmlhint": "^1.9.1",
+        "miniflare": "^4.20260301.1",
         "prettier": "^3.8.1",
         "stylelint": "^16.26.1",
         "stylelint-config-standard": "^39.0.1",
         "stylelint-config-standard-scss": "^16.0.0",
         "vite": "^7.3.1",
         "vite-plugin-neutralino": "^1.0.3",
-        "vite-plugin-pwa": "^1.2.0"
+        "vite-plugin-pwa": "^1.2.0",
+        "wrangler": "^4.71.0"
     },
     "overrides": {
         "sourcemap-codec": "npm:@jridgewell/sourcemap-codec@^1.4.14",
