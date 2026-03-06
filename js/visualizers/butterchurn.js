@@ -98,6 +98,7 @@ export class ButterchurnPreset {
     constructor() {
         this.name = 'Butterchurn';
         this.contextType = 'webgl';
+        this.managesOwnContext = true;
 
         this.visualizer = null;
         this.canvas = null;
@@ -458,31 +459,34 @@ export class ButterchurnPreset {
      * Lazy initialization helper for when audio context becomes available
      */
     lazyInit(canvas, audioContext, sourceNode) {
-        if (!this.isInitialized && canvas && audioContext) {
-            const gl =
-                canvas.getContext('webgl2', {
-                    alpha: true,
-                    antialias: true,
-                    preserveDrawingBuffer: true,
-                }) ||
-                canvas.getContext('webgl', {
-                    alpha: true,
-                    antialias: true,
-                    preserveDrawingBuffer: true,
-                });
+        return new Promise((resolve) => {
+            if (!this.isInitialized && canvas && audioContext) {
+                const gl =
+                    canvas.getContext('webgl2', {
+                        alpha: true,
+                        antialias: true,
+                        preserveDrawingBuffer: true,
+                    }) ||
+                    canvas.getContext('webgl', {
+                        alpha: true,
+                        antialias: true,
+                        preserveDrawingBuffer: true,
+                    });
 
-            if (gl) {
-                this.init(canvas, gl, audioContext, null);
+                if (gl) {
+                    this.init(canvas, gl, audioContext, null);
 
-                // Connect audio if sourceNode is provided
-                if (sourceNode) {
-                    this.connectAudioWithDelay(sourceNode);
+                    // Connect audio if sourceNode is provided
+                    if (sourceNode) {
+                        this.connectAudioWithDelay(sourceNode);
+                    }
                 }
+            } else if (this.isInitialized && sourceNode) {
+                // Reconnect if source changed
+                this.connectAudioWithDelay(sourceNode);
             }
-        } else if (this.isInitialized && sourceNode) {
-            // Reconnect if source changed
-            this.connectAudioWithDelay(sourceNode);
-        }
+            resolve();
+        });
     }
 
     /**
