@@ -2151,166 +2151,20 @@
                 </header>
 
                 <div id="page-home" class="page">
-                    <div id="home-welcome" style="display: none; text-align: center; padding: 4rem 2rem">
-                        <h2 style="margin-bottom: 1rem">Welcome to Monochrome</h2>
-                        <p style="color: var(--muted-foreground)">
-                            You haven't listened to anything yet. Search for your favorite songs to get started!
-                        </p>
+                    <div class="home-header-tabs">
+                        <button class="home-tab active" data-tab="for-you">Home</button>
+                        <button class="home-tab" data-tab="explore">Hot & New</button>
                     </div>
 
-                    <section class="content-section" id="home-editors-picks-section-empty" style="margin-top: 0">
-                        <div
-                            style="
-                                display: flex;
-                                align-items: center;
-                                justify-content: space-between;
-                                margin-bottom: 1rem;
-                            "
-                        >
-                            <h2 class="section-title" style="margin-bottom: 0">Editor's Picks</h2>
+                    <div id="home-view-for-you" class="home-view active">
+                        <div id="home-welcome" style="display: none; text-align: center; padding: 4rem 2rem">
+                            <h2 style="margin-bottom: 1rem">Welcome to Monochrome</h2>
+                            <p style="color: var(--muted-foreground)">
+                                You haven't listened to anything yet. Search for your favorite songs to get started!
+                            </p>
                         </div>
-                        <div class="card-grid" id="home-editors-picks-empty"></div>
-                    </section>
 
-                    <div id="home-content" style="display: none">
-                        <section class="content-section">
-                            <div
-                                style="
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: space-between;
-                                    margin-bottom: 1rem;
-                                "
-                            >
-                                <h2 class="section-title" style="margin-bottom: 0">Recommended Songs</h2>
-                                <button
-                                    class="btn-secondary"
-                                    id="refresh-songs-btn"
-                                    title="Refresh"
-                                    style="padding: 4px 8px"
-                                >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="16"
-                                        height="16"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-                                        <path d="M21 3v5h-5" />
-                                    </svg>
-                                </button>
-                            </div>
-                            <div class="track-list" id="home-recommended-songs"></div>
-                        </section>
-                        <section class="content-section">
-                            <div
-                                style="
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: space-between;
-                                    margin-bottom: 1rem;
-                                "
-                            >
-                                <h2 class="section-title" style="margin-bottom: 0">Recommended Albums</h2>
-                                <button
-                                    class="btn-secondary"
-                                    id="refresh-albums-btn"
-                                    title="Refresh"
-                                    style="padding: 4px 8px"
-                                >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="16"
-                                        height="16"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-                                        <path d="M21 3v5h-5" />
-                                    </svg>
-                                </button>
-                            </div>
-                            <div class="card-grid" id="home-recommended-albums"></div>
-                        </section>
-                        <section class="content-section">
-                            <div
-                                style="
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: space-between;
-                                    margin-bottom: 1rem;
-                                "
-                            >
-                                <h2 class="section-title" style="margin-bottom: 0">Recommended Artists</h2>
-                                <button
-                                    class="btn-secondary"
-                                    id="refresh-artists-btn"
-                                    title="Refresh"
-                                    style="padding: 4px 8px"
-                                >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="16"
-                                        height="16"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-                                        <path d="M21 3v5h-5" />
-                                    </svg>
-                                </button>
-                            </div>
-                            <div class="card-grid" id="home-recommended-artists"></div>
-                        </section>
-                        <section class="content-section">
-                            <div
-                                style="
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: space-between;
-                                    margin-bottom: 1rem;
-                                "
-                            >
-                                <h2 class="section-title" style="margin-bottom: 0">Jump Back In</h2>
-                                <button
-                                    class="btn-secondary"
-                                    id="clear-recent-btn"
-                                    title="Clear History"
-                                    style="padding: 4px 8px"
-                                >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="16"
-                                        height="16"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <path d="M3 6h18" />
-                                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                                    </svg>
-                                </button>
-                            </div>
-                            <div class="card-grid" id="home-recent-mixed"></div>
-                        </section>
-                        <section class="content-section" id="home-editors-picks-section">
+                        <section class="content-section" id="home-editors-picks-section-empty" style="margin-top: 0">
                             <div
                                 style="
                                     display: flex;
@@ -2321,8 +2175,167 @@
                             >
                                 <h2 class="section-title" style="margin-bottom: 0">Editor's Picks</h2>
                             </div>
-                            <div class="card-grid" id="home-editors-picks"></div>
+                            <div class="card-grid" id="home-editors-picks-empty"></div>
                         </section>
+
+                        <div id="home-content" style="display: none">
+                            <section class="content-section">
+                                <div
+                                    style="
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: space-between;
+                                        margin-bottom: 1rem;
+                                    "
+                                >
+                                    <h2 class="section-title" style="margin-bottom: 0">Recommended Songs</h2>
+                                    <button
+                                        class="btn-secondary"
+                                        id="refresh-songs-btn"
+                                        title="Refresh"
+                                        style="padding: 4px 8px"
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        >
+                                            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                                            <path d="M21 3v5h-5" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="track-list" id="home-recommended-songs"></div>
+                            </section>
+                            <section class="content-section">
+                                <div
+                                    style="
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: space-between;
+                                        margin-bottom: 1rem;
+                                    "
+                                >
+                                    <h2 class="section-title" style="margin-bottom: 0">Recommended Albums</h2>
+                                    <button
+                                        class="btn-secondary"
+                                        id="refresh-albums-btn"
+                                        title="Refresh"
+                                        style="padding: 4px 8px"
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        >
+                                            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                                            <path d="M21 3v5h-5" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="card-grid" id="home-recommended-albums"></div>
+                            </section>
+                            <section class="content-section">
+                                <div
+                                    style="
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: space-between;
+                                        margin-bottom: 1rem;
+                                    "
+                                >
+                                    <h2 class="section-title" style="margin-bottom: 0">Recommended Artists</h2>
+                                    <button
+                                        class="btn-secondary"
+                                        id="refresh-artists-btn"
+                                        title="Refresh"
+                                        style="padding: 4px 8px"
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        >
+                                            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                                            <path d="M21 3v5h-5" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="card-grid" id="home-recommended-artists"></div>
+                            </section>
+                            <section class="content-section">
+                                <div
+                                    style="
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: space-between;
+                                        margin-bottom: 1rem;
+                                    "
+                                >
+                                    <h2 class="section-title" style="margin-bottom: 0">Jump Back In</h2>
+                                    <button
+                                        class="btn-secondary"
+                                        id="clear-recent-btn"
+                                        title="Clear History"
+                                        style="padding: 4px 8px"
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        >
+                                            <path d="M3 6h18" />
+                                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="card-grid" id="home-recent-mixed"></div>
+                            </section>
+                            <section class="content-section" id="home-editors-picks-section">
+                                <div
+                                    style="
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: space-between;
+                                        margin-bottom: 1rem;
+                                    "
+                                >
+                                    <h2 class="section-title" style="margin-bottom: 0">Editor's Picks</h2>
+                                </div>
+                                <div class="card-grid" id="home-editors-picks"></div>
+                            </section>
+                        </div>
+                    </div>
+
+                    <div id="home-view-explore" class="home-view" style="display: none;">
+                        <div id="explore-content">
+                            <div class="card-grid" id="explore-grid"></div>
+                        </div>
                     </div>
                 </div>
 
