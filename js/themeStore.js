@@ -111,7 +111,7 @@ export class ThemeStore {
         let currentUserId = null;
         if (authManager.user) {
             try {
-                const record = await syncManager._getUserRecord(authManager.user.uid);
+                const record = await syncManager._getUserRecord(authManager.user.$id);
                 currentUserId = record?.id;
             } catch (e) {
                 console.warn('Failed to resolve user ID for theme ownership check', e);
@@ -233,7 +233,7 @@ export class ThemeStore {
             const fbUser = authManager.user;
             if (!fbUser) throw new Error('Not authenticated');
 
-            await this.pb.collection('themes').delete(themeId, { f_id: fbUser.uid });
+            await this.pb.collection('themes').delete(themeId, { f_id: fbUser.$id });
             alert('Theme deleted successfully.');
             this.loadThemes();
         } catch (err) {
@@ -518,7 +518,7 @@ export class ThemeStore {
         let userName = null;
 
         try {
-            const dbUser = await syncManager._getUserRecord(fbUser.uid);
+            const dbUser = await syncManager._getUserRecord(fbUser.$id);
             if (!dbUser) {
                 throw new Error('Could not find or create your user record. Please try again.');
             }
@@ -547,11 +547,11 @@ export class ThemeStore {
             formData.append('authorUrl', website || '');
 
             if (this.editingThemeId) {
-                await this.pb.collection('themes').update(this.editingThemeId, formData, { f_id: fbUser.uid });
+                await this.pb.collection('themes').update(this.editingThemeId, formData, { f_id: fbUser.$id });
                 alert('Theme updated successfully!');
             } else {
                 formData.append('author', userId);
-                await this.pb.collection('themes').create(formData, { f_id: fbUser.uid });
+                await this.pb.collection('themes').create(formData, { f_id: fbUser.$id });
                 alert('Theme uploaded successfully!');
             }
 
