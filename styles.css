@@ -7835,3 +7835,35 @@ textarea:focus {
     display: flex;
     flex-direction: column;
 }
+
+.home-header-tabs {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.home-tab {
+    background: transparent;
+    border: none;
+    color: var(--muted-foreground);
+    padding: 0.75rem 0.5rem;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-bottom: 2px solid transparent;
+    transition: all var(--transition);
+}
+
+.home-tab:hover {
+    color: var(--foreground);
+}
+
+.home-tab.active {
+    color: var(--foreground);
+    border-bottom-color: var(--highlight);
+}
+
+.home-view {
+    animation: fade-in 0.3s ease;
+}
