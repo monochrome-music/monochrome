@@ -14,7 +14,7 @@
         }
     },
 
-    "postCreateCommand": "bun --version && code --version",
+    "postCreateCommand": "bun install",
 
     "remoteEnv": {
         "SHELL": "/usr/bin/fish"

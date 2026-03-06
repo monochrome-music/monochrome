@@ -493,15 +493,22 @@ export class ButterchurnPreset {
      * Cleanup resources
      */
     destroy() {
-        // Unregister graph change listener
         if (this._unregisterGraphChange) {
             this._unregisterGraphChange();
             this._unregisterGraphChange = null;
         }
 
-        if (this.visualizer) {
+        if (this.visualizer && this.canvas) {
+            const gl = this.canvas.getContext('webgl2') || this.canvas.getContext('webgl');
+            if (gl) {
+                const ext = gl.getExtension('WEBGL_lose_context');
+                if (ext) {
+                    ext.loseContext();
+                }
+            }
             this.visualizer = null;
         }
+
         this.isInitialized = false;
         this.canvas = null;
         this.audioContext = null;
