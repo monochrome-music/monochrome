@@ -48,6 +48,16 @@ jobs:
       - name: Download Neutralino binaries
         run: bun x neu update
 
+      - name: Auto-Bump Version
+        run: |
+          $json = Get-Content neutralino.config.json -Raw | ConvertFrom-Json
+          $v = $json.version.Split('.')
+          if ($v.Count -lt 2) { $v += "0" }
+          $newVersion = "{0}.{1}.{2}" -f $v[0], $v[1], ${{ github.run_number }}
+          $json.version = $newVersion
+          $json | ConvertTo-Json -Depth 5 | Set-Content neutralino.config.json
+        shell: pwsh
+
       - name: Build application
         run: bun run build
 
@@ -82,6 +92,20 @@ jobs:
           mv ${{ matrix.archive_name }} out_delivery/
         shell: bash
 
+      - name: Generate Update Manifest
+        run: |
+          $config = Get-Content neutralino.config.json | ConvertFrom-Json
+          $version = $config.version
+          $platform = "${{ matrix.platform }}"
+          $archive = "${{ matrix.archive_name }}"
+          $json = @{
+            version = $version
+            url = "https://downloads.samidy.com/out_delivery/$archive"
+            notes = "Update $version is available."
+          }
+          $json | ConvertTo-Json | Set-Content "out_delivery/update-$platform.json"
+        shell: pwsh
+
       - name: Upload to R2
         uses: ryand56/r2-upload-action@latest
         with:
@@ -90,7 +114,7 @@ jobs:
           r2-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           r2-bucket: ${{ secrets.R2_BUCKET }}
           source-dir: 'out_delivery'
-          destination-dir: ''
+          destination-dir: 'out_delivery'
 
       - name: Upload Artifact (GH Internal)
         uses: actions/upload-artifact@v4
