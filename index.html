@@ -1719,6 +1719,15 @@
             </div>
         </div>
 
+        <div id="command-palette-overlay" style="display: none">
+            <div class="command-palette">
+                <div class="command-palette-header">
+                    <input type="text" id="command-palette-input" placeholder="Type > to start a command..." autocomplete="off" />
+                </div>
+                <div id="command-palette-results" class="command-palette-results"></div>
+            </div>
+        </div>
+
         <div id="sidebar-overlay"></div>
 
         <div id="csv-import-progress" class="csv-import-progress" style="display: none">
@@ -1747,7 +1756,7 @@
             <aside class="sidebar">
                 <div class="sidebar-content">
                     <div class="sidebar-logo">
-                        <a href="/" class="sidebar-logo-link">
+                        <a href="https://monochrome.tf/" class="sidebar-logo-link">
                             <svg
                                 class="app-logo"
                                 xmlns="http://www.w3.org/2000/svg"
@@ -2332,7 +2341,7 @@
                         </div>
                     </div>
 
-                    <div id="home-view-explore" class="home-view" style="display: none">
+                    <div id="home-view-explore" class="home-view" style="display: none;">
                         <div id="explore-content">
                             <div class="card-grid" id="explore-grid"></div>
                         </div>
@@ -3675,7 +3684,6 @@
                                         <option value="particles">Particles</option>
                                         <option value="unknown-pleasures">Unknown Pleasures</option>
                                         <option value="butterchurn">Butterchurn (Milkdrop)</option>
-                                        <option value="kawarp">Kawarp (Album Art)</option>
                                     </select>
                                 </div>
                                 <div class="setting-item" id="visualizer-mode-setting">

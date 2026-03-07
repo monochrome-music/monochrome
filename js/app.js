@@ -27,6 +27,7 @@ import { registerSW } from 'virtual:pwa-register';
 import './smooth-scrolling.js';
 import { openEditProfile } from './profile.js';
 import { ThemeStore } from './themeStore.js';
+import './commandPalette.js';
 
 import { initTracker } from './tracker.js';
 import {
@@ -421,7 +422,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const ui = new UIRenderer(api, player);
     window.monochromeUi = ui;
     const scrobbler = new MultiScrobbler();
+    window.monochromeScrobbler = scrobbler;
     const lyricsManager = new LyricsManager(api);
+    ui.lyricsManager = lyricsManager;
 
     // Check browser support for local files
     const selectLocalBtn = document.getElementById('select-local-folder-btn');

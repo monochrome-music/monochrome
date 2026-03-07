@@ -89,7 +89,7 @@
 
 ### Power User Features
 
-- Keyboard shortcuts for power users
+- Keyboard shortcuts & Command Palette (CTRL+K) for power users
 
 ---
 
