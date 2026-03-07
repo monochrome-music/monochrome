@@ -65,6 +65,7 @@
         "@jofr/capacitor-media-session": "^4.0.0",
         "@kawarp/core": "^1.1.1",
         "@odion-cloud/capacitor-mediastore": "^1.0.21",
+        "@uimaxbai/am-lyrics": "^1.1.1",
         "appwrite": "^23.0.0",
         "butterchurn": "^2.6.7",
         "butterchurn-presets": "^2.4.7",

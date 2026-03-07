@@ -424,7 +424,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (isCapacitorMode) {
         window.CAP_MODE = true;
         try {
-            const desktopModule = await import('./desktop/desktop.js');
+            const desktopModule = await import('./mobile/capacitor.js');
             await desktopModule.initDesktop(player);
         } catch (err) {
             console.error('Failed to load desktop module:', err);
