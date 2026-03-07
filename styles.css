@@ -3483,13 +3483,21 @@ input:checked + .slider::before {
     transition: background-image var(--transition);
 }
 
-#visualizer-canvas {
+#visualizer-container {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
     z-index: 0;
     pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+#visualizer-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
 }
 
 .fullscreen-cover-content {
