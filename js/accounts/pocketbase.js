@@ -471,9 +471,6 @@ const syncManager = {
         if (!record) return;
 
         const updateData = { ...data };
-        if (updateData.privacy) {
-            updateData.privacy = JSON.stringify(updateData.privacy);
-        }
 
         await this.pb.collection('DB_users').update(record.id, updateData, { f_id: user.$id });
         if (this._userRecordCache) {
