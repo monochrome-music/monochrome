@@ -80,12 +80,16 @@ if (typeof window !== 'undefined') {
     plausibleScript.src = 'https://plausible.canine.tools/js/pa-dCMvQpiD1-AJmi8o3xviO.js';
     document.head.appendChild(plausibleScript);
 
-    window.plausible = window.plausible || function () {
-        (window.plausible.q = window.plausible.q || []).push(arguments);
-    };
-    window.plausible.init = window.plausible.init || function (i) {
-        window.plausible.o = i || {};
-    };
+    window.plausible =
+        window.plausible ||
+        function () {
+            (window.plausible.q = window.plausible.q || []).push(arguments);
+        };
+    window.plausible.init =
+        window.plausible.init ||
+        function (i) {
+            window.plausible.o = i || {};
+        };
     window.plausible.init();
 }
 

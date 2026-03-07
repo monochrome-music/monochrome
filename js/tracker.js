@@ -47,7 +47,7 @@ async function loadArtistsPopularity() {
 
 async function loadArtistsData() {
     try {
-        const response = await fetch('https://sheets.artistgrid.cx/artists.ndjson');
+        const response = await fetch('https://assets.artistgrid.cx/artists.ndjson');
         if (!response.ok) throw new Error('Network response was not ok');
         const text = await response.text();
         artistsData = text
@@ -89,15 +89,49 @@ function getSheetId(url) {
     return match ? match[1] : null;
 }
 
-async function fetchTrackerData(sheetId) {
-    try {
-        const response = await fetch(`https://tracker.israeli.ovh/get/${sheetId}`);
-        if (!response.ok) return null;
-        return await response.json();
-    } catch (e) {
-        console.error('Failed to fetch tracker data', e);
-        return null;
+function transformImageUrl(url) {
+    if (!url) return url;
+    return url.replace('https://s3.sad.ovh/trackerapi/', 'https://r2.artistgrid.cx/');
+}
+
+function transformErasImages(eras) {
+    if (!eras) return eras;
+    for (const eraName in eras) {
+        const era = eras[eraName];
+        if (era.image) {
+            era.image = transformImageUrl(era.image);
+        }
     }
+    return eras;
+}
+
+async function fetchTrackerData(sheetId) {
+    const endpoints = [
+        'https://tracker.israeli.ovh/get/',
+        'https://tracker.thug.surf/get/',
+        'https://trackerapi-2.artistgrid.cx/get/',
+    ];
+
+    let lastError = null;
+    for (const baseUrl of endpoints) {
+        try {
+            const response = await fetch(`${baseUrl}${sheetId}`);
+            if (!response.ok) {
+                lastError = new Error(`HTTP ${response.status}`);
+                continue;
+            }
+            const data = await response.json();
+            if (data.eras) {
+                transformErasImages(data.eras);
+            }
+            return data;
+        } catch (e) {
+            lastError = e;
+            console.warn(`Failed to fetch from ${baseUrl}, trying next...`);
+        }
+    }
+    console.error('Failed to fetch tracker data from all endpoints', lastError);
+    return null;
 }
 
 function parseDuration(durationStr) {
