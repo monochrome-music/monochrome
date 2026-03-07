@@ -169,8 +169,8 @@ For PocketBase, development mode, and advanced setups, see [DOCKER.md](DOCKER.md
     ```
 
 2. **Install dependencies:**
-   [!WARNING]
-   Install dependencies with --legacy-peer-deps
+   > [!IMPORTANT]
+   > Install dependencies with --legacy-peer-deps
 
     ```bash
     npm install
