@@ -411,6 +411,46 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             const desktopModule = await import('./desktop/desktop.js');
             await desktopModule.initDesktop(player);
+
+            import('./desktop/neutralino-bridge.js').then(({ updater }) => {
+                setTimeout(async () => {
+                    try {
+                        // my worker should detect a users OS and serve the right ver
+                        const update = await updater.checkForUpdates('https://update.samidy.xyz/update.json');
+                        
+                        if (update && update.available) {
+                            const modal = document.getElementById('desktop-update-modal');
+                            const notes = document.getElementById('desktop-update-notes');
+                            const confirmBtn = document.getElementById('desktop-update-confirm');
+                            const cancelBtn = document.getElementById('desktop-update-cancel');
+
+                            if (modal) {
+                                notes.innerHTML = update.notes || 'Bug fixes and improvements.';
+                                modal.classList.add('active');
+
+                                confirmBtn.onclick = async () => {
+                                    confirmBtn.disabled = true;
+                                    confirmBtn.textContent = 'Updating...';
+                                    try {
+                                        await updater.install();
+                                    } catch (err) {
+                                        console.error(err);
+                                        confirmBtn.textContent = 'Failed';
+                                        setTimeout(() => {
+                                            confirmBtn.disabled = false;
+                                            confirmBtn.textContent = 'Update Now';
+                                        }, 2000);
+                                    }
+                                };
+
+                                cancelBtn.onclick = () => modal.classList.remove('active');
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('Failed to check for desktop updates:', e);
+                    }
+                }, 3000);
+            });
         } catch (err) {
             console.error('Failed to load desktop module:', err);
         }

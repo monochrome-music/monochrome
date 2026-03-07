@@ -1719,6 +1719,19 @@
             </div>
         </div>
 
+        <div id="desktop-update-modal" class="modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <h3>Update Available</h3>
+                <p>A new version of Monochrome is available.</p>
+                <div id="desktop-update-notes" style="margin: 1rem 0; padding: 1rem; background: var(--background-secondary); border-radius: var(--radius); max-height: 200px; overflow-y: auto; font-size: 0.9rem;"></div>
+                <div class="modal-actions">
+                    <button id="desktop-update-cancel" class="btn-secondary">Later</button>
+                    <button id="desktop-update-confirm" class="btn-primary">Update Now</button>
+                </div>
+            </div>
+        </div>
+
         <div id="command-palette-overlay" style="display: none">
             <div class="command-palette">
                 <div class="command-palette-header">
@@ -5121,6 +5134,13 @@
                                     <input type="checkbox" id="pwa-auto-update-toggle" checked />
                                     <span class="slider"></span>
                                 </label>
+                            </div>
+                            <div class="setting-item" id="desktop-update-container" style="display: none">
+                                <div class="info">
+                                    <span class="label">Desktop Update</span>
+                                    <span class="description">Check for updates to the desktop application</span>
+                                </div>
+                                <button id="check-desktop-updates-btn" class="btn-secondary">Check for Updates</button>
                             </div>
                             <div class="setting-item">
                                 <div class="info">
