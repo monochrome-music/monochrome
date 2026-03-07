@@ -425,7 +425,7 @@ function isCapacitorAndroidRuntime() {
 }
 
 async function loadCapacitorBridge() {
-    const bridgeModule = await import('./desktop/capacitor-bridge.js');
+    const bridgeModule = await import('./mobile/capacitor-bridge.js');
     return bridgeModule.default || bridgeModule;
 }
 
@@ -940,7 +940,7 @@ async function bulkDownloadToZipCapacitor(
 
     try {
         // Load bridge explicitly to use the native runtime where available
-        const bridge = await import('./desktop/capacitor-bridge.js');
+        const bridge = await import('./mobile/capacitor-bridge.js');
 
         // Native Save Dialog via Bridge
         const savePath = await bridge.os.showSaveDialog(`Select save location for ${folderName}.zip`, {

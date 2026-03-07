@@ -393,7 +393,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Linux Media Keys Fix
     if (isCapacitorMode) {
-        import('./desktop/capacitor-bridge.js').then(({ events }) => {
+        import('./mobile/capacitor-bridge.js').then(({ events }) => {
             events.on('mediaNext', () => player.playNext());
             events.on('mediaPrevious', () => player.playPrev());
             events.on('mediaPlayPause', (detail) => {
