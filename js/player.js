@@ -300,9 +300,7 @@ export class Player {
             if (hasNativeMediaSession) {
                 window.CapacitorBridge.media
                     .setActionHandler({ action }, handler)
-                    .catch((error) =>
-                        console.warn(`Failed to set native MediaSession handler for ${action}:`, error)
-                    );
+                    .catch((error) => console.warn(`Failed to set native MediaSession handler for ${action}:`, error));
             }
         };
 
@@ -1078,7 +1076,7 @@ export class Player {
     async updateNativeMediaPlaybackState() {
         if (!window.CapacitorBridge?.media) return;
 
-        const duration = isFinite(this.audio.duration) ? this.audio.duration : (this.currentTrack?.duration || 0);
+        const duration = isFinite(this.audio.duration) ? this.audio.duration : this.currentTrack?.duration || 0;
         const position = Math.min(this.audio.currentTime || 0, duration || this.audio.currentTime || 0);
         const playbackRate = this.audio.playbackRate || 1;
         const playbackState = this.audio.paused ? 'paused' : 'playing';

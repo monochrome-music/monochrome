@@ -46,7 +46,6 @@ import { saveFirebaseConfig, clearFirebaseConfig } from './accounts/config.js';
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
-
 export function initializeSettings(scrobbler, player, api, ui) {
     // Restore last active settings tab
     const savedTab = settingsUiState.getActiveTab();
@@ -2734,9 +2733,9 @@ export function initializeSettings(scrobbler, player, api, ui) {
         const json = JSON.stringify(data, null, 2);
         const b642json = btoa(unescape(encodeURIComponent(json)));
         const file = await Filesystem.writeFile({
-            path : `monochrome-library-${new Date().toISOString().split('T')[0]}.json`,
-            data : b642json,
-            directory : Directory.Cache
+            path: `monochrome-library-${new Date().toISOString().split('T')[0]}.json`,
+            data: b642json,
+            directory: Directory.Cache,
         });
         await Share.share({
             title: 'Export Library',
@@ -2795,9 +2794,9 @@ export function initializeSettings(scrobbler, player, api, ui) {
         const json = JSON.stringify(settingsToExport, null, 2);
         const b642json = btoa(unescape(encodeURIComponent(json)));
         const file = await Filesystem.writeFile({
-            path : `monochrome-settings-${new Date().toISOString().split('T')[0]}.json`,
-            data : b642json,
-            directory : Directory.Cache
+            path: `monochrome-settings-${new Date().toISOString().split('T')[0]}.json`,
+            data: b642json,
+            directory: Directory.Cache,
         });
         await Share.share({
             title: 'Export Settings',

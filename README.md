@@ -36,11 +36,9 @@
 
 ## NOTICE
 
-This is still very much a work in progress. Lots of bugs, unimplemented features and capacitor fuckery I haven't gotten around to fixing or documenting. 
+This is still very much a work in progress. Lots of bugs, unimplemented features and capacitor fuckery I haven't gotten around to fixing or documenting.
 
 Build instructions will be coming soon
-
-
 
 ## What is Monochrome?
 
@@ -171,7 +169,8 @@ For PocketBase, development mode, and advanced setups, see [DOCKER.md](DOCKER.md
     ```
 
 2. **Install dependencies:**
-   > ⚠️ Install dependencies with --legacy-peer-deps
+
+    > ⚠️ Install dependencies with --legacy-peer-deps
 
     ```bash
     npm install --legacy-peer-deps
