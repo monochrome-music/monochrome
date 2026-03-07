@@ -417,7 +417,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     try {
                         // my worker should detect a users OS and serve the right ver
                         const update = await updater.checkForUpdates('https://update.samidy.xyz/update.json');
-                        
+
                         if (update && update.available) {
                             const modal = document.getElementById('desktop-update-modal');
                             const notes = document.getElementById('desktop-update-notes');
