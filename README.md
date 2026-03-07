@@ -172,7 +172,7 @@ For PocketBase, development mode, and advanced setups, see [DOCKER.md](DOCKER.md
    > ⚠️ Install dependencies with --legacy-peer-deps
 
     ```bash
-    npm install
+    npm install --legacy-peer-deps
     ```
 
 3. **Start the development server:**
