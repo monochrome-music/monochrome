@@ -901,6 +901,23 @@ export class Player {
         this.saveQueueState();
     }
 
+    wipeQueue() {
+        this.audio.pause();
+        this.audio.src = '';
+        this.currentTrack = null;
+        this.queue = [];
+        this.shuffledQueue = [];
+        this.originalQueueBeforeShuffle = [];
+        this.currentQueueIndex = -1;
+        this.saveQueueState();
+        if (window.monochromeUi) {
+            window.monochromeUi.setCurrentTrack(null);
+        }
+        if (window.renderQueueFunction) {
+            window.renderQueueFunction();
+        }
+    }
+
     moveInQueue(fromIndex, toIndex) {
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
 
