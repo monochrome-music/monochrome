@@ -134,6 +134,7 @@ async function readFlacMetadata(file, metadata) {
     const blocks = parseFlacBlocks(dataView);
     const vorbisBlock = blocks.find((b) => b.type === 4);
     const pictureBlock = blocks.find((b) => b.type === 6);
+    const streamInfo = blocks.find((b) => b.type === 0);
 
     const artists = [];
     if (vorbisBlock) {
@@ -163,6 +164,30 @@ async function readFlacMetadata(file, metadata) {
                 if (upperKey === 'COPYRIGHT') metadata.copyright = value;
                 if (upperKey === 'ITUNESADVISORY') metadata.explicit = value === '1';
             }
+        }
+    }
+
+    if (streamInfo) {
+        const offset = streamInfo.offset;
+
+        // Sample Rate is 20 bits spanning bytes 10, 11, and the first 4 bits of 12
+        const byte10 = dataView.getUint8(offset + 10);
+        const byte11 = dataView.getUint8(offset + 11);
+        const byte12 = dataView.getUint8(offset + 12);
+
+        // since data for some reason spans across multiple bytes, we need to combine them into one int
+        const sampleRate = (byte10 << 12) | (byte11 << 4) | (byte12 >> 4);
+
+        const byte13 = dataView.getUint8(offset + 13);
+        const tsHigh = byte13 & 0x0f;
+        const tsLow = dataView.getUint32(offset + 14, false);
+
+        // same thing for total samples
+        const totalSamples = tsHigh * 0x100000000 + tsLow;
+
+        if (sampleRate > 0) {
+            // beatiful
+            metadata.duration = totalSamples / sampleRate;
         }
     }
 
@@ -208,6 +233,32 @@ async function readM4aMetadata(file, metadata) {
         const moovLen = moov.size - 8;
         const moovData = new DataView(view.buffer, moovStart, moovLen);
         const moovAtoms = parseMp4Atoms(moovData);
+
+        // mvhd metadata tag
+        const mvhd = moovAtoms.find((a) => a.type === 'mvhd');
+        if (mvhd) {
+            const mvhdStart = moovStart + mvhd.offset + 8;
+            const version = view.getUint8(mvhdStart);
+
+            // resolution and length, basically
+            let timeScale, duration;
+
+            if (version === 0) {
+                // 32-bit format
+                timeScale = view.getUint32(mvhdStart + 12, false);
+                duration = view.getUint32(mvhdStart + 16, false);
+            } else if (version === 1) {
+                // 64-bit format
+                timeScale = view.getUint32(mvhdStart + 20, false);
+                const durHigh = view.getUint32(mvhdStart + 24, false);
+                const durLow = view.getUint32(mvhdStart + 28, false);
+                duration = durHigh * 0x100000000 + durLow;
+            }
+
+            if (timeScale > 0) {
+                metadata.duration = duration / timeScale;
+            }
+        }
 
         const udta = moovAtoms.find((a) => a.type === 'udta');
         if (!udta) return;
@@ -323,6 +374,7 @@ async function readMp3Metadata(file, metadata) {
             if (frameId === 'TALB') metadata.album.title = readID3Text(frameData);
             if (frameId === 'TSRC') metadata.isrc = readID3Text(frameData);
             if (frameId === 'TCOP') metadata.copyright = readID3Text(frameData);
+            if (frameId === 'TLEN') metadata.duration = parseInt(readID3Text(frameData)) / 1000; // usually not present
             if (frameId === 'TYER' || frameId === 'TDRC') {
                 const year = readID3Text(frameData);
                 if (year) metadata.album.releaseDate = year;
@@ -366,6 +418,10 @@ async function readMp3Metadata(file, metadata) {
         if (artistStr) {
             metadata.artists = artistStr.split('/').map((name) => ({ name: name.trim() }));
         }
+
+        if (!metadata.duration || metadata.duration === 0) {
+            metadata.duration = await calculateMp3Duration(file, tagSize);
+        }
     }
 
     if (file.size > 128) {
@@ -391,6 +447,55 @@ async function readMp3Metadata(file, metadata) {
             if (album) metadata.album.title = album;
         }
     }
+}
+
+// since mp3 file don't have metadata about duration, estimating it
+// uses evil bitwise magic
+async function calculateMp3Duration(file, startOffset) {
+    const buffer = await file.slice(startOffset, startOffset + 32768).arrayBuffer();
+    const view = new DataView(buffer);
+    const uint8 = new Uint8Array(buffer);
+
+    let offset = 0;
+
+    // finding sync word
+    while (offset < view.byteLength - 4 && !(uint8[offset] === 0xff && (uint8[offset + 1] & 0xe0) === 0xe0)) {
+        offset++;
+    }
+    if (offset >= view.byteLength - 4) return 0;
+
+    const header = view.getUint32(offset, false);
+
+    // header info
+    const mpegVer = (header >> 19) & 3;
+    const brIdx = (header >> 12) & 15;
+    const srIdx = (header >> 10) & 3;
+
+    // Reject invalid headers
+    if (mpegVer === 1 || brIdx === 0 || brIdx === 15 || srIdx === 3) return 0;
+
+    const sampleRates = [[11025, 12000, 8000], null, [22050, 24000, 16000], [44100, 48000, 32000]];
+    const brMpeg1 = [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0];
+    const brMpeg2 = [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160, 0];
+
+    const sampleRate = sampleRates[mpegVer][srIdx];
+    const bitrate = mpegVer === 3 ? brMpeg1[brIdx] : brMpeg2[brIdx];
+
+    // this xing header is present in many mp3 files and contains total frame count, which allows for accurate duration calculation
+    const channelMode = (header >> 6) & 3; // mono or stereo
+    const xingOffset = offset + 4 + (mpegVer === 3 ? (channelMode === 3 ? 17 : 32) : channelMode === 3 ? 9 : 17); // the position of xing header
+
+    if (xingOffset + 8 <= view.byteLength) {
+        const sig = view.getUint32(xingOffset, false);
+        if ((sig === 0x58696e67 || sig === 0x496e666f) && view.getUint32(xingOffset + 4, false) & 1) {
+            const frames = view.getUint32(xingOffset + 8, false);
+            // basically, duration = frames * samples per frame / sample rate
+            return (frames * (mpegVer === 3 ? 1152 : 576)) / sampleRate;
+        }
+    }
+
+    // if no Xing header, estimate duration from file size and bitrate
+    return ((file.size - startOffset) * 8) / (bitrate * 1000);
 }
 
 function readSynchsafeInteger32(view, offset) {
