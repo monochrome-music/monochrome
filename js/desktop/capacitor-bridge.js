@@ -3,7 +3,7 @@ import { App } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { Dialog } from '@capacitor/dialog';
 import { Directory, Filesystem } from '@capacitor/filesystem';
-import { MediaSession as CapacitorMediaSession } from '@jofr/capacitor-media-session';
+import { MediaSession as CapacitorMediaSession } from '@capgo/capacitor-media-session';
 import { CapacitorMediaStore } from '@odion-cloud/capacitor-mediastore';
 
 const hasWindow = typeof window !== 'undefined';
@@ -238,8 +238,8 @@ export const media = {
     setPositionState: async (options) => {
         await CapacitorMediaSession.setPositionState(options);
     },
-    setActionHandler: async (options, handler) => {
-        await CapacitorMediaSession.setActionHandler(options, handler);
+    setActionHandler: async ({ action }, handler) => {
+        await CapacitorMediaSession.setActionHandler(action, handler);
     },
 };
 

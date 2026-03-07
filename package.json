@@ -49,7 +49,10 @@
     },
     "overrides": {
         "sourcemap-codec": "npm:@jridgewell/sourcemap-codec@^1.4.14",
-        "source-map": "^0.7.4"
+        "source-map": "^0.7.4",
+        "@odion-cloud/capacitor-mediastore": {
+            "@capacitor/core": "^7.0.0"
+        }
     },
     "dependencies": {
         "@capacitor/android": "^7.6.0",
@@ -59,10 +62,10 @@
         "@capacitor/dialog": "^7.0.2",
         "@capacitor/filesystem": "^7.1.4",
         "@capacitor/share": "^7.0.4",
+        "@capgo/capacitor-media-session": "^7.3.0",
         "@ffmpeg/core": "^0.12.6",
         "@ffmpeg/ffmpeg": "^0.12.15",
         "@ffmpeg/util": "^0.12.2",
-        "@jofr/capacitor-media-session": "^4.0.0",
         "@kawarp/core": "^1.1.1",
         "@odion-cloud/capacitor-mediastore": "^1.0.21",
         "@uimaxbai/am-lyrics": "^1.1.1",

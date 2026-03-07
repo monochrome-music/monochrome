@@ -1,4 +1,6 @@
 // js/desktop/discord-rpc.js
+/* this is literally vibe coded bs
+// rpc doesn't even exist on mobile, let alone anything that works with capacitor
 import { getTrackTitle, getTrackArtists } from '../utils.js';
 
 export function initializeDiscordRPC(player) {
@@ -70,3 +72,4 @@ export function initializeDiscordRPC(player) {
             .catch(() => {});
     }
 }
+*/

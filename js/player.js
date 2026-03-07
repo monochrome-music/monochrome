@@ -72,6 +72,10 @@ export class Player {
 
         // Handle visibility change for iOS - AudioContext gets suspended when screen locks
         document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                this.setupMediaSession(true);
+                if (this.currentTrack) this.updateMediaSession(this.currentTrack);
+            }
             if (document.visibilityState === 'visible' && !this.audio.paused) {
                 // Ensure audio context is resumed when user returns to the app
                 if (!audioContextManager.isReady()) {
