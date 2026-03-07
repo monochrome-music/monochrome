@@ -64,6 +64,7 @@
         "@capacitor/share": "^7.0.4",
         "@capgo/capacitor-media-session": "^7.3.0",
         "@ffmpeg/core": "^0.12.6",
+        "@ffmpeg/ffmpeg": "^0.12.15",
         "@ffmpeg/util": "^0.12.2",
         "@kawarp/core": "^1.1.1",
         "@odion-cloud/capacitor-mediastore": "^1.0.21",

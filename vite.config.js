@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import authGatePlugin from './vite-plugin-auth-gate.js';
-import { ffmpeg } from './js/ffmpeg.js';
 
 export default defineConfig(() => {
     return {
