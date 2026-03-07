@@ -34,6 +34,12 @@
 
 ---
 
+## NOTICE
+
+This is still very much a work in progress. Lots of bugs, unimplemented features and capacitor fuckery I haven't gotten around to fixing or documenting. 
+
+Build instructions will be coming soon
+
 ## What is Monochrome?
 
 **Monochrome** is an open-source, privacy-respecting, ad-free [TIDAL](https://tidal.com) web UI, built on top of [Hi-Fi](https://github.com/binimum/hifi-api). It provides a beautiful, minimalist interface for streaming high-quality music without the clutter of traditional streaming platforms.
@@ -151,7 +157,7 @@ For PocketBase, development mode, and advanced setups, see [DOCKER.md](DOCKER.md
 #### Prerequisites
 
 - [Node.js](https://nodejs.org/) (Version 20+ or 22+ recommended)
-- [Bun](https://bun.sh/) or [npm](https://www.npmjs.com/)
+- [npm](https://www.npmjs.com/)
 
 #### Local Development
 
@@ -163,18 +169,16 @@ For PocketBase, development mode, and advanced setups, see [DOCKER.md](DOCKER.md
     ```
 
 2. **Install dependencies:**
+   [!WARNING]
+   Install dependencies with --legacy-peer-deps
 
     ```bash
-    bun install
-    # or
     npm install
     ```
 
 3. **Start the development server:**
 
     ```bash
-    bun run dev
-    # or
     npm run dev
     ```
 

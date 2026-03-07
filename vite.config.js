@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import authGatePlugin from './vite-plugin-auth-gate.js';
+import { ffmpeg } from './js/ffmpeg.js';
 
 export default defineConfig(() => {
     return {
@@ -11,7 +12,7 @@ export default defineConfig(() => {
             },
         },
         optimizeDeps: {
-            exclude: ['pocketbase', '@ffmpeg/ffmpeg', '@ffmpeg/util'],
+            exclude: ['pocketbase', '@ffmpeg/ffmpeg', '@ffmpeg/util', '@ffmpeg/core'],
         },
         server: {
             fs: {
@@ -19,7 +20,7 @@ export default defineConfig(() => {
                 // host: true,
                 // allowedHosts: ['<your_tailscale_hostname>'], // e.g. pi5.tailf5f622.ts.net
             },
-        },
+        },  
         // preview: {
         //     host: true,
         //     allowedHosts: ['<your_tailscale_hostname>'], // e.g. pi5.tailf5f622.ts.net
