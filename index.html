@@ -1,18 +1,6 @@
 <!doctype html>
 <html lang="en">
     <head>
-        <script>
-            // Capture real iOS state before spoofing (needed for background audio)
-            var _ua = navigator.userAgent.toLowerCase();
-            window.__IS_IOS__ = /iphone|ipad|ipod/.test(_ua) || (_ua.includes('mac') && navigator.maxTouchPoints > 1);
-
-            // Spoof User-Agent to bypass Google's embedded browser check
-            Object.defineProperty(navigator, 'userAgent', {
-                get: function () {
-                    return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-                },
-            });
-        </script>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Monochrome Music</title>
@@ -46,21 +34,6 @@
         />
         <link rel="stylesheet" href="/styles.css" />
 
-        <!-- Privacy-friendly analytics by Plausible -->
-        <script async src="https://plausible.canine.tools/js/pa-dCMvQpiD1-AJmi8o3xviO.js"></script>
-        <script>
-            window.plausible =
-                window.plausible ||
-                function () {
-                    (plausible.q = plausible.q || []).push(arguments);
-                };
-            plausible.init =
-                plausible.init ||
-                function (i) {
-                    plausible.o = i || {};
-                };
-            plausible.init();
-        </script>
     </head>
 
     <body>

@@ -62,6 +62,33 @@ import {
     importToLibrary,
 } from './playlist-importer.js';
 
+// Capture real iOS state before spoofing (needed for background audio)
+if (typeof window !== 'undefined') {
+    const _ua = navigator.userAgent.toLowerCase();
+    window.__IS_IOS__ = /iphone|ipad|ipod/.test(_ua) || (_ua.includes('mac') && navigator.maxTouchPoints > 1);
+
+    // Spoof User-Agent to bypass Google's embedded browser check
+    Object.defineProperty(navigator, 'userAgent', {
+        get: function () {
+            return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+        },
+    });
+
+    // analytics
+    const plausibleScript = document.createElement('script');
+    plausibleScript.async = true;
+    plausibleScript.src = 'https://plausible.canine.tools/js/pa-dCMvQpiD1-AJmi8o3xviO.js';
+    document.head.appendChild(plausibleScript);
+
+    window.plausible = window.plausible || function () {
+        (window.plausible.q = window.plausible.q || []).push(arguments);
+    };
+    window.plausible.init = window.plausible.init || function (i) {
+        window.plausible.o = i || {};
+    };
+    window.plausible.init();
+}
+
 // Lazy-loaded modules
 let settingsModule = null;
 let downloadsModule = null;
