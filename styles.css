@@ -7868,11 +7868,10 @@ textarea:focus {
     animation: fade-in 0.3s ease;
 }
 
-
 #command-palette-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgb(0, 0, 0, 0.5);
     backdrop-filter: blur(4px);
     z-index: 10000;
     display: flex;
@@ -7925,7 +7924,8 @@ textarea:focus {
     color: var(--foreground);
 }
 
-.command-result-item:hover, .command-result-item.selected {
+.command-result-item:hover,
+.command-result-item.selected {
     background: var(--secondary);
 }
 
