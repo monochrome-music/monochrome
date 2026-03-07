@@ -360,33 +360,12 @@ export class LyricsManager {
     async ensureComponentLoaded() {
         if (this.componentLoaded) return;
 
-        if (typeof customElements !== 'undefined' && customElements.get('am-lyrics')) {
-            this.componentLoaded = true;
-            return;
+        if (!window.customElements.get('am-lyrics')) {
+            await import('@uimaxbai/am-lyrics');
         }
 
-        return new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.type = 'module';
-            script.src = 'https://cdn.jsdelivr.net/npm/@uimaxbai/am-lyrics/dist/src/am-lyrics.min.js';
-
-            script.onload = () => {
-                if (typeof customElements !== 'undefined') {
-                    customElements
-                        .whenDefined('am-lyrics')
-                        .then(() => {
-                            this.componentLoaded = true;
-                            resolve();
-                        })
-                        .catch(reject);
-                } else {
-                    resolve();
-                }
-            };
-
-            script.onerror = () => reject(new Error('Failed to load lyrics component'));
-            document.head.appendChild(script);
-        });
+        await customElements.whenDefined('am-lyrics');
+        this.componentLoaded = true;
     }
 
     async fetchLyrics(trackId, track = null) {

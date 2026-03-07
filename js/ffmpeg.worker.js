@@ -26,7 +26,7 @@ async function loadFFmpeg() {
 
         // const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm'; no clue why they chose a cdn instead of bundling
         await ffmpeg.load({
-            coreURL: '/assets/ffmpeg-core.js',
+            coreURL: 'lib/ffmpeg-core.js'
         });
     })();
 

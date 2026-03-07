@@ -8,6 +8,8 @@ export default defineConfig(() => {
         resolve: {
             alias: {
                 pocketbase: '/node_modules/pocketbase/dist/pocketbase.es.js',
+                '@uimaxbai/am-lyrics': '/node_modules/@uimaxbai/am-lyrics/dist/src/am-lyrics.js',
+                
             },
         },
         optimizeDeps: {
