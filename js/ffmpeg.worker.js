@@ -1,5 +1,4 @@
 import { FFmpeg } from '@ffmpeg/ffmpeg';
-import { toBlobURL } from '@ffmpeg/util';
 
 let ffmpeg = null;
 let loadingPromise = null;
@@ -25,10 +24,9 @@ async function loadFFmpeg() {
 
         self.postMessage({ type: 'progress', stage: 'loading', message: 'Loading FFmpeg...' });
 
-        const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
+        // const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm'; no clue why they chose a cdn instead of bundling
         await ffmpeg.load({
-            coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-            wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+            coreURL: '/assets/ffmpeg-core.js',
         });
     })();
 

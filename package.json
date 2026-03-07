@@ -59,6 +59,7 @@
         "@capacitor/dialog": "^7.0.2",
         "@capacitor/filesystem": "^7.1.4",
         "@capacitor/share": "^7.0.4",
+        "@ffmpeg/core": "^0.12.6",
         "@ffmpeg/ffmpeg": "^0.12.15",
         "@ffmpeg/util": "^0.12.2",
         "@jofr/capacitor-media-session": "^4.0.0",
