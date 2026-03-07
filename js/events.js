@@ -1435,9 +1435,10 @@ async function updateContextMenuLikeState(contextMenu, contextTrack) {
     const type = contextMenu._contextType || 'track';
 
     const likeItem = contextMenu.querySelector('li[data-action="toggle-like"]');
+    let isLiked = false;
     if (likeItem) {
-        const isLiked = await db.isFavorite(type, contextTrack.id);
-        likeItem.textContent = isLiked ? 'Unlike' : 'Like';
+        const key = type === 'playlist' ? contextTrack.uuid : contextTrack.id;
+        isLiked = await db.isFavorite(type, key);
     }
 
     const pinItem = contextMenu.querySelector('li[data-action="toggle-pin"]');
@@ -1500,8 +1501,10 @@ async function updateContextMenuLikeState(contextMenu, contextTrack) {
 
         // Update labels for Like/Save
         if (item.dataset.action === 'toggle-like') {
-            const labelKey = `label${type.charAt(0).toUpperCase() + type.slice(1).replace('User-playlist', 'Playlist')}`;
-            const label = item.dataset[labelKey] || item.dataset.labelTrack || 'Like';
+            const labelPrefix = isLiked ? 'labelUnlike' : 'label';
+            const labelKey = `${labelPrefix}${type.charAt(0).toUpperCase() + type.slice(1).replace('User-playlist', 'Playlist')}`;
+            const fallbackKey = isLiked ? 'labelUnlikeTrack' : 'labelTrack';
+            const label = item.dataset[labelKey] || item.dataset[fallbackKey] || (isLiked ? 'Unlike' : 'Like');
             item.textContent = label;
         }
     });
