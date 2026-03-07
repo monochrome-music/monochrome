@@ -2110,6 +2110,23 @@ export function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
+    const visualizerDimmingSlider = document.getElementById('visualizer-dimming-slider');
+    const visualizerDimmingValue = document.getElementById('visualizer-dimming-value');
+    if (visualizerDimmingSlider && visualizerDimmingValue) {
+        const currentDimming = visualizerSettings.getDimAmount();
+        visualizerDimmingSlider.value = currentDimming;
+        visualizerDimmingValue.textContent = `${(currentDimming * 100).toFixed(0)}%`;
+
+        visualizerDimmingSlider.addEventListener('input', (e) => {
+            const newDimming = parseFloat(e.target.value);
+            visualizerSettings.setDimAmount(newDimming);
+            visualizerDimmingValue.textContent = `${(newDimming * 100).toFixed(0)}%`;
+            window.dispatchEvent(
+                new CustomEvent('visualizer-dim-change', { detail: { dimAmount: newDimming } })
+            );
+        });
+    }
+
     // Visualizer Smart Intensity
     const smartIntensityToggle = document.getElementById('smart-intensity-toggle');
     if (smartIntensityToggle) {

@@ -120,6 +120,12 @@ export class UIRenderer {
         window.addEventListener('theme-changed', () => {
             this.updateGlobalTheme();
         });
+
+        window.addEventListener('visualizer-dim-change', () => {
+            if (this.visualizer) {
+                this.visualizer.updateDimming();
+            }
+        });
     }
 
     // Helper for Heart Icon
