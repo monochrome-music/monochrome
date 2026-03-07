@@ -2983,6 +2983,158 @@ export function initializeSettings(scrobbler, player, api, ui) {
 
     // Blocked Content Management
     initializeBlockedContentManager();
+
+    // Plugin Management
+    initializePluginSettings();
+}
+
+function initializePluginSettings() {
+    const addBtn = document.getElementById('plugin-add-btn');
+    const urlInput = document.getElementById('plugin-url-input');
+    const listContainer = document.getElementById('plugins-list-container');
+    const emptyMessage = document.getElementById('plugins-empty-message');
+    const settingsContainer = document.getElementById('plugin-settings-container');
+
+    function renderPluginsList() {
+        const pm = window.monochromePlugins;
+        if (!pm) return;
+
+        const plugins = pm.getAll();
+
+        // Clear existing items (keep empty message)
+        listContainer.querySelectorAll('.plugin-item').forEach((el) => el.remove());
+        if (settingsContainer) settingsContainer.innerHTML = '';
+
+        if (plugins.length === 0) {
+            if (emptyMessage) emptyMessage.style.display = 'block';
+            return;
+        }
+        if (emptyMessage) emptyMessage.style.display = 'none';
+
+        for (const plugin of plugins) {
+            const item = document.createElement('div');
+            item.className = 'plugin-item setting-item';
+            item.innerHTML = `
+                <div class="info">
+                    <span class="label">${plugin.name} <span style="color: var(--muted-foreground); font-size: 0.8em;">v${plugin.version}</span></span>
+                    <span class="description">${plugin.description || ''}${plugin.author ? ` — by ${plugin.author}` : ''}</span>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <label class="toggle-switch">
+                        <input type="checkbox" data-plugin-toggle="${plugin.id}" ${plugin.state === 'enabled' ? 'checked' : ''} />
+                        <span class="slider"></span>
+                    </label>
+                    <button class="btn-secondary danger" data-plugin-remove="${plugin.id}" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Remove</button>
+                </div>
+            `;
+            listContainer.appendChild(item);
+
+            // Toggle handler
+            const toggle = item.querySelector(`[data-plugin-toggle="${plugin.id}"]`);
+            toggle.addEventListener('change', () => {
+                if (toggle.checked) {
+                    pm.enable(plugin.id);
+                } else {
+                    pm.disable(plugin.id);
+                }
+                renderPluginSettings();
+            });
+
+            // Remove handler
+            const removeBtn = item.querySelector(`[data-plugin-remove="${plugin.id}"]`);
+            removeBtn.addEventListener('click', () => {
+                pm.uninstall(plugin.id);
+                renderPluginsList();
+            });
+        }
+
+        renderPluginSettings();
+    }
+
+    function renderPluginSettings() {
+        const pm = window.monochromePlugins;
+        if (!pm || !settingsContainer) return;
+
+        settingsContainer.innerHTML = '';
+        const plugins = pm.getAll();
+
+        for (const plugin of plugins) {
+            if (plugin.state !== 'enabled') continue;
+            const renderer = pm.getPluginSettingsRenderer(plugin.id);
+            if (typeof renderer === 'function') {
+                const section = document.createElement('div');
+                section.className = 'settings-group';
+                section.style.marginTop = '1rem';
+                section.style.borderTop = '1px solid var(--border)';
+                section.style.paddingTop = '1rem';
+
+                const title = document.createElement('h4');
+                title.textContent = `${plugin.name} Settings`;
+                title.style.marginBottom = '0.5rem';
+                title.style.color = 'var(--muted-foreground)';
+                title.style.fontSize = '0.9rem';
+                section.appendChild(title);
+
+                try {
+                    renderer(section);
+                } catch (err) {
+                    console.error(`[Plugins] Settings render error for "${plugin.id}":`, err);
+                }
+                settingsContainer.appendChild(section);
+            }
+        }
+    }
+
+    if (addBtn && urlInput) {
+        addBtn.addEventListener('click', async () => {
+            const url = urlInput.value.trim();
+            if (!url) return;
+
+            addBtn.disabled = true;
+            addBtn.textContent = 'Loading...';
+
+            try {
+                const pm = window.monochromePlugins;
+                if (!pm) throw new Error('Plugin system not initialized');
+
+                const pluginId = await pm.loadFromUrl(url);
+                if (!pluginId) throw new Error('Failed to load plugin');
+
+                pm.enable(pluginId);
+                urlInput.value = '';
+                renderPluginsList();
+            } catch (err) {
+                console.error('[Plugins] Failed to add plugin:', err);
+                import('./downloads.js').then(({ showNotification }) => {
+                    showNotification(`Failed to load plugin: ${err.message}`);
+                });
+            } finally {
+                addBtn.disabled = false;
+                addBtn.textContent = 'Add';
+            }
+        });
+
+        urlInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') addBtn.click();
+        });
+    }
+
+    // Initial render + listen for changes
+    renderPluginsList();
+
+    // Re-render when plugins change (register/enable/disable from console or elsewhere)
+    const trySubscribe = () => {
+        const pm = window.monochromePlugins;
+        if (pm && typeof pm.onChange === 'function') {
+            pm.onChange(() => renderPluginsList());
+            // Render now in case plugins were loaded before we subscribed
+            renderPluginsList();
+        } else {
+            // PluginManager not ready yet, retry after boot
+            setTimeout(trySubscribe, 500);
+        }
+    };
+    trySubscribe();
 }
 
 function initializeFontSettings() {
