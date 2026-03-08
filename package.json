@@ -32,6 +32,7 @@
         "@neutralinojs/neu": "^11.7.0",
         "eslint": "^9.39.3",
         "eslint-config-prettier": "^10.1.8",
+        "formidable": "^3.5.4",
         "globals": "^17.4.0",
         "htmlhint": "^1.9.1",
         "miniflare": "^4.20260301.1",
