@@ -1344,6 +1344,25 @@ export class UIRenderer {
                 updateFsVolumeUI();
             };
 
+            const handleFsVolumeWheel = (e) => {
+                e.preventDefault();
+
+                const delta = e.deltaY > 0 ? -0.05 : 0.05;
+                const currentVolume = this.player.userVolume;
+                const newVolume = Math.max(0, Math.min(1, currentVolume + delta));
+
+                if (delta > 0 && this.player.muted) {
+                    this.player.setMute(false);
+                }
+
+                this.player.setVolume(newVolume);
+                updateFsVolumeUI();
+            };
+
+            [fsVolumeBar, fsVolumeBtn].forEach((el) =>
+                el.addEventListener('wheel', handleFsVolumeWheel, { passive: false })
+            );
+
             const setFsVolume = (e) => {
                 const rect = fsVolumeBar.getBoundingClientRect();
                 const position = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
