@@ -204,6 +204,7 @@ npx cap open
 to open in Android Studio, from there you can build
 
 ---
+
 ## Installation
 
 Grab the latest build from our [Actions tab](https://github.com/subby2006/monochrome-android/actions/workflows/android-apk.yml) (make sure you're signed in)
