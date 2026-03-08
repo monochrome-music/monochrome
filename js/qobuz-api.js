@@ -331,12 +331,12 @@ export class QobuzAPI {
     }
 
     // Similar/recommendation methods
-    async getSimilarArtists(artistId) {
+    async getSimilarArtists(_artistId) {
         // Qobuz doesn't have a direct similar artists endpoint in this simplified API
         return [];
     }
 
-    async getSimilarAlbums(albumId) {
+    async getSimilarAlbums(_albumId) {
         // Qobuz doesn't have a direct similar albums endpoint in this simplified API
         return [];
     }
