@@ -4,10 +4,10 @@
   </a>
 </p>
 
-<h1 align="center">Monochrome</h1>
+<h1 align="center">Monochrome Android</h1>
 
 <p align="center">
-  <strong>An open-source, privacy-respecting, ad-free music app.</strong>
+  <strong>An open-source, privacy-respecting, ad-free music app, built for Android using Capacitor</strong>
 </p>
 
 <p align="center">
@@ -57,7 +57,7 @@ Build instructions will be coming soon
 ### Audio Quality
 
 - High-quality Hi-Res/lossless audio streaming
-- Support for local music files
+- ~~Support for local music files~~ not supported yet :(
 - Intelligent API caching for improved performance
 
 ### Interface
@@ -89,7 +89,7 @@ Build instructions will be coming soon
 - Account system for cross-device syncing
 - Customizable & Public Profiles
 - Last.fm and ListenBrainz integration for scrobbling
-- Unreleased music from [ArtistGrid](https://artistgrid.cx)
+- ~~Unreleased music from [ArtistGrid](https://artistgrid.cx)~~ not supported due to cors fuckery (fuck cors)
 - Dynamic Discord Embeds
 - Multiple API instance support with failover
 
