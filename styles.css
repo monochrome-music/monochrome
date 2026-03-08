@@ -3732,10 +3732,6 @@ input:checked + .slider::before {
 }
 
 /* When UI is hidden, only toggle button stays visible at right edge (when .visible class is added) */
-#fullscreen-cover-overlay.ui-hidden #toggle-ui-btn {
-    opacity: 0;
-    pointer-events: none;
-}
 
 #fullscreen-cover-overlay.ui-hidden .fullscreen-lyrics-toggle,
 #fullscreen-cover-overlay.ui-hidden #close-fullscreen-cover-btn {
@@ -6916,31 +6912,6 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 ::selection {
     background: var(--primary);
     color: var(--primary-foreground);
-}
-
-/* Inputs & Form Elements */
-input,
-select,
-textarea {
-    transition:
-        border-color var(--transition-fast),
-        box-shadow var(--transition-fast),
-        background-color var(--transition-fast);
-}
-
-input:focus,
-select:focus,
-textarea:focus {
-    outline: none;
-    border-color: var(--ring);
-    box-shadow: 0 0 0 3px rgb(var(--highlight-rgb), 0.2);
-}
-
-.search-bar input:focus,
-.track-list-search-input:focus {
-    outline: none;
-    border-color: var(--ring);
-    box-shadow: 0 0 0 3px rgb(var(--highlight-rgb) / 0.2);
 }
 
 .modal.active .modal-content {
