@@ -158,6 +158,7 @@ For PocketBase, development mode, and advanced setups, see [DOCKER.md](DOCKER.md
 
 - [Node.js](https://nodejs.org/) (Version 20+ or 22+ recommended)
 - [npm](https://www.npmjs.com/)
+- [Android Studio](https://developer.android.com/studio) (for building APK)
 
 #### Local Development
 
@@ -170,10 +171,8 @@ For PocketBase, development mode, and advanced setups, see [DOCKER.md](DOCKER.md
 
 2. **Install dependencies:**
 
-    > ⚠️ Install dependencies with --legacy-peer-deps
-
     ```bash
-    npm install --legacy-peer-deps
+    npm install
     ```
 
 3. **Start the development server:**
@@ -192,6 +191,15 @@ bun run build
 # or
 npm run build
 ```
+
+
+#### Building for Android
+
+Simply run
+```bash
+npx cap open
+```
+to open in Android Studio, from there you can build 
 
 ---
 
