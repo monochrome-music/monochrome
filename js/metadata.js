@@ -1,6 +1,6 @@
 import { getCoverBlob, getTrackTitle } from './utils.js';
-import { initTagLib } from './taglib.js';
-import { PICTURE_TYPE_VALUES } from 'taglib-wasm';
+import { fetchTagLib, addMetadataWithTagLib, getMetadataWithTagLib } from './taglib.ts';
+import { doTimed, doTimedAsync } from './doTimed.ts';
 import { managers } from './app.js';
 
 const VENDOR_STRING = 'Monochrome';
@@ -43,7 +43,7 @@ function getFullArtistString(track) {
 }
 
 export function prefetchMetadataObjects(track, api) {
-    const _tagLib = initTagLib().catch(console.error);
+    const _tagLib = fetchTagLib().catch(console.error);
     const coverFetch = track?.album?.cover
         ? getCoverBlob(api, track.album.cover).catch(console.error)
         : Promise.resolve(null);
@@ -61,109 +61,56 @@ export function prefetchMetadataObjects(track, api) {
  * @returns {Promise<Blob>} - Audio blob with embedded metadata
  */
 export async function addMetadataToAudio(audioBlob, track, api, _quality, prefetchPromises) {
-    const { _tagLib, coverFetch, lyricsFetch } = prefetchPromises;
+    const { coverFetch, lyricsFetch } = prefetchPromises;
 
-    console.time('Get audio array buffer');
-    const audioBuffer = await audioBlob.arrayBuffer();
-    console.timeEnd('Get audio array buffer');
+    /**
+     * @type {import("./taglib.worker.ts").TagLibMetadata}
+     */
+    const data = {};
 
-    console.time('Open file with taglib');
-    const tagLib = await _tagLib;
-    const file = await tagLib.open(audioBuffer);
-    console.timeEnd('Open file with taglib');
+    const audioBuffer = await doTimedAsync('Get audio array buffer', () => audioBlob.arrayBuffer());
 
-    console.time('Tagging file');
     try {
-        const isMp4 = file.isMP4();
-        const discNumber = track.volumeNumber ?? track.discNumber;
-
-        // Add standard tags
-        if (track.title) {
-            file.setProperty('TITLE', getTrackTitle(track));
-        }
-
-        const artistStr = getFullArtistString(track);
-        if (artistStr) {
-            file.setProperty('ARTIST', artistStr);
-        }
-
-        if (track.album?.title) {
-            file.setProperty('ALBUM', track.album.title);
-        }
-
-        const albumArtist = track.album?.artist?.name || track.artist?.name;
-        if (albumArtist) {
-            file.setProperty('ALBUMARTIST', albumArtist);
-        }
-
-        if (track.trackNumber) {
-            let trackString = String(track.trackNumber);
-
-            if (isMp4 && track.trackNumber && track.album?.numberOfTracks) {
-                trackString = `${track.trackNumber}/${track.album.numberOfTracks}`;
-            }
-
-            if (isMp4) {
-                file.setProperty('TRACKNUMBER', trackString);
-            } else {
-                file.setProperty('TRACKNUMBER', String(track.trackNumber));
-            }
-        }
-
-        if (!isMp4 && track.album?.numberOfTracks) {
-            file.setProperty('TRACKTOTAL', String(track.album.numberOfTracks));
-        }
-
-        if (discNumber) {
-            file.setProperty('DISCNUMBER', String(discNumber));
-        }
+        data.title = getTrackTitle(track);
+        data.artist = getFullArtistString(track);
+        data.albumTitle = track.album.title;
+        data.albumArtist = track.album?.artist?.name || track.artist?.name;
+        data.trackNumber = track.trackNumber;
+        data.discNumber = track.volumeNumber ?? track.discNumber;
+        data.totalTracks = track.album.numberOfTracks;
+        data.copyright = track.copyright;
+        data.isrc = track.isrc;
+        data.explicit = Boolean(track.explicit);
 
         if (track.bpm != null) {
             const bpm = Number(track.bpm);
             if (Number.isFinite(bpm)) {
-                file.setProperty('BPM', String(Math.round(bpm)));
+                data.bpm = Math.round(bpm);
             }
         }
 
         if (track.replayGain) {
             const { albumReplayGain, albumPeakAmplitude, trackReplayGain, trackPeakAmplitude } = track.replayGain;
-            if (albumReplayGain) file.setProperty('REPLAYGAIN_ALBUM_GAIN', String(albumReplayGain));
-            if (albumPeakAmplitude) file.setProperty('REPLAYGAIN_ALBUM_PEAK', String(albumPeakAmplitude));
-            if (trackReplayGain) file.setProperty('REPLAYGAIN_TRACK_GAIN', String(trackReplayGain));
-            if (trackPeakAmplitude) file.setProperty('REPLAYGAIN_TRACK_PEAK', String(trackPeakAmplitude));
+            data.replayGain = {
+                albumReplayGain: `${Number(albumReplayGain)} dB`,
+                trackReplayGain: `${Number(trackReplayGain)} dB`,
+                albumPeakAmplitude: albumPeakAmplitude ? Number(albumPeakAmplitude) : undefined,
+                trackPeakAmplitude: trackPeakAmplitude ? Number(trackPeakAmplitude) : undefined,
+            };
         }
 
         const releaseDateStr =
-            track.album?.releaseDate || (track.streamStartDate ? track.streamStartDate.split('T')[0] : '');
+            track.album?.releaseDate?.trim() || track?.streamStartDate?.split('T')?.[0]?.trim() || undefined;
 
         if (releaseDateStr) {
             try {
-                const year = new Date(releaseDateStr).getFullYear();
+                const year = Number(releaseDateStr.split('-')[0]);
                 if (!isNaN(year)) {
-                    file.setProperty('DATE', String(year));
+                    data.releaseDate = String(releaseDateStr);
                 }
             } catch {
                 // Invalid date, skip
-            }
-        }
-
-        if (track.copyright) {
-            file.setProperty('COPYRIGHT', track.copyright);
-        }
-
-        if (track.isrc) {
-            file.setProperty('ISRC', track.isrc);
-
-            if (isMp4) {
-                file.setMP4Item('xid ', `:isrc:${track.isrc}`);
-            }
-        }
-
-        if (track.explicit) {
-            if (isMp4) {
-                file.setMP4Item('rtng', '1');
-            } else {
-                file.setProperty('ITUNESADVISORY', '1');
+                console.warn('Invalid date', releaseDateStr);
             }
         }
 
@@ -173,14 +120,10 @@ export async function addMetadataToAudio(audioBlob, track, api, _quality, prefet
                 const coverBuffer = new Uint8Array(await coverBlob.arrayBuffer());
 
                 if (coverBlob) {
-                    file.setPictures([
-                        {
-                            mimeType: coverBlob.type,
-                            data: coverBuffer,
-                            type: PICTURE_TYPE_VALUES.FrontCover,
-                            description: 'Cover Art',
-                        },
-                    ]);
+                    data.cover = {
+                        data: coverBuffer,
+                        type: getMimeType(coverBuffer),
+                    };
                 }
             }
         } catch (e) {
@@ -189,35 +132,24 @@ export async function addMetadataToAudio(audioBlob, track, api, _quality, prefet
 
         try {
             const lyrics = await lyricsFetch;
-            const lyricsString = lyrics?.subtitles || lyrics?.plainLyrics;
-
-            if (lyricsString) {
-                //if (isMp4) {
-                //    file.setMP4Item('@lyr', String(lyricsString));
-                //} else {
-                file.setProperty('LYRICS', String(lyricsString).replace(/\r/g, '').replace(/\n/g, '\r\n'));
-                //}
-            }
+            data.lyrics = lyrics?.subtitles || lyrics?.plainLyrics;
         } catch (e) {
             console.warn('Error setting lyrics metadata', track, e);
         }
 
-        console.timeEnd('Tagging file');
+        const newAudioBuffer = await addMetadataWithTagLib(audioBuffer, {
+            ...data,
+        });
 
-        console.time('Saving in-memory buffer');
-        await file.save();
-        console.timeEnd('Saving in-memory buffer');
-
-        console.time('Saving blob');
-        const blob = new Blob([file.getFileBuffer()], { type: audioBlob.type, name: audioBlob.name });
-        console.timeEnd('Saving blob');
-
-        return blob;
+        return doTimed(
+            'Create new audio blob',
+            () =>
+                new Blob([newAudioBuffer], {
+                    type: audioBlob.type,
+                })
+        );
     } catch (err) {
         console.error(err);
-    } finally {
-        // Always dispose, even if there was an error.
-        file.dispose();
     }
 
     return audioBlob;
@@ -237,18 +169,36 @@ export async function readTrackMetadata(file, siblings = []) {
         duration: 0,
         isrc: null,
         copyright: null,
+        explicit: false,
         isLocal: true,
         file: file,
         id: `local-${file.name}-${file.lastModified}`,
     };
 
     try {
-        if (file.type === 'audio/flac' || file.name.endsWith('.flac')) {
-            await readFlacMetadata(file, metadata);
-        } else if (file.type === 'audio/mp4' || file.name.endsWith('.m4a')) {
-            await readM4aMetadata(file, metadata);
-        } else if (file.type === 'audio/mpeg' || file.name.endsWith('.mp3')) {
-            await readMp3Metadata(file, metadata);
+        const data = await getMetadataWithTagLib(await file.arrayBuffer());
+
+        if (data) {
+            metadata.title = data.title || metadata.title;
+            metadata.artists.push(
+                ...(data.artist || '')
+                    .split(';')
+                    .map((a) => a.trim())
+                    .filter((a) => a)
+            );
+            metadata.artist = data.artist || metadata.artist;
+            metadata.album.title = data.albumTitle || metadata.album.title;
+            metadata.album.releaseDate = data.releaseDate || metadata.album.releaseDate;
+
+            if (data.cover) {
+                const blob = new Blob([data.cover.data], { type: data.cover.type });
+                metadata.album.cover = URL.createObjectURL(blob);
+            }
+
+            metadata.duration = data.duration;
+            metadata.isrc = data.isrc || metadata.isrc;
+            metadata.copyright = data.copyright || metadata.copyright;
+            metadata.explicit = !!data.explicit;
         }
     } catch (e) {
         console.warn('Error reading metadata for', file.name, e);
