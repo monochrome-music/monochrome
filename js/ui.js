@@ -1351,17 +1351,22 @@ export class UIRenderer {
                 const currentVolume = this.player.userVolume;
                 const newVolume = Math.max(0, Math.min(1, currentVolume + delta));
 
-                if (delta > 0 && this.player.muted) {
-                    this.player.setMute(false);
+                if (delta > 0 && audioPlayer.muted) {
+                    audioPlayer.muted = false;
+                    localStorage.setItem('muted', false);
                 }
 
                 this.player.setVolume(newVolume);
                 updateFsVolumeUI();
             };
 
-            [fsVolumeBar, fsVolumeBtn].forEach((el) =>
-                el.addEventListener('wheel', handleFsVolumeWheel, { passive: false })
-            );
+            [fsVolumeBar, fsVolumeBtn].forEach((el) => {
+                if (el._fsVolumeWheelHandler) {
+                    el.removeEventListener('wheel', el._fsVolumeWheelHandler);
+                }
+                el._fsVolumeWheelHandler = handleFsVolumeWheel;
+                el.addEventListener('wheel', handleFsVolumeWheel, { passive: false });
+            });
 
             const setFsVolume = (e) => {
                 const rect = fsVolumeBar.getBoundingClientRect();
