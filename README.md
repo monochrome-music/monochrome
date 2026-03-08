@@ -204,6 +204,11 @@ npx cap open
 to open in Android Studio, from there you can build
 
 ---
+## Installation
+
+Grab the latest build from our [Actions tab](https://github.com/subby2006/monochrome-android/actions/workflows/android-apk.yml) (make sure you're signed in)
+
+---
 
 ## Usage
 
@@ -233,7 +238,7 @@ to open in Android Studio, from there you can build
 To sync your library, history, and playlists across devices:
 
 1. Click the "Accounts" Section
-2. Sign in with Google or Email
+2. Sign in with ~~Google or~~ Email
 3. Your data will automatically sync across all devices
 
 ---
