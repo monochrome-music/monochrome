@@ -3428,6 +3428,7 @@
                         <button class="settings-tab" data-tab="scrobbling">Scrobbling</button>
                         <button class="settings-tab" data-tab="audio">Audio</button>
                         <button class="settings-tab" data-tab="downloads">Downloads</button>
+                        <button class="settings-tab" data-tab="instances">Instances</button>
                         <button class="settings-tab" data-tab="system">System</button>
                     </div>
                     <div class="settings-tab-content active" id="settings-tab-appearance">
@@ -3665,6 +3666,9 @@
                                         <span class="slider"></span>
                                     </label>
                                 </div>
+                            </div>
+
+                            <div class="settings-group">
                                 <div class="setting-item">
                                     <div class="info">
                                         <span class="label">Full-screen Visualizer</span>
@@ -3863,6 +3867,29 @@
                                     </div>
                                     <label class="toggle-switch">
                                         <input type="checkbox" id="shuffle-editors-picks-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Compact Artists</span>
+                                        <span class="description">Show artist cards in a compact, horizontal layout</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="compact-artist-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Compact Albums</span>
+                                        <span class="description">Show album cards in a compact, horizontal layout</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="compact-album-toggle" />
                                         <span class="slider"></span>
                                     </label>
                                 </div>
@@ -4504,43 +4531,6 @@
                                 </div>
                                 <div class="setting-item">
                                     <div class="info">
-                                        <span class="label">Download Quality</span>
-                                        <span class="description">Quality for track downloads</span>
-                                    </div>
-                                    <select id="download-quality-setting">
-                                        <option value="HI_RES_LOSSLESS">Hi-Res FLAC (24-bit)</option>
-                                        <option value="LOSSLESS">FLAC (Lossless)</option>
-                                        <option value="MP3_320">MP3 320kbps</option>
-                                        <option value="HIGH">AAC 320kbps</option>
-                                        <option value="LOW">AAC 96kbps</option>
-                                    </select>
-                                </div>
-                                <div class="setting-item">
-                                    <div class="info">
-                                        <span class="label">Lossless Container</span>
-                                        <span class="description">Container format for lossless downloads</span>
-                                    </div>
-                                    <select id="lossless-container-setting">
-                                        <option value="flac">FLAC</option>
-                                        <option value="alac">Apple Lossless</option>
-                                        <option value="nochange">Don't change</option>
-                                    </select>
-                                </div>
-                                <div class="setting-item">
-                                    <div class="info">
-                                        <span class="label">Cover Art Size</span>
-                                        <span class="description">Size for downloaded/embedded cover art</span>
-                                    </div>
-                                    <input
-                                        type="text"
-                                        id="cover-art-size-setting"
-                                        class="template-input"
-                                        style="width: 120px; text-align: right"
-                                        placeholder="1280x1280"
-                                    />
-                                </div>
-                                <div class="setting-item">
-                                    <div class="info">
                                         <span class="label">Show Quality Badges</span>
                                         <span class="description">Display "HD" badge for Hi-Res tracks</span>
                                     </div>
@@ -4571,6 +4561,9 @@
                                         <span class="slider"></span>
                                     </label>
                                 </div>
+                            </div>
+
+                            <div class="settings-group">
                                 <div class="setting-item">
                                     <div class="info">
                                         <span class="label">ReplayGain Mode</span>
@@ -4624,7 +4617,7 @@
                                         <span class="label">Playback Speed</span>
                                         <span class="description">Adjust playback speed (0.01x - 100x)</span>
                                     </div>
-                                    <div style="display: flex; align-items: center; gap: 12px">
+                                    <div class="playback-speed-control">
                                         <input
                                             type="range"
                                             id="playback-speed-slider"
@@ -4632,7 +4625,7 @@
                                             max="4.0"
                                             step="0.01"
                                             value="1.0"
-                                            style="width: 150px"
+                                            class="playback-speed-slider"
                                         />
                                         <input
                                             type="number"
@@ -4641,18 +4634,12 @@
                                             max="100"
                                             step="0.01"
                                             value="1.0"
-                                            style="
-                                                width: 80px;
-                                                text-align: center;
-                                                font-family: var(--font-family);
-                                                padding: 4px 8px;
-                                                border: 1px solid var(--border-color);
-                                                border-radius: 4px;
-                                                background: var(--bg-secondary);
-                                                color: var(--text-primary);
-                                            "
+                                            class="playback-speed-number-input"
                                         />
-                                        <span style="font-family: var(--font-family)">x</span>
+                                        <span class="playback-speed-unit">x</span>
+                                        <button id="playback-speed-reset" class="btn-secondary" title="Reset to default">
+                                            Reset
+                                        </button>
                                     </div>
                                 </div>
 
@@ -4924,32 +4911,10 @@
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="settings-group">
-                                <div class="info">
-                                    <span class="label">Compact Artists</span>
-                                    <span class="description">Show artist cards in a compact, horizontal layout</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="compact-artist-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Compact Albums</span>
-                                    <span class="description">Show album cards in a compact, horizontal layout</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="compact-album-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="settings-tab-content" id="settings-tab-downloads">
-                    <div class="settings-list">
+                    <div class="settings-tab-content" id="settings-tab-downloads">
+                        <div class="settings-list">
                         <div class="settings-group">
                             <div class="setting-item">
                                 <div class="info">
@@ -4987,6 +4952,43 @@
                             </div>
                             <div class="setting-item">
                                 <div class="info">
+                                    <span class="label">Download Quality</span>
+                                    <span class="description">Quality for track downloads</span>
+                                </div>
+                                <select id="download-quality-setting">
+                                    <option value="HI_RES_LOSSLESS">Hi-Res FLAC (24-bit)</option>
+                                    <option value="LOSSLESS">FLAC (Lossless)</option>
+                                    <option value="MP3_320">MP3 320kbps</option>
+                                    <option value="HIGH">AAC 320kbps</option>
+                                    <option value="LOW">AAC 96kbps</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Lossless Container</span>
+                                    <span class="description">Container format for lossless downloads</span>
+                                </div>
+                                <select id="lossless-container-setting">
+                                    <option value="flac">FLAC</option>
+                                    <option value="alac">Apple Lossless</option>
+                                    <option value="nochange">Don't change</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">Cover Art Size</span>
+                                    <span class="description">Size for downloaded/embedded cover art</span>
+                                </div>
+                                <input
+                                    type="text"
+                                    id="cover-art-size-setting"
+                                    class="template-input"
+                                    style="width: 120px; text-align: right"
+                                    placeholder="1280x1280"
+                                />
+                            </div>
+                            <div class="setting-item">
+                                <div class="info">
                                     <span class="label">Filename Template</span>
                                     <span class="description"
                                         >Customize download filenames. Available: {trackNumber}, {artist}, {title},
@@ -5015,6 +5017,9 @@
                                     placeholder="{albumTitle} - {albumArtist} - monochrome.tf"
                                 />
                             </div>
+                        </div>
+
+                        <div class="settings-group">
                             <div class="setting-item">
                                 <div class="info">
                                     <span class="label">Generate M3U</span>
@@ -5067,6 +5072,9 @@
                                     <span class="slider"></span>
                                 </label>
                             </div>
+                        </div>
+
+                        <div class="settings-group">
                             <div class="setting-item">
                                 <div class="info">
                                     <span class="label">Relative Paths</span>
@@ -5092,6 +5100,36 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="settings-tab-content" id="settings-tab-instances">
+                    <div class="settings-list">
+                        <div class="settings-group">
+                            <div class="setting-item">
+                                <div class="info">
+                                    <span class="label">ADVANCED: Custom Database/Auth</span>
+                                    <span class="description">Configure custom PocketBase and Firebase instances</span>
+                                </div>
+                                <button id="custom-db-btn" class="btn-secondary">Configure</button>
+                            </div>
+                        </div>
+
+                        <div class="settings-group">
+                            <div id="api-instance-manager">
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">API Instances</span>
+                                        <span class="description">Manage and prioritize API instances.</span>
+                                    </div>
+                                    <button id="refresh-speed-test-btn" class="btn-secondary">
+                                        Refresh Instance List
+                                    </button>
+                                </div>
+                                <ul id="api-instance-list"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="settings-tab-content" id="settings-tab-system">
                     <div class="settings-list">
                         <div class="settings-group">
@@ -5140,6 +5178,9 @@
                                     <span class="slider"></span>
                                 </label>
                             </div>
+                        </div>
+
+                        <div class="settings-group">
                             <div class="setting-item">
                                 <div class="info">
                                     <span class="label">Reset Local Data</span>
@@ -5160,6 +5201,9 @@
                                     Clear Cloud Data
                                 </button>
                             </div>
+                        </div>
+
+                        <div class="settings-group">
                             <div class="setting-item">
                                 <div class="info">
                                     <span class="label">Backup & Restore</span>
@@ -5187,27 +5231,10 @@
                                     />
                                 </div>
                             </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">ADVANCED: Custom Database/Auth</span>
-                                    <span class="description">Configure custom PocketBase and Firebase instances</span>
-                                </div>
-                                <button id="custom-db-btn" class="btn-secondary">Configure</button>
-                            </div>
-                            <div id="api-instance-manager">
-                                <div class="setting-item" style="padding-bottom: 1rem; border: none">
-                                    <div class="info">
-                                        <span class="label">API Instances</span>
-                                        <span class="description">Manage and prioritize API instances.</span>
-                                    </div>
-                                    <button id="refresh-speed-test-btn" class="btn-secondary">
-                                        Refresh Instance List
-                                    </button>
-                                </div>
-                                <ul id="api-instance-list"></ul>
-                            </div>
+                        </div>
 
-                            <div class="setting-item" style="padding-bottom: 1rem; border-top: 1px solid var(--border)">
+                        <div class="settings-group">
+                            <div class="setting-item">
                                 <div class="info">
                                     <span class="label">Blocked Content</span>
                                     <span class="description"

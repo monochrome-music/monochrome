@@ -2617,6 +2617,65 @@ input[type='search']::-webkit-search-cancel-button {
     width: 100px;
 }
 
+.playback-speed-control {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.playback-speed-slider {
+    appearance: none;
+    width: 150px;
+    height: 6px;
+    background: var(--border);
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    outline: none;
+}
+
+.playback-speed-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: var(--primary);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+
+.playback-speed-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+.playback-speed-number-input {
+    width: 80px;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--input);
+    color: var(--foreground);
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.playback-speed-unit {
+    font-size: 0.9rem;
+    color: var(--muted-foreground);
+    min-width: 1rem;
+}
+
+.playback-speed-number-input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+/* Hide arrows/spinners for number input */
+.playback-speed-number-input::-webkit-outer-spin-button,
+.playback-speed-number-input::-webkit-inner-spin-button {
+    appearance: none;
+    margin: 0;
+}
+
 .template-input {
     width: 100%;
     max-width: 400px;

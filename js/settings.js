@@ -901,33 +901,56 @@ export function initializeSettings(scrobbler, player, api, ui) {
     // ========================================
     const playbackSpeedSlider = document.getElementById('playback-speed-slider');
     const playbackSpeedInput = document.getElementById('playback-speed-input');
+    const playbackSpeedReset = document.getElementById('playback-speed-reset');
+
     if (playbackSpeedSlider && playbackSpeedInput) {
-        const currentSpeed = audioEffectsSettings.getSpeed();
-        // Clamp slider to its range (0.25-4), but show actual value in input
-        playbackSpeedSlider.value = Math.max(0.25, Math.min(4.0, currentSpeed));
-        playbackSpeedInput.value = currentSpeed;
-
-        // Slider only controls 0.25-4 range
-        playbackSpeedSlider.addEventListener('input', (e) => {
-            const speed = parseFloat(e.target.value) || 1.0;
-            playbackSpeedInput.value = speed;
-            player.setPlaybackSpeed(speed);
-        });
-
-        // Input allows full 0.01-100 range
-        const handleInputChange = () => {
-            const speed = parseFloat(playbackSpeedInput.value) || 1.0;
-            const validSpeed = Math.max(0.01, Math.min(100, speed));
+        // Helper function to update both controls
+        const updatePlaybackSpeedControls = (speed) => {
+            const validSpeed = Math.max(0.01, Math.min(100, parseFloat(speed) || 1.0));
             playbackSpeedInput.value = validSpeed;
             // Only update slider if value is within slider range
             if (validSpeed >= 0.25 && validSpeed <= 4.0) {
                 playbackSpeedSlider.value = validSpeed;
             }
-            player.setPlaybackSpeed(validSpeed);
+            return validSpeed;
         };
 
-        playbackSpeedInput.addEventListener('change', handleInputChange);
-        playbackSpeedInput.addEventListener('blur', handleInputChange);
+        // Initialize with current value
+        const currentSpeed = audioEffectsSettings.getSpeed();
+        updatePlaybackSpeedControls(currentSpeed);
+
+        playbackSpeedSlider.addEventListener('input', (e) => {
+            const speed = parseFloat(e.target.value);
+            playbackSpeedInput.value = speed;
+            audioEffectsSettings.setSpeed(speed);
+            player.setPlaybackSpeed(speed);
+        });
+
+        playbackSpeedInput.addEventListener('input', (e) => {
+            const speed = parseFloat(e.target.value);
+            if (!isNaN(speed) && speed >= 0.01 && speed <= 100) {
+                if (speed >= 0.25 && speed <= 4.0) {
+                    playbackSpeedSlider.value = speed;
+                }
+                audioEffectsSettings.setSpeed(speed);
+                player.setPlaybackSpeed(speed);
+            }
+        });
+
+        playbackSpeedInput.addEventListener('change', (e) => {
+            const speed = parseFloat(e.target.value);
+            const validSpeed = updatePlaybackSpeedControls(speed);
+            audioEffectsSettings.setSpeed(validSpeed);
+            player.setPlaybackSpeed(validSpeed);
+        });
+
+        if (playbackSpeedReset) {
+            playbackSpeedReset.addEventListener('click', () => {
+                const defaultSpeed = audioEffectsSettings.resetSpeed();
+                updatePlaybackSpeedControls(defaultSpeed);
+                player.setPlaybackSpeed(defaultSpeed);
+            });
+        }
     }
 
     // ========================================
