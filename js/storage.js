@@ -1352,6 +1352,11 @@ export const audioEffectsSettings = {
         localStorage.setItem(this.SPEED_KEY, validSpeed.toString());
     },
 
+    resetSpeed() {
+        this.setSpeed(1.0);
+        return 1.0;
+    },
+
     // Preserve pitch when changing speed (default true)
     isPreservePitchEnabled() {
         try {
