@@ -187,9 +187,10 @@ For PocketBase, development mode, and advanced setups, see [DOCKER.md](DOCKER.md
 #### Building for Production
 
 ```bash
-bun run build
 # or
 npm run build
+# or (for android)
+npm run build:native
 ```
 
 #### Building for Android
