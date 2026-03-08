@@ -1216,7 +1216,7 @@ export class LosslessAPI {
                             if ((await getExtensionFromBlob(blob)) != 'flac') {
                                 blob = await ffmpeg(
                                     blob,
-                                    { args: ['-c:a', 'copy'] },
+                                    { args: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'flac'] },
                                     'output.flac',
                                     'audio/flac',
                                     onProgress,
