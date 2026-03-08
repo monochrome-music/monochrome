@@ -2531,7 +2531,7 @@ input[type='search']::-webkit-search-cancel-button {
     border-radius: var(--radius);
     cursor: pointer;
     font-weight: 500;
-    font-size: 0.875rem;
+    font-size: 0.8333rem;
     transition: all var(--transition);
 }
 
