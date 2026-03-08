@@ -2310,20 +2310,20 @@ export function initializeSettings(scrobbler, player, api, ui) {
         updateButterchurnSettingsVisibility();
     }
 
-    // Watch for audio tab becoming active and refresh presets
-    const audioTabContent = document.getElementById('settings-tab-audio');
-    if (audioTabContent) {
+    // Watch for appearance tab becoming active and refresh presets
+    const appearanceTabContent = document.getElementById('settings-tab-appearance');
+    if (appearanceTabContent) {
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                    if (audioTabContent.classList.contains('active')) {
-                        console.log('[Settings] Audio tab became active, refreshing presets');
+                    if (appearanceTabContent.classList.contains('active')) {
+                        console.log('[Settings] Appearance tab became active, refreshing presets');
                         updateButterchurnSettingsVisibility();
                     }
                 }
             });
         });
-        observer.observe(audioTabContent, { attributes: true });
+        observer.observe(appearanceTabContent, { attributes: true });
     }
 
     // Visualizer Mode Select
