@@ -4,8 +4,7 @@
 		"context": "..",
 		"dockerfile": "./Dockerfile"
 	},
-	"postCreateCommand": "git config --global core.editor \"code --wait\"",
-	"postStartCommand": "npm install && bun install",
+	"postCreateCommand": "git config --local core.editor \"code --wait\" && git config --local commit.gpgsign false && npm install && bun install",
 	"customizations": {
         "vscode": {
             "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
@@ -13,7 +12,5 @@
     },
 	"mounts": [
 		"source=${env:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached",
-		"source=${env:HOME}/.gnupg,target=/home/vscode/.gnupg,type=bind",
-		"source=${env:HOME}/.ssh,target=/home/vscode/.ssh,type=bind"
 	]
 }
