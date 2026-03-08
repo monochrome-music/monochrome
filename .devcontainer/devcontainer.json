@@ -1,16 +1,14 @@
 {
-	"name": "Monochrome Dev Container",
-	"build": {
-		"context": "..",
-		"dockerfile": "./Dockerfile"
-	},
-	"postCreateCommand": "git config --local core.editor \"code --wait\" && git config --local commit.gpgsign false && npm install && bun install",
-	"customizations": {
+    "name": "Monochrome Dev Container",
+    "build": {
+        "context": "..",
+        "dockerfile": "./Dockerfile"
+    },
+    "postCreateCommand": "git config --local core.editor \"code --wait\" && git config --local commit.gpgsign false && npm install && bun install",
+    "customizations": {
         "vscode": {
             "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
         }
     },
-	"mounts": [
-		"source=${env:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached",
-	]
+    "mounts": ["source=${env:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached"]
 }
