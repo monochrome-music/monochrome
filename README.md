@@ -192,14 +192,15 @@ bun run build
 npm run build
 ```
 
-
 #### Building for Android
 
 Simply run
+
 ```bash
 npx cap open
 ```
-to open in Android Studio, from there you can build 
+
+to open in Android Studio, from there you can build
 
 ---
 
