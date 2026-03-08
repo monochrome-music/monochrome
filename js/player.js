@@ -18,6 +18,7 @@ import {
     audioEffectsSettings,
 } from './storage.js';
 import { audioContextManager } from './audio-context.js';
+import Hls from 'hls.js';
 
 export class Player {
     constructor(audioElement, api, quality = 'HI_RES_LOSSLESS') {
@@ -402,6 +403,42 @@ export class Player {
         }
     }
 
+    setupHlsVideo(video, result, fallbackImg) {
+        const url = result.videoUrl || result.hlsUrl;
+        if (!url) return;
+
+        if (url.endsWith('.m3u8')) {
+            if (Hls.isSupported()) {
+                const hls = new Hls();
+                hls.loadSource(url);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    video.play().catch(() => {});
+                });
+                hls.on(Hls.Events.ERROR, (event, data) => {
+                    if (data.fatal) {
+                        console.warn('HLS fatal error:', data.type);
+                        video.replaceWith(fallbackImg);
+                        hls.destroy();
+                    }
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = url;
+            } else {
+                video.replaceWith(fallbackImg);
+            }
+        } else {
+            video.src = url;
+            video.onerror = () => {
+                if (result.hlsUrl) {
+                    this.setupHlsVideo(video, { videoUrl: null, hlsUrl: result.hlsUrl }, fallbackImg);
+                } else {
+                    video.replaceWith(fallbackImg);
+                }
+            };
+        }
+    }
+
     async playTrackFromQueue(startTime = 0, recursiveCount = 0) {
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
         if (this.currentQueueIndex < 0 || this.currentQueueIndex >= currentQueue.length) {
@@ -433,22 +470,67 @@ export class Player {
 
         const coverEl = document.querySelector('.now-playing-bar .cover');
         if (coverEl) {
-            const videoCoverUrl = track.album?.videoCover
+            let videoCoverUrl = track.album?.videoCover
                 ? this.api.tidalAPI.getVideoCoverUrl(track.album.videoCover)
-                : null;
+                : track.album?.videoCoverUrl || null;
+
+            if (!videoCoverUrl && track.album) {
+                this.api.getVideoArtwork(track.title, getTrackArtists(track)).then((result) => {
+                    if (result && this.currentTrack?.id === track.id) {
+                        const url = result.videoUrl || result.hlsUrl;
+                        if (!url) return;
+                        
+                        track.album.videoCoverUrl = url;
+                        const currentCoverEl = document.querySelector('.now-playing-bar .cover');
+                        if (currentCoverEl && currentCoverEl.tagName !== 'VIDEO') {
+                            const video = document.createElement('video');
+                            video.autoplay = true;
+                            video.loop = true;
+                            video.muted = true;
+                            video.playsInline = true;
+                            video.preload = 'auto';
+                            video.className = currentCoverEl.className;
+                            video.id = currentCoverEl.id;
+                            video.style.opacity = '1';
+                            video.style.zIndex = '1';
+                            video.style.objectFit = 'cover';
+                            video.poster = currentCoverEl.src;
+
+                            this.setupHlsVideo(video, result, currentCoverEl);
+                            currentCoverEl.replaceWith(video);
+                        }
+                    }
+                });
+            }
+
             const coverUrl = videoCoverUrl || this.api.getCoverUrl(track.album?.cover);
 
             if (videoCoverUrl) {
                 if (coverEl.tagName === 'IMG') {
                     const video = document.createElement('video');
                     video.src = videoCoverUrl;
+                    video.poster = this.api.getCoverUrl(track.album?.cover);
                     video.autoplay = true;
                     video.loop = true;
                     video.muted = true;
                     video.playsInline = true;
+                    video.preload = 'auto';
                     video.className = coverEl.className;
                     video.id = coverEl.id;
+                    video.style.objectFit = 'cover';
+                    video.style.gridArea = '1 / 1';
+                    video.onerror = () => {
+                        const img = document.createElement('img');
+                        img.src = this.api.getCoverUrl(track.album?.cover);
+                        img.className = video.className;
+                        img.id = video.id;
+                        video.replaceWith(img);
+                    };
                     coverEl.replaceWith(video);
+                } else if (coverEl.tagName === 'VIDEO' && coverEl.src !== videoCoverUrl) {
+                    coverEl.src = videoCoverUrl;
+                    coverEl.poster = this.api.getCoverUrl(track.album?.cover);
+                    coverEl.style.objectFit = 'cover';
                 }
             } else {
                 if (coverEl.tagName === 'VIDEO') {

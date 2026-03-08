@@ -10,6 +10,7 @@ export class MusicAPI {
         this.tidalAPI = new LosslessAPI(settings);
         this.qobuzAPI = new QobuzAPI();
         this._settings = settings;
+        this.videoArtworkCache = new Map();
     }
 
     getCurrentProvider() {
@@ -137,6 +138,29 @@ export class MusicAPI {
             if (videoUrl) return videoUrl;
         }
         return this.getCoverUrl(fallbackCoverId, size);
+    }
+
+    async getVideoArtwork(title, artist) {
+        const cacheKey = `${title}-${artist}`.toLowerCase();
+        if (this.videoArtworkCache.has(cacheKey)) {
+            return this.videoArtworkCache.get(cacheKey);
+        }
+
+        try {
+            const url = `https://artwork.boidu.dev/?s=${encodeURIComponent(title)}&a=${encodeURIComponent(artist)}`;
+            const response = await fetch(url);
+            if (!response.ok) return null;
+            const data = await response.json();
+            const result = {
+                videoUrl: data.videoUrl || null,
+                hlsUrl: data.animated || null
+            };
+            this.videoArtworkCache.set(cacheKey, result);
+            return result;
+        } catch (error) {
+            console.warn('Failed to fetch video artwork:', error);
+            return null;
+        }
     }
 
     getArtistPictureUrl(id, size = '320') {
