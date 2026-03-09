@@ -105,10 +105,6 @@ export async function addMetadataToAudio(audioBlob, track, api, _quality, prefet
             console.warn('Error setting lyrics metadata', track, e);
         }
 
-        if (!(audioBuffer instanceof Uint8Array)) {
-            throw new Error('Audio buffer is not a Uint8Array');
-        }
-
         const newAudioBuffer = await addMetadataWithTagLib(audioBuffer, {
             ...data,
         });
