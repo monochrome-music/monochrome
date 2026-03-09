@@ -13,6 +13,7 @@ import { DashDownloader } from './dash-downloader.js';
 import { HlsDownloader } from './hls-downloader.js';
 import { encodeToMp3, MP3EncodingError } from './mp3-encoder.js';
 import { ffmpeg, loadFfmpeg } from './ffmpeg.js';
+import { rebuildFlacWithoutMetadata } from './metadata.flac.js';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 const TIDAL_V2_TOKEN = 'txNoH4kkV41MfH25';
@@ -1399,14 +1400,18 @@ export class LosslessAPI {
                     try {
                         switch (losslessContainerSettings.getContainer()) {
                             case 'flac':
-                                blob = await ffmpeg(
-                                    blob,
-                                    { args: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'flac'] },
-                                    'output.flac',
-                                    'audio/flac',
-                                    onProgress,
-                                    options.signal
-                                );
+                                if ((await getExtensionFromBlob(blob)) != 'flac') {
+                                    blob = await ffmpeg(
+                                        blob,
+                                        { args: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'flac'] },
+                                        'output.flac',
+                                        'audio/flac',
+                                        onProgress,
+                                        options.signal
+                                    );
+                                } else {
+                                    blob = await rebuildFlacWithoutMetadata(blob);
+                                }
                                 break;
                             case 'alac':
                                 blob = await ffmpeg(

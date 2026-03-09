@@ -13,6 +13,7 @@ import {
 } from './utils.js';
 import { lyricsSettings, bulkDownloadSettings, losslessContainerSettings, playlistSettings } from './storage.js';
 import { addMetadataToAudio, prefetchMetadataObjects } from './metadata.js';
+import { rebuildFlacWithoutMetadata } from './metadata.flac.js';
 import { DashDownloader } from './dash-downloader.js';
 import { generateM3U, generateM3U8, generateCUE, generateNFO, generateJSON } from './playlist-generator.js';
 import { encodeToMp3 } from './mp3-encoder.js';
@@ -379,14 +380,18 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
         try {
             switch (losslessContainerSettings.getContainer()) {
                 case 'flac':
-                    blob = await ffmpeg(
-                        blob,
-                        { args: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'flac'] },
-                        'output.flac',
-                        'audio/flac',
-                        onProgress,
-                        signal
-                    );
+                    if ((await getExtensionFromBlob(blob)) != 'flac') {
+                        blob = await ffmpeg(
+                            blob,
+                            { args: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'flac'] },
+                            'output.flac',
+                            'audio/flac',
+                            onProgress,
+                            signal
+                        );
+                    } else {
+                        blob = await rebuildFlacWithoutMetadata(blob);
+                    }
                     break;
                 case 'alac':
                     blob = await ffmpeg(

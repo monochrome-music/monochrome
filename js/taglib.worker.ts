@@ -303,22 +303,28 @@ async function getMetadataFromAudio(message: GetMetadataMessage): Promise<TagLib
 }
 
 self.onmessage = async (event: MessageEvent<TagLibWorkerMessage>) => {
+    const transfer: Transferable[] = [event.data.audioData.buffer];
+
     switch (event.data.type) {
         case 'Add':
             try {
                 const result = await addMetadataToAudio(event.data as AddMetadataMessage);
+                transfer.push(result.buffer);
                 self.postMessage(
                     {
                         type: event.data.type,
                         data: result,
                     } satisfies TagLibFileResponse,
-                    [result.buffer, event.data.audioData.buffer]
+                    transfer
                 );
             } catch (error) {
-                self.postMessage({
-                    type: event.data.type,
-                    error: error instanceof Error ? error.message : String(error),
-                } satisfies TagLibWorkerResponse<undefined>);
+                self.postMessage(
+                    {
+                        type: event.data.type,
+                        error: error instanceof Error ? error.message : String(error),
+                    } satisfies TagLibWorkerResponse<undefined>,
+                    transfer
+                );
             }
             break;
 
@@ -330,13 +336,16 @@ self.onmessage = async (event: MessageEvent<TagLibWorkerMessage>) => {
                         type: event.data.type,
                         data: result,
                     } satisfies TagLibMetadataResponse,
-                    [event.data.audioData.buffer]
+                    transfer
                 );
             } catch (error) {
-                self.postMessage({
-                    type: event.data.type,
-                    error: error instanceof Error ? error.message : String(error),
-                } satisfies TagLibWorkerResponse<undefined>);
+                self.postMessage(
+                    {
+                        type: event.data.type,
+                        error: error instanceof Error ? error.message : String(error),
+                    } satisfies TagLibWorkerResponse<undefined>,
+                    transfer
+                );
             }
             break;
     }
