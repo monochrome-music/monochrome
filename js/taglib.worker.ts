@@ -3,65 +3,19 @@ declare var self: DedicatedWorkerGlobalScope;
 
 import { TagLib, type PictureType } from 'taglib-wasm';
 import { doTimed, doTimedAsync } from './doTimed';
+import type {
+    AddMetadataMessage,
+    GetMetadataMessage,
+    TagLibFileResponse,
+    TagLibMetadata,
+    TagLibMetadataResponse,
+    TagLibReadMetadata,
+    TagLibWorkerMessage,
+    TagLibWorkerResponse,
+} from './taglib.types';
 
 const PICTURE_TYPE_VALUES = {
     FrontCover: 3,
-};
-
-export type TagLibWorkerMessageType = 'Add' | 'Get';
-
-export interface TagLibWorkerMessage {
-    type: TagLibWorkerMessageType;
-    wasmUrl: string;
-    audioData: Uint8Array;
-}
-
-interface TagLibWorkerResponse<T> {
-    type: TagLibWorkerMessageType;
-    data?: T;
-    error?: string;
-}
-
-export interface TagLibMetadata {
-    title?: string;
-    artist?: string;
-    albumTitle?: string;
-    albumArtist?: string;
-    trackNumber?: number;
-    totalTracks?: number;
-    discNumber?: number;
-    totalDiscs?: number;
-    bpm?: number;
-    replayGain?: {
-        albumReplayGain?: string;
-        albumPeakAmplitude?: number;
-        trackReplayGain?: string;
-        trackPeakAmplitude?: number;
-    };
-    cover?: {
-        data: Uint8Array;
-        type: string;
-    };
-    releaseDate?: string;
-    copyright?: string;
-    isrc?: string;
-    explicit?: boolean;
-    lyrics?: string;
-}
-
-export interface TagLibReadMetadata extends TagLibMetadata {
-    duration: number;
-}
-
-export type TagLibFileResponse = TagLibWorkerResponse<Uint8Array>;
-export type TagLibMetadataResponse = TagLibWorkerResponse<TagLibReadMetadata>;
-
-export type AddMetadataMessage = TagLibWorkerMessage & {
-    type: 'Add';
-} & TagLibMetadata;
-
-export type GetMetadataMessage = TagLibWorkerMessage & {
-    type: 'Get';
 };
 
 async function addMetadataToAudio(message: AddMetadataMessage): Promise<Uint8Array> {
