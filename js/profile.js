@@ -37,12 +37,14 @@ let currentFavoriteAlbums = [];
 const api = new MusicAPI(apiSettings);
 
 async function uploadImage(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
     try {
-        const formData = new FormData();
-        formData.append('file', file);
         const response = await fetch('/upload', { method: 'POST', body: formData });
         if (!response.ok) throw new Error(`Upload failed: ${response.status}`);
         const data = await response.json();
+        if (!data.success) throw new Error(data.error || 'Upload failed');
         return data.url;
     } catch (error) {
         console.error('Upload error:', error);

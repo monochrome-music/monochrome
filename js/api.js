@@ -1389,38 +1389,38 @@ export class LosslessAPI {
                     }
                 }
 
-                if (quality.endsWith('LOSSLESS')) {
-                    try {
-                        switch (losslessContainerSettings.getContainer()) {
-                            case 'flac':
-                                if ((await getExtensionFromBlob(blob)) != 'flac') {
-                                    blob = await ffmpeg(
-                                        blob,
-                                        { args: ['-c:a', 'copy'] },
-                                        'output.flac',
-                                        'audio/flac',
-                                        onProgress,
-                                        options.signal
-                                    );
-                                }
-                                break;
-                            case 'alac':
+            if (quality.endsWith('LOSSLESS')) {
+                try {
+                    switch (losslessContainerSettings.getContainer()) {
+                        case 'flac':
+                            if ((await getExtensionFromBlob(blob)) != 'flac') {
                                 blob = await ffmpeg(
                                     blob,
-                                    { args: ['-c:a', 'alac'] },
-                                    'output.m4a',
-                                    'audio/mp4',
+                                    { args: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'flac'] },
+                                    'output.flac',
+                                    'audio/flac',
                                     onProgress,
                                     options.signal
                                 );
-                                break;
-                            default:
-                                break;
-                        }
-                    } catch (error) {
-                        if (error?.name === 'AbortError') {
-                            throw error;
-                        }
+                            }
+                            break;
+                        case 'alac':
+                            blob = await ffmpeg(
+                                blob,
+                                { args: ['-c:a', 'alac'] },
+                                'output.m4a',
+                                'audio/mp4',
+                                onProgress,
+                                options.signal
+                            );
+                            break;
+                        default:
+                            break;
+                    }
+                } catch (error) {
+                    if (error?.name === 'AbortError') {
+                        throw error;
+                    }
 
                         console.error('Lossless container conversion failed:', error);
                     }

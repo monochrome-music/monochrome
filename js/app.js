@@ -2986,8 +2986,6 @@ function showCustomizeShortcutsModal() {
     let recordingAction = null;
     let recordingTimeout = null;
 
-    const shortcuts = keyboardShortcuts.getShortcuts();
-
     const formatKey = (key) => {
         if (!key) return 'none';
         const keyMap = {
