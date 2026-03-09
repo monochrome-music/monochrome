@@ -1,4 +1,5 @@
 import { fetchBlobURL } from './utils';
+import FfmpegWorker from './ffmpeg.worker.js?worker'
 const ffmpegBase = 'https://unpkg.com/@ffmpeg/core/dist/esm';
 const coreJs = `${ffmpegBase}/ffmpeg-core.js`;
 const coreWasm = `${ffmpegBase}/ffmpeg-core.wasm`;
@@ -37,7 +38,7 @@ async function ffmpegWorker(
     const assets = loadFfmpeg();
 
     return new Promise((resolve, reject) => {
-        const worker = new Worker(new URL('./ffmpeg.worker.js', import.meta.url), { type: 'module' });
+        const worker = new FfmpegWorker();
 
         // Handle abort signal
         const abortHandler = () => {

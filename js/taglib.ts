@@ -9,8 +9,8 @@ import type {
     TagLibMetadataResponse,
     TagLibMetadata,
     TagLibReadMetadata,
-} from './taglib.worker';
-import TagLibWorker from './taglib.worker.ts?url';
+} from './taglib.types';
+import TagLibWorker from './taglib.worker?worker';
 
 let tagLib: Promise<TagLib> | null = null;
 
@@ -32,7 +32,7 @@ export async function addMetadataWithTagLib(
         audioData = new Uint8Array(audioData);
     }
 
-    const worker = new Worker(new URL(TagLibWorker, import.meta.url), { type: 'module' });
+    const worker = new TagLibWorker();
     const wasmUrl = await fetchTagLib();
 
     return new Promise<Uint8Array>((resolve, reject) => {
