@@ -1074,7 +1074,10 @@ export async function handleTrackAction(
                                 trackDataStore.set(newEl, item);
                                 ui.updateLikeState(newEl, 'video', item.id);
                                 newEl.addEventListener('click', (e) => {
-                                    if (e.target.closest('.card-play-btn') || e.target.closest('.card-image-container')) {
+                                    if (
+                                        e.target.closest('.card-play-btn') ||
+                                        e.target.closest('.card-image-container')
+                                    ) {
                                         e.stopPropagation();
                                         player.playVideo(item);
                                     }

@@ -585,7 +585,9 @@ const syncManager = {
                                 id: playlist.id,
                                 name: playlist.name,
                                 cover: playlist.cover || null,
-                                tracks: playlist.tracks ? playlist.tracks.map((t) => this._minifyItem(t.type || 'track', t)) : [],
+                                tracks: playlist.tracks
+                                    ? playlist.tracks.map((t) => this._minifyItem(t.type || 'track', t))
+                                    : [],
                                 createdAt: playlist.createdAt || Date.now(),
                                 updatedAt: playlist.updatedAt || Date.now(),
                                 numberOfTracks: playlist.tracks ? playlist.tracks.length : 0,
