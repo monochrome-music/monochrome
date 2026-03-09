@@ -1960,20 +1960,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             db.getPlaylist(playlistId).then(async (playlist) => {
                 let trackId = null;
+                let trackType = null;
 
                 // Prefer ID if available (from sorted view)
                 if (btn.dataset.trackId) {
                     trackId = btn.dataset.trackId;
+                    trackType = btn.dataset.type || 'track';
                 } else if (btn.dataset.trackIndex) {
                     // Fallback to index (legacy/unsorted)
                     const index = parseInt(btn.dataset.trackIndex);
                     if (playlist && playlist.tracks[index]) {
                         trackId = playlist.tracks[index].id;
+                        trackType = playlist.tracks[index].type || 'track';
                     }
                 }
 
                 if (trackId) {
-                    const updatedPlaylist = await db.removeTrackFromPlaylist(playlistId, trackId);
+                    const updatedPlaylist = await db.removeTrackFromPlaylist(playlistId, trackId, trackType);
                     syncManager.syncUserPlaylist(updatedPlaylist, 'update');
                     const scrollTop = document.querySelector('.main-content').scrollTop;
                     await ui.renderPlaylistPage(playlistId, 'user');

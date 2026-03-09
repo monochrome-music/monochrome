@@ -36,13 +36,13 @@
     </head>
 
     <body>
-        <audio id="audio-player" crossorigin="anonymous"></audio>
+        <video id="audio-player" crossorigin="anonymous" style="display: none"></video>
         <div id="context-menu">
             <ul>
                 <li data-action="shuffle-play-card" data-type-filter="album,playlist,mix,user-playlist">
                     Shuffle play
                 </li>
-                <li data-action="start-mix" data-type-filter="album,track">Start mix</li>
+                <li data-action="start-mix" data-type-filter="album,track,video">Start mix</li>
                 <li data-action="play-next">Play next</li>
                 <li data-action="add-to-queue">Add to queue</li>
                 <li
@@ -53,18 +53,20 @@
                     data-label-unlike-album="Remove album from library"
                     data-label-playlist="Save playlist to library"
                     data-label-unlike-playlist="Remove playlist from library"
+                    data-label-video="Like"
+                    data-label-unlike-video="Unlike"
                 >
                     Like
                 </li>
                 <li data-action="toggle-pin" data-type-filter="album,artist,playlist,user-playlist">Pin</li>
-                <li data-action="add-to-playlist" data-type-filter="track">Add to playlist</li>
-                <li data-action="go-to-artist" data-type-filter="track,album">Go to artist</li>
-                <li data-action="go-to-album" data-type-filter="track">Go to album</li>
+                <li data-action="add-to-playlist" data-type-filter="track,video">Add to playlist</li>
+                <li data-action="go-to-artist" data-type-filter="track,album,video">Go to artist</li>
+                <li data-action="go-to-album" data-type-filter="track,video">Go to album</li>
                 <li data-action="copy-link">Copy link</li>
                 <li data-action="open-in-new-tab">Open in new tab</li>
                 <li data-action="open-in-harmony" data-type-filter="album">Open in Harmony</li>
-                <li data-action="track-info" data-type-filter="track">Track info</li>
-                <li data-action="open-original-url" data-type-filter="track">Open original URL</li>
+                <li data-action="track-info" data-type-filter="track,video">Track info</li>
+                <li data-action="open-original-url" data-type-filter="track,video">Open original URL</li>
                 <li data-action="download">Download</li>
                 <li class="separator"></li>
                 <li
@@ -122,6 +124,7 @@
                 <div id="visualizer-container">
                     <canvas id="visualizer-canvas"></canvas>
                 </div>
+                <div id="fullscreen-video-container" style="display: none; position: absolute; inset: 0; width: 100%; height: 100%; justify-content: center; align-items: center; background: black; z-index: 0;"></div>
                 <button id="toggle-ui-btn" class="fullscreen-ui-toggle" title="Toggle UI">
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -163,7 +166,9 @@
                         src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
                         alt="Album Cover"
                     />
+
                     <div class="fullscreen-track-info">
+
                         <h2 id="fullscreen-track-title"></h2>
                         <h3 id="fullscreen-track-artist"></h3>
                         <div class="fullscreen-actions">
@@ -2358,12 +2363,16 @@
                     <h2 class="section-title" id="search-results-title">Search Results</h2>
                     <div class="search-tabs">
                         <button class="search-tab active" data-tab="tracks">Tracks</button>
+                        <button class="search-tab" data-tab="videos">Videos</button>
                         <button class="search-tab" data-tab="albums">Albums</button>
                         <button class="search-tab" data-tab="artists">Artists</button>
                         <button class="search-tab" data-tab="playlists">Playlists</button>
                     </div>
                     <div class="search-tab-content active" id="search-tab-tracks">
                         <div class="track-list" id="search-tracks-container"></div>
+                    </div>
+                    <div class="search-tab-content" id="search-tab-videos">
+                        <div class="card-grid" id="search-videos-container"></div>
                     </div>
                     <div class="search-tab-content" id="search-tab-albums">
                         <div class="card-grid" id="search-albums-container"></div>
@@ -2403,6 +2412,7 @@
                         <h2 class="section-title">Favorites</h2>
                         <div class="search-tabs">
                             <button class="search-tab active" data-tab="tracks">Liked Tracks</button>
+                            <button class="search-tab" data-tab="videos">Videos</button>
                             <button class="search-tab" data-tab="albums">Albums</button>
                             <button class="search-tab" data-tab="artists">Artists</button>
                             <button class="search-tab" data-tab="playlists">Playlists and Mixes</button>
@@ -2474,6 +2484,9 @@
                                 </button>
                             </div>
                             <div class="track-list" id="library-tracks-container"></div>
+                        </div>
+                        <div class="search-tab-content" id="library-tab-videos">
+                            <div class="card-grid" id="library-videos-container"></div>
                         </div>
                         <div class="search-tab-content" id="library-tab-albums">
                             <div class="card-grid" id="library-albums-container"></div>
@@ -3176,6 +3189,10 @@
                     <section class="content-section">
                         <h2 class="section-title">Albums</h2>
                         <div class="card-grid" id="artist-detail-albums"></div>
+                    </section>
+                    <section class="content-section" id="artist-section-videos" style="display: none">
+                        <h2 class="section-title">Videos</h2>
+                        <div class="card-grid" id="artist-detail-videos"></div>
                     </section>
                     <section class="content-section" id="artist-section-eps" style="display: none">
                         <h2 class="section-title">EPs and Singles</h2>

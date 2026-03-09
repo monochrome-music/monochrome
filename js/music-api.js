@@ -48,6 +48,11 @@ export class MusicAPI {
         return this.tidalAPI.searchPlaylists(query, options);
     }
 
+    async searchVideos(query, options = {}) {
+        const provider = options.provider || this.getCurrentProvider();
+        return this.tidalAPI.searchVideos(query, options);
+    }
+
     // Get methods
     async getTrack(id, quality, provider = null) {
         const p = provider || this.getProviderFromId(id) || this.getCurrentProvider();
@@ -87,6 +92,22 @@ export class MusicAPI {
             return api.getArtistBiography(cleanId);
         }
         return null;
+    }
+
+    async getVideo(id, provider = null) {
+        const p = provider || this.getProviderFromId(id) || this.getCurrentProvider();
+        const api = this.getAPI(p);
+        const cleanId = this.stripProviderPrefix(id);
+        return api.getVideo(cleanId);
+    }
+
+    async getVideoStreamUrl(id, provider = null) {
+        const p = provider || this.getProviderFromId(id) || this.getCurrentProvider();
+        const api = this.getAPI(p);
+        const cleanId = this.stripProviderPrefix(id);
+        if (typeof api.getVideoStreamUrl === 'function') {
+            return api.getVideoStreamUrl(cleanId);
+        }
     }
 
     async getArtistSocials(artistName) {
@@ -130,14 +151,6 @@ export class MusicAPI {
             return this.qobuzAPI.getCoverUrl(id.slice(2), size);
         }
         return this.tidalAPI.getCoverUrl(id, size);
-    }
-
-    getVideoCoverUrl(videoCoverId, fallbackCoverId, size = '1280') {
-        if (videoCoverId) {
-            const videoUrl = this.tidalAPI.getVideoCoverUrl(videoCoverId, size);
-            if (videoUrl) return videoUrl;
-        }
-        return this.getCoverUrl(fallbackCoverId, size);
     }
 
     async getVideoArtwork(title, artist) {

@@ -200,6 +200,19 @@ const syncManager = {
             };
         }
 
+        if (type === 'video') {
+            return {
+                ...base,
+                type: 'video',
+                title: item.title || null,
+                duration: item.duration || null,
+                image: item.image || item.cover || null,
+                artist: item.artist || (item.artists && item.artists.length > 0 ? item.artists[0] : null) || null,
+                artists: item.artists?.map((a) => ({ id: a.id, name: a.name || null })) || [],
+                album: item.album || { title: 'Video', cover: item.image || item.cover },
+            };
+        }
+
         if (type === 'album') {
             return {
                 ...base,
@@ -280,7 +293,7 @@ const syncManager = {
                 id: playlist.id,
                 name: playlist.name,
                 cover: playlist.cover || null,
-                tracks: playlist.tracks ? playlist.tracks.map((t) => this._minifyItem('track', t)) : [],
+                tracks: playlist.tracks ? playlist.tracks.map((t) => this._minifyItem(t.type || 'track', t)) : [],
                 createdAt: playlist.createdAt || Date.now(),
                 updatedAt: playlist.updatedAt || Date.now(),
                 numberOfTracks: playlist.tracks ? playlist.tracks.length : 0,
@@ -572,7 +585,7 @@ const syncManager = {
                                 id: playlist.id,
                                 name: playlist.name,
                                 cover: playlist.cover || null,
-                                tracks: playlist.tracks ? playlist.tracks.map((t) => this._minifyItem('track', t)) : [],
+                                tracks: playlist.tracks ? playlist.tracks.map((t) => this._minifyItem(t.type || 'track', t)) : [],
                                 createdAt: playlist.createdAt || Date.now(),
                                 updatedAt: playlist.updatedAt || Date.now(),
                                 numberOfTracks: playlist.tracks ? playlist.tracks.length : 0,
