@@ -1,4 +1,5 @@
 // filepath: /workspaces/monochrome/js/taglib.worker.ts
+declare var self: DedicatedWorkerGlobalScope;
 
 import { TagLib, type PictureType } from 'taglib-wasm';
 import { doTimed, doTimedAsync } from './doTimed';
@@ -95,6 +96,8 @@ async function addMetadataToAudio(message: AddMetadataMessage): Promise<Uint8Arr
     try {
         doTimed('Tagging file', () => {
             const isMp4 = file.isMP4();
+            const media = file.audioProperties();
+            const needsCombinedTrackDisc = isMp4 || media.containerFormat.toLowerCase() === 'mp3';
 
             if (title) {
                 file.setProperty('TITLE', title);
@@ -116,36 +119,36 @@ async function addMetadataToAudio(message: AddMetadataMessage): Promise<Uint8Arr
             if (trackNumber) {
                 let trackString = String(trackNumber);
 
-                if (isMp4 && trackNumber && totalTracks) {
+                if (needsCombinedTrackDisc && trackNumber && totalTracks) {
                     trackString = `${trackNumber}/${totalTracks}`;
                 }
 
-                if (isMp4) {
+                if (needsCombinedTrackDisc) {
                     file.setProperty('TRACKNUMBER', trackString);
                 } else {
                     file.setProperty('TRACKNUMBER', String(trackNumber));
                 }
             }
 
-            if (!isMp4 && totalTracks) {
+            if (!needsCombinedTrackDisc && totalTracks) {
                 file.setProperty('TRACKTOTAL', String(totalTracks));
             }
 
             if (discNumber) {
                 let discString = String(discNumber);
 
-                if (isMp4 && discNumber && totalDiscs) {
+                if (needsCombinedTrackDisc && discNumber && totalDiscs) {
                     discString = `${discNumber}/${totalDiscs}`;
                 }
 
-                if (isMp4) {
+                if (needsCombinedTrackDisc) {
                     file.setProperty('DISCNUMBER', discString);
                 } else {
                     file.setProperty('DISCNUMBER', String(discNumber));
                 }
             }
 
-            if (!isMp4 && totalDiscs) {
+            if (!needsCombinedTrackDisc && totalDiscs) {
                 file.setProperty('DISCTOTAL', String(totalDiscs));
             }
 
@@ -304,10 +307,13 @@ self.onmessage = async (event: MessageEvent<TagLibWorkerMessage>) => {
         case 'Add':
             try {
                 const result = await addMetadataToAudio(event.data as AddMetadataMessage);
-                self.postMessage({
-                    type: event.data.type,
-                    data: result,
-                } satisfies TagLibFileResponse);
+                self.postMessage(
+                    {
+                        type: event.data.type,
+                        data: result,
+                    } satisfies TagLibFileResponse,
+                    [result.buffer, event.data.audioData.buffer]
+                );
             } catch (error) {
                 self.postMessage({
                     type: event.data.type,
@@ -319,10 +325,13 @@ self.onmessage = async (event: MessageEvent<TagLibWorkerMessage>) => {
         case 'Get':
             try {
                 const result = await getMetadataFromAudio(event.data as GetMetadataMessage);
-                self.postMessage({
-                    type: event.data.type,
-                    data: result,
-                } satisfies TagLibMetadataResponse);
+                self.postMessage(
+                    {
+                        type: event.data.type,
+                        data: result,
+                    } satisfies TagLibMetadataResponse,
+                    [event.data.audioData.buffer]
+                );
             } catch (error) {
                 self.postMessage({
                     type: event.data.type,

@@ -31,7 +31,7 @@ export class AuthManager {
             this.user = await auth.get();
             this.updateUI(this.user);
             this.authListeners.forEach((listener) => listener(this.user));
-        } catch (error) {
+        } catch {
             this.user = null;
             this.updateUI(null);
         }

@@ -1,7 +1,7 @@
 export class MusicDatabase {
     constructor() {
         this.dbName = 'MonochromeDB';
-        this.version = 8;
+        this.version = 9;
         this.db = null;
     }
 
@@ -27,6 +27,10 @@ export class MusicDatabase {
                 // Favorites stores
                 if (!db.objectStoreNames.contains('favorites_tracks')) {
                     const store = db.createObjectStore('favorites_tracks', { keyPath: 'id' });
+                    store.createIndex('addedAt', 'addedAt', { unique: false });
+                }
+                if (!db.objectStoreNames.contains('favorites_videos')) {
+                    const store = db.createObjectStore('favorites_videos', { keyPath: 'id' });
                     store.createIndex('addedAt', 'addedAt', { unique: false });
                 }
                 if (!db.objectStoreNames.contains('favorites_albums')) {
@@ -88,7 +92,7 @@ export class MusicDatabase {
     // History API
     async addToHistory(track) {
         const storeName = 'history_tracks';
-        const minified = this._minifyItem('track', track);
+        const minified = this._minifyItem(track.type || 'track', track);
         const timestamp = Date.now();
         const entry = { ...minified, timestamp };
 
@@ -209,6 +213,7 @@ export class MusicDatabase {
 
     _minifyItem(type, item) {
         if (!item) return item;
+        const normalizedType = (type || '').toLowerCase();
 
         // Base properties to keep
         const base = {
@@ -216,7 +221,7 @@ export class MusicDatabase {
             addedAt: item.addedAt || null,
         };
 
-        if (type === 'track') {
+        if (normalizedType === 'track') {
             return {
                 ...base,
                 title: item.title || null,
@@ -253,6 +258,19 @@ export class MusicDatabase {
                 remoteUrl: item.remoteUrl || null,
                 audioQuality: item.audioQuality || null,
                 mediaMetadata: item.mediaMetadata ? { tags: item.mediaMetadata.tags } : null,
+            };
+        }
+
+        if (normalizedType === 'video') {
+            return {
+                ...base,
+                type: 'video',
+                title: item.title || null,
+                duration: item.duration || null,
+                image: item.image || item.cover || null,
+                artist: item.artist || (item.artists && item.artists.length > 0 ? item.artists[0] : null) || null,
+                artists: item.artists?.map((a) => ({ id: a.id, name: a.name || null })) || [],
+                album: item.album || { title: 'Video', cover: item.image || item.cover },
             };
         }
 
@@ -548,7 +566,7 @@ export class MusicDatabase {
         const playlist = {
             id: id,
             name: name,
-            tracks: tracks.map((t) => this._minifyItem('track', { ...t, addedAt: Date.now() })),
+            tracks: tracks.map((t) => this._minifyItem(t.type || 'track', { ...t, addedAt: Date.now() })),
             cover: cover,
             description: description,
             createdAt: Date.now(),
@@ -570,7 +588,7 @@ export class MusicDatabase {
         if (!playlist) throw new Error('Playlist not found');
         playlist.tracks = playlist.tracks || [];
         const trackWithDate = { ...track, addedAt: Date.now() };
-        const minifiedTrack = this._minifyItem('track', trackWithDate);
+        const minifiedTrack = this._minifyItem(track.type || 'track', trackWithDate);
         if (playlist.tracks.some((t) => t.id === track.id)) return;
         playlist.tracks.push(minifiedTrack);
         playlist.updatedAt = Date.now();
@@ -591,7 +609,7 @@ export class MusicDatabase {
         for (const track of tracks) {
             if (!playlist.tracks.some((t) => t.id === track.id)) {
                 const trackWithDate = { ...track, addedAt: Date.now() };
-                playlist.tracks.push(this._minifyItem('track', trackWithDate));
+                playlist.tracks.push(this._minifyItem(track.type || 'track', trackWithDate));
                 addedCount++;
             }
         }
@@ -606,11 +624,16 @@ export class MusicDatabase {
         return playlist;
     }
 
-    async removeTrackFromPlaylist(playlistId, trackId) {
+    async removeTrackFromPlaylist(playlistId, trackId, trackType = null) {
         const playlist = await this.performTransaction('user_playlists', 'readonly', (store) => store.get(playlistId));
         if (!playlist) throw new Error('Playlist not found');
         playlist.tracks = playlist.tracks || [];
-        playlist.tracks = playlist.tracks.filter((t) => t.id != trackId);
+        playlist.tracks = playlist.tracks.filter((t) => {
+            if (trackType) {
+                return !(t.id == trackId && (t.type || 'track') === trackType);
+            }
+            return t.id != trackId;
+        });
         playlist.updatedAt = Date.now();
         this._updatePlaylistMetadata(playlist);
         await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));

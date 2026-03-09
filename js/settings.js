@@ -35,7 +35,6 @@ import {
     musicProviderSettings,
     analyticsSettings,
     modalSettings,
-    keyboardShortcuts,
 } from './storage.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
 import { getButterchurnPresets } from './visualizers/butterchurn.js';
@@ -901,33 +900,56 @@ export function initializeSettings(scrobbler, player, api, ui) {
     // ========================================
     const playbackSpeedSlider = document.getElementById('playback-speed-slider');
     const playbackSpeedInput = document.getElementById('playback-speed-input');
+    const playbackSpeedReset = document.getElementById('playback-speed-reset');
+
     if (playbackSpeedSlider && playbackSpeedInput) {
-        const currentSpeed = audioEffectsSettings.getSpeed();
-        // Clamp slider to its range (0.25-4), but show actual value in input
-        playbackSpeedSlider.value = Math.max(0.25, Math.min(4.0, currentSpeed));
-        playbackSpeedInput.value = currentSpeed;
-
-        // Slider only controls 0.25-4 range
-        playbackSpeedSlider.addEventListener('input', (e) => {
-            const speed = parseFloat(e.target.value) || 1.0;
-            playbackSpeedInput.value = speed;
-            player.setPlaybackSpeed(speed);
-        });
-
-        // Input allows full 0.01-100 range
-        const handleInputChange = () => {
-            const speed = parseFloat(playbackSpeedInput.value) || 1.0;
-            const validSpeed = Math.max(0.01, Math.min(100, speed));
+        // Helper function to update both controls
+        const updatePlaybackSpeedControls = (speed) => {
+            const validSpeed = Math.max(0.01, Math.min(100, parseFloat(speed) || 1.0));
             playbackSpeedInput.value = validSpeed;
             // Only update slider if value is within slider range
             if (validSpeed >= 0.25 && validSpeed <= 4.0) {
                 playbackSpeedSlider.value = validSpeed;
             }
-            player.setPlaybackSpeed(validSpeed);
+            return validSpeed;
         };
 
-        playbackSpeedInput.addEventListener('change', handleInputChange);
-        playbackSpeedInput.addEventListener('blur', handleInputChange);
+        // Initialize with current value
+        const currentSpeed = audioEffectsSettings.getSpeed();
+        updatePlaybackSpeedControls(currentSpeed);
+
+        playbackSpeedSlider.addEventListener('input', (e) => {
+            const speed = parseFloat(e.target.value);
+            playbackSpeedInput.value = speed;
+            audioEffectsSettings.setSpeed(speed);
+            player.setPlaybackSpeed(speed);
+        });
+
+        playbackSpeedInput.addEventListener('input', (e) => {
+            const speed = parseFloat(e.target.value);
+            if (!isNaN(speed) && speed >= 0.01 && speed <= 100) {
+                if (speed >= 0.25 && speed <= 4.0) {
+                    playbackSpeedSlider.value = speed;
+                }
+                audioEffectsSettings.setSpeed(speed);
+                player.setPlaybackSpeed(speed);
+            }
+        });
+
+        playbackSpeedInput.addEventListener('change', (e) => {
+            const speed = parseFloat(e.target.value);
+            const validSpeed = updatePlaybackSpeedControls(speed);
+            audioEffectsSettings.setSpeed(validSpeed);
+            player.setPlaybackSpeed(validSpeed);
+        });
+
+        if (playbackSpeedReset) {
+            playbackSpeedReset.addEventListener('click', () => {
+                const defaultSpeed = audioEffectsSettings.resetSpeed();
+                updatePlaybackSpeedControls(defaultSpeed);
+                player.setPlaybackSpeed(defaultSpeed);
+            });
+        }
     }
 
     // ========================================
@@ -2110,6 +2132,21 @@ export function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
+    const visualizerDimmingSlider = document.getElementById('visualizer-dimming-slider');
+    const visualizerDimmingValue = document.getElementById('visualizer-dimming-value');
+    if (visualizerDimmingSlider && visualizerDimmingValue) {
+        const currentDimming = visualizerSettings.getDimAmount();
+        visualizerDimmingSlider.value = currentDimming;
+        visualizerDimmingValue.textContent = `${(currentDimming * 100).toFixed(0)}%`;
+
+        visualizerDimmingSlider.addEventListener('input', (e) => {
+            const newDimming = parseFloat(e.target.value);
+            visualizerSettings.setDimAmount(newDimming);
+            visualizerDimmingValue.textContent = `${(newDimming * 100).toFixed(0)}%`;
+            window.dispatchEvent(new CustomEvent('visualizer-dim-change', { detail: { dimAmount: newDimming } }));
+        });
+    }
+
     // Visualizer Smart Intensity
     const smartIntensityToggle = document.getElementById('smart-intensity-toggle');
     if (smartIntensityToggle) {
@@ -2288,20 +2325,20 @@ export function initializeSettings(scrobbler, player, api, ui) {
         updateButterchurnSettingsVisibility();
     }
 
-    // Watch for audio tab becoming active and refresh presets
-    const audioTabContent = document.getElementById('settings-tab-audio');
-    if (audioTabContent) {
+    // Watch for appearance tab becoming active and refresh presets
+    const appearanceTabContent = document.getElementById('settings-tab-appearance');
+    if (appearanceTabContent) {
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                    if (audioTabContent.classList.contains('active')) {
-                        console.log('[Settings] Audio tab became active, refreshing presets');
+                    if (appearanceTabContent.classList.contains('active')) {
+                        console.log('[Settings] Appearance tab became active, refreshing presets');
                         updateButterchurnSettingsVisibility();
                     }
                 }
             });
         });
-        observer.observe(audioTabContent, { attributes: true });
+        observer.observe(appearanceTabContent, { attributes: true });
     }
 
     // Visualizer Mode Select

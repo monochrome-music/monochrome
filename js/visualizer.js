@@ -51,6 +51,12 @@ export class Visualizer {
         this._resizeBound = () => this.resize();
     }
 
+    updateDimming() {
+        if (!this.canvas || !this.canvas.parentElement) return;
+        const dimAmount = visualizerSettings.getDimAmount();
+        this.canvas.parentElement.style.opacity = dimAmount.toString();
+    }
+
     get activePreset() {
         return this.presets[this.activePresetKey] || this.presets['lcd'];
     }
@@ -149,6 +155,8 @@ export class Visualizer {
         if (this.audioContext.state === 'suspended') {
             this.audioContext.resume();
         }
+
+        this.updateDimming();
 
         // Set canvas dimensions before preset init so WebGL framebuffers are created at correct size
         this.resize();
