@@ -166,7 +166,7 @@ export class MusicAPI {
             const data = await response.json();
             const result = {
                 videoUrl: data.videoUrl || null,
-                hlsUrl: data.animated || null
+                hlsUrl: data.animated || null,
             };
             this.videoArtworkCache.set(cacheKey, result);
             return result;

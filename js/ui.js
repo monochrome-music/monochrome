@@ -343,7 +343,7 @@ export class UIRenderer {
         const isUnavailable = track.isUnavailable;
         const isBlocked = contentBlockingSettings?.shouldHideTrack(track);
         const isVideo = track.type === 'video';
-        
+
         let trackImageHTML = '';
         if (showCover) {
             if (isVideo && this.currentPage === 'playlist') {
@@ -351,7 +351,12 @@ export class UIRenderer {
             } else if (isVideo && (this.currentPage === 'search' || this.currentPage === 'library')) {
                 trackImageHTML = `<div class="track-item-cover video-icon-placeholder" style="display: flex; align-items: center; justify-content: center; background: var(--secondary);"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="opacity: 0.7;"><path d="M8 5v14l11-7z"/></svg></div>`;
             } else {
-                trackImageHTML = this.getCoverHTML(track.image || track.cover || track.album?.cover, 'Track Cover', 'track-item-cover', 'lazy');
+                trackImageHTML = this.getCoverHTML(
+                    track.image || track.cover || track.album?.cover,
+                    'Track Cover',
+                    'track-item-cover',
+                    'lazy'
+                );
             }
         }
 
@@ -365,7 +370,9 @@ export class UIRenderer {
             displayIndex = index + 1;
         }
 
-        const videoIcon = isVideo ? '<span class="video-item-icon" title="Music Video" style="display: inline-flex; align-items: center; margin-right: 4px; color: var(--muted-foreground);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg></span>' : '';
+        const videoIcon = isVideo
+            ? '<span class="video-item-icon" title="Music Video" style="display: inline-flex; align-items: center; margin-right: 4px; color: var(--muted-foreground);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg></span>'
+            : '';
         const trackNumberHTML = `<div class="track-number">${showCover ? trackImageHTML : displayIndex}</div>`;
         const explicitBadge = hasExplicitContent(track) ? this.createExplicitBadge() : '';
         const qualityBadge = createQualityBadgeHTML(track);
@@ -638,7 +645,13 @@ export class UIRenderer {
             href: `/album/${album.id}`,
             title: `${escapeHtml(album.title)} ${explicitBadge} ${qualityBadge}`,
             subtitle: `${escapeHtml(artistName)} • ${yearDisplay}${typeLabel}`,
-            imageHTML: this.getCoverHTML(album.cover, escapeHtml(album.title), 'card-image', 'lazy', album.videoCoverUrl),
+            imageHTML: this.getCoverHTML(
+                album.cover,
+                escapeHtml(album.title),
+                'card-image',
+                'lazy',
+                album.videoCoverUrl
+            ),
             actionButtonsHTML: `
                 <button class="like-btn card-like-btn" data-action="toggle-like" data-type="album" title="Add to Liked">
                     ${this.createHeartIcon(false)}
@@ -655,10 +668,10 @@ export class UIRenderer {
     createVideoCardHTML(video) {
         const duration = formatTime(video.duration);
         const artistName = getTrackArtists(video);
-        
+
         const cover = video.image || video.cover;
         let imageHTML;
-        
+
         if (cover) {
             imageHTML = this.getCoverHTML(cover, escapeHtml(video.title));
         } else {
@@ -998,7 +1011,8 @@ export class UIRenderer {
             if (image) image.style.display = 'block';
             if (visualizerContainer) visualizerContainer.style.display = 'block';
 
-            const videoCoverUrl = track.videoUrl || track.videoCoverUrl || track.album?.videoCoverUrl || null;            const coverUrl = videoCoverUrl || this.api.getCoverUrl(track.album?.cover, '1280');
+            const videoCoverUrl = track.videoUrl || track.videoCoverUrl || track.album?.videoCoverUrl || null;
+            const coverUrl = videoCoverUrl || this.api.getCoverUrl(track.album?.cover, '1280');
 
             const fsLikeBtn = document.getElementById('fs-like-btn');
             if (fsLikeBtn) {
@@ -1150,10 +1164,10 @@ export class UIRenderer {
             const coverContainer = document.querySelector('.now-playing-bar .track-info');
             const audioPlayer = document.getElementById('audio-player');
             const imgCover = coverContainer?.querySelector('.cover:not(#audio-player)');
-            
+
             if (audioPlayer && coverContainer) {
                 if (imgCover) imgCover.style.display = 'none';
-                
+
                 audioPlayer.style.display = 'block';
                 audioPlayer.classList.add('cover', 'video-cover-mirror');
                 audioPlayer.style.width = '56px';
@@ -1161,7 +1175,7 @@ export class UIRenderer {
                 audioPlayer.style.borderRadius = 'var(--radius-sm)';
                 audioPlayer.style.objectFit = 'cover';
                 audioPlayer.style.gridArea = 'none';
-                
+
                 if (audioPlayer.parentElement !== coverContainer) {
                     coverContainer.insertBefore(audioPlayer, coverContainer.firstChild);
                 }
@@ -1752,7 +1766,9 @@ export class UIRenderer {
 
         if (myPlaylistsContainer) {
             if (visiblePlaylists.length) {
-                myPlaylistsContainer.innerHTML = visiblePlaylists.map((p) => this.createUserPlaylistCardHTML(p)).join('');
+                myPlaylistsContainer.innerHTML = visiblePlaylists
+                    .map((p) => this.createUserPlaylistCardHTML(p))
+                    .join('');
                 visiblePlaylists.forEach((playlist) => {
                     const el = myPlaylistsContainer.querySelector(`[data-user-playlist-id="${playlist.id}"]`);
                     if (el) {
@@ -2231,7 +2247,13 @@ export class UIRenderer {
             href: `/track/${track.id}`,
             title: `${escapeHtml(getTrackTitle(track))} ${explicitBadge} ${qualityBadge}`,
             subtitle: escapeHtml(getTrackArtists(track)),
-            imageHTML: this.getCoverHTML(track.album?.cover, escapeHtml(track.title), 'card-image', 'lazy', track.videoUrl || track.album?.videoCoverUrl),
+            imageHTML: this.getCoverHTML(
+                track.album?.cover,
+                escapeHtml(track.title),
+                'card-image',
+                'lazy',
+                track.videoUrl || track.album?.videoCoverUrl
+            ),
             actionButtonsHTML: `
                 <button class="like-btn card-like-btn" data-action="toggle-like" data-type="track" title="Add to Liked">
                     ${this.createHeartIcon(false)}
@@ -2634,19 +2656,23 @@ export class UIRenderer {
                 video.replaceWith(img);
             };
 
-            video.addEventListener('error', (e) => {
-                if (video.src === result.videoUrl && result.hlsUrl) {
-                    this.setupHlsVideo(video, { videoUrl: null, hlsUrl: result.hlsUrl }, img);
-                    return;
-                }
-                console.warn('Video decoding error:', e);
-                video.replaceWith(img);
-            }, true);
+            video.addEventListener(
+                'error',
+                (e) => {
+                    if (video.src === result.videoUrl && result.hlsUrl) {
+                        this.setupHlsVideo(video, { videoUrl: null, hlsUrl: result.hlsUrl }, img);
+                        return;
+                    }
+                    console.warn('Video decoding error:', e);
+                    video.replaceWith(img);
+                },
+                true
+            );
 
             img.replaceWith(video);
-            
+
             this.setupHlsVideo(video, result, img);
-            
+
             // If HLS, dont play
             const hls = video._hls;
             if (hls) {
@@ -2932,7 +2958,8 @@ export class UIRenderer {
 
                             this.setupHlsVideo(video, result, currentImageEl);
                             currentImageEl.replaceWith(video);
-                        }                    }
+                        }
+                    }
                 });
             }
 
@@ -3696,7 +3723,8 @@ export class UIRenderer {
                 // Try to get cover from first track album
                 if (tracks.length > 0 && tracks[0].album?.cover) {
                     const firstTrack = tracks[0];
-                    let videoCoverUrl = firstTrack.videoUrl || firstTrack.videoCoverUrl || firstTrack.album?.videoCoverUrl || null;
+                    let videoCoverUrl =
+                        firstTrack.videoUrl || firstTrack.videoCoverUrl || firstTrack.album?.videoCoverUrl || null;
 
                     if (!videoCoverUrl && (firstTrack.album || firstTrack.type === 'video')) {
                         const fetchArtwork = () => {
@@ -3727,14 +3755,17 @@ export class UIRenderer {
                         };
 
                         if (firstTrack.type === 'video') {
-                            this.api.getVideoStreamUrl(firstTrack.id).then((url) => {
-                                if (url) {
-                                    firstTrack.videoUrl = url;
-                                    this.renderMixPage(mixId);
-                                } else {
-                                    fetchArtwork();
-                                }
-                            }).catch(fetchArtwork);
+                            this.api
+                                .getVideoStreamUrl(firstTrack.id)
+                                .then((url) => {
+                                    if (url) {
+                                        firstTrack.videoUrl = url;
+                                        this.renderMixPage(mixId);
+                                    } else {
+                                        fetchArtwork();
+                                    }
+                                })
+                                .catch(fetchArtwork);
                         } else {
                             fetchArtwork();
                         }
@@ -4833,14 +4864,17 @@ export class UIRenderer {
                 };
 
                 if (track.type === 'video') {
-                    this.api.getVideoStreamUrl(track.id).then((url) => {
-                        if (url) {
-                            track.videoUrl = url;
-                            this.renderTrackPage(trackId, provider);
-                        } else {
-                            fetchArtwork();
-                        }
-                    }).catch(fetchArtwork);
+                    this.api
+                        .getVideoStreamUrl(track.id)
+                        .then((url) => {
+                            if (url) {
+                                track.videoUrl = url;
+                                this.renderTrackPage(trackId, provider);
+                            } else {
+                                fetchArtwork();
+                            }
+                        })
+                        .catch(fetchArtwork);
                 } else {
                     fetchArtwork();
                 }
