@@ -1400,7 +1400,7 @@ export class LosslessAPI {
                     try {
                         switch (losslessContainerSettings.getContainer()) {
                             case 'flac':
-                                if ((await getExtensionFromBlob(blob)) != 'flac') {
+                                if ((await getExtensionFromBlob(blob)) != 'flac' || true) {
                                     blob = await ffmpeg(
                                         blob,
                                         { args: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'flac'] },
