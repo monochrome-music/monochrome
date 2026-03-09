@@ -134,6 +134,23 @@ export const detectAudioFormat = (view, mimeType = '') => {
         return 'mp3';
     }
 
+    if (
+        view.byteLength >= 7 &&
+        view.getUint8(0) === 0x23 &&
+        view.getUint8(1) === 0x45 &&
+        view.getUint8(2) === 0x58 &&
+        view.getUint8(3) === 0x54 &&
+        view.getUint8(4) === 0x4d &&
+        view.getUint8(5) === 0x33 &&
+        view.getUint8(6) === 0x55
+    ) {
+        return 'm3u8';
+    }
+
+    if (view.byteLength >= 188 && view.getUint8(0) === 0x47 && view.getUint8(188) === 0x47) {
+        return 'ts';
+    }
+
     // Fallback to MIME type
     if (mimeType === 'audio/flac') return 'flac';
     if (mimeType === 'audio/mp4' || mimeType === 'audio/x-m4a') return 'mp4';
@@ -153,10 +170,16 @@ export const getExtensionFromBlob = async (blob) => {
 
     const format = detectAudioFormat(view, blob.type);
 
-    if (format === 'mp4') return 'm4a';
+    if (format === 'mp4') {
+        if (blob.type.includes('video')) return 'mp4';
+        return 'm4a';
+    }
     if (format) return format;
 
-    // Default fallback
+    if (blob.type.includes('video')) return 'mp4';
+    if (blob.type === 'audio/mp4' || blob.type === 'audio/x-m4a') return 'm4a';
+    if (blob.type === 'audio/mpeg' || blob.type === 'audio/mp3') return 'mp3';
+
     return 'flac';
 };
 

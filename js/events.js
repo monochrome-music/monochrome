@@ -50,6 +50,7 @@ import {
     trackSetSleepTimer,
     trackCancelSleepTimer,
     trackStartMix,
+    trackEvent,
 } from './analytics.js';
 
 let currentTrackIdForWaveform = null;
@@ -952,11 +953,13 @@ export async function handleTrackAction(
         // Track like/unlike
         if (added) {
             if (type === 'track') trackLikeTrack(item);
+            else if (type === 'video') trackEvent('Like Video', { title: item.title });
             else if (type === 'album') trackLikeAlbum(item);
             else if (type === 'artist') trackLikeArtist(item);
             else if (type === 'playlist' || type === 'user-playlist') trackLikePlaylist(item);
         } else {
             if (type === 'track') trackUnlikeTrack(item);
+            else if (type === 'video') trackEvent('Unlike Video', { title: item.title });
             else if (type === 'album') trackUnlikeAlbum(item);
             else if (type === 'artist') trackUnlikeArtist(item);
             else if (type === 'playlist' || type === 'user-playlist') trackUnlikePlaylist(item);
@@ -976,7 +979,9 @@ export async function handleTrackAction(
         const selector =
             type === 'track'
                 ? `[data-track-id="${id}"] .like-btn`
-                : `.card[data-${type}-id="${id}"] .like-btn, .card[data-playlist-id="${id}"] .like-btn`;
+                : type === 'video'
+                  ? `.card[data-video-id="${id}"] .like-btn`
+                  : `.card[data-${type}-id="${id}"] .like-btn, .card[data-playlist-id="${id}"] .like-btn`;
 
         // Also check header buttons
         const headerBtn = document.getElementById(`like-${type}-btn`);
@@ -985,12 +990,12 @@ export async function handleTrackAction(
         if (headerBtn) elementsToUpdate.push(headerBtn);
 
         const nowPlayingLikeBtn = document.getElementById('now-playing-like-btn');
-        if (nowPlayingLikeBtn && type === 'track' && player?.currentTrack?.id === item.id) {
+        if (nowPlayingLikeBtn && (type === 'track' || type === 'video') && player?.currentTrack?.id === item.id) {
             elementsToUpdate.push(nowPlayingLikeBtn);
         }
 
         const fsLikeBtn = document.getElementById('fs-like-btn');
-        if (fsLikeBtn && type === 'track' && player?.currentTrack?.id === item.id) {
+        if (fsLikeBtn && (type === 'track' || type === 'video') && player?.currentTrack?.id === item.id) {
             elementsToUpdate.push(fsLikeBtn);
         }
 
@@ -1011,7 +1016,9 @@ export async function handleTrackAction(
             const itemSelector =
                 type === 'track'
                     ? `.track-item[data-track-id="${id}"]`
-                    : `.card[data-${type}-id="${id}"], .card[data-playlist-id="${id}"]`;
+                    : type === 'video'
+                      ? `.video-card[data-video-id="${id}"]`
+                      : `.card[data-${type}-id="${id}"], .card[data-playlist-id="${id}"]`;
 
             const itemEl = document.querySelector(itemSelector);
 
@@ -1020,29 +1027,60 @@ export async function handleTrackAction(
                 const container = itemEl.parentElement;
                 itemEl.remove();
                 if (container && container.children.length === 0) {
-                    const msg = type === 'track' ? 'No liked tracks yet.' : `No liked ${type}s yet.`;
+                    const msg =
+                        type === 'track'
+                            ? 'No liked tracks yet.'
+                            : type === 'video'
+                              ? 'No liked videos yet.'
+                              : `No liked ${type}s yet.`;
                     container.innerHTML = `<div class="placeholder-text">${msg}</div>`;
                 }
-            } else if (added && !itemEl && ui && type === 'track') {
-                // Add item (specifically for tracks currently)
-                const tracksContainer = document.getElementById('library-tracks-container');
-                if (tracksContainer) {
-                    // Remove placeholder if it exists
-                    const placeholder = tracksContainer.querySelector('.placeholder-text');
-                    if (placeholder) placeholder.remove();
+            } else if (added && !itemEl && ui && (type === 'track' || type === 'video')) {
+                // Add item
+                if (type === 'track') {
+                    const tracksContainer = document.getElementById('library-tracks-container');
+                    if (tracksContainer) {
+                        const placeholder = tracksContainer.querySelector('.placeholder-text');
+                        if (placeholder) placeholder.remove();
 
-                    // Create track element
-                    const index = tracksContainer.children.length;
-                    const trackHTML = ui.createTrackItemHTML(item, index, true, false);
+                        const index = tracksContainer.children.length;
+                        const trackHTML = ui.createTrackItemHTML(item, index, true, false);
 
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = trackHTML;
-                    const newEl = tempDiv.firstElementChild;
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = trackHTML;
+                        const newEl = tempDiv.firstElementChild;
 
-                    if (newEl) {
-                        tracksContainer.appendChild(newEl);
-                        trackDataStore.set(newEl, item);
-                        ui.updateLikeState(newEl, 'track', item.id);
+                        if (newEl) {
+                            tracksContainer.appendChild(newEl);
+                            trackDataStore.set(newEl, item);
+                            ui.updateLikeState(newEl, 'track', item.id);
+                        }
+                    }
+                } else if (type === 'video') {
+                    const videosTabContent = document.getElementById('library-tab-videos');
+                    if (videosTabContent) {
+                        const grid = videosTabContent.querySelector('.card-grid');
+                        if (grid) {
+                            const placeholder = grid.querySelector('.placeholder-text');
+                            if (placeholder) grid.innerHTML = '';
+
+                            const videoHTML = ui.createVideoCardHTML(item);
+                            const tempDiv = document.createElement('div');
+                            tempDiv.innerHTML = videoHTML;
+                            const newEl = tempDiv.firstElementChild;
+
+                            if (newEl) {
+                                grid.appendChild(newEl);
+                                trackDataStore.set(newEl, item);
+                                ui.updateLikeState(newEl, 'video', item.id);
+                                newEl.addEventListener('click', (e) => {
+                                    if (e.target.closest('.card-play-btn') || e.target.closest('.card-image-container')) {
+                                        e.stopPropagation();
+                                        player.playVideo(item);
+                                    }
+                                });
+                            }
+                        }
                     }
                 }
             }
@@ -1058,10 +1096,14 @@ export async function handleTrackAction(
             // Removed empty check to allow creating new playlist
 
             const trackId = item.id;
+            const trackType = item.type || 'track';
             const playlistsWithTrack = new Set();
 
             for (const playlist of playlists) {
-                if (playlist.tracks && playlist.tracks.some((track) => track.id == trackId)) {
+                if (
+                    playlist.tracks &&
+                    playlist.tracks.some((t) => t.id == trackId && (t.type || 'track') === trackType)
+                ) {
                     playlistsWithTrack.add(playlist.id);
                 }
             }
@@ -1645,7 +1687,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                         contextMenu._originalHTML = null;
                     }
                     contextMenu._contextTrack = contextTrack;
-                    contextMenu._contextType = 'track';
+                    contextMenu._contextType = menuBtn.dataset.type || trackItem.dataset.type || 'track';
                     await updateContextMenuLikeState(contextMenu, contextTrack);
                     const rect = menuBtn.getBoundingClientRect();
                     positionMenu(contextMenu, rect.left, rect.bottom + 5, rect);
@@ -1670,15 +1712,19 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             if (isSearch) {
                 const clickedTrack = trackDataStore.get(trackItem);
                 if (clickedTrack) {
-                    player.setQueue([clickedTrack], 0);
-                    document.getElementById('shuffle-btn').classList.remove('active');
-                    player.playTrackFromQueue();
+                    if (trackItem.dataset.type === 'video') {
+                        player.playVideo(clickedTrack);
+                    } else {
+                        player.setQueue([clickedTrack], 0);
+                        document.getElementById('shuffle-btn').classList.remove('active');
+                        player.playTrackFromQueue();
 
-                    api.getTrackRecommendations(clickedTrack.id).then((recs) => {
-                        if (recs && recs.length > 0) {
-                            player.addToQueue(recs);
-                        }
-                    });
+                        api.getTrackRecommendations(clickedTrack.id).then((recs) => {
+                            if (recs && recs.length > 0) {
+                                player.addToQueue(recs);
+                            }
+                        });
+                    }
                 }
             } else {
                 const parentList = trackItem.closest('.track-list');
@@ -1763,7 +1809,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                 });
 
                 contextMenu._contextTrack = contextTrack;
-                contextMenu._contextType = 'track';
+                contextMenu._contextType = contextTrack.type || 'track';
                 await updateContextMenuLikeState(contextMenu, contextTrack);
                 positionMenu(contextMenu, e.clientX, e.clientY);
             }
@@ -1919,7 +1965,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                     player,
                     api,
                     lyricsManager,
-                    'track',
+                    player.currentTrack.type || 'track',
                     ui,
                     scrobbler
                 );
@@ -1957,7 +2003,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                     player,
                     api,
                     lyricsManager,
-                    'track',
+                    player.currentTrack.type || 'track',
                     ui,
                     scrobbler
                 );
@@ -1978,7 +2024,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                     player,
                     api,
                     lyricsManager,
-                    'track',
+                    player.currentTrack.type || 'track',
                     ui,
                     scrobbler
                 );
