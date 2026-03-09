@@ -36,32 +36,37 @@
     </head>
 
     <body>
-        <audio id="audio-player" crossorigin="anonymous"></audio>
+        <video id="audio-player" crossorigin="anonymous" style="display: none"></video>
         <div id="context-menu">
             <ul>
                 <li data-action="shuffle-play-card" data-type-filter="album,playlist,mix,user-playlist">
                     Shuffle play
                 </li>
-                <li data-action="start-mix" data-type-filter="album,track">Start mix</li>
+                <li data-action="start-mix" data-type-filter="album,track,video">Start mix</li>
                 <li data-action="play-next">Play next</li>
                 <li data-action="add-to-queue">Add to queue</li>
                 <li
                     data-action="toggle-like"
                     data-label-track="Like"
+                    data-label-unlike-track="Unlike"
                     data-label-album="Save album to library"
+                    data-label-unlike-album="Remove album from library"
                     data-label-playlist="Save playlist to library"
+                    data-label-unlike-playlist="Remove playlist from library"
+                    data-label-video="Like"
+                    data-label-unlike-video="Unlike"
                 >
                     Like
                 </li>
                 <li data-action="toggle-pin" data-type-filter="album,artist,playlist,user-playlist">Pin</li>
-                <li data-action="add-to-playlist" data-type-filter="track">Add to playlist</li>
-                <li data-action="go-to-artist" data-type-filter="track,album">Go to artist</li>
-                <li data-action="go-to-album" data-type-filter="track">Go to album</li>
+                <li data-action="add-to-playlist" data-type-filter="track,video">Add to playlist</li>
+                <li data-action="go-to-artist" data-type-filter="track,album,video">Go to artist</li>
+                <li data-action="go-to-album" data-type-filter="track,video">Go to album</li>
                 <li data-action="copy-link">Copy link</li>
                 <li data-action="open-in-new-tab">Open in new tab</li>
                 <li data-action="open-in-harmony" data-type-filter="album">Open in Harmony</li>
-                <li data-action="track-info" data-type-filter="track">Track info</li>
-                <li data-action="open-original-url" data-type-filter="track">Open original URL</li>
+                <li data-action="track-info" data-type-filter="track,video">Track info</li>
+                <li data-action="open-original-url" data-type-filter="track,video">Open original URL</li>
                 <li data-action="download">Download</li>
                 <li class="separator"></li>
                 <li
@@ -116,7 +121,23 @@
 
         <div id="fullscreen-cover-overlay" style="display: none">
             <div class="fullscreen-cover-content">
-                <canvas id="visualizer-canvas"></canvas>
+                <div id="visualizer-container">
+                    <canvas id="visualizer-canvas"></canvas>
+                </div>
+                <div
+                    id="fullscreen-video-container"
+                    style="
+                        display: none;
+                        position: absolute;
+                        inset: 0;
+                        width: 100%;
+                        height: 100%;
+                        justify-content: center;
+                        align-items: center;
+                        background: black;
+                        z-index: 0;
+                    "
+                ></div>
                 <button id="toggle-ui-btn" class="fullscreen-ui-toggle" title="Toggle UI">
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -158,6 +179,7 @@
                         src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
                         alt="Album Cover"
                     />
+
                     <div class="fullscreen-track-info">
                         <h2 id="fullscreen-track-title"></h2>
                         <h3 id="fullscreen-track-artist"></h3>
@@ -2353,12 +2375,16 @@
                     <h2 class="section-title" id="search-results-title">Search Results</h2>
                     <div class="search-tabs">
                         <button class="search-tab active" data-tab="tracks">Tracks</button>
+                        <button class="search-tab" data-tab="videos">Videos</button>
                         <button class="search-tab" data-tab="albums">Albums</button>
                         <button class="search-tab" data-tab="artists">Artists</button>
                         <button class="search-tab" data-tab="playlists">Playlists</button>
                     </div>
                     <div class="search-tab-content active" id="search-tab-tracks">
                         <div class="track-list" id="search-tracks-container"></div>
+                    </div>
+                    <div class="search-tab-content" id="search-tab-videos">
+                        <div class="card-grid" id="search-videos-container"></div>
                     </div>
                     <div class="search-tab-content" id="search-tab-albums">
                         <div class="card-grid" id="search-albums-container"></div>
@@ -2398,6 +2424,7 @@
                         <h2 class="section-title">Favorites</h2>
                         <div class="search-tabs">
                             <button class="search-tab active" data-tab="tracks">Liked Tracks</button>
+                            <button class="search-tab" data-tab="videos">Videos</button>
                             <button class="search-tab" data-tab="albums">Albums</button>
                             <button class="search-tab" data-tab="artists">Artists</button>
                             <button class="search-tab" data-tab="playlists">Playlists and Mixes</button>
@@ -2469,6 +2496,9 @@
                                 </button>
                             </div>
                             <div class="track-list" id="library-tracks-container"></div>
+                        </div>
+                        <div class="search-tab-content" id="library-tab-videos">
+                            <div class="card-grid" id="library-videos-container"></div>
                         </div>
                         <div class="search-tab-content" id="library-tab-albums">
                             <div class="card-grid" id="library-albums-container"></div>
@@ -3172,6 +3202,10 @@
                         <h2 class="section-title">Albums</h2>
                         <div class="card-grid" id="artist-detail-albums"></div>
                     </section>
+                    <section class="content-section" id="artist-section-videos" style="display: none">
+                        <h2 class="section-title">Videos</h2>
+                        <div class="card-grid" id="artist-detail-videos"></div>
+                    </section>
                     <section class="content-section" id="artist-section-eps" style="display: none">
                         <h2 class="section-title">EPs and Singles</h2>
                         <div class="card-grid" id="artist-detail-eps"></div>
@@ -3428,6 +3462,7 @@
                         <button class="settings-tab" data-tab="scrobbling">Scrobbling</button>
                         <button class="settings-tab" data-tab="audio">Audio</button>
                         <button class="settings-tab" data-tab="downloads">Downloads</button>
+                        <button class="settings-tab" data-tab="instances">Instances</button>
                         <button class="settings-tab" data-tab="system">System</button>
                     </div>
                     <div class="settings-tab-content active" id="settings-tab-appearance">
@@ -3665,10 +3700,13 @@
                                         <span class="slider"></span>
                                     </label>
                                 </div>
+                            </div>
+
+                            <div class="settings-group">
                                 <div class="setting-item">
                                     <div class="info">
                                         <span class="label">Full-screen Visualizer</span>
-                                        <span class="description">Enable particle visualizer in full-screen mode</span>
+                                        <span class="description">Enable the visualizer in full-screen mode</span>
                                     </div>
                                     <label class="toggle-switch">
                                         <input type="checkbox" id="visualizer-enabled-toggle" checked />
@@ -3685,6 +3723,7 @@
                                         <option value="particles">Particles</option>
                                         <option value="unknown-pleasures">Unknown Pleasures</option>
                                         <option value="butterchurn">Butterchurn (Milkdrop)</option>
+                                        <option value="kawarp">Kawarp</option>
                                     </select>
                                 </div>
                                 <div class="setting-item" id="visualizer-mode-setting">
@@ -3737,6 +3776,31 @@
                                             id="visualizer-sensitivity-value"
                                             style="font-size: 0.9rem; min-width: 3em; text-align: right"
                                             >60%</span
+                                        >
+                                    </div>
+                                </div>
+                                <div class="setting-item" id="visualizer-dimming-setting">
+                                    <div class="info">
+                                        <span class="label">Visualizer Brightness</span>
+                                        <span class="description"
+                                            >Adjust the brightness of the visualizer. Lower this if the visualizer is
+                                            too bright for you.</span
+                                        >
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 10px">
+                                        <input
+                                            type="range"
+                                            id="visualizer-dimming-slider"
+                                            min="0.1"
+                                            max="1.0"
+                                            step="0.05"
+                                            value="1.0"
+                                            style="width: 100px"
+                                        />
+                                        <span
+                                            id="visualizer-dimming-value"
+                                            style="font-size: 0.9rem; min-width: 3em; text-align: right"
+                                            >100%</span
                                         >
                                     </div>
                                 </div>
@@ -3863,6 +3927,33 @@
                                     </div>
                                     <label class="toggle-switch">
                                         <input type="checkbox" id="shuffle-editors-picks-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Compact Artists</span>
+                                        <span class="description"
+                                            >Show artist cards in a compact, horizontal layout</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="compact-artist-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Compact Albums</span>
+                                        <span class="description"
+                                            >Show album cards in a compact, horizontal layout</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="compact-album-toggle" />
                                         <span class="slider"></span>
                                     </label>
                                 </div>
@@ -4504,43 +4595,6 @@
                                 </div>
                                 <div class="setting-item">
                                     <div class="info">
-                                        <span class="label">Download Quality</span>
-                                        <span class="description">Quality for track downloads</span>
-                                    </div>
-                                    <select id="download-quality-setting">
-                                        <option value="HI_RES_LOSSLESS">Hi-Res FLAC (24-bit)</option>
-                                        <option value="LOSSLESS">FLAC (Lossless)</option>
-                                        <option value="MP3_320">MP3 320kbps</option>
-                                        <option value="HIGH">AAC 320kbps</option>
-                                        <option value="LOW">AAC 96kbps</option>
-                                    </select>
-                                </div>
-                                <div class="setting-item">
-                                    <div class="info">
-                                        <span class="label">Lossless Container</span>
-                                        <span class="description">Container format for lossless downloads</span>
-                                    </div>
-                                    <select id="lossless-container-setting">
-                                        <option value="flac">FLAC</option>
-                                        <option value="alac">Apple Lossless</option>
-                                        <option value="nochange">Don't change</option>
-                                    </select>
-                                </div>
-                                <div class="setting-item">
-                                    <div class="info">
-                                        <span class="label">Cover Art Size</span>
-                                        <span class="description">Size for downloaded/embedded cover art</span>
-                                    </div>
-                                    <input
-                                        type="text"
-                                        id="cover-art-size-setting"
-                                        class="template-input"
-                                        style="width: 120px; text-align: right"
-                                        placeholder="1280x1280"
-                                    />
-                                </div>
-                                <div class="setting-item">
-                                    <div class="info">
                                         <span class="label">Show Quality Badges</span>
                                         <span class="description">Display "HD" badge for Hi-Res tracks</span>
                                     </div>
@@ -4571,6 +4625,9 @@
                                         <span class="slider"></span>
                                     </label>
                                 </div>
+                            </div>
+
+                            <div class="settings-group">
                                 <div class="setting-item">
                                     <div class="info">
                                         <span class="label">ReplayGain Mode</span>
@@ -4624,7 +4681,7 @@
                                         <span class="label">Playback Speed</span>
                                         <span class="description">Adjust playback speed (0.01x - 100x)</span>
                                     </div>
-                                    <div style="display: flex; align-items: center; gap: 12px">
+                                    <div class="playback-speed-control">
                                         <input
                                             type="range"
                                             id="playback-speed-slider"
@@ -4632,7 +4689,7 @@
                                             max="4.0"
                                             step="0.01"
                                             value="1.0"
-                                            style="width: 150px"
+                                            class="playback-speed-slider"
                                         />
                                         <input
                                             type="number"
@@ -4641,18 +4698,16 @@
                                             max="100"
                                             step="0.01"
                                             value="1.0"
-                                            style="
-                                                width: 80px;
-                                                text-align: center;
-                                                font-family: var(--font-family);
-                                                padding: 4px 8px;
-                                                border: 1px solid var(--border-color);
-                                                border-radius: 4px;
-                                                background: var(--bg-secondary);
-                                                color: var(--text-primary);
-                                            "
+                                            class="playback-speed-number-input"
                                         />
-                                        <span style="font-family: var(--font-family)">x</span>
+                                        <span class="playback-speed-unit">x</span>
+                                        <button
+                                            id="playback-speed-reset"
+                                            class="btn-secondary"
+                                            title="Reset to default"
+                                        >
+                                            Reset
+                                        </button>
                                     </div>
                                 </div>
 
@@ -4924,342 +4979,367 @@
                                     </div>
                                 </div>
                             </div>
-
+                        </div>
+                    </div>
+                    <div class="settings-tab-content" id="settings-tab-downloads">
+                        <div class="settings-list">
                             <div class="settings-group">
-                                <div class="info">
-                                    <span class="label">Compact Artists</span>
-                                    <span class="description">Show artist cards in a compact, horizontal layout</span>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Zipped Bulk Downloads</span>
+                                        <span class="description"
+                                            >Download multiple tracks as a single ZIP file (requires browser
+                                            support)</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="zipped-bulk-downloads-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
                                 </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="compact-artist-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Compact Albums</span>
-                                    <span class="description">Show album cards in a compact, horizontal layout</span>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Download Lyrics</span>
+                                        <span class="description"
+                                            >Include .lrc files when downloading tracks/albums</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="download-lyrics-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
                                 </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="compact-album-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="settings-tab-content" id="settings-tab-downloads">
-                    <div class="settings-list">
-                        <div class="settings-group">
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Zipped Bulk Downloads</span>
-                                    <span class="description"
-                                        >Download multiple tracks as a single ZIP file (requires browser support)</span
-                                    >
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Romaji Lyrics</span>
+                                        <span class="description"
+                                            >Convert Japanese lyrics to Romaji (Latin characters)</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="romaji-lyrics-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
                                 </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="zipped-bulk-downloads-toggle" checked />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Download Lyrics</span>
-                                    <span class="description">Include .lrc files when downloading tracks/albums</span>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Download Quality</span>
+                                        <span class="description">Quality for track downloads</span>
+                                    </div>
+                                    <select id="download-quality-setting">
+                                        <option value="HI_RES_LOSSLESS">Hi-Res FLAC (24-bit)</option>
+                                        <option value="LOSSLESS">FLAC (Lossless)</option>
+                                        <option value="MP3_320">MP3 320kbps</option>
+                                        <option value="HIGH">AAC 320kbps</option>
+                                        <option value="LOW">AAC 96kbps</option>
+                                    </select>
                                 </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="download-lyrics-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Romaji Lyrics</span>
-                                    <span class="description"
-                                        >Convert Japanese lyrics to Romaji (Latin characters)</span
-                                    >
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Lossless Container</span>
+                                        <span class="description">Container format for lossless downloads</span>
+                                    </div>
+                                    <select id="lossless-container-setting">
+                                        <option value="flac">FLAC</option>
+                                        <option value="alac">Apple Lossless</option>
+                                        <option value="nochange">Don't change</option>
+                                    </select>
                                 </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="romaji-lyrics-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Filename Template</span>
-                                    <span class="description"
-                                        >Customize download filenames. Available: {trackNumber}, {artist}, {title},
-                                        {album}</span
-                                    >
-                                </div>
-                                <input
-                                    type="text"
-                                    id="filename-template"
-                                    class="template-input"
-                                    placeholder="{trackNumber} - {artist} - {title}"
-                                />
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">ZIP Folder Template</span>
-                                    <span class="description"
-                                        >Customize album folder names. Available: {albumTitle}, {albumArtist},
-                                        {year}</span
-                                    >
-                                </div>
-                                <input
-                                    type="text"
-                                    id="zip-folder-template"
-                                    class="template-input"
-                                    placeholder="{albumTitle} - {albumArtist} - monochrome.tf"
-                                />
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Generate M3U</span>
-                                    <span class="description">Include M3U playlist files in downloads</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="generate-m3u-toggle" checked />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Generate M3U8</span>
-                                    <span class="description">Include extended M3U8 playlist files in downloads</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="generate-m3u8-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Generate CUE</span>
-                                    <span class="description"
-                                        >Include CUE sheets for gapless playback in downloads</span
-                                    >
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="generate-cue-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Generate NFO</span>
-                                    <span class="description">Include NFO files for media center compatibility</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="generate-nfo-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Generate JSON</span>
-                                    <span class="description">Include JSON files with rich metadata</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="generate-json-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Relative Paths</span>
-                                    <span class="description">Use relative paths in playlist files</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="relative-paths-toggle" checked />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Separate Discs in ZIP</span>
-                                    <span class="description"
-                                        >Put tracks in Disc folders when a release has multiple discs</span
-                                    >
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="separate-discs-zip-toggle" />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="settings-tab-content" id="settings-tab-system">
-                    <div class="settings-list">
-                        <div class="settings-group">
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Keyboard Shortcuts</span>
-                                    <span class="description">View and customize keyboard shortcuts</span>
-                                </div>
-                                <button id="customize-shortcuts-btn" class="btn-secondary">Customize</button>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Cache</span>
-                                    <span class="description" id="cache-info"
-                                        >Stores API responses to reduce requests</span
-                                    >
-                                </div>
-                                <button id="clear-cache-btn" class="btn-secondary">Clear Cache</button>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Auto-Update App</span>
-                                    <span class="description"
-                                        >Automatically reload when a new version is available</span
-                                    >
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="pwa-auto-update-toggle" checked />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item" id="desktop-update-container" style="display: none">
-                                <div class="info">
-                                    <span class="label">Desktop Update</span>
-                                    <span class="description">Check for updates to the desktop application</span>
-                                </div>
-                                <button id="check-desktop-updates-btn" class="btn-secondary">Check for Updates</button>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Analytics</span>
-                                    <span class="description">Send anonymous usage data to help improve the app</span>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="analytics-toggle" checked />
-                                    <span class="slider"></span>
-                                </label>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Reset Local Data</span>
-                                    <span class="description"
-                                        >Clear all local storage and cached data (does not affect cloud sync)</span
-                                    >
-                                </div>
-                                <button id="reset-local-data-btn" class="btn-secondary danger">Reset</button>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Clear Cloud Data</span>
-                                    <span class="description"
-                                        >Delete all your data from the cloud (cannot be undone)</span
-                                    >
-                                </div>
-                                <button id="firebase-clear-cloud-btn" class="btn-secondary danger">
-                                    Clear Cloud Data
-                                </button>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Backup & Restore</span>
-                                    <span class="description">Export or import your library and history as JSON</span>
-                                </div>
-                                <div style="display: flex; gap: 0.5rem">
-                                    <button id="export-library-btn" class="btn-secondary">Export</button>
-                                    <button id="import-library-btn" class="btn-secondary">Import</button>
-                                    <input type="file" id="import-library-input" style="display: none" accept=".json" />
-                                </div>
-                            </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">Export All Settings</span>
-                                    <span class="description">Export all app settings as JSON</span>
-                                </div>
-                                <div style="display: flex; gap: 0.5rem">
-                                    <button id="export-settings-btn" class="btn-secondary">Export</button>
-                                    <button id="import-settings-btn" class="btn-secondary">Import</button>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Cover Art Size</span>
+                                        <span class="description">Size for downloaded/embedded cover art</span>
+                                    </div>
                                     <input
-                                        type="file"
-                                        id="import-settings-input"
-                                        style="display: none"
-                                        accept=".json"
+                                        type="text"
+                                        id="cover-art-size-setting"
+                                        class="template-input"
+                                        style="width: 120px; text-align: right"
+                                        placeholder="1280x1280"
+                                    />
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Filename Template</span>
+                                        <span class="description"
+                                            >Customize download filenames. Available: {trackNumber}, {artist}, {title},
+                                            {album}</span
+                                        >
+                                    </div>
+                                    <input
+                                        type="text"
+                                        id="filename-template"
+                                        class="template-input"
+                                        placeholder="{trackNumber} - {artist} - {title}"
+                                    />
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">ZIP Folder Template</span>
+                                        <span class="description"
+                                            >Customize album folder names. Available: {albumTitle}, {albumArtist},
+                                            {year}</span
+                                        >
+                                    </div>
+                                    <input
+                                        type="text"
+                                        id="zip-folder-template"
+                                        class="template-input"
+                                        placeholder="{albumTitle} - {albumArtist} - monochrome.tf"
                                     />
                                 </div>
                             </div>
-                            <div class="setting-item">
-                                <div class="info">
-                                    <span class="label">ADVANCED: Custom Database/Auth</span>
-                                    <span class="description">Configure custom PocketBase and Firebase instances</span>
-                                </div>
-                                <button id="custom-db-btn" class="btn-secondary">Configure</button>
-                            </div>
-                            <div id="api-instance-manager">
-                                <div class="setting-item" style="padding-bottom: 1rem; border: none">
+
+                            <div class="settings-group">
+                                <div class="setting-item">
                                     <div class="info">
-                                        <span class="label">API Instances</span>
-                                        <span class="description">Manage and prioritize API instances.</span>
+                                        <span class="label">Generate M3U</span>
+                                        <span class="description">Include M3U playlist files in downloads</span>
                                     </div>
-                                    <button id="refresh-speed-test-btn" class="btn-secondary">
-                                        Refresh Instance List
-                                    </button>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="generate-m3u-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
                                 </div>
-                                <ul id="api-instance-list"></ul>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Generate M3U8</span>
+                                        <span class="description"
+                                            >Include extended M3U8 playlist files in downloads</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="generate-m3u8-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Generate CUE</span>
+                                        <span class="description"
+                                            >Include CUE sheets for gapless playback in downloads</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="generate-cue-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Generate NFO</span>
+                                        <span class="description"
+                                            >Include NFO files for media center compatibility</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="generate-nfo-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Generate JSON</span>
+                                        <span class="description">Include JSON files with rich metadata</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="generate-json-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
                             </div>
 
-                            <div class="setting-item" style="padding-bottom: 1rem; border-top: 1px solid var(--border)">
-                                <div class="info">
-                                    <span class="label">Blocked Content</span>
-                                    <span class="description"
-                                        >Manage artists, albums, and tracks you've blocked from recommendations</span
-                                    >
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Relative Paths</span>
+                                        <span class="description">Use relative paths in playlist files</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="relative-paths-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
                                 </div>
-                                <div style="display: flex; gap: 0.5rem">
-                                    <button id="manage-blocked-btn" class="btn-secondary">Manage</button>
-                                    <button
-                                        id="clear-all-blocked-btn"
-                                        class="btn-secondary danger"
-                                        style="display: none"
-                                    >
-                                        Clear All
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Separate Discs in ZIP</span>
+                                        <span class="description"
+                                            >Put tracks in Disc folders when a release has multiple discs</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="separate-discs-zip-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-tab-content" id="settings-tab-instances">
+                        <div class="settings-list">
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">ADVANCED: Custom Database/Auth</span>
+                                        <span class="description"
+                                            >Configure custom PocketBase and Firebase instances</span
+                                        >
+                                    </div>
+                                    <button id="custom-db-btn" class="btn-secondary">Configure</button>
+                                </div>
+                            </div>
+
+                            <div class="settings-group">
+                                <div id="api-instance-manager">
+                                    <div class="setting-item">
+                                        <div class="info">
+                                            <span class="label">API Instances</span>
+                                            <span class="description">Manage and prioritize API instances.</span>
+                                        </div>
+                                        <button id="refresh-speed-test-btn" class="btn-secondary">
+                                            Refresh Instance List
+                                        </button>
+                                    </div>
+                                    <ul id="api-instance-list"></ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-tab-content" id="settings-tab-system">
+                        <div class="settings-list">
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Keyboard Shortcuts</span>
+                                        <span class="description">View and customize keyboard shortcuts</span>
+                                    </div>
+                                    <button id="customize-shortcuts-btn" class="btn-secondary">Customize</button>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Cache</span>
+                                        <span class="description" id="cache-info"
+                                            >Stores API responses to reduce requests</span
+                                        >
+                                    </div>
+                                    <button id="clear-cache-btn" class="btn-secondary">Clear Cache</button>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Auto-Update App</span>
+                                        <span class="description"
+                                            >Automatically reload when a new version is available</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="pwa-auto-update-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item" id="desktop-update-container" style="display: none">
+                                    <div class="info">
+                                        <span class="label">Desktop Update</span>
+                                        <span class="description">Check for updates to the desktop application</span>
+                                    </div>
+                                    <button id="check-desktop-updates-btn" class="btn-secondary">
+                                        Check for Updates
+                                    </button>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Analytics</span>
+                                        <span class="description"
+                                            >Send anonymous usage data to help improve the app</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="analytics-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Reset Local Data</span>
+                                        <span class="description"
+                                            >Clear all local storage and cached data (does not affect cloud sync)</span
+                                        >
+                                    </div>
+                                    <button id="reset-local-data-btn" class="btn-secondary danger">Reset</button>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Clear Cloud Data</span>
+                                        <span class="description"
+                                            >Delete all your data from the cloud (cannot be undone)</span
+                                        >
+                                    </div>
+                                    <button id="firebase-clear-cloud-btn" class="btn-secondary danger">
+                                        Clear Cloud Data
                                     </button>
                                 </div>
                             </div>
-                            <div id="blocked-content-list" style="display: none">
-                                <div id="blocked-artists-section" style="margin-bottom: 1rem">
-                                    <h4
-                                        style="font-size: 0.9rem; margin-bottom: 0.5rem; color: var(--muted-foreground)"
-                                    >
-                                        Blocked Artists
-                                    </h4>
-                                    <ul id="blocked-artists-list" class="blocked-items-list"></ul>
+
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Backup & Restore</span>
+                                        <span class="description"
+                                            >Export or import your library and history as JSON</span
+                                        >
+                                    </div>
+                                    <div style="display: flex; gap: 0.5rem">
+                                        <button id="export-library-btn" class="btn-secondary">Export</button>
+                                        <button id="import-library-btn" class="btn-secondary">Import</button>
+                                        <input
+                                            type="file"
+                                            id="import-library-input"
+                                            style="display: none"
+                                            accept=".json"
+                                        />
+                                    </div>
                                 </div>
-                                <div id="blocked-albums-section" style="margin-bottom: 1rem">
-                                    <h4
-                                        style="font-size: 0.9rem; margin-bottom: 0.5rem; color: var(--muted-foreground)"
-                                    >
-                                        Blocked Albums
-                                    </h4>
-                                    <ul id="blocked-albums-list" class="blocked-items-list"></ul>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Export All Settings</span>
+                                        <span class="description">Export all app settings as JSON</span>
+                                    </div>
+                                    <div style="display: flex; gap: 0.5rem">
+                                        <button id="export-settings-btn" class="btn-secondary">Export</button>
+                                        <button id="import-settings-btn" class="btn-secondary">Import</button>
+                                        <input
+                                            type="file"
+                                            id="import-settings-input"
+                                            style="display: none"
+                                            accept=".json"
+                                        />
+                                    </div>
                                 </div>
-                                <div id="blocked-tracks-section" style="margin-bottom: 1rem">
-                                    <h4
-                                        style="font-size: 0.9rem; margin-bottom: 0.5rem; color: var(--muted-foreground)"
-                                    >
-                                        Blocked Tracks
-                                    </h4>
-                                    <ul id="blocked-tracks-list" class="blocked-items-list"></ul>
-                                </div>
-                                <div
-                                    id="blocked-empty-message"
-                                    style="
-                                        text-align: center;
-                                        padding: 1rem;
-                                        color: var(--muted-foreground);
-                                        display: none;
-                                    "
-                                >
-                                    No blocked content
+                            </div>
+
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Blocked Content</span>
+                                        <span class="description"
+                                            >Manage artists, albums, and tracks you've blocked from
+                                            recommendations</span
+                                        >
+                                    </div>
+                                    <div style="display: flex; gap: 0.5rem">
+                                        <button id="manage-blocked-btn" class="btn-secondary">Manage</button>
+                                        <button
+                                            id="clear-all-blocked-btn"
+                                            class="btn-secondary danger"
+                                            style="display: none"
+                                        >
+                                            Clear All
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

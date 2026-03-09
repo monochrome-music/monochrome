@@ -28,6 +28,10 @@ export async function addMetadataWithTagLib(
     audioData: Uint8Array,
     data: Omit<AddMetadataMessage, 'type' | 'wasmUrl' | 'audioData'>
 ) {
+    if (!(audioData instanceof Uint8Array)) {
+        audioData = new Uint8Array(audioData);
+    }
+
     const worker = new Worker(new URL(TagLibWorker, import.meta.url), { type: 'module' });
     const wasmUrl = await fetchTagLib();
 
@@ -43,11 +47,15 @@ export async function addMetadataWithTagLib(
         };
         worker.onerror = reject;
         worker.onmessageerror = reject;
-        worker.postMessage({ ...data, type: 'Add', wasmUrl, audioData });
+        worker.postMessage({ ...data, type: 'Add', wasmUrl, audioData }, [audioData.buffer]);
     });
 }
 
 export async function getMetadataWithTagLib(audioData: Uint8Array) {
+    if (!(audioData instanceof Uint8Array)) {
+        audioData = new Uint8Array(audioData);
+    }
+
     const worker = new Worker(new URL(TagLibWorker, import.meta.url), { type: 'module' });
     const wasmUrl = await fetchTagLib();
 
@@ -63,6 +71,6 @@ export async function getMetadataWithTagLib(audioData: Uint8Array) {
         };
         worker.onerror = reject;
         worker.onmessageerror = reject;
-        worker.postMessage({ type: 'Get', wasmUrl, audioData });
+        worker.postMessage({ type: 'Get', wasmUrl, audioData }, [audioData.buffer]);
     });
 }

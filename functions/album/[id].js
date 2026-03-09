@@ -84,7 +84,7 @@ class ServerAPI {
 
     getCoverUrl(id, size = '1280') {
         if (!id) return '';
-        const formattedId = id.replace(/-/g, '/');
+        const formattedId = String(id).replace(/-/g, '/');
         return `https://resources.tidal.com/images/${formattedId}/${size}x${size}.jpg`;
     }
 }

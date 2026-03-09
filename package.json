@@ -33,6 +33,7 @@
         "@types/node": "^25.3.5",
         "eslint": "^9.39.3",
         "eslint-config-prettier": "^10.1.8",
+        "formidable": "^3.5.4",
         "globals": "^17.4.0",
         "htmlhint": "^1.9.2",
         "miniflare": "^4.20260301.1",
@@ -47,7 +48,8 @@
     },
     "overrides": {
         "sourcemap-codec": "npm:@jridgewell/sourcemap-codec@^1.4.14",
-        "source-map": "^0.7.4"
+        "source-map": "^0.7.4",
+        "serialize-javascript": "^7.0.3"
     },
     "dependencies": {
         "@ffmpeg/core": "^0.12.10",
@@ -63,8 +65,9 @@
         "fuse.js": "^7.1.0",
         "jose": "^6.2.0",
         "npm": "^11.11.0",
-        "pocketbase": "^0.26.8",
         "taglib-wasm": "^1.0.5",
-        "uuid": "^13.0.0"
+        "uuid": "^13.0.0",
+        "hls.js": "^1.6.15",
+        "pocketbase": "^0.26.8"
     }
 }

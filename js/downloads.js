@@ -195,11 +195,21 @@ export function updateDownloadProgress(trackId, progress) {
         const percent = progress.totalBytes ? Math.round((progress.receivedBytes / progress.totalBytes) * 100) : 0;
 
         progressFill.style.width = `${percent}%`;
+        progressFill.style.background = 'var(--highlight)';
 
         const receivedMB = (progress.receivedBytes / (1024 * 1024)).toFixed(1);
         const totalMB = progress.totalBytes ? (progress.totalBytes / (1024 * 1024)).toFixed(1) : '?';
 
         statusEl.textContent = `Downloading: ${receivedMB}MB / ${totalMB}MB (${percent}%)`;
+    } else if (progress.stage === 'encoding') {
+        const percent = progress.progress ? Math.round(progress.progress) : 0;
+        progressFill.style.width = `${percent}%`;
+        progressFill.style.background = '#3b82f6'; // Blue for encoding
+        statusEl.textContent = `Converting: ${percent}%`;
+    } else if (progress.stage === 'finalizing' || progress.stage === 'processing') {
+        progressFill.style.width = '100%';
+        progressFill.style.background = '#3b82f6';
+        statusEl.textContent = progress.message || 'Processing...';
     }
 }
 
@@ -268,7 +278,7 @@ function removeBulkDownloadTask(notifEl) {
     }, 300);
 }
 
-async function downloadTrackBlob(track, quality, api, lyricsManager = null, signal = null) {
+async function downloadTrackBlob(track, quality, api, lyricsManager = null, signal = null, onProgress = null) {
     // Load ffmpeg in the background.
     loadFfmpeg().catch(console.error);
 
@@ -348,7 +358,7 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
             // Fallback
             if (downloadQuality !== 'LOSSLESS') {
                 console.warn('Falling back to LOSSLESS (16-bit) download.');
-                return downloadTrackBlob(track, 'LOSSLESS', api, lyricsManager, signal);
+                return downloadTrackBlob(track, 'LOSSLESS', api, lyricsManager, signal, onProgress);
             }
             throw dashError;
         }
@@ -362,23 +372,21 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
 
     // Convert to MP3 320kbps if requested
     if (quality === 'MP3_320') {
-        blob = await encodeToMp3(blob, console.log, signal);
+        blob = await encodeToMp3(blob, onProgress || (() => undefined), signal);
     }
 
     if (quality.endsWith('LOSSLESS')) {
         try {
             switch (losslessContainerSettings.getContainer()) {
                 case 'flac':
-                    if ((await getExtensionFromBlob(blob)) != 'flac') {
-                        blob = await ffmpeg(
-                            blob,
-                            { args: ['-c:a', 'copy'] },
-                            'output.flac',
-                            'audio/flac',
-                            console.log,
-                            signal
-                        );
-                    }
+                    blob = await ffmpeg(
+                        blob,
+                        { args: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'flac'] },
+                        'output.flac',
+                        'audio/flac',
+                        onProgress,
+                        signal
+                    );
                     break;
                 case 'alac':
                     blob = await ffmpeg(
@@ -386,7 +394,7 @@ async function downloadTrackBlob(track, quality, api, lyricsManager = null, sign
                         { args: ['-c:a', 'alac'] },
                         'output.m4a',
                         'audio/mp4',
-                        console.log,
+                        onProgress,
                         signal
                     );
                     break;
@@ -561,7 +569,9 @@ async function bulkDownloadToZipStream(
             updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
 
             try {
-                const { blob, extension } = await downloadTrackBlob(track, quality, api, null, signal);
+                const { blob, extension } = await downloadTrackBlob(track, quality, api, null, signal, (p) => {
+                    updateBulkDownloadProgress(notification, i, tracks.length, trackTitle, p);
+                });
                 const filename = buildTrackFilename(track, quality, extension);
                 const discNumber = discLayout.resolveDiscNumber(i);
                 yield {
@@ -703,7 +713,9 @@ async function bulkDownloadToZipBlob(
             updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
 
             try {
-                const { blob, extension } = await downloadTrackBlob(track, quality, api, null, signal);
+                const { blob, extension } = await downloadTrackBlob(track, quality, api, null, signal, (p) => {
+                    updateBulkDownloadProgress(notification, i, tracks.length, trackTitle, p);
+                });
                 const filename = buildTrackFilename(track, quality, extension);
                 const discNumber = discLayout.resolveDiscNumber(i);
                 yield {
@@ -846,7 +858,9 @@ async function bulkDownloadToZipNeutralino(
             updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
 
             try {
-                const { blob, extension } = await downloadTrackBlob(track, quality, api, null, signal);
+                const { blob, extension } = await downloadTrackBlob(track, quality, api, null, signal, (p) => {
+                    updateBulkDownloadProgress(notification, i, tracks.length, trackTitle, p);
+                });
                 const filename = buildTrackFilename(track, quality, extension);
                 const discNumber = discLayout.resolveDiscNumber(i);
                 yield {
@@ -1308,12 +1322,21 @@ function createBulkDownloadNotification(type, name, _totalItems) {
     return notifEl;
 }
 
-function updateBulkDownloadProgress(notifEl, current, total, currentItem) {
+function updateBulkDownloadProgress(notifEl, current, total, currentItem, ffmpegProgress = null) {
     const progressFill = notifEl.querySelector('.download-progress-fill');
     const statusEl = notifEl.querySelector('.download-status');
 
+    if (ffmpegProgress && (ffmpegProgress.stage === 'encoding' || ffmpegProgress.stage === 'finalizing')) {
+        const percent = ffmpegProgress.progress ? Math.round(ffmpegProgress.progress) : 100;
+        progressFill.style.width = `${percent}%`;
+        progressFill.style.background = '#3b82f6'; // Blue for encoding
+        statusEl.textContent = `Converting ${current}/${total}: ${percent}%`;
+        return;
+    }
+
     const percent = total > 0 ? Math.round((current / total) * 100) : 0;
     progressFill.style.width = `${percent}%`;
+    progressFill.style.background = 'var(--highlight)';
     statusEl.textContent = `${current}/${total} - ${currentItem}`;
 }
 

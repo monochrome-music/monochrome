@@ -763,6 +763,7 @@ export const visualizerSettings = {
     MODE_KEY: 'visualizer-mode', // 'solid' or 'blended'
     PRESET_KEY: 'visualizer-preset',
     BUTTERCHURN_CYCLE_KEY: 'butterchurn-cycle-duration',
+    DIM_AMOUNT_KEY: 'visualizer-dim-amount',
 
     getPreset() {
         try {
@@ -826,6 +827,20 @@ export const visualizerSettings = {
 
     setSmartIntensity(enabled) {
         localStorage.setItem(this.SMART_INTENSITY_KEY, enabled);
+    },
+
+    getDimAmount() {
+        try {
+            const val = localStorage.getItem(this.DIM_AMOUNT_KEY);
+            if (val === null) return 1.0;
+            return parseFloat(val);
+        } catch {
+            return 1.0;
+        }
+    },
+
+    setDimAmount(value) {
+        localStorage.setItem(this.DIM_AMOUNT_KEY, value);
     },
 
     // Butterchurn preset cycle duration in seconds
@@ -1350,6 +1365,11 @@ export const audioEffectsSettings = {
     setSpeed(speed) {
         const validSpeed = Math.max(0.01, Math.min(100, parseFloat(speed) || 1.0));
         localStorage.setItem(this.SPEED_KEY, validSpeed.toString());
+    },
+
+    resetSpeed() {
+        this.setSpeed(1.0);
+        return 1.0;
     },
 
     // Preserve pitch when changing speed (default true)

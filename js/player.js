@@ -18,6 +18,7 @@ import {
     audioEffectsSettings,
 } from './storage.js';
 import { audioContextManager } from './audio-context.js';
+import Hls from 'hls.js';
 
 export class Player {
     constructor(audioElement, api, quality = 'HI_RES_LOSSLESS') {
@@ -42,6 +43,7 @@ export class Player {
             typeof window !== 'undefined' &&
             (window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator?.standalone === true);
 
+        this.hls = null;
         // Sleep timer properties
         this.sleepTimer = null;
         this.sleepTimerEndTime = null;
@@ -200,10 +202,9 @@ export class Player {
                 const artistEl = document.querySelector('.now-playing-bar .artist');
 
                 if (coverEl) {
-                    const videoCoverUrl = track.album?.videoCover
-                        ? this.api.tidalAPI.getVideoCoverUrl(track.album.videoCover)
-                        : null;
-                    const coverUrl = videoCoverUrl || this.api.getCoverUrl(track.album?.cover);
+                    const videoCoverUrl = track.videoUrl || track.videoCoverUrl || track.album?.videoCoverUrl || null;
+                    const coverUrl =
+                        videoCoverUrl || this.api.getCoverUrl(track.image || track.cover || track.album?.cover);
 
                     if (videoCoverUrl) {
                         if (coverEl.tagName === 'IMG') {
@@ -215,7 +216,10 @@ export class Player {
                             video.playsInline = true;
                             video.className = coverEl.className;
                             video.id = coverEl.id;
+                            video.style.objectFit = 'cover';
                             coverEl.replaceWith(video);
+                        } else if (coverEl.tagName === 'VIDEO' && coverEl.src !== videoCoverUrl) {
+                            coverEl.src = videoCoverUrl;
                         }
                     } else {
                         if (coverEl.tagName === 'VIDEO') {
@@ -402,6 +406,60 @@ export class Player {
         }
     }
 
+    setupHlsVideo(video, result, fallbackImg) {
+        const url = result.videoUrl || result.hlsUrl || result; // Allow passing just the URL
+        if (!url) return;
+
+        if (this.hls) {
+            this.hls.destroy();
+            this.hls = null;
+        }
+
+        if (typeof url === 'string' && (url.includes('.m3u8') || url.includes('application/vnd.apple.mpegurl'))) {
+            if (Hls.isSupported()) {
+                this.hls = new Hls();
+                this.hls.loadSource(url);
+                this.hls.attachMedia(video);
+                this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    video.play().catch(() => {});
+                });
+                this.hls.on(Hls.Events.ERROR, (event, data) => {
+                    if (data.fatal) {
+                        console.warn('HLS fatal error:', data.type);
+                        if (fallbackImg) video.replaceWith(fallbackImg);
+                        this.hls.destroy();
+                        this.hls = null;
+                    }
+                });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = url;
+            } else {
+                if (fallbackImg) video.replaceWith(fallbackImg);
+            }
+        } else {
+            video.src = url;
+            video.onerror = () => {
+                if (result && result.hlsUrl) {
+                    this.setupHlsVideo(video, { videoUrl: null, hlsUrl: result.hlsUrl }, fallbackImg);
+                } else if (fallbackImg) {
+                    video.replaceWith(fallbackImg);
+                }
+            };
+        }
+    }
+
+    async playVideo(video) {
+        if (!video) return;
+        const videoTrack = {
+            ...video,
+            type: 'video',
+            artist: video.artist || (video.artists && video.artists[0]) || 'Unknown Artist',
+            album: video.album || { title: 'Video', cover: video.image || video.cover },
+        };
+        this.setQueue([videoTrack], 0);
+        await this.playTrackFromQueue();
+    }
+
     async playTrackFromQueue(startTime = 0, recursiveCount = 0) {
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
         if (this.currentQueueIndex < 0 || this.currentQueueIndex >= currentQueue.length) {
@@ -431,34 +489,42 @@ export class Player {
         const trackArtistsHTML = getTrackArtistsHTML(track);
         const yearDisplay = getTrackYearDisplay(track);
 
-        const coverEl = document.querySelector('.now-playing-bar .cover');
-        if (coverEl) {
-            const videoCoverUrl = track.album?.videoCover
-                ? this.api.tidalAPI.getVideoCoverUrl(track.album.videoCover)
-                : null;
-            const coverUrl = videoCoverUrl || this.api.getCoverUrl(track.album?.cover);
+        const trackInfo = document.querySelector('.now-playing-bar .track-info');
+        const coverEl = trackInfo?.querySelector('.cover:not(#audio-player)');
 
-            if (videoCoverUrl) {
-                if (coverEl.tagName === 'IMG') {
-                    const video = document.createElement('video');
-                    video.src = videoCoverUrl;
-                    video.autoplay = true;
-                    video.loop = true;
-                    video.muted = true;
-                    video.playsInline = true;
-                    video.className = coverEl.className;
-                    video.id = coverEl.id;
-                    coverEl.replaceWith(video);
+        if (track.type === 'video') {
+            if (coverEl) coverEl.style.display = 'none';
+            if (this.audio) {
+                const isInFullscreen = document.getElementById('fullscreen-cover-overlay')?.style.display === 'flex';
+
+                if (!isInFullscreen) {
+                    this.audio.style.display = 'block';
+                    this.audio.className = 'cover video-cover-mirror';
+                    this.audio.style.width = '56px';
+                    this.audio.style.height = '56px';
+                    this.audio.style.borderRadius = 'var(--radius-sm)';
+                    this.audio.style.objectFit = 'cover';
+                    this.audio.style.gridArea = 'none';
+                    this.audio.muted = false;
+
+                    if (trackInfo && this.audio.parentElement !== trackInfo) {
+                        trackInfo.insertBefore(this.audio, trackInfo.firstChild);
+                    }
                 }
-            } else {
-                if (coverEl.tagName === 'VIDEO') {
-                    const img = document.createElement('img');
-                    img.src = coverUrl;
-                    img.className = coverEl.className;
-                    img.id = coverEl.id;
-                    coverEl.replaceWith(img);
-                } else {
-                    coverEl.src = coverUrl;
+            }
+        } else {
+            if (coverEl) {
+                coverEl.style.display = 'block';
+                const coverUrl = this.api.getCoverUrl(track.image || track.cover || track.album?.cover);
+                if (coverEl.src !== coverUrl) coverEl.src = coverUrl;
+            }
+            if (this.audio) {
+                const isInFullscreen = document.getElementById('fullscreen-cover-overlay')?.style.display === 'flex';
+                if (!isInFullscreen) {
+                    this.audio.style.display = 'none';
+                    if (this.audio.parentElement !== document.body) {
+                        document.body.appendChild(this.audio);
+                    }
                 }
             }
         }
@@ -568,7 +634,47 @@ export class Player {
                 }
                 const played = await this.safePlay();
                 if (!played) return;
+            } else if (track.type === 'video') {
+                if (this.dashInitialized) {
+                    this.dashPlayer.reset();
+                    this.dashInitialized = false;
+                }
+                if (this.hls) {
+                    this.hls.destroy();
+                    this.hls = null;
+                }
+
+                streamUrl = await this.api.getVideoStreamUrl(track.id);
+
+                if (streamUrl.includes('.m3u8') || streamUrl.includes('application/vnd.apple.mpegurl')) {
+                    this.setupHlsVideo(this.audio, streamUrl, null);
+                } else if (streamUrl.startsWith('blob:') || streamUrl.includes('.mpd')) {
+                    this.dashPlayer.initialize(this.audio, streamUrl, true);
+                    this.dashInitialized = true;
+                } else {
+                    this.audio.src = streamUrl;
+                }
+
+                this.applyAudioEffects();
+
+                if (window.monochromeUi) {
+                    const lyricsManager = window.monochromeUi.lyricsManager;
+                    window.monochromeUi.showFullscreenCover(track, this.getNextTrack(), lyricsManager, this.audio);
+                }
+
+                const canPlay = await this.waitForCanPlayOrTimeout();
+                if (!canPlay) return;
+
+                if (startTime > 0) {
+                    this.audio.currentTime = startTime;
+                }
+
+                await this.safePlay();
             } else {
+                if (this.hls) {
+                    this.hls.destroy();
+                    this.hls = null;
+                }
                 const isQobuz = String(track.id).startsWith('q:');
 
                 if (isQobuz) {
