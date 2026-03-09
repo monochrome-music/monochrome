@@ -534,22 +534,15 @@ const syncManager = {
                         database = await database;
                     }
 
-                    const getAll = async (store) => {
-                        if (database && typeof database.getAll === 'function') return database.getAll(store);
-                        if (database && database.db && typeof database.db.getAll === 'function')
-                            return database.db.getAll(store);
-                        return [];
-                    };
-
                     const localData = {
-                        tracks: (await getAll('favorites_tracks')) || [],
-                        albums: (await getAll('favorites_albums')) || [],
-                        artists: (await getAll('favorites_artists')) || [],
-                        playlists: (await getAll('favorites_playlists')) || [],
-                        mixes: (await getAll('favorites_mixes')) || [],
-                        history: (await getAll('history_tracks')) || [],
-                        userPlaylists: (await getAll('user_playlists')) || [],
-                        userFolders: (await getAll('user_folders')) || [],
+                        tracks: (await database.getAll('favorites_tracks')) || [],
+                        albums: (await database.getAll('favorites_albums')) || [],
+                        artists: (await database.getAll('favorites_artists')) || [],
+                        playlists: (await database.getAll('favorites_playlists')) || [],
+                        mixes: (await database.getAll('favorites_mixes')) || [],
+                        history: (await database.getAll('history_tracks')) || [],
+                        userPlaylists: (await database.getAll('user_playlists')) || [],
+                        userFolders: (await database.getAll('user_folders')) || [],
                     };
 
                     let { library, history, userPlaylists, userFolders } = cloudData;
@@ -612,8 +605,23 @@ const syncManager = {
                         }
                     });
 
-                    if (history.length === 0 && localData.history.length > 0) {
-                        history = localData.history;
+                    const combinedHistory = [...history, ...localData.history];
+                    combinedHistory.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+                    const uniqueHistory = [];
+                    const seenTimestamps = new Set();
+
+                    for (const item of combinedHistory) {
+                        if (!item.timestamp) continue;
+                        if (!seenTimestamps.has(item.timestamp)) {
+                            seenTimestamps.add(item.timestamp);
+                            uniqueHistory.push(item);
+                        }
+                        if (uniqueHistory.length >= 100) break;
+                    }
+
+                    if (JSON.stringify(history) !== JSON.stringify(uniqueHistory)) {
+                        history = uniqueHistory;
                         needsUpdate = true;
                     }
 
