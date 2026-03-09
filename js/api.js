@@ -1547,6 +1547,22 @@ export class LosslessAPI {
         return `https://resources.tidal.com/images/${formattedId}/${size}x${size}.jpg`;
     }
 
+    getVideoCoverUrl(imageId, size = '1280') {
+        if (!imageId) {
+            return null;
+        }
+
+        if (
+            typeof imageId === 'string' &&
+            (imageId.startsWith('http') || imageId.startsWith('blob:') || imageId.startsWith('assets/'))
+        ) {
+            return imageId;
+        }
+
+        const formattedId = String(imageId).replace(/-/g, '/');
+        return `https://resources.tidal.com/images/${formattedId}/${size}x720.jpg`;
+    }
+
     async clearCache() {
         await this.cache.clear();
         this.streamCache.clear();

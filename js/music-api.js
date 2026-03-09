@@ -153,6 +153,19 @@ export class MusicAPI {
         return this.tidalAPI.getCoverUrl(id, size);
     }
 
+    getVideoCoverUrl(imageId, size = '1280') {
+        if (!imageId) {
+            return null;
+        }
+        if (typeof imageId === 'string' && imageId.startsWith('blob:')) {
+            return imageId;
+        }
+        if (typeof imageId === 'string' && imageId.startsWith('q:')) {
+            return null;
+        }
+        return this.tidalAPI.getVideoCoverUrl(imageId, size);
+    }
+
     async getVideoArtwork(title, artist) {
         const cacheKey = `${title}-${artist}`.toLowerCase();
         if (this.videoArtworkCache.has(cacheKey)) {

@@ -251,6 +251,12 @@ export function initializeUIInteractions(player, api, ui) {
                     ? `title="Blocked: ${contentBlockingSettings.isTrackBlocked(track.id) ? 'Track blocked' : contentBlockingSettings.isArtistBlocked(track.artist?.id) ? 'Artist blocked' : 'Album blocked'}"`
                     : '';
 
+                const isVideo = track.type === 'video';
+                const coverUrl =
+                    isVideo && track.imageId
+                        ? api.getVideoCoverUrl(track.imageId)
+                        : api.getCoverUrl(track.album?.cover);
+
                 return `
                 <div class="queue-track-item ${isPlaying ? 'playing' : ''} ${isBlocked ? 'blocked' : ''}" data-queue-index="${index}" data-track-id="${track.id}" draggable="${isBlocked ? 'false' : 'true'}" ${blockedTitle}>
                     <div class="drag-handle">
@@ -260,7 +266,7 @@ export function initializeUIInteractions(player, api, ui) {
                         </svg>
                     </div>
                     <div class="track-item-info">
-                        <img src="${api.getCoverUrl(track.album?.cover)}"
+                        <img src="${coverUrl}"
                              class="track-item-cover" loading="lazy">
                         <div class="track-item-details">
                             <div class="title">${escapeHtml(trackTitle)} ${qualityBadge}</div>
