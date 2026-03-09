@@ -2143,9 +2143,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
             const newDimming = parseFloat(e.target.value);
             visualizerSettings.setDimAmount(newDimming);
             visualizerDimmingValue.textContent = `${(newDimming * 100).toFixed(0)}%`;
-            window.dispatchEvent(
-                new CustomEvent('visualizer-dim-change', { detail: { dimAmount: newDimming } })
-            );
+            window.dispatchEvent(new CustomEvent('visualizer-dim-change', { detail: { dimAmount: newDimming } }));
         });
     }
 

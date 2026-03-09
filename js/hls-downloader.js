@@ -8,7 +8,7 @@ export class HlsDownloader {
         const masterText = await response.text();
 
         const variantUrl = this.getBestVariantUrl(masterUrl, masterText);
-        
+
         const mediaResponse = await fetch(variantUrl, { signal });
         const mediaText = await mediaResponse.text();
 
