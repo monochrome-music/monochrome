@@ -1025,11 +1025,11 @@ export class UIRenderer {
                 if (currentImage.tagName === 'IMG') {
                     const video = document.createElement('video');
                     video.src = videoCoverUrl;
-                    video.autoplay = false;
-                    video.loop = false;
+                    video.autoplay = true;
+                    video.loop = true;
                     video.muted = true;
                     video.playsInline = true;
-                    video.preload = 'metadata';
+                    video.preload = 'auto';
                     video.className = currentImage.className;
                     currentImage.replaceWith(video);
                 } else if (currentImage.src !== videoCoverUrl) {
@@ -2590,16 +2590,22 @@ export class UIRenderer {
     }
 
     setupHlsVideo(video, result, fallbackImg) {
-        const url = result.videoUrl || result.hlsUrl;
+        if (!result) return;
+        const url = typeof result === 'string' ? result : (result.videoUrl || result.hlsUrl);
         if (!url) return;
 
         if (url.endsWith('.m3u8')) {
             if (Hls.isSupported()) {
                 const hls = new Hls();
+                video._hls = hls;
                 hls.loadSource(url);
                 hls.attachMedia(video);
                 hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                    video.play().catch(() => {});
+                    video.play().catch((e) => {
+                        console.warn('Autoplay failed, muted play might be required:', e);
+                        video.muted = true;
+                        video.play().catch(() => {});
+                    });
                 });
                 hls.on(Hls.Events.ERROR, (event, data) => {
                     if (data.fatal) {
@@ -2609,7 +2615,7 @@ export class UIRenderer {
                     }
                 });
             } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                // i heard safari supports HLS natively
+                // safari supports HLS natively
                 video.src = url;
             } else {
                 video.replaceWith(fallbackImg);
@@ -2617,15 +2623,20 @@ export class UIRenderer {
         } else {
             // MP4
             video.src = url;
-            video.onerror = () => {
-                if (result.hlsUrl) {
-                    // HLS fallback (for some reason alot of animated covers js dont work on MP4 lol)
-                    this.setupHlsVideo(video, { videoUrl: null, hlsUrl: result.hlsUrl }, fallbackImg);
-                } else {
-                    video.replaceWith(fallbackImg);
-                }
-            };
+            video.play().catch((e) => {
+                console.warn('MP4 autoplay failed:', e);
+                video.muted = true;
+                video.play().catch(() => {});
+            });
         }
+        video.onerror = () => {
+            if (result.hlsUrl) {
+                // HLS fallback (for some reason alot of animated covers js dont work on MP4 lol)
+                this.setupHlsVideo(video, { videoUrl: null, hlsUrl: result.hlsUrl }, fallbackImg);
+            } else {
+                video.replaceWith(fallbackImg);
+            }
+        };
     }
 
     replaceVideoArtwork(container, type, id, result) {
@@ -2637,11 +2648,11 @@ export class UIRenderer {
         const img = card.querySelector('.card-image');
         if (img && img.tagName !== 'VIDEO') {
             const video = document.createElement('video');
-            video.autoplay = false;
-            video.loop = false;
+            video.autoplay = true;
+            video.loop = true;
             video.muted = true;
             video.playsInline = true;
-            video.preload = 'metadata';
+            video.preload = 'auto';
             video.className = img.className;
             video.id = img.id;
             video.style.objectFit = 'cover';
@@ -2672,16 +2683,6 @@ export class UIRenderer {
             img.replaceWith(video);
 
             this.setupHlsVideo(video, result, img);
-
-            // If HLS, dont play
-            const hls = video._hls;
-            if (hls) {
-                hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                    // Dont play
-                });
-            } else {
-                video.src = url;
-            }
         }
     }
 
@@ -2946,11 +2947,11 @@ export class UIRenderer {
                         const currentImageEl = document.getElementById('album-detail-image');
                         if (currentImageEl && currentImageEl.tagName !== 'VIDEO') {
                             const video = document.createElement('video');
-                            video.autoplay = false;
-                            video.loop = false;
+                            video.autoplay = true;
+                            video.loop = true;
                             video.muted = true;
                             video.playsInline = true;
-                            video.preload = 'metadata';
+                            video.preload = 'auto';
                             video.className = currentImageEl.className;
                             video.id = currentImageEl.id;
                             video.style.opacity = '1';
@@ -2966,18 +2967,19 @@ export class UIRenderer {
             const coverUrl = videoCoverUrl || this.api.getCoverUrl(album.cover);
 
             if (videoCoverUrl) {
-                if (imageEl.tagName === 'IMG') {
+                if (imageEl.tagName !== 'VIDEO') {
                     const video = document.createElement('video');
-                    video.src = videoCoverUrl;
                     video.autoplay = true;
                     video.loop = true;
                     video.muted = true;
                     video.playsInline = true;
+                    video.preload = 'auto';
                     video.className = imageEl.className;
                     video.id = imageEl.id;
+                    this.setupHlsVideo(video, videoCoverUrl, imageEl);
                     imageEl.replaceWith(video);
                 } else {
-                    imageEl.src = videoCoverUrl;
+                    this.setupHlsVideo(imageEl, videoCoverUrl, null);
                 }
             } else {
                 if (imageEl.tagName === 'VIDEO') {
@@ -3737,11 +3739,11 @@ export class UIRenderer {
                                     const currentImageEl = document.getElementById('mix-detail-image');
                                     if (currentImageEl && currentImageEl.tagName !== 'VIDEO') {
                                         const video = document.createElement('video');
-                                        video.autoplay = false;
-                                        video.loop = false;
+                                        video.autoplay = true;
+                                        video.loop = true;
                                         video.muted = true;
                                         video.playsInline = true;
-                                        video.preload = 'metadata';
+                                        video.preload = 'auto';
                                         video.className = currentImageEl.className;
                                         video.id = currentImageEl.id;
                                         video.style.opacity = '1';
@@ -4846,11 +4848,11 @@ export class UIRenderer {
                             const currentImageEl = document.getElementById('track-detail-image');
                             if (currentImageEl && currentImageEl.tagName !== 'VIDEO') {
                                 const video = document.createElement('video');
-                                video.autoplay = false;
-                                video.loop = false;
+                                video.autoplay = true;
+                                video.loop = true;
                                 video.muted = true;
                                 video.playsInline = true;
-                                video.preload = 'metadata';
+                                video.preload = 'auto';
                                 video.className = currentImageEl.className;
                                 video.id = currentImageEl.id;
                                 video.style.opacity = '1';
@@ -4883,18 +4885,19 @@ export class UIRenderer {
             const coverUrl = videoCoverUrl || this.api.getCoverUrl(track.image || track.cover || track.album?.cover);
 
             if (videoCoverUrl) {
-                if (imageEl.tagName === 'IMG') {
+                if (imageEl.tagName !== 'VIDEO') {
                     const video = document.createElement('video');
-                    video.src = videoCoverUrl;
                     video.autoplay = true;
                     video.loop = true;
                     video.muted = true;
                     video.playsInline = true;
+                    video.preload = 'auto';
                     video.className = imageEl.className;
                     video.id = imageEl.id;
+                    this.setupHlsVideo(video, videoCoverUrl, imageEl);
                     imageEl.replaceWith(video);
                 } else {
-                    imageEl.src = videoCoverUrl;
+                    this.setupHlsVideo(imageEl, videoCoverUrl, null);
                 }
             } else {
                 if (imageEl.tagName === 'VIDEO') {
