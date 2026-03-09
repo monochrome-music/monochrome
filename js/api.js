@@ -892,10 +892,10 @@ export class LosslessAPI {
                     const numericArtistId = Number(artistId);
                     for (const item of videoSearch.items) {
                         const itemArtistId = item.artist?.id;
-                        const matchesArtist = 
-                            itemArtistId === numericArtistId || 
-                            (Array.isArray(item.artists) && item.artists.some(a => a.id === numericArtistId));
-                        
+                        const matchesArtist =
+                            itemArtistId === numericArtistId ||
+                            (Array.isArray(item.artists) && item.artists.some((a) => a.id === numericArtistId));
+
                         if (matchesArtist && !videoMap.has(item.id)) {
                             videoMap.set(item.id, item);
                         }
@@ -918,8 +918,9 @@ export class LosslessAPI {
             .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
             .slice(0, 15);
 
-        const videos = Array.from(videoMap.values())
-            .sort((a, b) => new Date(b.releaseDate || 0) - new Date(a.releaseDate || 0));
+        const videos = Array.from(videoMap.values()).sort(
+            (a, b) => new Date(b.releaseDate || 0) - new Date(a.releaseDate || 0)
+        );
 
         // Enrich tracks with album release dates
         const tracks = options.lightweight ? topTracks : await this.enrichTracksWithAlbumDates(topTracks);
@@ -1281,8 +1282,8 @@ export class LosslessAPI {
                     return null;
                 };
 
-                const manifest = isVideo 
-                    ? (findValue(lookup, 'manifest') || findValue(lookup, 'Manifest'))
+                const manifest = isVideo
+                    ? findValue(lookup, 'manifest') || findValue(lookup, 'Manifest')
                     : lookup.info?.manifest;
 
                 if (!manifest) {
@@ -1325,7 +1326,8 @@ export class LosslessAPI {
                     console.error('HLS download failed:', hlsError);
                     throw hlsError;
                 }
-            } else {                const response = await fetch(streamUrl, {
+            } else {
+                const response = await fetch(streamUrl, {
                     cache: 'no-store',
                     signal: options.signal,
                 });
@@ -1389,38 +1391,38 @@ export class LosslessAPI {
                     }
                 }
 
-            if (quality.endsWith('LOSSLESS')) {
-                try {
-                    switch (losslessContainerSettings.getContainer()) {
-                        case 'flac':
-                            if ((await getExtensionFromBlob(blob)) != 'flac') {
+                if (quality.endsWith('LOSSLESS')) {
+                    try {
+                        switch (losslessContainerSettings.getContainer()) {
+                            case 'flac':
+                                if ((await getExtensionFromBlob(blob)) != 'flac') {
+                                    blob = await ffmpeg(
+                                        blob,
+                                        { args: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'flac'] },
+                                        'output.flac',
+                                        'audio/flac',
+                                        onProgress,
+                                        options.signal
+                                    );
+                                }
+                                break;
+                            case 'alac':
                                 blob = await ffmpeg(
                                     blob,
-                                    { args: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'flac'] },
-                                    'output.flac',
-                                    'audio/flac',
+                                    { args: ['-c:a', 'alac'] },
+                                    'output.m4a',
+                                    'audio/mp4',
                                     onProgress,
                                     options.signal
                                 );
-                            }
-                            break;
-                        case 'alac':
-                            blob = await ffmpeg(
-                                blob,
-                                { args: ['-c:a', 'alac'] },
-                                'output.m4a',
-                                'audio/mp4',
-                                onProgress,
-                                options.signal
-                            );
-                            break;
-                        default:
-                            break;
-                    }
-                } catch (error) {
-                    if (error?.name === 'AbortError') {
-                        throw error;
-                    }
+                                break;
+                            default:
+                                break;
+                        }
+                    } catch (error) {
+                        if (error?.name === 'AbortError') {
+                            throw error;
+                        }
 
                         console.error('Lossless container conversion failed:', error);
                     }

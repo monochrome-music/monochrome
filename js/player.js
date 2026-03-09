@@ -203,7 +203,8 @@ export class Player {
 
                 if (coverEl) {
                     const videoCoverUrl = track.videoUrl || track.videoCoverUrl || track.album?.videoCoverUrl || null;
-                    const coverUrl = videoCoverUrl || this.api.getCoverUrl(track.image || track.cover || track.album?.cover);
+                    const coverUrl =
+                        videoCoverUrl || this.api.getCoverUrl(track.image || track.cover || track.album?.cover);
 
                     if (videoCoverUrl) {
                         if (coverEl.tagName === 'IMG') {
@@ -453,7 +454,7 @@ export class Player {
             ...video,
             type: 'video',
             artist: video.artist || (video.artists && video.artists[0]) || 'Unknown Artist',
-            album: video.album || { title: 'Video', cover: video.image || video.cover }
+            album: video.album || { title: 'Video', cover: video.image || video.cover },
         };
         this.setQueue([videoTrack], 0);
         await this.playTrackFromQueue();
@@ -490,12 +491,12 @@ export class Player {
 
         const trackInfo = document.querySelector('.now-playing-bar .track-info');
         const coverEl = trackInfo?.querySelector('.cover:not(#audio-player)');
-        
+
         if (track.type === 'video') {
             if (coverEl) coverEl.style.display = 'none';
             if (this.audio) {
                 const isInFullscreen = document.getElementById('fullscreen-cover-overlay')?.style.display === 'flex';
-                
+
                 if (!isInFullscreen) {
                     this.audio.style.display = 'block';
                     this.audio.className = 'cover video-cover-mirror';
