@@ -909,6 +909,9 @@ export class Player {
             }
         } else {
             this.radioSeeds = Array.isArray(seeds) ? seeds : [seeds];
+            this.wipeQueue();
+            this.setQueue(this.radioSeeds, 0, true);
+            this.playAtIndex(0);
         }
 
         const currentQueue = this.getCurrentQueue();
@@ -949,21 +952,23 @@ export class Player {
                 if (recommendations && recommendations.length > 0) {
                     const currentQueueIds = new Set(this.getCurrentQueue().map((t) => t.id));
                     
-                    const [favorites, userPlaylists] = await Promise.all([
+                    const [favorites, userPlaylists, history] = await Promise.all([
                         db.getFavorites('track'),
                         db.getAll('user_playlists'),
+                        db.getHistory(),
                     ]);
-                    
+
                     const knownTrackIds = new Set([
-                        ...favorites.map(t => t.id),
-                        ...userPlaylists.flatMap(p => (p.tracks || []).map(t => t.id))
+                        ...favorites.map((t) => t.id),
+                        ...userPlaylists.flatMap((p) => (p.tracks || []).map((t) => t.id)),
+                        ...history.map((t) => t.id),
                     ]);
 
                     const newTracks = recommendations.filter((t) => {
                         if (currentQueueIds.has(t.id)) return false;
-                        
+
                         if (knownTrackIds.has(t.id)) {
-                            return Math.random() < 0.2;
+                            return Math.random() < 0.05;
                         }
                         
                         return true;

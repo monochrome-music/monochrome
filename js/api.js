@@ -862,11 +862,11 @@ export class LosslessAPI {
         const trackMap = new Map();
         const videoMap = new Map();
 
-        const isTrack = (v) => v?.id && v.duration && v.album;
+        const isTrack = (v) => v?.id && v.duration;
         const isAlbum = (v) => v?.id && 'numberOfTracks' in v;
         const isVideo = (v) => v?.id && v.type === 'VIDEO';
 
-        const scan = (value, visited = new Set()) => {
+        const scan = (value, visited) => {
             if (!value || typeof value !== 'object' || visited.has(value)) return;
             visited.add(value);
 
@@ -877,13 +877,17 @@ export class LosslessAPI {
 
             const item = value.item || value;
             if (isAlbum(item)) albumMap.set(item.id, this.prepareAlbum(item));
-            if (isTrack(item)) trackMap.set(item.id, this.prepareTrack(item));
+            if (isTrack(item) && !isAlbum(item) && !isVideo(item)) {
+                trackMap.set(item.id, this.prepareTrack(item));
+            }
             if (isVideo(item)) videoMap.set(item.id, this.prepareVideo(item));
 
             Object.values(value).forEach((nested) => scan(nested, visited));
         };
 
-        entries.forEach((entry) => scan(entry));
+        const visited = new Set();
+        entries.forEach((entry) => scan(entry, visited));
+        scan(primaryData, visited);
 
         if (!options.lightweight) {
             try {
@@ -1097,7 +1101,7 @@ export class LosslessAPI {
         results.forEach((tracks) => {
             if (tracks.length > 0) {
                 recommendedTracks.push(...tracks);
-                seenTrackIds.add(...tracks.map((t) => t.id));
+                tracks.forEach((t) => seenTrackIds.add(t.id));
             }
         });
 
