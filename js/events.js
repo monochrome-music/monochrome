@@ -61,7 +61,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
     const prevBtn = document.getElementById('prev-btn');
     const shuffleBtn = document.getElementById('shuffle-btn');
     const repeatBtn = document.getElementById('repeat-btn');
-    const homeStartRadioBtn = document.getElementById('home-start-radio-btn');
+    const homeStartRadioBtn = document.getElementById('home-start-infinite-radio-btn');
     const sleepTimerBtnDesktop = document.getElementById('sleep-timer-btn-desktop');
 
     const volumeBar = document.getElementById('volume-bar');
@@ -778,13 +778,13 @@ export async function handleTrackAction(
     if (!item) return;
 
     // Actions not allowed for unavailable tracks
-    const forbiddenForUnavailable = ['add-to-queue', 'play-next', 'track-mix', 'download', 'start-radio'];
+    const forbiddenForUnavailable = ['add-to-queue', 'play-next', 'track-mix', 'download', 'start-radio', 'start-infinite-radio'];
     if (item.isUnavailable && forbiddenForUnavailable.includes(action)) {
         showNotification('This track is unavailable.');
         return;
     }
 
-    if (action === 'start-radio') {
+    if (action === 'start-radio' || action === 'start-infinite-radio') {
         let tracks = [];
         if (type === 'track') {
             tracks = [item];
