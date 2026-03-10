@@ -954,7 +954,7 @@ export class Player {
                 const recommendations = await this.api.getRecommendedTracksForPlaylist(seeds, 10);
                 if (recommendations && recommendations.length > 0) {
                     const currentQueueIds = new Set(this.getCurrentQueue().map((t) => t.id));
-                    
+
                     const [favorites, userPlaylists, history] = await Promise.all([
                         db.getFavorites('track'),
                         db.getAll('user_playlists'),
@@ -969,7 +969,7 @@ export class Player {
 
                     const newTracks = recommendations.filter((t) => {
                         if (currentQueueIds.has(t.id)) return false;
-                        
+
                         if (knownTrackIds.has(t.id)) {
                             return Math.random() < 0.05;
                         }

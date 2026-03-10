@@ -785,7 +785,14 @@ export async function handleTrackAction(
     if (!item) return;
 
     // Actions not allowed for unavailable tracks
-    const forbiddenForUnavailable = ['add-to-queue', 'play-next', 'track-mix', 'download', 'start-radio', 'start-infinite-radio'];
+    const forbiddenForUnavailable = [
+        'add-to-queue',
+        'play-next',
+        'track-mix',
+        'download',
+        'start-radio',
+        'start-infinite-radio',
+    ];
     if (item.isUnavailable && forbiddenForUnavailable.includes(action)) {
         showNotification('This track is unavailable.');
         return;
