@@ -112,6 +112,7 @@ export class UIRenderer {
         this.vibrantColorCache = new Map();
         this.visualizer = null;
         this.renderLock = false;
+        this.lastRecommendedTracks = [];
 
         // Listen for dynamic color reset events
         window.addEventListener('reset-dynamic-color', () => {
@@ -988,13 +989,13 @@ export class UIRenderer {
 
             if (videoContainer) {
                 videoContainer.style.display = 'flex';
-                const audioPlayer = document.getElementById('audio-player');
-                if (audioPlayer && audioPlayer.parentElement !== videoContainer) {
-                    videoContainer.appendChild(audioPlayer);
-                    audioPlayer.style.display = 'block';
-                    audioPlayer.style.width = '100%';
-                    audioPlayer.style.height = '100%';
-                    audioPlayer.style.objectFit = 'contain';
+                const videoPlayer = document.getElementById('video-player');
+                if (videoPlayer && videoPlayer.parentElement !== videoContainer) {
+                    videoContainer.appendChild(videoPlayer);
+                    videoPlayer.style.display = 'block';
+                    videoPlayer.style.width = '100%';
+                    videoPlayer.style.height = '100%';
+                    videoPlayer.style.objectFit = 'contain';
                 }
             }
             if (image) image.style.display = 'none';
@@ -1002,10 +1003,10 @@ export class UIRenderer {
         } else {
             if (videoContainer) {
                 videoContainer.style.display = 'none';
-                const audioPlayer = document.getElementById('audio-player');
-                if (audioPlayer && audioPlayer.parentElement === videoContainer) {
-                    document.body.appendChild(audioPlayer);
-                    audioPlayer.style.display = 'none';
+                const videoPlayer = document.getElementById('video-player');
+                if (videoPlayer && videoPlayer.parentElement === videoContainer) {
+                    document.body.appendChild(videoPlayer);
+                    videoPlayer.style.display = 'none';
                 }
             }
             if (image) image.style.display = 'block';
@@ -1062,7 +1063,7 @@ export class UIRenderer {
         }
     }
 
-    async showFullscreenCover(track, nextTrack, lyricsManager, audioPlayer) {
+    async showFullscreenCover(track, nextTrack, lyricsManager, activeElement) {
         if (!track) return;
         if (window.location.hash !== '#fullscreen') {
             window.history.pushState({ fullscreen: true }, '', '#fullscreen');
@@ -1081,12 +1082,12 @@ export class UIRenderer {
             nextTrackEl.classList.remove('animate-in');
         }
 
-        if (lyricsManager && audioPlayer) {
+        if (lyricsManager && activeElement) {
             lyricsToggleBtn.style.display = 'flex';
             lyricsToggleBtn.classList.remove('active');
 
             const toggleLyrics = () => {
-                openLyricsPanel(track, audioPlayer, lyricsManager);
+                openLyricsPanel(track, activeElement, lyricsManager);
                 lyricsToggleBtn.classList.toggle('active');
             };
 
@@ -1100,7 +1101,7 @@ export class UIRenderer {
         const playerBar = document.querySelector('.now-playing-bar');
         if (playerBar) playerBar.style.display = 'none';
 
-        this.setupFullscreenControls(audioPlayer);
+        this.setupFullscreenControls();
 
         overlay.style.display = 'flex';
 
@@ -1110,10 +1111,10 @@ export class UIRenderer {
                 return;
             }
 
-            if (!this.visualizer && audioPlayer) {
+            if (!this.visualizer && activeElement) {
                 const canvas = document.getElementById('visualizer-canvas');
                 if (canvas) {
-                    this.visualizer = new Visualizer(canvas, audioPlayer);
+                    this.visualizer = new Visualizer(canvas, activeElement);
                 }
             }
             if (this.visualizer) {
@@ -1162,22 +1163,22 @@ export class UIRenderer {
 
         if (this.player?.currentTrack?.type === 'video') {
             const coverContainer = document.querySelector('.now-playing-bar .track-info');
-            const audioPlayer = document.getElementById('audio-player');
-            const imgCover = coverContainer?.querySelector('.cover:not(#audio-player)');
+            const videoPlayer = document.getElementById('video-player');
+            const imgCover = coverContainer?.querySelector('.cover:not(#audio-player):not(#video-player)');
 
-            if (audioPlayer && coverContainer) {
+            if (videoPlayer && coverContainer) {
                 if (imgCover) imgCover.style.display = 'none';
 
-                audioPlayer.style.display = 'block';
-                audioPlayer.classList.add('cover', 'video-cover-mirror');
-                audioPlayer.style.width = '56px';
-                audioPlayer.style.height = '56px';
-                audioPlayer.style.borderRadius = 'var(--radius-sm)';
-                audioPlayer.style.objectFit = 'cover';
-                audioPlayer.style.gridArea = 'none';
+                videoPlayer.style.display = 'block';
+                videoPlayer.classList.add('cover', 'video-cover-mirror');
+                videoPlayer.style.width = '56px';
+                videoPlayer.style.height = '56px';
+                videoPlayer.style.borderRadius = 'var(--radius-sm)';
+                videoPlayer.style.objectFit = 'cover';
+                videoPlayer.style.gridArea = 'none';
 
-                if (audioPlayer.parentElement !== coverContainer) {
-                    coverContainer.insertBefore(audioPlayer, coverContainer.firstChild);
+                if (videoPlayer.parentElement !== coverContainer) {
+                    coverContainer.insertBefore(videoPlayer, coverContainer.firstChild);
                 }
             }
         }
@@ -1289,7 +1290,7 @@ export class UIRenderer {
         };
     }
 
-    setupFullscreenControls(audioPlayer) {
+    setupFullscreenControls() {
         const playBtn = document.getElementById('fs-play-pause-btn');
         const prevBtn = document.getElementById('fs-prev-btn');
         const nextBtn = document.getElementById('fs-next-btn');
@@ -1318,7 +1319,8 @@ export class UIRenderer {
 
         let lastPausedState = null;
         const updatePlayBtn = () => {
-            const isPaused = audioPlayer.paused;
+            const activeEl = this.player.activeElement;
+            const isPaused = activeEl.paused;
             if (isPaused === lastPausedState) return;
             lastPausedState = isPaused;
 
@@ -1364,18 +1366,20 @@ export class UIRenderer {
         let lastFsSeekPosition = 0;
 
         const updateFsSeekUI = (position) => {
-            if (!isNaN(audioPlayer.duration)) {
+            const activeEl = this.player.activeElement;
+            if (!isNaN(activeEl.duration)) {
                 progressFill.style.width = `${position * 100}%`;
                 if (currentTimeEl) {
-                    currentTimeEl.textContent = formatTime(position * audioPlayer.duration);
+                    currentTimeEl.textContent = formatTime(position * activeEl.duration);
                 }
             }
         };
 
         progressBar.addEventListener('mousedown', (e) => {
+            const activeEl = this.player.activeElement;
             isFsSeeking = true;
-            wasFsPlaying = !audioPlayer.paused;
-            if (wasFsPlaying) audioPlayer.pause();
+            wasFsPlaying = !activeEl.paused;
+            if (wasFsPlaying) activeEl.pause();
 
             const rect = progressBar.getBoundingClientRect();
             const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -1386,10 +1390,11 @@ export class UIRenderer {
         progressBar.addEventListener(
             'touchstart',
             (e) => {
+                const activeEl = this.player.activeElement;
                 e.preventDefault();
                 isFsSeeking = true;
-                wasFsPlaying = !audioPlayer.paused;
-                if (wasFsPlaying) audioPlayer.pause();
+                wasFsPlaying = !activeEl.paused;
+                if (wasFsPlaying) activeEl.pause();
 
                 const touch = e.touches[0];
                 const rect = progressBar.getBoundingClientRect();
@@ -1425,9 +1430,10 @@ export class UIRenderer {
 
         document.addEventListener('mouseup', () => {
             if (isFsSeeking) {
-                if (!isNaN(audioPlayer.duration)) {
-                    audioPlayer.currentTime = lastFsSeekPosition * audioPlayer.duration;
-                    if (wasFsPlaying) audioPlayer.play();
+                const activeEl = this.player.activeElement;
+                if (!isNaN(activeEl.duration)) {
+                    activeEl.currentTime = lastFsSeekPosition * activeEl.duration;
+                    if (wasFsPlaying) activeEl.play();
                 }
                 isFsSeeking = false;
             }
@@ -1435,9 +1441,10 @@ export class UIRenderer {
 
         document.addEventListener('touchend', () => {
             if (isFsSeeking) {
-                if (!isNaN(audioPlayer.duration)) {
-                    audioPlayer.currentTime = lastFsSeekPosition * audioPlayer.duration;
-                    if (wasFsPlaying) audioPlayer.play();
+                const activeEl = this.player.activeElement;
+                if (!isNaN(activeEl.duration)) {
+                    activeEl.currentTime = lastFsSeekPosition * activeEl.duration;
+                    if (wasFsPlaying) activeEl.play();
                 }
                 isFsSeeking = false;
             }
@@ -1476,7 +1483,8 @@ export class UIRenderer {
 
         if (fsVolumeBtn && fsVolumeBar && fsVolumeFill) {
             const updateFsVolumeUI = () => {
-                const { muted } = audioPlayer;
+                const activeEl = this.player.activeElement;
+                const { muted } = activeEl;
                 const volume = this.player.userVolume;
                 fsVolumeBtn.innerHTML = muted || volume === 0 ? SVG_MUTE : SVG_VOLUME;
                 fsVolumeBtn.classList.toggle('muted', muted || volume === 0);
@@ -1486,8 +1494,9 @@ export class UIRenderer {
             };
 
             fsVolumeBtn.onclick = () => {
-                audioPlayer.muted = !audioPlayer.muted;
-                localStorage.setItem('muted', audioPlayer.muted);
+                const activeEl = this.player.activeElement;
+                activeEl.muted = !activeEl.muted;
+                localStorage.setItem('muted', activeEl.muted);
                 updateFsVolumeUI();
             };
 
@@ -1498,8 +1507,9 @@ export class UIRenderer {
                 const currentVolume = this.player.userVolume;
                 const newVolume = Math.max(0, Math.min(1, currentVolume + delta));
 
-                if (delta > 0 && audioPlayer.muted) {
-                    audioPlayer.muted = false;
+                const activeEl = this.player.activeElement;
+                if (delta > 0 && activeEl.muted) {
+                    activeEl.muted = false;
                     localStorage.setItem('muted', false);
                 }
 
@@ -1520,8 +1530,9 @@ export class UIRenderer {
                 const position = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
                 const newVolume = position;
                 this.player.setVolume(newVolume);
-                if (audioPlayer.muted && newVolume > 0) {
-                    audioPlayer.muted = false;
+                const activeEl = this.player.activeElement;
+                if (activeEl.muted && newVolume > 0) {
+                    activeEl.muted = false;
                     localStorage.setItem('muted', false);
                 }
                 updateFsVolumeUI();
@@ -1570,15 +1581,16 @@ export class UIRenderer {
                 isAdjustingFsVolume = false;
             });
 
-            audioPlayer.addEventListener('volumechange', updateFsVolumeUI);
+            this.player.activeElement.addEventListener('volumechange', updateFsVolumeUI);
             updateFsVolumeUI();
         }
 
         const update = () => {
             if (document.getElementById('fullscreen-cover-overlay').style.display === 'none') return;
 
-            const duration = audioPlayer.duration || 0;
-            const current = audioPlayer.currentTime || 0;
+            const activeEl = this.player.activeElement;
+            const duration = activeEl.duration || 0;
+            const current = activeEl.currentTime || 0;
 
             if (duration > 0) {
                 // Only update progress if not currently seeking (user is dragging)
@@ -2173,6 +2185,7 @@ export class UIRenderer {
                 });
 
                 const filteredTracks = await this.filterUserContent(recommendedTracks, 'track');
+                this.lastRecommendedTracks = filteredTracks;
 
                 if (filteredTracks.length > 0) {
                     this.renderListWithTracks(songsContainer, filteredTracks, true);
