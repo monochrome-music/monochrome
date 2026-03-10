@@ -8,11 +8,12 @@ import {
 } from './utils.js';
 import { trackDateSettings, losslessContainerSettings } from './storage.js';
 import { APICache } from './cache.js';
-import { addMetadataToAudio } from './metadata.js';
+import { addMetadataToAudio, prefetchMetadataObjects } from './metadata.js';
 import { DashDownloader } from './dash-downloader.js';
 import { HlsDownloader } from './hls-downloader.js';
 import { encodeToMp3, MP3EncodingError } from './mp3-encoder.js';
-import { ffmpeg } from './ffmpeg.js';
+import { ffmpeg, loadFfmpeg } from './ffmpeg.js';
+import { rebuildFlacWithoutMetadata } from './metadata.flac.js';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 const TIDAL_V2_TOKEN = 'txNoH4kkV41MfH25';
@@ -1282,7 +1283,11 @@ export class LosslessAPI {
     }
 
     async downloadTrack(id, quality = 'HI_RES_LOSSLESS', filename, options = {}) {
+        // Load ffmpeg in the background.
+        loadFfmpeg().catch(console.error);
+
         const { onProgress, track } = options;
+        const prefetchPromises = prefetchMetadataObjects(track, this);
         const isVideo = track?.type === 'video';
 
         try {
@@ -1436,6 +1441,8 @@ export class LosslessAPI {
                                         onProgress,
                                         options.signal
                                     );
+                                } else {
+                                    blob = await rebuildFlacWithoutMetadata(blob);
                                 }
                                 break;
                             case 'alac':
@@ -1479,7 +1486,7 @@ export class LosslessAPI {
                         };
                     }
 
-                    blob = await addMetadataToAudio(blob, enrichedTrack, this, quality, options.coverBlob);
+                    blob = await addMetadataToAudio(blob, enrichedTrack, this, quality, prefetchPromises);
                 }
             }
 

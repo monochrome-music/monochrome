@@ -1,22 +1,14 @@
 {
-    "name": "debian-npm-fish-devcontainer",
+    "name": "Monochrome Dev Container",
     "build": {
-        "dockerfile": "Dockerfile"
+        "context": "..",
+        "dockerfile": "./Dockerfile"
     },
-
-    "remoteUser": "devuser",
-
-    "features": {},
-
+    "postCreateCommand": "git config --local core.editor \"code --wait\" && git config --local commit.gpgsign false && npm install && bun install",
     "customizations": {
         "vscode": {
             "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
         }
     },
-
-    "postCreateCommand": "npm install",
-
-    "remoteEnv": {
-        "SHELL": "/usr/bin/fish"
-    }
+    "mounts": ["source=${env:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached"]
 }

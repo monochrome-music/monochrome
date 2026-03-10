@@ -12,11 +12,12 @@ import {
     escapeHtml,
 } from './utils.js';
 import { lyricsSettings, bulkDownloadSettings, losslessContainerSettings, playlistSettings } from './storage.js';
-import { addMetadataToAudio } from './metadata.js';
+import { addMetadataToAudio, prefetchMetadataObjects } from './metadata.js';
+import { rebuildFlacWithoutMetadata } from './metadata.flac.js';
 import { DashDownloader } from './dash-downloader.js';
 import { generateM3U, generateM3U8, generateCUE, generateNFO, generateJSON } from './playlist-generator.js';
 import { encodeToMp3 } from './mp3-encoder.js';
-import { ffmpeg } from './ffmpeg.js';
+import { ffmpeg, loadFfmpeg } from './ffmpeg.js';
 
 const downloadTasks = new Map();
 const bulkDownloadTasks = new Map();
@@ -287,6 +288,11 @@ async function downloadTrackBlob(
     onProgress = null,
     coverBlob = null
 ) {
+    // Load ffmpeg in the background.
+    loadFfmpeg().catch(console.error);
+
+    const prefetchPromises = prefetchMetadataObjects(track, api, coverBlob);
+
     let enrichedTrack = {
         ...track,
         artist: track.artist || (track.artists && track.artists.length > 0 ? track.artists[0] : null),
@@ -391,6 +397,8 @@ async function downloadTrackBlob(
                             onProgress,
                             signal
                         );
+                    } else {
+                        blob = await rebuildFlacWithoutMetadata(blob);
                     }
                     break;
                 case 'alac':
@@ -419,7 +427,7 @@ async function downloadTrackBlob(
     const extension = await getExtensionFromBlob(blob);
 
     // Add metadata to the blob
-    blob = await addMetadataToAudio(blob, enrichedTrack, api, quality);
+    blob = await addMetadataToAudio(blob, enrichedTrack, api, quality, prefetchPromises);
 
     return { blob, extension };
 }
