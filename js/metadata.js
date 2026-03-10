@@ -41,7 +41,7 @@ function getFullArtistString(track) {
 }
 
 /**
- * 
+ *
  * @param {Object} track
  * @returns {string|null}
  */
@@ -988,19 +988,7 @@ async function createFlacPictureBlockFromBytes(imageBytes, mimeType = 'image/jpe
         const description = '';
         const descBytes = new TextEncoder().encode(description);
 
-
-        const totalSize =
-            4 + 
-            4 +
-            mimeBytes.length + 
-            4 +
-            descBytes.length +
-            4 +
-            4 +
-            4 +
-            4 + 
-            4 +
-            imageBytes.length; 
+        const totalSize = 4 + 4 + mimeBytes.length + 4 + descBytes.length + 4 + 4 + 4 + 4 + 4 + imageBytes.length;
 
         const buffer = new ArrayBuffer(totalSize);
         const view = new DataView(buffer);

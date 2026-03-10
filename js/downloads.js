@@ -278,7 +278,15 @@ function removeBulkDownloadTask(notifEl) {
     }, 300);
 }
 
-async function downloadTrackBlob(track, quality, api, lyricsManager = null, signal = null, onProgress = null, coverBlob = null) {
+async function downloadTrackBlob(
+    track,
+    quality,
+    api,
+    lyricsManager = null,
+    signal = null,
+    onProgress = null,
+    coverBlob = null
+) {
     let enrichedTrack = {
         ...track,
         artist: track.artist || (track.artists && track.artists.length > 0 ? track.artists[0] : null),
@@ -566,9 +574,17 @@ async function bulkDownloadToZipStream(
             updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
 
             try {
-                const { blob, extension } = await downloadTrackBlob(track, quality, api, null, signal, (p) => {
-                    updateBulkDownloadProgress(notification, i, tracks.length, trackTitle, p);
-                }, coverBlob);
+                const { blob, extension } = await downloadTrackBlob(
+                    track,
+                    quality,
+                    api,
+                    null,
+                    signal,
+                    (p) => {
+                        updateBulkDownloadProgress(notification, i, tracks.length, trackTitle, p);
+                    },
+                    coverBlob
+                );
                 const filename = buildTrackFilename(track, quality, extension);
                 const discNumber = discLayout.resolveDiscNumber(i);
                 yield {
@@ -710,9 +726,17 @@ async function bulkDownloadToZipBlob(
             updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
 
             try {
-                const { blob, extension } = await downloadTrackBlob(track, quality, api, null, signal, (p) => {
-                    updateBulkDownloadProgress(notification, i, tracks.length, trackTitle, p);
-                }, coverBlob);
+                const { blob, extension } = await downloadTrackBlob(
+                    track,
+                    quality,
+                    api,
+                    null,
+                    signal,
+                    (p) => {
+                        updateBulkDownloadProgress(notification, i, tracks.length, trackTitle, p);
+                    },
+                    coverBlob
+                );
                 const filename = buildTrackFilename(track, quality, extension);
                 const discNumber = discLayout.resolveDiscNumber(i);
                 yield {
@@ -855,9 +879,17 @@ async function bulkDownloadToZipNeutralino(
             updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
 
             try {
-                const { blob, extension } = await downloadTrackBlob(track, quality, api, null, signal, (p) => {
-                    updateBulkDownloadProgress(notification, i, tracks.length, trackTitle, p);
-                }, coverBlob);
+                const { blob, extension } = await downloadTrackBlob(
+                    track,
+                    quality,
+                    api,
+                    null,
+                    signal,
+                    (p) => {
+                        updateBulkDownloadProgress(notification, i, tracks.length, trackTitle, p);
+                    },
+                    coverBlob
+                );
                 const filename = buildTrackFilename(track, quality, extension);
                 const discNumber = discLayout.resolveDiscNumber(i);
                 yield {
@@ -1185,7 +1217,15 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                     const track = tracks[i];
                     if (signal.aborted) break;
                     try {
-                        const { blob, extension } = await downloadTrackBlob(track, quality, api, null, signal, null, coverBlob);
+                        const { blob, extension } = await downloadTrackBlob(
+                            track,
+                            quality,
+                            api,
+                            null,
+                            signal,
+                            null,
+                            coverBlob
+                        );
                         const filename = buildTrackFilename(track, quality, extension);
                         const discNumber = discLayout.resolveDiscNumber(i);
                         yield {
