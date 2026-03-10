@@ -605,3 +605,27 @@ export function getMimeType(data) {
         return 'image/png';
     return 'image/jpeg';
 }
+
+/**
+ * Retrieves the cover ID or image URL for a track
+ * @param {Object} track - The track object
+ * @param {Object} [track.album] - The album object associated with the track
+ * @param {string} [track.album.cover] - The album cover ID or URL
+ * @param {string} [track.album.coverId] - The album cover ID
+ * @param {string} [track.album.image] - The album image URL
+ * @param {string} [track.cover] - The track cover ID or URL
+ * @param {string} [track.coverId] - The track cover ID
+ * @param {string} [track.image] - The track image URL
+ * @returns {string|null} The cover ID or image URL, or null if none is available
+ */
+export function getTrackCoverId(track) {
+    return (
+        track.album?.cover ||
+        track.cover ||
+        track.image ||
+        track.album?.coverId ||
+        track.coverId ||
+        track.album?.image ||
+        null
+    );
+}

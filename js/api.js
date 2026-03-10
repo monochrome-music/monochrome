@@ -306,6 +306,21 @@ export class LosslessAPI {
                     decoded = manifest;
                 }
             } else if (typeof manifest === 'object') {
+                if (manifest.urls && Array.isArray(manifest.urls)) {
+                    const priorityKeywords = ['flac', 'lossless', 'hi-res', 'high'];
+                    const sortedUrls = [...manifest.urls].sort((a, b) => {
+                        const aLow = a.toLowerCase();
+                        const bLow = b.toLowerCase();
+                        const aScore = priorityKeywords.findIndex((k) => aLow.includes(k));
+                        const bScore = priorityKeywords.findIndex((k) => bLow.includes(k));
+
+                        const finalAScore = aScore === -1 ? 999 : aScore;
+                        const finalBScore = bScore === -1 ? 999 : bScore;
+
+                        return finalAScore - finalBScore;
+                    });
+                    return sortedUrls[0];
+                }
                 if (manifest.urls?.[0]) return manifest.urls[0];
                 return null;
             } else {
@@ -320,6 +335,19 @@ export class LosslessAPI {
 
             try {
                 const parsed = JSON.parse(decoded);
+                if (parsed?.urls && Array.isArray(parsed.urls)) {
+                    const priorityKeywords = ['flac', 'lossless', 'hi-res', 'high'];
+                    const sortedUrls = [...parsed.urls].sort((a, b) => {
+                        const aLow = a.toLowerCase();
+                        const bLow = b.toLowerCase();
+                        const aScore = priorityKeywords.findIndex((k) => aLow.includes(k));
+                        const bScore = priorityKeywords.findIndex((k) => bLow.includes(k));
+                        const finalAScore = aScore === -1 ? 999 : aScore;
+                        const finalBScore = bScore === -1 ? 999 : bScore;
+                        return finalAScore - finalBScore;
+                    });
+                    return sortedUrls[0];
+                }
                 if (parsed?.urls?.[0]) {
                     return parsed.urls[0];
                 }
@@ -863,11 +891,11 @@ export class LosslessAPI {
         const trackMap = new Map();
         const videoMap = new Map();
 
-        const isTrack = (v) => v?.id && v.duration && v.album;
+        const isTrack = (v) => v?.id && v.duration;
         const isAlbum = (v) => v?.id && 'numberOfTracks' in v;
         const isVideo = (v) => v?.id && v.type === 'VIDEO';
 
-        const scan = (value, visited = new Set()) => {
+        const scan = (value, visited) => {
             if (!value || typeof value !== 'object' || visited.has(value)) return;
             visited.add(value);
 
@@ -878,13 +906,17 @@ export class LosslessAPI {
 
             const item = value.item || value;
             if (isAlbum(item)) albumMap.set(item.id, this.prepareAlbum(item));
-            if (isTrack(item)) trackMap.set(item.id, this.prepareTrack(item));
+            if (isTrack(item) && !isAlbum(item) && !isVideo(item)) {
+                trackMap.set(item.id, this.prepareTrack(item));
+            }
             if (isVideo(item)) videoMap.set(item.id, this.prepareVideo(item));
 
             Object.values(value).forEach((nested) => scan(nested, visited));
         };
 
-        entries.forEach((entry) => scan(entry));
+        const visited = new Set();
+        entries.forEach((entry) => scan(entry, visited));
+        scan(primaryData, visited);
 
         if (!options.lightweight) {
             try {
@@ -1098,7 +1130,7 @@ export class LosslessAPI {
         results.forEach((tracks) => {
             if (tracks.length > 0) {
                 recommendedTracks.push(...tracks);
-                seenTrackIds.add(...tracks.map((t) => t.id));
+                tracks.forEach((t) => seenTrackIds.add(t.id));
             }
         });
 
@@ -1400,7 +1432,7 @@ export class LosslessAPI {
                     try {
                         switch (losslessContainerSettings.getContainer()) {
                             case 'flac':
-                                if ((await getExtensionFromBlob(blob)) != 'flac' || true) {
+                                if ((await getExtensionFromBlob(blob)) != 'flac') {
                                     blob = await ffmpeg(
                                         blob,
                                         { args: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'flac'] },

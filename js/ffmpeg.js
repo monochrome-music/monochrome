@@ -1,5 +1,5 @@
 import { fetchBlobURL } from './utils';
-import FfmpegWorker from './ffmpeg.worker.js?worker'
+import FfmpegWorker from './ffmpeg.worker.js?worker';
 const ffmpegBase = 'https://unpkg.com/@ffmpeg/core/dist/esm';
 const coreJs = `${ffmpegBase}/ffmpeg-core.js`;
 const coreWasm = `${ffmpegBase}/ffmpeg-core.wasm`;

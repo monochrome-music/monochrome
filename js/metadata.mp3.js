@@ -1,4 +1,4 @@
-import { getCoverBlob, getTrackTitle } from './utils.js';
+import { getCoverBlob, getTrackTitle, getTrackCoverId } from './utils.js';
 
 export async function writeID3v2Tag(mp3Blob, metadata, coverBlob = null) {
     const frames = [];
@@ -136,15 +136,16 @@ export function buildID3v2Tag(mp3Blob, frames) {
     return new Blob([header, framesData, mp3Blob], { type: 'audio/mpeg' });
 }
 
-export async function addMp3Metadata(mp3Blob, track, api) {
+export async function addMp3Metadata(mp3Blob, track, api, coverBlob = null) {
     try {
-        let coverBlob = null;
-
-        if (track.album?.cover) {
-            try {
-                coverBlob = await getCoverBlob(api, track.album.cover);
-            } catch (error) {
-                console.warn('Failed to fetch album art for MP3:', error);
+        if (!coverBlob) {
+            const coverId = getTrackCoverId(track);
+            if (coverId) {
+                try {
+                    coverBlob = await getCoverBlob(api, coverId);
+                } catch (error) {
+                    console.warn('Failed to fetch album art for MP3:', error);
+                }
             }
         }
 
