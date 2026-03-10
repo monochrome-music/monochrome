@@ -1631,28 +1631,27 @@ export class UIRenderer {
             this.updateGlobalTheme();
         }
 
-
-    const downloadsdisabled = true;
-    if (downloadsdisabled == true) {
-        if (pageId === 'download') {
-            const maintenanceModal = document.getElementById('maintenance-modal');
-            const maintenanceHomeBtn = document.getElementById('maintenance-home-btn');
-            if (maintenanceModal) {
-                maintenanceModal.classList.add('active');
-                if (maintenanceHomeBtn) {
-                    maintenanceHomeBtn.onclick = () => {
-                        maintenanceModal.classList.remove('active');
-                        navigate('/');
-                    };
+        const downloadsdisabled = true;
+        if (downloadsdisabled == true) {
+            if (pageId === 'download') {
+                const maintenanceModal = document.getElementById('maintenance-modal');
+                const maintenanceHomeBtn = document.getElementById('maintenance-home-btn');
+                if (maintenanceModal) {
+                    maintenanceModal.classList.add('active');
+                    if (maintenanceHomeBtn) {
+                        maintenanceHomeBtn.onclick = () => {
+                            maintenanceModal.classList.remove('active');
+                            navigate('/');
+                        };
+                    }
+                }
+            } else {
+                const maintenanceModal = document.getElementById('maintenance-modal');
+                if (maintenanceModal) {
+                    maintenanceModal.classList.remove('active');
                 }
             }
-        } else {
-            const maintenanceModal = document.getElementById('maintenance-modal');
-            if (maintenanceModal) {
-                maintenanceModal.classList.remove('active');
-            }
         }
-    }
         if (pageId === 'settings') {
             this.renderApiSettings();
             const savedTabName = settingsUiState.getActiveTab();
