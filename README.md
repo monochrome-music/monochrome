@@ -96,7 +96,6 @@
 - Artist Biography + Social Links for learning more about your favorite artists
 - Multiple API instance support with failover
 
-
 ### Power User Features
 
 - Keyboard shortcuts & Command Palette (CTRL+K) for power users
