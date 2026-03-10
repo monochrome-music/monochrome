@@ -1663,6 +1663,22 @@ export const homePageSettings = {
     },
 };
 
+export const radioSettings = {
+    ENABLED_KEY: 'radio-enabled',
+
+    isEnabled() {
+        try {
+            return localStorage.getItem(this.ENABLED_KEY) === 'true';
+        } catch {
+            return false;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.ENABLED_KEY, enabled ? 'true' : 'false');
+    },
+};
+
 export const analyticsSettings = {
     ENABLED_KEY: 'analytics-enabled',
 

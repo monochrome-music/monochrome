@@ -61,155 +61,156 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
     const prevBtn = document.getElementById('prev-btn');
     const shuffleBtn = document.getElementById('shuffle-btn');
     const repeatBtn = document.getElementById('repeat-btn');
+    const homeStartRadioBtn = document.getElementById('home-start-radio-btn');
     const sleepTimerBtnDesktop = document.getElementById('sleep-timer-btn-desktop');
+
+    const volumeBar = document.getElementById('volume-bar');
+    const volumeFill = document.getElementById('volume-fill');
+    const volumeBtn = document.getElementById('volume-btn');
+
+    const updateVolumeUI = () => {
+        const activeEl = player.activeElement;
+        const { muted } = activeEl;
+        const volume = player.userVolume;
+        volumeBtn.innerHTML = muted || volume === 0 ? SVG_MUTE : SVG_VOLUME;
+        const effectiveVolume = muted ? 0 : volume * 100;
+        volumeFill.style.setProperty('--volume-level', `${effectiveVolume}%`);
+        volumeFill.style.width = `${effectiveVolume}%`;
+    };
+
+    if (homeStartRadioBtn) {
+        homeStartRadioBtn.addEventListener('click', async () => {
+            await player.enableRadio();
+        });
+    }
+
     const sleepTimerBtnMobile = document.getElementById('sleep-timer-btn');
 
     // History tracking
     let historyLoggedTrackId = null;
 
-    audioPlayer.addEventListener('loadstart', () => {
-        historyLoggedTrackId = null;
-    });
-
-    // Sync UI with player state on load
-    if (player.shuffleActive) {
-        shuffleBtn.classList.add('active');
-    }
-
-    if (player.repeatMode && player.repeatMode !== REPEAT_MODE.OFF) {
-        repeatBtn.classList.add('active');
-        if (player.repeatMode === REPEAT_MODE.ONE) {
-            repeatBtn.classList.add('repeat-one');
-        }
-        repeatBtn.title = player.repeatMode === REPEAT_MODE.ALL ? 'Repeat Queue' : 'Repeat One';
-    } else {
-        repeatBtn.title = 'Repeat';
-    }
-
-    audioPlayer.addEventListener('play', () => {
-        // Initialize audio context manager for EQ (only once)
-        if (!audioContextManager.isReady()) {
-            audioContextManager.init(audioPlayer);
-        }
-        audioContextManager.resume();
-
-        if (player.currentTrack) {
-            // Track play event
-            trackPlayTrack(player.currentTrack);
-
-            // Scrobble
-            if (scrobbler.isAuthenticated()) {
-                scrobbler.updateNowPlaying(player.currentTrack);
+    const setupMediaListeners = (element) => {
+        element.addEventListener('loadstart', () => {
+            if (player.activeElement === element) {
+                historyLoggedTrackId = null;
             }
+        });
 
-            updateWaveform();
-        }
+        element.addEventListener('play', () => {
+            if (player.activeElement !== element) return;
 
-        playPauseBtn.innerHTML = SVG_PAUSE;
-        player.updateMediaSessionPlaybackState();
-        player.updateMediaSessionPositionState();
-        updateTabTitle(player);
-    });
+            // Initialize audio context manager for EQ (only once)
+            if (!audioContextManager.isReady()) {
+                audioContextManager.init(element);
+            }
+            audioContextManager.resume();
 
-    audioPlayer.addEventListener('playing', () => {
-        player.updateMediaSessionPlaybackState();
-        player.updateMediaSessionPositionState();
-    });
+            if (player.currentTrack) {
+                // Track play event
+                trackPlayTrack(player.currentTrack);
 
-    audioPlayer.addEventListener('pause', () => {
-        if (player.currentTrack) {
-            trackPauseTrack(player.currentTrack);
-        }
-        playPauseBtn.innerHTML = SVG_PLAY;
-        player.updateMediaSessionPlaybackState();
-        player.updateMediaSessionPositionState();
-    });
-
-    audioPlayer.addEventListener('ended', () => {
-        player.playNext();
-    });
-
-    audioPlayer.addEventListener('timeupdate', async () => {
-        const { currentTime, duration } = audioPlayer;
-        if (duration) {
-            const progressFill = document.getElementById('progress-fill');
-            const currentTimeEl = document.getElementById('current-time');
-            progressFill.style.width = `${(currentTime / duration) * 100}%`;
-            currentTimeEl.textContent = formatTime(currentTime);
-
-            // Log to history after 10 seconds of playback
-            if (currentTime >= 10 && player.currentTrack && player.currentTrack.id !== historyLoggedTrackId) {
-                historyLoggedTrackId = player.currentTrack.id;
-                const historyEntry = await db.addToHistory(player.currentTrack);
-                syncManager.syncHistoryItem(historyEntry);
-
-                if (window.location.hash === '#recent') {
-                    ui.renderRecentPage();
+                // Scrobble
+                if (scrobbler.isAuthenticated()) {
+                    scrobbler.updateNowPlaying(player.currentTrack);
                 }
+
+                updateWaveform();
             }
-        }
-    });
 
-    audioPlayer.addEventListener('loadedmetadata', () => {
-        const totalDurationEl = document.getElementById('total-duration');
-        totalDurationEl.textContent = formatTime(audioPlayer.duration);
-        player.updateMediaSessionPositionState();
-    });
+            playPauseBtn.innerHTML = SVG_PAUSE;
+            player.updateMediaSessionPlaybackState();
+            player.updateMediaSessionPositionState();
+            updateTabTitle(player);
+        });
 
-    audioPlayer.addEventListener('error', async (e) => {
-        console.error('Audio playback error:', e);
-        playPauseBtn.innerHTML = SVG_PLAY;
+        element.addEventListener('playing', () => {
+            if (player.activeElement !== element) return;
+            player.updateMediaSessionPlaybackState();
+            player.updateMediaSessionPositionState();
+        });
 
-        const currentQuality = player.quality;
+        element.addEventListener('pause', () => {
+            if (player.activeElement !== element) return;
+            if (player.currentTrack) {
+                trackPauseTrack(player.currentTrack);
+            }
+            playPauseBtn.innerHTML = SVG_PLAY;
+            player.updateMediaSessionPlaybackState();
+            player.updateMediaSessionPositionState();
+        });
 
-        // Check if we can fallback to a lower quality
-        if (
-            player.currentTrack &&
-            currentQuality === 'HI_RES_LOSSLESS' &&
-            !player.currentTrack.isLocal &&
-            !player.currentTrack.isTracker &&
-            !player.isFallbackRetry
-        ) {
-            console.warn('Playback failed, attempting fallback to LOSSLESS quality...');
-            player.isFallbackRetry = true; // Set flag to prevent infinite loops
+        element.addEventListener('ended', () => {
+            if (player.activeElement !== element) return;
+            player.playNext();
+        });
 
-            try {
-                // Force getTrack to fetch new URL for LOSSLESS
-                const trackId = player.currentTrack.id;
+        element.addEventListener('timeupdate', async () => {
+            if (player.activeElement !== element) return;
 
-                // Fetch new stream URL
-                const newStreamUrl = await player.api.getStreamUrl(trackId, 'LOSSLESS');
+            const { currentTime, duration } = element;
+            if (duration) {
+                const progressFill = document.getElementById('progress-fill');
+                const currentTimeEl = document.getElementById('current-time');
+                progressFill.style.width = `${(currentTime / duration) * 100}%`;
+                currentTimeEl.textContent = formatTime(currentTime);
 
-                if (newStreamUrl) {
-                    // Reset player state for standard playback (non-DASH if possible)
-                    if (player.dashInitialized) {
-                        player.dashPlayer.reset();
-                        player.dashInitialized = false;
+                // Log to history after 10 seconds of playback
+                if (currentTime >= 10 && player.currentTrack && player.currentTrack.id !== historyLoggedTrackId) {
+                    historyLoggedTrackId = player.currentTrack.id;
+                    const historyEntry = await db.addToHistory(player.currentTrack);
+                    syncManager.syncHistoryItem(historyEntry);
+
+                    if (window.location.hash === '#recent') {
+                        ui.renderRecentPage();
                     }
-
-                    audioPlayer.src = newStreamUrl;
-                    audioPlayer.load();
-                    await audioPlayer.play();
-
-                    // Reset flag after successful start
-                    setTimeout(() => {
-                        player.isFallbackRetry = false;
-                    }, 5000);
-                    return; // Successfully handled
                 }
-            } catch (fallbackError) {
-                console.error('Fallback failed:', fallbackError);
             }
-        }
+        });
 
-        player.isFallbackRetry = false;
+        element.addEventListener('loadedmetadata', () => {
+            if (player.activeElement !== element) return;
+            const totalDurationEl = document.getElementById('total-duration');
+            totalDurationEl.textContent = formatTime(element.duration);
+            player.updateMediaSessionPositionState();
+        });
 
-        // Skip to next track on error to prevent queue stalling
-        if (player.currentTrack) {
-            console.warn('Skipping to next track due to playback error');
-            setTimeout(() => player.playNext(), 1000); // Small delay to avoid rapid skipping
-        }
-    });
+        element.addEventListener('error', (e) => {
+            if (player.activeElement !== element) return;
+            
+            if (!element.src) return;
+
+            const error = element.error;
+            let errorMsg = 'Unknown error';
+            if (error) {
+                switch (error.code) {
+                    case 1: errorMsg = 'Playback aborted'; break;
+                    case 2: errorMsg = 'Network error'; break;
+                    case 3: errorMsg = 'Decoding error'; break;
+                    case 4: errorMsg = 'Source not supported'; break;
+                }
+                if (error.message) errorMsg += `: ${error.message}`;
+            }
+
+            console.error(`Media playback error (${element.id}):`, errorMsg, e);
+            playPauseBtn.innerHTML = SVG_PLAY;
+
+            if (player.currentTrack && error && error.code !== 1) {
+                console.warn('Skipping to next track due to playback error');
+                setTimeout(() => player.playNext(), 1000);
+            }
+        });
+
+        element.addEventListener('volumechange', () => {
+            if (player.activeElement === element) {
+                updateVolumeUI();
+            }
+        });
+    };
+
+    setupMediaListeners(audioPlayer);
+    if (player.video) {
+        setupMediaListeners(player.video);
+    }
 
     playPauseBtn.addEventListener('click', () => player.handlePlayPause());
     nextBtn.addEventListener('click', () => {
@@ -235,6 +236,12 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
         repeatBtn.classList.toggle('repeat-one', mode === REPEAT_MODE.ONE);
         repeatBtn.title =
             mode === REPEAT_MODE.OFF ? 'Repeat' : mode === REPEAT_MODE.ALL ? 'Repeat Queue' : 'Repeat One';
+    });
+
+    window.addEventListener('radio-state-changed', (e) => {
+        if (e.detail && e.detail.enabled) {
+            showNotification('Infinite Radio Enabled');
+        }
     });
 
     // Sleep Timer for desktop
@@ -263,10 +270,6 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
         });
     }
 
-    // Volume controls
-    const volumeBar = document.getElementById('volume-bar');
-    const volumeFill = document.getElementById('volume-fill');
-    const volumeBtn = document.getElementById('volume-btn');
 
     // Waveform Masking Logic
     const updateWaveform = async () => {
@@ -374,37 +377,10 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
         updateWaveform();
     });
 
-    const updateVolumeUI = () => {
-        const { muted } = audioPlayer;
-        const volume = player.userVolume;
-        volumeBtn.innerHTML = muted || volume === 0 ? SVG_MUTE : SVG_VOLUME;
-        const effectiveVolume = muted ? 0 : volume * 100;
-        volumeFill.style.setProperty('--volume-level', `${effectiveVolume}%`);
-        volumeFill.style.width = `${effectiveVolume}%`;
-    };
-
-    volumeBtn.addEventListener('click', () => {
-        audioPlayer.muted = !audioPlayer.muted;
-        localStorage.setItem('muted', audioPlayer.muted);
-    });
-
-    audioPlayer.addEventListener('volumechange', updateVolumeUI);
-
-    // Initialize volume and mute from localStorage
-    const savedVolume = parseFloat(localStorage.getItem('volume') || '0.7');
-    const savedMuted = localStorage.getItem('muted') === 'true';
-
-    player.setVolume(savedVolume);
-    audioPlayer.muted = savedMuted;
-
-    volumeFill.style.width = `${savedVolume * 100}%`;
-    volumeBar.style.setProperty('--volume-level', `${savedVolume * 100}%`);
-    updateVolumeUI();
-
-    initializeSmoothSliders(audioPlayer, player);
+    initializeSmoothSliders(player);
 }
 
-function initializeSmoothSliders(audioPlayer, player) {
+function initializeSmoothSliders(player) {
     const progressBar = document.getElementById('progress-bar');
     const progressFill = document.getElementById('progress-fill');
     const currentTimeEl = document.getElementById('current-time');
@@ -424,19 +400,21 @@ function initializeSmoothSliders(audioPlayer, player) {
     };
 
     const updateSeekUI = (position) => {
-        if (!isNaN(audioPlayer.duration)) {
+        const activeEl = player.activeElement;
+        if (!isNaN(activeEl.duration)) {
             progressFill.style.width = `${position * 100}%`;
             if (currentTimeEl) {
-                currentTimeEl.textContent = formatTime(position * audioPlayer.duration);
+                currentTimeEl.textContent = formatTime(position * activeEl.duration);
             }
         }
     };
 
     // Progress bar with smooth dragging
     progressBar.addEventListener('mousedown', (e) => {
+        const activeEl = player.activeElement;
         isSeeking = true;
-        wasPlaying = !audioPlayer.paused;
-        if (wasPlaying) audioPlayer.pause();
+        wasPlaying = !activeEl.paused;
+        if (wasPlaying) activeEl.pause();
 
         seek(progressBar, e, (position) => {
             lastSeekPosition = position;
@@ -446,10 +424,11 @@ function initializeSmoothSliders(audioPlayer, player) {
 
     // Touch events for mobile
     progressBar.addEventListener('touchstart', (e) => {
+        const activeEl = player.activeElement;
         e.preventDefault();
         isSeeking = true;
-        wasPlaying = !audioPlayer.paused;
-        if (wasPlaying) audioPlayer.pause();
+        wasPlaying = !activeEl.paused;
+        if (wasPlaying) activeEl.pause();
 
         const touch = e.touches[0];
         const rect = progressBar.getBoundingClientRect();
@@ -469,9 +448,13 @@ function initializeSmoothSliders(audioPlayer, player) {
 
         if (isAdjustingVolume) {
             seek(volumeBar, e, (position) => {
-                if (audioPlayer.muted) {
-                    audioPlayer.muted = false;
+                const activeEl = player.activeElement;
+                if (activeEl.muted) {
+                    activeEl.muted = false;
                     localStorage.setItem('muted', false);
+                    
+                    const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+                    if (inactiveEl) inactiveEl.muted = false;
                 }
                 player.setVolume(position);
                 volumeFill.style.width = `${position * 100}%`;
@@ -494,9 +477,13 @@ function initializeSmoothSliders(audioPlayer, player) {
             const touch = e.touches[0];
             const rect = volumeBar.getBoundingClientRect();
             const position = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
-            if (audioPlayer.muted) {
-                audioPlayer.muted = false;
+            const activeEl = player.activeElement;
+            if (activeEl.muted) {
+                activeEl.muted = false;
                 localStorage.setItem('muted', false);
+                
+                const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+                if (inactiveEl) inactiveEl.muted = false;
             }
             player.setVolume(position);
             volumeFill.style.width = `${position * 100}%`;
@@ -506,11 +493,12 @@ function initializeSmoothSliders(audioPlayer, player) {
 
     document.addEventListener('mouseup', () => {
         if (isSeeking) {
+            const activeEl = player.activeElement;
             // Commit the seek
-            if (!isNaN(audioPlayer.duration)) {
-                audioPlayer.currentTime = lastSeekPosition * audioPlayer.duration;
+            if (!isNaN(activeEl.duration)) {
+                activeEl.currentTime = lastSeekPosition * activeEl.duration;
                 player.updateMediaSessionPositionState();
-                if (wasPlaying) audioPlayer.play();
+                if (wasPlaying) activeEl.play();
             }
             isSeeking = false;
         }
@@ -522,10 +510,11 @@ function initializeSmoothSliders(audioPlayer, player) {
 
     document.addEventListener('touchend', () => {
         if (isSeeking) {
-            if (!isNaN(audioPlayer.duration)) {
-                audioPlayer.currentTime = lastSeekPosition * audioPlayer.duration;
+            const activeEl = player.activeElement;
+            if (!isNaN(activeEl.duration)) {
+                activeEl.currentTime = lastSeekPosition * activeEl.duration;
                 player.updateMediaSessionPositionState();
-                if (wasPlaying) audioPlayer.play();
+                if (wasPlaying) activeEl.play();
             }
             isSeeking = false;
         }
@@ -537,10 +526,11 @@ function initializeSmoothSliders(audioPlayer, player) {
 
     progressBar.addEventListener('click', (e) => {
         if (!isSeeking) {
+            const activeEl = player.activeElement;
             // Only handle click if not result of a drag release
             seek(progressBar, e, (position) => {
-                if (!isNaN(audioPlayer.duration) && audioPlayer.duration > 0 && audioPlayer.duration !== Infinity) {
-                    audioPlayer.currentTime = position * audioPlayer.duration;
+                if (!isNaN(activeEl.duration) && activeEl.duration > 0 && activeEl.duration !== Infinity) {
+                    activeEl.currentTime = position * activeEl.duration;
                     player.updateMediaSessionPositionState();
                 } else if (player.currentTrack && player.currentTrack.duration) {
                     const targetTime = position * player.currentTrack.duration;
@@ -555,9 +545,13 @@ function initializeSmoothSliders(audioPlayer, player) {
     volumeBar.addEventListener('mousedown', (e) => {
         isAdjustingVolume = true;
         seek(volumeBar, e, (position) => {
-            if (audioPlayer.muted) {
-                audioPlayer.muted = false;
+            const activeEl = player.activeElement;
+            if (activeEl.muted) {
+                activeEl.muted = false;
                 localStorage.setItem('muted', false);
+                
+                const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+                if (inactiveEl) inactiveEl.muted = false;
             }
             player.setVolume(position);
             volumeFill.style.width = `${position * 100}%`;
@@ -571,9 +565,13 @@ function initializeSmoothSliders(audioPlayer, player) {
         const touch = e.touches[0];
         const rect = volumeBar.getBoundingClientRect();
         const position = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
-        if (audioPlayer.muted) {
-            audioPlayer.muted = false;
+        const activeEl = player.activeElement;
+        if (activeEl.muted) {
+            activeEl.muted = false;
             localStorage.setItem('muted', false);
+            
+            const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+            if (inactiveEl) inactiveEl.muted = false;
         }
         player.setVolume(position);
         volumeFill.style.width = `${position * 100}%`;
@@ -583,9 +581,13 @@ function initializeSmoothSliders(audioPlayer, player) {
     volumeBar.addEventListener('click', (e) => {
         if (!isAdjustingVolume) {
             seek(volumeBar, e, (position) => {
-                if (audioPlayer.muted) {
-                    audioPlayer.muted = false;
+                const activeEl = player.activeElement;
+                if (activeEl.muted) {
+                    activeEl.muted = false;
                     localStorage.setItem('muted', false);
+                    
+                    const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+                    if (inactiveEl) inactiveEl.muted = false;
                 }
                 player.setVolume(position);
                 volumeFill.style.width = `${position * 100}%`;
@@ -599,10 +601,14 @@ function initializeSmoothSliders(audioPlayer, player) {
             e.preventDefault();
             const delta = e.deltaY > 0 ? -0.05 : 0.05;
             const newVolume = Math.max(0, Math.min(1, player.userVolume + delta));
+            const activeEl = player.activeElement;
 
-            if (delta > 0 && audioPlayer.muted) {
-                audioPlayer.muted = false;
+            if (delta > 0 && activeEl.muted) {
+                activeEl.muted = false;
                 localStorage.setItem('muted', false);
+                
+                const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+                if (inactiveEl) inactiveEl.muted = false;
             }
 
             player.setVolume(newVolume);
@@ -618,10 +624,14 @@ function initializeSmoothSliders(audioPlayer, player) {
             e.preventDefault();
             const delta = e.deltaY > 0 ? -0.05 : 0.05;
             const newVolume = Math.max(0, Math.min(1, player.userVolume + delta));
+            const activeEl = player.activeElement;
 
-            if (delta > 0 && audioPlayer.muted) {
-                audioPlayer.muted = false;
+            if (delta > 0 && activeEl.muted) {
+                activeEl.muted = false;
                 localStorage.setItem('muted', false);
+                
+                const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+                if (inactiveEl) inactiveEl.muted = false;
             }
 
             player.setVolume(newVolume);
@@ -768,9 +778,37 @@ export async function handleTrackAction(
     if (!item) return;
 
     // Actions not allowed for unavailable tracks
-    const forbiddenForUnavailable = ['add-to-queue', 'play-next', 'track-mix', 'download'];
+    const forbiddenForUnavailable = ['add-to-queue', 'play-next', 'track-mix', 'download', 'start-radio'];
     if (item.isUnavailable && forbiddenForUnavailable.includes(action)) {
         showNotification('This track is unavailable.');
+        return;
+    }
+
+    if (action === 'start-radio') {
+        let tracks = [];
+        if (type === 'track') {
+            tracks = [item];
+        } else if (item.tracks) {
+            tracks = item.tracks;
+        } else if (type === 'album') {
+            const data = await api.getAlbum(item.id);
+            tracks = data.tracks;
+        } else if (type === 'playlist') {
+            const data = await api.getPlaylist(item.uuid);
+            tracks = data.tracks;
+        } else if (type === 'user-playlist') {
+            const playlist = await db.getPlaylist(item.id);
+            tracks = playlist ? playlist.tracks : [];
+        }
+
+        if (tracks.length > 0) {
+            player.setQueue(tracks, 0);
+            player.playAtIndex(0);
+            player.enableRadio(tracks);
+            showNotification(`Started radio based on ${type}: ${item.title || item.name}`);
+        } else {
+            showNotification('Could not start infinite radio: No tracks found');
+        }
         return;
     }
 
