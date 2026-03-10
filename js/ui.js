@@ -348,9 +348,19 @@ export class UIRenderer {
         let trackImageHTML = '';
         if (showCover) {
             if (isVideo && this.currentPage === 'playlist') {
-                trackImageHTML = `<div class="track-item-cover video-icon-placeholder" style="display: flex; align-items: center; justify-content: center; background: var(--secondary);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.7;"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg></div>`;
+                const videoCoverUrl = this.api.getVideoCoverUrl(track.imageId);
+                if (videoCoverUrl) {
+                    trackImageHTML = `<img src="${videoCoverUrl}" alt="" class="track-item-cover" loading="lazy">`;
+                } else {
+                    trackImageHTML = `<div class="track-item-cover video-icon-placeholder" style="display: flex; align-items: center; justify-content: center; background: var(--secondary);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.7;"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg></div>`;
+                }
             } else if (isVideo && (this.currentPage === 'search' || this.currentPage === 'library')) {
-                trackImageHTML = `<div class="track-item-cover video-icon-placeholder" style="display: flex; align-items: center; justify-content: center; background: var(--secondary);"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="opacity: 0.7;"><path d="M8 5v14l11-7z"/></svg></div>`;
+                const videoCoverUrl = this.api.getVideoCoverUrl(track.imageId);
+                if (videoCoverUrl) {
+                    trackImageHTML = `<img src="${videoCoverUrl}" alt="" class="track-item-cover" loading="lazy">`;
+                } else {
+                    trackImageHTML = `<div class="track-item-cover video-icon-placeholder" style="display: flex; align-items: center; justify-content: center; background: var(--secondary);"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="opacity: 0.7;"><path d="M8 5v14l11-7z"/></svg></div>`;
+                }
             } else {
                 trackImageHTML = this.getCoverHTML(
                     track.image || track.cover || track.album?.cover,
@@ -670,10 +680,13 @@ export class UIRenderer {
         const duration = formatTime(video.duration);
         const artistName = getTrackArtists(video);
 
+        const videoCoverUrl = this.api.getVideoCoverUrl(video.imageId);
         const cover = video.image || video.cover;
         let imageHTML;
 
-        if (cover) {
+        if (videoCoverUrl) {
+            imageHTML = `<img src="${videoCoverUrl}" alt="${escapeHtml(video.title)}" class="card-image" loading="lazy">`;
+        } else if (cover) {
             imageHTML = this.getCoverHTML(cover, escapeHtml(video.title));
         } else {
             imageHTML = `<div class="card-image video-icon-placeholder" style="display: flex; align-items: center; justify-content: center; background: var(--secondary); aspect-ratio: 16/9; width: 100%;"><svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" style="opacity: 0.7;"><path d="M8 5v14l11-7z"/></svg></div>`;
@@ -1012,6 +1025,11 @@ export class UIRenderer {
             if (image) image.style.display = 'block';
             if (visualizerContainer) visualizerContainer.style.display = 'block';
 
+            const qualityBtn = document.getElementById('fs-quality-btn');
+            const qualityMenu = document.getElementById('fs-quality-menu');
+            if (qualityBtn) qualityBtn.style.display = 'none';
+            if (qualityMenu) qualityMenu.style.display = 'none';
+
             const videoCoverUrl = track.videoUrl || track.videoCoverUrl || track.album?.videoCoverUrl || null;
             const coverUrl = videoCoverUrl || this.api.getCoverUrl(track.album?.cover, '1280');
 
@@ -1227,50 +1245,20 @@ export class UIRenderer {
         // Mouse move handler
         const handleMouseMove = (e) => {
             const rect = overlay.getBoundingClientRect();
-            // Check if mouse is near the top-right corner (within 150px from right, 100px from top)
             const isNearTopRight = e.clientY < 100 && e.clientX > rect.width - 150;
 
             if (isUIHidden) {
                 if (overlay.classList.contains('is-video-mode')) {
-                    toggleUI();
+                    if (isNearTopRight) {
+                        showButton();
+                    } else {
+                        hideButton();
+                    }
                 } else if (isNearTopRight) {
                     showButton();
                 } else {
                     hideButton();
                 }
-            } else if (overlay.classList.contains('is-video-mode')) {
-                resetVideoHideTimer();
-            }
-        };
-
-        let videoHideTimer = null;
-        const resetVideoHideTimer = () => {
-            if (videoHideTimer) clearTimeout(videoHideTimer);
-            if (!overlay.classList.contains('is-video-mode') || isUIHidden) return;
-
-            videoHideTimer = setTimeout(() => {
-                if (!isUIHidden && overlay.classList.contains('is-video-mode')) {
-                    toggleUI();
-                }
-            }, 3000);
-        };
-
-        resetVideoHideTimer();
-
-        // Toggle UI visibility
-        const toggleUI = () => {
-            isUIHidden = !isUIHidden;
-            overlay.classList.toggle('ui-hidden', isUIHidden);
-            toggleBtn.classList.toggle('active', isUIHidden);
-            toggleBtn.title = isUIHidden ? 'Show UI' : 'Hide UI';
-
-            if (isUIHidden) {
-                // When UI is hidden, immediately hide the button
-                // It will reappear when mouse nears top-right
-                hideButton();
-            } else {
-                // When UI is shown, keep button visible
-                showButton();
             }
         };
 
@@ -1631,28 +1619,27 @@ export class UIRenderer {
             this.updateGlobalTheme();
         }
 
-
-    const downloadsdisabled = true;
-    if (downloadsdisabled == true) {
-        if (pageId === 'download') {
-            const maintenanceModal = document.getElementById('maintenance-modal');
-            const maintenanceHomeBtn = document.getElementById('maintenance-home-btn');
-            if (maintenanceModal) {
-                maintenanceModal.classList.add('active');
-                if (maintenanceHomeBtn) {
-                    maintenanceHomeBtn.onclick = () => {
-                        maintenanceModal.classList.remove('active');
-                        navigate('/');
-                    };
+        const downloadsdisabled = true;
+        if (downloadsdisabled == true) {
+            if (pageId === 'download') {
+                const maintenanceModal = document.getElementById('maintenance-modal');
+                const maintenanceHomeBtn = document.getElementById('maintenance-home-btn');
+                if (maintenanceModal) {
+                    maintenanceModal.classList.add('active');
+                    if (maintenanceHomeBtn) {
+                        maintenanceHomeBtn.onclick = () => {
+                            maintenanceModal.classList.remove('active');
+                            navigate('/');
+                        };
+                    }
+                }
+            } else {
+                const maintenanceModal = document.getElementById('maintenance-modal');
+                if (maintenanceModal) {
+                    maintenanceModal.classList.remove('active');
                 }
             }
-        } else {
-            const maintenanceModal = document.getElementById('maintenance-modal');
-            if (maintenanceModal) {
-                maintenanceModal.classList.remove('active');
-            }
         }
-    }
         if (pageId === 'settings') {
             this.renderApiSettings();
             const savedTabName = settingsUiState.getActiveTab();
