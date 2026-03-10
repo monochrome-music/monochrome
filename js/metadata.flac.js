@@ -3,6 +3,28 @@ import { getFullArtistString } from './utils.js';
 import { METADATA_STRINGS } from './metadata.js';
 
 export const FLAC_MIME_TYPE = 'audio/flac';
+const FLAC_BLOCK_TYPES = {
+    /** This block has information about the whole stream, like sample rate, number of channels, total number of samples, etc. It must be present as the first metadata block in the stream. Other metadata blocks may follow, and ones that the decoder doesn't understand, it will skip. */
+    StreamInfo: 0,
+
+    /** This block allows for an arbitrary amount of padding. The contents of a PADDING block have no meaning. This block is useful when it is known that metadata will be edited after encoding; the user can instruct the encoder to reserve a PADDING block of sufficient size so that when metadata is added, it will simply overwrite the padding (which is relatively quick) instead of having to insert it into the right place in the existing file (which would normally require rewriting the entire file). */
+    Padding: 1,
+
+    /** This block is for use by third-party applications. The only mandatory field is a 32-bit identifier. This ID is granted upon request to an application by the FLAC maintainers. The remainder is of the block is defined by the registered application. Visit the registration page if you would like to register an ID for your application with FLAC. */
+    Application: 2,
+
+    /** This is an optional block for storing seek points. It is possible to seek to any given sample in a FLAC stream without a seek table, but the delay can be unpredictable since the bitrate may vary widely within a stream. By adding seek points to a stream, this delay can be significantly reduced. Each seek point takes 18 bytes, so 1% resolution within a stream adds less than 2k. There can be only one SEEKTABLE in a stream, but the table can have any number of seek points. There is also a special 'placeholder' seekpoint which will be ignored by decoders but which can be used to reserve space for future seek point insertion. */
+    SeekTable: 3,
+
+    /** This block is for storing a list of human-readable name/value pairs. Values are encoded using UTF-8. It is an implementation of the Vorbis comment specification (without the framing bit). This is the only officially supported tagging mechanism in FLAC. There may be only one VORBIS_COMMENT block in a stream. In some external documentation, Vorbis comments are called FLAC tags to lessen confusion. */
+    VorbisComment: 4,
+
+    /** This block is for storing various information that can be used in a cue sheet. It supports track and index points, compatible with Red Book CD digital audio discs, as well as other CD-DA metadata such as media catalog number and track ISRCs. The CUESHEET block is especially useful for backing up CD-DA discs, but it can be used as a general purpose cueing mechanism for playback. */
+    CueSheet: 5,
+
+    /** This block is for storing pictures associated with the file, most commonly cover art from CDs. There may be more than one PICTURE block in a file. The picture format is similar to the APIC frame in ID3v2. The PICTURE block has a type, MIME type, and UTF-8 description like ID3v2, and supports external linking via URL (though this is discouraged). The differences are that there is no uniqueness constraint on the description field, and the MIME type is mandatory. The FLAC PICTURE block also includes the resolution, color depth, and palette size so that the client can search for a suitable picture without having to scan them all. */
+    Picture: 6,
+};
 
 export async function readFlacMetadata(file, metadata) {
     const arrayBuffer = await file.arrayBuffer();
@@ -11,9 +33,9 @@ export async function readFlacMetadata(file, metadata) {
     if (!isFlacFile(dataView)) return;
 
     const blocks = parseFlacBlocks(dataView);
-    const vorbisBlock = blocks.find((b) => b.type === 4);
-    const pictureBlock = blocks.find((b) => b.type === 6);
-    const streamInfo = blocks.find((b) => b.type === 0);
+    const vorbisBlock = blocks.find((b) => b.type === FLAC_BLOCK_TYPES.VorbisComment);
+    const pictureBlock = blocks.find((b) => b.type === FLAC_BLOCK_TYPES.Picture);
+    const streamInfo = blocks.find((b) => b.type === FLAC_BLOCK_TYPES.StreamInfo);
 
     const artists = [];
     if (vorbisBlock) {
@@ -344,6 +366,13 @@ export function createVorbisCommentBlock(comments = []) {
         offset += commentBytes.length;
     }
 
+    // Pad to at least 1024 bytes for future metadata edits without needing to rewrite the whole file
+    if (uint8Array.length < 1024) {
+        const newArray = new Uint8Array(1024);
+        newArray.set(uint8Array);
+        return newArray;
+    }
+
     return uint8Array;
 }
 
@@ -443,8 +472,10 @@ export function rebuildFlacWithMetadata(
 ) {
     const originalArray = new Uint8Array(dataView.buffer);
 
-    // Remove old Vorbis comment and picture blocks
-    const filteredBlocks = blocks.filter((b) => b.type !== 4 && b.type !== 6); // 4 = Vorbis, 6 = Picture
+    // Remove seek table, old Vorbis comment, and picture blocks
+    const filteredBlocks = blocks.filter(
+        (b) => ![FLAC_BLOCK_TYPES.SeekTable, FLAC_BLOCK_TYPES.VorbisComment, FLAC_BLOCK_TYPES.Picture].includes(b.type)
+    );
 
     // Calculate new file size
     let newSize = 4; // "fLaC" signature
@@ -504,7 +535,7 @@ export function rebuildFlacWithMetadata(
     if (vorbisCommentBlock) {
         // Write new Vorbis comment block
         const vorbisHeaderOffset = offset;
-        const vorbisHeader = 0x04; // Vorbis comment type
+        const vorbisHeader = FLAC_BLOCK_TYPES.VorbisComment; // Vorbis comment type
         newFile[offset++] = vorbisHeader;
         newFile[offset++] = (vorbisCommentBlock.length >> 16) & 0xff;
         newFile[offset++] = (vorbisCommentBlock.length >> 8) & 0xff;
@@ -517,7 +548,7 @@ export function rebuildFlacWithMetadata(
     // Write picture block if available
     if (pictureBlock) {
         const pictureHeaderOffset = offset;
-        const pictureHeader = 0x06; // Picture type
+        const pictureHeader = FLAC_BLOCK_TYPES.Picture; // Picture type
         newFile[offset++] = pictureHeader;
         newFile[offset++] = (pictureBlock.length >> 16) & 0xff;
         newFile[offset++] = (pictureBlock.length >> 8) & 0xff;
