@@ -11,12 +11,11 @@
 </p>
 
 <p align="center">
-  <a href="https://monochrome.tf">Website</a> •
-  <a href="https://ko-fi.com/monochromemusic">Donate</a> •
-  <a href="#features">Features</a> •
-  <a href="#installation">Installation</a> •
-  <a href="#usage">Usage</a> •
-  <a href="#self-hosting">Self-Hosting</a> •
+  <a href="https://monochrome.tf">Website</a> -
+  <a href="https://ko-fi.com/monochromemusic">Donate</a> -
+  <a href="#features">Features</a> -
+  <a href="#usage">Usage</a> -
+  <a href="#self-hosting">Self-Hosting</a> -
   <a href="CONTRIBUTING.md">Contributing</a>
 </p>
 
@@ -39,8 +38,14 @@
 **Monochrome** is an open-source, privacy-respecting, ad-free [TIDAL](https://tidal.com) web UI, built on top of [Hi-Fi](https://github.com/binimum/hifi-api). It provides a beautiful, minimalist interface for streaming high-quality music without the clutter of traditional streaming platforms.
 
 <p align="center">
-  <a href="https://monochrome.tf/#album/90502209">
-    <img width="2559" height="1439" alt="image" src="https://github.com/user-attachments/assets/7973ea9f-c4aa-4c12-b476-f388f614db38"  alt="Monochrome UI" width="800">
+  <a href="https://monochrome.tf/album/90502209">
+    <img width="2559" height="1439" alt="Image of 'NASIR' By Nas On Monochrome" src="https://i.samidy.xyz/NASIR.png"  alt="Monochrome UI" width="800">
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://monochrome.tf/album/413189044">
+    <img width="2559" height="1439" alt="Image of 'Jump Out' By Osamason On Monochrome" src="https://i.samidy.xyz/jumpout.png"  alt="Monochrome UI" width="800">
   </a>
 </p>
 
@@ -50,15 +55,16 @@
 
 ### Audio Quality
 
-- High-quality Hi-Res/lossless audio streaming
+- High-quality High-Res/lossless audio streaming
 - Support for local music files
-- Intelligent API caching for improved performance
+- API caching for improved performance
 
 ### Interface
 
 - Dark, minimalist interface optimized for focus
-- Customizable themes
-- Community Theme Store
+- Animated Album Covers For Supported Albums
+- High-quality Music Videos
+- Customizable themes & Community Theme Store
 - Accurate and unique audio visualizer
 - Offline-capable Progressive Web App (PWA)
 - Media Session API integration for system controls
@@ -71,6 +77,8 @@
 - Playlist import from other platforms
 - Public playlists for social sharing
 - Smart recommendations for new songs, albums & artists
+- Infinite Recommendation Radio
+- Explore Page (Hot & New) for discovering newly added music and whats trending overall or within each genre
 
 ### Lyrics & Metadata
 
@@ -85,6 +93,7 @@
 - Last.fm and ListenBrainz integration for scrobbling
 - Unreleased music from [ArtistGrid](https://artistgrid.cx)
 - Dynamic Discord Embeds
+- Artist Biography + Social Links for learning more about your favorite artists
 - Multiple API instance support with failover
 
 ### Power User Features
@@ -107,7 +116,9 @@ For alternative instances, check [INSTANCES.md](INSTANCES.md).
 
 ## Self-Hosting
 
-NOTE: We only allow authorized domains to use our firebase authentication system, so unless you switch to your own firebase project, accounts wont work.
+NOTE: Accounts will not work on self-hosted instances. Our Appwrite authentication system only allows authorized domains.
+
+We had to heavily customize the authentication system and write several custom scripts to support features like SMTP and Google OAuth (which are currently bugged in Appwrite). Because of this, we can no longer provide a self-hostable accounts system.
 
 ### Option 1: Docker (Recommended)
 
@@ -144,7 +155,7 @@ docker compose down
 docker compose up -d
 ```
 
-For PocketBase, development mode, and advanced setups, see [DOCKER.md](DOCKER.md).
+For development mode and advanced setups, see [DOCKER.md](DOCKER.md).
 
 ### Option 2: Manual Installation
 

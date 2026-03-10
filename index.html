@@ -36,11 +36,15 @@
     </head>
 
     <body>
-        <video id="audio-player" crossorigin="anonymous" style="display: none"></video>
+        <audio id="audio-player" crossorigin="anonymous" style="display: none"></audio>
+        <video id="video-player" crossorigin="anonymous" style="display: none"></video>
         <div id="context-menu">
             <ul>
                 <li data-action="shuffle-play-card" data-type-filter="album,playlist,mix,user-playlist">
                     Shuffle play
+                </li>
+                <li data-action="start-infinite-radio" data-type-filter="track,album,playlist,user-playlist">
+                    Start Infinite Radio
                 </li>
                 <li data-action="start-mix" data-type-filter="album,track,video">Start mix</li>
                 <li data-action="play-next">Play next</li>
@@ -1668,6 +1672,42 @@
             </div>
         </div>
 
+        <div id="maintenance-modal" class="modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content" style="text-align: center">
+                <h3 style="color: #ef4444; display: flex; align-items: center; gap: 0.5rem; justify-content: center">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path
+                            d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"
+                        />
+                    </svg>
+                    Maintenance Notice
+                </h3>
+                <p style="margin: 1.5rem 0; line-height: 1.6; font-size: 1.1rem">
+                    The desktop version of Monochrome is currently undergoing essential maintenance to address critical
+                    issues.
+                </p>
+                <p style="margin-bottom: 2rem; color: var(--muted-foreground); line-height: 1.5">
+                    Downloads are temporarily disabled while we work on fixing these issues. Please check back later.
+                </p>
+                <div class="modal-actions" style="justify-content: center">
+                    <button id="maintenance-home-btn" class="btn-primary" style="padding: 0.75rem 2rem">
+                        Back to Home
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div id="donate-modal" class="modal">
             <div class="modal-overlay"></div>
             <div class="modal-content">
@@ -2212,36 +2252,57 @@
 
                         <div id="home-content" style="display: none">
                             <section class="content-section">
-                                <div
-                                    style="
-                                        display: flex;
-                                        align-items: center;
-                                        justify-content: space-between;
-                                        margin-bottom: 1rem;
-                                    "
-                                >
-                                    <h2 class="section-title" style="margin-bottom: 0">Recommended Songs</h2>
-                                    <button
-                                        class="btn-secondary"
-                                        id="refresh-songs-btn"
-                                        title="Refresh"
-                                        style="padding: 4px 8px"
-                                    >
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            width="16"
-                                            height="16"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="2"
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
+                                <div class="header-actions">
+                                    <h2 class="section-title">Recommended Songs</h2>
+                                    <div style="display: flex; gap: 8px">
+                                        <button
+                                            class="btn-primary"
+                                            id="home-start-infinite-radio-btn"
+                                            title="Start Infinite Radio"
+                                            style="
+                                                display: flex;
+                                                align-items: center;
+                                                gap: 8px;
+                                                padding: 6px 12px;
+                                                font-size: 0.85rem;
+                                            "
                                         >
-                                            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-                                            <path d="M21 3v5h-5" />
-                                        </svg>
-                                    </button>
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                width="16"
+                                                height="16"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2.5"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            >
+                                                <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" />
+                                                <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4" />
+                                                <circle cx="12" cy="12" r="2" />
+                                                <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4" />
+                                                <path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1" />
+                                            </svg>
+                                            Start Infinite Radio
+                                        </button>
+                                        <button class="btn-secondary" id="refresh-songs-btn" title="Refresh">
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                width="16"
+                                                height="16"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                            >
+                                                <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                                                <path d="M21 3v5h-5" />
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div class="track-list" id="home-recommended-songs"></div>
                             </section>
@@ -5615,6 +5676,10 @@
                     </div>
                 </div>
                 <div class="player-controls">
+                    <div id="radio-loading-indicator">
+                        <div class="animate-spin"></div>
+                        <span>Finding more songs for you...</span>
+                    </div>
                     <div class="buttons">
                         <button id="shuffle-btn" title="Shuffle">
                             <svg

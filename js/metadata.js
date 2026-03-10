@@ -1,4 +1,4 @@
-import { getCoverBlob, getTrackTitle, getFullArtistString, getMimeType } from './utils.js';
+import { getCoverBlob, getTrackTitle, getFullArtistString, getMimeType, getTrackCoverId } from './utils.js';
 import { fetchTagLib, addMetadataWithTagLib, getMetadataWithTagLib } from './taglib.ts';
 import { doTimed, doTimedAsync } from './doTimed.ts';
 import { managers } from './app.js';
@@ -10,11 +10,14 @@ export const METADATA_STRINGS = {
     DEFAULT_ALBUM: 'Unknown Album',
 };
 
-export function prefetchMetadataObjects(track, api) {
+export function prefetchMetadataObjects(track, api, coverBlob = null) {
     const _tagLib = fetchTagLib().catch(console.error);
-    const coverFetch = track?.album?.cover
-        ? getCoverBlob(api, track.album.cover).catch(console.error)
-        : Promise.resolve(null);
+    const coverId = getTrackCoverId(track);
+    const coverFetch = coverBlob
+        ? Promise.resolve(coverBlob)
+        : coverId
+          ? getCoverBlob(api, coverId).catch(console.error)
+          : Promise.resolve(null);
     const lyricsFetch = managers?.lyricsManager?.fetchLyrics?.(track.id, track)?.catch(console.error);
 
     return { _tagLib, coverFetch, lyricsFetch };

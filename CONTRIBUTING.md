@@ -26,14 +26,16 @@ Thank you for your interest in contributing to Monochrome! This guide will help 
 
 ### Quick Start
 
-1. **Fork and clone the repository:**
+1. Fork the Repository
+
+2. clone the repository:
 
     ```bash
     git clone https://github.com/YOUR_USERNAME/monochrome.git
     cd monochrome
     ```
 
-2. **Install dependencies:**
+3. Install dependencies:
 
     ```bash
     bun install
@@ -41,7 +43,7 @@ Thank you for your interest in contributing to Monochrome! This guide will help 
     npm install
     ```
 
-3. **Start the development server:**
+4. Start the development server:
 
     ```bash
     bun run dev
@@ -49,7 +51,7 @@ Thank you for your interest in contributing to Monochrome! This guide will help 
     npm run dev
     ```
 
-4. **Open your browser:**
+5. Open your browser:
    Navigate to `http://localhost:5173/`
 
 ---
@@ -118,12 +120,12 @@ monochrome/
 - **`/js`** - All JavaScript source code
     - Keep modules focused and single-purpose
     - Use ES6+ features
-    - Add JSDoc comments for complex functions
+    - Keep the code easy to work with/maintain
 
 - **`/public`** - Static assets copied directly to build
     - Images should be optimized before adding
     - Keep file sizes reasonable
-    - Use appropriate formats (WebP where possible)
+    - Use appropriate formats (PNG where possible)
 
 ---
 

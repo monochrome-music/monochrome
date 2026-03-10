@@ -1,6 +1,8 @@
 // js/qobuz-api.js
 // Qobuz API integration for Monochrome Music
 
+// LMFAOOOO this shit is useless now qobuz killing accounts every time a dude takes their breath
+
 const QOBUZ_API_BASE = 'https://qobuz.squid.wtf/api';
 
 export class QobuzAPI {

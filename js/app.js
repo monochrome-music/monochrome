@@ -194,7 +194,7 @@ function initializeCasting(audioPlayer, castBtn) {
     }
 }
 
-function initializeKeyboardShortcuts(player, audioPlayer) {
+function initializeKeyboardShortcuts(player, _audioPlayer) {
     const keyActionMap = {
         playPause: () => {
             trackKeyboardShortcut('Space');
@@ -202,11 +202,11 @@ function initializeKeyboardShortcuts(player, audioPlayer) {
         },
         seekForward: () => {
             trackKeyboardShortcut('Right');
-            audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + 10);
+            player.seekForward(10);
         },
         seekBackward: () => {
             trackKeyboardShortcut('Left');
-            audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 10);
+            player.seekBackward(10);
         },
         nextTrack: () => {
             trackKeyboardShortcut('Shift+Right');
@@ -226,7 +226,8 @@ function initializeKeyboardShortcuts(player, audioPlayer) {
         },
         mute: () => {
             trackKeyboardShortcut('M');
-            audioPlayer.muted = !audioPlayer.muted;
+            const el = player.activeElement;
+            el.muted = !el.muted;
         },
         shuffle: () => {
             trackKeyboardShortcut('S');
@@ -252,7 +253,7 @@ function initializeKeyboardShortcuts(player, audioPlayer) {
             trackKeyboardShortcut('Escape');
             document.getElementById('search-input')?.blur();
             sidePanelManager.close();
-            clearLyricsPanelSync(audioPlayer, sidePanelManager.panel);
+            clearLyricsPanelSync(player.activeElement, sidePanelManager.panel);
         },
         visualizerNext: () => {
             trackKeyboardShortcut('VisualizerNext');
@@ -426,8 +427,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             events.on('mediaPrevious', () => player.playPrev());
             events.on('mediaPlayPause', () => player.handlePlayPause());
             events.on('mediaStop', () => {
-                player.audio.pause();
-                player.audio.currentTime = 0;
+                const el = player.activeElement;
+                el.pause();
+                el.currentTime = 0;
             });
             console.log('Media keys initialized via bridge');
         });
@@ -598,9 +600,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (isActive) {
                 sidePanelManager.close();
-                clearLyricsPanelSync(audioPlayer, sidePanelManager.panel);
+                clearLyricsPanelSync(player.activeElement, sidePanelManager.panel);
             } else {
-                openLyricsPanel(player.currentTrack, audioPlayer, lyricsManager);
+                openLyricsPanel(player.currentTrack, player.activeElement, lyricsManager);
             }
         } else if (mode === 'cover') {
             const overlay = document.getElementById('fullscreen-cover-overlay');
@@ -612,7 +614,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             } else {
                 const nextTrack = player.getNextTrack();
-                ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, audioPlayer);
+                ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, player.activeElement);
             }
         } else {
             // Default to 'album' mode - navigate to album
@@ -900,9 +902,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (isActive) {
             sidePanelManager.close();
-            clearLyricsPanelSync(audioPlayer, sidePanelManager.panel);
+            clearLyricsPanelSync(player.activeElement, sidePanelManager.panel);
         } else {
-            openLyricsPanel(player.currentTrack, audioPlayer, lyricsManager);
+            openLyricsPanel(player.currentTrack, player.activeElement, lyricsManager);
         }
     });
 
@@ -930,14 +932,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Update lyrics panel if it's open
         if (sidePanelManager.isActive('lyrics')) {
             // Re-open forces update/refresh of content and sync
-            openLyricsPanel(player.currentTrack, audioPlayer, lyricsManager, true);
+            openLyricsPanel(player.currentTrack, player.activeElement, lyricsManager, true);
         }
 
         // Update Fullscreen if it's open
         const fullscreenOverlay = document.getElementById('fullscreen-cover-overlay');
         if (fullscreenOverlay && getComputedStyle(fullscreenOverlay).display !== 'none') {
             const nextTrack = player.getNextTrack();
-            ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, audioPlayer);
+            ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, player.activeElement);
         }
 
         // DEV: Auto-open fullscreen mode if ?fullscreen=1 in URL
@@ -948,7 +950,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             getComputedStyle(fullscreenOverlay).display === 'none'
         ) {
             const nextTrack = player.getNextTrack();
-            ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, audioPlayer);
+            ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, player.activeElement);
         }
     });
 

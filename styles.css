@@ -3122,6 +3122,59 @@ input:checked + .slider::before {
     transform: translateX(2px);
 }
 
+#radio-btn.active,
+#fs-radio-btn.active {
+    color: var(--primary);
+}
+
+#radio-btn.active svg,
+#fs-radio-btn.active svg {
+    filter: drop-shadow(0 0 4px var(--primary));
+}
+
+#radio-loading-indicator {
+    display: none;
+    position: absolute;
+    top: -35px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--background-secondary);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    align-items: center;
+    gap: 10px;
+    z-index: 100;
+    white-space: nowrap;
+    animation: radio-slide-up 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+#radio-loading-indicator .animate-spin {
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--primary);
+    border-top-color: transparent;
+    border-radius: 50%;
+}
+
+#radio-loading-indicator span {
+    font-weight: 500;
+}
+
+@keyframes radio-slide-up {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
 .player-controls {
     display: flex;
     flex-direction: column;
