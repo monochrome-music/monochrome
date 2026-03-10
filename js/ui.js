@@ -2604,7 +2604,7 @@ export class UIRenderer {
 
     setupHlsVideo(video, result, fallbackImg) {
         if (!result) return;
-        const url = typeof result === 'string' ? result : (result.videoUrl || result.hlsUrl);
+        const url = typeof result === 'string' ? result : result.videoUrl || result.hlsUrl;
         if (!url) return;
 
         if (url.endsWith('.m3u8')) {
