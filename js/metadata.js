@@ -41,14 +41,32 @@ function getFullArtistString(track) {
 }
 
 /**
+ * 
+ * @param {Object} track
+ * @returns {string|null}
+ */
+function getTrackCoverId(track) {
+    return (
+        track.album?.cover ||
+        track.cover ||
+        track.image ||
+        track.album?.coverId ||
+        track.coverId ||
+        track.album?.image ||
+        null
+    );
+}
+
+/**
  * Adds metadata tags to audio files (FLAC, M4A or MP3)
  * @param {Blob} audioBlob - The audio file blob
  * @param {Object} track - Track metadata
  * @param {Object} api - API instance for fetching album art
  * @param {string} quality - Audio quality
+ * @param {Blob} [coverBlob] - Optional pre-fetched album art blob
  * @returns {Promise<Blob>} - Audio blob with embedded metadata
  */
-export async function addMetadataToAudio(audioBlob, track, api, _quality) {
+export async function addMetadataToAudio(audioBlob, track, api, _quality, coverBlob = null) {
     // Always check actual file signature, not just quality setting
     // DASH Hi-Res streams may return fragmented MP4 instead of raw FLAC
     const buffer = await audioBlob.slice(0, 12).arrayBuffer();
@@ -58,11 +76,11 @@ export async function addMetadataToAudio(audioBlob, track, api, _quality) {
 
     switch (format) {
         case 'flac':
-            return await addFlacMetadata(audioBlob, track, api);
+            return await addFlacMetadata(audioBlob, track, api, coverBlob);
         case 'mp4':
-            return await addM4aMetadata(audioBlob, track, api);
+            return await addM4aMetadata(audioBlob, track, api, coverBlob);
         case 'mp3':
-            return await addMp3Metadata(audioBlob, track, api);
+            return await addMp3Metadata(audioBlob, track, api, coverBlob);
         default:
             // Unknown format - return original without modification
             console.warn(`Unknown audio format (mime: ${audioBlob.type}), returning original blob`);
@@ -529,7 +547,7 @@ function getMimeType(data) {
 /**
  * Adds Vorbis comment metadata to FLAC files
  */
-async function addFlacMetadata(flacBlob, track, api) {
+async function addFlacMetadata(flacBlob, track, api, coverBlob = null) {
     try {
         const arrayBuffer = await flacBlob.arrayBuffer();
         const dataView = new DataView(arrayBuffer);
@@ -558,13 +576,24 @@ async function addFlacMetadata(flacBlob, track, api) {
         // Create or update Vorbis comment block
         const vorbisCommentBlock = createVorbisCommentBlock(track);
 
-        // Fetch album artwork if available
         let pictureBlock = null;
-        if (track.album?.cover) {
+        if (coverBlob) {
             try {
-                pictureBlock = await createFlacPictureBlock(track.album.cover, api);
+                const imageBytes = new Uint8Array(await coverBlob.arrayBuffer());
+                pictureBlock = await createFlacPictureBlockFromBytes(imageBytes, coverBlob.type);
             } catch (error) {
-                console.warn('Failed to embed album art:', error);
+                console.warn('Failed to embed provided album art:', error);
+            }
+        }
+
+        if (!pictureBlock) {
+            const coverId = getTrackCoverId(track);
+            if (coverId) {
+                try {
+                    pictureBlock = await createFlacPictureBlock(coverId, api);
+                } catch (error) {
+                    console.warn('Failed to embed album art:', error);
+                }
             }
         }
 
@@ -953,10 +982,77 @@ function rebuildFlacWithMetadata(dataView, blocks, vorbisCommentBlock, pictureBl
     return newFile;
 }
 
+async function createFlacPictureBlockFromBytes(imageBytes, mimeType = 'image/jpeg') {
+    try {
+        const mimeBytes = new TextEncoder().encode(mimeType);
+        const description = '';
+        const descBytes = new TextEncoder().encode(description);
+
+
+        const totalSize =
+            4 + 
+            4 +
+            mimeBytes.length + 
+            4 +
+            descBytes.length +
+            4 +
+            4 +
+            4 +
+            4 + 
+            4 +
+            imageBytes.length; 
+
+        const buffer = new ArrayBuffer(totalSize);
+        const view = new DataView(buffer);
+        const uint8Array = new Uint8Array(buffer);
+
+        let offset = 0;
+
+        view.setUint32(offset, 3, false);
+        offset += 4;
+
+        view.setUint32(offset, mimeBytes.length, false);
+        offset += 4;
+
+        uint8Array.set(mimeBytes, offset);
+        offset += mimeBytes.length;
+
+        view.setUint32(offset, descBytes.length, false);
+        offset += 4;
+
+        if (descBytes.length > 0) {
+            uint8Array.set(descBytes, offset);
+            offset += descBytes.length;
+        }
+
+        view.setUint32(offset, 0, false);
+        offset += 4;
+
+        view.setUint32(offset, 0, false);
+        offset += 4;
+
+        view.setUint32(offset, 0, false);
+        offset += 4;
+
+        view.setUint32(offset, 0, false);
+        offset += 4;
+
+        view.setUint32(offset, imageBytes.length, false);
+        offset += 4;
+
+        uint8Array.set(imageBytes, offset);
+
+        return uint8Array;
+    } catch (error) {
+        console.error('Failed to create FLAC picture block from bytes:', error);
+        return null;
+    }
+}
+
 /**
  * Adds metadata to M4A files using MP4 atoms
  */
-async function addM4aMetadata(m4aBlob, track, api) {
+async function addM4aMetadata(m4aBlob, track, api, coverBlob = null) {
     try {
         const arrayBuffer = await m4aBlob.arrayBuffer();
         const dataView = new DataView(arrayBuffer);
@@ -967,19 +1063,33 @@ async function addM4aMetadata(m4aBlob, track, api) {
         // Create metadata atoms
         const metadataAtoms = createMp4MetadataAtoms(track);
 
-        // Fetch album artwork if available
-        if (track.album?.cover) {
+        if (coverBlob) {
             try {
-                const imageBlob = await getCoverBlob(api, track.album.cover);
-                if (imageBlob) {
-                    const imageBytes = new Uint8Array(await imageBlob.arrayBuffer());
-                    metadataAtoms.cover = {
-                        type: 'covr',
-                        data: imageBytes,
-                    };
-                }
+                const imageBytes = new Uint8Array(await coverBlob.arrayBuffer());
+                metadataAtoms.cover = {
+                    type: 'covr',
+                    data: imageBytes,
+                };
             } catch (error) {
-                console.warn('Failed to embed album art in M4A:', error);
+                console.warn('Failed to embed provided album art in M4A:', error);
+            }
+        }
+
+        if (!metadataAtoms.cover) {
+            const coverId = getTrackCoverId(track);
+            if (coverId) {
+                try {
+                    const imageBlob = await getCoverBlob(api, coverId);
+                    if (imageBlob) {
+                        const imageBytes = new Uint8Array(await imageBlob.arrayBuffer());
+                        metadataAtoms.cover = {
+                            type: 'covr',
+                            data: imageBytes,
+                        };
+                    }
+                } catch (error) {
+                    console.warn('Failed to embed album art in M4A:', error);
+                }
             }
         }
 

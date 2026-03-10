@@ -305,6 +305,21 @@ export class LosslessAPI {
                     decoded = manifest;
                 }
             } else if (typeof manifest === 'object') {
+                if (manifest.urls && Array.isArray(manifest.urls)) {
+                    const priorityKeywords = ['flac', 'lossless', 'hi-res', 'high'];
+                    const sortedUrls = [...manifest.urls].sort((a, b) => {
+                        const aLow = a.toLowerCase();
+                        const bLow = b.toLowerCase();
+                        const aScore = priorityKeywords.findIndex((k) => aLow.includes(k));
+                        const bScore = priorityKeywords.findIndex((k) => bLow.includes(k));
+
+                        const finalAScore = aScore === -1 ? 999 : aScore;
+                        const finalBScore = bScore === -1 ? 999 : bScore;
+
+                        return finalAScore - finalBScore;
+                    });
+                    return sortedUrls[0];
+                }
                 if (manifest.urls?.[0]) return manifest.urls[0];
                 return null;
             } else {
@@ -319,6 +334,19 @@ export class LosslessAPI {
 
             try {
                 const parsed = JSON.parse(decoded);
+                if (parsed?.urls && Array.isArray(parsed.urls)) {
+                    const priorityKeywords = ['flac', 'lossless', 'hi-res', 'high'];
+                    const sortedUrls = [...parsed.urls].sort((a, b) => {
+                        const aLow = a.toLowerCase();
+                        const bLow = b.toLowerCase();
+                        const aScore = priorityKeywords.findIndex((k) => aLow.includes(k));
+                        const bScore = priorityKeywords.findIndex((k) => bLow.includes(k));
+                        const finalAScore = aScore === -1 ? 999 : aScore;
+                        const finalBScore = bScore === -1 ? 999 : bScore;
+                        return finalAScore - finalBScore;
+                    });
+                    return sortedUrls[0];
+                }
                 if (parsed?.urls?.[0]) {
                     return parsed.urls[0];
                 }
@@ -1451,7 +1479,7 @@ export class LosslessAPI {
                         };
                     }
 
-                    blob = await addMetadataToAudio(blob, enrichedTrack, this, quality);
+                    blob = await addMetadataToAudio(blob, enrichedTrack, this, quality, options.coverBlob);
                 }
             }
 

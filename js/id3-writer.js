@@ -136,15 +136,28 @@ function buildID3v2Tag(mp3Blob, frames) {
     return new Blob([header, framesData, mp3Blob], { type: 'audio/mpeg' });
 }
 
-export async function addMp3Metadata(mp3Blob, track, api) {
-    try {
-        let coverBlob = null;
+function getTrackCoverId(track) {
+    return (
+        track.album?.cover ||
+        track.cover ||
+        track.image ||
+        track.album?.coverId ||
+        track.coverId ||
+        track.album?.image ||
+        null
+    );
+}
 
-        if (track.album?.cover) {
-            try {
-                coverBlob = await getCoverBlob(api, track.album.cover);
-            } catch (error) {
-                console.warn('Failed to fetch album art for MP3:', error);
+export async function addMp3Metadata(mp3Blob, track, api, coverBlob = null) {
+    try {
+        if (!coverBlob) {
+            const coverId = getTrackCoverId(track);
+            if (coverId) {
+                try {
+                    coverBlob = await getCoverBlob(api, coverId);
+                } catch (error) {
+                    console.warn('Failed to fetch album art for MP3:', error);
+                }
             }
         }
 
