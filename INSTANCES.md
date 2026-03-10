@@ -17,6 +17,14 @@ The official Monochrome instance maintained by the core team:
 
 ## Community Instances
 
+### Community Monochrome Instances
+
+These instances are community instances of Monochrome & its WebUI:
+
+| Provider      | URL                                         | Status    |
+| ------------- | ------------------------------------------- | --------- |
+| **Squid.WTF** | [mono.squid.wtf](https://mono.squid.wtf)    | Community |
+
 ### UI-Only Instances
 
 These instances provide the tidal-ui web interface, not monochrome:
@@ -42,7 +50,7 @@ These are available API endpoints that can be used with Monochrome or other Hi-F
 
 | Provider          | URL                                 | Notes                                                      |
 | ----------------- | ----------------------------------- | ---------------------------------------------------------- |
-| **Monochrome**    | `https://monochrome-api.samidy.com` | Official API - [See Note](https://rentry.co/monochromeapi) |
+| **Monochrome**    | `https://monochrome-api.samidy.com` | Official API                                               |
 |                   | `https://api.monochrome.tf`         | Official API                                               |
 |                   | `https://arran.monochrome.tf`       | Official API                                               |
 | **squid.wtf**     | `https://triton.squid.wtf`          | Community hosted                                           |
@@ -95,6 +103,5 @@ Want to add your instance to this list?
 
 ## Related Resources
 
-- [Self-Hosting Guide](self-hosted-database.md) - Host your own instance
 - [Contributing Guide](CONTRIBUTE.md) - Contribute to the project
-- [Main Repository](https://github.com/SamidyFR/monochrome) - Source code
+- [Main Repository](https://github.com/monochrome-music/monochrome) - Source code
