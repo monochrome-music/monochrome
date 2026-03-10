@@ -5516,7 +5516,7 @@ img[src=''] {
 
 .fs-quality-btn:hover {
     opacity: 1;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgb(255, 255, 255, 0.1);
 }
 
 .fullscreen-volume-container {
@@ -5528,11 +5528,11 @@ img[src=''] {
     bottom: 100%;
     right: 0;
     background: rgb(20, 20, 20);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgb(255, 255, 255, 0.1);
     border-radius: 8px;
     padding: 4px;
     min-width: 120px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 20px rgb(0, 0, 0, 0.5);
     z-index: 1000;
     margin-bottom: 8px;
 }
@@ -5552,7 +5552,7 @@ img[src=''] {
 }
 
 .fs-quality-option:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgb(255, 255, 255, 0.1);
 }
 
 .fs-quality-option.active {
