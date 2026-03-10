@@ -103,7 +103,6 @@ export class Player {
             }
         });
 
-
         this._setupVideoSync();
     }
 
@@ -119,8 +118,7 @@ export class Player {
                             if (this.video.readyState >= 2 && (this.audio.readyState > 0 || this.audio.src)) {
                                 this.audio.currentTime = this.video.currentTime;
                             }
-                        } catch (err) {
-                        }
+                        } catch (err) {}
                     }
 
                     const syncedEvent = new Event(eventName, { bubbles: e.bubbles, cancelable: e.cancelable });
@@ -467,8 +465,7 @@ export class Player {
                 this.hls = new Hls();
                 this.hls.loadSource(url);
                 this.hls.attachMedia(video);
-                this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                });
+                this.hls.on(Hls.Events.MANIFEST_PARSED, () => {});
                 this.hls.on(Hls.Events.ERROR, (event, data) => {
                     if (data.fatal) {
                         console.warn('HLS fatal error:', data.type);
@@ -706,10 +703,16 @@ export class Player {
                 if (!played) return;
             } else if (track.type === 'video') {
                 if (window.monochromeUi) {
-                    const isInFullscreen = document.getElementById('fullscreen-cover-overlay')?.style.display === 'flex';
+                    const isInFullscreen =
+                        document.getElementById('fullscreen-cover-overlay')?.style.display === 'flex';
                     if (!isInFullscreen) {
                         const lyricsManager = window.monochromeUi.lyricsManager;
-                        window.monochromeUi.showFullscreenCover(track, this.getNextTrack(), lyricsManager, activeElement);
+                        window.monochromeUi.showFullscreenCover(
+                            track,
+                            this.getNextTrack(),
+                            lyricsManager,
+                            activeElement
+                        );
                     }
                 }
 
@@ -948,24 +951,24 @@ export class Player {
                 const recommendations = await this.api.getRecommendedTracksForPlaylist(seeds, 10);
                 if (recommendations && recommendations.length > 0) {
                     const currentQueueIds = new Set(this.getCurrentQueue().map((t) => t.id));
-                    
+
                     const [favorites, userPlaylists] = await Promise.all([
                         db.getFavorites('track'),
                         db.getAll('user_playlists'),
                     ]);
-                    
+
                     const knownTrackIds = new Set([
-                        ...favorites.map(t => t.id),
-                        ...userPlaylists.flatMap(p => (p.tracks || []).map(t => t.id))
+                        ...favorites.map((t) => t.id),
+                        ...userPlaylists.flatMap((p) => (p.tracks || []).map((t) => t.id)),
                     ]);
 
                     const newTracks = recommendations.filter((t) => {
                         if (currentQueueIds.has(t.id)) return false;
-                        
+
                         if (knownTrackIds.has(t.id)) {
                             return Math.random() < 0.2;
                         }
-                        
+
                         return true;
                     });
 

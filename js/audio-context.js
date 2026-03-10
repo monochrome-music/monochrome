@@ -348,7 +348,6 @@ class AudioContextManager {
         }
     }
 
-
     changeSource(audioElement) {
         if (!this.audioContext) {
             this.init(audioElement);
@@ -360,8 +359,7 @@ class AudioContextManager {
             if (this.source) {
                 try {
                     this.source.disconnect();
-                } catch (e) {
-                }
+                } catch (e) {}
             }
 
             this.audio = audioElement;
@@ -389,8 +387,7 @@ class AudioContextManager {
             // Disconnect everything first
             try {
                 this.source.disconnect();
-            } catch (e) {
-            }
+            } catch (e) {}
             this.outputNode.disconnect();
             if (this.volumeNode) {
                 this.volumeNode.disconnect();
