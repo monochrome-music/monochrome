@@ -21,9 +21,9 @@ The official Monochrome instance maintained by the core team:
 
 These instances are community instances of Monochrome & its WebUI:
 
-| Provider      | URL                                         | Status    |
-| ------------- | ------------------------------------------- | --------- |
-| **Squid.WTF** | [mono.squid.wtf](https://mono.squid.wtf)    | Community |
+| Provider      | URL                                      | Status    |
+| ------------- | ---------------------------------------- | --------- |
+| **Squid.WTF** | [mono.squid.wtf](https://mono.squid.wtf) | Community |
 
 ### UI-Only Instances
 
@@ -48,21 +48,21 @@ These are available API endpoints that can be used with Monochrome or other Hi-F
 
 ### Official & Community APIs
 
-| Provider          | URL                                 | Notes                                                      |
-| ----------------- | ----------------------------------- | ---------------------------------------------------------- |
-| **Monochrome**    | `https://monochrome-api.samidy.com` | Official API                                               |
-|                   | `https://api.monochrome.tf`         | Official API                                               |
-|                   | `https://arran.monochrome.tf`       | Official API                                               |
-| **squid.wtf**     | `https://triton.squid.wtf`          | Community hosted                                           |
-| **Lucida (QQDL)** | `https://wolf.qqdl.site`            | Community hosted                                           |
-|                   | `https://maus.qqdl.site`            | Community hosted                                           |
-|                   | `https://vogel.qqdl.site`           | Community hosted                                           |
-|                   | `https://katze.qqdl.site`           | Community hosted                                           |
-|                   | `https://hund.qqdl.site`            | Community hosted                                           |
-| **Spotisaver**    | `https://hifi-one.spotisaver.net`   | Community hosted                                           |
-|                   | `https://hifi-two.spotisaver.net`   | Community hosted                                           |
-| **Kinoplus**      | `https://tidal.kinoplus.online`     | Community hosted                                           |
-| **Binimum**       | `https://tidal-api.binimum.org`     | Community hosted                                           |
+| Provider          | URL                                 | Notes            |
+| ----------------- | ----------------------------------- | ---------------- |
+| **Monochrome**    | `https://monochrome-api.samidy.com` | Official API     |
+|                   | `https://api.monochrome.tf`         | Official API     |
+|                   | `https://arran.monochrome.tf`       | Official API     |
+| **squid.wtf**     | `https://triton.squid.wtf`          | Community hosted |
+| **Lucida (QQDL)** | `https://wolf.qqdl.site`            | Community hosted |
+|                   | `https://maus.qqdl.site`            | Community hosted |
+|                   | `https://vogel.qqdl.site`           | Community hosted |
+|                   | `https://katze.qqdl.site`           | Community hosted |
+|                   | `https://hund.qqdl.site`            | Community hosted |
+| **Spotisaver**    | `https://hifi-one.spotisaver.net`   | Community hosted |
+|                   | `https://hifi-two.spotisaver.net`   | Community hosted |
+| **Kinoplus**      | `https://tidal.kinoplus.online`     | Community hosted |
+| **Binimum**       | `https://tidal-api.binimum.org`     | Community hosted |
 
 ---
 
