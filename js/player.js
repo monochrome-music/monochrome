@@ -452,7 +452,7 @@ export class Player {
     }
 
     setupHlsVideo(video, result, fallbackImg) {
-        const url = result.videoUrl || result.hlsUrl || result; // Allow passing just the URL
+        const url = result.videoUrl || result.hlsUrl || result;
         if (!url) return;
 
         if (this.hls) {
@@ -460,12 +460,20 @@ export class Player {
             this.hls = null;
         }
 
+        const qualityBtn = document.getElementById('fs-quality-btn');
+        const qualityMenu = document.getElementById('fs-quality-menu');
+        if (qualityBtn) qualityBtn.style.display = 'none';
+        if (qualityMenu) qualityMenu.style.display = 'none';
+
         if (typeof url === 'string' && (url.includes('.m3u8') || url.includes('application/vnd.apple.mpegurl'))) {
             if (Hls.isSupported()) {
                 this.hls = new Hls();
                 this.hls.loadSource(url);
                 this.hls.attachMedia(video);
-                this.hls.on(Hls.Events.MANIFEST_PARSED, () => {});
+                this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                    video.play().catch(() => {});
+                    this.setupVideoQualitySelector();
+                });
                 this.hls.on(Hls.Events.ERROR, (event, data) => {
                     if (data.fatal) {
                         console.warn('HLS fatal error:', data.type);
@@ -489,6 +497,75 @@ export class Player {
                 }
             };
         }
+    }
+
+    setupVideoQualitySelector() {
+        if (!this.hls || !this.hls.levels || this.hls.levels.length === 0) return;
+
+        const qualityBtn = document.getElementById('fs-quality-btn');
+        const qualityMenu = document.getElementById('fs-quality-menu');
+        if (!qualityBtn || !qualityMenu) return;
+
+        const levels = this.hls.levels;
+        const qualityLabels = [
+            'Auto',
+            ...levels.map((level, i) => {
+                const height = level.height || 0;
+                const bandwidth = level.bitrate || 0;
+                if (height >= 1080) return '1080p';
+                if (height >= 720) return '720p';
+                if (height >= 480) return '480p';
+                if (height >= 360) return '360p';
+                if (height >= 180) return '180p';
+                return `${Math.round(bandwidth / 1000)}k`;
+            }),
+        ];
+
+        const updateQualityMenu = () => {
+            const currentLevel = this.hls.currentLevel;
+            qualityMenu.innerHTML = qualityLabels
+                .map((label, i) => {
+                    const isActive = currentLevel === i - 1 || (i === 0 && currentLevel === -1);
+                    return `<button class="fs-quality-option ${isActive ? 'active' : ''}" data-level="${i - 1}">${label}</button>`;
+                })
+                .join('');
+
+            qualityMenu.querySelectorAll('.fs-quality-option').forEach((btn) => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    const level = parseInt(btn.dataset.level);
+                    this.hls.currentLevel = level;
+                    const labelSpan = qualityBtn.querySelector('.fs-quality-label');
+                    if (labelSpan) labelSpan.textContent = level === -1 ? 'Auto' : qualityLabels[level + 1] || 'Auto';
+                    qualityMenu.style.display = 'none';
+                };
+            });
+        };
+
+        qualityBtn.style.display = 'flex';
+        qualityBtn.onclick = (e) => {
+            e.stopPropagation();
+            const isVisible = qualityMenu.style.display === 'block';
+            qualityMenu.style.display = isVisible ? 'none' : 'block';
+            if (!isVisible) {
+                updateQualityMenu();
+            }
+        };
+
+        this.hls.on(Hls.Events.LEVEL_SWITCHED, () => {
+            updateQualityMenu();
+            const labelSpan = qualityBtn.querySelector('.fs-quality-label');
+            if (labelSpan) {
+                const currentLevel = this.hls.currentLevel;
+                labelSpan.textContent = currentLevel === -1 ? 'Auto' : qualityLabels[currentLevel + 1] || 'Auto';
+            }
+        });
+
+        document.addEventListener('click', () => {
+            qualityMenu.style.display = 'none';
+        });
+
+        qualityMenu.onclick = (e) => e.stopPropagation();
     }
 
     async playVideo(video) {

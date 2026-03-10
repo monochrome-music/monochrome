@@ -421,6 +421,9 @@ function resizeImageBlob(blob, size) {
 
 /**
  * Fetches and caches cover art as a Blob
+ * @param {Object} api - API instance with getCoverUrl method
+ * @param {string} coverId - ID of the cover art to fetch
+ * @returns {Promise<Blob|null>} - Cover art blob or null if not available
  */
 export async function getCoverBlob(api, coverId) {
     if (!coverId) return null;
@@ -553,3 +556,76 @@ export const getShareUrl = (path) => {
     const safePath = path.startsWith('/') ? path : `/${path}`;
     return `${baseUrl}${safePath}`;
 };
+
+/**
+ * Builds a full artist string by combining the track's listed artists
+ * with any featured artists parsed from the title (feat./with).
+ */
+export function getFullArtistString(track) {
+    const knownArtists =
+        Array.isArray(track.artists) && track.artists.length > 0
+            ? track.artists.map((a) => (typeof a === 'string' ? a : a.name) || '').filter(Boolean)
+            : track.artist?.name
+              ? [track.artist.name]
+              : [];
+
+    // Parse featured artists from title, e.g. "Song (feat. A, B & C)" or "(with X & Y)"
+    // Note: splitting on '&' may incorrectly fragment compound artist names like "Simon & Garfunkel".
+    const featPattern = /\(\s*(?:feat\.?|ft\.?|with)\s+(.+?)\s*\)/gi;
+    const allFeatArtists = [...(track.title?.matchAll(featPattern) ?? [])].flatMap((m) =>
+        m[1]
+            .split(/\s*[,&]\s*/)
+            .map((s) => s.trim())
+            .filter(Boolean)
+    );
+    if (allFeatArtists.length > 0) {
+        const knownLower = new Set(knownArtists.map((n) => n.toLowerCase()));
+        for (const feat of allFeatArtists) {
+            if (!knownLower.has(feat.toLowerCase())) {
+                knownArtists.push(feat);
+                knownLower.add(feat.toLowerCase());
+            }
+        }
+    }
+
+    return knownArtists.join('; ') || null;
+}
+
+export function fetchBlob(url) {
+    return fetch(url).then((d) => d.blob());
+}
+
+export async function fetchBlobURL(url) {
+    return await URL.createObjectURL(await fetchBlob(url));
+}
+
+export function getMimeType(data) {
+    if (data.length >= 2 && data[0] === 0xff && data[1] === 0xd8) return 'image/jpeg';
+    if (data.length >= 8 && data[0] === 0x89 && data[1] === 0x50 && data[2] === 0x4e && data[3] === 0x47)
+        return 'image/png';
+    return 'image/jpeg';
+}
+
+/**
+ * Retrieves the cover ID or image URL for a track
+ * @param {Object} track - The track object
+ * @param {Object} [track.album] - The album object associated with the track
+ * @param {string} [track.album.cover] - The album cover ID or URL
+ * @param {string} [track.album.coverId] - The album cover ID
+ * @param {string} [track.album.image] - The album image URL
+ * @param {string} [track.cover] - The track cover ID or URL
+ * @param {string} [track.coverId] - The track cover ID
+ * @param {string} [track.image] - The track image URL
+ * @returns {string|null} The cover ID or image URL, or null if none is available
+ */
+export function getTrackCoverId(track) {
+    return (
+        track.album?.cover ||
+        track.cover ||
+        track.image ||
+        track.album?.coverId ||
+        track.coverId ||
+        track.album?.image ||
+        null
+    );
+}

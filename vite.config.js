@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import neutralino from 'vite-plugin-neutralino';
 import authGatePlugin from './vite-plugin-auth-gate.js';
+import path from 'path';
 import uploadPlugin from './vite-plugin-upload.js';
 
 export default defineConfig(({ mode }) => {
@@ -9,13 +10,18 @@ export default defineConfig(({ mode }) => {
 
     return {
         base: './',
+        worker: {
+            format: 'es',
+        },
         resolve: {
             alias: {
+                '!': '/node_modules',
                 pocketbase: '/node_modules/pocketbase/dist/pocketbase.es.js',
             },
         },
         optimizeDeps: {
-            exclude: ['pocketbase', '@ffmpeg/ffmpeg', '@ffmpeg/util'],
+            exclude: ['pocketbase', '@ffmpeg/ffmpeg', '@ffmpeg/util', 'taglib-wasm'],
+            external: ['taglib-wasm'],
         },
         server: {
             fs: {
