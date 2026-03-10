@@ -10,19 +10,6 @@ docker compose up -d
 
 Visit `http://localhost:3000`
 
-### With PocketBase
-
-```bash
-cp .env.example .env
-# Edit .env -- set PB_ADMIN_EMAIL and PB_ADMIN_PASSWORD
-docker compose --profile pocketbase up -d
-```
-
-- Monochrome: `http://localhost:3000`
-- PocketBase admin: `http://localhost:8090/_/`
-
-Configure PocketBase collections per [self-hosted-database.md](self-hosted-database.md).
-
 ### Development
 
 ```bash
