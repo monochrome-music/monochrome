@@ -176,17 +176,25 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
 
         element.addEventListener('error', (e) => {
             if (player.activeElement !== element) return;
-            
+
             if (!element.src) return;
 
             const error = element.error;
             let errorMsg = 'Unknown error';
             if (error) {
                 switch (error.code) {
-                    case 1: errorMsg = 'Playback aborted'; break;
-                    case 2: errorMsg = 'Network error'; break;
-                    case 3: errorMsg = 'Decoding error'; break;
-                    case 4: errorMsg = 'Source not supported'; break;
+                    case 1:
+                        errorMsg = 'Playback aborted';
+                        break;
+                    case 2:
+                        errorMsg = 'Network error';
+                        break;
+                    case 3:
+                        errorMsg = 'Decoding error';
+                        break;
+                    case 4:
+                        errorMsg = 'Source not supported';
+                        break;
                 }
                 if (error.message) errorMsg += `: ${error.message}`;
             }
@@ -269,7 +277,6 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
             }
         });
     }
-
 
     // Waveform Masking Logic
     const updateWaveform = async () => {
@@ -452,7 +459,7 @@ function initializeSmoothSliders(player) {
                 if (activeEl.muted) {
                     activeEl.muted = false;
                     localStorage.setItem('muted', false);
-                    
+
                     const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
                     if (inactiveEl) inactiveEl.muted = false;
                 }
@@ -481,7 +488,7 @@ function initializeSmoothSliders(player) {
             if (activeEl.muted) {
                 activeEl.muted = false;
                 localStorage.setItem('muted', false);
-                
+
                 const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
                 if (inactiveEl) inactiveEl.muted = false;
             }
@@ -549,7 +556,7 @@ function initializeSmoothSliders(player) {
             if (activeEl.muted) {
                 activeEl.muted = false;
                 localStorage.setItem('muted', false);
-                
+
                 const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
                 if (inactiveEl) inactiveEl.muted = false;
             }
@@ -569,7 +576,7 @@ function initializeSmoothSliders(player) {
         if (activeEl.muted) {
             activeEl.muted = false;
             localStorage.setItem('muted', false);
-            
+
             const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
             if (inactiveEl) inactiveEl.muted = false;
         }
@@ -585,7 +592,7 @@ function initializeSmoothSliders(player) {
                 if (activeEl.muted) {
                     activeEl.muted = false;
                     localStorage.setItem('muted', false);
-                    
+
                     const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
                     if (inactiveEl) inactiveEl.muted = false;
                 }
@@ -606,7 +613,7 @@ function initializeSmoothSliders(player) {
             if (delta > 0 && activeEl.muted) {
                 activeEl.muted = false;
                 localStorage.setItem('muted', false);
-                
+
                 const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
                 if (inactiveEl) inactiveEl.muted = false;
             }
@@ -629,7 +636,7 @@ function initializeSmoothSliders(player) {
             if (delta > 0 && activeEl.muted) {
                 activeEl.muted = false;
                 localStorage.setItem('muted', false);
-                
+
                 const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
                 if (inactiveEl) inactiveEl.muted = false;
             }
