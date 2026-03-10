@@ -3543,6 +3543,7 @@
                         <button class="settings-tab" data-tab="downloads">Downloads</button>
                         <button class="settings-tab" data-tab="instances">Instances</button>
                         <button class="settings-tab" data-tab="system">System</button>
+                        <button class="settings-tab" data-tab="plugins">Plugins</button>
                     </div>
                     <div class="settings-tab-content active" id="settings-tab-appearance">
                         <div class="settings-list">
@@ -5420,6 +5421,49 @@
                                         </button>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-tab-content" id="settings-tab-plugins">
+                        <div class="settings-list">
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info" style="flex: 1">
+                                        <span class="label">Add Plugin</span>
+                                        <span class="description">Load a plugin from a URL (ES module)</span>
+                                        <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem">
+                                            <input
+                                                type="text"
+                                                id="plugin-url-input"
+                                                placeholder="https://example.com/plugin.js"
+                                                style="
+                                                    flex: 1;
+                                                    padding: 0.5rem;
+                                                    border: 1px solid var(--border);
+                                                    border-radius: 0.25rem;
+                                                    background: var(--background);
+                                                    color: var(--foreground);
+                                                    font-size: 0.85rem;
+                                                "
+                                            />
+                                            <button id="plugin-add-btn" class="btn-secondary">Add</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="plugins-list-container">
+                                    <div
+                                        id="plugins-empty-message"
+                                        style="
+                                            text-align: center;
+                                            padding: 2rem 1rem;
+                                            color: var(--muted-foreground);
+                                        "
+                                    >
+                                        No plugins installed
+                                    </div>
+                                </div>
+                                <div id="plugin-settings-container"></div>
                             </div>
                         </div>
                     </div>

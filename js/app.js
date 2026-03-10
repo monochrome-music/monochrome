@@ -21,6 +21,7 @@ import { initializeUIInteractions } from './ui-interactions.js';
 import { debounce, SVG_PLAY, getShareUrl } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 import { db } from './db.js';
+import { PluginManager } from './plugins/plugin-manager.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { authManager } from './accounts/auth.js';
 import { registerSW } from 'virtual:pwa-register';
@@ -562,6 +563,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     );
     initializeUIInteractions(player, api, ui);
     initializeKeyboardShortcuts(player, audioPlayer);
+
+    // Initialize plugin system
+    const pluginManager = new PluginManager({
+        player,
+        api,
+        ui,
+        db,
+        sidePanelManager,
+        router: { navigate },
+        scrobbler,
+    });
+    window.monochromePlugins = pluginManager;
+    await pluginManager.boot();
 
     // Restore UI state for the current track (like button, theme)
     if (player.currentTrack) {
