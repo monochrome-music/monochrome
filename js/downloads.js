@@ -584,13 +584,25 @@ async function bulkDownloadToZipStream(
 
         // For albums, generate CUE file
         if (type === 'album' && playlistSettings.shouldGenerateCUE()) {
-            const audioFilename = `${sanitizeForFilename(folderName)}.flac`; // Assume FLAC for CUE
-            const cueContent = generateCUE(metadata, tracks, audioFilename);
-            yield {
-                name: `${folderName}/${sanitizeForFilename(folderName)}.cue`,
-                lastModified: new Date(),
-                input: cueContent,
-            };
+            // Split tracks by volumeNumber and iterate those groups.
+            const tracksByVolume = Object.groupBy(
+                tracks.map((track, index) => ({
+                    ...track,
+                    trackPath: trackPaths[index],
+                })),
+                (track) => String(getExplicitTrackDiscNumber(track) || 1)
+            );
+            const multiDisc = Object.keys(tracksByVolume).length > 1;
+
+            for (const [volumeNumber, tracks] of Object.entries(tracksByVolume)) {
+                const trackPaths = tracks.map((track) => track.trackPath);
+                const cueContent = generateCUE(metadata, tracks, sanitizeForFilename(folderName), trackPaths);
+                yield {
+                    name: `${folderName}/${sanitizeForFilename(folderName)}${multiDisc ? ` - Disc ${volumeNumber}` : ''}.cue`,
+                    lastModified: new Date(),
+                    input: cueContent,
+                };
+            }
         }
 
         // Generate m3u/m3u8 last, using actual track paths collected during download
@@ -741,8 +753,7 @@ async function bulkDownloadToZipBlob(
 
         // For albums, generate CUE file
         if (type === 'album' && playlistSettings.shouldGenerateCUE()) {
-            const audioFilename = `${sanitizeForFilename(folderName)}.flac`; // Assume FLAC for CUE
-            const cueContent = generateCUE(metadata, tracks, audioFilename);
+            const cueContent = generateCUE(metadata, tracks, sanitizeForFilename(folderName), trackPaths);
             yield {
                 name: `${folderName}/${sanitizeForFilename(folderName)}.cue`,
                 lastModified: new Date(),
@@ -899,8 +910,7 @@ async function bulkDownloadToZipNeutralino(
 
         // For albums, generate CUE file
         if (type === 'album' && playlistSettings.shouldGenerateCUE()) {
-            const audioFilename = `${sanitizeForFilename(folderName)}.flac`; // Assume FLAC for CUE
-            const cueContent = generateCUE(metadata, tracks, audioFilename);
+            const cueContent = generateCUE(metadata, tracks, sanitizeForFilename(folderName), trackPaths);
             yield {
                 name: `${folderName}/${sanitizeForFilename(folderName)}.cue`,
                 lastModified: new Date(),
@@ -1246,8 +1256,7 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                 }
 
                 if (playlistSettings.shouldGenerateCUE()) {
-                    const audioFilename = `${sanitizeForFilename(fullAlbum.title)}.flac`;
-                    const cueContent = generateCUE(fullAlbum, tracks, audioFilename);
+                    const cueContent = generateCUE(fullAlbum, tracks, sanitizeForFilename(fullAlbum.title), trackPaths);
                     yield {
                         name: `${fullFolderPath}/${sanitizeForFilename(fullAlbum.title)}.cue`,
                         lastModified: new Date(),

@@ -120,40 +120,39 @@ export function generateM3U8(
  * Generates CUE sheet content for albums
  * @param {Object} album - Album metadata
  * @param {Array} tracks - Array of track objects
- * @param {string} audioFilename - The main audio file name
+ * @param {string} _audioFilenameBase - Unused; kept for API compatibility
+ * @param {Array|null} trackPaths - Actual per-track resolved paths; when provided, each track gets its own FILE entry
+ * @param {string} audioExtension - Audio file extension for generated paths (used when trackPaths is null)
  * @returns {string} CUE content
  */
-export function generateCUE(album, tracks, audioFilename) {
+export function generateCUE(album, tracks, _audioFilenameBase, trackPaths = null, audioExtension = 'flac') {
     const performer = album.artist?.name || album.artist || 'Unknown Artist';
     const title = album.title || 'Unknown Album';
 
     let content = `PERFORMER "${performer}"\n`;
     content += `TITLE "${title}"\n`;
 
-    // Add file reference
-    const fileExtension = audioFilename.split('.').pop().toUpperCase();
-    content += `FILE "${audioFilename}" ${fileExtension}\n`;
-
-    let currentTime = 0;
-
     tracks.forEach((track, index) => {
+        const resolvedPath = trackPaths ? trackPaths[index] : null;
+        if (trackPaths && !resolvedPath) return;
+
         const trackNumber = String(track.trackNumber || index + 1).padStart(2, '0');
         const trackTitle = track.title || 'Unknown Track';
         const trackPerformer = track.artist?.name || getTrackArtists(track) || performer;
-        const duration = track.duration || 0;
 
+        const path =
+            resolvedPath ??
+            (() => {
+                const filename = getTrackFilename(track, index + 1, audioExtension);
+                return filename;
+            })();
+
+        const fileExtension = path.split('.').pop().toUpperCase();
+        content += `FILE "${path}" ${fileExtension}\n`;
         content += `  TRACK ${trackNumber} AUDIO\n`;
         content += `    TITLE "${trackTitle}"\n`;
         content += `    PERFORMER "${trackPerformer}"\n`;
-
-        // Calculate time in MM:SS:FF format (Frames = 75 per second)
-        const minutes = Math.floor(currentTime / 60);
-        const seconds = Math.floor(currentTime % 60);
-        const frames = Math.floor((currentTime % 1) * 75);
-
-        content += `    INDEX 01 ${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}:${String(frames).padStart(2, '0')}\n`;
-
-        currentTime += duration;
+        content += `    INDEX 01 00:00:00\n`;
     });
 
     return content;
