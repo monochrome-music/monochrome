@@ -2208,7 +2208,7 @@ export class UIRenderer {
         }
     }
 
-    async renderHomeAlbums(forceRefresh = false, providedSeeds = null) {
+    async renderHomeAlbums(forceRefresh = false, providedSeeds = null, retryCount = 0) {
         const albumsContainer = document.getElementById('home-recommended-albums');
         const section = albumsContainer?.closest('.content-section');
 
@@ -2222,7 +2222,7 @@ export class UIRenderer {
         if (albumsContainer) {
             if (forceRefresh || albumsContainer.children.length === 0) {
                 albumsContainer.innerHTML = this.createSkeletonCards(5);
-            } else if (!albumsContainer.querySelector('.skeleton')) {
+            } else if (!albumsContainer.querySelector('.skeleton') && !forceRefresh) {
                 return;
             }
 
@@ -2245,14 +2245,24 @@ export class UIRenderer {
                                 this.updateLikeState(el, 'album', a.id);
                             }
                         });
+                    } else if (retryCount < 2) {
+                        await new Promise((resolve) => setTimeout(resolve, 1500));
+                        return this.renderHomeAlbums(forceRefresh, null, retryCount + 1);
                     } else {
                         albumsContainer.innerHTML = `<div style="grid-column: 1/-1; padding: 2rem 0;">${createPlaceholder('Tell us more about what you like so we can recommend albums!')}</div>`;
                     }
+                } else if (retryCount < 2) {
+                    await new Promise((resolve) => setTimeout(resolve, 1500));
+                    return this.renderHomeAlbums(forceRefresh, null, retryCount + 1);
                 } else {
                     albumsContainer.innerHTML = `<div style="grid-column: 1/-1; padding: 2rem 0;">${createPlaceholder('Tell us more about what you like so we can recommend albums!')}</div>`;
                 }
             } catch (e) {
                 console.error(e);
+                if (retryCount < 2) {
+                    await new Promise((resolve) => setTimeout(resolve, 1500));
+                    return this.renderHomeAlbums(forceRefresh, null, retryCount + 1);
+                }
                 albumsContainer.innerHTML = createPlaceholder('Failed to load album recommendations.');
             }
         }
