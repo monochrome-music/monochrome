@@ -92,6 +92,33 @@ Override files can extend existing services (add labels, env vars, networks) and
 
 ---
 
+## Configuration
+
+The application is configured via environment variables. Copy `.env.example` to `.env` and edit it to match your setup.
+
+### Authentication (Appwrite)
+
+Monochrome uses Appwrite for user authentication. While it defaults to official instances, you can use your own self-hosted Appwrite instance:
+
+1. Create a project in Appwrite.
+2. Enable the **Google** or **Email/Password** providers in the Appwrite Console.
+3. Set these variables in your `.env`:
+   - `APPWRITE_ENDPOINT`: Your Appwrite API endpoint (e.g., `https://auth.yourdomain.com/v1`).
+   - `APPWRITE_PROJECT_ID`: Your Appwrite project ID (e.g., `auth-for-monochrome`).
+
+### Database (PocketBase)
+
+Monochrome uses PocketBase to store user data (playlists, favorites, profiles, etc.). You can run it alongside Monochrome using the `pocketbase` profile:
+
+```bash
+docker compose --profile pocketbase up -d
+```
+
+#### PocketBase Schema Note
+If you are setting up a new PocketBase collection for user data, ensure it has a field named `firebase_id` (this is a legacy name we use when we first started the accounts system, we used firebase. and im too lazy to change it so yea fuck you).
+
+---
+
 ## Portainer Deployment
 
 Portainer can deploy directly from your GitHub fork with auto-updates on push.
