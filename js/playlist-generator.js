@@ -4,12 +4,20 @@ import { sanitizeForFilename } from './utils.js';
  * Generates M3U playlist content
  * @param {Object} playlist - Playlist metadata (title, artist, etc.)
  * @param {Array} tracks - Array of track objects
- * @param {boolean} useRelativePaths - Whether to use relative paths
- * @param {Function|null} pathResolver - Optional resolver for per-track relative path
- * @param {string} audioExtension - Audio file extension used in generated paths
+ * @param {boolean} _useRelativePaths - Unused; kept for API compatibility
+ * @param {Function|null} pathResolver - Optional resolver for per-track relative path (used when trackPaths is null)
+ * @param {string} audioExtension - Audio file extension for generated paths (used when trackPaths is null)
+ * @param {Array|null} trackPaths - Actual per-track resolved paths; when provided, overrides pathResolver/audioExtension
  * @returns {string} M3U content
  */
-export function generateM3U(playlist, tracks, useRelativePaths = true, pathResolver = null, audioExtension = 'flac') {
+export function generateM3U(
+    playlist,
+    tracks,
+    _useRelativePaths = true,
+    pathResolver = null,
+    audioExtension = 'flac',
+    trackPaths = null
+) {
     let content = '#EXTM3U\n';
 
     if (playlist.title) {
@@ -17,13 +25,16 @@ export function generateM3U(playlist, tracks, useRelativePaths = true, pathResol
     }
 
     if (playlist.artist) {
-        content += `#ARTIST:${playlist.artist}\n`;
+        content += `#ARTIST:${playlist.artist?.name || playlist.artist}\n`;
     }
 
     const date = new Date().toISOString().split('T')[0];
     content += `#DATE:${date}\n\n`;
 
     tracks.forEach((track, index) => {
+        const resolvedPath = trackPaths ? trackPaths[index] : null;
+        if (trackPaths && !resolvedPath) return;
+
         const duration = Math.round(track.duration || 0);
         const artists = getTrackArtists(track);
         const title = track.title || 'Unknown Title';
@@ -31,9 +42,12 @@ export function generateM3U(playlist, tracks, useRelativePaths = true, pathResol
 
         content += `#EXTINF:${duration},${displayName}\n`;
 
-        const filename = getTrackFilename(track, index + 1, audioExtension);
-        const relativePath = typeof pathResolver === 'function' ? pathResolver(track, filename, index) : filename;
-        const path = useRelativePaths ? relativePath : relativePath;
+        const path =
+            resolvedPath ??
+            (() => {
+                const filename = getTrackFilename(track, index + 1, audioExtension);
+                return typeof pathResolver === 'function' ? pathResolver(track, filename, index) : filename;
+            })();
 
         content += `${path}\n\n`;
     });
@@ -45,12 +59,20 @@ export function generateM3U(playlist, tracks, useRelativePaths = true, pathResol
  * Generates M3U8 playlist content (UTF-8 extended)
  * @param {Object} playlist - Playlist metadata
  * @param {Array} tracks - Array of track objects
- * @param {boolean} useRelativePaths - Whether to use relative paths
- * @param {Function|null} pathResolver - Optional resolver for per-track relative path
- * @param {string} audioExtension - Audio file extension used in generated paths
+ * @param {boolean} _useRelativePaths - Unused; kept for API compatibility
+ * @param {Function|null} pathResolver - Optional resolver for per-track relative path (used when trackPaths is null)
+ * @param {string} audioExtension - Audio file extension for generated paths (used when trackPaths is null)
+ * @param {Array|null} trackPaths - Actual per-track resolved paths; when provided, overrides pathResolver/audioExtension
  * @returns {string} M3U8 content
  */
-export function generateM3U8(playlist, tracks, useRelativePaths = true, pathResolver = null, audioExtension = 'flac') {
+export function generateM3U8(
+    playlist,
+    tracks,
+    _useRelativePaths = true,
+    pathResolver = null,
+    audioExtension = 'flac',
+    trackPaths = null
+) {
     let content = '#EXTM3U\n';
     content += '#EXT-X-VERSION:3\n';
     content += '#EXT-X-PLAYLIST-TYPE:VOD\n';
@@ -63,13 +85,16 @@ export function generateM3U8(playlist, tracks, useRelativePaths = true, pathReso
     }
 
     if (playlist.artist) {
-        content += `#ARTIST:${playlist.artist}\n`;
+        content += `#ARTIST:${playlist.artist?.name || playlist.artist}\n`;
     }
 
     const date = new Date().toISOString().split('T')[0];
     content += `#DATE:${date}\n\n`;
 
     tracks.forEach((track, index) => {
+        const resolvedPath = trackPaths ? trackPaths[index] : null;
+        if (trackPaths && !resolvedPath) return;
+
         const duration = Math.round(track.duration || 0);
         const artists = getTrackArtists(track);
         const title = track.title || 'Unknown Title';
@@ -77,9 +102,12 @@ export function generateM3U8(playlist, tracks, useRelativePaths = true, pathReso
 
         content += `#EXTINF:${duration}.000,${displayName}\n`;
 
-        const filename = getTrackFilename(track, index + 1, audioExtension);
-        const relativePath = typeof pathResolver === 'function' ? pathResolver(track, filename, index) : filename;
-        const path = useRelativePaths ? relativePath : relativePath;
+        const path =
+            resolvedPath ??
+            (() => {
+                const filename = getTrackFilename(track, index + 1, audioExtension);
+                return typeof pathResolver === 'function' ? pathResolver(track, filename, index) : filename;
+            })();
 
         content += `${path}\n\n`;
     });

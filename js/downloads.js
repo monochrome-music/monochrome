@@ -112,10 +112,6 @@ function buildZipTrackPath(rootFolder, filename, separateByDisc, discNumber = 1)
     return `${rootFolder}/${getDiscFolderName(discNumber)}/${filename}`;
 }
 
-function getPlaylistAudioExtension(quality) {
-    return quality === 'LOW' || quality === 'HIGH' ? 'm4a' : 'flac';
-}
-
 function createDownloadNotification() {
     if (!downloadNotificationContainer) {
         downloadNotificationContainer = document.createElement('div');
@@ -505,43 +501,67 @@ async function bulkDownloadToZipStream(
             yield { name: `${folderName}/cover.jpg`, lastModified: new Date(), input: coverBlob };
         }
 
-        // Generate playlist files first
         const useRelativePaths = playlistSettings.shouldUseRelativePaths();
-        const playlistAudioExtension = getPlaylistAudioExtension(quality);
         const discLayout = await createDiscLayoutContext(tracks, api);
         const separateByDisc = discLayout.separateByDisc;
-        const playlistPathResolver = separateByDisc
-            ? (_track, filename, index) => `${getDiscFolderName(discLayout.resolveDiscNumber(index))}/${filename}`
-            : null;
 
-        if (playlistSettings.shouldGenerateM3U()) {
-            const m3uContent = generateM3U(
-                metadata || { title: folderName },
-                tracks,
-                useRelativePaths,
-                playlistPathResolver,
-                playlistAudioExtension
-            );
-            yield {
-                name: `${folderName}/${sanitizeForFilename(folderName)}.m3u`,
-                lastModified: new Date(),
-                input: m3uContent,
-            };
-        }
+        // Download tracks, yielding each immediately and collecting actual paths for playlist generation
+        const trackPaths = [];
+        for (let i = 0; i < tracks.length; i++) {
+            if (signal.aborted) break;
+            const track = tracks[i];
+            const trackTitle = getTrackTitle(track);
 
-        if (playlistSettings.shouldGenerateM3U8()) {
-            const m3u8Content = generateM3U8(
-                metadata || { title: folderName },
-                tracks,
-                useRelativePaths,
-                playlistPathResolver,
-                playlistAudioExtension
-            );
-            yield {
-                name: `${folderName}/${sanitizeForFilename(folderName)}.m3u8`,
-                lastModified: new Date(),
-                input: m3u8Content,
-            };
+            updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
+
+            try {
+                const { blob, extension } = await downloadTrackBlob(
+                    track,
+                    quality,
+                    api,
+                    null,
+                    signal,
+                    (p) => {
+                        updateBulkDownloadProgress(notification, i, tracks.length, trackTitle, p);
+                    },
+                    coverBlob
+                );
+                const filename = buildTrackFilename(track, quality, extension);
+                const discNumber = discLayout.resolveDiscNumber(i);
+                const discPath = separateByDisc ? `${getDiscFolderName(discNumber)}/${filename}` : filename;
+
+                console.log(`[Playlist] Track ${i + 1}: ${discPath}`);
+                trackPaths.push(discPath);
+
+                yield {
+                    name: buildZipTrackPath(folderName, filename, separateByDisc, discNumber),
+                    lastModified: new Date(),
+                    input: blob,
+                };
+
+                if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
+                    try {
+                        const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
+                        if (lyricsData) {
+                            const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
+                            if (lrcContent) {
+                                const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
+                                yield {
+                                    name: buildZipTrackPath(folderName, lrcFilename, separateByDisc, discNumber),
+                                    lastModified: new Date(),
+                                    input: lrcContent,
+                                };
+                            }
+                        }
+                    } catch {
+                        /* ignore */
+                    }
+                }
+            } catch (err) {
+                if (err.name === 'AbortError') throw err;
+                console.error(`Failed to download track ${trackTitle}:`, err);
+                trackPaths.push(null);
+            }
         }
 
         if (playlistSettings.shouldGenerateNFO()) {
@@ -573,56 +593,37 @@ async function bulkDownloadToZipStream(
             };
         }
 
-        // Download tracks
-        for (let i = 0; i < tracks.length; i++) {
-            if (signal.aborted) break;
-            const track = tracks[i];
-            const trackTitle = getTrackTitle(track);
+        // Generate m3u/m3u8 last, using actual track paths collected during download
+        if (playlistSettings.shouldGenerateM3U()) {
+            const m3uContent = generateM3U(
+                metadata || { title: folderName },
+                tracks,
+                useRelativePaths,
+                null,
+                'flac',
+                trackPaths
+            );
+            yield {
+                name: `${folderName}/${sanitizeForFilename(folderName)}.m3u`,
+                lastModified: new Date(),
+                input: m3uContent,
+            };
+        }
 
-            updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
-
-            try {
-                const { blob, extension } = await downloadTrackBlob(
-                    track,
-                    quality,
-                    api,
-                    null,
-                    signal,
-                    (p) => {
-                        updateBulkDownloadProgress(notification, i, tracks.length, trackTitle, p);
-                    },
-                    coverBlob
-                );
-                const filename = buildTrackFilename(track, quality, extension);
-                const discNumber = discLayout.resolveDiscNumber(i);
-                yield {
-                    name: buildZipTrackPath(folderName, filename, separateByDisc, discNumber),
-                    lastModified: new Date(),
-                    input: blob,
-                };
-
-                if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
-                    try {
-                        const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
-                        if (lyricsData) {
-                            const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
-                            if (lrcContent) {
-                                const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
-                                yield {
-                                    name: buildZipTrackPath(folderName, lrcFilename, separateByDisc, discNumber),
-                                    lastModified: new Date(),
-                                    input: lrcContent,
-                                };
-                            }
-                        }
-                    } catch {
-                        /* ignore */
-                    }
-                }
-            } catch (err) {
-                if (err.name === 'AbortError') throw err;
-                console.error(`Failed to download track ${trackTitle}:`, err);
-            }
+        if (playlistSettings.shouldGenerateM3U8()) {
+            const m3u8Content = generateM3U8(
+                metadata || { title: folderName },
+                tracks,
+                useRelativePaths,
+                null,
+                'flac',
+                trackPaths
+            );
+            yield {
+                name: `${folderName}/${sanitizeForFilename(folderName)}.m3u8`,
+                lastModified: new Date(),
+                input: m3u8Content,
+            };
         }
     }
 
@@ -657,43 +658,67 @@ async function bulkDownloadToZipBlob(
             yield { name: `${folderName}/cover.jpg`, lastModified: new Date(), input: coverBlob };
         }
 
-        // Generate playlist files first
         const useRelativePaths = playlistSettings.shouldUseRelativePaths();
-        const playlistAudioExtension = getPlaylistAudioExtension(quality);
         const discLayout = await createDiscLayoutContext(tracks, api);
         const separateByDisc = discLayout.separateByDisc;
-        const playlistPathResolver = separateByDisc
-            ? (_track, filename, index) => `${getDiscFolderName(discLayout.resolveDiscNumber(index))}/${filename}`
-            : null;
 
-        if (playlistSettings.shouldGenerateM3U()) {
-            const m3uContent = generateM3U(
-                metadata || { title: folderName },
-                tracks,
-                useRelativePaths,
-                playlistPathResolver,
-                playlistAudioExtension
-            );
-            yield {
-                name: `${folderName}/${sanitizeForFilename(folderName)}.m3u`,
-                lastModified: new Date(),
-                input: m3uContent,
-            };
-        }
+        // Download tracks, yielding each immediately and collecting actual paths for playlist generation
+        const trackPaths = [];
+        for (let i = 0; i < tracks.length; i++) {
+            if (signal.aborted) break;
+            const track = tracks[i];
+            const trackTitle = getTrackTitle(track);
 
-        if (playlistSettings.shouldGenerateM3U8()) {
-            const m3u8Content = generateM3U8(
-                metadata || { title: folderName },
-                tracks,
-                useRelativePaths,
-                playlistPathResolver,
-                playlistAudioExtension
-            );
-            yield {
-                name: `${folderName}/${sanitizeForFilename(folderName)}.m3u8`,
-                lastModified: new Date(),
-                input: m3u8Content,
-            };
+            updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
+
+            try {
+                const { blob, extension } = await downloadTrackBlob(
+                    track,
+                    quality,
+                    api,
+                    null,
+                    signal,
+                    (p) => {
+                        updateBulkDownloadProgress(notification, i, tracks.length, trackTitle, p);
+                    },
+                    coverBlob
+                );
+                const filename = buildTrackFilename(track, quality, extension);
+                const discNumber = discLayout.resolveDiscNumber(i);
+                const discPath = separateByDisc ? `${getDiscFolderName(discNumber)}/${filename}` : filename;
+
+                console.log(`[Playlist] Track ${i + 1}: ${discPath}`);
+                trackPaths.push(discPath);
+
+                yield {
+                    name: buildZipTrackPath(folderName, filename, separateByDisc, discNumber),
+                    lastModified: new Date(),
+                    input: blob,
+                };
+
+                if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
+                    try {
+                        const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
+                        if (lyricsData) {
+                            const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
+                            if (lrcContent) {
+                                const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
+                                yield {
+                                    name: buildZipTrackPath(folderName, lrcFilename, separateByDisc, discNumber),
+                                    lastModified: new Date(),
+                                    input: lrcContent,
+                                };
+                            }
+                        }
+                    } catch {
+                        /* ignore */
+                    }
+                }
+            } catch (err) {
+                if (err.name === 'AbortError') throw err;
+                console.error(`Failed to download track ${trackTitle}:`, err);
+                trackPaths.push(null);
+            }
         }
 
         if (playlistSettings.shouldGenerateNFO()) {
@@ -725,56 +750,37 @@ async function bulkDownloadToZipBlob(
             };
         }
 
-        // Download tracks
-        for (let i = 0; i < tracks.length; i++) {
-            if (signal.aborted) break;
-            const track = tracks[i];
-            const trackTitle = getTrackTitle(track);
+        // Generate m3u/m3u8 last, using actual track paths collected during download
+        if (playlistSettings.shouldGenerateM3U()) {
+            const m3uContent = generateM3U(
+                metadata || { title: folderName },
+                tracks,
+                useRelativePaths,
+                null,
+                'flac',
+                trackPaths
+            );
+            yield {
+                name: `${folderName}/${sanitizeForFilename(folderName)}.m3u`,
+                lastModified: new Date(),
+                input: m3uContent,
+            };
+        }
 
-            updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
-
-            try {
-                const { blob, extension } = await downloadTrackBlob(
-                    track,
-                    quality,
-                    api,
-                    null,
-                    signal,
-                    (p) => {
-                        updateBulkDownloadProgress(notification, i, tracks.length, trackTitle, p);
-                    },
-                    coverBlob
-                );
-                const filename = buildTrackFilename(track, quality, extension);
-                const discNumber = discLayout.resolveDiscNumber(i);
-                yield {
-                    name: buildZipTrackPath(folderName, filename, separateByDisc, discNumber),
-                    lastModified: new Date(),
-                    input: blob,
-                };
-
-                if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
-                    try {
-                        const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
-                        if (lyricsData) {
-                            const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
-                            if (lrcContent) {
-                                const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
-                                yield {
-                                    name: buildZipTrackPath(folderName, lrcFilename, separateByDisc, discNumber),
-                                    lastModified: new Date(),
-                                    input: lrcContent,
-                                };
-                            }
-                        }
-                    } catch {
-                        /* ignore */
-                    }
-                }
-            } catch (err) {
-                if (err.name === 'AbortError') throw err;
-                console.error(`Failed to download track ${trackTitle}:`, err);
-            }
+        if (playlistSettings.shouldGenerateM3U8()) {
+            const m3u8Content = generateM3U8(
+                metadata || { title: folderName },
+                tracks,
+                useRelativePaths,
+                null,
+                'flac',
+                trackPaths
+            );
+            yield {
+                name: `${folderName}/${sanitizeForFilename(folderName)}.m3u8`,
+                lastModified: new Date(),
+                input: m3u8Content,
+            };
         }
     }
 
@@ -810,43 +816,67 @@ async function bulkDownloadToZipNeutralino(
             yield { name: `${folderName}/cover.jpg`, lastModified: new Date(), input: coverBlob };
         }
 
-        // Generate playlist files first
         const useRelativePaths = playlistSettings.shouldUseRelativePaths();
-        const playlistAudioExtension = getPlaylistAudioExtension(quality);
         const discLayout = await createDiscLayoutContext(tracks, api);
         const separateByDisc = discLayout.separateByDisc;
-        const playlistPathResolver = separateByDisc
-            ? (_track, filename, index) => `${getDiscFolderName(discLayout.resolveDiscNumber(index))}/${filename}`
-            : null;
 
-        if (playlistSettings.shouldGenerateM3U()) {
-            const m3uContent = generateM3U(
-                metadata || { title: folderName },
-                tracks,
-                useRelativePaths,
-                playlistPathResolver,
-                playlistAudioExtension
-            );
-            yield {
-                name: `${folderName}/${sanitizeForFilename(folderName)}.m3u`,
-                lastModified: new Date(),
-                input: m3uContent,
-            };
-        }
+        // Download tracks, yielding each immediately and collecting actual paths for playlist generation
+        const trackPaths = [];
+        for (let i = 0; i < tracks.length; i++) {
+            if (signal.aborted) break;
+            const track = tracks[i];
+            const trackTitle = getTrackTitle(track);
 
-        if (playlistSettings.shouldGenerateM3U8()) {
-            const m3u8Content = generateM3U8(
-                metadata || { title: folderName },
-                tracks,
-                useRelativePaths,
-                playlistPathResolver,
-                playlistAudioExtension
-            );
-            yield {
-                name: `${folderName}/${sanitizeForFilename(folderName)}.m3u8`,
-                lastModified: new Date(),
-                input: m3u8Content,
-            };
+            updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
+
+            try {
+                const { blob, extension } = await downloadTrackBlob(
+                    track,
+                    quality,
+                    api,
+                    null,
+                    signal,
+                    (p) => {
+                        updateBulkDownloadProgress(notification, i, tracks.length, trackTitle, p);
+                    },
+                    coverBlob
+                );
+                const filename = buildTrackFilename(track, quality, extension);
+                const discNumber = discLayout.resolveDiscNumber(i);
+                const discPath = separateByDisc ? `${getDiscFolderName(discNumber)}/${filename}` : filename;
+
+                console.log(`[Playlist] Track ${i + 1}: ${discPath}`);
+                trackPaths.push(discPath);
+
+                yield {
+                    name: buildZipTrackPath(folderName, filename, separateByDisc, discNumber),
+                    lastModified: new Date(),
+                    input: blob,
+                };
+
+                if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
+                    try {
+                        const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
+                        if (lyricsData) {
+                            const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
+                            if (lrcContent) {
+                                const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
+                                yield {
+                                    name: buildZipTrackPath(folderName, lrcFilename, separateByDisc, discNumber),
+                                    lastModified: new Date(),
+                                    input: lrcContent,
+                                };
+                            }
+                        }
+                    } catch {
+                        /* ignore */
+                    }
+                }
+            } catch (err) {
+                if (err.name === 'AbortError') throw err;
+                console.error(`Failed to download track ${trackTitle}:`, err);
+                trackPaths.push(null);
+            }
         }
 
         if (playlistSettings.shouldGenerateNFO()) {
@@ -878,56 +908,37 @@ async function bulkDownloadToZipNeutralino(
             };
         }
 
-        // Download tracks
-        for (let i = 0; i < tracks.length; i++) {
-            if (signal.aborted) break;
-            const track = tracks[i];
-            const trackTitle = getTrackTitle(track);
+        // Generate m3u/m3u8 last, using actual track paths collected during download
+        if (playlistSettings.shouldGenerateM3U()) {
+            const m3uContent = generateM3U(
+                metadata || { title: folderName },
+                tracks,
+                useRelativePaths,
+                null,
+                'flac',
+                trackPaths
+            );
+            yield {
+                name: `${folderName}/${sanitizeForFilename(folderName)}.m3u`,
+                lastModified: new Date(),
+                input: m3uContent,
+            };
+        }
 
-            updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
-
-            try {
-                const { blob, extension } = await downloadTrackBlob(
-                    track,
-                    quality,
-                    api,
-                    null,
-                    signal,
-                    (p) => {
-                        updateBulkDownloadProgress(notification, i, tracks.length, trackTitle, p);
-                    },
-                    coverBlob
-                );
-                const filename = buildTrackFilename(track, quality, extension);
-                const discNumber = discLayout.resolveDiscNumber(i);
-                yield {
-                    name: buildZipTrackPath(folderName, filename, separateByDisc, discNumber),
-                    lastModified: new Date(),
-                    input: blob,
-                };
-
-                if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
-                    try {
-                        const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
-                        if (lyricsData) {
-                            const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
-                            if (lrcContent) {
-                                const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
-                                yield {
-                                    name: buildZipTrackPath(folderName, lrcFilename, separateByDisc, discNumber),
-                                    lastModified: new Date(),
-                                    input: lrcContent,
-                                };
-                            }
-                        }
-                    } catch {
-                        /* ignore */
-                    }
-                }
-            } catch (err) {
-                if (err.name === 'AbortError') throw err;
-                console.error(`Failed to download track ${trackTitle}:`, err);
-            }
+        if (playlistSettings.shouldGenerateM3U8()) {
+            const m3u8Content = generateM3U8(
+                metadata || { title: folderName },
+                tracks,
+                useRelativePaths,
+                null,
+                'flac',
+                trackPaths
+            );
+            yield {
+                name: `${folderName}/${sanitizeForFilename(folderName)}.m3u8`,
+                lastModified: new Date(),
+                input: m3u8Content,
+            };
         }
     }
 
@@ -1155,72 +1166,11 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
 
                 // Generate playlist files for each album
                 const useRelativePaths = playlistSettings.shouldUseRelativePaths();
-                const playlistAudioExtension = getPlaylistAudioExtension(quality);
                 const discLayout = await createDiscLayoutContext(tracks, api);
                 const separateByDisc = discLayout.separateByDisc;
-                const playlistPathResolver = separateByDisc
-                    ? (_track, filename, index) =>
-                          `${getDiscFolderName(discLayout.resolveDiscNumber(index))}/${filename}`
-                    : null;
 
-                if (playlistSettings.shouldGenerateM3U()) {
-                    const m3uContent = generateM3U(
-                        fullAlbum,
-                        tracks,
-                        useRelativePaths,
-                        playlistPathResolver,
-                        playlistAudioExtension
-                    );
-                    yield {
-                        name: `${fullFolderPath}/${sanitizeForFilename(fullAlbum.title)}.m3u`,
-                        lastModified: new Date(),
-                        input: m3uContent,
-                    };
-                }
-
-                if (playlistSettings.shouldGenerateM3U8()) {
-                    const m3u8Content = generateM3U8(
-                        fullAlbum,
-                        tracks,
-                        useRelativePaths,
-                        playlistPathResolver,
-                        playlistAudioExtension
-                    );
-                    yield {
-                        name: `${fullFolderPath}/${sanitizeForFilename(fullAlbum.title)}.m3u8`,
-                        lastModified: new Date(),
-                        input: m3u8Content,
-                    };
-                }
-
-                if (playlistSettings.shouldGenerateNFO()) {
-                    const nfoContent = generateNFO(fullAlbum, tracks, 'album');
-                    yield {
-                        name: `${fullFolderPath}/${sanitizeForFilename(fullAlbum.title)}.nfo`,
-                        lastModified: new Date(),
-                        input: nfoContent,
-                    };
-                }
-
-                if (playlistSettings.shouldGenerateJSON()) {
-                    const jsonContent = generateJSON(fullAlbum, tracks, 'album');
-                    yield {
-                        name: `${fullFolderPath}/${sanitizeForFilename(fullAlbum.title)}.json`,
-                        lastModified: new Date(),
-                        input: jsonContent,
-                    };
-                }
-
-                if (playlistSettings.shouldGenerateCUE()) {
-                    const audioFilename = `${sanitizeForFilename(fullAlbum.title)}.flac`;
-                    const cueContent = generateCUE(fullAlbum, tracks, audioFilename);
-                    yield {
-                        name: `${fullFolderPath}/${sanitizeForFilename(fullAlbum.title)}.cue`,
-                        lastModified: new Date(),
-                        input: cueContent,
-                    };
-                }
-
+                // Download tracks, yielding each immediately and collecting actual paths for playlist generation
+                const trackPaths = [];
                 for (let i = 0; i < tracks.length; i++) {
                     const track = tracks[i];
                     if (signal.aborted) break;
@@ -1236,6 +1186,11 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                         );
                         const filename = buildTrackFilename(track, quality, extension);
                         const discNumber = discLayout.resolveDiscNumber(i);
+                        const discPath = separateByDisc ? `${getDiscFolderName(discNumber)}/${filename}` : filename;
+
+                        console.log(`[Playlist] Track ${i + 1}: ${discPath}`);
+                        trackPaths.push(discPath);
+
                         yield {
                             name: buildZipTrackPath(fullFolderPath, filename, separateByDisc, discNumber),
                             lastModified: new Date(),
@@ -1268,7 +1223,55 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                     } catch (err) {
                         if (err.name === 'AbortError') throw err;
                         console.error(`Failed to download track ${track.title}:`, err);
+                        trackPaths.push(null);
                     }
+                }
+
+                if (playlistSettings.shouldGenerateNFO()) {
+                    const nfoContent = generateNFO(fullAlbum, tracks, 'album');
+                    yield {
+                        name: `${fullFolderPath}/${sanitizeForFilename(fullAlbum.title)}.nfo`,
+                        lastModified: new Date(),
+                        input: nfoContent,
+                    };
+                }
+
+                if (playlistSettings.shouldGenerateJSON()) {
+                    const jsonContent = generateJSON(fullAlbum, tracks, 'album');
+                    yield {
+                        name: `${fullFolderPath}/${sanitizeForFilename(fullAlbum.title)}.json`,
+                        lastModified: new Date(),
+                        input: jsonContent,
+                    };
+                }
+
+                if (playlistSettings.shouldGenerateCUE()) {
+                    const audioFilename = `${sanitizeForFilename(fullAlbum.title)}.flac`;
+                    const cueContent = generateCUE(fullAlbum, tracks, audioFilename);
+                    yield {
+                        name: `${fullFolderPath}/${sanitizeForFilename(fullAlbum.title)}.cue`,
+                        lastModified: new Date(),
+                        input: cueContent,
+                    };
+                }
+
+                // Generate m3u/m3u8 last, using actual track paths collected during download
+                if (playlistSettings.shouldGenerateM3U()) {
+                    const m3uContent = generateM3U(fullAlbum, tracks, useRelativePaths, null, 'flac', trackPaths);
+                    yield {
+                        name: `${fullFolderPath}/${sanitizeForFilename(fullAlbum.title)}.m3u`,
+                        lastModified: new Date(),
+                        input: m3uContent,
+                    };
+                }
+
+                if (playlistSettings.shouldGenerateM3U8()) {
+                    const m3u8Content = generateM3U8(fullAlbum, tracks, useRelativePaths, null, 'flac', trackPaths);
+                    yield {
+                        name: `${fullFolderPath}/${sanitizeForFilename(fullAlbum.title)}.m3u8`,
+                        lastModified: new Date(),
+                        input: m3u8Content,
+                    };
                 }
             } catch (error) {
                 if (error.name === 'AbortError') throw error;
