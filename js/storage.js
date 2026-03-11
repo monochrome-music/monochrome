@@ -539,7 +539,13 @@ export const downloadQualitySettings = {
     STORAGE_KEY: 'download-quality',
     getQuality() {
         try {
-            return localStorage.getItem(this.STORAGE_KEY) || 'HI_RES_LOSSLESS';
+            const stored = localStorage.getItem(this.STORAGE_KEY) || 'HI_RES_LOSSLESS';
+            // Migrate legacy value to renamed format
+            if (stored === 'MP3_320') {
+                this.setQuality('FFMPEG_MP3_320');
+                return 'FFMPEG_MP3_320';
+            }
+            return stored;
         } catch {
             return 'HI_RES_LOSSLESS';
         }

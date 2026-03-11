@@ -108,6 +108,17 @@ export const detectAudioFormat = (view, mimeType = '') => {
         return 'flac';
     }
 
+    // Check for OGG signature: "OggS" (0x4F 0x67 0x67 0x53)
+    if (
+        view.byteLength >= 4 &&
+        view.getUint8(0) === 0x4f && // O
+        view.getUint8(1) === 0x67 && // g
+        view.getUint8(2) === 0x67 && // g
+        view.getUint8(3) === 0x53 // S
+    ) {
+        return 'ogg';
+    }
+
     // Check for MP4/M4A signature: "ftyp" at offset 4
     if (
         view.byteLength >= 8 &&
@@ -153,6 +164,7 @@ export const detectAudioFormat = (view, mimeType = '') => {
 
     // Fallback to MIME type
     if (mimeType === 'audio/flac') return 'flac';
+    if (mimeType === 'audio/ogg') return 'ogg';
     if (mimeType === 'audio/mp4' || mimeType === 'audio/x-m4a') return 'mp4';
     if (mimeType === 'audio/mp3' || mimeType === 'audio/mpeg') return 'mp3';
 
@@ -177,8 +189,10 @@ export const getExtensionFromBlob = async (blob) => {
     if (format) return format;
 
     if (blob.type.includes('video')) return 'mp4';
-    if (blob.type === 'audio/mp4' || blob.type === 'audio/x-m4a') return 'm4a';
-    if (blob.type === 'audio/mpeg' || blob.type === 'audio/mp3') return 'mp3';
+    if (mimeType === 'audio/flac') return 'flac';
+    if (mimeType === 'audio/ogg') return 'ogg';
+    if (mimeType === 'audio/mp4' || mimeType === 'audio/x-m4a') return 'mp4';
+    if (mimeType === 'audio/mp3' || mimeType === 'audio/mpeg') return 'mp3';
 
     return 'flac';
 };
@@ -188,8 +202,6 @@ export const getExtensionForQuality = (quality) => {
         case 'LOW':
         case 'HIGH':
             return 'm4a';
-        case 'MP3_320':
-            return 'mp3';
         default:
             return 'flac';
     }
