@@ -16,8 +16,8 @@ import { addMetadataToAudio, prefetchMetadataObjects } from './metadata.js';
 import { rebuildFlacWithoutMetadata } from './metadata.flac.js';
 import { DashDownloader } from './dash-downloader.js';
 import { generateM3U, generateM3U8, generateCUE, generateNFO, generateJSON } from './playlist-generator.js';
-import { encodeToMp3 } from './mp3-encoder.js';
 import { ffmpeg, loadFfmpeg } from './ffmpeg.js';
+import { isCustomFormat, getCustomFormat, transcodeWithCustomFormat } from './customFormats.ts';
 
 const downloadTasks = new Map();
 const bulkDownloadTasks = new Map();
@@ -298,8 +298,8 @@ async function downloadTrackBlob(
         artist: track.artist || (track.artists && track.artists.length > 0 ? track.artists[0] : null),
     };
 
-    // MP3_320 is not a native TIDAL quality, we download LOSSLESS and convert
-    const downloadQuality = quality === 'MP3_320' ? 'LOSSLESS' : quality;
+    // Custom FFMPEG formats are not native TIDAL qualities; download LOSSLESS and transcode
+    const downloadQuality = isCustomFormat(quality) ? 'LOSSLESS' : quality;
 
     try {
         const fullTrack = await api.getTrackMetadata(track.id);
@@ -379,9 +379,12 @@ async function downloadTrackBlob(
         blob = await response.blob();
     }
 
-    // Convert to MP3 320kbps if requested
-    if (quality === 'MP3_320') {
-        blob = await encodeToMp3(blob, onProgress || (() => undefined), signal);
+    // Transcode to custom format if requested
+    if (isCustomFormat(quality)) {
+        const format = getCustomFormat(quality);
+        if (format) {
+            blob = await transcodeWithCustomFormat(blob, format, onProgress || (() => undefined), signal);
+        }
     }
 
     if (quality.endsWith('LOSSLESS')) {
