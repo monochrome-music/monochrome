@@ -253,9 +253,7 @@ export function initializeUIInteractions(player, api, ui) {
 
         const isVideo = track.type === 'video';
         const coverUrl =
-            isVideo && track.imageId
-                ? api.getVideoCoverUrl(track.imageId)
-                : api.getCoverUrl(track.album?.cover);
+            isVideo && track.imageId ? api.getVideoCoverUrl(track.imageId) : api.getCoverUrl(track.album?.cover);
 
         return `
         <div class="queue-track-item ${isPlaying ? 'playing' : ''} ${isBlocked ? 'blocked' : ''}" data-queue-index="${index}" data-track-id="${track.id}" draggable="${isBlocked ? 'false' : 'true'}" ${blockedTitle}>
@@ -313,9 +311,7 @@ export function initializeUIInteractions(player, api, ui) {
                         ? SVG_HEART.replace('class="heart-icon"', 'class="heart-icon filled"')
                         : SVG_HEART;
 
-                    showNotification(
-                        added ? `Added to Liked: ${track.title}` : `Removed from Liked: ${track.title}`
-                    );
+                    showNotification(added ? `Added to Liked: ${track.title}` : `Removed from Liked: ${track.title}`);
                 }
                 return;
             }
@@ -425,25 +421,31 @@ export function initializeUIInteractions(player, api, ui) {
             if (topObserver) topObserver.disconnect();
             if (bottomObserver) bottomObserver.disconnect();
 
-            bottomObserver = new IntersectionObserver((entries) => {
-                if (entries[0].isIntersecting && !isQueueRendering && queueEndIndex < currentQueue.length) {
-                    queueEndIndex = Math.min(currentQueue.length, queueEndIndex + QUEUE_CHUNK_SIZE);
-                    if (queueEndIndex - queueStartIndex > QUEUE_MAX_RENDERED) {
-                        queueStartIndex += QUEUE_CHUNK_SIZE;
+            bottomObserver = new IntersectionObserver(
+                (entries) => {
+                    if (entries[0].isIntersecting && !isQueueRendering && queueEndIndex < currentQueue.length) {
+                        queueEndIndex = Math.min(currentQueue.length, queueEndIndex + QUEUE_CHUNK_SIZE);
+                        if (queueEndIndex - queueStartIndex > QUEUE_MAX_RENDERED) {
+                            queueStartIndex += QUEUE_CHUNK_SIZE;
+                        }
+                        renderQueueContent(container, true);
                     }
-                    renderQueueContent(container, true);
-                }
-            }, { root: container, rootMargin: '200px' });
+                },
+                { root: container, rootMargin: '200px' }
+            );
 
-            topObserver = new IntersectionObserver((entries) => {
-                if (entries[0].isIntersecting && !isQueueRendering && queueStartIndex > 0) {
-                    queueStartIndex = Math.max(0, queueStartIndex - QUEUE_CHUNK_SIZE);
-                    if (queueEndIndex - queueStartIndex > QUEUE_MAX_RENDERED) {
-                        queueEndIndex -= QUEUE_CHUNK_SIZE;
+            topObserver = new IntersectionObserver(
+                (entries) => {
+                    if (entries[0].isIntersecting && !isQueueRendering && queueStartIndex > 0) {
+                        queueStartIndex = Math.max(0, queueStartIndex - QUEUE_CHUNK_SIZE);
+                        if (queueEndIndex - queueStartIndex > QUEUE_MAX_RENDERED) {
+                            queueEndIndex -= QUEUE_CHUNK_SIZE;
+                        }
+                        renderQueueContent(container, true);
                     }
-                    renderQueueContent(container, true);
-                }
-            }, { root: container, rootMargin: '200px' });
+                },
+                { root: container, rootMargin: '200px' }
+            );
 
             topObserver.observe(container.querySelector('#queue-top-sentinel'));
             bottomObserver.observe(container.querySelector('#queue-bottom-sentinel'));
@@ -465,7 +467,7 @@ export function initializeUIInteractions(player, api, ui) {
                     : SVG_HEART;
             }
         });
-        
+
         isQueueRendering = false;
     };
 
