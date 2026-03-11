@@ -15,6 +15,7 @@ pb.autoCancellation(false);
 const syncManager = {
     pb: pb,
     _userRecordCache: null,
+    _getUserRecordPromise: null,
     _isSyncing: false,
 
     async _getUserRecord(uid) {
@@ -24,12 +25,24 @@ const syncManager = {
             return this._userRecordCache;
         }
 
-        try {
-            const record = await this.pb.collection('DB_users').getFirstListItem(`firebase_id="${uid}"`, { f_id: uid });
-            this._userRecordCache = record;
-            return record;
-        } catch (error) {
-            if (error.status === 404) {
+        if (this._getUserRecordPromise && this._getUserRecordPromise.uid === uid) {
+            return this._getUserRecordPromise.promise;
+        }
+
+        const promise = (async () => {
+            try {
+                const result = await this.pb.collection('DB_users').getList(1, 1, {
+                    filter: `firebase_id="${uid}"`,
+                    sort: '-username',
+                    f_id: uid,
+                });
+
+                if (result.items.length > 0) {
+                    const record = result.items[0];
+                    this._userRecordCache = record;
+                    return record;
+                }
+
                 try {
                     const newRecord = await this.pb.collection('DB_users').create(
                         {
@@ -44,13 +57,27 @@ const syncManager = {
                     this._userRecordCache = newRecord;
                     return newRecord;
                 } catch (createError) {
+                    const retryResult = await this.pb.collection('DB_users').getList(1, 1, {
+                        filter: `firebase_id="${uid}"`,
+                        f_id: uid,
+                    });
+                    if (retryResult.items.length > 0) {
+                        this._userRecordCache = retryResult.items[0];
+                        return this._userRecordCache;
+                    }
                     console.error('[PocketBase] Failed to create user:', createError);
                     return null;
                 }
+            } catch (error) {
+                console.error('[PocketBase] Failed to get user:', error);
+                return null;
+            } finally {
+                this._getUserRecordPromise = null;
             }
-            console.error('[PocketBase] Failed to get user:', error);
-            return null;
-        }
+        })();
+
+        this._getUserRecordPromise = { uid, promise };
+        return promise;
     },
 
     async getUserData() {
@@ -485,10 +512,8 @@ const syncManager = {
 
         const updateData = { ...data };
 
-        await this.pb.collection('DB_users').update(record.id, updateData, { f_id: user.$id });
-        if (this._userRecordCache) {
-            this._userRecordCache = { ...this._userRecordCache, ...updateData };
-        }
+        const updated = await this.pb.collection('DB_users').update(record.id, updateData, { f_id: user.$id });
+        this._userRecordCache = updated;
     },
 
     async isUsernameTaken(username) {
