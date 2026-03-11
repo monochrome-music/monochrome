@@ -40,6 +40,7 @@ export class Player {
         this.currentRgValues = null;
         this.userVolume = parseFloat(localStorage.getItem('volume') || '0.7');
         this.isFallbackRetry = false;
+        this.isFallbackInProgress = false;
         this.autoplayBlocked = false;
         this.isIOS = typeof window !== 'undefined' && window.__IS_IOS__ === true;
         this.isPwa =
@@ -68,9 +69,6 @@ export class Player {
             streaming: {
                 buffer: {
                     fastSwitchEnabled: true,
-                },
-                protection: {
-                    ignoreProtection: true,
                 },
             },
         });
@@ -109,23 +107,6 @@ export class Player {
         this._setupVideoSync();
     }
 
-    _resetDashPlayer() {
-        if (this.dashInitialized && this.dashPlayer) {
-            try {
-                this.dashPlayer.attachView(null);
-            } catch (e) {}
-            try {
-                this.dashPlayer.destroy();
-            } catch (e) {}
-            this.dashPlayer = MediaPlayer().create();
-            this.dashPlayer.updateSettings({
-                streaming: {
-                    buffer: { fastSwitchEnabled: true },
-                },
-            });
-            this.dashInitialized = false;
-        }
-    }
     _setupVideoSync() {
         if (!this.video || !this.audio) return;
 
@@ -600,7 +581,11 @@ export class Player {
         await this.playTrackFromQueue();
     }
 
-    async playTrackFromQueue(startTime = 0, recursiveCount = 0) {
+    async playTrackFromQueue(startTime = 0, recursiveCount = 0, isRetry = false) {
+        if (!isRetry) {
+            this.isFallbackRetry = false;
+        }
+
         const currentSequence = ++this.playbackSequence;
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
         if (this.currentQueueIndex < 0 || this.currentQueueIndex >= currentQueue.length) {
@@ -640,7 +625,10 @@ export class Player {
             this.hls.destroy();
             this.hls = null;
         }
-        this._resetDashPlayer();
+        if (this.dashInitialized) {
+            this.dashPlayer.reset();
+            this.dashInitialized = false;
+        }
 
         if (inactiveElement) {
             inactiveElement.pause();
@@ -816,13 +804,8 @@ export class Player {
                 if (streamUrl.includes('.m3u8') || streamUrl.includes('application/vnd.apple.mpegurl')) {
                     this.setupHlsVideo(activeElement, streamUrl, null);
                 } else if (streamUrl.startsWith('blob:') || streamUrl.includes('.mpd')) {
-                    try {
-                        this.dashPlayer.initialize(activeElement, streamUrl, false);
-                        this.dashInitialized = true;
-                    } catch (e) {
-                        console.error('DashPlayer initialize failed for video:', e);
-                        throw new Error('DASH initialization failed');
-                    }
+                    this.dashPlayer.initialize(activeElement, streamUrl, false);
+                    this.dashInitialized = true;
                 } else {
                     activeElement.src = streamUrl;
                 }
@@ -873,9 +856,6 @@ export class Player {
                         streamUrl = trackData.originalTrackUrl;
                     } else if (trackData.info?.manifest) {
                         streamUrl = this.api.extractStreamUrlFromManifest(trackData.info.manifest);
-                        if (!streamUrl) {
-                            streamUrl = await this.api.getStreamUrl(track.id, this.quality);
-                        }
                     } else {
                         streamUrl = await this.api.getStreamUrl(track.id, this.quality);
                     }
@@ -884,39 +864,20 @@ export class Player {
                 if (this.playbackSequence !== currentSequence) return;
 
                 // Handle playback
-                if (streamUrl && (streamUrl.startsWith('blob:') || streamUrl.includes('.mpd')) && !track.isLocal) {
+                if (streamUrl && streamUrl.startsWith('blob:') && !track.isLocal) {
                     // It's likely a DASH manifest blob URL
-                    try {
-                        this.dashPlayer.initialize(activeElement, streamUrl, false);
-                        this.dashInitialized = true;
-                        this.applyAudioEffects();
-
-                        if (startTime > 0) {
-                            this.dashPlayer.seek(startTime);
-                        }
-
-                        const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
-                        if (!canPlay || this.playbackSequence !== currentSequence) return;
-                        await this.safePlay(activeElement);
-                    } catch (e) {
-                        console.error('DashPlayer initialize failed for audio:', e);
-                        throw new Error('DASH initialization failed');
-                    }
-                } else if (
-                    streamUrl &&
-                    (streamUrl.includes('.m3u8') || streamUrl.includes('application/vnd.apple.mpegurl'))
-                ) {
-                    this.setupHlsVideo(activeElement, streamUrl, null);
+                    this.dashPlayer.initialize(activeElement, streamUrl, false);
+                    this.dashInitialized = true;
                     this.applyAudioEffects();
+
+                    if (startTime > 0) {
+                        this.dashPlayer.seek(startTime);
+                    }
 
                     const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
                     if (!canPlay || this.playbackSequence !== currentSequence) return;
-
-                    if (startTime > 0) {
-                        activeElement.currentTime = startTime;
-                    }
                     await this.safePlay(activeElement);
-                } else if (streamUrl) {
+                } else {
                     activeElement.src = streamUrl;
                     this.applyAudioEffects();
 
@@ -929,8 +890,6 @@ export class Player {
                     }
                     const played = await this.safePlay(activeElement);
                     if (!played) return;
-                } else {
-                    throw new Error('Could not resolve stream URL');
                 }
             }
 
@@ -941,6 +900,24 @@ export class Player {
                 this.autoplayBlocked = true;
                 return;
             }
+
+            if (this.quality === 'HI_RES_LOSSLESS' && !this.isFallbackRetry) {
+                this.isFallbackRetry = true;
+                const originalQuality = this.quality;
+                this.quality = 'LOSSLESS';
+                this.isFallbackInProgress = true;
+                try {
+                    await this.playTrackFromQueue(startTime, recursiveCount, true);
+                    return;
+                } catch (retryError) {
+                } finally {
+                    this.quality = originalQuality;
+                    this.isFallbackRetry = false;
+                    this.isFallbackInProgress = false;
+                    return;
+                }
+            }
+
             console.error(`Could not play track: ${trackTitle}`, error);
             // Skip to next track on unexpected error
             if (recursiveCount < currentQueue.length) {
@@ -1070,8 +1047,9 @@ export class Player {
                 }
 
                 const shuffledSeeds = [...this.radioSeeds].sort(() => 0.5 - Math.random());
-                const seeds =
-                    shuffledSeeds.length > 0 ? shuffledSeeds.slice(0, 5) : this.currentTrack ? [this.currentTrack] : [];
+                const seeds = shuffledSeeds.length > 0 
+                    ? shuffledSeeds.slice(0, 5) 
+                    : this.currentTrack ? [this.currentTrack] : [];
 
                 if (seeds.length === 0) {
                     return;
@@ -1090,7 +1068,7 @@ export class Player {
                 ]);
 
                 const recommendations = await this.api.getRecommendedTracksForPlaylist(seeds, 20, {
-                    knownTrackIds: knownTrackIds,
+                    knownTrackIds: knownTrackIds
                 });
 
                 if (recommendations && recommendations.length > 0) {

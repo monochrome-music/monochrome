@@ -202,7 +202,19 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
             console.error(`Media playback error (${element.id}):`, errorMsg, e);
             playPauseBtn.innerHTML = SVG_PLAY;
 
+            const canFallback = player.quality === 'HI_RES_LOSSLESS' &&
+                errorMsg.includes('Source not supported') &&
+                errorMsg.includes('0x80004005') &&
+                !player.isFallbackRetry;
+
+            if (canFallback) {
+                console.warn('Hi-Res failed due to DASH.js Error (FUCK DASH)');
+            }
+
             if (player.currentTrack && error && error.code !== 1) {
+                if (player.isFallbackInProgress || canFallback) {
+                    return;
+                }
                 console.warn('Skipping to next track due to playback error');
                 setTimeout(() => player.playNext(), 1000);
             }
