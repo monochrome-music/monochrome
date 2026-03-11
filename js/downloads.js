@@ -10,6 +10,7 @@ import {
     getCoverBlob,
     getExtensionFromBlob,
     escapeHtml,
+    getTrackDiscNumber,
 } from './utils.js';
 import { lyricsSettings, bulkDownloadSettings, losslessContainerSettings, playlistSettings } from './storage.js';
 import { addMetadataToAudio, prefetchMetadataObjects } from './metadata.js';
@@ -34,42 +35,12 @@ async function loadClientZip() {
     }
 }
 
-function toPositiveInt(value) {
-    const parsed = parseInt(value, 10);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-}
-
-function getExplicitTrackDiscNumber(track) {
-    const candidates = [
-        track?.volumeNumber,
-        track?.discNumber,
-        track?.mediaNumber,
-        track?.media_number,
-        track?.volume,
-        track?.disc,
-        track?.volume?.number,
-        track?.disc?.number,
-        track?.media?.number,
-        track?.disc,
-        track?.disc_no,
-        track?.discNo,
-        track?.disc_number,
-        track?.mediaMetadata?.discNumber,
-    ];
-
-    for (const candidate of candidates) {
-        const parsed = toPositiveInt(candidate);
-        if (parsed) return parsed;
-    }
-    return null;
-}
-
 async function createDiscLayoutContext(tracks, api) {
     if (!playlistSettings.shouldSeparateDiscsInZip()) {
         return { separateByDisc: false, resolveDiscNumber: () => 1 };
     }
 
-    const explicitDiscNumbers = tracks.map((track) => getExplicitTrackDiscNumber(track));
+    const explicitDiscNumbers = tracks.map((track) => getTrackDiscNumber(track));
     const explicitDistinct = new Set(explicitDiscNumbers.filter(Boolean));
 
     if (explicitDistinct.size > 1) {
@@ -85,7 +56,7 @@ async function createDiscLayoutContext(tracks, api) {
             if (explicitDiscNumbers[index]) return explicitDiscNumbers[index];
             try {
                 const fullTrack = await api.getTrackMetadata(track.id);
-                return getExplicitTrackDiscNumber(fullTrack);
+                return getTrackDiscNumber(fullTrack);
             } catch {
                 return null;
             }
@@ -590,7 +561,7 @@ async function bulkDownloadToZipStream(
                     ...track,
                     trackPath: trackPaths[index],
                 })),
-                (track) => String(getExplicitTrackDiscNumber(track) || 1)
+                (track) => String(getTrackDiscNumber(track) || 1)
             );
             const multiDisc = Object.keys(tracksByVolume).length > 1;
 
