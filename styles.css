@@ -5357,7 +5357,8 @@ img[src=''] {
     max-width: 400px;
 }
 
-.custom-appwrite-endpoint, .custom-appwrite-project {
+.custom-appwrite-endpoint,
+.custom-appwrite-project {
     display: none;
     flex-direction: column;
     gap: 0.5rem;
@@ -5365,7 +5366,8 @@ img[src=''] {
     width: 100%;
 }
 
-.custom-appwrite-endpoint.visible, .custom-appwrite-project.visible {
+.custom-appwrite-endpoint.visible,
+.custom-appwrite-project.visible {
     display: flex;
 }
 
