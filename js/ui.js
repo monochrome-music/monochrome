@@ -1242,6 +1242,20 @@ export class UIRenderer {
             showButton();
         }
 
+        const toggleUI = (e) => {
+            if (e) e.stopPropagation();
+            isUIHidden = !isUIHidden;
+            overlay.classList.toggle('ui-hidden', isUIHidden);
+            toggleBtn.classList.toggle('active', isUIHidden);
+            toggleBtn.title = isUIHidden ? 'Show UI' : 'Hide UI';
+
+            if (isUIHidden) {
+                hideButton();
+            } else {
+                showButton();
+            }
+        };
+
         // Mouse move handler
         const handleMouseMove = (e) => {
             const rect = overlay.getBoundingClientRect();
