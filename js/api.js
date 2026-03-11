@@ -12,9 +12,15 @@ import { addMetadataToAudio, prefetchMetadataObjects } from './metadata.js';
 import { DashDownloader } from './dash-downloader.js';
 import { HlsDownloader } from './hls-downloader.js';
 import { MP3EncodingError } from './mp3-encoder.js';
-import { ffmpeg, loadFfmpeg, FfmpegError } from './ffmpeg.js';
+import { loadFfmpeg, FfmpegError } from './ffmpeg.js';
 import { rebuildFlacWithoutMetadata } from './metadata.flac.js';
-import { isCustomFormat, getCustomFormat, transcodeWithCustomFormat } from './customFormats.ts';
+import {
+    isCustomFormat,
+    getCustomFormat,
+    transcodeWithCustomFormat,
+    getContainerFormat,
+    transcodeWithContainerFormat,
+} from './ffmpegFormats.ts';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 const TIDAL_V2_TOKEN = 'txNoH4kkV41MfH25';
@@ -1437,33 +1443,18 @@ export class LosslessAPI {
 
                 if (quality.endsWith('LOSSLESS')) {
                     try {
-                        switch (losslessContainerSettings.getContainer()) {
-                            case 'flac':
-                                if ((await getExtensionFromBlob(blob)) != 'flac') {
-                                    blob = await ffmpeg(
-                                        blob,
-                                        { args: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'flac'] },
-                                        'output.flac',
-                                        'audio/flac',
-                                        onProgress,
-                                        options.signal
-                                    );
-                                } else {
-                                    blob = await rebuildFlacWithoutMetadata(blob);
-                                }
-                                break;
-                            case 'alac':
-                                blob = await ffmpeg(
+                        const containerFmt = getContainerFormat(losslessContainerSettings.getContainer());
+                        if (containerFmt) {
+                            if (await containerFmt.needsTranscode(blob)) {
+                                blob = await transcodeWithContainerFormat(
                                     blob,
-                                    { args: ['-c:a', 'alac'] },
-                                    'output.m4a',
-                                    'audio/mp4',
+                                    containerFmt,
                                     onProgress,
                                     options.signal
                                 );
-                                break;
-                            default:
-                                break;
+                            } else if ((await getExtensionFromBlob(blob)) == 'flac') {
+                                blob = await rebuildFlacWithoutMetadata(blob);
+                            }
                         }
                     } catch (error) {
                         if (error?.name === 'AbortError') {
