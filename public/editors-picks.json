@@ -152,5 +152,16 @@
         "explicit": false,
         "audioQuality": "LOSSLESS",
         "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": "344201347",
+        "title": "Flex Musix (FLXTRA)",
+        "artist": { "id": 27836827, "name": "OsamaSon" },
+        "releaseDate": "2024-02-16",
+        "cover": "5d1812fc-b9f9-4467-ac78-90d78ea542e4",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
     }
 ]
