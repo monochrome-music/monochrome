@@ -109,19 +109,23 @@ export class Player {
         this._setupVideoSync();
     }
 
-_resetDashPlayer() {
-    if (this.dashInitialized && this.dashPlayer) {
-        try { this.dashPlayer.attachView(null); } catch (e) {}
-        try { this.dashPlayer.destroy(); } catch (e) {}
-        this.dashPlayer = MediaPlayer().create();
-        this.dashPlayer.updateSettings({
-            streaming: {
-                buffer: { fastSwitchEnabled: true },
-            },
-        });
-        this.dashInitialized = false;
+    _resetDashPlayer() {
+        if (this.dashInitialized && this.dashPlayer) {
+            try {
+                this.dashPlayer.attachView(null);
+            } catch (e) {}
+            try {
+                this.dashPlayer.destroy();
+            } catch (e) {}
+            this.dashPlayer = MediaPlayer().create();
+            this.dashPlayer.updateSettings({
+                streaming: {
+                    buffer: { fastSwitchEnabled: true },
+                },
+            });
+            this.dashInitialized = false;
+        }
     }
-}
     _setupVideoSync() {
         if (!this.video || !this.audio) return;
 
@@ -898,7 +902,10 @@ _resetDashPlayer() {
                         console.error('DashPlayer initialize failed for audio:', e);
                         throw new Error('DASH initialization failed');
                     }
-                } else if (streamUrl && (streamUrl.includes('.m3u8') || streamUrl.includes('application/vnd.apple.mpegurl'))) {
+                } else if (
+                    streamUrl &&
+                    (streamUrl.includes('.m3u8') || streamUrl.includes('application/vnd.apple.mpegurl'))
+                ) {
                     this.setupHlsVideo(activeElement, streamUrl, null);
                     this.applyAudioEffects();
 
