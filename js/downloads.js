@@ -16,8 +16,14 @@ import { addMetadataToAudio, prefetchMetadataObjects } from './metadata.js';
 import { rebuildFlacWithoutMetadata } from './metadata.flac.js';
 import { DashDownloader } from './dash-downloader.js';
 import { generateM3U, generateM3U8, generateCUE, generateNFO, generateJSON } from './playlist-generator.js';
-import { ffmpeg, loadFfmpeg } from './ffmpeg.js';
-import { isCustomFormat, getCustomFormat, transcodeWithCustomFormat } from './customFormats.ts';
+import { loadFfmpeg } from './ffmpeg.js';
+import {
+    isCustomFormat,
+    getCustomFormat,
+    transcodeWithCustomFormat,
+    getContainerFormat,
+    transcodeWithContainerFormat,
+} from './ffmpegFormats.ts';
 
 const downloadTasks = new Map();
 const bulkDownloadTasks = new Map();
@@ -455,33 +461,13 @@ async function downloadTrackBlob(
 
     if (quality.endsWith('LOSSLESS')) {
         try {
-            switch (losslessContainerSettings.getContainer()) {
-                case 'flac':
-                    if ((await getExtensionFromBlob(blob)) != 'flac') {
-                        blob = await ffmpeg(
-                            blob,
-                            { args: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'flac'] },
-                            'output.flac',
-                            'audio/flac',
-                            onProgress,
-                            signal
-                        );
-                    } else {
-                        blob = await rebuildFlacWithoutMetadata(blob);
-                    }
-                    break;
-                case 'alac':
-                    blob = await ffmpeg(
-                        blob,
-                        { args: ['-c:a', 'alac'] },
-                        'output.m4a',
-                        'audio/mp4',
-                        onProgress,
-                        signal
-                    );
-                    break;
-                default:
-                    break;
+            const containerFmt = getContainerFormat(losslessContainerSettings.getContainer());
+            if (containerFmt) {
+                if (await containerFmt.needsTranscode(blob)) {
+                    blob = await transcodeWithContainerFormat(blob, containerFmt, onProgress, signal);
+                } else if ((await getExtensionFromBlob(blob)) == 'flac') {
+                    blob = await rebuildFlacWithoutMetadata(blob);
+                }
             }
         } catch (error) {
             if (error?.name === 'AbortError') {

@@ -42,7 +42,7 @@ import { db } from './db.js';
 import { authManager } from './accounts/auth.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { saveFirebaseConfig, clearFirebaseConfig } from './accounts/config.js';
-import { customFormats } from './customFormats.ts';
+import { containerFormats, customFormats } from './ffmpegFormats.ts';
 
 export function initializeSettings(scrobbler, player, api, ui) {
     // Restore last active settings tab
@@ -867,6 +867,13 @@ export function initializeSettings(scrobbler, player, api, ui) {
 
     const losslessContainerSetting = document.getElementById('lossless-container-setting');
     if (losslessContainerSetting) {
+        for (const { internalName, displayName } of containerFormats) {
+            const option = document.createElement('option');
+            option.value = internalName;
+            option.textContent = displayName;
+            losslessContainerSetting.appendChild(option);
+        }
+
         losslessContainerSetting.value = losslessContainerSettings.getContainer();
 
         losslessContainerSetting.addEventListener('change', (e) => {
