@@ -984,13 +984,15 @@ export class Player {
             const pickedSeeds = await this.pickRadioSeeds();
             if (pickedSeeds.length > 0) {
                 this.radioSeeds = pickedSeeds;
-                this.setQueue(pickedSeeds, 0, true);
+                const initialQueue = [...pickedSeeds].sort(() => 0.5 - Math.random()).slice(0, 5);
+                this.setQueue(initialQueue, 0, true);
                 this.playAtIndex(0);
             }
         } else {
             this.radioSeeds = Array.isArray(seeds) ? seeds : [seeds];
             this.wipeQueue();
-            this.setQueue(this.radioSeeds, 0, true);
+            const initialQueue = Array.isArray(seeds) ? seeds.slice(0, 5) : [seeds];
+            this.setQueue(initialQueue, 0, true);
             this.playAtIndex(0);
         }
 
@@ -1021,41 +1023,41 @@ export class Player {
                     this.radioSeeds = await this.pickRadioSeeds();
                 }
 
-                const seeds =
-                    this.radioSeeds.length > 0 ? this.radioSeeds : this.currentTrack ? [this.currentTrack] : [];
+                const shuffledSeeds = [...this.radioSeeds].sort(() => 0.5 - Math.random());
+                const seeds = shuffledSeeds.length > 0 
+                    ? shuffledSeeds.slice(0, 5) 
+                    : this.currentTrack ? [this.currentTrack] : [];
 
                 if (seeds.length === 0) {
                     return;
                 }
 
-                const recommendations = await this.api.getRecommendedTracksForPlaylist(seeds, 10);
+                const [favorites, userPlaylists, history] = await Promise.all([
+                    db.getFavorites('track'),
+                    db.getAll('user_playlists'),
+                    db.getHistory(),
+                ]);
+
+                const knownTrackIds = new Set([
+                    ...favorites.map((t) => t.id),
+                    ...userPlaylists.flatMap((p) => (p.tracks || []).map((t) => t.id)),
+                    ...history.map((t) => t.id),
+                ]);
+
+                const recommendations = await this.api.getRecommendedTracksForPlaylist(seeds, 20, {
+                    knownTrackIds: knownTrackIds
+                });
+
                 if (recommendations && recommendations.length > 0) {
                     const currentQueueIds = new Set(this.getCurrentQueue().map((t) => t.id));
 
-                    const [favorites, userPlaylists, history] = await Promise.all([
-                        db.getFavorites('track'),
-                        db.getAll('user_playlists'),
-                        db.getHistory(),
-                    ]);
-
-                    const knownTrackIds = new Set([
-                        ...favorites.map((t) => t.id),
-                        ...userPlaylists.flatMap((p) => (p.tracks || []).map((t) => t.id)),
-                        ...history.map((t) => t.id),
-                    ]);
-
-                    const newTracks = recommendations.filter((t) => {
-                        if (currentQueueIds.has(t.id)) return false;
-
-                        if (knownTrackIds.has(t.id)) {
-                            return Math.random() < 0.05;
-                        }
-
-                        return true;
+                    let newTracks = recommendations.filter((t) => {
+                        return !currentQueueIds.has(t.id);
                     });
 
                     if (newTracks.length > 0) {
-                        this.addToQueue(newTracks);
+                        const tracksToAdd = newTracks.sort(() => 0.5 - Math.random()).slice(0, 5);
+                        this.addToQueue(tracksToAdd);
                     }
                 }
             } catch (error) {
@@ -1112,7 +1114,7 @@ export class Player {
                 potentialSeeds.find((s) => s.id === id)
             );
 
-            return uniqueSeeds.sort(() => 0.5 - Math.random()).slice(0, 5);
+            return uniqueSeeds.sort(() => 0.5 - Math.random()).slice(0, 50);
         } catch (error) {
             console.error('Failed to pick radio seeds:', error);
             return this.currentTrack ? [this.currentTrack] : [];

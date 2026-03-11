@@ -1097,13 +1097,8 @@ export class LosslessAPI {
         const recommendedTracks = [];
         const seenTrackIds = new Set(tracks.map((t) => t.id));
 
-        // Shuffle artists if refreshing to get different results
-        let shuffledArtists = artists;
-        if (options.refresh) {
-            shuffledArtists = [...artists].sort(() => Math.random() - 0.5);
-        }
-
-        const artistsToProcess = shuffledArtists.slice(0, Math.min(5, shuffledArtists.length));
+        const shuffledArtists = [...artists].sort(() => Math.random() - 0.5);
+        const artistsToProcess = shuffledArtists.slice(0, Math.min(15, shuffledArtists.length));
 
         const artistPromises = artistsToProcess.map(async (artist) => {
             try {
@@ -1111,11 +1106,19 @@ export class LosslessAPI {
                 const artistData = await this.getArtist(artist.id, { lightweight: true, skipCache: options.refresh });
                 if (artistData && artistData.tracks && artistData.tracks.length > 0) {
                     const availableTracks = artistData.tracks.filter((track) => !seenTrackIds.has(track.id));
-                    // Shuffle and pick different tracks when refreshing
-                    const shuffled = options.refresh
-                        ? availableTracks.sort(() => Math.random() - 0.5)
+                    
+                    const newTracks = options.knownTrackIds 
+                        ? availableTracks.filter(t => !options.knownTrackIds.has(t.id))
                         : availableTracks;
-                    return shuffled.slice(0, 4);
+                    const knownTracks = options.knownTrackIds 
+                        ? availableTracks.filter(t => options.knownTrackIds.has(t.id))
+                        : [];
+
+                    const shuffledNew = [...newTracks].sort(() => Math.random() - 0.5);
+                    const shuffledKnown = [...knownTracks].sort(() => Math.random() - 0.5);
+
+                    const combined = [...shuffledNew, ...shuffledKnown];
+                    return combined.slice(0, 2);
                 } else {
                     console.warn(`No tracks found for artist ${artist.name}`);
                     return [];
