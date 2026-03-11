@@ -384,6 +384,23 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
         updateWaveform();
     });
 
+    if (volumeBtn) {
+        volumeBtn.addEventListener('click', () => {
+            const activeEl = player.activeElement;
+            activeEl.muted = !activeEl.muted;
+            localStorage.setItem('muted', activeEl.muted);
+
+            const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+            if (inactiveEl) inactiveEl.muted = activeEl.muted;
+
+            updateVolumeUI();
+        });
+    }
+    const isMuted = localStorage.getItem('muted') === 'true';
+    audioPlayer.muted = isMuted;
+    if (player.video) player.video.muted = isMuted;
+    updateVolumeUI();
+
     initializeSmoothSliders(player);
 }
 
