@@ -69,6 +69,9 @@ export class Player {
                 buffer: {
                     fastSwitchEnabled: true,
                 },
+                protection: {
+                    ignoreProtection: true,
+                },
             },
         });
         this.dashInitialized = false;
@@ -106,6 +109,19 @@ export class Player {
         this._setupVideoSync();
     }
 
+_resetDashPlayer() {
+    if (this.dashInitialized && this.dashPlayer) {
+        try { this.dashPlayer.attachView(null); } catch (e) {}
+        try { this.dashPlayer.destroy(); } catch (e) {}
+        this.dashPlayer = MediaPlayer().create();
+        this.dashPlayer.updateSettings({
+            streaming: {
+                buffer: { fastSwitchEnabled: true },
+            },
+        });
+        this.dashInitialized = false;
+    }
+}
     _setupVideoSync() {
         if (!this.video || !this.audio) return;
 
@@ -620,10 +636,7 @@ export class Player {
             this.hls.destroy();
             this.hls = null;
         }
-        if (this.dashInitialized) {
-            this.dashPlayer.reset();
-            this.dashInitialized = false;
-        }
+        this._resetDashPlayer();
 
         if (inactiveElement) {
             inactiveElement.pause();
@@ -799,8 +812,13 @@ export class Player {
                 if (streamUrl.includes('.m3u8') || streamUrl.includes('application/vnd.apple.mpegurl')) {
                     this.setupHlsVideo(activeElement, streamUrl, null);
                 } else if (streamUrl.startsWith('blob:') || streamUrl.includes('.mpd')) {
-                    this.dashPlayer.initialize(activeElement, streamUrl, false);
-                    this.dashInitialized = true;
+                    try {
+                        this.dashPlayer.initialize(activeElement, streamUrl, false);
+                        this.dashInitialized = true;
+                    } catch (e) {
+                        console.error('DashPlayer initialize failed for video:', e);
+                        throw new Error('DASH initialization failed');
+                    }
                 } else {
                     activeElement.src = streamUrl;
                 }
@@ -851,6 +869,9 @@ export class Player {
                         streamUrl = trackData.originalTrackUrl;
                     } else if (trackData.info?.manifest) {
                         streamUrl = this.api.extractStreamUrlFromManifest(trackData.info.manifest);
+                        if (!streamUrl) {
+                            streamUrl = await this.api.getStreamUrl(track.id, this.quality);
+                        }
                     } else {
                         streamUrl = await this.api.getStreamUrl(track.id, this.quality);
                     }
@@ -859,20 +880,36 @@ export class Player {
                 if (this.playbackSequence !== currentSequence) return;
 
                 // Handle playback
-                if (streamUrl && streamUrl.startsWith('blob:') && !track.isLocal) {
+                if (streamUrl && (streamUrl.startsWith('blob:') || streamUrl.includes('.mpd')) && !track.isLocal) {
                     // It's likely a DASH manifest blob URL
-                    this.dashPlayer.initialize(activeElement, streamUrl, false);
-                    this.dashInitialized = true;
-                    this.applyAudioEffects();
+                    try {
+                        this.dashPlayer.initialize(activeElement, streamUrl, false);
+                        this.dashInitialized = true;
+                        this.applyAudioEffects();
 
-                    if (startTime > 0) {
-                        this.dashPlayer.seek(startTime);
+                        if (startTime > 0) {
+                            this.dashPlayer.seek(startTime);
+                        }
+
+                        const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
+                        if (!canPlay || this.playbackSequence !== currentSequence) return;
+                        await this.safePlay(activeElement);
+                    } catch (e) {
+                        console.error('DashPlayer initialize failed for audio:', e);
+                        throw new Error('DASH initialization failed');
                     }
+                } else if (streamUrl && (streamUrl.includes('.m3u8') || streamUrl.includes('application/vnd.apple.mpegurl'))) {
+                    this.setupHlsVideo(activeElement, streamUrl, null);
+                    this.applyAudioEffects();
 
                     const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
                     if (!canPlay || this.playbackSequence !== currentSequence) return;
+
+                    if (startTime > 0) {
+                        activeElement.currentTime = startTime;
+                    }
                     await this.safePlay(activeElement);
-                } else {
+                } else if (streamUrl) {
                     activeElement.src = streamUrl;
                     this.applyAudioEffects();
 
@@ -885,6 +922,8 @@ export class Player {
                     }
                     const played = await this.safePlay(activeElement);
                     if (!played) return;
+                } else {
+                    throw new Error('Could not resolve stream URL');
                 }
             }
 
