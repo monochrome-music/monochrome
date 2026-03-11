@@ -5349,8 +5349,7 @@ img[src=''] {
     filter: brightness(1.1);
 }
 
-/* Firebase Settings Styling */
-.firebase-settings-wrapper {
+.appwrite-settings-wrapper {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -5358,7 +5357,7 @@ img[src=''] {
     max-width: 400px;
 }
 
-.custom-firebase-config {
+.custom-appwrite-endpoint, .custom-appwrite-project {
     display: none;
     flex-direction: column;
     gap: 0.5rem;
@@ -5366,7 +5365,7 @@ img[src=''] {
     width: 100%;
 }
 
-.custom-firebase-config.visible {
+.custom-appwrite-endpoint.visible, .custom-appwrite-project.visible {
     display: flex;
 }
 
@@ -5376,13 +5375,13 @@ img[src=''] {
     margin-bottom: 0.25rem;
 }
 
-.firebase-controls-container {
+.appwrite-controls-container {
     display: flex;
     gap: 0.5rem;
     width: 100%;
 }
 
-#toggle-firebase-config-btn {
+#toggle-auth-config-btn {
     width: fit-content;
 }
 

@@ -41,7 +41,6 @@ import { getButterchurnPresets } from './visualizers/butterchurn.js';
 import { db } from './db.js';
 import { authManager } from './accounts/auth.js';
 import { syncManager } from './accounts/pocketbase.js';
-import { saveFirebaseConfig, clearFirebaseConfig } from './accounts/config.js';
 
 export function initializeSettings(scrobbler, player, api, ui) {
     // Restore last active settings tab
@@ -2746,7 +2745,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
         }
     });
 
-    document.getElementById('firebase-clear-cloud-btn')?.addEventListener('click', async () => {
+    document.getElementById('auth-clear-cloud-btn')?.addEventListener('click', async () => {
         if (confirm('Are you sure you want to delete ALL your data from the cloud? This cannot be undone.')) {
             try {
                 await syncManager.clearCloudData();
@@ -2853,41 +2852,40 @@ export function initializeSettings(scrobbler, player, api, ui) {
     const customDbBtn = document.getElementById('custom-db-btn');
     const customDbModal = document.getElementById('custom-db-modal');
     const customPbUrlInput = document.getElementById('custom-pb-url');
-    const customFirebaseConfigInput = document.getElementById('custom-firebase-config');
+    const customAppwriteEndpointInput = document.getElementById('custom-appwrite-endpoint');
+    const customAppwriteProjectInput = document.getElementById('custom-appwrite-project');
     const customDbSaveBtn = document.getElementById('custom-db-save');
     const customDbResetBtn = document.getElementById('custom-db-reset');
     const customDbCancelBtn = document.getElementById('custom-db-cancel');
 
     if (customDbBtn && customDbModal) {
-        const fbFromEnv = !!window.__FIREBASE_CONFIG__;
+        const appwriteFromEnv = !!(window.__APPWRITE_ENDPOINT__ || window.__APPWRITE_PROJECT_ID__);
         const pbFromEnv = !!window.__POCKETBASE_URL__;
 
         // Hide entire setting if both are server-configured
-        if (fbFromEnv && pbFromEnv) {
+        if (appwriteFromEnv && pbFromEnv) {
             const settingItem = customDbBtn.closest('.setting-item');
             if (settingItem) settingItem.style.display = 'none';
         }
 
         // Hide individual fields in the modal
         if (pbFromEnv && customPbUrlInput) customPbUrlInput.closest('div[style]').style.display = 'none';
-        if (fbFromEnv && customFirebaseConfigInput)
-            customFirebaseConfigInput.closest('div[style]').style.display = 'none';
+        if (appwriteFromEnv) {
+            if (customAppwriteEndpointInput)
+                customAppwriteEndpointInput.closest('div[style]').style.display = 'none';
+            if (customAppwriteProjectInput)
+                customAppwriteProjectInput.closest('div[style]').style.display = 'none';
+        }
 
         customDbBtn.addEventListener('click', () => {
             const pbUrl = localStorage.getItem('monochrome-pocketbase-url') || '';
-            const fbConfig = localStorage.getItem('monochrome-firebase-config');
+            const appwriteEndpoint = localStorage.getItem('monochrome-appwrite-endpoint') || '';
+            const appwriteProject = localStorage.getItem('monochrome-appwrite-project') || '';
 
-            if (!pbFromEnv) customPbUrlInput.value = pbUrl;
-            if (!fbFromEnv) {
-                if (fbConfig) {
-                    try {
-                        customFirebaseConfigInput.value = JSON.stringify(JSON.parse(fbConfig), null, 2);
-                    } catch {
-                        customFirebaseConfigInput.value = fbConfig;
-                    }
-                } else {
-                    customFirebaseConfigInput.value = '';
-                }
+            if (!pbFromEnv && customPbUrlInput) customPbUrlInput.value = pbUrl;
+            if (!appwriteFromEnv) {
+                if (customAppwriteEndpointInput) customAppwriteEndpointInput.value = appwriteEndpoint;
+                if (customAppwriteProjectInput) customAppwriteProjectInput.value = appwriteProject;
             }
 
             customDbModal.classList.add('active');
@@ -2901,25 +2899,30 @@ export function initializeSettings(scrobbler, player, api, ui) {
         customDbModal.querySelector('.modal-overlay').addEventListener('click', closeCustomDbModal);
 
         customDbSaveBtn.addEventListener('click', () => {
-            const pbUrl = customPbUrlInput.value.trim();
-            const fbConfigStr = customFirebaseConfigInput.value.trim();
-
-            if (pbUrl) {
-                localStorage.setItem('monochrome-pocketbase-url', pbUrl);
-            } else {
-                localStorage.removeItem('monochrome-pocketbase-url');
+            if (!pbFromEnv && customPbUrlInput) {
+                const pbUrl = customPbUrlInput.value.trim();
+                if (pbUrl) {
+                    localStorage.setItem('monochrome-pocketbase-url', pbUrl);
+                } else {
+                    localStorage.removeItem('monochrome-pocketbase-url');
+                }
             }
 
-            if (fbConfigStr) {
-                try {
-                    const fbConfig = JSON.parse(fbConfigStr);
-                    saveFirebaseConfig(fbConfig);
-                } catch {
-                    alert('Invalid JSON for Firebase Config');
-                    return;
+            if (!appwriteFromEnv) {
+                const endpoint = customAppwriteEndpointInput?.value.trim();
+                const project = customAppwriteProjectInput?.value.trim();
+
+                if (endpoint) {
+                    localStorage.setItem('monochrome-appwrite-endpoint', endpoint);
+                } else {
+                    localStorage.removeItem('monochrome-appwrite-endpoint');
                 }
-            } else {
-                clearFirebaseConfig();
+
+                if (project) {
+                    localStorage.setItem('monochrome-appwrite-project', project);
+                } else {
+                    localStorage.removeItem('monochrome-appwrite-project');
+                }
             }
 
             alert('Settings saved. Reloading...');
@@ -2929,7 +2932,8 @@ export function initializeSettings(scrobbler, player, api, ui) {
         customDbResetBtn.addEventListener('click', () => {
             if (confirm('Reset custom database settings to default?')) {
                 localStorage.removeItem('monochrome-pocketbase-url');
-                clearFirebaseConfig();
+                localStorage.removeItem('monochrome-appwrite-endpoint');
+                localStorage.removeItem('monochrome-appwrite-project');
                 alert('Settings reset. Reloading...');
                 window.location.reload();
             }
