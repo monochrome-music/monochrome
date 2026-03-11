@@ -75,6 +75,15 @@ export function initializeUIInteractions(player, api, ui) {
     }
 
     let draggedQueueIndex = null;
+    let queueStartIndex = 0;
+    let queueEndIndex = 1000;
+    let isQueueRendering = false;
+    let topObserver = null;
+    let bottomObserver = null;
+    const QUEUE_VIRTUALIZATION_THRESHOLD = 1500;
+    const QUEUE_MAX_RENDERED = 1000;
+    const QUEUE_CHUNK_SIZE = 200;
+    const ESTIMATED_ITEM_HEIGHT = 58;
 
     // Sidebar mobile
     hamburgerBtn.addEventListener('click', () => {
@@ -232,66 +241,221 @@ export function initializeUIInteractions(player, api, ui) {
         }
     };
 
-    const renderQueueContent = (container) => {
+    const renderQueueItemHTML = (track, index) => {
+        const isPlaying = index === player.currentQueueIndex;
+        const isBlocked = contentBlockingSettings?.shouldHideTrack(track);
+        const trackTitle = getTrackTitle(track);
+        const trackArtists = getTrackArtists(track, { fallback: 'Unknown' });
+        const qualityBadge = createQualityBadgeHTML(track);
+        const blockedTitle = isBlocked
+            ? `title="Blocked: ${contentBlockingSettings.isTrackBlocked(track.id) ? 'Track blocked' : contentBlockingSettings.isArtistBlocked(track.artist?.id) ? 'Artist blocked' : 'Album blocked'}"`
+            : '';
+
+        const isVideo = track.type === 'video';
+        const coverUrl =
+            isVideo && track.imageId
+                ? api.getVideoCoverUrl(track.imageId)
+                : api.getCoverUrl(track.album?.cover);
+
+        return `
+        <div class="queue-track-item ${isPlaying ? 'playing' : ''} ${isBlocked ? 'blocked' : ''}" data-queue-index="${index}" data-track-id="${track.id}" draggable="${isBlocked ? 'false' : 'true'}" ${blockedTitle}>
+            <div class="drag-handle">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="5" y1="8" x2="19" y2="8"></line>
+                    <line x1="5" y1="16" x2="19" y2="16"></line>
+                </svg>
+            </div>
+            <div class="track-item-info">
+                <img src="${coverUrl}"
+                     class="track-item-cover" loading="lazy">
+                <div class="track-item-details">
+                    <div class="title">${escapeHtml(trackTitle)} ${qualityBadge}</div>
+                    <div class="artist">${escapeHtml(trackArtists)}</div>
+                </div>
+            </div>
+            <div class="track-item-duration">${isBlocked ? '--:--' : formatTime(track.duration)}</div>
+            <button class="queue-like-btn" data-action="toggle-like" title="Add to Liked">
+                ${SVG_HEART}
+            </button>
+            <button class="queue-remove-btn" data-track-index="${index}" title="Remove from queue">
+                ${SVG_BIN}
+            </button>
+        </div>
+    `;
+    };
+
+    const attachQueueListeners = (container) => {
+        if (container._queueListenersAttached) return;
+
+        container.addEventListener('click', async (e) => {
+            const item = e.target.closest('.queue-track-item');
+            if (!item) return;
+
+            const index = parseInt(item.dataset.queueIndex);
+            const removeBtn = e.target.closest('.queue-remove-btn');
+            if (removeBtn) {
+                e.stopPropagation();
+                player.removeFromQueue(index);
+                refreshQueuePanel();
+                return;
+            }
+
+            const likeBtn = e.target.closest('.queue-like-btn');
+            if (likeBtn && likeBtn.dataset.action === 'toggle-like') {
+                e.stopPropagation();
+                const track = player.getCurrentQueue()[index];
+                if (track) {
+                    const added = await db.toggleFavorite('track', track);
+                    syncManager.syncLibraryItem('track', track, added);
+
+                    likeBtn.classList.toggle('active', added);
+                    likeBtn.innerHTML = added
+                        ? SVG_HEART.replace('class="heart-icon"', 'class="heart-icon filled"')
+                        : SVG_HEART;
+
+                    showNotification(
+                        added ? `Added to Liked: ${track.title}` : `Removed from Liked: ${track.title}`
+                    );
+                }
+                return;
+            }
+
+            if (item.classList.contains('blocked')) return;
+
+            player.playAtIndex(index);
+            refreshQueuePanel();
+        });
+
+        container.addEventListener('contextmenu', async (e) => {
+            const item = e.target.closest('.queue-track-item');
+            if (!item) return;
+
+            e.preventDefault();
+            const index = parseInt(item.dataset.queueIndex);
+            const contextMenu = document.getElementById('context-menu');
+            if (contextMenu) {
+                const track = player.getCurrentQueue()[index];
+                if (track) {
+                    const isLiked = await db.isFavorite('track', track.id);
+                    const likeItem = contextMenu.querySelector('li[data-action="toggle-like"]');
+                    if (likeItem) {
+                        likeItem.textContent = isLiked ? 'Unlike' : 'Like';
+                    }
+
+                    const trackMixItem = contextMenu.querySelector('li[data-action="track-mix"]');
+                    if (trackMixItem) {
+                        const hasMix = track.mixes && track.mixes.TRACK_MIX;
+                        trackMixItem.style.display = hasMix ? 'block' : 'none';
+                    }
+
+                    positionMenu(contextMenu, e.clientX, e.clientY);
+                    contextMenu._contextTrack = track;
+                }
+            }
+        });
+
+        container.addEventListener('dragstart', (e) => {
+            const item = e.target.closest('.queue-track-item');
+            if (item) {
+                draggedQueueIndex = parseInt(item.dataset.queueIndex);
+                item.style.opacity = '0.5';
+            }
+        });
+
+        container.addEventListener('dragend', (e) => {
+            const item = e.target.closest('.queue-track-item');
+            if (item) {
+                item.style.opacity = '1';
+            }
+        });
+
+        container.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+
+        container.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const item = e.target.closest('.queue-track-item');
+            if (item && draggedQueueIndex !== null) {
+                const index = parseInt(item.dataset.queueIndex);
+                if (draggedQueueIndex !== index) {
+                    player.moveInQueue(draggedQueueIndex, index);
+                    refreshQueuePanel();
+                }
+            }
+        });
+
+        container._queueListenersAttached = true;
+    };
+
+    const renderQueueContent = (container, isUpdate = false) => {
         const currentQueue = player.getCurrentQueue();
 
         if (currentQueue.length === 0) {
             container.innerHTML = '<div class="placeholder-text">Queue is empty.</div>';
+            queueStartIndex = 0;
+            queueEndIndex = QUEUE_MAX_RENDERED;
             return;
         }
 
-        const html = currentQueue
-            .map((track, index) => {
-                const isPlaying = index === player.currentQueueIndex;
-                const isBlocked = contentBlockingSettings?.shouldHideTrack(track);
-                const trackTitle = getTrackTitle(track);
-                const trackArtists = getTrackArtists(track, { fallback: 'Unknown' });
-                const qualityBadge = createQualityBadgeHTML(track);
-                const blockedTitle = isBlocked
-                    ? `title="Blocked: ${contentBlockingSettings.isTrackBlocked(track.id) ? 'Track blocked' : contentBlockingSettings.isArtistBlocked(track.artist?.id) ? 'Artist blocked' : 'Album blocked'}"`
-                    : '';
+        isQueueRendering = true;
+        attachQueueListeners(container);
 
-                const isVideo = track.type === 'video';
-                const coverUrl =
-                    isVideo && track.imageId
-                        ? api.getVideoCoverUrl(track.imageId)
-                        : api.getCoverUrl(track.album?.cover);
+        if (currentQueue.length > QUEUE_VIRTUALIZATION_THRESHOLD) {
+            if (!isUpdate) {
+                const currentIndex = player.currentQueueIndex || 0;
+                queueStartIndex = Math.max(0, Math.floor((currentIndex - QUEUE_MAX_RENDERED / 2) / 100) * 100);
+                queueEndIndex = Math.min(currentQueue.length, queueStartIndex + QUEUE_MAX_RENDERED);
+            }
 
-                return `
-                <div class="queue-track-item ${isPlaying ? 'playing' : ''} ${isBlocked ? 'blocked' : ''}" data-queue-index="${index}" data-track-id="${track.id}" draggable="${isBlocked ? 'false' : 'true'}" ${blockedTitle}>
-                    <div class="drag-handle">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="5" y1="8" x2="19" y2="8"></line>
-                            <line x1="5" y1="16" x2="19" y2="16"></line>
-                        </svg>
+            const visibleTracks = currentQueue.slice(queueStartIndex, queueEndIndex);
+            const topSpacerHeight = queueStartIndex * ESTIMATED_ITEM_HEIGHT;
+            const bottomSpacerHeight = (currentQueue.length - queueEndIndex) * ESTIMATED_ITEM_HEIGHT;
+
+            container.innerHTML = `
+                <div class="queue-virtual-container" style="padding: 0.5rem">
+                    <div id="queue-top-sentinel" style="height: 20px; margin-top: ${topSpacerHeight}px"></div>
+                    <div class="queue-items-wrapper">
+                        ${visibleTracks.map((track, i) => renderQueueItemHTML(track, queueStartIndex + i)).join('')}
                     </div>
-                    <div class="track-item-info">
-                        <img src="${coverUrl}"
-                             class="track-item-cover" loading="lazy">
-                        <div class="track-item-details">
-                            <div class="title">${escapeHtml(trackTitle)} ${qualityBadge}</div>
-                            <div class="artist">${escapeHtml(trackArtists)}</div>
-                        </div>
-                    </div>
-                    <div class="track-item-duration">${isBlocked ? '--:--' : formatTime(track.duration)}</div>
-                    <button class="queue-like-btn" data-action="toggle-like" title="Add to Liked">
-                        ${SVG_HEART}
-                    </button>
-                    <button class="queue-remove-btn" data-track-index="${index}" title="Remove from queue">
-                        ${SVG_BIN}
-                    </button>
+                    <div id="queue-bottom-sentinel" style="height: 20px; margin-bottom: ${bottomSpacerHeight}px"></div>
                 </div>
             `;
-            })
-            .join('');
 
-        container.innerHTML = html;
+            if (topObserver) topObserver.disconnect();
+            if (bottomObserver) bottomObserver.disconnect();
+
+            bottomObserver = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting && !isQueueRendering && queueEndIndex < currentQueue.length) {
+                    queueEndIndex = Math.min(currentQueue.length, queueEndIndex + QUEUE_CHUNK_SIZE);
+                    if (queueEndIndex - queueStartIndex > QUEUE_MAX_RENDERED) {
+                        queueStartIndex += QUEUE_CHUNK_SIZE;
+                    }
+                    renderQueueContent(container, true);
+                }
+            }, { root: container, rootMargin: '200px' });
+
+            topObserver = new IntersectionObserver((entries) => {
+                if (entries[0].isIntersecting && !isQueueRendering && queueStartIndex > 0) {
+                    queueStartIndex = Math.max(0, queueStartIndex - QUEUE_CHUNK_SIZE);
+                    if (queueEndIndex - queueStartIndex > QUEUE_MAX_RENDERED) {
+                        queueEndIndex -= QUEUE_CHUNK_SIZE;
+                    }
+                    renderQueueContent(container, true);
+                }
+            }, { root: container, rootMargin: '200px' });
+
+            topObserver.observe(container.querySelector('#queue-top-sentinel'));
+            bottomObserver.observe(container.querySelector('#queue-bottom-sentinel'));
+        } else {
+            container.innerHTML = `<div style="padding: 0.5rem">${currentQueue.map((track, index) => renderQueueItemHTML(track, index)).join('')}</div>`;
+            if (topObserver) topObserver.disconnect();
+            if (bottomObserver) bottomObserver.disconnect();
+        }
 
         container.querySelectorAll('.queue-track-item').forEach(async (item) => {
             const index = parseInt(item.dataset.queueIndex);
-            const track = player.getCurrentQueue()[index];
-
-            // Update like button state
+            const track = currentQueue[index];
             const likeBtn = item.querySelector('.queue-like-btn');
             if (likeBtn && track) {
                 const isLiked = await db.isFavorite('track', track.id);
@@ -300,101 +464,26 @@ export function initializeUIInteractions(player, api, ui) {
                     ? SVG_HEART.replace('class="heart-icon"', 'class="heart-icon filled"')
                     : SVG_HEART;
             }
-
-            item.addEventListener('click', async (e) => {
-                const removeBtn = e.target.closest('.queue-remove-btn');
-                if (removeBtn) {
-                    e.stopPropagation();
-                    player.removeFromQueue(index);
-                    refreshQueuePanel();
-                    return;
-                }
-
-                const likeBtn = e.target.closest('.queue-like-btn');
-                if (likeBtn && likeBtn.dataset.action === 'toggle-like') {
-                    e.stopPropagation();
-                    const track = player.getCurrentQueue()[index];
-                    if (track) {
-                        const added = await db.toggleFavorite('track', track);
-                        syncManager.syncLibraryItem('track', track, added);
-
-                        // Update button state
-                        likeBtn.classList.toggle('active', added);
-                        likeBtn.innerHTML = added
-                            ? SVG_HEART.replace('class="heart-icon"', 'class="heart-icon filled"')
-                            : SVG_HEART;
-
-                        showNotification(
-                            added ? `Added to Liked: ${track.title}` : `Removed from Liked: ${track.title}`
-                        );
-                    }
-                    return;
-                }
-
-                // Don't play blocked tracks
-                if (item.classList.contains('blocked')) {
-                    return;
-                }
-
-                player.playAtIndex(index);
-                refreshQueuePanel();
-            });
-
-            item.addEventListener('contextmenu', async (e) => {
-                e.preventDefault();
-                const contextMenu = document.getElementById('context-menu');
-                if (contextMenu) {
-                    const track = player.getCurrentQueue()[index];
-                    if (track) {
-                        const isLiked = await db.isFavorite('track', track.id);
-                        const likeItem = contextMenu.querySelector('li[data-action="toggle-like"]');
-                        if (likeItem) {
-                            likeItem.textContent = isLiked ? 'Unlike' : 'Like';
-                        }
-
-                        const trackMixItem = contextMenu.querySelector('li[data-action="track-mix"]');
-                        if (trackMixItem) {
-                            const hasMix = track.mixes && track.mixes.TRACK_MIX;
-                            trackMixItem.style.display = hasMix ? 'block' : 'none';
-                        }
-
-                        positionMenu(contextMenu, e.clientX, e.clientY);
-
-                        contextMenu._contextTrack = track;
-                    }
-                }
-            });
-
-            item.addEventListener('dragstart', () => {
-                draggedQueueIndex = index;
-                item.style.opacity = '0.5';
-            });
-
-            item.addEventListener('dragend', () => {
-                item.style.opacity = '1';
-            });
-
-            item.addEventListener('dragover', (e) => {
-                e.preventDefault();
-            });
-
-            item.addEventListener('drop', (e) => {
-                e.preventDefault();
-                if (draggedQueueIndex !== null && draggedQueueIndex !== index) {
-                    player.moveInQueue(draggedQueueIndex, index);
-                    refreshQueuePanel();
-                }
-            });
         });
+        
+        isQueueRendering = false;
     };
 
     const refreshQueuePanel = () => {
-        sidePanelManager.refresh('queue', renderQueueControls, renderQueueContent);
+        sidePanelManager.refresh('queue', renderQueueControls, renderQueueContent, { noClear: true });
     };
 
     const openQueuePanel = () => {
         trackOpenQueue();
         sidePanelManager.open('queue', 'Queue', renderQueueControls, renderQueueContent);
+
+        setTimeout(() => {
+            const container = document.getElementById('side-panel-content');
+            const playingItem = container?.querySelector('.queue-track-item.playing');
+            if (playingItem) {
+                playingItem.scrollIntoView({ block: 'center', behavior: 'auto' });
+            }
+        }, 100);
     };
 
     queueBtn.addEventListener('click', openQueuePanel);

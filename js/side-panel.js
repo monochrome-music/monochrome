@@ -61,14 +61,16 @@ export class SidePanelManager {
         return this.currentView === view && this.panel.classList.contains('active');
     }
 
-    refresh(view, renderControlsCallback, renderContentCallback) {
+    refresh(view, renderControlsCallback, renderContentCallback, options = {}) {
         if (this.isActive(view)) {
             if (renderControlsCallback) {
                 this.controlsElement.innerHTML = '';
                 renderControlsCallback(this.controlsElement);
             }
             if (renderContentCallback) {
-                this.contentElement.innerHTML = '';
+                if (!options.noClear) {
+                    this.contentElement.innerHTML = '';
+                }
                 renderContentCallback(this.contentElement);
             }
         }
