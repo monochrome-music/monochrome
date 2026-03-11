@@ -100,7 +100,6 @@ export default function authGatePlugin() {
 
                 console.log(`Auth gate enabled (Project: ${APPWRITE_PROJECT_ID})`);
 
-
                 server.middlewares.use(
                     cookieSession({
                         name: 'mono_session',

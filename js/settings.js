@@ -2874,10 +2874,8 @@ export function initializeSettings(scrobbler, player, api, ui) {
         // Hide individual fields in the modal
         if (pbFromEnv && customPbUrlInput) customPbUrlInput.closest('div[style]').style.display = 'none';
         if (appwriteFromEnv) {
-            if (customAppwriteEndpointInput)
-                customAppwriteEndpointInput.closest('div[style]').style.display = 'none';
-            if (customAppwriteProjectInput)
-                customAppwriteProjectInput.closest('div[style]').style.display = 'none';
+            if (customAppwriteEndpointInput) customAppwriteEndpointInput.closest('div[style]').style.display = 'none';
+            if (customAppwriteProjectInput) customAppwriteProjectInput.closest('div[style]').style.display = 'none';
         }
 
         customDbBtn.addEventListener('click', () => {
