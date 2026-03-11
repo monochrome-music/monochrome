@@ -2202,21 +2202,21 @@ export class UIRenderer {
 
             try {
                 const seeds = providedSeeds || (await this.getSeeds());
-                
+
                 const [favorites, playlists, history] = await Promise.all([
                     db.getFavorites('track'),
                     db.getPlaylists(true),
                     db.getHistory(),
                 ]);
                 const knownTrackIds = new Set([
-                    ...favorites.map(t => t.id),
-                    ...playlists.flatMap(p => (p.tracks || []).map(t => t.id)),
-                    ...history.map(t => t.id)
+                    ...favorites.map((t) => t.id),
+                    ...playlists.flatMap((p) => (p.tracks || []).map((t) => t.id)),
+                    ...history.map((t) => t.id),
                 ]);
 
                 const recommendedTracks = await this.api.getRecommendedTracksForPlaylist(seeds, 20, {
                     skipCache: forceRefresh,
-                    knownTrackIds: knownTrackIds
+                    knownTrackIds: knownTrackIds,
                 });
 
                 const filteredTracks = await this.filterUserContent(recommendedTracks, 'track');

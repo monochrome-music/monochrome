@@ -1063,9 +1063,8 @@ _resetDashPlayer() {
                 }
 
                 const shuffledSeeds = [...this.radioSeeds].sort(() => 0.5 - Math.random());
-                const seeds = shuffledSeeds.length > 0 
-                    ? shuffledSeeds.slice(0, 5) 
-                    : this.currentTrack ? [this.currentTrack] : [];
+                const seeds =
+                    shuffledSeeds.length > 0 ? shuffledSeeds.slice(0, 5) : this.currentTrack ? [this.currentTrack] : [];
 
                 if (seeds.length === 0) {
                     return;
@@ -1084,7 +1083,7 @@ _resetDashPlayer() {
                 ]);
 
                 const recommendations = await this.api.getRecommendedTracksForPlaylist(seeds, 20, {
-                    knownTrackIds: knownTrackIds
+                    knownTrackIds: knownTrackIds,
                 });
 
                 if (recommendations && recommendations.length > 0) {
