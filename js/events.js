@@ -202,7 +202,8 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
             console.error(`Media playback error (${element.id}):`, errorMsg, e);
             playPauseBtn.innerHTML = SVG_PLAY;
 
-            const canFallback = player.quality === 'HI_RES_LOSSLESS' &&
+            const canFallback =
+                player.quality === 'HI_RES_LOSSLESS' &&
                 errorMsg.includes('Source not supported') &&
                 errorMsg.includes('0x80004005') &&
                 !player.isFallbackRetry;
