@@ -213,17 +213,26 @@ npm run build
 
 ### Keyboard Shortcuts
 
-| Shortcut | Action         |
-| -------- | -------------- |
-| `Space`  | Play/Pause     |
-| `→`      | Next track     |
-| `←`      | Previous track |
-| `↑`      | Volume up      |
-| `↓`      | Volume down    |
-| `M`      | Mute/Unmute    |
-| `L`      | Toggle lyrics  |
-| `F`      | Fullscreen     |
-| `/`      | Focus search   |
+| Shortcut | Action |
+| --- | --- |
+| `Space` | Play / Pause |
+| `→` | Seek forward 10s |
+| `←` | Seek backward 10s |
+| `Shift` + `→` | Next track |
+| `Shift` + `←` | Previous track |
+| `↑` | Volume up |
+| `↓` | Volume down |
+| `M` | Mute / Unmute |
+| `S` | Toggle shuffle |
+| `R` | Toggle repeat |
+| `Q` | Open queue |
+| `L` | Toggle lyrics |
+| `/` | Focus search |
+| `Esc` | Close modals |
+| `[` | Previous visualizer preset |
+| `]` | Next visualizer preset |
+| `\` | Toggle visualizer auto-cycle |
+| `Ctrl` + `K` | Command Palette |
 
 ### Account Features
 
