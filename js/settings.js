@@ -2273,6 +2273,9 @@ export function initializeSettings(scrobbler, player, api, ui) {
                 ui.visualizer.setPreset(val);
             }
             updateButterchurnSettingsVisibility();
+
+            //Since changing the preset breaks the visualizer, a location.reload() is added to make sure that it works
+            window.location.reload();
         });
     }
 
