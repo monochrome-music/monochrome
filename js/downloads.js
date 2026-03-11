@@ -17,8 +17,14 @@ import { addMetadataToAudio, prefetchMetadataObjects } from './metadata.js';
 import { rebuildFlacWithoutMetadata } from './metadata.flac.js';
 import { DashDownloader } from './dash-downloader.js';
 import { generateM3U, generateM3U8, generateCUE, generateNFO, generateJSON } from './playlist-generator.js';
-import { encodeToMp3 } from './mp3-encoder.js';
-import { ffmpeg, loadFfmpeg } from './ffmpeg.js';
+import { loadFfmpeg } from './ffmpeg.js';
+import {
+    isCustomFormat,
+    getCustomFormat,
+    transcodeWithCustomFormat,
+    getContainerFormat,
+    transcodeWithContainerFormat,
+} from './ffmpegFormats.ts';
 
 const downloadTasks = new Map();
 const bulkDownloadTasks = new Map();
@@ -72,6 +78,63 @@ async function createDiscLayoutContext(tracks, api) {
     }
 
     return { separateByDisc: false, resolveDiscNumber: () => 1 };
+}
+
+async function computeDiscInfo(tracks, api = null) {
+    // First pass: collect explicit disc numbers from the raw track objects.
+    const explicitDiscNumbers = tracks.map((track) => getExplicitTrackDiscNumber(track));
+    const explicitDistinct = new Set(explicitDiscNumbers.filter(Boolean));
+
+    let resolvedDiscNumbers = explicitDiscNumbers;
+
+    // Some providers omit disc fields in the album payload. When we can't
+    // distinguish discs from the raw data and an API instance is provided,
+    // hydrate missing disc numbers via full-track metadata (mirrors the logic
+    // in createDiscLayoutContext).
+    if (explicitDistinct.size <= 1 && api) {
+        const hydratedDiscNumbers = await Promise.all(
+            tracks.map(async (track, index) => {
+                if (explicitDiscNumbers[index]) return explicitDiscNumbers[index];
+                try {
+                    const fullTrack = await api.getTrackMetadata(track.id);
+                    return getExplicitTrackDiscNumber(fullTrack);
+                } catch {
+                    return null;
+                }
+            })
+        );
+        const hydratedDistinct = new Set(hydratedDiscNumbers.filter(Boolean));
+        if (hydratedDistinct.size > 1) {
+            resolvedDiscNumbers = hydratedDiscNumbers;
+        }
+    }
+
+    const tracksPerDisc = new Map();
+    let maxDiscNumber = 0;
+    for (let i = 0; i < tracks.length; i++) {
+        const discNumber = resolvedDiscNumbers[i] || 1;
+        tracksPerDisc.set(discNumber, (tracksPerDisc.get(discNumber) || 0) + 1);
+        if (discNumber > maxDiscNumber) {
+            maxDiscNumber = discNumber;
+        }
+    }
+
+    return { totalDiscs: maxDiscNumber || 1, tracksPerDisc, resolvedDiscNumbers };
+}
+
+async function annotateTracksWithDiscInfo(tracks, api = null) {
+    const { totalDiscs, tracksPerDisc, resolvedDiscNumbers } = await computeDiscInfo(tracks, api);
+    return tracks.map((track, index) => {
+        const discNumber = resolvedDiscNumbers[index] || 1;
+        return {
+            ...track,
+            album: {
+                ...(track.album || {}),
+                totalDiscs,
+                numberOfTracksOnDisc: tracksPerDisc.get(discNumber),
+            },
+        };
+    });
 }
 
 function getDiscFolderName(discNumber) {
@@ -265,8 +328,8 @@ async function downloadTrackBlob(
         artist: track.artist || (track.artists && track.artists.length > 0 ? track.artists[0] : null),
     };
 
-    // MP3_320 is not a native TIDAL quality, we download LOSSLESS and convert
-    const downloadQuality = quality === 'MP3_320' ? 'LOSSLESS' : quality;
+    // Custom FFMPEG formats are not native TIDAL qualities; download LOSSLESS and transcode
+    const downloadQuality = isCustomFormat(quality) ? 'LOSSLESS' : quality;
 
     try {
         const fullTrack = await api.getTrackMetadata(track.id);
@@ -288,13 +351,22 @@ async function downloadTrackBlob(
         // Non-fatal: continue with best available track payload
     }
 
-    if (enrichedTrack.album && (!enrichedTrack.album.title || !enrichedTrack.album.artist) && enrichedTrack.album.id) {
+    if (enrichedTrack.album?.id) {
         try {
             const albumData = await api.getAlbum(enrichedTrack.album.id);
-            if (albumData.album) {
+            if (albumData.album && (!enrichedTrack.album.title || !enrichedTrack.album.artist)) {
                 enrichedTrack.album = {
                     ...enrichedTrack.album,
                     ...albumData.album,
+                };
+            }
+            if (albumData.tracks?.length > 0) {
+                const { totalDiscs, tracksPerDisc } = await computeDiscInfo(albumData.tracks, api);
+                const discNumber = getExplicitTrackDiscNumber(enrichedTrack) || 1;
+                enrichedTrack.album = {
+                    ...enrichedTrack.album,
+                    totalDiscs,
+                    numberOfTracksOnDisc: tracksPerDisc.get(discNumber),
                 };
             }
         } catch (error) {
@@ -346,40 +418,23 @@ async function downloadTrackBlob(
         blob = await response.blob();
     }
 
-    // Convert to MP3 320kbps if requested
-    if (quality === 'MP3_320') {
-        blob = await encodeToMp3(blob, onProgress || (() => undefined), signal);
+    // Transcode to custom format if requested
+    if (isCustomFormat(quality)) {
+        const format = getCustomFormat(quality);
+        if (format) {
+            blob = await transcodeWithCustomFormat(blob, format, onProgress || (() => undefined), signal);
+        }
     }
 
     if (quality.endsWith('LOSSLESS')) {
         try {
-            switch (losslessContainerSettings.getContainer()) {
-                case 'flac':
-                    if ((await getExtensionFromBlob(blob)) != 'flac') {
-                        blob = await ffmpeg(
-                            blob,
-                            { args: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'flac'] },
-                            'output.flac',
-                            'audio/flac',
-                            onProgress,
-                            signal
-                        );
-                    } else {
-                        blob = await rebuildFlacWithoutMetadata(blob);
-                    }
-                    break;
-                case 'alac':
-                    blob = await ffmpeg(
-                        blob,
-                        { args: ['-c:a', 'alac'] },
-                        'output.m4a',
-                        'audio/mp4',
-                        onProgress,
-                        signal
-                    );
-                    break;
-                default:
-                    break;
+            const containerFmt = getContainerFormat(losslessContainerSettings.getContainer());
+            if (containerFmt) {
+                if (await containerFmt.needsTranscode(blob)) {
+                    blob = await transcodeWithContainerFormat(blob, containerFmt, onProgress, signal);
+                } else if ((await getExtensionFromBlob(blob)) == 'flac') {
+                    blob = await rebuildFlacWithoutMetadata(blob);
+                }
             }
         } catch (error) {
             if (error?.name === 'AbortError') {
@@ -1082,7 +1137,17 @@ export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsMana
     });
 
     const coverBlob = await getCoverBlob(api, album.cover || album.album?.cover || album.coverId);
-    await startBulkDownload(tracks, folderName, api, quality, lyricsManager, 'album', album.title, coverBlob, album);
+    await startBulkDownload(
+        await annotateTracksWithDiscInfo(tracks, api),
+        folderName,
+        api,
+        quality,
+        lyricsManager,
+        'album',
+        album.title,
+        coverBlob,
+        album
+    );
 }
 
 export async function downloadPlaylistAsZip(playlist, tracks, api, quality, lyricsManager = null) {
@@ -1124,7 +1189,8 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
             updateBulkDownloadProgress(notification, albumIndex, selectedReleases.length, album.title);
 
             try {
-                const { album: fullAlbum, tracks } = await api.getAlbum(album.id);
+                const { album: fullAlbum, tracks: rawTracks } = await api.getAlbum(album.id);
+                const tracks = await annotateTracksWithDiscInfo(rawTracks, api);
                 const coverBlob = await getCoverBlob(api, fullAlbum.cover || album.cover);
                 const releaseDateStr =
                     fullAlbum.releaseDate ||
@@ -1286,7 +1352,8 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                 if (signal.aborted) break;
                 const album = selectedReleases[albumIndex];
                 updateBulkDownloadProgress(notification, albumIndex, selectedReleases.length, album.title);
-                const { tracks } = await api.getAlbum(album.id);
+                const { tracks: rawTracks } = await api.getAlbum(album.id);
+                const tracks = await annotateTracksWithDiscInfo(rawTracks, api);
                 await bulkDownloadSequentially(tracks, api, quality, lyricsManager, notification);
             }
             completeBulkDownload(notification, true);
@@ -1430,13 +1497,22 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
         // Continue with available track payload
     }
 
-    if (enrichedTrack.album && (!enrichedTrack.album.title || !enrichedTrack.album.artist) && enrichedTrack.album.id) {
+    if (enrichedTrack.album?.id) {
         try {
             const albumData = await api.getAlbum(enrichedTrack.album.id);
-            if (albumData.album) {
+            if (albumData.album && (!enrichedTrack.album.title || !enrichedTrack.album.artist)) {
                 enrichedTrack.album = {
                     ...enrichedTrack.album,
                     ...albumData.album,
+                };
+            }
+            if (albumData.tracks?.length > 0) {
+                const { totalDiscs, tracksPerDisc } = await computeDiscInfo(albumData.tracks, api);
+                const discNumber = getExplicitTrackDiscNumber(enrichedTrack) || 1;
+                enrichedTrack.album = {
+                    ...enrichedTrack.album,
+                    totalDiscs,
+                    numberOfTracksOnDisc: tracksPerDisc.get(discNumber),
                 };
             }
         } catch (error) {

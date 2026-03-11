@@ -1242,6 +1242,20 @@ export class UIRenderer {
             showButton();
         }
 
+        const toggleUI = (e) => {
+            if (e) e.stopPropagation();
+            isUIHidden = !isUIHidden;
+            overlay.classList.toggle('ui-hidden', isUIHidden);
+            toggleBtn.classList.toggle('active', isUIHidden);
+            toggleBtn.title = isUIHidden ? 'Show UI' : 'Hide UI';
+
+            if (isUIHidden) {
+                hideButton();
+            } else {
+                showButton();
+            }
+        };
+
         // Mouse move handler
         const handleMouseMove = (e) => {
             const rect = overlay.getBoundingClientRect();
@@ -2188,9 +2202,21 @@ export class UIRenderer {
 
             try {
                 const seeds = providedSeeds || (await this.getSeeds());
-                const trackSeeds = seeds.slice(0, 5);
-                const recommendedTracks = await this.api.getRecommendedTracksForPlaylist(trackSeeds, 20, {
+
+                const [favorites, playlists, history] = await Promise.all([
+                    db.getFavorites('track'),
+                    db.getPlaylists(true),
+                    db.getHistory(),
+                ]);
+                const knownTrackIds = new Set([
+                    ...favorites.map((t) => t.id),
+                    ...playlists.flatMap((p) => (p.tracks || []).map((t) => t.id)),
+                    ...history.map((t) => t.id),
+                ]);
+
+                const recommendedTracks = await this.api.getRecommendedTracksForPlaylist(seeds, 20, {
                     skipCache: forceRefresh,
+                    knownTrackIds: knownTrackIds,
                 });
 
                 const filteredTracks = await this.filterUserContent(recommendedTracks, 'track');
