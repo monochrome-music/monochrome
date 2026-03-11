@@ -11,9 +11,10 @@ import { APICache } from './cache.js';
 import { addMetadataToAudio, prefetchMetadataObjects } from './metadata.js';
 import { DashDownloader } from './dash-downloader.js';
 import { HlsDownloader } from './hls-downloader.js';
-import { encodeToMp3, MP3EncodingError } from './mp3-encoder.js';
-import { ffmpeg, loadFfmpeg } from './ffmpeg.js';
+import { MP3EncodingError } from './mp3-encoder.js';
+import { ffmpeg, loadFfmpeg, FfmpegError } from './ffmpeg.js';
 import { rebuildFlacWithoutMetadata } from './metadata.flac.js';
+import { isCustomFormat, getCustomFormat, transcodeWithCustomFormat } from './customFormats.ts';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 const TIDAL_V2_TOKEN = 'txNoH4kkV41MfH25';
@@ -1294,8 +1295,8 @@ export class LosslessAPI {
         const isVideo = track?.type === 'video';
 
         try {
-            // MP3_320 is not a native TIDAL quality, we download LOSSLESS and convert
-            const downloadQuality = quality === 'MP3_320' ? 'LOSSLESS' : quality;
+            // Custom FFMPEG formats are not native TIDAL qualities; download LOSSLESS and transcode
+            const downloadQuality = isCustomFormat(quality) ? 'LOSSLESS' : quality;
 
             let lookup;
             if (isVideo) {
@@ -1416,18 +1417,21 @@ export class LosslessAPI {
             }
 
             if (!isVideo) {
-                // Convert to MP3 320kbps if requested
-                if (quality === 'MP3_320') {
-                    try {
-                        blob = await encodeToMp3(blob, onProgress, options.signal);
-                    } catch (encodingError) {
-                        if (onProgress) {
-                            onProgress({
-                                stage: 'error',
-                                message: `Encoding failed: ${encodingError.message}`,
-                            });
+                // Transcode to custom format if requested
+                if (isCustomFormat(quality)) {
+                    const format = getCustomFormat(quality);
+                    if (format) {
+                        try {
+                            blob = await transcodeWithCustomFormat(blob, format, onProgress, options.signal);
+                        } catch (encodingError) {
+                            if (onProgress) {
+                                onProgress({
+                                    stage: 'error',
+                                    message: `Encoding failed: ${encodingError.message}`,
+                                });
+                            }
+                            throw encodingError;
                         }
-                        throw encodingError;
                     }
                 }
 
@@ -1559,7 +1563,11 @@ export class LosslessAPI {
                 throw error;
             }
             console.error('Download failed:', error);
-            if (error instanceof MP3EncodingError || error.code === 'MP3_ENCODING_FAILED') {
+            if (
+                error instanceof MP3EncodingError ||
+                error instanceof FfmpegError ||
+                error.code === 'MP3_ENCODING_FAILED'
+            ) {
                 throw error;
             }
             if (error.message === RATE_LIMIT_ERROR_MESSAGE) {

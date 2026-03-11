@@ -42,6 +42,7 @@ import { db } from './db.js';
 import { authManager } from './accounts/auth.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { saveFirebaseConfig, clearFirebaseConfig } from './accounts/config.js';
+import { customFormats } from './customFormats.ts';
 
 export function initializeSettings(scrobbler, player, api, ui) {
     // Restore last active settings tab
@@ -800,6 +801,63 @@ export function initializeSettings(scrobbler, player, api, ui) {
     // Download Quality setting
     const downloadQualitySetting = document.getElementById('download-quality-setting');
     if (downloadQualitySetting) {
+        // Assign categories to the static (native) options already in the HTML
+        const staticCategories = {
+            HI_RES_LOSSLESS: 'Lossless',
+            LOSSLESS: 'Lossless',
+            HIGH: 'AAC',
+            LOW: 'AAC',
+        };
+
+        // Collect static options first (preserving their original order)
+        const allOptions = Array.from(downloadQualitySetting.options).map((opt) => ({
+            value: opt.value,
+            text: opt.textContent,
+            category: staticCategories[opt.value] || 'Other',
+        }));
+
+        // Append custom (ffmpeg-transcoded) format options
+        for (const fmt of customFormats) {
+            allOptions.push({ value: fmt.internalName, text: fmt.displayName, category: fmt.category });
+        }
+
+        // Sort by category order first, then by bitrate descending within each category
+        // so higher-quality options always appear before lower-quality ones.
+        // Options without an explicit kbps value (lossless) use Infinity so they
+        // sort to the top; ties fall back to display-name descending.
+        const getBitrate = (text) => {
+            const m = text.match(/(\d+)\s*kbps/i);
+            return m ? parseInt(m[1], 10) : Infinity;
+        };
+        const categoryOrder = ['Lossless', 'AAC', 'MP3', 'OGG'];
+        allOptions.sort((a, b) => {
+            const ai = categoryOrder.indexOf(a.category);
+            const bi = categoryOrder.indexOf(b.category);
+            const categoryDiff = (ai === -1 ? categoryOrder.length : ai) - (bi === -1 ? categoryOrder.length : bi);
+            if (categoryDiff !== 0) return categoryDiff;
+            const bitrateA = getBitrate(a.text);
+            const bitrateB = getBitrate(b.text);
+            if (bitrateA !== bitrateB) return bitrateB - bitrateA;
+            return b.text.localeCompare(a.text);
+        });
+
+        // Rebuild the select with optgroup elements per category
+        downloadQualitySetting.innerHTML = '';
+        let currentGroup = null;
+        let currentCategory = null;
+        for (const opt of allOptions) {
+            if (opt.category !== currentCategory) {
+                currentCategory = opt.category;
+                currentGroup = document.createElement('optgroup');
+                currentGroup.label = opt.category;
+                downloadQualitySetting.appendChild(currentGroup);
+            }
+            const option = document.createElement('option');
+            option.value = opt.value;
+            option.textContent = opt.text;
+            currentGroup.appendChild(option);
+        }
+
         downloadQualitySetting.value = downloadQualitySettings.getQuality();
 
         downloadQualitySetting.addEventListener('change', (e) => {
