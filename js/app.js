@@ -1421,7 +1421,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             if (missingTracks.length > 0) {
                                 setTimeout(() => {
-                                    showMissingTracksNotification(missingTracks);
+                                    showMissingTracksNotification(missingTracks, name || 'Untitled');
                                 }, 500);
                             }
                         } catch (err) {
@@ -1506,7 +1506,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             if (missingTracks.length > 0) {
                                 setTimeout(() => {
-                                    showMissingTracksNotification(missingTracks);
+                                    showMissingTracksNotification(missingTracks, name || 'Untitled');
                                 }, 500);
                             }
                         } catch (error) {
@@ -1610,7 +1610,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             if (missingTracks.length > 0) {
                                 setTimeout(() => {
-                                    showMissingTracksNotification(missingTracks);
+                                    showMissingTracksNotification(missingTracks, name || 'Untitled');
                                 }, 500);
                             }
                         } catch (error) {
@@ -1669,7 +1669,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             if (missingTracks.length > 0) {
                                 setTimeout(() => {
-                                    showMissingTracksNotification(missingTracks);
+                                    showMissingTracksNotification(missingTracks, name || 'Untitled');
                                 }, 500);
                             }
                         } catch (error) {
@@ -1728,7 +1728,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             if (missingTracks.length > 0) {
                                 setTimeout(() => {
-                                    showMissingTracksNotification(missingTracks);
+                                    showMissingTracksNotification(missingTracks, name || 'Untitled');
                                 }, 500);
                             }
                         } catch (error) {
@@ -1787,7 +1787,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             if (missingTracks.length > 0) {
                                 setTimeout(() => {
-                                    showMissingTracksNotification(missingTracks);
+                                    showMissingTracksNotification(missingTracks, name || 'Untitled');
                                 }, 500);
                             }
                         } catch (error) {
@@ -2839,10 +2839,11 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-function showMissingTracksNotification(missingTracks) {
+function showMissingTracksNotification(missingTracks, playlistName) {
     const modal = document.getElementById('missing-tracks-modal');
     const listUl = document.getElementById('missing-tracks-list-ul');
     const copyBtn = document.getElementById('copy-missing-tracks-btn');
+    const exportCSVBtn = document.getElementById('export-missing-tracks-csv-btn');
 
     listUl.innerHTML = missingTracks
         .map((track) => {
@@ -2857,19 +2858,54 @@ function showMissingTracksNotification(missingTracks) {
         copyBtn.parentNode.replaceChild(newCopyBtn, copyBtn);
 
         newCopyBtn.addEventListener('click', () => {
-            const textToCopy = missingTracks
-                .map((track) => {
-                    return typeof track === 'string'
-                        ? track
-                        : `${track.artist ? track.artist + ' - ' : ''}${track.title}`;
-                })
-                .join('\n');
+            const header = `Missing songs from ${playlistName} import:\n\n`;
+            const textToCopy =
+                header +
+                missingTracks
+                    .map((track) => {
+                        return typeof track === 'string'
+                            ? track
+                            : `${track.artist ? track.artist + ' - ' : ''}${track.title}`;
+                    })
+                    .join('\n');
 
             navigator.clipboard.writeText(textToCopy).then(() => {
                 const originalText = newCopyBtn.textContent;
                 newCopyBtn.textContent = 'Copied!';
                 setTimeout(() => (newCopyBtn.textContent = originalText), 2000);
             });
+        });
+    }
+
+    if (exportCSVBtn) {
+        const newExportBtn = exportCSVBtn.cloneNode(true);
+        exportCSVBtn.parentNode.replaceChild(newExportBtn, exportCSVBtn);
+
+        newExportBtn.addEventListener('click', () => {
+            const headers = ['Artist', 'Title', 'Album'];
+            let csvContent = headers.join(',') + '\n';
+
+            missingTracks.forEach((track) => {
+                if (typeof track === 'string') {
+                    csvContent += `"${track.replace(/"/g, '""')}","",""\n`;
+                } else {
+                    const artist = (track.artist || '').replace(/"/g, '""');
+                    const title = (track.title || '').replace(/"/g, '""');
+                    const album = (track.album || '').replace(/"/g, '""');
+                    csvContent += `"${artist}","${title}","${album}"\n`;
+                }
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            const fileName = `${playlistName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_missing_tracks.csv`;
+            link.setAttribute('download', fileName);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         });
     }
 
