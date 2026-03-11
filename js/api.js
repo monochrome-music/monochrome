@@ -11,9 +11,16 @@ import { APICache } from './cache.js';
 import { addMetadataToAudio, prefetchMetadataObjects } from './metadata.js';
 import { DashDownloader } from './dash-downloader.js';
 import { HlsDownloader } from './hls-downloader.js';
-import { encodeToMp3, MP3EncodingError } from './mp3-encoder.js';
-import { ffmpeg, loadFfmpeg } from './ffmpeg.js';
+import { MP3EncodingError } from './mp3-encoder.js';
+import { loadFfmpeg, FfmpegError } from './ffmpeg.js';
 import { rebuildFlacWithoutMetadata } from './metadata.flac.js';
+import {
+    isCustomFormat,
+    getCustomFormat,
+    transcodeWithCustomFormat,
+    getContainerFormat,
+    transcodeWithContainerFormat,
+} from './ffmpegFormats.ts';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 const TIDAL_V2_TOKEN = 'txNoH4kkV41MfH25';
@@ -1097,13 +1104,8 @@ export class LosslessAPI {
         const recommendedTracks = [];
         const seenTrackIds = new Set(tracks.map((t) => t.id));
 
-        // Shuffle artists if refreshing to get different results
-        let shuffledArtists = artists;
-        if (options.refresh) {
-            shuffledArtists = [...artists].sort(() => Math.random() - 0.5);
-        }
-
-        const artistsToProcess = shuffledArtists.slice(0, Math.min(5, shuffledArtists.length));
+        const shuffledArtists = [...artists].sort(() => Math.random() - 0.5);
+        const artistsToProcess = shuffledArtists.slice(0, Math.min(15, shuffledArtists.length));
 
         const artistPromises = artistsToProcess.map(async (artist) => {
             try {
@@ -1111,11 +1113,19 @@ export class LosslessAPI {
                 const artistData = await this.getArtist(artist.id, { lightweight: true, skipCache: options.refresh });
                 if (artistData && artistData.tracks && artistData.tracks.length > 0) {
                     const availableTracks = artistData.tracks.filter((track) => !seenTrackIds.has(track.id));
-                    // Shuffle and pick different tracks when refreshing
-                    const shuffled = options.refresh
-                        ? availableTracks.sort(() => Math.random() - 0.5)
+
+                    const newTracks = options.knownTrackIds
+                        ? availableTracks.filter((t) => !options.knownTrackIds.has(t.id))
                         : availableTracks;
-                    return shuffled.slice(0, 4);
+                    const knownTracks = options.knownTrackIds
+                        ? availableTracks.filter((t) => options.knownTrackIds.has(t.id))
+                        : [];
+
+                    const shuffledNew = [...newTracks].sort(() => Math.random() - 0.5);
+                    const shuffledKnown = [...knownTracks].sort(() => Math.random() - 0.5);
+
+                    const combined = [...shuffledNew, ...shuffledKnown];
+                    return combined.slice(0, 2);
                 } else {
                     console.warn(`No tracks found for artist ${artist.name}`);
                     return [];
@@ -1291,8 +1301,8 @@ export class LosslessAPI {
         const isVideo = track?.type === 'video';
 
         try {
-            // MP3_320 is not a native TIDAL quality, we download LOSSLESS and convert
-            const downloadQuality = quality === 'MP3_320' ? 'LOSSLESS' : quality;
+            // Custom FFMPEG formats are not native TIDAL qualities; download LOSSLESS and transcode
+            const downloadQuality = isCustomFormat(quality) ? 'LOSSLESS' : quality;
 
             let lookup;
             if (isVideo) {
@@ -1413,50 +1423,38 @@ export class LosslessAPI {
             }
 
             if (!isVideo) {
-                // Convert to MP3 320kbps if requested
-                if (quality === 'MP3_320') {
-                    try {
-                        blob = await encodeToMp3(blob, onProgress, options.signal);
-                    } catch (encodingError) {
-                        if (onProgress) {
-                            onProgress({
-                                stage: 'error',
-                                message: `Encoding failed: ${encodingError.message}`,
-                            });
+                // Transcode to custom format if requested
+                if (isCustomFormat(quality)) {
+                    const format = getCustomFormat(quality);
+                    if (format) {
+                        try {
+                            blob = await transcodeWithCustomFormat(blob, format, onProgress, options.signal);
+                        } catch (encodingError) {
+                            if (onProgress) {
+                                onProgress({
+                                    stage: 'error',
+                                    message: `Encoding failed: ${encodingError.message}`,
+                                });
+                            }
+                            throw encodingError;
                         }
-                        throw encodingError;
                     }
                 }
 
                 if (quality.endsWith('LOSSLESS')) {
                     try {
-                        switch (losslessContainerSettings.getContainer()) {
-                            case 'flac':
-                                if ((await getExtensionFromBlob(blob)) != 'flac') {
-                                    blob = await ffmpeg(
-                                        blob,
-                                        { args: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'flac'] },
-                                        'output.flac',
-                                        'audio/flac',
-                                        onProgress,
-                                        options.signal
-                                    );
-                                } else {
-                                    blob = await rebuildFlacWithoutMetadata(blob);
-                                }
-                                break;
-                            case 'alac':
-                                blob = await ffmpeg(
+                        const containerFmt = getContainerFormat(losslessContainerSettings.getContainer());
+                        if (containerFmt) {
+                            if (await containerFmt.needsTranscode(blob)) {
+                                blob = await transcodeWithContainerFormat(
                                     blob,
-                                    { args: ['-c:a', 'alac'] },
-                                    'output.m4a',
-                                    'audio/mp4',
+                                    containerFmt,
                                     onProgress,
                                     options.signal
                                 );
-                                break;
-                            default:
-                                break;
+                            } else if ((await getExtensionFromBlob(blob)) == 'flac') {
+                                blob = await rebuildFlacWithoutMetadata(blob);
+                            }
                         }
                     } catch (error) {
                         if (error?.name === 'AbortError') {
@@ -1486,6 +1484,55 @@ export class LosslessAPI {
                         };
                     }
 
+                    if (
+                        track.album?.id &&
+                        (track.album?.totalDiscs == null || track.album?.numberOfTracksOnDisc == null)
+                    ) {
+                        try {
+                            // Broad disc-field resolver — mirrors getExplicitTrackDiscNumber in downloads.js
+                            const resolveDiscNumber = (t) => {
+                                const candidates = [
+                                    t.volumeNumber,
+                                    t.discNumber,
+                                    t.mediaNumber,
+                                    t.media_number,
+                                    t.volume,
+                                    t.disc,
+                                    t.disc_no,
+                                    t.discNo,
+                                    t.disc_number,
+                                    t.mediaMetadata?.discNumber,
+                                ];
+                                for (const c of candidates) {
+                                    const parsed = parseInt(c, 10);
+                                    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+                                }
+                                return 1;
+                            };
+
+                            const albumData = await this.getAlbum(track.album.id);
+                            if (albumData.tracks?.length > 0) {
+                                const discTrackCounts = new Map();
+                                let maxDiscNumber = 0;
+                                for (const t of albumData.tracks) {
+                                    const dn = resolveDiscNumber(t);
+                                    discTrackCounts.set(dn, (discTrackCounts.get(dn) || 0) + 1);
+                                    if (dn > maxDiscNumber) maxDiscNumber = dn;
+                                }
+                                const totalDiscs = maxDiscNumber || 1;
+                                const discNumber = resolveDiscNumber(track);
+                                enrichedTrack.album = {
+                                    ...(enrichedTrack.album || {}),
+                                    totalDiscs: track.album?.totalDiscs ?? totalDiscs,
+                                    numberOfTracksOnDisc:
+                                        track.album?.numberOfTracksOnDisc ?? discTrackCounts.get(discNumber),
+                                };
+                            }
+                        } catch (e) {
+                            console.warn('Failed to fetch album for disc info:', e);
+                        }
+                    }
+
                     blob = await addMetadataToAudio(blob, enrichedTrack, this, quality, prefetchPromises);
                 }
             }
@@ -1507,7 +1554,11 @@ export class LosslessAPI {
                 throw error;
             }
             console.error('Download failed:', error);
-            if (error instanceof MP3EncodingError || error.code === 'MP3_ENCODING_FAILED') {
+            if (
+                error instanceof MP3EncodingError ||
+                error instanceof FfmpegError ||
+                error.code === 'MP3_ENCODING_FAILED'
+            ) {
                 throw error;
             }
             if (error.message === RATE_LIMIT_ERROR_MESSAGE) {

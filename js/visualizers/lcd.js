@@ -269,7 +269,8 @@ export class LCDPreset {
             this.initWebGL(width, height);
             // Attach WebGL canvas to same parent as main canvas
             if (this.glCanvas && canvas.parentElement) {
-                canvas.parentElement.style.position = 'relative';
+                //This position:relative was causing the visual bugs and problems in the lcd visualiser.
+                // canvas.parentElement.style.position = 'relative';
                 canvas.parentElement.appendChild(this.glCanvas);
             }
         }

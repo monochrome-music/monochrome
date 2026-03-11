@@ -202,7 +202,20 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
             console.error(`Media playback error (${element.id}):`, errorMsg, e);
             playPauseBtn.innerHTML = SVG_PLAY;
 
+            const canFallback =
+                player.quality === 'HI_RES_LOSSLESS' &&
+                errorMsg.includes('Source not supported') &&
+                errorMsg.includes('0x80004005') &&
+                !player.isFallbackRetry;
+
+            if (canFallback) {
+                console.warn('Hi-Res failed due to DASH.js Error (FUCK DASH)');
+            }
+
             if (player.currentTrack && error && error.code !== 1) {
+                if (player.isFallbackInProgress || canFallback) {
+                    return;
+                }
                 console.warn('Skipping to next track due to playback error');
                 setTimeout(() => player.playNext(), 1000);
             }
@@ -383,6 +396,23 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
         }
         updateWaveform();
     });
+
+    if (volumeBtn) {
+        volumeBtn.addEventListener('click', () => {
+            const activeEl = player.activeElement;
+            activeEl.muted = !activeEl.muted;
+            localStorage.setItem('muted', activeEl.muted);
+
+            const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+            if (inactiveEl) inactiveEl.muted = activeEl.muted;
+
+            updateVolumeUI();
+        });
+    }
+    const isMuted = localStorage.getItem('muted') === 'true';
+    audioPlayer.muted = isMuted;
+    if (player.video) player.video.muted = isMuted;
+    updateVolumeUI();
 
     initializeSmoothSliders(player);
 }
