@@ -1,7 +1,7 @@
 {
     "name": "monochrome",
     "type": "module",
-    "version": "1.0.0",
+    "version": "2.5.0",
     "description": "[<img src=\"https://github.com/SamidyFR/monochrome/blob/main/assets/512.png?raw=true\" alt=\"Monochrome Logo\">](https://monochrome.samidy.com)",
     "main": "sw.js",
     "scripts": {
@@ -63,11 +63,11 @@
         "cookie-session": "^2.1.1",
         "dashjs": "^5.1.1",
         "fuse.js": "^7.1.0",
-        "jose": "^6.2.0",
-        "npm": "^11.11.0",
-        "taglib-wasm": "^1.0.5",
-        "uuid": "^13.0.0",
         "hls.js": "^1.6.15",
-        "pocketbase": "^0.26.8"
+        "jose": "^6.2.0",
+        "npm": "^11.6.0",
+        "pocketbase": "^0.26.8",
+        "taglib-wasm": "^1.0.5",
+        "uuid": "^13.0.0"
     }
 }
