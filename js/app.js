@@ -21,6 +21,7 @@ import { initializeUIInteractions } from './ui-interactions.js';
 import { debounce, SVG_PLAY, getShareUrl } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 import { db } from './db.js';
+import { showNotification } from './downloads.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { authManager } from './accounts/auth.js';
 import { registerSW } from 'virtual:pwa-register';
@@ -1242,6 +1243,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ui.renderLibraryPage();
                 document.getElementById('folder-modal').classList.remove('active');
                 trackCloseModal('Create Folder');
+            } else {
+                showNotification('Please enter a folder name.');
             }
         }
 
@@ -1819,6 +1822,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         trackCloseModal('Create Playlist');
                     });
                 }
+            } else {
+                showNotification('Please enter a playlist name.');
             }
         }
 
