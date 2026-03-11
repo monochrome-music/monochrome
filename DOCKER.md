@@ -103,8 +103,8 @@ Monochrome uses Appwrite for user authentication. While it defaults to official 
 1. Create a project in Appwrite.
 2. Enable the **Google** or **Email/Password** providers in the Appwrite Console.
 3. Set these variables in your `.env`:
-   - `APPWRITE_ENDPOINT`: Your Appwrite API endpoint (e.g., `https://auth.yourdomain.com/v1`).
-   - `APPWRITE_PROJECT_ID`: Your Appwrite project ID (e.g., `auth-for-monochrome`).
+    - `APPWRITE_ENDPOINT`: Your Appwrite API endpoint (e.g., `https://auth.yourdomain.com/v1`).
+    - `APPWRITE_PROJECT_ID`: Your Appwrite project ID (e.g., `auth-for-monochrome`).
 
 ### Database (PocketBase)
 
@@ -115,6 +115,7 @@ docker compose --profile pocketbase up -d
 ```
 
 #### PocketBase Schema Note
+
 If you are setting up a new PocketBase collection for user data, ensure it has a field named `firebase_id` (this is a legacy name we use when we first started the accounts system, we used firebase. and im too lazy to change it so yea fuck you).
 
 ---
