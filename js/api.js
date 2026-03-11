@@ -1106,12 +1106,12 @@ export class LosslessAPI {
                 const artistData = await this.getArtist(artist.id, { lightweight: true, skipCache: options.refresh });
                 if (artistData && artistData.tracks && artistData.tracks.length > 0) {
                     const availableTracks = artistData.tracks.filter((track) => !seenTrackIds.has(track.id));
-                    
-                    const newTracks = options.knownTrackIds 
-                        ? availableTracks.filter(t => !options.knownTrackIds.has(t.id))
+
+                    const newTracks = options.knownTrackIds
+                        ? availableTracks.filter((t) => !options.knownTrackIds.has(t.id))
                         : availableTracks;
-                    const knownTracks = options.knownTrackIds 
-                        ? availableTracks.filter(t => options.knownTrackIds.has(t.id))
+                    const knownTracks = options.knownTrackIds
+                        ? availableTracks.filter((t) => options.knownTrackIds.has(t.id))
                         : [];
 
                     const shuffledNew = [...newTracks].sort(() => Math.random() - 0.5);
