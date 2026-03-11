@@ -7589,7 +7589,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 
 /* EQ Response Curve Canvas */
 .eq-response-canvas {
-    position: absolute;
+    position: fixed;
     top: var(--spacing-md);
     left: 4px;
     width: calc(100% - 8px);
