@@ -307,7 +307,7 @@ Deployment is fully automated via **Cloudflare Pages**.
 
 1. Push changes to the `main` branch
 2. Cloudflare automatically builds and deploys
-3. Changes are live within minutes
+3. Changes are live a minute
 
 ### Configuration Notes
 
