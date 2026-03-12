@@ -108,7 +108,8 @@
 
 Our Recommended way to use monochrome is through our official instance:
 
-**[monochrome.tf](https://monochrome.tf)**
+**[monochrome.tf](https://monochrome.tf)** / **[monochrome.samidy.com](https://monochrome.samidy.com)**
+
 
 For alternative instances, check [INSTANCES.md](INSTANCES.md).
 
