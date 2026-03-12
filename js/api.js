@@ -1484,6 +1484,55 @@ export class LosslessAPI {
                         };
                     }
 
+                    if (
+                        track.album?.id &&
+                        (track.album?.totalDiscs == null || track.album?.numberOfTracksOnDisc == null)
+                    ) {
+                        try {
+                            // Broad disc-field resolver — mirrors getExplicitTrackDiscNumber in downloads.js
+                            const resolveDiscNumber = (t) => {
+                                const candidates = [
+                                    t.volumeNumber,
+                                    t.discNumber,
+                                    t.mediaNumber,
+                                    t.media_number,
+                                    t.volume,
+                                    t.disc,
+                                    t.disc_no,
+                                    t.discNo,
+                                    t.disc_number,
+                                    t.mediaMetadata?.discNumber,
+                                ];
+                                for (const c of candidates) {
+                                    const parsed = parseInt(c, 10);
+                                    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+                                }
+                                return 1;
+                            };
+
+                            const albumData = await this.getAlbum(track.album.id);
+                            if (albumData.tracks?.length > 0) {
+                                const discTrackCounts = new Map();
+                                let maxDiscNumber = 0;
+                                for (const t of albumData.tracks) {
+                                    const dn = resolveDiscNumber(t);
+                                    discTrackCounts.set(dn, (discTrackCounts.get(dn) || 0) + 1);
+                                    if (dn > maxDiscNumber) maxDiscNumber = dn;
+                                }
+                                const totalDiscs = maxDiscNumber || 1;
+                                const discNumber = resolveDiscNumber(track);
+                                enrichedTrack.album = {
+                                    ...(enrichedTrack.album || {}),
+                                    totalDiscs: track.album?.totalDiscs ?? totalDiscs,
+                                    numberOfTracksOnDisc:
+                                        track.album?.numberOfTracksOnDisc ?? discTrackCounts.get(discNumber),
+                                };
+                            }
+                        } catch (e) {
+                            console.warn('Failed to fetch album for disc info:', e);
+                        }
+                    }
+
                     blob = await addMetadataToAudio(blob, enrichedTrack, this, quality, prefetchPromises);
                 }
             }
