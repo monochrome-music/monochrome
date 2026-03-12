@@ -25,7 +25,6 @@ import { showNotification } from './downloads.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { authManager } from './accounts/auth.js';
 import { registerSW } from 'virtual:pwa-register';
-import './smooth-scrolling.js';
 import { openEditProfile } from './profile.js';
 import { ThemeStore } from './themeStore.js';
 import './commandPalette.js';
