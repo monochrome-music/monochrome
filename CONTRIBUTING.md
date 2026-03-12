@@ -205,7 +205,7 @@ Follow our [commit message guidelines](#commit-message-guidelines).
 
 ```bash
 git add .
-git commit -m "feat(player): add keyboard shortcut for loop toggle"
+git commit -m "feat(player): add keyboard shortcut for loop toggle" # example commit message
 ```
 
 ### 5. Push and Create a Pull Request
