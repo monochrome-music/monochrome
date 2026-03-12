@@ -283,7 +283,7 @@ export class UIRenderer {
                 }
             }
             if (lyricsBtn) {
-                if (isLocal || isTracker) lyricsBtn.style.display = 'none';
+                if (isLocal) lyricsBtn.style.display = 'none';
                 else lyricsBtn.style.removeProperty('display');
             }
 

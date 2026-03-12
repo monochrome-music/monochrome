@@ -10,7 +10,7 @@
         "@ffmpeg/util": "^0.12.2",
         "@kawarp/core": "^1.1.1",
         "@neutralinojs/lib": "^6.5.0",
-        "@uimaxbai/am-lyrics": "^1.1.1",
+        "@uimaxbai/am-lyrics": "^1.1.2",
         "appwrite": "^23.0.0",
         "butterchurn": "^2.6.7",
         "butterchurn-presets": "^2.4.7",
@@ -546,7 +546,7 @@
 
     "@types/trusted-types": ["@types/trusted-types@2.0.7", "", {}, "sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw=="],
 
-    "@uimaxbai/am-lyrics": ["@uimaxbai/am-lyrics@1.1.1", "", { "dependencies": { "@babel/runtime": "^7.27.6", "lit": "^3.1.4" }, "peerDependencies": { "@lit/react": "^1.0.0", "react": ">=17.0.0" }, "optionalPeers": ["@lit/react", "react"] }, "sha512-U4qnMK2gWqfIWUwH9Wm4r5PGeCqmvmHVNCeYOTsSUIAMMZd3LBDyCZL/dAs5A4VaHxJecCyy2dy94IN4zH5gzg=="],
+    "@uimaxbai/am-lyrics": ["@uimaxbai/am-lyrics@1.1.2", "", { "dependencies": { "@babel/runtime": "^7.27.6", "lit": "^3.1.4" }, "peerDependencies": { "@lit/react": "^1.0.0", "react": ">=17.0.0" }, "optionalPeers": ["@lit/react", "react"] }, "sha512-M7LxiE6nzSoPpKPO9qX7msy7SRRU5Hn4Bbu05uj//BeSeuPmVT5+ii5wOyeO5npT99IezcKr+MvJaUqArfsbvw=="],
 
     "acorn": ["acorn@8.16.0", "", { "bin": { "acorn": "bin/acorn" } }, "sha512-UVJyE9MttOsBQIDKw1skb9nAwQuR5wuGD3+82K6JgJlm/Y+KI92oNsMNGZCYdDsVtRHSak0pcV5Dno5+4jh9sw=="],
 
