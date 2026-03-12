@@ -17,6 +17,8 @@ import { lyricsSettings, bulkDownloadSettings, playlistSettings } from './storag
 import { generateM3U, generateM3U8, generateCUE, generateNFO, generateJSON } from './playlist-generator.js';
 import { triggerDownload } from './download-utils.ts';
 import { ZipStreamWriter, ZipBlobWriter, ZipNeutralinoWriter, FolderPickerWriter } from './bulk-download-writer.ts';
+import { FfmpegProgress } from './ffmpeg.types.js';
+import { DownloadProgress, ProgressMessage, SegmentedDownloadProgress } from './progressEvents.js';
 
 const downloadTasks = new Map();
 const bulkDownloadTasks = new Map();
@@ -204,7 +206,7 @@ export function updateDownloadProgress(trackId, progress) {
     const progressFill = taskEl.querySelector('.download-progress-fill');
     const statusEl = taskEl.querySelector('.download-status');
 
-    if (progress.stage === 'downloading') {
+    if (progress instanceof DownloadProgress && progress.receivedBytes && progress.totalBytes) {
         const percent = progress.totalBytes ? Math.round((progress.receivedBytes / progress.totalBytes) * 100) : 0;
 
         progressFill.style.width = `${percent}%`;
@@ -214,15 +216,25 @@ export function updateDownloadProgress(trackId, progress) {
         const totalMB = progress.totalBytes ? (progress.totalBytes / (1024 * 1024)).toFixed(1) : '?';
 
         statusEl.textContent = `Downloading: ${receivedMB}MB / ${totalMB}MB (${percent}%)`;
-    } else if (progress.stage === 'encoding') {
+    } else if (progress instanceof SegmentedDownloadProgress && progress.currentSegment && progress.totalSegments) {
+        const percent = progress.totalBytes ? Math.round((progress.currentSegment / progress.totalSegments) * 100) : 0;
+
+        progressFill.style.width = `${percent}%`;
+        progressFill.style.background = 'var(--highlight)';
+
+        const receivedMB = (progress.receivedBytes / (1024 * 1024)).toFixed(1);
+        const totalMB = progress.totalBytes ? (progress.totalBytes / (1024 * 1024)).toFixed(1) : '?';
+
+        statusEl.textContent = `Downloading: ${receivedMB}MB / ${totalMB}MB (${percent}%)`;
+    } else if (progress instanceof FfmpegProgress && progress.stage == 'encoding') {
         const percent = progress.progress ? Math.round(progress.progress) : 0;
         progressFill.style.width = `${percent}%`;
         progressFill.style.background = '#3b82f6'; // Blue for encoding
         statusEl.textContent = `Converting: ${percent}%`;
-    } else if (progress.stage === 'finalizing' || progress.stage === 'processing') {
+    } else if (progress instanceof ProgressMessage || progress.message) {
         progressFill.style.width = '100%';
         progressFill.style.background = '#3b82f6';
-        statusEl.textContent = progress.message || 'Processing...';
+        statusEl.textContent = progress.message;
     }
 }
 
@@ -381,13 +393,12 @@ async function bulkDownload(
 
             try {
                 const { blob, extension } = await downloadTrackBlob(track, quality, api, signal, (p) => {
-                    if (p && p.stage === 'downloading') {
-                        if (p.totalBytes && p.receivedBytes) {
-                            fileFraction = p.receivedBytes / p.totalBytes;
-                        } else if (p.currentSegment && p.totalSegments) {
-                            fileFraction = p.currentSegment / p.totalSegments;
-                        }
+                    if (p instanceof DownloadProgress && p.totalBytes && p.receivedBytes) {
+                        fileFraction = p.receivedBytes / p.totalBytes;
+                    } else if (p instanceof SegmentedDownloadProgress && p.currentSegment && p.totalSegments) {
+                        fileFraction = p.currentSegment / p.totalSegments;
                     }
+
                     fileFraction = Math.min(fileFraction, 0.99); // Cap at 99% to avoid showing 100% before finalization
                     updateBulkDownloadProgress(notification, i + fileFraction, tracks.length, trackTitle, p);
                 });
@@ -864,16 +875,20 @@ function createBulkDownloadNotification(type, name, _totalItems) {
     return notifEl;
 }
 
-function updateBulkDownloadProgress(notifEl, current, total, currentItem, ffmpegProgress = null) {
+function updateBulkDownloadProgress(notifEl, current, total, currentItem, progress = null) {
     const progressFill = notifEl.querySelector('.download-progress-fill');
     const statusEl = notifEl.querySelector('.download-status');
 
-    if (ffmpegProgress && (ffmpegProgress.stage === 'encoding' || ffmpegProgress.stage === 'finalizing')) {
-        const percent = ffmpegProgress.progress ? Math.round(ffmpegProgress.progress) : 100;
+    if (progress instanceof FfmpegProgress) {
+        const percent = progress.progress || 0;
         progressFill.style.width = `${percent}%`;
         progressFill.style.background = '#3b82f6'; // Blue for encoding
-        statusEl.textContent = `Converting ${Math.ceil(current)}/${total}: ${percent}%`;
+        statusEl.textContent = `Converting ${Math.ceil(current)}/${total}: ${Math.round(percent)}%`;
         return;
+    }
+
+    if (progress instanceof ProgressMessage) {
+        statusEl.textContent = progress.message;
     }
 
     const percent = total > 0 ? Math.round((current / total) * 100) : 0;

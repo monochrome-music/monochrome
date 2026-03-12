@@ -19,6 +19,7 @@ import { MP3EncodingError } from './mp3-encoder.js';
 import { loadFfmpeg, FfmpegError } from './ffmpeg.js';
 import { triggerDownload, applyAudioPostProcessing } from './download-utils.ts';
 import { isCustomFormat } from './ffmpegFormats.ts';
+import { DownloadProgress } from './progressEvents.js';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 const TIDAL_V2_TOKEN = 'txNoH4kkV41MfH25';
@@ -1423,23 +1424,16 @@ export class LosslessAPI {
                             chunks.push(value);
                             receivedBytes += value.byteLength;
 
-                            onProgress?.({
-                                stage: 'downloading',
-                                receivedBytes,
-                                totalBytes: totalBytes || undefined,
-                            });
+                            onProgress?.(new DownloadProgress(receivedBytes, totalBytes || undefined));
                         }
                     }
 
                     const defaultMime = isVideo ? 'video/mp4' : 'audio/flac';
                     blob = new Blob(chunks, { type: response.headers.get('Content-Type') || defaultMime });
                 } else {
+                    onProgress?.(new DownloadProgress(0, undefined));
                     blob = await response.blob();
-                    onProgress?.({
-                        stage: 'downloading',
-                        receivedBytes: blob.size,
-                        totalBytes: blob.size,
-                    });
+                    onProgress?.(new DownloadProgress(blob.size, blob.size));
                 }
             }
 
@@ -1491,6 +1485,7 @@ export class LosslessAPI {
                         }
                     }
 
+                    onProgress?.(new DownloadProgress('Adding metadata'));
                     blob = await addMetadataToAudio(blob, enrichedTrack, this, quality, prefetchPromises);
                 }
             }
