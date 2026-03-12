@@ -149,23 +149,12 @@ export const containerFormats: ContainerFormat[] = [
     {
         displayName: 'FLAC',
         internalName: 'flac',
-        ffmpegArgs: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'flac', '-compression_level', '12'],
+        ffmpegArgs: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'flac'],
         outputFilename: 'output.flac',
         outputMime: 'audio/flac',
         extension: 'flac',
         // Only transcode when the source is NOT already a FLAC file.
         needsTranscode: async (blob) => (await getExtensionFromBlob(blob)) !== 'flac',
-    },
-    {
-        displayName: 'FLAC - Max Compression',
-        internalName: 'flac_max',
-        // `-compression_level 12` is the highest FLAC compression level; audio
-        // data is bit-identical to the source — only the compressed size changes.
-        ffmpegArgs: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'flac', '-compression_level', '12'],
-        outputFilename: 'output.flac',
-        outputMime: 'audio/flac',
-        extension: 'flac',
-        needsTranscode: async () => true,
     },
     {
         displayName: 'Apple Lossless',
@@ -175,6 +164,15 @@ export const containerFormats: ContainerFormat[] = [
         outputMime: 'audio/mp4',
         extension: 'm4a',
         needsTranscode: async () => true,
+    },
+    {
+        displayName: "Don't change",
+        internalName: 'nochange',
+        ffmpegArgs: ['-c:a', 'copy', '-strict', '-2'],
+        outputFilename: 'output.mp4',
+        outputMime: 'audio/mp4',
+        extension: 'mp4',
+        needsTranscode: async (blob) => (await getExtensionFromBlob(blob)) == 'm4a',
     },
 ];
 

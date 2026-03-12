@@ -549,7 +549,6 @@ async function bulkDownloadToZip(
                 const discNumber = discLayout.resolveDiscNumber(i);
                 const discPath = separateByDisc ? `${getDiscFolderName(discNumber)}/${filename}` : filename;
 
-                console.log(`[Playlist] Track ${i + 1}: ${discPath}`);
                 trackPaths.push(discPath);
 
                 yield {
@@ -852,7 +851,6 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                         const discNumber = discLayout.resolveDiscNumber(i);
                         const discPath = separateByDisc ? `${getDiscFolderName(discNumber)}/${filename}` : filename;
 
-                        console.log(`[Playlist] Track ${i + 1}: ${discPath}`);
                         trackPaths.push(discPath);
 
                         yield {

@@ -560,8 +560,7 @@ export const losslessContainerSettings = {
     getContainer() {
         try {
             const stored = localStorage.getItem(this.STORAGE_KEY) || 'flac';
-            // 'nochange' was removed as an option; fall back to FLAC
-            return stored === 'nochange' ? 'flac' : stored;
+            return stored;
         } catch {
             return 'flac';
         }
