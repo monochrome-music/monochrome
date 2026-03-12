@@ -210,9 +210,18 @@ export async function transcodeWithCustomFormat(
     audioBlob: Blob,
     format: CustomFormat,
     onProgress: ((progress: ProgressEvent) => void) | null = null,
-    signal: AbortSignal | null = null
+    signal: AbortSignal | null = null,
+    extraFiles: any[] = []
 ): Promise<Blob> {
-    return ffmpeg(audioBlob, { args: format.ffmpegArgs }, format.outputFilename, format.outputMime, onProgress, signal);
+    return ffmpeg(
+        audioBlob,
+        { args: format.ffmpegArgs },
+        format.outputFilename,
+        format.outputMime,
+        onProgress,
+        signal,
+        extraFiles
+    );
 }
 
 /**
@@ -223,7 +232,16 @@ export async function transcodeWithContainerFormat(
     audioBlob: Blob,
     format: ContainerFormat,
     onProgress: ((progress: ProgressEvent) => void) | null = null,
-    signal: AbortSignal | null = null
+    signal: AbortSignal | null = null,
+    extraFiles: any[] = []
 ): Promise<Blob> {
-    return ffmpeg(audioBlob, { args: format.ffmpegArgs }, format.outputFilename, format.outputMime, onProgress, signal);
+    return ffmpeg(
+        audioBlob,
+        { args: format.ffmpegArgs },
+        format.outputFilename,
+        format.outputMime,
+        onProgress,
+        signal,
+        extraFiles
+    );
 }

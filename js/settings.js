@@ -41,7 +41,6 @@ import { getButterchurnPresets } from './visualizers/butterchurn.js';
 import { db } from './db.js';
 import { authManager } from './accounts/auth.js';
 import { syncManager } from './accounts/pocketbase.js';
-import { saveFirebaseConfig, clearFirebaseConfig } from './accounts/config.js';
 import { containerFormats, customFormats } from './ffmpegFormats.ts';
 
 export function initializeSettings(scrobbler, player, api, ui) {
