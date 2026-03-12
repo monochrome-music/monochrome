@@ -16,8 +16,14 @@ import { addMetadataToAudio, prefetchMetadataObjects } from './metadata.js';
 import { rebuildFlacWithoutMetadata } from './metadata.flac.js';
 import { DashDownloader } from './dash-downloader.js';
 import { generateM3U, generateM3U8, generateCUE, generateNFO, generateJSON } from './playlist-generator.js';
-import { encodeToMp3 } from './mp3-encoder.js';
-import { ffmpeg, loadFfmpeg } from './ffmpeg.js';
+import { loadFfmpeg } from './ffmpeg.js';
+import {
+    isCustomFormat,
+    getCustomFormat,
+    transcodeWithCustomFormat,
+    getContainerFormat,
+    transcodeWithContainerFormat,
+} from './ffmpegFormats.ts';
 
 const downloadTasks = new Map();
 const bulkDownloadTasks = new Map();
@@ -355,8 +361,8 @@ async function downloadTrackBlob(
         artist: track.artist || (track.artists && track.artists.length > 0 ? track.artists[0] : null),
     };
 
-    // MP3_320 is not a native TIDAL quality, we download LOSSLESS and convert
-    const downloadQuality = quality === 'MP3_320' ? 'LOSSLESS' : quality;
+    // Custom FFMPEG formats are not native TIDAL qualities; download LOSSLESS and transcode
+    const downloadQuality = isCustomFormat(quality) ? 'LOSSLESS' : quality;
 
     try {
         const fullTrack = await api.getTrackMetadata(track.id);
@@ -445,40 +451,23 @@ async function downloadTrackBlob(
         blob = await response.blob();
     }
 
-    // Convert to MP3 320kbps if requested
-    if (quality === 'MP3_320') {
-        blob = await encodeToMp3(blob, onProgress || (() => undefined), signal);
+    // Transcode to custom format if requested
+    if (isCustomFormat(quality)) {
+        const format = getCustomFormat(quality);
+        if (format) {
+            blob = await transcodeWithCustomFormat(blob, format, onProgress || (() => undefined), signal);
+        }
     }
 
     if (quality.endsWith('LOSSLESS')) {
         try {
-            switch (losslessContainerSettings.getContainer()) {
-                case 'flac':
-                    if ((await getExtensionFromBlob(blob)) != 'flac') {
-                        blob = await ffmpeg(
-                            blob,
-                            { args: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'flac'] },
-                            'output.flac',
-                            'audio/flac',
-                            onProgress,
-                            signal
-                        );
-                    } else {
-                        blob = await rebuildFlacWithoutMetadata(blob);
-                    }
-                    break;
-                case 'alac':
-                    blob = await ffmpeg(
-                        blob,
-                        { args: ['-c:a', 'alac'] },
-                        'output.m4a',
-                        'audio/mp4',
-                        onProgress,
-                        signal
-                    );
-                    break;
-                default:
-                    break;
+            const containerFmt = getContainerFormat(losslessContainerSettings.getContainer());
+            if (containerFmt) {
+                if (await containerFmt.needsTranscode(blob)) {
+                    blob = await transcodeWithContainerFormat(blob, containerFmt, onProgress, signal);
+                } else if ((await getExtensionFromBlob(blob)) == 'flac') {
+                    blob = await rebuildFlacWithoutMetadata(blob);
+                }
             }
         } catch (error) {
             if (error?.name === 'AbortError') {
