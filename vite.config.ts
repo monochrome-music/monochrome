@@ -4,6 +4,7 @@ import neutralino from 'vite-plugin-neutralino';
 import authGatePlugin from './vite-plugin-auth-gate.js';
 import path from 'path';
 import uploadPlugin from './vite-plugin-upload.js';
+import blobAssetPlugin from './vite-plugin-blob.js';
 
 export default defineConfig(({ mode }) => {
     const IS_NEUTRALINO = mode === 'neutralino';
@@ -42,6 +43,7 @@ export default defineConfig(({ mode }) => {
             IS_NEUTRALINO && neutralino(),
             authGatePlugin(),
             uploadPlugin(),
+            blobAssetPlugin(),
             VitePWA({
                 registerType: 'prompt',
                 workbox: {
