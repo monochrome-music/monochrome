@@ -423,32 +423,36 @@ async function downloadTrackBlob(
     const coverBlobToEmbed = await prefetchPromises.coverFetch;
     const extraFiles = [];
     const ffmpegMetadataArgs = [];
-    
+
     if (coverBlobToEmbed) {
         const coverBuffer = await coverBlobToEmbed.arrayBuffer();
         const coverExt = getMimeType(new Uint8Array(coverBuffer)) === 'image/png' ? 'png' : 'jpg';
         const coverName = `cover.${coverExt}`;
         extraFiles.push({
             name: coverName,
-            data: coverBuffer
+            data: coverBuffer,
         });
         ffmpegMetadataArgs.push('-i', coverName);
     }
 
     if (enrichedTrack) {
         ffmpegMetadataArgs.push(
-            '-metadata', `title=${getTrackTitle(enrichedTrack)}`,
-            '-metadata', `artist=${getFullArtistString(enrichedTrack)}`,
-            '-metadata', `album=${enrichedTrack.album?.title || ''}`,
-            '-metadata', `album_artist=${enrichedTrack.album?.artist?.name || enrichedTrack.artist?.name || ''}`
+            '-metadata',
+            `title=${getTrackTitle(enrichedTrack)}`,
+            '-metadata',
+            `artist=${getFullArtistString(enrichedTrack)}`,
+            '-metadata',
+            `album=${enrichedTrack.album?.title || ''}`,
+            '-metadata',
+            `album_artist=${enrichedTrack.album?.artist?.name || enrichedTrack.artist?.name || ''}`
         );
-        
+
         const trackNum = enrichedTrack.trackNumber;
         if (trackNum) {
             const totalTracks = enrichedTrack.album?.numberOfTracks;
             ffmpegMetadataArgs.push('-metadata', `track=${trackNum}${totalTracks ? `/${totalTracks}` : ''}`);
         }
-        
+
         const discNum = enrichedTrack.volumeNumber || enrichedTrack.discNumber;
         if (discNum) {
             ffmpegMetadataArgs.push('-metadata', `disc=${discNum}`);
@@ -485,7 +489,7 @@ async function downloadTrackBlob(
         try {
             const containerType = losslessContainerSettings.getContainer();
             const containerFmt = getContainerFormat(containerType);
-            
+
             if (containerFmt && containerType !== 'nochange') {
                 if (await containerFmt.needsTranscode(blob)) {
                     const args = [...ffmpegMetadataArgs, ...containerFmt.ffmpegArgs];
@@ -510,7 +514,7 @@ async function downloadTrackBlob(
                 if (actualExtension === 'm4a' || actualExtension === 'mp4') {
                     try {
                         const ffmpegArgs = [...ffmpegMetadataArgs];
-                        
+
                         ffmpegArgs.push('-map', '0:a');
                         if (coverBlobToEmbed) {
                             ffmpegArgs.push('-map', '1:v', '-c:v', 'copy', '-disposition:v:0', 'attached_pic');

@@ -139,11 +139,17 @@ self.onmessage = async (e) => {
 
             self.postMessage({ type: 'complete', blob: outputBlob });
         } finally {
-            try { if (audioData) await ffmpeg.deleteFile('input'); } catch {}
+            try {
+                if (audioData) await ffmpeg.deleteFile('input');
+            } catch {}
             for (const file of extraFiles) {
-                try { await ffmpeg.deleteFile(file.name); } catch {}
+                try {
+                    await ffmpeg.deleteFile(file.name);
+                } catch {}
             }
-            try { await ffmpeg.deleteFile(output.name); } catch {}
+            try {
+                await ffmpeg.deleteFile(output.name);
+            } catch {}
         }
     } catch (error) {
         self.postMessage({ type: 'error', message: error.message });
