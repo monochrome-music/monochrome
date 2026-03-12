@@ -13,8 +13,7 @@
         "lint:css": "stylelint \"**/*.css\"",
         "lint:html": "htmlhint \"**/*.html\" --ignore=\"dist/**,legacy/**,node_modules/**\"",
         "lint": "npm run lint:js && npm run lint:css && npm run lint:html",
-        "format": "prettier --write .",
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "format": "prettier --write ."
     },
     "repository": {
         "type": "git",
