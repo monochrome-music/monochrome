@@ -31,23 +31,11 @@ export default function authGatePlugin() {
 
         configurePreviewServer(server) {
             const AUTH_ENABLED = (env.AUTH_ENABLED ?? 'false') !== 'false';
-            const FIREBASE_CONFIG = env.FIREBASE_CONFIG;
+            const APPWRITE_ENDPOINT = env.APPWRITE_ENDPOINT;
+            const APPWRITE_PROJECT_ID = env.APPWRITE_PROJECT_ID;
             const POCKETBASE_URL = env.POCKETBASE_URL;
             const AUTH_GOOGLE_ENABLED = env.AUTH_GOOGLE_ENABLED;
             const AUTH_EMAIL_ENABLED = env.AUTH_EMAIL_ENABLED;
-
-            // Parse Firebase config once (used for injection + auth verification)
-            let parsedFirebaseConfig = null;
-            let PROJECT_ID = env.FIREBASE_PROJECT_ID || 'monochrome-database';
-            if (FIREBASE_CONFIG) {
-                try {
-                    parsedFirebaseConfig = JSON.parse(FIREBASE_CONFIG);
-                    if (parsedFirebaseConfig.projectId) PROJECT_ID = parsedFirebaseConfig.projectId;
-                } catch (e) {
-                    console.error('Invalid FIREBASE_CONFIG JSON:', e.message);
-                    process.exit(1);
-                }
-            }
 
             // --- Build injection script (always, for both auth gate and env config) ---
 
@@ -58,13 +46,14 @@ export default function authGatePlugin() {
                 authProviderOverrides.google = AUTH_GOOGLE_ENABLED !== 'false';
             }
             if (AUTH_EMAIL_ENABLED !== undefined) {
-                // Firebase calls it "password" provider; env uses "EMAIL" for clarity
                 authProviderOverrides.password = AUTH_EMAIL_ENABLED !== 'false';
             }
             if (Object.keys(authProviderOverrides).length > 0) {
                 flags.push(`window.__AUTH_PROVIDERS__=${JSON.stringify(authProviderOverrides)}`);
             }
-            if (parsedFirebaseConfig) flags.push(`window.__FIREBASE_CONFIG__=${JSON.stringify(parsedFirebaseConfig)}`);
+            if (APPWRITE_ENDPOINT) flags.push(`window.__APPWRITE_ENDPOINT__=${JSON.stringify(APPWRITE_ENDPOINT)}`);
+            if (APPWRITE_PROJECT_ID)
+                flags.push(`window.__APPWRITE_PROJECT_ID__=${JSON.stringify(APPWRITE_PROJECT_ID)}`);
             if (POCKETBASE_URL) flags.push(`window.__POCKETBASE_URL__=${JSON.stringify(POCKETBASE_URL)}`);
             const configScript = flags.length > 0 ? `<script>${flags.join(';')};</script>` : null;
 
@@ -109,11 +98,7 @@ export default function authGatePlugin() {
                     process.exit(1);
                 }
 
-                console.log(`Auth gate enabled (Firebase project: ${PROJECT_ID})`);
-
-                const JWKS = createRemoteJWKSet(
-                    new URL('https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com')
-                );
+                console.log(`Auth gate enabled (Project: ${APPWRITE_PROJECT_ID})`);
 
                 server.middlewares.use(
                     cookieSession({
@@ -148,26 +133,22 @@ export default function authGatePlugin() {
                     if (url === '/api/auth/login' && req.method === 'POST') {
                         try {
                             const body = await parseBody(req);
-                            if (!body.token) {
+                            if (!body.userId) {
                                 res.statusCode = 400;
                                 res.setHeader('Content-Type', 'application/json');
-                                res.end(JSON.stringify({ error: 'Missing token' }));
+                                res.end(JSON.stringify({ error: 'Missing userId' }));
                                 return;
                             }
-                            const { payload } = await jwtVerify(body.token, JWKS, {
-                                issuer: `https://securetoken.google.com/${PROJECT_ID}`,
-                                audience: PROJECT_ID,
-                            });
-                            req.session.uid = payload.sub;
-                            req.session.email = payload.email;
+                            req.session.uid = body.userId;
+                            req.session.email = body.email;
                             req.session.iat = Date.now();
                             res.setHeader('Content-Type', 'application/json');
                             res.end(JSON.stringify({ ok: true }));
                         } catch (err) {
-                            console.error('Token verification failed:', err.message);
+                            console.error('Login session creation failed:', err.message);
                             res.statusCode = 401;
                             res.setHeader('Content-Type', 'application/json');
-                            res.end(JSON.stringify({ error: 'Invalid token' }));
+                            res.end(JSON.stringify({ error: 'Login failed' }));
                         }
                         return;
                     }
