@@ -1,21 +1,8 @@
 import { AbortError } from './errorTypes';
-import { DownloadProgress } from './progressEvents';
-
-export class DashDownloadProgress extends DownloadProgress {
-    public readonly stage = 'downloading';
-
-    constructor(
-        public readonly receivedBytes: number,
-        public readonly totalBytes: number | undefined,
-        public readonly currentSegment: number,
-        public readonly totalSegments: number
-    ) {
-        super(receivedBytes, totalBytes);
-    }
-}
+import { SegmentedDownloadProgress } from './progressEvents';
 
 export interface DashDownloadOptions {
-    onProgress?: MonochromeProgressListener<DashDownloadProgress>;
+    onProgress?: MonochromeProgressListener<SegmentedDownloadProgress>;
     signal?: AbortSignal;
     calculateDashBytes?: boolean;
 }
@@ -86,7 +73,7 @@ export class DashDownloader {
         for (let i = 0; i < urls.length; i++) {
             if (signal?.aborted) throw new AbortError();
 
-            onProgress?.(new DashDownloadProgress(downloadedBytes, totalSize ?? undefined, i, totalSegments));
+            onProgress?.(new SegmentedDownloadProgress(downloadedBytes, totalSize ?? undefined, i, totalSegments));
 
             const url = urls[i];
             const segmentResponse = await fetch(url, { signal });
@@ -110,13 +97,7 @@ export class DashDownloader {
                 downloadedBytes += chunk.byteLength;
             }
 
-            onProgress?.({
-                stage: 'downloading',
-                receivedBytes: downloadedBytes,
-                totalBytes: totalSize ?? undefined,
-                currentSegment: i + 1,
-                totalSegments,
-            });
+            onProgress?.(new SegmentedDownloadProgress(downloadedBytes, totalSize ?? undefined, i + 1, totalSegments));
         }
 
         // 4. Concatenate
