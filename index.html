@@ -1285,12 +1285,7 @@
                 </p>
                 <div style="margin-bottom: 1rem">
                     <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem">PocketBase URL</label>
-                    <input
-                        type="url"
-                        id="custom-pb-url"
-                        class="template-input"
-                        placeholder="https://data.samidy.xyz"
-                    />
+                    <input type="url" id="custom-pb-url" class="template-input" placeholder="https://data.samidy.xyz" />
                 </div>
                 <div style="margin-bottom: 1rem">
                     <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem">Appwrite Endpoint</label>
@@ -1752,7 +1747,8 @@
                 </div>
                 <div style="text-align: center; padding-top: 1rem; border-top: 1px solid var(--border)">
                     <p style="font-size: 0.9rem; color: var(--muted-foreground); margin-bottom: 0.5rem">
-                        If you cannot financially support us, please consider starring the project on GitHub and sharing with friends!
+                        If you cannot financially support us, please consider starring the project on GitHub and sharing
+                        with friends!
                     </p>
                     <a
                         href="https://github.com/monochrome-music/monochrome"
@@ -2275,9 +2271,9 @@
 
                         <div id="home-content" style="display: none">
                             <section class="content-section">
-                                <div class="header-actions">
-                                    <h2 class="section-title">Recommended Songs</h2>
-                                    <div style="display: flex; gap: 8px">
+                                <div class="section-header-row">
+                                    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap">
+                                        <h2 class="section-title">Recommended Songs</h2>
                                         <button
                                             class="btn-primary"
                                             id="home-start-infinite-radio-btn"
@@ -2309,23 +2305,28 @@
                                             </svg>
                                             Start Infinite Radio
                                         </button>
-                                        <button class="btn-secondary" id="refresh-songs-btn" title="Refresh">
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="16"
-                                                height="16"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                stroke-width="2"
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                            >
-                                                <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-                                                <path d="M21 3v5h-5" />
-                                            </svg>
-                                        </button>
                                     </div>
+                                    <button
+                                        class="btn-secondary"
+                                        id="refresh-songs-btn"
+                                        title="Refresh"
+                                        style="padding: 4px 8px"
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        >
+                                            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path>
+                                            <path d="M21 3v5h-5"></path>
+                                        </svg>
+                                    </button>
                                 </div>
                                 <div class="track-list" id="home-recommended-songs"></div>
                             </section>
@@ -5660,9 +5661,7 @@
                         <br />
                         <h4 style="text-align: center; padding-top: 15px; color: #8b8b93">
                             The App is still in Beta. Please report any issues in our
-                            <a href="discord.html" style="text-decoration: underline"
-                                >Discord server.</a
-                            >
+                            <a href="discord.html" style="text-decoration: underline">Discord server.</a>
                         </h4>
                     </div>
                 </div>
