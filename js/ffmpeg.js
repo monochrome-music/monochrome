@@ -1,9 +1,10 @@
 import { fetchBlobURL } from './utils';
 import FfmpegWorker from './ffmpeg.worker.js?worker';
-import coreJs from '!/@ffmpeg/core/dist/esm/ffmpeg-core.js?url';
-import coreWasm from '!/@ffmpeg/core/dist/esm/ffmpeg-core.wasm?url';
 import { FfmpegProgress } from './ffmpeg.types';
 import { ProgressMessage } from './progressEvents';
+const ffmpegBase = 'https://unpkg.com/@ffmpeg/core/dist/esm';
+const coreJs = `${ffmpegBase}/ffmpeg-core.js`;
+const coreWasm = `${ffmpegBase}/ffmpeg-core.wasm`;
 
 class FfmpegError extends Error {
     constructor(message) {
