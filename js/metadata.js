@@ -1,4 +1,11 @@
-import { getCoverBlob, getTrackTitle, getFullArtistString, getMimeType, getTrackCoverId } from './utils.js';
+import {
+    getCoverBlob,
+    getTrackTitle,
+    getFullArtistString,
+    getMimeType,
+    getTrackCoverId,
+    getTrackDiscNumber,
+} from './utils.js';
 import { fetchTagLib, addMetadataWithTagLib, getMetadataWithTagLib } from './taglib.ts';
 import { doTimed, doTimedAsync } from './doTimed.ts';
 import { managers } from './app.js';
@@ -35,7 +42,7 @@ export async function addMetadataToAudio(audioBlob, track, api, _quality, prefet
     const { coverFetch, lyricsFetch } = prefetchPromises;
 
     /**
-     * @type {import("./taglib.worker.ts").TagLibMetadata}
+     * @type {import("./taglib.types.ts").TagLibMetadata}
      */
     const data = {};
 
