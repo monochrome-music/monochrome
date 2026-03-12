@@ -61,8 +61,6 @@ export default function blobAssetPlugin(): Plugin {
             }
 
             return `
-const assetUrl = ${JSON.stringify(assetUrl)};
-
 /**
  * Decompress gzip data using browser DecompressionStream
  */
@@ -79,7 +77,7 @@ export default function getBlobUrl() {
   
   return blobPromise = (async () => {
     try {
-        const res = await fetch(assetUrl);
+        const res = await fetch(${JSON.stringify(assetUrl)});
         const compressed = await res.arrayBuffer();
 
         const decompressed = await decompress(compressed);
