@@ -1,7 +1,10 @@
 import { fetchBlobURL } from './utils';
 import FfmpegWorker from './ffmpeg.worker.js?worker';
-import coreJs from '!/@ffmpeg/core/dist/esm/ffmpeg-core.js?url';
-import coreWasm from '!/@ffmpeg/core/dist/esm/ffmpeg-core.wasm?url';
+import { FfmpegProgress } from './ffmpeg.types';
+import { ProgressMessage } from './progressEvents';
+const ffmpegBase = 'https://unpkg.com/@ffmpeg/core/dist/esm';
+const coreJs = `${ffmpegBase}/ffmpeg-core.js`;
+const coreWasm = `${ffmpegBase}/ffmpeg-core.wasm`;
 
 class FfmpegError extends Error {
     constructor(message) {
@@ -25,6 +28,17 @@ export function loadFfmpeg() {
     );
 }
 
+/**
+ *
+ * @param {Blob} audioBlob
+ * @param {string[]} args
+ * @param {string} outputName
+ * @param {string} outputMime
+ * @param {(progress: import('./ffmpeg.types.ts').FfmpegProgress) => void} onProgress
+ * @param {AbortSignal|null} signal
+ * @param {Array<{name: string, data: ArrayBuffer | Uint8Array}>} extraFiles
+ * @returns {Promise<Blob>} Encoded audio blob
+ */
 async function ffmpegWorker(
     audioBlob,
     args = [],
@@ -65,8 +79,10 @@ async function ffmpegWorker(
                 if (signal) signal.removeEventListener('abort', abortHandler);
                 worker.terminate();
                 reject(new FfmpegError(message));
-            } else if (type === 'progress' && onProgress) {
-                onProgress({ stage, message, progress });
+            } else if (type === 'progress' && message) {
+                onProgress?.(new FfmpegProgress(stage, progress || 0, message));
+            } else if (type === 'progress' && stage != 'loading' && progress !== null) {
+                onProgress?.(new FfmpegProgress(stage, progress || 0, message));
             } else if (type === 'log') {
                 console.log('[FFmpeg]', message);
             }
@@ -106,6 +122,20 @@ async function ffmpegWorker(
     });
 }
 
+/**
+ * Encodes audio using FFmpeg via Web Worker
+ * @async
+ * @param {Blob} audioBlob - The audio blob to encode
+ * @param {string[]} [args=[]] - FFmpeg command-line arguments
+ * @param {string} [outputName='output'] - Name of the output file
+ * @param {string} [outputMime='application/octet-stream'] - MIME type of the output
+ * @param {(progress: import('./ffmpeg.types.ts').FfmpegProgress) => void} [onProgress=null] - Optional callback for progress updates
+ * @param {AbortSignal|null} [signal=null] - Optional abort signal to cancel encoding
+ * @param {Array} [extraFiles=[]] - Additional files to provide to FFmpeg
+ * @returns {Promise<Blob>} Encoded audio blob
+ * @throws {FfmpegError} If Web Workers are not available
+ * @throws {Error} If FFmpeg encoding fails
+ */
 export async function ffmpeg(
     audioBlob,
     args = [],

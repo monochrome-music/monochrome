@@ -1,3 +1,5 @@
+import { SegmentedDownloadProgress } from './progressEvents';
+
 export class HlsDownloader {
     constructor() {}
 
@@ -24,6 +26,8 @@ export class HlsDownloader {
         for (let i = 0; i < totalSegments; i++) {
             if (signal?.aborted) throw new Error('AbortError');
 
+            onProgress?.(new SegmentedDownloadProgress(downloadedBytes, undefined, i, totalSegments));
+
             const segmentUrl = segments[i];
             const segmentResponse = await fetch(segmentUrl, { signal });
 
@@ -35,15 +39,7 @@ export class HlsDownloader {
             chunks.push(chunk);
             downloadedBytes += chunk.byteLength;
 
-            if (onProgress) {
-                onProgress({
-                    stage: 'downloading',
-                    receivedBytes: downloadedBytes,
-                    totalBytes: undefined,
-                    currentSegment: i + 1,
-                    totalSegments: totalSegments,
-                });
-            }
+            onProgress?.(new SegmentedDownloadProgress(downloadedBytes, undefined, i + 1, totalSegments));
         }
 
         const mimeType = segments[0].endsWith('.m4s') || segments[0].includes('mp4') ? 'video/mp4' : 'video/mp2t';

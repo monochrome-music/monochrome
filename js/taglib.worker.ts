@@ -261,9 +261,14 @@ self.onmessage = async (event: MessageEvent<TagLibWorkerMessage>) => {
 
     switch (event.data.type) {
         case 'Add':
+            if ((event.data as AddMetadataMessage).cover?.data?.buffer instanceof ArrayBuffer) {
+                transfer.push((event.data as AddMetadataMessage).cover.data.buffer);
+            }
+
             try {
                 const result = await addMetadataToAudio(event.data as AddMetadataMessage);
                 transfer.push(result.buffer);
+
                 self.postMessage(
                     {
                         type: event.data.type,

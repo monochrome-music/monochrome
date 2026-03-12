@@ -1,8 +1,54 @@
+import { AbortError } from './errorTypes';
+import { SegmentedDownloadProgress } from './progressEvents';
+
+export interface DashDownloadOptions {
+    onProgress?: MonochromeProgressListener<SegmentedDownloadProgress>;
+    signal?: AbortSignal;
+    calculateDashBytes?: boolean;
+}
+
+interface DashSegment {
+    number: number;
+    time: number;
+}
+
+interface DashManifest {
+    baseUrl: string;
+    initialization: string | null;
+    media: string | null;
+    segments: DashSegment[];
+    repId: string | null;
+    mimeType: string | null;
+}
+
 export class DashDownloader {
     constructor() {}
 
-    async downloadDashStream(manifestBlobUrl, options = {}) {
-        const { onProgress, signal } = options;
+    async getTotalSize(urls: string[], signal?: AbortSignal): Promise<number | undefined> {
+        try {
+            let totalSize = 0;
+
+            await Promise.all(
+                urls.map(async (url) => {
+                    const result = await fetch(url, { method: 'HEAD', signal });
+
+                    if (result.ok) {
+                        const contentLength = result.headers.get('Content-Length');
+                        if (contentLength) totalSize += parseInt(contentLength, 10);
+                    } else {
+                        throw new Error(`Failed to fetch segment HEAD: ${result.status}`);
+                    }
+                })
+            );
+
+            return totalSize;
+        } catch {
+            return undefined;
+        }
+    }
+
+    async downloadDashStream(manifestBlobUrl: string, options: DashDownloadOptions = {}): Promise<Blob> {
+        const { onProgress, signal, calculateDashBytes = true } = options;
 
         // 1. Fetch and Parse Manifest
         const response = await fetch(manifestBlobUrl);
@@ -18,24 +64,30 @@ export class DashDownloader {
         const mimeType = manifest.mimeType || 'audio/mp4';
 
         // 3. Download Segments
-        const chunks = [];
+        const chunks: ArrayBuffer[] = [];
         let downloadedBytes = 0;
-        // Estimate total size? Hard to know exactly without Content-Length of each.
-        // We can just track progress by segment count.
+
         const totalSegments = urls.length;
+        const totalSize = calculateDashBytes ? await this.getTotalSize(urls, signal) : undefined;
 
         for (let i = 0; i < urls.length; i++) {
-            if (signal?.aborted) throw new Error('AbortError');
+            if (signal?.aborted) throw new AbortError();
+
+            onProgress?.(new SegmentedDownloadProgress(downloadedBytes, totalSize ?? undefined, i, totalSegments));
 
             const url = urls[i];
             const segmentResponse = await fetch(url, { signal });
 
             if (!segmentResponse.ok) {
-                // Retry once?
                 console.warn(`Failed to fetch segment ${i}, retrying...`);
                 await new Promise((r) => setTimeout(r, 1000));
+
                 const retryResponse = await fetch(url, { signal });
-                if (!retryResponse.ok) throw new Error(`Failed to fetch segment ${i}: ${retryResponse.status}`);
+
+                if (!retryResponse.ok) {
+                    throw new Error(`Failed to fetch segment ${i}: ${retryResponse.status}`);
+                }
+
                 const chunk = await retryResponse.arrayBuffer();
                 chunks.push(chunk);
                 downloadedBytes += chunk.byteLength;
@@ -45,22 +97,14 @@ export class DashDownloader {
                 downloadedBytes += chunk.byteLength;
             }
 
-            if (onProgress) {
-                onProgress({
-                    stage: 'downloading',
-                    receivedBytes: downloadedBytes, // accurate byte count
-                    totalBytes: undefined, // Unknown total
-                    currentSegment: i + 1,
-                    totalSegments: totalSegments,
-                });
-            }
+            onProgress?.(new SegmentedDownloadProgress(downloadedBytes, totalSize ?? undefined, i + 1, totalSegments));
         }
 
         // 4. Concatenate
         return new Blob(chunks, { type: mimeType });
     }
 
-    parseManifest(manifestText) {
+    parseManifest(manifestText: string): DashManifest {
         const parser = new DOMParser();
         const xml = parser.parseFromString(manifestText, 'text/xml');
 
@@ -70,25 +114,22 @@ export class DashDownloader {
         const period = mpd.querySelector('Period');
         if (!period) throw new Error('Invalid DASH manifest: No Period tag');
 
-        // Prefer highest bandwidth audio adaptation set
         const adaptationSets = Array.from(period.querySelectorAll('AdaptationSet'));
 
         adaptationSets.sort((a, b) => {
-            const getMaxBandwidth = (set) => {
+            const getMaxBandwidth = (set: Element) => {
                 const reps = Array.from(set.querySelectorAll('Representation'));
                 return reps.length ? Math.max(...reps.map((r) => parseInt(r.getAttribute('bandwidth') || '0', 10))) : 0;
             };
+
             return getMaxBandwidth(b) - getMaxBandwidth(a);
         });
 
-        let audioSet = adaptationSets.find((as) => as.getAttribute('mimeType')?.startsWith('audio'));
+        let audioSet = adaptationSets.find((as) => as.getAttribute('mimeType')?.startsWith('audio')) ?? null;
 
-        // Fallback: look for any adaptation set if mimeType is missing (rare)
         if (!audioSet && adaptationSets.length > 0) audioSet = adaptationSets[0];
         if (!audioSet) throw new Error('No AdaptationSet found');
 
-        // Find Representation
-        // Get all representations and sort by bandwidth descending
         const representations = Array.from(audioSet.querySelectorAll('Representation')).sort((a, b) => {
             const bwA = parseInt(a.getAttribute('bandwidth') || '0');
             const bwB = parseInt(b.getAttribute('bandwidth') || '0');
@@ -96,55 +137,47 @@ export class DashDownloader {
         });
 
         if (representations.length === 0) throw new Error('No Representation found');
+
         const rep = representations[0];
         const repId = rep.getAttribute('id');
 
-        // Find SegmentTemplate
-        // Can be in Representation or AdaptationSet
         const segmentTemplate = rep.querySelector('SegmentTemplate') || audioSet.querySelector('SegmentTemplate');
+
         if (!segmentTemplate) throw new Error('No SegmentTemplate found');
 
         const initialization = segmentTemplate.getAttribute('initialization');
         const media = segmentTemplate.getAttribute('media');
         const startNumber = parseInt(segmentTemplate.getAttribute('startNumber') || '1', 10);
 
-        // BaseURL
-        // Can be at MPD, Period, AdaptationSet, or Representation level.
-        // We strictly need to find the "deepest" one or combine them?
-        // Usually simpler manifests have it at one level.
-        // Let's resolve closest BaseURL.
         const baseUrlTag =
             rep.querySelector('BaseURL') ||
             audioSet.querySelector('BaseURL') ||
             period.querySelector('BaseURL') ||
             mpd.querySelector('BaseURL');
-        const baseUrl = baseUrlTag ? baseUrlTag.textContent.trim() : '';
 
-        // SegmentTimeline
+        const baseUrl = baseUrlTag?.textContent?.trim() || '';
+
         const segmentTimeline = segmentTemplate.querySelector('SegmentTimeline');
-        const segments = [];
+        const segments: DashSegment[] = [];
 
         if (segmentTimeline) {
             const sElements = segmentTimeline.querySelectorAll('S');
+
             let currentTime = 0;
             let currentNumber = startNumber;
 
             sElements.forEach((s) => {
-                // t is optional, defaults to previous end
                 const tAttr = s.getAttribute('t');
                 if (tAttr) currentTime = parseInt(tAttr, 10);
 
-                const d = parseInt(s.getAttribute('d'), 10);
+                const d = parseInt(s.getAttribute('d') || '0', 10);
                 const r = parseInt(s.getAttribute('r') || '0', 10);
 
-                // Initial segment
                 segments.push({ number: currentNumber, time: currentTime });
+
                 currentTime += d;
                 currentNumber++;
 
-                // Repeats
-                // r is the number of REPEATS (so total occurrences = 1 + r)
-                // If r is negative, it refers to open-ended? (Usually not in static manifests)
                 for (let i = 0; i < r; i++) {
                     segments.push({ number: currentNumber, time: currentTime });
                     currentTime += d;
@@ -163,43 +196,40 @@ export class DashDownloader {
         };
     }
 
-    generateSegmentUrls(manifest) {
+    generateSegmentUrls(manifest: DashManifest): string[] {
         const { baseUrl, initialization, media, segments, repId } = manifest;
-        const urls = [];
 
-        // Helper to resolve template strings
-        const resolveTemplate = (template, number, time) => {
+        const urls: string[] = [];
+
+        const resolveTemplate = (template: string, number: number, time: number): string => {
             return template
-                .replace(/\$RepresentationID\$/g, repId)
-                .replace(/\$Number(?:%0([0-9]+)d)?\$/g, (match, width) => {
+                .replace(/\$RepresentationID\$/g, repId ?? '')
+                .replace(/\$Number(?:%0([0-9]+)d)?\$/g, (_, width) => {
                     if (width) {
                         return number.toString().padStart(parseInt(width), '0');
                     }
-                    return number;
+                    return number.toString();
                 })
-                .replace(/\$Time(?:%0([0-9]+)d)?\$/g, (match, width) => {
+                .replace(/\$Time(?:%0([0-9]+)d)?\$/g, (_, width) => {
                     if (width) {
                         return time.toString().padStart(parseInt(width), '0');
                     }
-                    return time;
+                    return time.toString();
                 });
         };
 
-        // Helper to join paths handling slashes
-        const joinPath = (base, part) => {
+        const joinPath = (base: string, part: string): string => {
             if (!base) return part;
-            if (part.startsWith('http')) return part; // Absolute path
+            if (part.startsWith('http')) return part;
             return base.endsWith('/') ? base + part : base + '/' + part;
         };
 
-        // 1. Initialization Segment
         if (initialization) {
-            const initPath = resolveTemplate(initialization, 0, 0); // Init often doesn't use Number/Time but just in case
+            const initPath = resolveTemplate(initialization, 0, 0);
             urls.push(joinPath(baseUrl, initPath));
         }
 
-        // 2. Media Segments
-        if (segments && segments.length > 0) {
+        if (media && segments.length > 0) {
             segments.forEach((seg) => {
                 const path = resolveTemplate(media, seg.number, seg.time);
                 urls.push(joinPath(baseUrl, path));
