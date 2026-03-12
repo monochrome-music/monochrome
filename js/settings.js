@@ -877,12 +877,17 @@ export function initializeSettings(scrobbler, player, api, ui) {
     }
 
     if (losslessContainerSetting) {
+        const noChangeOption = losslessContainerSetting.querySelector('option:last-child');
+        noChangeOption.remove();
+
         for (const [internalName, { displayName }] of Object.entries(containerFormats)) {
             const option = document.createElement('option');
             option.value = internalName;
             option.textContent = displayName;
             losslessContainerSetting.appendChild(option);
         }
+
+        losslessContainerSetting.append(noChangeOption);
 
         losslessContainerSetting.value = losslessContainerSettings.getContainer();
 

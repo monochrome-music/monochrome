@@ -154,14 +154,6 @@ export const containerFormats: Record<string, ContainerFormat> = {
         extension: 'm4a',
         needsTranscode: async () => true,
     },
-    nochange: {
-        displayName: "Don't change",
-        ffmpegArgs: ['-c:a', 'copy', '-strict', '-2'],
-        outputFilename: 'output.mp4',
-        outputMime: 'audio/mp4',
-        extension: 'mp4',
-        needsTranscode: async (blob) => (await getExtensionFromBlob(blob)) == 'm4a',
-    },
 };
 
 /** Returns true if the quality string identifies a known custom ffmpeg-transcoded format */
@@ -192,7 +184,7 @@ export async function transcodeWithCustomFormat(
 ): Promise<Blob> {
     return ffmpeg(
         audioBlob,
-        { args: format.ffmpegArgs },
+        format.ffmpegArgs,
         format.outputFilename,
         format.outputMime,
         onProgress,
@@ -214,7 +206,7 @@ export async function transcodeWithContainerFormat(
 ): Promise<Blob> {
     return ffmpeg(
         audioBlob,
-        { args: format.ffmpegArgs },
+        format.ffmpegArgs,
         format.outputFilename,
         format.outputMime,
         onProgress,
