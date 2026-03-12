@@ -861,10 +861,21 @@ export function initializeSettings(scrobbler, player, api, ui) {
 
         downloadQualitySetting.addEventListener('change', (e) => {
             downloadQualitySettings.setQuality(e.target.value);
+            updateLosslessContainerVisibility();
         });
     }
 
     const losslessContainerSetting = document.getElementById('lossless-container-setting');
+    const losslessContainerSettingItem = losslessContainerSetting?.closest('.setting-item');
+
+    /** Shows/hides the Lossless Container setting based on the selected quality */
+    function updateLosslessContainerVisibility() {
+        if (!losslessContainerSettingItem) return;
+        const quality = downloadQualitySettings.getQuality();
+        const isLossless = quality === 'LOSSLESS' || quality === 'HI_RES_LOSSLESS';
+        losslessContainerSettingItem.style.display = isLossless ? '' : 'none';
+    }
+
     if (losslessContainerSetting) {
         for (const { internalName, displayName } of containerFormats) {
             const option = document.createElement('option');
@@ -879,6 +890,8 @@ export function initializeSettings(scrobbler, player, api, ui) {
             losslessContainerSettings.setContainer(e.target.value);
         });
     }
+
+    updateLosslessContainerVisibility();
 
     // Cover Art Size setting
     const coverArtSizeSetting = document.getElementById('cover-art-size-setting');
@@ -910,11 +923,56 @@ export function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
-    const zippedBulkDownloadsToggle = document.getElementById('zipped-bulk-downloads-toggle');
-    if (zippedBulkDownloadsToggle) {
-        zippedBulkDownloadsToggle.checked = !bulkDownloadSettings.shouldForceIndividual();
-        zippedBulkDownloadsToggle.addEventListener('change', (e) => {
-            bulkDownloadSettings.setForceIndividual(!e.target.checked);
+    const forceZipBlobToggle = document.getElementById('force-zip-blob-toggle');
+    const forceZipBlobSettingItem = forceZipBlobToggle?.closest('.setting-item');
+    const hasFileSystemAccess =
+        'showSaveFilePicker' in window &&
+        typeof FileSystemFileHandle !== 'undefined' &&
+        'createWritable' in FileSystemFileHandle.prototype;
+
+    /** Shows/hides the Force ZIP as Blob setting based on method and browser support */
+    function updateForceZipBlobVisibility() {
+        if (!forceZipBlobSettingItem) return;
+        const method = bulkDownloadSettings.getMethod();
+        // Only relevant when zip method is selected and the browser supports streaming
+        const visible = method === 'zip' && hasFileSystemAccess;
+        forceZipBlobSettingItem.style.display = visible ? '' : 'none';
+    }
+
+    const bulkDownloadMethod = document.getElementById('bulk-download-method');
+    if (bulkDownloadMethod) {
+        // Remove the folder picker option if the browser doesn't support it
+        if (!('showDirectoryPicker' in window)) {
+            const folderOption = bulkDownloadMethod.querySelector('option[value="folder"]');
+            if (folderOption) {
+                folderOption.remove();
+            }
+            // If the stored method is 'folder', fall back to 'zip'
+            if (bulkDownloadSettings.getMethod() === 'folder') {
+                bulkDownloadSettings.setMethod('zip');
+            }
+        }
+        bulkDownloadMethod.value = bulkDownloadSettings.getMethod();
+        bulkDownloadMethod.addEventListener('change', (e) => {
+            bulkDownloadSettings.setMethod(e.target.value);
+            updateForceZipBlobVisibility();
+        });
+    }
+
+    if (forceZipBlobToggle) {
+        forceZipBlobToggle.checked = bulkDownloadSettings.shouldForceZipBlob();
+        forceZipBlobToggle.addEventListener('change', (e) => {
+            bulkDownloadSettings.setForceZipBlob(e.target.checked);
+        });
+    }
+
+    updateForceZipBlobVisibility();
+
+    const includeCoverToggle = document.getElementById('include-cover-toggle');
+    if (includeCoverToggle) {
+        includeCoverToggle.checked = playlistSettings.shouldIncludeCover();
+        includeCoverToggle.addEventListener('change', (e) => {
+            playlistSettings.setIncludeCover(e.target.checked);
         });
     }
 

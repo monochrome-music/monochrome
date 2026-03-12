@@ -21,21 +21,12 @@ import { generateM3U, generateM3U8, generateCUE, generateNFO, generateJSON } fro
 import { loadFfmpeg } from './ffmpeg.js';
 import { triggerDownload, applyAudioPostProcessing } from './download-utils.ts';
 import { isCustomFormat } from './ffmpegFormats.ts';
+import { ZipStreamWriter, ZipBlobWriter, ZipNeutralinoWriter, FolderPickerWriter } from './bulk-download-writer.ts';
 
 const downloadTasks = new Map();
 const bulkDownloadTasks = new Map();
 const ongoingDownloads = new Set();
 let downloadNotificationContainer = null;
-
-async function loadClientZip() {
-    try {
-        const module = await import('https://cdn.jsdelivr.net/npm/client-zip@2.4.5/+esm');
-        return module;
-    } catch (error) {
-        console.error('Failed to load client-zip:', error);
-        throw new Error('Failed to load ZIP library');
-    }
-}
 
 async function createDiscLayoutContext(tracks, api) {
     if (!playlistSettings.shouldSeparateDiscsInZip()) {
@@ -508,27 +499,24 @@ async function bulkDownloadSequentially(tracks, api, quality, lyricsManager, not
     }
 }
 
-async function bulkDownloadToZipStream(
+async function bulkDownloadToZip(
     tracks,
     folderName,
     api,
     quality,
     lyricsManager,
     notification,
-    fileHandle,
+    writer,
     coverBlob = null,
     type = 'playlist',
     metadata = null
 ) {
     const { abortController } = bulkDownloadTasks.get(notification);
     const signal = abortController.signal;
-    const { downloadZip } = await loadClientZip();
-
-    const writable = await fileHandle.createWritable();
 
     async function* yieldFiles() {
-        // Add cover if available
-        if (coverBlob) {
+        // Add cover if available and enabled
+        if (coverBlob && playlistSettings.shouldIncludeCover()) {
             yield { name: `${folderName}/cover.jpg`, lastModified: new Date(), input: coverBlob };
         }
 
@@ -613,9 +601,8 @@ async function bulkDownloadToZipStream(
             };
         }
 
-        // For albums, generate CUE file
+        // For albums, generate CUE file (one per disc if multi-disc)
         if (type === 'album' && playlistSettings.shouldGenerateCUE()) {
-            // Split tracks by volumeNumber and iterate those groups.
             const tracksByVolume = Object.groupBy(
                 tracks.map((track, index) => ({
                     ...track,
@@ -625,9 +612,14 @@ async function bulkDownloadToZipStream(
             );
             const multiDisc = Object.keys(tracksByVolume).length > 1;
 
-            for (const [volumeNumber, tracks] of Object.entries(tracksByVolume)) {
-                const trackPaths = tracks.map((track) => track.trackPath);
-                const cueContent = generateCUE(metadata, tracks, sanitizeForFilename(folderName), trackPaths);
+            for (const [volumeNumber, volumeTracks] of Object.entries(tracksByVolume)) {
+                const volumeTrackPaths = volumeTracks.map((track) => track.trackPath);
+                const cueContent = generateCUE(
+                    metadata,
+                    volumeTracks,
+                    sanitizeForFilename(folderName),
+                    volumeTrackPaths
+                );
                 yield {
                     name: `${folderName}/${sanitizeForFilename(folderName)}${multiDisc ? ` - Disc ${volumeNumber}` : ''}.cue`,
                     lastModified: new Date(),
@@ -670,370 +662,35 @@ async function bulkDownloadToZipStream(
         }
     }
 
-    try {
-        const response = downloadZip(yieldFiles());
-        await response.body.pipeTo(writable);
-    } catch (error) {
-        if (error.name === 'AbortError') return;
-        throw error;
-    }
+    await writer.write(yieldFiles());
 }
 
-// Generate ZIP as blob for browsers without File System Access API (iOS, etc.)
-async function bulkDownloadToZipBlob(
-    tracks,
-    folderName,
-    api,
-    quality,
-    lyricsManager,
-    notification,
-    coverBlob = null,
-    type = 'playlist',
-    metadata = null
-) {
-    const { abortController } = bulkDownloadTasks.get(notification);
-    const signal = abortController.signal;
-    const { downloadZip } = await loadClientZip();
+/**
+ * Returns the appropriate bulk download writer for the current settings and environment,
+ * or null when individual sequential downloads should be used.
+ */
+async function createBulkWriter(folderName) {
+    const isNeutralino = window.NL_MODE === true;
+    const method = bulkDownloadSettings.getMethod();
+    const forceZipBlob = bulkDownloadSettings.shouldForceZipBlob();
+    const hasFileSystemAccess = 'showSaveFilePicker' in window && 'createWritable' in FileSystemFileHandle.prototype;
+    const hasFolderPicker = 'showDirectoryPicker' in window;
 
-    async function* yieldFiles() {
-        // Add cover if available
-        if (coverBlob) {
-            yield { name: `${folderName}/cover.jpg`, lastModified: new Date(), input: coverBlob };
-        }
-
-        const useRelativePaths = playlistSettings.shouldUseRelativePaths();
-        const discLayout = await createDiscLayoutContext(tracks, api);
-        const separateByDisc = discLayout.separateByDisc;
-
-        // Download tracks, yielding each immediately and collecting actual paths for playlist generation
-        const trackPaths = [];
-        for (let i = 0; i < tracks.length; i++) {
-            if (signal.aborted) break;
-            const track = tracks[i];
-            const trackTitle = getTrackTitle(track);
-
-            updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
-
-            try {
-                const { blob, extension } = await downloadTrackBlob(
-                    track,
-                    quality,
-                    api,
-                    null,
-                    signal,
-                    (p) => {
-                        updateBulkDownloadProgress(notification, i, tracks.length, trackTitle, p);
-                    },
-                    coverBlob
-                );
-                const filename = buildTrackFilename(track, quality, extension);
-                const discNumber = discLayout.resolveDiscNumber(i);
-                const discPath = separateByDisc ? `${getDiscFolderName(discNumber)}/${filename}` : filename;
-
-                console.log(`[Playlist] Track ${i + 1}: ${discPath}`);
-                trackPaths.push(discPath);
-
-                yield {
-                    name: buildZipTrackPath(folderName, filename, separateByDisc, discNumber),
-                    lastModified: new Date(),
-                    input: blob,
-                };
-
-                if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
-                    try {
-                        const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
-                        if (lyricsData) {
-                            const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
-                            if (lrcContent) {
-                                const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
-                                yield {
-                                    name: buildZipTrackPath(folderName, lrcFilename, separateByDisc, discNumber),
-                                    lastModified: new Date(),
-                                    input: lrcContent,
-                                };
-                            }
-                        }
-                    } catch {
-                        /* ignore */
-                    }
-                }
-            } catch (err) {
-                if (err.name === 'AbortError') throw err;
-                console.error(`Failed to download track ${trackTitle}:`, err);
-                trackPaths.push(null);
-            }
-        }
-
-        if (playlistSettings.shouldGenerateNFO()) {
-            const nfoContent = generateNFO(metadata || { title: folderName }, tracks, type);
-            yield {
-                name: `${folderName}/${sanitizeForFilename(folderName)}.nfo`,
-                lastModified: new Date(),
-                input: nfoContent,
-            };
-        }
-
-        if (playlistSettings.shouldGenerateJSON()) {
-            const jsonContent = generateJSON(metadata || { title: folderName }, tracks, type);
-            yield {
-                name: `${folderName}/${sanitizeForFilename(folderName)}.json`,
-                lastModified: new Date(),
-                input: jsonContent,
-            };
-        }
-
-        // For albums, generate CUE file
-        if (type === 'album' && playlistSettings.shouldGenerateCUE()) {
-            const cueContent = generateCUE(metadata, tracks, sanitizeForFilename(folderName), trackPaths);
-            yield {
-                name: `${folderName}/${sanitizeForFilename(folderName)}.cue`,
-                lastModified: new Date(),
-                input: cueContent,
-            };
-        }
-
-        // Generate m3u/m3u8 last, using actual track paths collected during download
-        if (playlistSettings.shouldGenerateM3U()) {
-            const m3uContent = generateM3U(
-                metadata || { title: folderName },
-                tracks,
-                useRelativePaths,
-                null,
-                'flac',
-                trackPaths
-            );
-            yield {
-                name: `${folderName}/${sanitizeForFilename(folderName)}.m3u`,
-                lastModified: new Date(),
-                input: m3uContent,
-            };
-        }
-
-        if (playlistSettings.shouldGenerateM3U8()) {
-            const m3u8Content = generateM3U8(
-                metadata || { title: folderName },
-                tracks,
-                useRelativePaths,
-                null,
-                'flac',
-                trackPaths
-            );
-            yield {
-                name: `${folderName}/${sanitizeForFilename(folderName)}.m3u8`,
-                lastModified: new Date(),
-                input: m3u8Content,
-            };
-        }
+    if (isNeutralino) {
+        return new ZipNeutralinoWriter(folderName);
     }
-
-    try {
-        const response = downloadZip(yieldFiles());
-        const blob = await response.blob();
-        triggerDownload(blob, `${folderName}.zip`);
-    } catch (error) {
-        if (error.name === 'AbortError') return;
-        throw error;
+    if (method === 'folder' && hasFolderPicker) {
+        // FolderPickerWriter.create() throws AbortError if the user cancels
+        return await FolderPickerWriter.create();
     }
-}
-
-async function bulkDownloadToZipNeutralino(
-    tracks,
-    folderName,
-    api,
-    quality,
-    lyricsManager,
-    notification,
-    coverBlob = null,
-    type = 'playlist',
-    metadata = null
-) {
-    const { abortController } = bulkDownloadTasks.get(notification);
-    const signal = abortController.signal;
-    const { downloadZip } = await loadClientZip();
-
-    // Re-use logic for generating file entries
-    async function* yieldFiles() {
-        // Add cover if available
-        if (coverBlob) {
-            yield { name: `${folderName}/cover.jpg`, lastModified: new Date(), input: coverBlob };
-        }
-
-        const useRelativePaths = playlistSettings.shouldUseRelativePaths();
-        const discLayout = await createDiscLayoutContext(tracks, api);
-        const separateByDisc = discLayout.separateByDisc;
-
-        // Download tracks, yielding each immediately and collecting actual paths for playlist generation
-        const trackPaths = [];
-        for (let i = 0; i < tracks.length; i++) {
-            if (signal.aborted) break;
-            const track = tracks[i];
-            const trackTitle = getTrackTitle(track);
-
-            updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
-
-            try {
-                const { blob, extension } = await downloadTrackBlob(
-                    track,
-                    quality,
-                    api,
-                    null,
-                    signal,
-                    (p) => {
-                        updateBulkDownloadProgress(notification, i, tracks.length, trackTitle, p);
-                    },
-                    coverBlob
-                );
-                const filename = buildTrackFilename(track, quality, extension);
-                const discNumber = discLayout.resolveDiscNumber(i);
-                const discPath = separateByDisc ? `${getDiscFolderName(discNumber)}/${filename}` : filename;
-
-                console.log(`[Playlist] Track ${i + 1}: ${discPath}`);
-                trackPaths.push(discPath);
-
-                yield {
-                    name: buildZipTrackPath(folderName, filename, separateByDisc, discNumber),
-                    lastModified: new Date(),
-                    input: blob,
-                };
-
-                if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
-                    try {
-                        const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
-                        if (lyricsData) {
-                            const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
-                            if (lrcContent) {
-                                const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
-                                yield {
-                                    name: buildZipTrackPath(folderName, lrcFilename, separateByDisc, discNumber),
-                                    lastModified: new Date(),
-                                    input: lrcContent,
-                                };
-                            }
-                        }
-                    } catch {
-                        /* ignore */
-                    }
-                }
-            } catch (err) {
-                if (err.name === 'AbortError') throw err;
-                console.error(`Failed to download track ${trackTitle}:`, err);
-                trackPaths.push(null);
-            }
-        }
-
-        if (playlistSettings.shouldGenerateNFO()) {
-            const nfoContent = generateNFO(metadata || { title: folderName }, tracks, type);
-            yield {
-                name: `${folderName}/${sanitizeForFilename(folderName)}.nfo`,
-                lastModified: new Date(),
-                input: nfoContent,
-            };
-        }
-
-        if (playlistSettings.shouldGenerateJSON()) {
-            const jsonContent = generateJSON(metadata || { title: folderName }, tracks, type);
-            yield {
-                name: `${folderName}/${sanitizeForFilename(folderName)}.json`,
-                lastModified: new Date(),
-                input: jsonContent,
-            };
-        }
-
-        // For albums, generate CUE file
-        if (type === 'album' && playlistSettings.shouldGenerateCUE()) {
-            const cueContent = generateCUE(metadata, tracks, sanitizeForFilename(folderName), trackPaths);
-            yield {
-                name: `${folderName}/${sanitizeForFilename(folderName)}.cue`,
-                lastModified: new Date(),
-                input: cueContent,
-            };
-        }
-
-        // Generate m3u/m3u8 last, using actual track paths collected during download
-        if (playlistSettings.shouldGenerateM3U()) {
-            const m3uContent = generateM3U(
-                metadata || { title: folderName },
-                tracks,
-                useRelativePaths,
-                null,
-                'flac',
-                trackPaths
-            );
-            yield {
-                name: `${folderName}/${sanitizeForFilename(folderName)}.m3u`,
-                lastModified: new Date(),
-                input: m3uContent,
-            };
-        }
-
-        if (playlistSettings.shouldGenerateM3U8()) {
-            const m3u8Content = generateM3U8(
-                metadata || { title: folderName },
-                tracks,
-                useRelativePaths,
-                null,
-                'flac',
-                trackPaths
-            );
-            yield {
-                name: `${folderName}/${sanitizeForFilename(folderName)}.m3u8`,
-                lastModified: new Date(),
-                input: m3u8Content,
-            };
-        }
+    if (method === 'individual') {
+        return null;
     }
-
-    try {
-        // Load the bridge explicitly to ensure we go through the parent shell
-        const bridge = await import('./desktop/neutralino-bridge.js');
-
-        // Native Save Dialog via Bridge
-        const savePath = await bridge.os.showSaveDialog(`Select save location for ${folderName}.zip`, {
-            defaultPath: `${folderName}.zip`,
-            filters: [{ name: 'ZIP Archive', extensions: ['zip'] }],
-        });
-
-        if (!savePath) {
-            // Cancelled
-            removeBulkDownloadTask(notification);
-            return;
-        }
-
-        const response = downloadZip(yieldFiles());
-
-        // Initialize file (empty) to ensure it exists
-        // We use writeBinaryFile with an empty buffer to create/overwrite
-        await bridge.filesystem.writeBinaryFile(savePath, new ArrayBuffer(0));
-
-        // Stream the response body
-        if (!response.body) throw new Error('ZIP response body is null');
-
-        const reader = response.body.getReader();
-        let receivedLength = 0;
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            // 'value' is a Uint8Array. Neutralino filesystem expects ArrayBuffer.
-            // value.buffer might contain the whole backing store, so we should be careful to slice if offset is non-zero
-            // but usually read() returns fresh chunks.
-            // However, neutralino bridge's appendBinaryFile takes ArrayBuffer.
-            const chunk = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength);
-
-            await bridge.filesystem.appendBinaryFile(savePath, chunk);
-            receivedLength += value.length;
-
-            // Optional: Update granular progress if we want, but we typically update per-track in yieldFiles
-        }
-
-        console.log(`[ZIP] Download complete. Total size: ${receivedLength} bytes.`);
-
-        completeBulkDownload(notification, true);
-    } catch (error) {
-        if (error.name === 'AbortError') return;
-        throw error;
+    // method === 'zip' (or folder picker unavailable as fallback)
+    if (!forceZipBlob && hasFileSystemAccess) {
+        return new ZipStreamWriter(`${folderName}.zip`);
     }
+    return new ZipBlobWriter(`${folderName}.zip`);
 }
 
 async function startBulkDownload(
@@ -1050,73 +707,32 @@ async function startBulkDownload(
     const notification = createBulkDownloadNotification(type, name, tracks.length);
 
     try {
-        const isNeutralino = window.NL_MODE === true;
-        const hasFileSystemAccess =
-            'showSaveFilePicker' in window && 'createWritable' in FileSystemFileHandle.prototype;
-        const forceIndividual = bulkDownloadSettings.shouldForceIndividual();
-        const useZip = hasFileSystemAccess && !forceIndividual;
-        const useZipBlob = !hasFileSystemAccess && !forceIndividual;
+        const writer = await createBulkWriter(defaultName);
 
-        if (isNeutralino) {
-            // Neutralino Native Logic
-            await bulkDownloadToZipNeutralino(
+        if (writer) {
+            await bulkDownloadToZip(
                 tracks,
                 defaultName,
                 api,
                 quality,
                 lyricsManager,
                 notification,
+                writer,
                 coverBlob,
                 type,
                 metadata
             );
-        } else if (useZip) {
-            // File System Access API available - use streaming
-            try {
-                const fileHandle = await window.showSaveFilePicker({
-                    suggestedName: `${defaultName}.zip`,
-                    types: [{ description: 'ZIP Archive', accept: { 'application/zip': ['.zip'] } }],
-                });
-                await bulkDownloadToZipStream(
-                    tracks,
-                    defaultName,
-                    api,
-                    quality,
-                    lyricsManager,
-                    notification,
-                    fileHandle,
-                    coverBlob,
-                    type,
-                    metadata
-                );
-                completeBulkDownload(notification, true);
-            } catch (err) {
-                if (err.name === 'AbortError') {
-                    removeBulkDownloadTask(notification);
-                    return;
-                }
-                throw err;
-            }
-        } else if (useZipBlob) {
-            // No File System Access API (iOS, etc.) - use blob-based ZIP
-            await bulkDownloadToZipBlob(
-                tracks,
-                defaultName,
-                api,
-                quality,
-                lyricsManager,
-                notification,
-                coverBlob,
-                type,
-                metadata
-            );
-            completeBulkDownload(notification, true);
         } else {
-            // Fallback or Forced: Individual sequential downloads
+            // Individual sequential downloads
             await bulkDownloadSequentially(tracks, api, quality, lyricsManager, notification);
-            completeBulkDownload(notification, true);
         }
+
+        completeBulkDownload(notification, true);
     } catch (error) {
+        if (error.name === 'AbortError') {
+            removeBulkDownloadTask(notification);
+            return;
+        }
         console.error('Bulk download failed:', error);
         completeBulkDownload(notification, false, error.message);
     }
@@ -1183,10 +799,6 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
     const { abortController } = bulkDownloadTasks.get(notification);
     const signal = abortController.signal;
 
-    const hasFileSystemAccess = 'showSaveFilePicker' in window && 'createWritable' in FileSystemFileHandle.prototype;
-    const useZip = hasFileSystemAccess && !bulkDownloadSettings.shouldForceIndividual();
-    const useZipBlob = !hasFileSystemAccess && !bulkDownloadSettings.shouldForceIndividual();
-
     async function* yieldDiscography() {
         for (let albumIndex = 0; albumIndex < selectedReleases.length; albumIndex++) {
             if (signal.aborted) break;
@@ -1213,7 +825,7 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                 );
 
                 const fullFolderPath = `${rootFolder}/${albumFolder}`;
-                if (coverBlob)
+                if (coverBlob && playlistSettings.shouldIncludeCover())
                     yield { name: `${fullFolderPath}/cover.jpg`, lastModified: new Date(), input: coverBlob };
 
                 // Generate playlist files for each album
@@ -1332,27 +944,12 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
     }
 
     try {
-        if (useZip) {
-            // File System Access API available - use streaming
-            const fileHandle = await window.showSaveFilePicker({
-                suggestedName: `${rootFolder}.zip`,
-                types: [{ description: 'ZIP Archive', accept: { 'application/zip': ['.zip'] } }],
-            });
-            const writable = await fileHandle.createWritable();
-            const { downloadZip } = await loadClientZip();
+        const writer = await createBulkWriter(rootFolder);
 
-            const response = downloadZip(yieldDiscography());
-            await response.body.pipeTo(writable);
-            completeBulkDownload(notification, true);
-        } else if (useZipBlob) {
-            // No File System Access API (iOS, etc.) - use blob-based ZIP
-            const { downloadZip } = await loadClientZip();
-            const response = downloadZip(yieldDiscography());
-            const blob = await response.blob();
-            triggerDownload(blob, `${rootFolder}.zip`);
-            completeBulkDownload(notification, true);
+        if (writer) {
+            await writer.write(yieldDiscography());
         } else {
-            // Sequential individual downloads for discography
+            // Individual sequential downloads for discography
             for (let albumIndex = 0; albumIndex < selectedReleases.length; albumIndex++) {
                 if (signal.aborted) break;
                 const album = selectedReleases[albumIndex];
@@ -1361,8 +958,9 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                 const tracks = await annotateTracksWithDiscInfo(rawTracks, api);
                 await bulkDownloadSequentially(tracks, api, quality, lyricsManager, notification);
             }
-            completeBulkDownload(notification, true);
         }
+
+        completeBulkDownload(notification, true);
     } catch (error) {
         if (error.name === 'AbortError') {
             removeBulkDownloadTask(notification);
