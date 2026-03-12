@@ -7,12 +7,13 @@ import {
     getExtensionFromBlob,
     getTrackTitle,
     getFullArtistString,
+    getTrackDiscNumber,
     getMimeType,
 } from './utils.js';
 import { trackDateSettings } from './storage.js';
 import { APICache } from './cache.js';
 import { addMetadataToAudio, prefetchMetadataObjects } from './metadata.js';
-import { DashDownloader } from './dash-downloader.js';
+import { DashDownloader } from './dash-downloader.ts';
 import { HlsDownloader } from './hls-downloader.js';
 import { MP3EncodingError } from './mp3-encoder.js';
 import { loadFfmpeg, FfmpegError } from './ffmpeg.js';
@@ -1288,11 +1289,36 @@ export class LosslessAPI {
         return streamUrl;
     }
 
+    /**
+     * Downloads a track or video from TIDAL in the specified quality.
+     *
+     * Handles multiple stream types (DASH, HLS, and direct HTTP), applies post-processing
+     * for audio tracks, adds metadata, and optionally triggers a browser download.
+     *
+     * @async
+     * @param {string} id - The TIDAL track or video ID
+     * @param {string} [quality='HI_RES_LOSSLESS'] - The desired audio quality (e.g., 'HI_RES_LOSSLESS', 'LOSSLESS', 'HIGH', 'NORMAL').
+     *                                               Custom FFMPEG formats are transcoded from LOSSLESS.
+     * @param {string} filename - The filename to save the downloaded content as
+     * @param {Object} [options={}] - Additional download options
+     * @param {Function} [options.onProgress] - Callback function for progress updates with signature:
+     *                                          `(progressEvent) => void`
+     * @param {Object} [options.track] - Track metadata object to attach to the audio file
+     * @param {boolean} [options.calculateDashBytes=true] - Whether to calculate total bytes for DASH streams
+     * @param {AbortSignal} [options.signal] - AbortSignal to cancel the download
+     * @param {boolean} [options.triggerDownload=true] - Whether to trigger browser download after completion
+     *
+     * @returns {Promise<Blob>} The downloaded content as a Blob object
+     *
+     * @throws {Error} If stream URL cannot be resolved, manifest is missing, or download fails
+     * @throws {AbortError} If the download is aborted via the signal
+     * @throws {MP3EncodingError|FfmpegError} If audio transcoding fails
+     */
     async downloadTrack(id, quality = 'HI_RES_LOSSLESS', filename, options = {}) {
         // Load ffmpeg in the background.
         loadFfmpeg().catch(console.error);
 
-        const { onProgress, track } = options;
+        const { onProgress, track, calculateDashBytes = true } = options;
         const prefetchPromises = prefetchMetadataObjects(track, this);
         const isVideo = track?.type === 'video';
 
@@ -1345,7 +1371,8 @@ export class LosslessAPI {
                     const downloader = new DashDownloader();
                     blob = await downloader.downloadDashStream(streamUrl, {
                         signal: options.signal,
-                        onProgress: options.onProgress,
+                        onProgress,
+                        calculateDashBytes: calculateDashBytes ?? true,
                     });
                 } catch (dashError) {
                     console.error('DASH download failed:', dashError);
@@ -1363,7 +1390,7 @@ export class LosslessAPI {
                     const downloader = new HlsDownloader();
                     blob = await downloader.downloadHlsStream(streamUrl, {
                         signal: options.signal,
-                        onProgress: options.onProgress,
+                        onProgress,
                     });
                 } catch (hlsError) {
                     console.error('HLS download failed:', hlsError);
@@ -1384,7 +1411,7 @@ export class LosslessAPI {
 
                 let receivedBytes = 0;
 
-                if (response.body && onProgress) {
+                if (response.body) {
                     const reader = response.body.getReader();
                     const chunks = [];
 
@@ -1396,7 +1423,7 @@ export class LosslessAPI {
                             chunks.push(value);
                             receivedBytes += value.byteLength;
 
-                            onProgress({
+                            onProgress?.({
                                 stage: 'downloading',
                                 receivedBytes,
                                 totalBytes: totalBytes || undefined,
@@ -1408,13 +1435,11 @@ export class LosslessAPI {
                     blob = new Blob(chunks, { type: response.headers.get('Content-Type') || defaultMime });
                 } else {
                     blob = await response.blob();
-                    if (onProgress) {
-                        onProgress({
-                            stage: 'downloading',
-                            receivedBytes: blob.size,
-                            totalBytes: blob.size,
-                        });
-                    }
+                    onProgress?.({
+                        stage: 'downloading',
+                        receivedBytes: blob.size,
+                        totalBytes: blob.size,
+                    });
                 }
             }
 
@@ -1423,12 +1448,10 @@ export class LosslessAPI {
 
                 // Add metadata if track information is provided
                 if (track) {
-                    if (onProgress) {
-                        onProgress({
-                            stage: 'processing',
-                            message: 'Adding metadata...',
-                        });
-                    }
+                    onProgress?.({
+                        stage: 'processing',
+                        message: 'Adding metadata...',
+                    });
 
                     const enrichedTrack = { ...track };
                     if (lookup.info) {
@@ -1445,38 +1468,17 @@ export class LosslessAPI {
                         (track.album?.totalDiscs == null || track.album?.numberOfTracksOnDisc == null)
                     ) {
                         try {
-                            // Broad disc-field resolver — mirrors getExplicitTrackDiscNumber in downloads.js
-                            const resolveDiscNumber = (t) => {
-                                const candidates = [
-                                    t.volumeNumber,
-                                    t.discNumber,
-                                    t.mediaNumber,
-                                    t.media_number,
-                                    t.volume,
-                                    t.disc,
-                                    t.disc_no,
-                                    t.discNo,
-                                    t.disc_number,
-                                    t.mediaMetadata?.discNumber,
-                                ];
-                                for (const c of candidates) {
-                                    const parsed = parseInt(c, 10);
-                                    if (Number.isFinite(parsed) && parsed > 0) return parsed;
-                                }
-                                return 1;
-                            };
-
                             const albumData = await this.getAlbum(track.album.id);
                             if (albumData.tracks?.length > 0) {
                                 const discTrackCounts = new Map();
                                 let maxDiscNumber = 0;
                                 for (const t of albumData.tracks) {
-                                    const dn = resolveDiscNumber(t);
+                                    const dn = getTrackDiscNumber(t);
                                     discTrackCounts.set(dn, (discTrackCounts.get(dn) || 0) + 1);
                                     if (dn > maxDiscNumber) maxDiscNumber = dn;
                                 }
                                 const totalDiscs = maxDiscNumber || 1;
-                                const discNumber = resolveDiscNumber(track);
+                                const discNumber = getTrackDiscNumber(track);
                                 enrichedTrack.album = {
                                     ...(enrichedTrack.album || {}),
                                     totalDiscs: track.album?.totalDiscs ?? totalDiscs,
@@ -1493,17 +1495,20 @@ export class LosslessAPI {
                 }
             }
 
-            // Detect actual format and fix filename extension if needed
-            const detectedExtension = await getExtensionFromBlob(blob);
-            let finalFilename = filename;
+            if (options.triggerDownload ?? true) {
+                // Detect actual format and fix filename extension if needed
+                const detectedExtension = await getExtensionFromBlob(blob);
+                let finalFilename = filename;
 
-            // Replace extension if it doesn't match detected format
-            const currentExtension = filename.split('.').pop()?.toLowerCase();
-            if (currentExtension && currentExtension !== detectedExtension) {
-                finalFilename = filename.replace(/\.[^.]+$/, `.${detectedExtension}`);
+                // Replace extension if it doesn't match detected format
+                const currentExtension = filename.split('.').pop()?.toLowerCase();
+                if (currentExtension && currentExtension !== detectedExtension) {
+                    finalFilename = filename.replace(/\.[^.]+$/, `.${detectedExtension}`);
+                }
+
+                triggerDownload(blob, finalFilename);
             }
 
-            triggerDownload(blob, finalFilename);
             return blob;
         } catch (error) {
             if (error.name === 'AbortError') {
