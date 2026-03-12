@@ -63,18 +63,6 @@ These are available API endpoints that can be used with Monochrome or other Hi-F
 
 ---
 
-## Instance Health
-
-To check the current status of instances:
-
-1. Visit the instance URL in your browser
-2. Check if the page loads correctly
-3. Try playing a track to verify API connectivity
-
-> **Note:** Community instances may have varying uptime and performance. If one doesn't work, try another.
-
----
-
 ## Adding Your Instance
 
 Want to add your instance to this list?
