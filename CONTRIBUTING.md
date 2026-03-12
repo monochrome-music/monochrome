@@ -13,7 +13,6 @@ Thank you for your interest in contributing to Monochrome! This guide will help 
 - [Contributing Workflow](#contributing-workflow)
 - [Commit Message Guidelines](#commit-message-guidelines)
 - [Deployment](#deployment)
-- [Questions?](#questions)
 
 ---
 
