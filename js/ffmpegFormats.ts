@@ -12,8 +12,6 @@ export interface ProgressEvent {
 export interface CustomFormat {
     /** Human-readable label shown in the UI */
     displayName: string;
-    /** Internal identifier, must start with `FFMPEG_` */
-    internalName: string;
     /** Arguments passed to ffmpeg (excluding input/output file args) */
     ffmpegArgs: string[];
     /** Output filename used when calling ffmpeg */
@@ -40,37 +38,33 @@ export interface ContainerFormat extends Omit<CustomFormat, 'category'> {
     needsTranscode: (blob: Blob) => Promise<boolean>;
 }
 
-export const customFormats: CustomFormat[] = [
-    {
+export const customFormats: Record<string, CustomFormat> = {
+    FFMPEG_MP3_320: {
         displayName: 'MP3 320kbps',
-        internalName: 'FFMPEG_MP3_320',
         ffmpegArgs: ['-map_metadata', '-1', '-c:a', 'libmp3lame', '-b:a', '320k', '-ar', '44100'],
         outputFilename: 'output.mp3',
         outputMime: 'audio/mpeg',
         extension: 'mp3',
         category: 'MP3',
     },
-    {
+    FFMPEG_MP3_256: {
         displayName: 'MP3 256kbps',
-        internalName: 'FFMPEG_MP3_256',
         ffmpegArgs: ['-map_metadata', '-1', '-c:a', 'libmp3lame', '-b:a', '256k', '-ar', '44100'],
         outputFilename: 'output.mp3',
         outputMime: 'audio/mpeg',
         extension: 'mp3',
         category: 'MP3',
     },
-    {
+    FFMPEG_MP3_128: {
         displayName: 'MP3 128kbps',
-        internalName: 'FFMPEG_MP3_128',
         ffmpegArgs: ['-map_metadata', '-1', '-c:a', 'libmp3lame', '-b:a', '128k', '-ar', '44100'],
         outputFilename: 'output.mp3',
         outputMime: 'audio/mpeg',
         extension: 'mp3',
         category: 'MP3',
     },
-    {
+    FFMPEG_OGG_320: {
         displayName: 'OGG 320kbps',
-        internalName: 'FFMPEG_OGG_320',
         ffmpegArgs: [
             '-map_metadata',
             '-1',
@@ -88,9 +82,8 @@ export const customFormats: CustomFormat[] = [
         extension: 'ogg',
         category: 'OGG',
     },
-    {
+    FFMPEG_OGG_256: {
         displayName: 'OGG 256kbps',
-        internalName: 'FFMPEG_OGG_256',
         ffmpegArgs: [
             '-map_metadata',
             '-1',
@@ -108,9 +101,8 @@ export const customFormats: CustomFormat[] = [
         extension: 'ogg',
         category: 'OGG',
     },
-    {
+    FFMPEG_OGG_128: {
         displayName: 'OGG 128kbps',
-        internalName: 'FFMPEG_OGG_128',
         ffmpegArgs: [
             '-map_metadata',
             '-1',
@@ -128,16 +120,15 @@ export const customFormats: CustomFormat[] = [
         extension: 'ogg',
         category: 'OGG',
     },
-    {
+    FFMPEG_AAC_256: {
         displayName: 'AAC 256kbps',
-        internalName: 'FFMPEG_AAC_256',
         ffmpegArgs: ['-map_metadata', '-1', '-c:a', 'aac', '-b:a', '256k'],
         outputFilename: 'output.m4a',
         outputMime: 'audio/mp4',
         extension: 'm4a',
         category: 'AAC',
     },
-];
+};
 
 /**
  * Container format definitions for lossless re-muxing.  Each entry describes
@@ -145,10 +136,9 @@ export const customFormats: CustomFormat[] = [
  * `needsTranscode` predicate so callers can skip the ffmpeg step when the
  * source is already in the correct container.
  */
-export const containerFormats: ContainerFormat[] = [
-    {
+export const containerFormats: Record<string, ContainerFormat> = {
+    flac: {
         displayName: 'FLAC',
-        internalName: 'flac',
         ffmpegArgs: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'flac'],
         outputFilename: 'output.flac',
         outputMime: 'audio/flac',
@@ -156,25 +146,23 @@ export const containerFormats: ContainerFormat[] = [
         // Only transcode when the source is NOT already a FLAC file.
         needsTranscode: async (blob) => (await getExtensionFromBlob(blob)) !== 'flac',
     },
-    {
+    alac: {
         displayName: 'Apple Lossless',
-        internalName: 'alac',
         ffmpegArgs: ['-c:a', 'alac'],
         outputFilename: 'output.m4a',
         outputMime: 'audio/mp4',
         extension: 'm4a',
         needsTranscode: async () => true,
     },
-    {
+    nochange: {
         displayName: "Don't change",
-        internalName: 'nochange',
         ffmpegArgs: ['-c:a', 'copy', '-strict', '-2'],
         outputFilename: 'output.mp4',
         outputMime: 'audio/mp4',
         extension: 'mp4',
         needsTranscode: async (blob) => (await getExtensionFromBlob(blob)) == 'm4a',
     },
-];
+};
 
 /** Returns true if the quality string identifies a known custom ffmpeg-transcoded format */
 export function isCustomFormat(quality: string): boolean {
@@ -183,12 +171,12 @@ export function isCustomFormat(quality: string): boolean {
 
 /** Looks up a custom format by its internal name, or returns undefined */
 export function getCustomFormat(internalName: string): CustomFormat | undefined {
-    return customFormats.find((f) => f.internalName === internalName);
+    return customFormats[internalName];
 }
 
 /** Looks up a container format by its internal name, or returns undefined */
 export function getContainerFormat(internalName: string): ContainerFormat | undefined {
-    return containerFormats.find((f) => f.internalName === internalName);
+    return containerFormats[internalName];
 }
 
 /**

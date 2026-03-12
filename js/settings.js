@@ -816,8 +816,8 @@ export function initializeSettings(scrobbler, player, api, ui) {
         }));
 
         // Append custom (ffmpeg-transcoded) format options
-        for (const fmt of customFormats) {
-            allOptions.push({ value: fmt.internalName, text: fmt.displayName, category: fmt.category });
+        for (const [key, fmt] of Object.entries(customFormats)) {
+            allOptions.push({ value: key, text: fmt.displayName, category: fmt.category });
         }
 
         // Sort by category order first, then by bitrate descending within each category
@@ -877,7 +877,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
     }
 
     if (losslessContainerSetting) {
-        for (const { internalName, displayName } of containerFormats) {
+        for (const [internalName, { displayName }] of Object.entries(containerFormats)) {
             const option = document.createElement('option');
             option.value = internalName;
             option.textContent = displayName;
