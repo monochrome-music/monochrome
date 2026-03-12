@@ -176,15 +176,6 @@ export const containerFormats: ContainerFormat[] = [
         extension: 'm4a',
         needsTranscode: async () => true,
     },
-    {
-        displayName: "Don't change",
-        internalName: 'nochange',
-        ffmpegArgs: [],
-        outputFilename: '',
-        outputMime: '',
-        extension: '',
-        needsTranscode: async () => false,
-    },
 ];
 
 /** Returns true if the quality string identifies a known custom ffmpeg-transcoded format */

@@ -5074,14 +5074,27 @@
                             <div class="settings-group">
                                 <div class="setting-item">
                                     <div class="info">
-                                        <span class="label">Zipped Bulk Downloads</span>
+                                        <span class="label">Bulk Download Method</span>
                                         <span class="description"
-                                            >Download multiple tracks as a single ZIP file (requires browser
-                                            support)</span
+                                            >Choose how multiple tracks are downloaded together</span
+                                        >
+                                    </div>
+                                    <select id="bulk-download-method">
+                                        <option value="zip">ZIP Archive</option>
+                                        <option value="folder">Folder Picker</option>
+                                        <option value="individual">Individual Files</option>
+                                    </select>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Force ZIP as Blob</span>
+                                        <span class="description"
+                                            >Download ZIP in memory instead of streaming to disk (use if ZIP streaming
+                                            causes issues)</span
                                         >
                                     </div>
                                     <label class="toggle-switch">
-                                        <input type="checkbox" id="zipped-bulk-downloads-toggle" checked />
+                                        <input type="checkbox" id="force-zip-blob-toggle" />
                                         <span class="slider"></span>
                                     </label>
                                 </div>
@@ -5245,13 +5258,23 @@
                                 </div>
                                 <div class="setting-item">
                                     <div class="info">
-                                        <span class="label">Separate Discs in ZIP</span>
+                                        <span class="label">Separate Discs</span>
                                         <span class="description"
                                             >Put tracks in Disc folders when a release has multiple discs</span
                                         >
                                     </div>
                                     <label class="toggle-switch">
                                         <input type="checkbox" id="separate-discs-zip-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Include Cover File</span>
+                                        <span class="description">Include cover.jpg in downloads</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="include-cover-toggle" />
                                         <span class="slider"></span>
                                     </label>
                                 </div>
