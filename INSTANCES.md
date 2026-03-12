@@ -59,8 +59,6 @@ These are available API endpoints that can be used with Monochrome or other Hi-F
 |                   | `https://vogel.qqdl.site`           | Community hosted |
 |                   | `https://katze.qqdl.site`           | Community hosted |
 |                   | `https://hund.qqdl.site`            | Community hosted |
-| **Spotisaver**    | `https://hifi-one.spotisaver.net`   | Community hosted |
-|                   | `https://hifi-two.spotisaver.net`   | Community hosted |
 | **Kinoplus**      | `https://tidal.kinoplus.online`     | Community hosted - [Limited/No-Sub](https://rentry.co/limitedtidalaccs) |
 
 ---
