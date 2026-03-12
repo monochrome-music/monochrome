@@ -10,7 +10,6 @@ import {
     cardSettings,
     waveformSettings,
     replayGainSettings,
-    smoothScrollingSettings,
     downloadQualitySettings,
     losslessContainerSettings,
     coverArtSizeSettings,
@@ -2167,17 +2166,6 @@ export function initializeSettings(scrobbler, player, api, ui) {
             waveformSettings.setEnabled(e.target.checked);
 
             window.dispatchEvent(new CustomEvent('waveform-toggle', { detail: { enabled: e.target.checked } }));
-        });
-    }
-
-    // Smooth Scrolling Toggle
-    const smoothScrollingToggle = document.getElementById('smooth-scrolling-toggle');
-    if (smoothScrollingToggle) {
-        smoothScrollingToggle.checked = smoothScrollingSettings.isEnabled();
-        smoothScrollingToggle.addEventListener('change', (e) => {
-            smoothScrollingSettings.setEnabled(e.target.checked);
-
-            window.dispatchEvent(new CustomEvent('smooth-scrolling-toggle', { detail: { enabled: e.target.checked } }));
         });
     }
 
