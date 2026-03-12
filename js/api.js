@@ -1112,7 +1112,6 @@ export class LosslessAPI {
 
         const artistPromises = artistsToProcess.map(async (artist) => {
             try {
-                console.log(`Fetching tracks for artist: ${artist.name} (ID: ${artist.id})`);
                 const artistData = await this.getArtist(artist.id, { lightweight: true, skipCache: options.refresh });
                 if (artistData && artistData.tracks && artistData.tracks.length > 0) {
                     const availableTracks = artistData.tracks.filter((track) => !seenTrackIds.has(track.id));
