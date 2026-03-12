@@ -1,5 +1,5 @@
 {
-    "appId": "tf.monochrome.android",
+    "appId": "com.monochrome.app",
     "appName": "Monochrome",
     "webDir": "dist",
     "bundledWebRuntime": false,

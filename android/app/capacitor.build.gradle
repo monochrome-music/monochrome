@@ -14,7 +14,7 @@ dependencies {
     implementation project(':capacitor-dialog')
     implementation project(':capacitor-filesystem')
     implementation project(':capacitor-share')
-    implementation project(':capgo-capacitor-media-session')
+    implementation project(':jofr-capacitor-media-session')
     implementation project(':odion-cloud-capacitor-mediastore')
 
 }
