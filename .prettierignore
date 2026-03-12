@@ -1,6 +1,0 @@
-dist/
-node_modules/
-legacy/
-package-lock.json
-*.min.js
-.github/
