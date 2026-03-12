@@ -3,6 +3,7 @@ dist
 .DS_Store
 *.local
 .vite
+.vscode
 
 # Docker
 .env
