@@ -1,8 +1,7 @@
 import { fetchBlobURL } from './utils';
 import FfmpegWorker from './ffmpeg.worker.js?worker';
-const ffmpegBase = 'https://unpkg.com/@ffmpeg/core/dist/esm';
-const coreJs = `${ffmpegBase}/ffmpeg-core.js`;
-const coreWasm = `${ffmpegBase}/ffmpeg-core.wasm`;
+import coreJs from '!/@ffmpeg/core/dist/esm/ffmpeg-core.js?url';
+import coreWasm from '!/@ffmpeg/core/dist/esm/ffmpeg-core.wasm?url';
 
 class FfmpegError extends Error {
     constructor(message) {
@@ -28,7 +27,7 @@ export function loadFfmpeg() {
 
 async function ffmpegWorker(
     audioBlob,
-    args = {},
+    args = [],
     outputName = 'output',
     outputMime = 'application/octet-stream',
     onProgress = null,
@@ -94,7 +93,7 @@ async function ffmpegWorker(
                 {
                     audioData,
                     extraFiles,
-                    ...args,
+                    args,
                     output: {
                         name: outputName,
                         mime: outputMime,
@@ -109,7 +108,7 @@ async function ffmpegWorker(
 
 export async function ffmpeg(
     audioBlob,
-    args = {},
+    args = [],
     outputName = 'output',
     outputMime = 'application/octet-stream',
     onProgress = null,
@@ -127,6 +126,26 @@ export async function ffmpeg(
         console.error('FFMPEG failed:', error);
         throw error;
     }
+}
+
+/**
+ * Creates a new FFmpeg container with copied codec and stripped metadata.
+ * @param {Blob} audioBlob - The audio blob to process
+ * @param {string} outputExtension - The extension for the output file
+ * @param {string} outputMime - The MIME type for the output blob
+ * @param {Function} onProgress - Callback function to track conversion progress
+ * @param {AbortSignal} signal - AbortSignal for cancelling the operation
+ * @returns {Promise<Blob>} A promise that resolves to the processed data blob
+ */
+export async function ffmpegNewContainer(audioBlob, outputExtension, outputMime, onProgress, signal) {
+    return await ffmpeg(
+        audioBlob,
+        ['-map_metadata', '-1', '-c', 'copy', '-strict', '-2'],
+        `output.${outputExtension}`,
+        outputMime,
+        onProgress,
+        signal
+    );
 }
 
 export { FfmpegError };

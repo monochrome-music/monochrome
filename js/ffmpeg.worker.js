@@ -141,15 +141,21 @@ self.onmessage = async (e) => {
         } finally {
             try {
                 if (audioData) await ffmpeg.deleteFile('input');
-            } catch {}
+            } catch {
+                self.postMessage({ type: 'log', message: 'Failed to delete input file from FFmpeg FS.' });
+            }
             for (const file of extraFiles) {
                 try {
                     await ffmpeg.deleteFile(file.name);
-                } catch {}
+                } catch {
+                    self.postMessage({ type: 'log', message: `Failed to delete ${file.name} from FFmpeg FS.` });
+                }
             }
             try {
                 await ffmpeg.deleteFile(output.name);
-            } catch {}
+            } catch {
+                self.postMessage({ type: 'log', message: `Failed to delete ${output.name} from FFmpeg FS.` });
+            }
         }
     } catch (error) {
         self.postMessage({ type: 'error', message: error.message });

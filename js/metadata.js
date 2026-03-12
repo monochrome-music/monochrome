@@ -47,14 +47,6 @@ export async function addMetadataToAudio(audioBlob, track, api, _quality, prefet
      */
     const data = {};
 
-    const detectedExt = await getExtensionFromBlob(audioBlob);
-    const isM4A = detectedExt === 'm4a' || detectedExt === 'mp4';
-
-    if (isM4A) {
-        console.log('Skipping TagLib for M4A (handled by FFmpeg)');
-        return audioBlob;
-    }
-
     const audioBuffer = await doTimedAsync('Get audio array buffer', () => audioBlob.arrayBuffer());
 
     try {
@@ -64,7 +56,8 @@ export async function addMetadataToAudio(audioBlob, track, api, _quality, prefet
         data.albumArtist = track.album?.artist?.name || track.artist?.name;
         data.trackNumber = track.trackNumber;
         data.discNumber = track.volumeNumber ?? track.discNumber;
-        data.totalTracks = track.album.numberOfTracks;
+        data.totalTracks = track.album.numberOfTracksOnDisc ?? track.album.numberOfTracks;
+        data.totalDiscs = track.album.totalDiscs;
         data.copyright = track.copyright;
         data.isrc = track.isrc;
         data.explicit = Boolean(track.explicit);

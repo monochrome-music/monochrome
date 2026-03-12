@@ -559,7 +559,8 @@ export const losslessContainerSettings = {
     STORAGE_KEY: 'lossless-container',
     getContainer() {
         try {
-            return localStorage.getItem(this.STORAGE_KEY) || 'flac';
+            const stored = localStorage.getItem(this.STORAGE_KEY) || 'flac';
+            return stored;
         } catch {
             return 'flac';
         }
@@ -634,18 +635,42 @@ export const trackDateSettings = {
 };
 
 export const bulkDownloadSettings = {
-    STORAGE_KEY: 'force-individual-downloads',
+    METHOD_KEY: 'bulk-download-method',
+    FORCE_ZIP_BLOB_KEY: 'bulk-download-force-zip-blob',
 
-    shouldForceIndividual() {
+    /** Returns the selected bulk download method: 'zip' | 'folder' | 'individual' */
+    getMethod() {
         try {
-            return localStorage.getItem(this.STORAGE_KEY) === 'true';
+            return localStorage.getItem(this.METHOD_KEY) || 'zip';
+        } catch {
+            return 'zip';
+        }
+    },
+
+    setMethod(method) {
+        localStorage.setItem(this.METHOD_KEY, method);
+    },
+
+    /** When using ZIP mode, force in-memory blob download instead of streaming to disk */
+    shouldForceZipBlob() {
+        try {
+            return localStorage.getItem(this.FORCE_ZIP_BLOB_KEY) === 'true';
         } catch {
             return false;
         }
     },
 
+    setForceZipBlob(enabled) {
+        localStorage.setItem(this.FORCE_ZIP_BLOB_KEY, enabled ? 'true' : 'false');
+    },
+
+    // Kept for backward compatibility
+    shouldForceIndividual() {
+        return this.getMethod() === 'individual';
+    },
+
     setForceIndividual(enabled) {
-        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+        this.setMethod(enabled ? 'individual' : 'zip');
     },
 };
 
@@ -657,6 +682,7 @@ export const playlistSettings = {
     JSON_KEY: 'playlist-generate-json',
     RELATIVE_PATHS_KEY: 'playlist-relative-paths',
     SEPARATE_DISCS_KEY: 'playlist-separate-discs-in-zip',
+    INCLUDE_COVER_KEY: 'playlist-include-cover',
 
     shouldGenerateM3U() {
         try {
@@ -743,6 +769,19 @@ export const playlistSettings = {
 
     setSeparateDiscsInZip(enabled) {
         localStorage.setItem(this.SEPARATE_DISCS_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldIncludeCover() {
+        try {
+            const val = localStorage.getItem(this.INCLUDE_COVER_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setIncludeCover(enabled) {
+        localStorage.setItem(this.INCLUDE_COVER_KEY, enabled ? 'true' : 'false');
     },
 };
 

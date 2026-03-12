@@ -373,6 +373,7 @@ export const getTrackArtistsHTML = (track = {}, { fallback = 'Unknown Artist' } 
 
 export const formatTemplate = (template, data) => {
     let result = template;
+    result = result.replace(/\{discNumber\}/g, String(Number(data.discNumber || 1)));
     result = result.replace(/\{trackNumber\}/g, data.trackNumber ? String(data.trackNumber).padStart(2, '0') : '00');
     result = result.replace(/\{artist\}/g, sanitizeForFilename(data.artist || 'Unknown Artist'));
     result = result.replace(/\{title\}/g, sanitizeForFilename(data.title || 'Unknown Title'));
