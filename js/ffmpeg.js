@@ -1,10 +1,7 @@
-import { fetchBlobURL } from './utils';
 import FfmpegWorker from './ffmpeg.worker.js?worker';
+import coreJs from '!/@ffmpeg/core/dist/esm/ffmpeg-core.js?blob-url';
+import coreWasm from '!/@ffmpeg/core/dist/esm/ffmpeg-core.wasm?blob-url';
 import { FfmpegProgress } from './ffmpeg.types';
-import { ProgressMessage } from './progressEvents';
-const ffmpegBase = 'https://unpkg.com/@ffmpeg/core/dist/esm';
-const coreJs = `${ffmpegBase}/ffmpeg-core.js`;
-const coreWasm = `${ffmpegBase}/ffmpeg-core.wasm`;
 
 class FfmpegError extends Error {
     constructor(message) {
@@ -19,8 +16,8 @@ export function loadFfmpeg() {
         loadFfmpeg.promise ||
         (loadFfmpeg.promise = (async () => {
             const data = {
-                coreURL: await fetchBlobURL(coreJs),
-                wasmURL: await fetchBlobURL(coreWasm),
+                coreURL: await coreJs(),
+                wasmURL: await coreWasm(),
             };
 
             return data;

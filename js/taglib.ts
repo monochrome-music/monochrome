@@ -1,6 +1,6 @@
 import { TagLib } from 'taglib-wasm';
 import { fetchBlobURL } from './utils';
-import _TagLibWasm from '!/taglib-wasm/dist/taglib-web.wasm?url';
+import _TagLibWasm from '!/taglib-wasm/dist/taglib-web.wasm?blob-url';
 import type {
     AddMetadataMessage,
     TagLibFileResponse,
@@ -12,7 +12,7 @@ import TagLibWorker from './taglib.worker?worker';
 let tagLib: Promise<TagLib> | null = null;
 
 async function fetchTagLib(): Promise<string> {
-    return fetchTagLib.blobUrl || (fetchTagLib.blobUrl = await fetchBlobURL(_TagLibWasm));
+    return fetchTagLib.blobUrl || (fetchTagLib.blobUrl = await _TagLibWasm());
 }
 
 namespace fetchTagLib {
