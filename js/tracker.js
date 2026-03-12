@@ -28,10 +28,25 @@ function cleanSongTitle(title) {
         .trim();
 }
 
+async function fetchWithCorsFallback(url) {
+    try {
+        const response = await fetch(url);
+        if (response.ok) {
+            return response;
+        }
+    } catch {}
+
+    const proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+    const proxiedResponse = await fetch(proxiedUrl);
+    if (!proxiedResponse.ok) {
+        throw new Error(`Request failed for ${url}`);
+    }
+    return proxiedResponse;
+}
+
 async function loadArtistsPopularity() {
     try {
-        const response = await fetch('https://trends.artistgrid.cx');
-        if (!response.ok) return;
+        const response = await fetchWithCorsFallback('https://trends.artistgrid.cx');
         const data = await response.json();
         if (data.results) {
             data.results.forEach((artist, index) => {

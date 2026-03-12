@@ -432,7 +432,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initTracker(player);
 
     // Linux Media Keys Fix
-    if (isNeutralinoDesktop()) {
+    if (isNeutralinoMode) {
         import('./desktop/neutralino-bridge.js').then(({ events }) => {
             events.on('mediaNext', () => player.playNext());
             events.on('mediaPrevious', () => player.playPrev());
@@ -447,7 +447,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Initialize desktop features if in Neutralino mode
-    if (isNeutralinoDesktop()) {
+    if (isNeutralinoMode) {
         window.NL_MODE = true;
         try {
             const desktopModule = await import('./desktop/desktop.js');
@@ -516,7 +516,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const ua = navigator.userAgent;
         const isChromeOrEdge = (ua.indexOf('Chrome') > -1 || ua.indexOf('Edg') > -1) && !/Mobile|Android/.test(ua);
         const hasFileSystemApi = 'showDirectoryPicker' in window;
-        const isNeutralino = isNeutralinoDesktop();
+        const isNeutralino = isNeutralinoMode;
 
         if (!isNeutralino && (!isChromeOrEdge || !hasFileSystemApi)) {
             selectLocalBtn.style.display = 'none';
@@ -2296,7 +2296,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.target.closest('#select-local-folder-btn') || e.target.closest('#change-local-folder-btn')) {
             const isChange = e.target.closest('#change-local-folder-btn') !== null;
             try {
-                const isNeutralino = isNeutralinoDesktop();
+                const isNeutralino = isNeutralinoMode;
                 let handle;
                 let path;
 

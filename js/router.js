@@ -24,7 +24,7 @@ export function createRouter(ui) {
 
         if (path.startsWith('/')) path = path.substring(1);
         if (path.endsWith('/')) path = path.substring(0, path.length - 1);
-        if (path === '' || path === 'index.html') path = 'home';
+        if (path === '' || path === 'index.html' || path === 'dist') path = 'home';
 
         const parts = path.split('/');
         const page = parts[0];

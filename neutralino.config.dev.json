@@ -7,15 +7,14 @@
     "version": "1.0.0",
     "defaultMode": "window",
     "documentRoot": "/",
-    "url": "/public/neutralino_loader.html",
+    "url": "/public/neutralino_loader.html?shell=v2",
     "enableServer": true,
     "enableNativeAPI": true,
     "enableExtensions": true,
-    "tokenSecurity": "none",
+    "tokenSecurity": "one-time",
     "modes": {
         "window": {
             "title": "Monochrome (DEV)",
-            "icon": "",
             "width": 1280,
             "height": 800,
             "minWidth": 800,
@@ -26,6 +25,7 @@
             "resizable": true,
             "hidden": false,
             "borderless": false,
+            "injectGlobals": true,
             "enableInspector": true,
             "openInspectorOnStartup": true,
             "exitProcessOnClose": false

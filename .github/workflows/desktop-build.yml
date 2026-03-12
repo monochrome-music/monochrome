@@ -60,89 +60,34 @@ jobs:
         shell: pwsh
 
       - name: Build application
-        run: bun run build
+        run: bun run build:core
 
       - name: Prepare Release Folder
         run: |
-          mkdir release
-          if [ "${{ matrix.platform }}" = "macos" ]; then
-            # Create .app bundle structure
-            APP_DIR="release/Monochrome.app/Contents"
-            mkdir -p "${APP_DIR}/MacOS" "${APP_DIR}/Resources"
+          rm -rf release
+          mkdir -p release
 
-            # Generate .icns icon
-            ICONSET="Monochrome.iconset"
-            mkdir -p "${ICONSET}"
-            SOURCE_ICON="public/assets/1024.png"
-            sips -z 16 16     "${SOURCE_ICON}" --out "${ICONSET}/icon_16x16.png"      > /dev/null 2>&1
-            sips -z 32 32     "${SOURCE_ICON}" --out "${ICONSET}/icon_16x16@2x.png"   > /dev/null 2>&1
-            sips -z 32 32     "${SOURCE_ICON}" --out "${ICONSET}/icon_32x32.png"      > /dev/null 2>&1
-            sips -z 64 64     "${SOURCE_ICON}" --out "${ICONSET}/icon_32x32@2x.png"   > /dev/null 2>&1
-            sips -z 128 128   "${SOURCE_ICON}" --out "${ICONSET}/icon_128x128.png"    > /dev/null 2>&1
-            sips -z 256 256   "${SOURCE_ICON}" --out "${ICONSET}/icon_128x128@2x.png" > /dev/null 2>&1
-            sips -z 256 256   "${SOURCE_ICON}" --out "${ICONSET}/icon_256x256.png"    > /dev/null 2>&1
-            sips -z 512 512   "${SOURCE_ICON}" --out "${ICONSET}/icon_256x256@2x.png" > /dev/null 2>&1
-            sips -z 512 512   "${SOURCE_ICON}" --out "${ICONSET}/icon_512x512.png"    > /dev/null 2>&1
-            cp "${SOURCE_ICON}" "${ICONSET}/icon_512x512@2x.png"
-            iconutil -c icns "${ICONSET}" -o "${APP_DIR}/Resources/Monochrome.icns"
-            rm -rf "${ICONSET}"
-
-            # Create Info.plist
-            cat > "${APP_DIR}/Info.plist" <<'PLIST'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>CFBundleIdentifier</key>
-              <string>com.monochrome.app</string>
-              <key>CFBundleName</key>
-              <string>Monochrome</string>
-              <key>CFBundleDisplayName</key>
-              <string>Monochrome</string>
-              <key>CFBundleExecutable</key>
-              <string>Monochrome</string>
-              <key>CFBundleIconFile</key>
-              <string>Monochrome</string>
-              <key>CFBundlePackageType</key>
-              <string>APPL</string>
-              <key>CFBundleVersion</key>
-              <string>1.0.0</string>
-              <key>CFBundleShortVersionString</key>
-              <string>1.0.0</string>
-              <key>NSHighResolutionCapable</key>
-              <true/>
-          </dict>
-          </plist>
-          PLIST
-
-            # Copy application files
-            cp dist/Monochrome/${{ matrix.binary_source }} "${APP_DIR}/MacOS/Monochrome"
-            cp neutralino.config.json "${APP_DIR}/MacOS/neutralino.config.json"
-            cp dist/Monochrome/resources.neu "${APP_DIR}/MacOS/resources.neu"
-            cp -r dist/Monochrome/extensions "${APP_DIR}/MacOS/extensions"
-          else
-            cp dist/Monochrome/resources.neu release/
-            cp neutralino.config.json release/
-            cp -r dist/Monochrome/extensions release/
-            cp dist/Monochrome/${{ matrix.binary_source }} release/${{ matrix.binary_dest }}
-            if [ "${{ matrix.platform }}" = "linux" ]; then
-              cp scripts/linux-wayland-launcher.sh release/Monochrome-launcher
-              cp public/appicon.png release/Monochrome.png
-              cat > release/Monochrome.desktop <<'EOF'
-          [Desktop Entry]
-          Type=Application
-          Version=1.0
-          Name=Monochrome
-          Comment=Monochrome music streaming app
-          Icon=./Monochrome.png
-          Exec=sh -c 'cd "$(dirname "%k")" && ./Monochrome-launcher --detach'
-          Terminal=false
-          Categories=Audio;Player;
-          StartupNotify=true
-          EOF
-            fi
-          fi
+          case "${{ matrix.platform }}" in
+            macos)
+              bash scripts/package-mac-release.sh
+              cp -R release/mac/Monochrome.app release/
+              rm -rf release/mac
+              ;;
+            linux)
+              bash scripts/package-linux-release.sh
+              cp -R release/linux-x64/. release/
+              rm -rf release/linux-x64
+              ;;
+            windows)
+              node scripts/package-windows-release.js
+              cp -R release/windows-x64/. release/
+              rm -rf release/windows-x64
+              ;;
+            *)
+              echo "Unsupported platform: ${{ matrix.platform }}" >&2
+              exit 1
+              ;;
+          esac
         shell: bash
 
       - name: Set Permissions (Linux/macOS)
@@ -191,7 +136,7 @@ jobs:
         shell: pwsh
 
       - name: Upload to R2
-        uses: ryand56/r2-upload-action@latest
+        uses: ryand56/r2-upload-action@v1.4
         with:
           r2-account-id: ${{ secrets.R2_ACCOUNT_ID }}
           r2-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}

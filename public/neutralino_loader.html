@@ -25,7 +25,6 @@
     </head>
 
     <body>
-        <script src="__neutralino_globals.js"></script>
         <script src="neutralino.js"></script>
 
         <!-- Load the app from the local Neutralino server -->
@@ -39,7 +38,14 @@
 
                 try {
                     sessionStorage.removeItem('NL_TOKEN');
+                    sessionStorage.removeItem('NL_PORT');
                 } catch {}
+
+                const hasUsableNeutralinoGlobals = () => {
+                    const token = typeof window.NL_TOKEN === 'string' ? window.NL_TOKEN.trim() : '';
+                    const port = Number(window.NL_PORT);
+                    return token.length > 0 && Number.isFinite(port) && port > 0;
+                };
 
                 const readFreshNeutralinoGlobals = async () => {
                     try {
@@ -50,18 +56,28 @@
                             return;
                         }
                         const source = (await response.text()) || '';
-                        const tokenMatch = source.match(/var\s+NL_TOKEN=['\"]([^'\"]+)['\"]/);
-                        const portMatch = source.match(/var\s+NL_PORT=([0-9]+)/);
-                        const modeMatch = source.match(/var\s+NL_MODE=['\"]([^'\"]+)['\"]/);
+                        const tokenMatch = source.match(
+                            /(?:var|let|const)\s+NL_TOKEN\s*=\s*['\"]([^'\"]+)['\"]|window\.NL_TOKEN\s*=\s*['\"]([^'\"]+)['\"]/m
+                        );
+                        const portMatch = source.match(
+                            /(?:var|let|const)\s+NL_PORT\s*=\s*([0-9]+)|window\.NL_PORT\s*=\s*([0-9]+)/m
+                        );
+                        const modeMatch = source.match(
+                            /(?:var|let|const)\s+NL_MODE\s*=\s*['\"]([^'\"]+)['\"]|window\.NL_MODE\s*=\s*['\"]([^'\"]+)['\"]/m
+                        );
 
-                        if (tokenMatch && tokenMatch[1]) {
-                            window.NL_TOKEN = tokenMatch[1];
+                        const nextToken = tokenMatch?.[1] || tokenMatch?.[2];
+                        const nextPort = portMatch?.[1] || portMatch?.[2];
+                        const nextMode = modeMatch?.[1] || modeMatch?.[2];
+
+                        if (nextToken) {
+                            window.NL_TOKEN = nextToken;
                         }
-                        if (portMatch && portMatch[1]) {
-                            window.NL_PORT = Number(portMatch[1]);
+                        if (nextPort) {
+                            window.NL_PORT = Number(nextPort);
                         }
-                        if (modeMatch && modeMatch[1]) {
-                            window.NL_MODE = modeMatch[1];
+                        if (nextMode) {
+                            window.NL_MODE = nextMode;
                         }
                     } catch (error) {
                         console.warn('[Shell] Could not refresh Neutralino globals:', error);
@@ -82,8 +98,12 @@
 
                 if (hasNeutralinoApi) {
                     try {
+                        const hasInjectedGlobals =
+                            (window.NL_GINJECTED || window.NL_CINJECTED) && hasUsableNeutralinoGlobals();
+
                         await readFreshNeutralinoGlobals();
-                        if (!window.NL_TOKEN || !window.NL_PORT) {
+
+                        if (!hasUsableNeutralinoGlobals() && !hasInjectedGlobals) {
                             throw new Error('Neutralino globals unavailable before init');
                         }
                         try {
@@ -335,10 +355,22 @@
 
                     // Handle commands from the Iframe (via Bridge)
                     window.addEventListener('message', async (event) => {
-                        const allowedOrigins = getAllowedOrigins();
-                        if (event.source !== iframe.contentWindow || !allowedOrigins.has(event.origin)) {
+                        if (!event?.data || typeof event.data !== 'object') {
                             return;
                         }
+
+                        const allowedOrigins = getAllowedOrigins();
+                        const isExpectedSource = event.source === iframe.contentWindow;
+                        const isAllowedOrigin = !event.origin || allowedOrigins.has(event.origin);
+                        if (!isExpectedSource || !isAllowedOrigin) {
+                            return;
+                        }
+
+                        const replyTarget =
+                            event.source && typeof event.source.postMessage === 'function'
+                                ? event.source
+                                : iframe?.contentWindow;
+                        const responseOrigin = event.origin || window.location.origin;
 
                         const { type, eventName, data, extensionId } = event.data;
 
@@ -411,7 +443,7 @@
                                     if (iframe && iframe.contentWindow) {
                                         iframe.contentWindow.postMessage(
                                             { type: 'NL_RESPONSE', id: event.data.id, result },
-                                            '*'
+                                            responseOrigin
                                         );
                                     }
                                 } catch (e) {
@@ -419,7 +451,7 @@
                                     if (iframe && iframe.contentWindow) {
                                         iframe.contentWindow.postMessage(
                                             { type: 'NL_RESPONSE', id: event.data.id, error: e },
-                                            '*'
+                                            responseOrigin
                                         );
                                     }
                                 }
@@ -434,7 +466,7 @@
                                     if (iframe && iframe.contentWindow) {
                                         iframe.contentWindow.postMessage(
                                             { type: 'NL_RESPONSE', id: event.data.id, result },
-                                            '*'
+                                            responseOrigin
                                         );
                                     }
                                 } catch (e) {
@@ -442,7 +474,7 @@
                                     if (iframe && iframe.contentWindow) {
                                         iframe.contentWindow.postMessage(
                                             { type: 'NL_RESPONSE', id: event.data.id, error: e },
-                                            '*'
+                                            responseOrigin
                                         );
                                     }
                                 }
@@ -455,7 +487,7 @@
                                         // result is ArrayBuffer, should be transferable
                                         iframe.contentWindow.postMessage(
                                             { type: 'NL_RESPONSE', id: event.data.id, result },
-                                            '*',
+                                            responseOrigin,
                                             [result]
                                         );
                                     }
@@ -464,7 +496,7 @@
                                     if (iframe && iframe.contentWindow) {
                                         iframe.contentWindow.postMessage(
                                             { type: 'NL_RESPONSE', id: event.data.id, error: e },
-                                            '*'
+                                            responseOrigin
                                         );
                                     }
                                 }
@@ -476,7 +508,7 @@
                                     if (iframe && iframe.contentWindow) {
                                         iframe.contentWindow.postMessage(
                                             { type: 'NL_RESPONSE', id: event.data.id, result },
-                                            '*'
+                                            responseOrigin
                                         );
                                     }
                                 } catch (e) {
@@ -484,7 +516,7 @@
                                     if (iframe && iframe.contentWindow) {
                                         iframe.contentWindow.postMessage(
                                             { type: 'NL_RESPONSE', id: event.data.id, error: e },
-                                            '*'
+                                            responseOrigin
                                         );
                                     }
                                 }
@@ -496,7 +528,7 @@
                                     if (iframe && iframe.contentWindow) {
                                         iframe.contentWindow.postMessage(
                                             { type: 'NL_RESPONSE', id: event.data.id, result },
-                                            '*'
+                                            responseOrigin
                                         );
                                     }
                                 } catch (e) {
@@ -504,7 +536,7 @@
                                     if (iframe && iframe.contentWindow) {
                                         iframe.contentWindow.postMessage(
                                             { type: 'NL_RESPONSE', id: event.data.id, error: e },
-                                            '*'
+                                            responseOrigin
                                         );
                                     }
                                 }
@@ -517,7 +549,7 @@
                                     if (iframe && iframe.contentWindow) {
                                         iframe.contentWindow.postMessage(
                                             { type: 'NL_RESPONSE', id: event.data.id, result: 'success' },
-                                            '*'
+                                            responseOrigin
                                         );
                                     }
                                 } catch (e) {
@@ -525,7 +557,7 @@
                                     if (iframe && iframe.contentWindow) {
                                         iframe.contentWindow.postMessage(
                                             { type: 'NL_RESPONSE', id: event.data.id, error: e },
-                                            '*'
+                                            responseOrigin
                                         );
                                     }
                                 }
@@ -537,7 +569,7 @@
                                     if (iframe && iframe.contentWindow) {
                                         iframe.contentWindow.postMessage(
                                             { type: 'NL_RESPONSE', id: event.data.id, result: 'success' },
-                                            '*'
+                                            responseOrigin
                                         );
                                     }
                                 } catch (e) {
@@ -545,7 +577,7 @@
                                     if (iframe && iframe.contentWindow) {
                                         iframe.contentWindow.postMessage(
                                             { type: 'NL_RESPONSE', id: event.data.id, error: e },
-                                            '*'
+                                            responseOrigin
                                         );
                                     }
                                 }
@@ -553,6 +585,9 @@
 
                             case 'NL_STORAGE_LOAD':
                                 try {
+                                    if (typeof event.data.id !== 'string' || !event.data.id) {
+                                        break;
+                                    }
                                     const { storageFilePath } = await getStoragePaths();
                                     let storageData = '{}';
                                     try {
@@ -565,18 +600,18 @@
                                     } catch (readErr) {
                                         console.log('[Shell] No existing storage file, starting fresh.');
                                     }
-                                    if (iframe && iframe.contentWindow) {
-                                        iframe.contentWindow.postMessage(
+                                    if (replyTarget) {
+                                        replyTarget.postMessage(
                                             { type: 'NL_RESPONSE', id: event.data.id, result: storageData },
-                                            '*'
+                                            responseOrigin
                                         );
                                     }
                                 } catch (e) {
                                     console.error('[Shell] Storage load failed:', e);
-                                    if (iframe && iframe.contentWindow) {
-                                        iframe.contentWindow.postMessage(
+                                    if (typeof event.data.id === 'string' && event.data.id && replyTarget) {
+                                        replyTarget.postMessage(
                                             { type: 'NL_RESPONSE', id: event.data.id, result: '{}' },
-                                            '*'
+                                            responseOrigin
                                         );
                                     }
                                 }
@@ -584,6 +619,9 @@
 
                             case 'NL_STORAGE_SAVE':
                                 try {
+                                    if (typeof event.data.id !== 'string' || !event.data.id) {
+                                        break;
+                                    }
                                     const { storageDir, storageFilePath } = await getStoragePaths();
                                     await ensureStorageDirectoryExists(storageDir);
 
@@ -597,18 +635,18 @@
                                     }
 
                                     console.log('[Shell] Storage saved to disk.');
-                                    if (iframe && iframe.contentWindow) {
-                                        iframe.contentWindow.postMessage(
+                                    if (replyTarget) {
+                                        replyTarget.postMessage(
                                             { type: 'NL_RESPONSE', id: event.data.id, result: 'success' },
-                                            '*'
+                                            responseOrigin
                                         );
                                     }
                                 } catch (e) {
                                     console.error('[Shell] Storage save failed:', e);
-                                    if (iframe && iframe.contentWindow) {
-                                        iframe.contentWindow.postMessage(
+                                    if (typeof event.data.id === 'string' && event.data.id && replyTarget) {
+                                        replyTarget.postMessage(
                                             { type: 'NL_RESPONSE', id: event.data.id, error: e },
-                                            '*'
+                                            responseOrigin
                                         );
                                     }
                                 }

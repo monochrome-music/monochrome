@@ -719,3 +719,14 @@ export function getTrackDiscNumber(track) {
     }
     return null;
 }
+
+export const resolveAppUrl = (path) => {
+    const safePath = String(path || '').replace(/^\/+/, '');
+    if (typeof window === 'undefined') {
+        return `/${safePath}`;
+    }
+
+    const baseFromVite = typeof import.meta !== 'undefined' ? import.meta.env?.BASE_URL : '/';
+    const normalizedBase = (baseFromVite || '/').endsWith('/') ? baseFromVite || '/' : `${baseFromVite}/`;
+    return new URL(safePath, `${window.location.origin}${normalizedBase}`).toString();
+};

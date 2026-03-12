@@ -5,6 +5,7 @@
 import butterchurn from 'butterchurn';
 import { visualizerSettings } from '../storage.js';
 import { audioContextManager } from '../audio-context.js';
+import { resolveAppUrl } from '../utils.js';
 
 // Module-level preset cache - loads immediately when this file is imported
 let cachedPresets = null;
@@ -24,7 +25,7 @@ async function loadPresetsModule() {
         if (!window.butterchurnPresets) {
             await new Promise((resolve, reject) => {
                 const script = document.createElement('script');
-                script.src = '/lib/butterchurnPresets.min.js';
+                script.src = resolveAppUrl('lib/butterchurnPresets.min.js');
                 script.onload = resolve;
                 script.onerror = reject;
                 document.head.appendChild(script);

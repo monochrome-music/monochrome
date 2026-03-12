@@ -29,6 +29,32 @@
             rel="stylesheet"
         />
         <link rel="stylesheet" href="/styles.css" />
+
+        <!-- Privacy-friendly analytics by Plausible -->
+        <script>
+            const plausibleDisabledHosts = new Set(['localhost', '127.0.0.1']);
+            const shouldLoadPlausible = !plausibleDisabledHosts.has(window.location.hostname);
+            if (shouldLoadPlausible) {
+                const plausibleScript = document.createElement('script');
+                plausibleScript.async = true;
+                plausibleScript.src = 'https://plausible.canine.tools/js/pa-dCMvQpiD1-AJmi8o3xviO.js';
+                document.head.appendChild(plausibleScript);
+            }
+
+            window.plausible =
+                window.plausible ||
+                function () {
+                    (plausible.q = plausible.q || []).push(arguments);
+                };
+            plausible.init =
+                plausible.init ||
+                function (i) {
+                    plausible.o = i || {};
+                };
+            if (shouldLoadPlausible) {
+                plausible.init();
+            }
+        </script>
     </head>
 
     <body>

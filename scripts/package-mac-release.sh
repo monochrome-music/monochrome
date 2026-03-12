@@ -28,26 +28,35 @@ mkdir -p "${macos_dir}" "${resources_dir}"
 assets_dir="${project_root}/public/assets"
 iconset_dir="${project_root}/Monochrome.iconset"
 rm -rf "${iconset_dir}"
-mkdir -p "${iconset_dir}"
 
 # Generate all required sizes from 1024.png using sips
 source_icon="${assets_dir}/1024.png"
-sips -z 16 16     "${source_icon}" --out "${iconset_dir}/icon_16x16.png"      > /dev/null 2>&1
-sips -z 32 32     "${source_icon}" --out "${iconset_dir}/icon_16x16@2x.png"   > /dev/null 2>&1
-sips -z 32 32     "${source_icon}" --out "${iconset_dir}/icon_32x32.png"      > /dev/null 2>&1
-sips -z 64 64     "${source_icon}" --out "${iconset_dir}/icon_32x32@2x.png"   > /dev/null 2>&1
-sips -z 128 128   "${source_icon}" --out "${iconset_dir}/icon_128x128.png"    > /dev/null 2>&1
-sips -z 256 256   "${source_icon}" --out "${iconset_dir}/icon_128x128@2x.png" > /dev/null 2>&1
-sips -z 256 256   "${source_icon}" --out "${iconset_dir}/icon_256x256.png"    > /dev/null 2>&1
-sips -z 512 512   "${source_icon}" --out "${iconset_dir}/icon_256x256@2x.png" > /dev/null 2>&1
-sips -z 512 512   "${source_icon}" --out "${iconset_dir}/icon_512x512.png"    > /dev/null 2>&1
-cp "${source_icon}" "${iconset_dir}/icon_512x512@2x.png"
+app_version="$(node -e "const fs=require('fs'); const pkg=JSON.parse(fs.readFileSync(process.argv[1], 'utf8')); process.stdout.write(pkg.version || '');" "${project_root}/package.json")"
+if [ -z "${app_version}" ]; then
+    echo "Failed to read version from package.json" >&2
+    exit 1
+fi
 
-iconutil -c icns "${iconset_dir}" -o "${resources_dir}/Monochrome.icns"
-rm -rf "${iconset_dir}"
+if command -v sips >/dev/null 2>&1 && command -v iconutil >/dev/null 2>&1; then
+    mkdir -p "${iconset_dir}"
+    sips -z 16 16     "${source_icon}" --out "${iconset_dir}/icon_16x16.png"      > /dev/null
+    sips -z 32 32     "${source_icon}" --out "${iconset_dir}/icon_16x16@2x.png"   > /dev/null
+    sips -z 32 32     "${source_icon}" --out "${iconset_dir}/icon_32x32.png"      > /dev/null
+    sips -z 64 64     "${source_icon}" --out "${iconset_dir}/icon_32x32@2x.png"   > /dev/null
+    sips -z 128 128   "${source_icon}" --out "${iconset_dir}/icon_128x128.png"    > /dev/null
+    sips -z 256 256   "${source_icon}" --out "${iconset_dir}/icon_128x128@2x.png" > /dev/null
+    sips -z 256 256   "${source_icon}" --out "${iconset_dir}/icon_256x256.png"    > /dev/null
+    sips -z 512 512   "${source_icon}" --out "${iconset_dir}/icon_256x256@2x.png" > /dev/null
+    sips -z 512 512   "${source_icon}" --out "${iconset_dir}/icon_512x512.png"    > /dev/null
+    cp "${source_icon}" "${iconset_dir}/icon_512x512@2x.png"
+    iconutil -c icns "${iconset_dir}" -o "${resources_dir}/Monochrome.icns"
+    rm -rf "${iconset_dir}"
+else
+    echo "Skipping .icns generation (requires sips and iconutil)." >&2
+fi
 
 # --- Create Info.plist ---
-cat > "${contents_dir}/Info.plist" <<'EOF'
+cat > "${contents_dir}/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -66,9 +75,9 @@ cat > "${contents_dir}/Info.plist" <<'EOF'
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleVersion</key>
-    <string>1.0.0</string>
+    <string>${app_version}</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.0</string>
+    <string>${app_version}</string>
     <key>NSHighResolutionCapable</key>
     <true/>
 </dict>

@@ -25,6 +25,7 @@ cp "${dist_dir}/resources.neu" "${release_dir}/resources.neu"
 cp -r "${dist_dir}/extensions" "${release_dir}/extensions"
 cp "${binary_src}" "${binary_dest}"
 cp "${project_root}/scripts/linux-wayland-launcher.sh" "${release_dir}/Monochrome-launcher"
+cp "${project_root}/public/appicon.png" "${release_dir}/Monochrome.png"
 
 cat > "${release_dir}/Monochrome.desktop" <<'EOF'
 [Desktop Entry]
@@ -32,6 +33,7 @@ Type=Application
 Version=1.0
 Name=Monochrome
 Comment=Monochrome music streaming app
+Icon=./Monochrome.png
 Exec=sh -c 'cd "$(dirname "%k")" && ./Monochrome-launcher --detach'
 Terminal=false
 Categories=Audio;Player;

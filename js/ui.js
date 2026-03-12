@@ -20,6 +20,7 @@ import {
     formatDuration,
     escapeHtml,
     getShareUrl,
+    resolveAppUrl,
 } from './utils.js';
 import { openLyricsPanel } from './lyrics.js';
 import {
@@ -2329,7 +2330,7 @@ export class UIRenderer {
             else if (picksContainer.children.length > 0 && !picksContainer.querySelector('.skeleton')) return;
 
             try {
-                const response = await fetch('/editors-picks.json');
+                const response = await fetch(resolveAppUrl('editors-picks.json'));
                 if (!response.ok) throw new Error("Failed to load editor's picks");
 
                 let items = await response.json();

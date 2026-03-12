@@ -5,7 +5,7 @@
 import { isNeutralinoDesktop } from '../utils.js';
 
 const isNeutralino = isNeutralinoDesktop();
-const SHELL_REQUEST_TIMEOUT_MS = 10000;
+const SHELL_REQUEST_TIMEOUT_MS = 20000;
 
 let saveTimer = null;
 let initialized = false;
@@ -30,7 +30,9 @@ function shellRequest(type, extraData = {}, timeoutMs = SHELL_REQUEST_TIMEOUT_MS
         };
 
         const handler = (event) => {
-            if (event.source !== window.parent) return;
+            const isParentSource = event.source === window.parent;
+            const isSameOrigin = event.origin === window.location.origin;
+            if (!isParentSource && !isSameOrigin) return;
             if (event.data?.type === 'NL_RESPONSE' && event.data.id === id) {
                 settle(timeoutId, handler, () => {
                     if (event.data.error) {
