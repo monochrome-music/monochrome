@@ -101,9 +101,6 @@ bun run lint:css
 ```
 monochrome/
 ├── 📁 js/                    # Application source code
-│   ├── components/          # UI components
-│   ├── utils/               # Utility functions
-│   ├── api/                 # API integration
 │   └── ...
 ├── 📁 public/               # Static assets
 │   ├── assets/             # Images, icons, fonts
