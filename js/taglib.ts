@@ -2,12 +2,9 @@ import { TagLib } from 'taglib-wasm';
 import { fetchBlobURL } from './utils';
 import _TagLibWasm from '!/taglib-wasm/dist/taglib-web.wasm?url';
 import type {
-    TagLibWorkerMessageType,
     AddMetadataMessage,
-    GetMetadataMessage,
     TagLibFileResponse,
     TagLibMetadataResponse,
-    TagLibMetadata,
     TagLibReadMetadata,
 } from './taglib.types';
 import TagLibWorker from './taglib.worker?worker';
@@ -62,7 +59,7 @@ export async function getMetadataWithTagLib(audioData: Uint8Array) {
         audioData = new Uint8Array(audioData);
     }
 
-    const worker = new Worker(new URL(TagLibWorker, import.meta.url), { type: 'module' });
+    const worker = new TagLibWorker();
     const wasmUrl = await fetchTagLib();
 
     return new Promise<TagLibReadMetadata>((resolve, reject) => {

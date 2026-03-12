@@ -11,17 +11,20 @@ import {
     getExtensionFromBlob,
     escapeHtml,
     getTrackDiscNumber,
-    getFullArtistString,
-    getMimeType,
 } from './utils.js';
+import { AbortError } from './errorTypes.ts';
 import { lyricsSettings, bulkDownloadSettings, playlistSettings } from './storage.js';
-import { addMetadataToAudio, prefetchMetadataObjects } from './metadata.js';
-import { DashDownloader } from './dash-downloader.js';
 import { generateM3U, generateM3U8, generateCUE, generateNFO, generateJSON } from './playlist-generator.js';
-import { loadFfmpeg } from './ffmpeg.js';
-import { triggerDownload, applyAudioPostProcessing } from './download-utils.ts';
-import { isCustomFormat } from './ffmpegFormats.ts';
-import { ZipStreamWriter, ZipBlobWriter, ZipNeutralinoWriter, FolderPickerWriter } from './bulk-download-writer.ts';
+import { triggerDownload } from './download-utils.ts';
+import {
+    ZipStreamWriter,
+    ZipBlobWriter,
+    ZipNeutralinoWriter,
+    FolderPickerWriter,
+    SequentialFileWriter,
+} from './bulk-download-writer.ts';
+import { FfmpegProgress } from './ffmpeg.types.js';
+import { DownloadProgress, ProgressMessage, SegmentedDownloadProgress } from './progressEvents.js';
 
 const downloadTasks = new Map();
 const bulkDownloadTasks = new Map();
@@ -209,7 +212,7 @@ export function updateDownloadProgress(trackId, progress) {
     const progressFill = taskEl.querySelector('.download-progress-fill');
     const statusEl = taskEl.querySelector('.download-status');
 
-    if (progress.stage === 'downloading') {
+    if (progress instanceof DownloadProgress && progress.receivedBytes && progress.totalBytes) {
         const percent = progress.totalBytes ? Math.round((progress.receivedBytes / progress.totalBytes) * 100) : 0;
 
         progressFill.style.width = `${percent}%`;
@@ -219,15 +222,25 @@ export function updateDownloadProgress(trackId, progress) {
         const totalMB = progress.totalBytes ? (progress.totalBytes / (1024 * 1024)).toFixed(1) : '?';
 
         statusEl.textContent = `Downloading: ${receivedMB}MB / ${totalMB}MB (${percent}%)`;
-    } else if (progress.stage === 'encoding') {
+    } else if (progress instanceof SegmentedDownloadProgress && progress.currentSegment && progress.totalSegments) {
+        const percent = progress.totalBytes ? Math.round((progress.currentSegment / progress.totalSegments) * 100) : 0;
+
+        progressFill.style.width = `${percent}%`;
+        progressFill.style.background = 'var(--highlight)';
+
+        const receivedMB = (progress.receivedBytes / (1024 * 1024)).toFixed(1);
+        const totalMB = progress.totalBytes ? (progress.totalBytes / (1024 * 1024)).toFixed(1) : '?';
+
+        statusEl.textContent = `Downloading: ${receivedMB}MB / ${totalMB}MB (${percent}%)`;
+    } else if (progress instanceof FfmpegProgress && progress.stage == 'encoding') {
         const percent = progress.progress ? Math.round(progress.progress) : 0;
         progressFill.style.width = `${percent}%`;
         progressFill.style.background = '#3b82f6'; // Blue for encoding
         statusEl.textContent = `Converting: ${percent}%`;
-    } else if (progress.stage === 'finalizing' || progress.stage === 'processing') {
+    } else if (progress instanceof ProgressMessage || progress.message) {
         progressFill.style.width = '100%';
         progressFill.style.background = '#3b82f6';
-        statusEl.textContent = progress.message || 'Processing...';
+        statusEl.textContent = progress.message;
     }
 }
 
@@ -296,210 +309,22 @@ function removeBulkDownloadTask(notifEl) {
     }, 300);
 }
 
-async function downloadTrackBlob(
-    track,
-    quality,
-    api,
-    lyricsManager = null,
-    signal = null,
-    onProgress = null,
-    coverBlob = null
-) {
-    // Load ffmpeg in the background.
-    loadFfmpeg().catch(console.error);
-
-    const prefetchPromises = prefetchMetadataObjects(track, api, coverBlob);
-
-    let enrichedTrack = {
-        ...track,
-        artist: track.artist || (track.artists && track.artists.length > 0 ? track.artists[0] : null),
-    };
-
-    // Custom FFMPEG formats are not native TIDAL qualities; download LOSSLESS and transcode
-    const downloadQuality = isCustomFormat(quality) ? 'LOSSLESS' : quality;
-
-    try {
-        const fullTrack = await api.getTrackMetadata(track.id);
-        if (fullTrack) {
-            enrichedTrack = {
-                ...fullTrack,
-                ...enrichedTrack,
-                artist: enrichedTrack.artist || fullTrack.artist,
-                album: {
-                    ...(fullTrack.album || {}),
-                    ...(enrichedTrack.album || {}),
-                },
-                // Preserve explicit disc fields from either source
-                discNumber: enrichedTrack.discNumber ?? fullTrack.discNumber,
-                volumeNumber: enrichedTrack.volumeNumber ?? fullTrack.volumeNumber,
-            };
-        }
-    } catch {
-        // Non-fatal: continue with best available track payload
-    }
-
-    if (enrichedTrack.album?.id) {
-        try {
-            const albumData = await api.getAlbum(enrichedTrack.album.id);
-            if (albumData.album && (!enrichedTrack.album.title || !enrichedTrack.album.artist)) {
-                enrichedTrack.album = {
-                    ...enrichedTrack.album,
-                    ...albumData.album,
-                };
-            }
-            if (albumData.tracks?.length > 0) {
-                const { totalDiscs, tracksPerDisc } = await computeDiscInfo(albumData.tracks, api);
-                const discNumber = getTrackDiscNumber(enrichedTrack) || 1;
-                enrichedTrack.album = {
-                    ...enrichedTrack.album,
-                    totalDiscs,
-                    numberOfTracksOnDisc: tracksPerDisc.get(discNumber),
-                };
-            }
-        } catch (error) {
-            console.warn('Failed to fetch album data for metadata:', error);
-        }
-    }
-
-    const lookup = await api.getTrack(track.id, downloadQuality);
-    let streamUrl;
-
-    if (lookup.originalTrackUrl) {
-        streamUrl = lookup.originalTrackUrl;
-    } else {
-        streamUrl = api.extractStreamUrlFromManifest(lookup.info.manifest);
-        if (!streamUrl) {
-            throw new Error('Could not resolve stream URL');
-        }
-    }
-
-    if (lookup.info) {
-        enrichedTrack.replayGain = {
-            trackReplayGain: lookup.info.trackReplayGain,
-            trackPeakAmplitude: lookup.info.trackPeakAmplitude,
-            albumReplayGain: lookup.info.albumReplayGain,
-            albumPeakAmplitude: lookup.info.albumPeakAmplitude,
-        };
-    }
-
-    // Handle DASH streams (blob URLs)
-    let blob;
-    if (streamUrl.startsWith('blob:')) {
-        try {
-            const downloader = new DashDownloader();
-            blob = await downloader.downloadDashStream(streamUrl, { signal });
-        } catch (dashError) {
-            console.error('DASH download failed:', dashError);
-            // Fallback
-            if (downloadQuality !== 'LOSSLESS') {
-                console.warn('Falling back to LOSSLESS (16-bit) download.');
-                return downloadTrackBlob(track, 'LOSSLESS', api, lyricsManager, signal, onProgress, coverBlob);
-            }
-            throw dashError;
-        }
-    } else {
-        const response = await fetch(streamUrl, { signal });
-        if (!response.ok) {
-            throw new Error(`Failed to fetch track: ${response.status}`);
-        }
-        blob = await response.blob();
-    }
-
-    const coverBlobToEmbed = await prefetchPromises.coverFetch;
-    const extraFiles = [];
-    const ffmpegMetadataArgs = [];
-
-    if (coverBlobToEmbed) {
-        const coverBuffer = await coverBlobToEmbed.arrayBuffer();
-        const coverExt = getMimeType(new Uint8Array(coverBuffer)) === 'image/png' ? 'png' : 'jpg';
-        const coverName = `cover.${coverExt}`;
-        extraFiles.push({
-            name: coverName,
-            data: coverBuffer,
-        });
-        ffmpegMetadataArgs.push('-i', coverName);
-    }
-
-    if (enrichedTrack) {
-        ffmpegMetadataArgs.push(
-            '-metadata',
-            `title=${getTrackTitle(enrichedTrack)}`,
-            '-metadata',
-            `artist=${getFullArtistString(enrichedTrack)}`,
-            '-metadata',
-            `album=${enrichedTrack.album?.title || ''}`,
-            '-metadata',
-            `album_artist=${enrichedTrack.album?.artist?.name || enrichedTrack.artist?.name || ''}`
-        );
-
-        const trackNum = enrichedTrack.trackNumber;
-        if (trackNum) {
-            const totalTracks = enrichedTrack.album?.numberOfTracks;
-            ffmpegMetadataArgs.push('-metadata', `track=${trackNum}${totalTracks ? `/${totalTracks}` : ''}`);
-        }
-
-        const discNum = enrichedTrack.volumeNumber || enrichedTrack.discNumber;
-        if (discNum) {
-            ffmpegMetadataArgs.push('-metadata', `disc=${discNum}`);
-        }
-
-        const releaseDate = enrichedTrack.album?.releaseDate || enrichedTrack?.streamStartDate;
-        if (releaseDate) {
-            ffmpegMetadataArgs.push('-metadata', `date=${releaseDate.split('-')[0]}`);
-        }
-    }
-
-    // Apply audio post-processing (custom format transcoding + lossless container conversion)
-    blob = await applyAudioPostProcessing(blob, quality, onProgress, signal);
+async function downloadTrackBlob(track, quality, api, signal = null, onProgress = null) {
+    const blob = await api.downloadTrack(track.id, quality, undefined, {
+        track,
+        signal,
+        onProgress,
+        triggerDownload: false,
+        calculateDashBytes: false,
+    });
 
     // Detect actual format from blob signature BEFORE adding metadata
     const extension = await getExtensionFromBlob(blob);
 
-    // Add metadata to the blob
-    blob = await addMetadataToAudio(blob, enrichedTrack, api, quality, prefetchPromises);
-
     return { blob, extension };
 }
 
-async function bulkDownloadSequentially(tracks, api, quality, lyricsManager, notification, coverBlob = null) {
-    const { abortController } = bulkDownloadTasks.get(notification);
-    const signal = abortController.signal;
-
-    for (let i = 0; i < tracks.length; i++) {
-        if (signal.aborted) break;
-        const track = tracks[i];
-        const trackTitle = getTrackTitle(track);
-
-        updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
-
-        try {
-            const { blob, extension } = await downloadTrackBlob(track, quality, api, null, signal, null, coverBlob);
-            const filename = buildTrackFilename(track, quality, extension);
-            triggerDownload(blob, filename);
-
-            if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
-                try {
-                    const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
-                    if (lyricsData) {
-                        const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
-                        if (lrcContent) {
-                            const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
-                            const lrcBlob = new Blob([lrcContent], { type: 'text/plain' });
-                            triggerDownload(lrcBlob, lrcFilename);
-                        }
-                    }
-                } catch {
-                    // Silent fail for lyrics
-                }
-            }
-        } catch (err) {
-            if (err.name === 'AbortError') throw err;
-            console.error(`Failed to download track ${trackTitle}:`, err);
-        }
-    }
-}
-
-async function bulkDownloadToZip(
+async function bulkDownload(
     tracks,
     folderName,
     api,
@@ -530,21 +355,21 @@ async function bulkDownloadToZip(
             if (signal.aborted) break;
             const track = tracks[i];
             const trackTitle = getTrackTitle(track);
+            let fileFraction = 0;
 
             updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
 
             try {
-                const { blob, extension } = await downloadTrackBlob(
-                    track,
-                    quality,
-                    api,
-                    null,
-                    signal,
-                    (p) => {
-                        updateBulkDownloadProgress(notification, i, tracks.length, trackTitle, p);
-                    },
-                    coverBlob
-                );
+                const { blob, extension } = await downloadTrackBlob(track, quality, api, signal, (p) => {
+                    if (p instanceof DownloadProgress && p.totalBytes && p.receivedBytes) {
+                        fileFraction = p.receivedBytes / p.totalBytes;
+                    } else if (p instanceof SegmentedDownloadProgress && p.currentSegment && p.totalSegments) {
+                        fileFraction = p.currentSegment / p.totalSegments;
+                    }
+
+                    fileFraction = Math.min(fileFraction, 0.99); // Cap at 99% to avoid showing 100% before finalization
+                    updateBulkDownloadProgress(notification, i + fileFraction, tracks.length, trackTitle, p);
+                });
                 const filename = buildTrackFilename(track, quality, extension);
                 const discNumber = discLayout.resolveDiscNumber(i);
                 const discPath = separateByDisc ? `${getDiscFolderName(discNumber)}/${filename}` : filename;
@@ -691,7 +516,7 @@ async function createBulkWriter(folderName) {
         }
     }
     if (method === 'individual') {
-        return null;
+        return new SequentialFileWriter();
     }
     // method === 'zip' (or folder picker unavailable as fallback)
     if (!forceZipBlob && hasFileSystemAccess) {
@@ -717,7 +542,7 @@ async function startBulkDownload(
         const writer = await createBulkWriter(defaultName);
 
         if (writer) {
-            await bulkDownloadToZip(
+            await bulkDownload(
                 tracks,
                 defaultName,
                 api,
@@ -729,9 +554,6 @@ async function startBulkDownload(
                 type,
                 metadata
             );
-        } else {
-            // Individual sequential downloads
-            await bulkDownloadSequentially(tracks, api, quality, lyricsManager, notification);
         }
 
         completeBulkDownload(notification, true);
@@ -846,15 +668,7 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                     const track = tracks[i];
                     if (signal.aborted) break;
                     try {
-                        const { blob, extension } = await downloadTrackBlob(
-                            track,
-                            quality,
-                            api,
-                            null,
-                            signal,
-                            null,
-                            coverBlob
-                        );
+                        const { blob, extension } = await downloadTrackBlob(track, quality, api, signal, null);
                         const filename = buildTrackFilename(track, quality, extension);
                         const discNumber = discLayout.resolveDiscNumber(i);
                         const discPath = separateByDisc ? `${getDiscFolderName(discNumber)}/${filename}` : filename;
@@ -954,16 +768,6 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
 
         if (writer) {
             await writer.write(yieldDiscography());
-        } else {
-            // Individual sequential downloads for discography
-            for (let albumIndex = 0; albumIndex < selectedReleases.length; albumIndex++) {
-                if (signal.aborted) break;
-                const album = selectedReleases[albumIndex];
-                updateBulkDownloadProgress(notification, albumIndex, selectedReleases.length, album.title);
-                const { tracks: rawTracks } = await api.getAlbum(album.id);
-                const tracks = await annotateTracksWithDiscInfo(rawTracks, api);
-                await bulkDownloadSequentially(tracks, api, quality, lyricsManager, notification);
-            }
         }
 
         completeBulkDownload(notification, true);
@@ -1026,22 +830,26 @@ function createBulkDownloadNotification(type, name, _totalItems) {
     return notifEl;
 }
 
-function updateBulkDownloadProgress(notifEl, current, total, currentItem, ffmpegProgress = null) {
+function updateBulkDownloadProgress(notifEl, current, total, currentItem, progress = null) {
     const progressFill = notifEl.querySelector('.download-progress-fill');
     const statusEl = notifEl.querySelector('.download-status');
 
-    if (ffmpegProgress && (ffmpegProgress.stage === 'encoding' || ffmpegProgress.stage === 'finalizing')) {
-        const percent = ffmpegProgress.progress ? Math.round(ffmpegProgress.progress) : 100;
+    if (progress instanceof FfmpegProgress) {
+        const percent = progress.progress || 0;
         progressFill.style.width = `${percent}%`;
         progressFill.style.background = '#3b82f6'; // Blue for encoding
-        statusEl.textContent = `Converting ${current}/${total}: ${percent}%`;
+        statusEl.textContent = `Converting ${Math.ceil(current)}/${total}: ${Math.round(percent)}%`;
         return;
+    }
+
+    if (progress instanceof ProgressMessage) {
+        statusEl.textContent = progress.message;
     }
 
     const percent = total > 0 ? Math.round((current / total) * 100) : 0;
     progressFill.style.width = `${percent}%`;
     progressFill.style.background = 'var(--highlight)';
-    statusEl.textContent = `${current}/${total} - ${currentItem}`;
+    statusEl.textContent = `${Math.floor(current)}/${total} - ${currentItem}`;
 }
 
 function completeBulkDownload(notifEl, success = true, message = null) {
@@ -1143,6 +951,7 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
             onProgress: (progress) => {
                 updateDownloadProgress(track.id, progress);
             },
+            calculateDashBytes: true,
         });
 
         completeDownloadTask(track.id, true);
