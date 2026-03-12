@@ -21,7 +21,7 @@ Thank you for your interest in contributing to Monochrome! This guide will help 
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (Version 20+ or 22+ recommended)
+- [Node.js](https://nodejs.org/) (Version 22+ recommended)
 - [Bun](https://bun.sh/) (preferred) or [npm](https://www.npmjs.com/)
 
 ### Quick Start
