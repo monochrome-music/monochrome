@@ -117,9 +117,9 @@ export class AuthManager {
     }
 
     updateUI(user) {
-        const connectBtn = document.getElementById('firebase-connect-btn');
-        const clearDataBtn = document.getElementById('firebase-clear-cloud-btn');
-        const statusText = document.getElementById('firebase-status');
+        const connectBtn = document.getElementById('auth-connect-btn');
+        const clearDataBtn = document.getElementById('auth-clear-cloud-btn');
+        const statusText = document.getElementById('auth-status');
         const emailContainer = document.getElementById('email-auth-container');
         const emailToggleBtn = document.getElementById('toggle-email-auth-btn');
 
@@ -139,7 +139,7 @@ export class AuthManager {
                 const title = accountPage.querySelector('.section-title');
                 if (title) title.textContent = 'Account';
                 accountPage.querySelectorAll('.account-content > p, .account-content > div').forEach((el) => {
-                    if (el.id !== 'firebase-status' && el.id !== 'auth-buttons-container') {
+                    if (el.id !== 'auth-status' && el.id !== 'auth-buttons-container') {
                         el.style.display = 'none';
                     }
                 });
