@@ -31,7 +31,6 @@ These instances provide the tidal-ui web interface, not monochrome:
 
 | Provider            | URL                                            | Status    |
 | ------------------- | ---------------------------------------------- | --------- |
-| **bini (tidal-ui)** | [music.binimum.org](https://music.binimum.org) | Community |
 | **squid.wtf**       | [tidal.squid.wtf](https://tidal.squid.wtf)     | Community |
 | **QQDL**            | [tidal.qqdl.site](https://tidal.qqdl.site/)    | Community |
 
