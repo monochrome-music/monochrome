@@ -98,6 +98,7 @@ async function loadFFmpeg(loadOptions = {}) {
 self.onmessage = async (e) => {
     const {
         audioData,
+        extraFiles = [],
         args = [],
         output = {
             name: 'output',
@@ -109,42 +110,40 @@ self.onmessage = async (e) => {
     } = e.data;
 
     try {
-        console.log(loadOptions);
         await loadFFmpeg(loadOptions);
 
         self.postMessage({ type: 'progress', stage: 'encoding', message: encodeStartMessage, progress: 0.0 });
 
         try {
-            // Write input file to FFmpeg virtual filesystem
-            await ffmpeg.writeFile('input', new Uint8Array(audioData));
+            if (audioData) {
+                await ffmpeg.writeFile('input', new Uint8Array(audioData));
+            }
+
+            for (const file of extraFiles) {
+                await ffmpeg.writeFile(file.name, new Uint8Array(file.data));
+            }
 
             const ffmpegArgs = ['-i', 'input', ...args, output.name];
+            self.postMessage({ type: 'log', message: `FFmpeg command: ffmpeg ${ffmpegArgs.join(' ')}` });
 
-            // Log the exact FFmpeg command being run for debugging.
-            self.postMessage({ type: 'log', message: `Running with args: ${ffmpegArgs.join(' ')}` });
+            const exitCode = await ffmpeg.exec(ffmpegArgs);
 
-            // Run FFMPEG with the provided arguments.
-            await ffmpeg.exec(ffmpegArgs);
+            if (exitCode !== 0) {
+                throw new Error(`FFmpeg failed with exit code ${exitCode}.`);
+            }
 
             self.postMessage({ type: 'progress', stage: 'finalizing', message: encodeEndMessage, progress: 100.0 });
 
-            // Read output file - use Uint8Array directly to avoid extra bytes from ArrayBuffer
             const data = await ffmpeg.readFile(output.name);
             const outputBlob = new Blob([data], { type: output.mime });
 
             self.postMessage({ type: 'complete', blob: outputBlob });
         } finally {
-            // Always cleanup virtual filesystem files
-            try {
-                await ffmpeg.deleteFile('input');
-            } catch {
-                // File may not exist if writeFile failed
+            try { if (audioData) await ffmpeg.deleteFile('input'); } catch {}
+            for (const file of extraFiles) {
+                try { await ffmpeg.deleteFile(file.name); } catch {}
             }
-            try {
-                await ffmpeg.deleteFile(output.name);
-            } catch {
-                // File may not exist if exec failed
-            }
+            try { await ffmpeg.deleteFile(output.name); } catch {}
         }
     } catch (error) {
         self.postMessage({ type: 'error', message: error.message });

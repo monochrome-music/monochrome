@@ -5,6 +5,7 @@ import {
     getMimeType,
     getTrackCoverId,
     getTrackDiscNumber,
+    getExtensionFromBlob,
 } from './utils.js';
 import { fetchTagLib, addMetadataWithTagLib, getMetadataWithTagLib } from './taglib.ts';
 import { doTimed, doTimedAsync } from './doTimed.ts';
@@ -42,9 +43,17 @@ export async function addMetadataToAudio(audioBlob, track, api, _quality, prefet
     const { coverFetch, lyricsFetch } = prefetchPromises;
 
     /**
-     * @type {import("./taglib.types.ts").TagLibMetadata}
+     * @type {import("./taglib.worker.ts").TagLibMetadata}
      */
     const data = {};
+
+    const detectedExt = await getExtensionFromBlob(audioBlob);
+    const isM4A = detectedExt === 'm4a' || detectedExt === 'mp4';
+
+    if (isM4A) {
+        console.log('Skipping TagLib for M4A (handled by FFmpeg)');
+        return audioBlob;
+    }
 
     const audioBuffer = await doTimedAsync('Get audio array buffer', () => audioBlob.arrayBuffer());
 
@@ -55,8 +64,7 @@ export async function addMetadataToAudio(audioBlob, track, api, _quality, prefet
         data.albumArtist = track.album?.artist?.name || track.artist?.name;
         data.trackNumber = track.trackNumber;
         data.discNumber = track.volumeNumber ?? track.discNumber;
-        data.totalTracks = track.album.numberOfTracksOnDisc ?? track.album.numberOfTracks;
-        data.totalDiscs = track.album.totalDiscs;
+        data.totalTracks = track.album.numberOfTracks;
         data.copyright = track.copyright;
         data.isrc = track.isrc;
         data.explicit = Boolean(track.explicit);
@@ -96,9 +104,9 @@ export async function addMetadataToAudio(audioBlob, track, api, _quality, prefet
         try {
             if (track.album?.cover) {
                 const coverBlob = await coverFetch;
-                const coverBuffer = new Uint8Array(await coverBlob.arrayBuffer());
 
                 if (coverBlob) {
+                    const coverBuffer = new Uint8Array(await coverBlob.arrayBuffer());
                     data.cover = {
                         data: coverBuffer,
                         type: getMimeType(coverBuffer),

@@ -11,13 +11,15 @@ import {
     getExtensionFromBlob,
     escapeHtml,
     getTrackDiscNumber,
+    getFullArtistString,
+    getMimeType,
 } from './utils.js';
 import { lyricsSettings, bulkDownloadSettings, losslessContainerSettings, playlistSettings } from './storage.js';
 import { addMetadataToAudio, prefetchMetadataObjects } from './metadata.js';
 import { rebuildFlacWithoutMetadata } from './metadata.flac.js';
 import { DashDownloader } from './dash-downloader.js';
 import { generateM3U, generateM3U8, generateCUE, generateNFO, generateJSON } from './playlist-generator.js';
-import { loadFfmpeg } from './ffmpeg.js';
+import { ffmpeg, loadFfmpeg } from './ffmpeg.js';
 import {
     isCustomFormat,
     getCustomFormat,
@@ -418,22 +420,118 @@ async function downloadTrackBlob(
         blob = await response.blob();
     }
 
+    const coverBlobToEmbed = await prefetchPromises.coverFetch;
+    const extraFiles = [];
+    const ffmpegMetadataArgs = [];
+    
+    if (coverBlobToEmbed) {
+        const coverBuffer = await coverBlobToEmbed.arrayBuffer();
+        const coverExt = getMimeType(new Uint8Array(coverBuffer)) === 'image/png' ? 'png' : 'jpg';
+        const coverName = `cover.${coverExt}`;
+        extraFiles.push({
+            name: coverName,
+            data: coverBuffer
+        });
+        ffmpegMetadataArgs.push('-i', coverName);
+    }
+
+    if (enrichedTrack) {
+        ffmpegMetadataArgs.push(
+            '-metadata', `title=${getTrackTitle(enrichedTrack)}`,
+            '-metadata', `artist=${getFullArtistString(enrichedTrack)}`,
+            '-metadata', `album=${enrichedTrack.album?.title || ''}`,
+            '-metadata', `album_artist=${enrichedTrack.album?.artist?.name || enrichedTrack.artist?.name || ''}`
+        );
+        
+        const trackNum = enrichedTrack.trackNumber;
+        if (trackNum) {
+            const totalTracks = enrichedTrack.album?.numberOfTracks;
+            ffmpegMetadataArgs.push('-metadata', `track=${trackNum}${totalTracks ? `/${totalTracks}` : ''}`);
+        }
+        
+        const discNum = enrichedTrack.volumeNumber || enrichedTrack.discNumber;
+        if (discNum) {
+            ffmpegMetadataArgs.push('-metadata', `disc=${discNum}`);
+        }
+
+        const releaseDate = enrichedTrack.album?.releaseDate || enrichedTrack?.streamStartDate;
+        if (releaseDate) {
+            ffmpegMetadataArgs.push('-metadata', `date=${releaseDate.split('-')[0]}`);
+        }
+    }
+
     // Transcode to custom format if requested
     if (isCustomFormat(quality)) {
         const format = getCustomFormat(quality);
         if (format) {
-            blob = await transcodeWithCustomFormat(blob, format, onProgress || (() => undefined), signal);
+            const args = [...ffmpegMetadataArgs, ...format.ffmpegArgs];
+            if (coverBlobToEmbed) {
+                args.push('-map', '0:a', '-map', '1:v', '-c:v', 'copy', '-disposition:v:0', 'attached_pic');
+            }
+
+            blob = await ffmpeg(
+                blob,
+                { args },
+                format.outputFilename,
+                format.outputMime,
+                onProgress,
+                signal,
+                extraFiles
+            );
         }
     }
 
     if (quality.endsWith('LOSSLESS')) {
         try {
-            const containerFmt = getContainerFormat(losslessContainerSettings.getContainer());
-            if (containerFmt) {
+            const containerType = losslessContainerSettings.getContainer();
+            const containerFmt = getContainerFormat(containerType);
+            
+            if (containerFmt && containerType !== 'nochange') {
                 if (await containerFmt.needsTranscode(blob)) {
-                    blob = await transcodeWithContainerFormat(blob, containerFmt, onProgress, signal);
+                    const args = [...ffmpegMetadataArgs, ...containerFmt.ffmpegArgs];
+                    if (coverBlobToEmbed) {
+                        args.push('-map', '0:a', '-map', '1:v', '-c:v', 'copy', '-disposition:v:0', 'attached_pic');
+                    }
+
+                    blob = await ffmpeg(
+                        blob,
+                        { args },
+                        containerFmt.outputFilename,
+                        containerFmt.outputMime,
+                        onProgress,
+                        signal,
+                        extraFiles
+                    );
                 } else if ((await getExtensionFromBlob(blob)) == 'flac') {
                     blob = await rebuildFlacWithoutMetadata(blob);
+                }
+            } else {
+                const actualExtension = await getExtensionFromBlob(blob);
+                if (actualExtension === 'm4a' || actualExtension === 'mp4') {
+                    try {
+                        const ffmpegArgs = [...ffmpegMetadataArgs];
+                        
+                        ffmpegArgs.push('-map', '0:a');
+                        if (coverBlobToEmbed) {
+                            ffmpegArgs.push('-map', '1:v', '-c:v', 'copy', '-disposition:v:0', 'attached_pic');
+                        }
+                        ffmpegArgs.push('-c:a', 'copy', '-movflags', '+faststart', '-strict', '-2');
+
+                        const remuxedBlob = await ffmpeg(
+                            blob,
+                            { args: ffmpegArgs },
+                            'output.mp4',
+                            'audio/mp4',
+                            onProgress,
+                            signal,
+                            extraFiles
+                        );
+                        if (remuxedBlob) {
+                            blob = remuxedBlob;
+                        }
+                    } catch (e) {
+                        console.warn('Failed to remux hi-res M4A, proceeding with original:', e);
+                    }
                 }
             }
         } catch (error) {

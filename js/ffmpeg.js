@@ -32,9 +32,10 @@ async function ffmpegWorker(
     outputName = 'output',
     outputMime = 'application/octet-stream',
     onProgress = null,
-    signal = null
+    signal = null,
+    extraFiles = []
 ) {
-    const audioData = await audioBlob.arrayBuffer();
+    const audioData = audioBlob ? await audioBlob.arrayBuffer() : null;
     const assets = loadFfmpeg();
 
     return new Promise((resolve, reject) => {
@@ -79,9 +80,20 @@ async function ffmpegWorker(
         };
 
         (async () => {
+            const transferables = [];
+            if (audioData) transferables.push(audioData);
+            for (const f of extraFiles) {
+                if (f.data instanceof ArrayBuffer) {
+                    transferables.push(f.data);
+                } else if (f.data.buffer instanceof ArrayBuffer) {
+                    transferables.push(f.data.buffer);
+                }
+            }
+
             worker.postMessage(
                 {
                     audioData,
+                    extraFiles,
                     ...args,
                     output: {
                         name: outputName,
@@ -89,7 +101,7 @@ async function ffmpegWorker(
                     },
                     loadOptions: await assets,
                 },
-                [audioData]
+                transferables
             );
         })();
     });
@@ -101,12 +113,13 @@ export async function ffmpeg(
     outputName = 'output',
     outputMime = 'application/octet-stream',
     onProgress = null,
-    signal = null
+    signal = null,
+    extraFiles = []
 ) {
     try {
         // Use Web Worker for non-blocking FFmpeg encoding
         if (typeof Worker !== 'undefined') {
-            return await ffmpegWorker(audioBlob, args, outputName, outputMime, onProgress, signal);
+            return await ffmpegWorker(audioBlob, args, outputName, outputMime, onProgress, signal, extraFiles);
         }
 
         throw new FfmpegError('Web Workers are required for FFMPEG');

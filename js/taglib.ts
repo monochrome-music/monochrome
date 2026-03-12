@@ -47,7 +47,13 @@ export async function addMetadataWithTagLib(
         };
         worker.onerror = reject;
         worker.onmessageerror = reject;
-        worker.postMessage({ ...data, type: 'Add', wasmUrl, audioData }, [audioData.buffer]);
+
+        const transferables: Transferable[] = [audioData.buffer];
+        if ((data as any).cover?.data?.buffer instanceof ArrayBuffer) {
+            transferables.push((data as any).cover.data.buffer);
+        }
+
+        worker.postMessage({ ...data, type: 'Add', wasmUrl, audioData }, transferables);
     });
 }
 
