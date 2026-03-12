@@ -1,6 +1,6 @@
 import { losslessContainerSettings } from './storage';
-import { rebuildFlacWithoutMetadata } from './metadata.flac';
 import { getExtensionFromBlob } from './utils';
+import { rebuildFlacWithoutMetadata } from './metadata.flac.js';
 import {
     type ProgressEvent,
     isCustomFormat,
@@ -9,7 +9,7 @@ import {
     getContainerFormat,
     transcodeWithContainerFormat,
 } from './ffmpegFormats';
-import { ffmpeg } from './ffmpeg';
+import { ffmpegNewContainer } from './ffmpeg';
 
 /**
  * Triggers a browser file download for the given blob.
@@ -60,12 +60,20 @@ export async function applyAudioPostProcessing(
     if (quality.endsWith('LOSSLESS')) {
         try {
             const containerFmt = getContainerFormat(losslessContainerSettings.getContainer());
-            if (containerFmt) {
-                if (await containerFmt.needsTranscode(blob)) {
-                    blob = await transcodeWithContainerFormat(blob, containerFmt, onProgress, signal);
-                } else if ((await getExtensionFromBlob(blob)) === 'flac') {
-                    blob = await rebuildFlacWithoutMetadata(blob);
-                }
+            const extension = await getExtensionFromBlob(blob);
+
+            if (await containerFmt?.needsTranscode(blob)) {
+                blob = await transcodeWithContainerFormat(blob, containerFmt, onProgress, signal);
+            } else if (extension == 'flac') {
+                blob = await rebuildFlacWithoutMetadata(blob);
+            } else {
+                blob = await ffmpegNewContainer(
+                    blob,
+                    extension == 'm4a' ? 'mp4' : extension,
+                    blob.type,
+                    onProgress,
+                    signal
+                );
             }
         } catch (error) {
             if ((error as Error)?.name === 'AbortError') {
