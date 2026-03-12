@@ -39,5 +39,5 @@ jobs:
       - name: Commit changes
         run: |
           git add -A . || true
-          git commit "update lockfile" || true
+          git commit -m "update lockfile" || true
           git push || true
