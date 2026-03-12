@@ -189,10 +189,10 @@ export const getExtensionFromBlob = async (blob) => {
     if (format) return format;
 
     if (blob.type.includes('video')) return 'mp4';
-    if (mimeType === 'audio/flac') return 'flac';
-    if (mimeType === 'audio/ogg') return 'ogg';
-    if (mimeType === 'audio/mp4' || mimeType === 'audio/x-m4a') return 'mp4';
-    if (mimeType === 'audio/mp3' || mimeType === 'audio/mpeg') return 'mp3';
+    if (blob.type === 'audio/flac') return 'flac';
+    if (blob.type === 'audio/ogg') return 'ogg';
+    if (blob.type === 'audio/mp4' || blob.type === 'audio/x-m4a') return 'mp4';
+    if (blob.type === 'audio/mp3' || blob.type === 'audio/mpeg') return 'mp3';
 
     return 'flac';
 };
@@ -214,6 +214,7 @@ export const buildTrackFilename = (track, quality, extension = null) => {
     const artistName = track.artist?.name || track.artists?.[0]?.name || 'Unknown Artist';
 
     const data = {
+        discNumber: getTrackDiscNumber(track) || 1,
         trackNumber: track.trackNumber,
         artist: artistName,
         title: getTrackTitle(track),
@@ -640,4 +641,44 @@ export function getTrackCoverId(track) {
         track.album?.image ||
         null
     );
+}
+
+/**
+ * Converts a value to a positive integer.
+ * @param {*} value - The value to convert to a positive integer.
+ * @returns {number|null} The parsed positive integer, or null if the value is not a finite positive number.
+ */
+export function toPositiveInt(value) {
+    const parsed = parseInt(value, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+/**
+ * Extracts the disc number from a track object by checking multiple possible property names.
+ * @param {Object} track - The track object to extract the disc number from.
+ * @returns {number|null} The disc number as a positive integer, or null if no valid disc number is found.
+ */
+export function getTrackDiscNumber(track) {
+    const candidates = [
+        track?.volumeNumber,
+        track?.discNumber,
+        track?.mediaNumber,
+        track?.media_number,
+        track?.volume,
+        track?.disc,
+        track?.volume?.number,
+        track?.disc?.number,
+        track?.media?.number,
+        track?.disc,
+        track?.disc_no,
+        track?.discNo,
+        track?.disc_number,
+        track?.mediaMetadata?.discNumber,
+    ];
+
+    for (const candidate of candidates) {
+        const parsed = toPositiveInt(candidate);
+        if (parsed) return parsed;
+    }
+    return null;
 }
