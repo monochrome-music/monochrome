@@ -1185,6 +1185,8 @@
                     </div>
                 </div>
                 <div class="missing-tracks-actions">
+                    <button class="btn-secondary" id="copy-missing-tracks-btn">Copy to Clipboard</button>
+                    <button class="btn-secondary" id="export-missing-tracks-csv-btn">Export as CSV</button>
                     <button class="btn-secondary" id="close-missing-tracks-btn">OK</button>
                 </div>
             </div>
@@ -1276,11 +1278,11 @@
                     </button>
                 </div>
                 <p style="font-size: 0.9rem; color: var(--muted-foreground); margin-bottom: 1rem">
-                    Configure custom PocketBase and Firebase instances. Leave empty to use defaults.
+                    Configure custom PocketBase and Appwrite instances. Leave empty to use defaults.
                     <br />
                     A Guide To Set This Up Can Be Found
                     <a
-                        href="https://github.com/monochrome-music/monochrome/blob/main/self-hosted-database.md"
+                        href="https://github.com/monochrome-music/monochrome/blob/main/DOCKER.md"
                         style="text-decoration: underline"
                         >Here</a
                     >.
@@ -1295,15 +1297,22 @@
                     />
                 </div>
                 <div style="margin-bottom: 1rem">
-                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem"
-                        >Firebase Configuration (JSON)</label
-                    >
-                    <textarea
-                        id="custom-firebase-config"
+                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem">Appwrite Endpoint</label>
+                    <input
+                        type="url"
+                        id="custom-appwrite-endpoint"
                         class="template-input"
-                        style="height: 150px; font-family: monospace; font-size: 0.8rem; resize: vertical"
-                        placeholder="{'apiKey': '...', ...}"
-                    ></textarea>
+                        placeholder="https://auth.samidy.com/v1"
+                    />
+                </div>
+                <div style="margin-bottom: 1rem">
+                    <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem">Appwrite Project ID</label>
+                    <input
+                        type="text"
+                        id="custom-appwrite-project"
+                        class="template-input"
+                        placeholder="auth-for-monochrome"
+                    />
                 </div>
                 <div class="modal-actions">
                     <button id="custom-db-cancel" class="btn-secondary">Cancel</button>
@@ -5257,7 +5266,7 @@
                                     <div class="info">
                                         <span class="label">ADVANCED: Custom Database/Auth</span>
                                         <span class="description"
-                                            >Configure custom PocketBase and Firebase instances</span
+                                            >Configure custom PocketBase and Appwrite instances</span
                                         >
                                     </div>
                                     <button id="custom-db-btn" class="btn-secondary">Configure</button>
@@ -5352,7 +5361,7 @@
                                             >Delete all your data from the cloud (cannot be undone)</span
                                         >
                                     </div>
-                                    <button id="firebase-clear-cloud-btn" class="btn-secondary danger">
+                                    <button id="auth-clear-cloud-btn" class="btn-secondary danger">
                                         Clear Cloud Data
                                     </button>
                                 </div>
@@ -5525,19 +5534,19 @@
                                 flex-wrap: wrap;
                             "
                         >
-                            <button id="firebase-connect-btn" class="btn-secondary">Connect with Google</button>
+                            <button id="auth-connect-btn" class="btn-secondary">Connect with Google</button>
                             <button id="toggle-email-auth-btn" class="btn-secondary">Connect with Email</button>
                             <button id="view-my-profile-btn" class="btn-secondary" style="display: none">
                                 View My Profile
                             </button>
                         </div>
 
-                        <p id="firebase-status" style="text-align: center; padding-top: 15px; color: #8b8b93">
+                        <p id="auth-status" style="text-align: center; padding-top: 15px; color: #8b8b93">
                             Sync your library across devices
                         </p>
                         <script>
                             if (window.authManager && window.authManager.user) {
-                                const statusText = document.getElementById('firebase-status');
+                                const statusText = document.getElementById('auth-status');
                                 if (statusText)
                                     statusText.textContent = `Signed in as ${window.authManager.user.email}`;
                             }

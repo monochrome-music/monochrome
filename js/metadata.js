@@ -54,7 +54,7 @@ export async function addMetadataToAudio(audioBlob, track, api, _quality, prefet
         data.albumTitle = track.album.title;
         data.albumArtist = track.album?.artist?.name || track.artist?.name;
         data.trackNumber = track.trackNumber;
-        data.discNumber = getTrackDiscNumber(track) || undefined;
+        data.discNumber = track.volumeNumber ?? track.discNumber;
         data.totalTracks = track.album.numberOfTracksOnDisc ?? track.album.numberOfTracks;
         data.totalDiscs = track.album.totalDiscs;
         data.copyright = track.copyright;
