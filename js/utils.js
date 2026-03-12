@@ -189,10 +189,10 @@ export const getExtensionFromBlob = async (blob) => {
     if (format) return format;
 
     if (blob.type.includes('video')) return 'mp4';
-    if (mimeType === 'audio/flac') return 'flac';
-    if (mimeType === 'audio/ogg') return 'ogg';
-    if (mimeType === 'audio/mp4' || mimeType === 'audio/x-m4a') return 'mp4';
-    if (mimeType === 'audio/mp3' || mimeType === 'audio/mpeg') return 'mp3';
+    if (blob.type === 'audio/flac') return 'flac';
+    if (blob.type === 'audio/ogg') return 'ogg';
+    if (blob.type === 'audio/mp4' || blob.type === 'audio/x-m4a') return 'mp4';
+    if (blob.type === 'audio/mp3' || blob.type === 'audio/mpeg') return 'mp3';
 
     return 'flac';
 };
