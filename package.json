@@ -17,15 +17,15 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/SamidyFR/monochrome.git"
+        "url": "git+https://github.com/monochrome-music/monochrome.git"
     },
     "keywords": [],
     "author": "",
     "license": "ISC",
     "bugs": {
-        "url": "https://github.com/SamidyFR/monochrome/issues"
+        "url": "https://github.com/monochrome-music/monochrome/issues"
     },
-    "homepage": "https://github.com/SamidyFR/monochrome#readme",
+    "homepage": "https://github.com/monochrome-music/monochrome#readme",
     "devDependencies": {
         "@neutralinojs/neu": "^11.7.0",
         "@types/node": "^25.3.5",
