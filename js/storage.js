@@ -637,11 +637,23 @@ export const trackDateSettings = {
 export const bulkDownloadSettings = {
     METHOD_KEY: 'bulk-download-method',
     FORCE_ZIP_BLOB_KEY: 'bulk-download-force-zip-blob',
+    LEGACY_INDIVIDUAL_KEY: 'force-individual-downloads',
+    VALID_METHODS: ['zip', 'folder', 'individual'],
 
     /** Returns the selected bulk download method: 'zip' | 'folder' | 'individual' */
     getMethod() {
         try {
-            return localStorage.getItem(this.METHOD_KEY) || 'zip';
+            const stored = localStorage.getItem(this.METHOD_KEY);
+            if (stored && this.VALID_METHODS.includes(stored)) {
+                return stored;
+            }
+            const legacy = localStorage.getItem(this.LEGACY_INDIVIDUAL_KEY);
+            if (legacy === 'true') {
+                localStorage.setItem(this.METHOD_KEY, 'individual');
+                localStorage.removeItem(this.LEGACY_INDIVIDUAL_KEY);
+                return 'individual';
+            }
+            return 'zip';
         } catch {
             return 'zip';
         }

@@ -669,7 +669,9 @@ async function bulkDownloadToZip(
  * or null when individual sequential downloads should be used.
  */
 async function createBulkWriter(folderName) {
-    const isNeutralino = window.NL_MODE === true;
+    const isNeutralino =
+        typeof window !== 'undefined' &&
+        (window.NL_MODE || window.location.search.includes('mode=neutralino') || window.parent !== window);
     const method = bulkDownloadSettings.getMethod();
     const forceZipBlob = bulkDownloadSettings.shouldForceZipBlob();
     const hasFileSystemAccess = 'showSaveFilePicker' in window && 'createWritable' in FileSystemFileHandle.prototype;
@@ -679,8 +681,14 @@ async function createBulkWriter(folderName) {
         return new ZipNeutralinoWriter(folderName);
     }
     if (method === 'folder' && hasFolderPicker) {
-        // FolderPickerWriter.create() throws AbortError if the user cancels
-        return await FolderPickerWriter.create();
+        try {
+            return await FolderPickerWriter.create();
+        } catch (error) {
+            if (error instanceof DOMException && error.name === 'AbortError') {
+                throw error;
+            }
+            return null;
+        }
     }
     if (method === 'individual') {
         return null;
