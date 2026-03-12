@@ -5544,13 +5544,6 @@
                         <p id="auth-status" style="text-align: center; padding-top: 15px; color: #8b8b93">
                             Sync your library across devices
                         </p>
-                        <script>
-                            if (window.authManager && window.authManager.user) {
-                                const statusText = document.getElementById('auth-status');
-                                if (statusText)
-                                    statusText.textContent = `Signed in as ${window.authManager.user.email}`;
-                            }
-                        </script>
                         <p style="padding-top: 50px; text-align: center; color: #8b8b93">
                             We only store music data and a randomized ID to find out which Google/Email account is
                             which.
