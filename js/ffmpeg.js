@@ -1,9 +1,29 @@
+import { fetchBlobURL } from './utils';
+import FfmpegWorker from './ffmpeg.worker.js?worker';
+const ffmpegBase = 'https://unpkg.com/@ffmpeg/core/dist/esm';
+const coreJs = `${ffmpegBase}/ffmpeg-core.js`;
+const coreWasm = `${ffmpegBase}/ffmpeg-core.wasm`;
+
 class FfmpegError extends Error {
     constructor(message) {
         super(message);
         this.name = 'FfmpegError';
         this.code = 'FFMPEG_FAILED';
     }
+}
+
+export function loadFfmpeg() {
+    return (
+        loadFfmpeg.promise ||
+        (loadFfmpeg.promise = (async () => {
+            const data = {
+                coreURL: await fetchBlobURL(coreJs),
+                wasmURL: await fetchBlobURL(coreWasm),
+            };
+
+            return data;
+        })())
+    );
 }
 
 async function ffmpegWorker(
@@ -15,9 +35,10 @@ async function ffmpegWorker(
     signal = null
 ) {
     const audioData = await audioBlob.arrayBuffer();
+    const assets = loadFfmpeg();
 
     return new Promise((resolve, reject) => {
-        const worker = new Worker(new URL('./ffmpeg.worker.js', import.meta.url), { type: 'module' });
+        const worker = new FfmpegWorker();
 
         // Handle abort signal
         const abortHandler = () => {
@@ -57,18 +78,20 @@ async function ffmpegWorker(
             reject(new FfmpegError('Worker failed: ' + error.message));
         };
 
-        // Transfer audio data to worker
-        worker.postMessage(
-            {
-                audioData,
-                ...args,
-                output: {
-                    name: outputName,
-                    mime: outputMime,
+        (async () => {
+            worker.postMessage(
+                {
+                    audioData,
+                    ...args,
+                    output: {
+                        name: outputName,
+                        mime: outputMime,
+                    },
+                    loadOptions: await assets,
                 },
-            },
-            [audioData]
-        );
+                [audioData]
+            );
+        })();
     });
 }
 

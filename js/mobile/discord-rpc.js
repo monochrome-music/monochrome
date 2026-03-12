@@ -13,7 +13,7 @@ export function initializeDiscordRPC(player) {
 
         let coverUrl = 'monochrome';
         if (track.album?.cover) {
-            const coverId = track.album.cover.replace(/-/g, '/');
+            const coverId = String(track.album.cover).replace(/-/g, '/');
             coverUrl = `https://resources.tidal.com/images/${coverId}/320x320.jpg`;
         }
 

@@ -1,19 +1,25 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import authGatePlugin from './vite-plugin-auth-gate.js';
+import path from 'path';
+import uploadPlugin from './vite-plugin-upload.js';
 
 export default defineConfig(() => {
     return {
         base: './',
+        worker: {
+            format: 'es',
+        },
         resolve: {
             alias: {
+                '!': '/node_modules',
                 pocketbase: '/node_modules/pocketbase/dist/pocketbase.es.js',
                 '@uimaxbai/am-lyrics': '/node_modules/@uimaxbai/am-lyrics/dist/src/am-lyrics.js',
                 
             },
         },
         optimizeDeps: {
-            exclude: ['pocketbase', '@ffmpeg/ffmpeg', '@ffmpeg/util', '@ffmpeg/core'],
+            exclude: ['pocketbase', '@ffmpeg/ffmpeg', '@ffmpeg/util', '@ffmpeg/core', 'taglib-wasm'],
         },
         server: {
             fs: {
@@ -32,6 +38,7 @@ export default defineConfig(() => {
         },
         plugins: [
             authGatePlugin(),
+            uploadPlugin(),
             VitePWA({
                 registerType: 'prompt',
                 workbox: {

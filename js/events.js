@@ -50,6 +50,7 @@ import {
     trackSetSleepTimer,
     trackCancelSleepTimer,
     trackStartMix,
+    trackEvent,
 } from './analytics.js';
 
 let currentTrackIdForWaveform = null;
@@ -60,155 +61,177 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
     const prevBtn = document.getElementById('prev-btn');
     const shuffleBtn = document.getElementById('shuffle-btn');
     const repeatBtn = document.getElementById('repeat-btn');
+    const homeStartRadioBtn = document.getElementById('home-start-infinite-radio-btn');
     const sleepTimerBtnDesktop = document.getElementById('sleep-timer-btn-desktop');
+
+    const volumeBar = document.getElementById('volume-bar');
+    const volumeFill = document.getElementById('volume-fill');
+    const volumeBtn = document.getElementById('volume-btn');
+
+    const updateVolumeUI = () => {
+        const activeEl = player.activeElement;
+        const { muted } = activeEl;
+        const volume = player.userVolume;
+        volumeBtn.innerHTML = muted || volume === 0 ? SVG_MUTE : SVG_VOLUME;
+        const effectiveVolume = muted ? 0 : volume * 100;
+        volumeFill.style.setProperty('--volume-level', `${effectiveVolume}%`);
+        volumeFill.style.width = `${effectiveVolume}%`;
+    };
+
+    if (homeStartRadioBtn) {
+        homeStartRadioBtn.addEventListener('click', async () => {
+            await player.enableRadio();
+        });
+    }
+
     const sleepTimerBtnMobile = document.getElementById('sleep-timer-btn');
 
     // History tracking
     let historyLoggedTrackId = null;
 
-    audioPlayer.addEventListener('loadstart', () => {
-        historyLoggedTrackId = null;
-    });
-
-    // Sync UI with player state on load
-    if (player.shuffleActive) {
-        shuffleBtn.classList.add('active');
-    }
-
-    if (player.repeatMode && player.repeatMode !== REPEAT_MODE.OFF) {
-        repeatBtn.classList.add('active');
-        if (player.repeatMode === REPEAT_MODE.ONE) {
-            repeatBtn.classList.add('repeat-one');
-        }
-        repeatBtn.title = player.repeatMode === REPEAT_MODE.ALL ? 'Repeat Queue' : 'Repeat One';
-    } else {
-        repeatBtn.title = 'Repeat';
-    }
-
-    audioPlayer.addEventListener('play', () => {
-        // Initialize audio context manager for EQ (only once)
-        if (!audioContextManager.isReady()) {
-            audioContextManager.init(audioPlayer);
-        }
-        audioContextManager.resume();
-
-        if (player.currentTrack) {
-            // Track play event
-            trackPlayTrack(player.currentTrack);
-
-            // Scrobble
-            if (scrobbler.isAuthenticated()) {
-                scrobbler.updateNowPlaying(player.currentTrack);
+    const setupMediaListeners = (element) => {
+        element.addEventListener('loadstart', () => {
+            if (player.activeElement === element) {
+                historyLoggedTrackId = null;
             }
+        });
 
-            updateWaveform();
-        }
+        element.addEventListener('play', () => {
+            if (player.activeElement !== element) return;
 
-        playPauseBtn.innerHTML = SVG_PAUSE;
-        player.updateMediaSessionPlaybackState();
-        player.updateMediaSessionPositionState();
-        updateTabTitle(player);
-    });
+            // Initialize audio context manager for EQ (only once)
+            if (!audioContextManager.isReady()) {
+                audioContextManager.init(element);
+            }
+            audioContextManager.resume();
 
-    audioPlayer.addEventListener('playing', () => {
-        player.updateMediaSessionPlaybackState();
-        player.updateMediaSessionPositionState();
-    });
+            if (player.currentTrack) {
+                // Track play event
+                trackPlayTrack(player.currentTrack);
 
-    audioPlayer.addEventListener('pause', () => {
-        if (player.currentTrack) {
-            trackPauseTrack(player.currentTrack);
-        }
-        playPauseBtn.innerHTML = SVG_PLAY;
-        player.updateMediaSessionPlaybackState();
-        player.updateMediaSessionPositionState();
-    });
-
-    audioPlayer.addEventListener('ended', () => {
-        player.playNext();
-    });
-
-    audioPlayer.addEventListener('timeupdate', async () => {
-        const { currentTime, duration } = audioPlayer;
-        if (duration) {
-            const progressFill = document.getElementById('progress-fill');
-            const currentTimeEl = document.getElementById('current-time');
-            progressFill.style.width = `${(currentTime / duration) * 100}%`;
-            currentTimeEl.textContent = formatTime(currentTime);
-
-            // Log to history after 10 seconds of playback
-            if (currentTime >= 10 && player.currentTrack && player.currentTrack.id !== historyLoggedTrackId) {
-                historyLoggedTrackId = player.currentTrack.id;
-                const historyEntry = await db.addToHistory(player.currentTrack);
-                syncManager.syncHistoryItem(historyEntry);
-
-                if (window.location.hash === '#recent') {
-                    ui.renderRecentPage();
+                // Scrobble
+                if (scrobbler.isAuthenticated()) {
+                    scrobbler.updateNowPlaying(player.currentTrack);
                 }
+
+                updateWaveform();
             }
-        }
-    });
 
-    audioPlayer.addEventListener('loadedmetadata', () => {
-        const totalDurationEl = document.getElementById('total-duration');
-        totalDurationEl.textContent = formatTime(audioPlayer.duration);
-        player.updateMediaSessionPositionState();
-    });
+            playPauseBtn.innerHTML = SVG_PAUSE;
+            player.updateMediaSessionPlaybackState();
+            player.updateMediaSessionPositionState();
+            updateTabTitle(player);
+        });
 
-    audioPlayer.addEventListener('error', async (e) => {
-        console.error('Audio playback error:', e);
-        playPauseBtn.innerHTML = SVG_PLAY;
+        element.addEventListener('playing', () => {
+            if (player.activeElement !== element) return;
+            player.updateMediaSessionPlaybackState();
+            player.updateMediaSessionPositionState();
+        });
 
-        const currentQuality = player.quality;
+        element.addEventListener('pause', () => {
+            if (player.activeElement !== element) return;
+            if (player.currentTrack) {
+                trackPauseTrack(player.currentTrack);
+            }
+            playPauseBtn.innerHTML = SVG_PLAY;
+            player.updateMediaSessionPlaybackState();
+            player.updateMediaSessionPositionState();
+        });
 
-        // Check if we can fallback to a lower quality
-        if (
-            player.currentTrack &&
-            currentQuality === 'HI_RES_LOSSLESS' &&
-            !player.currentTrack.isLocal &&
-            !player.currentTrack.isTracker &&
-            !player.isFallbackRetry
-        ) {
-            console.warn('Playback failed, attempting fallback to LOSSLESS quality...');
-            player.isFallbackRetry = true; // Set flag to prevent infinite loops
+        element.addEventListener('ended', () => {
+            if (player.activeElement !== element) return;
+            player.playNext();
+        });
 
-            try {
-                // Force getTrack to fetch new URL for LOSSLESS
-                const trackId = player.currentTrack.id;
+        element.addEventListener('timeupdate', async () => {
+            if (player.activeElement !== element) return;
 
-                // Fetch new stream URL
-                const newStreamUrl = await player.api.getStreamUrl(trackId, 'LOSSLESS');
+            const { currentTime, duration } = element;
+            if (duration) {
+                const progressFill = document.getElementById('progress-fill');
+                const currentTimeEl = document.getElementById('current-time');
+                progressFill.style.width = `${(currentTime / duration) * 100}%`;
+                currentTimeEl.textContent = formatTime(currentTime);
 
-                if (newStreamUrl) {
-                    // Reset player state for standard playback (non-DASH if possible)
-                    if (player.dashInitialized) {
-                        player.dashPlayer.reset();
-                        player.dashInitialized = false;
+                // Log to history after 10 seconds of playback
+                if (currentTime >= 10 && player.currentTrack && player.currentTrack.id !== historyLoggedTrackId) {
+                    historyLoggedTrackId = player.currentTrack.id;
+                    const historyEntry = await db.addToHistory(player.currentTrack);
+                    syncManager.syncHistoryItem(historyEntry);
+
+                    if (window.location.hash === '#recent') {
+                        ui.renderRecentPage();
                     }
-
-                    audioPlayer.src = newStreamUrl;
-                    audioPlayer.load();
-                    await audioPlayer.play();
-
-                    // Reset flag after successful start
-                    setTimeout(() => {
-                        player.isFallbackRetry = false;
-                    }, 5000);
-                    return; // Successfully handled
                 }
-            } catch (fallbackError) {
-                console.error('Fallback failed:', fallbackError);
             }
-        }
+        });
 
-        player.isFallbackRetry = false;
+        element.addEventListener('loadedmetadata', () => {
+            if (player.activeElement !== element) return;
+            const totalDurationEl = document.getElementById('total-duration');
+            totalDurationEl.textContent = formatTime(element.duration);
+            player.updateMediaSessionPositionState();
+        });
 
-        // Skip to next track on error to prevent queue stalling
-        if (player.currentTrack) {
-            console.warn('Skipping to next track due to playback error');
-            setTimeout(() => player.playNext(), 1000); // Small delay to avoid rapid skipping
-        }
-    });
+        element.addEventListener('error', (e) => {
+            if (player.activeElement !== element) return;
+
+            if (!element.src) return;
+
+            const error = element.error;
+            let errorMsg = 'Unknown error';
+            if (error) {
+                switch (error.code) {
+                    case 1:
+                        errorMsg = 'Playback aborted';
+                        break;
+                    case 2:
+                        errorMsg = 'Network error';
+                        break;
+                    case 3:
+                        errorMsg = 'Decoding error';
+                        break;
+                    case 4:
+                        errorMsg = 'Source not supported';
+                        break;
+                }
+                if (error.message) errorMsg += `: ${error.message}`;
+            }
+
+            console.error(`Media playback error (${element.id}):`, errorMsg, e);
+            playPauseBtn.innerHTML = SVG_PLAY;
+
+            const canFallback =
+                player.quality === 'HI_RES_LOSSLESS' &&
+                errorMsg.includes('Source not supported') &&
+                errorMsg.includes('0x80004005') &&
+                !player.isFallbackRetry;
+
+            if (canFallback) {
+                console.warn('Hi-Res failed due to DASH.js Error (FUCK DASH)');
+            }
+
+            if (player.currentTrack && error && error.code !== 1) {
+                if (player.isFallbackInProgress || canFallback) {
+                    return;
+                }
+                console.warn('Skipping to next track due to playback error');
+                setTimeout(() => player.playNext(), 1000);
+            }
+        });
+
+        element.addEventListener('volumechange', () => {
+            if (player.activeElement === element) {
+                updateVolumeUI();
+            }
+        });
+    };
+
+    setupMediaListeners(audioPlayer);
+    if (player.video) {
+        setupMediaListeners(player.video);
+    }
 
     playPauseBtn.addEventListener('click', () => player.handlePlayPause());
     nextBtn.addEventListener('click', () => {
@@ -236,6 +259,12 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
             mode === REPEAT_MODE.OFF ? 'Repeat' : mode === REPEAT_MODE.ALL ? 'Repeat Queue' : 'Repeat One';
     });
 
+    window.addEventListener('radio-state-changed', (e) => {
+        if (e.detail && e.detail.enabled) {
+            showNotification('Infinite Radio Enabled');
+        }
+    });
+
     // Sleep Timer for desktop
     if (sleepTimerBtnDesktop) {
         sleepTimerBtnDesktop.addEventListener('click', () => {
@@ -261,11 +290,6 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
             }
         });
     }
-
-    // Volume controls
-    const volumeBar = document.getElementById('volume-bar');
-    const volumeFill = document.getElementById('volume-fill');
-    const volumeBtn = document.getElementById('volume-btn');
 
     // Waveform Masking Logic
     const updateWaveform = async () => {
@@ -373,37 +397,27 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
         updateWaveform();
     });
 
-    const updateVolumeUI = () => {
-        const { muted } = audioPlayer;
-        const volume = player.userVolume;
-        volumeBtn.innerHTML = muted || volume === 0 ? SVG_MUTE : SVG_VOLUME;
-        const effectiveVolume = muted ? 0 : volume * 100;
-        volumeFill.style.setProperty('--volume-level', `${effectiveVolume}%`);
-        volumeFill.style.width = `${effectiveVolume}%`;
-    };
+    if (volumeBtn) {
+        volumeBtn.addEventListener('click', () => {
+            const activeEl = player.activeElement;
+            activeEl.muted = !activeEl.muted;
+            localStorage.setItem('muted', activeEl.muted);
 
-    volumeBtn.addEventListener('click', () => {
-        audioPlayer.muted = !audioPlayer.muted;
-        localStorage.setItem('muted', audioPlayer.muted);
-    });
+            const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+            if (inactiveEl) inactiveEl.muted = activeEl.muted;
 
-    audioPlayer.addEventListener('volumechange', updateVolumeUI);
-
-    // Initialize volume and mute from localStorage
-    const savedVolume = parseFloat(localStorage.getItem('volume') || '0.7');
-    const savedMuted = localStorage.getItem('muted') === 'true';
-
-    player.setVolume(savedVolume);
-    audioPlayer.muted = savedMuted;
-
-    volumeFill.style.width = `${savedVolume * 100}%`;
-    volumeBar.style.setProperty('--volume-level', `${savedVolume * 100}%`);
+            updateVolumeUI();
+        });
+    }
+    const isMuted = localStorage.getItem('muted') === 'true';
+    audioPlayer.muted = isMuted;
+    if (player.video) player.video.muted = isMuted;
     updateVolumeUI();
 
-    initializeSmoothSliders(audioPlayer, player);
+    initializeSmoothSliders(player);
 }
 
-function initializeSmoothSliders(audioPlayer, player) {
+function initializeSmoothSliders(player) {
     const progressBar = document.getElementById('progress-bar');
     const progressFill = document.getElementById('progress-fill');
     const currentTimeEl = document.getElementById('current-time');
@@ -423,19 +437,21 @@ function initializeSmoothSliders(audioPlayer, player) {
     };
 
     const updateSeekUI = (position) => {
-        if (!isNaN(audioPlayer.duration)) {
+        const activeEl = player.activeElement;
+        if (!isNaN(activeEl.duration)) {
             progressFill.style.width = `${position * 100}%`;
             if (currentTimeEl) {
-                currentTimeEl.textContent = formatTime(position * audioPlayer.duration);
+                currentTimeEl.textContent = formatTime(position * activeEl.duration);
             }
         }
     };
 
     // Progress bar with smooth dragging
     progressBar.addEventListener('mousedown', (e) => {
+        const activeEl = player.activeElement;
         isSeeking = true;
-        wasPlaying = !audioPlayer.paused;
-        if (wasPlaying) audioPlayer.pause();
+        wasPlaying = !activeEl.paused;
+        if (wasPlaying) activeEl.pause();
 
         seek(progressBar, e, (position) => {
             lastSeekPosition = position;
@@ -445,10 +461,11 @@ function initializeSmoothSliders(audioPlayer, player) {
 
     // Touch events for mobile
     progressBar.addEventListener('touchstart', (e) => {
+        const activeEl = player.activeElement;
         e.preventDefault();
         isSeeking = true;
-        wasPlaying = !audioPlayer.paused;
-        if (wasPlaying) audioPlayer.pause();
+        wasPlaying = !activeEl.paused;
+        if (wasPlaying) activeEl.pause();
 
         const touch = e.touches[0];
         const rect = progressBar.getBoundingClientRect();
@@ -468,9 +485,13 @@ function initializeSmoothSliders(audioPlayer, player) {
 
         if (isAdjustingVolume) {
             seek(volumeBar, e, (position) => {
-                if (audioPlayer.muted) {
-                    audioPlayer.muted = false;
+                const activeEl = player.activeElement;
+                if (activeEl.muted) {
+                    activeEl.muted = false;
                     localStorage.setItem('muted', false);
+
+                    const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+                    if (inactiveEl) inactiveEl.muted = false;
                 }
                 player.setVolume(position);
                 volumeFill.style.width = `${position * 100}%`;
@@ -493,9 +514,13 @@ function initializeSmoothSliders(audioPlayer, player) {
             const touch = e.touches[0];
             const rect = volumeBar.getBoundingClientRect();
             const position = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
-            if (audioPlayer.muted) {
-                audioPlayer.muted = false;
+            const activeEl = player.activeElement;
+            if (activeEl.muted) {
+                activeEl.muted = false;
                 localStorage.setItem('muted', false);
+
+                const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+                if (inactiveEl) inactiveEl.muted = false;
             }
             player.setVolume(position);
             volumeFill.style.width = `${position * 100}%`;
@@ -505,11 +530,12 @@ function initializeSmoothSliders(audioPlayer, player) {
 
     document.addEventListener('mouseup', () => {
         if (isSeeking) {
+            const activeEl = player.activeElement;
             // Commit the seek
-            if (!isNaN(audioPlayer.duration)) {
-                audioPlayer.currentTime = lastSeekPosition * audioPlayer.duration;
+            if (!isNaN(activeEl.duration)) {
+                activeEl.currentTime = lastSeekPosition * activeEl.duration;
                 player.updateMediaSessionPositionState();
-                if (wasPlaying) audioPlayer.play();
+                if (wasPlaying) activeEl.play();
             }
             isSeeking = false;
         }
@@ -521,10 +547,11 @@ function initializeSmoothSliders(audioPlayer, player) {
 
     document.addEventListener('touchend', () => {
         if (isSeeking) {
-            if (!isNaN(audioPlayer.duration)) {
-                audioPlayer.currentTime = lastSeekPosition * audioPlayer.duration;
+            const activeEl = player.activeElement;
+            if (!isNaN(activeEl.duration)) {
+                activeEl.currentTime = lastSeekPosition * activeEl.duration;
                 player.updateMediaSessionPositionState();
-                if (wasPlaying) audioPlayer.play();
+                if (wasPlaying) activeEl.play();
             }
             isSeeking = false;
         }
@@ -536,10 +563,11 @@ function initializeSmoothSliders(audioPlayer, player) {
 
     progressBar.addEventListener('click', (e) => {
         if (!isSeeking) {
+            const activeEl = player.activeElement;
             // Only handle click if not result of a drag release
             seek(progressBar, e, (position) => {
-                if (!isNaN(audioPlayer.duration) && audioPlayer.duration > 0 && audioPlayer.duration !== Infinity) {
-                    audioPlayer.currentTime = position * audioPlayer.duration;
+                if (!isNaN(activeEl.duration) && activeEl.duration > 0 && activeEl.duration !== Infinity) {
+                    activeEl.currentTime = position * activeEl.duration;
                     player.updateMediaSessionPositionState();
                 } else if (player.currentTrack && player.currentTrack.duration) {
                     const targetTime = position * player.currentTrack.duration;
@@ -554,9 +582,13 @@ function initializeSmoothSliders(audioPlayer, player) {
     volumeBar.addEventListener('mousedown', (e) => {
         isAdjustingVolume = true;
         seek(volumeBar, e, (position) => {
-            if (audioPlayer.muted) {
-                audioPlayer.muted = false;
+            const activeEl = player.activeElement;
+            if (activeEl.muted) {
+                activeEl.muted = false;
                 localStorage.setItem('muted', false);
+
+                const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+                if (inactiveEl) inactiveEl.muted = false;
             }
             player.setVolume(position);
             volumeFill.style.width = `${position * 100}%`;
@@ -570,9 +602,13 @@ function initializeSmoothSliders(audioPlayer, player) {
         const touch = e.touches[0];
         const rect = volumeBar.getBoundingClientRect();
         const position = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
-        if (audioPlayer.muted) {
-            audioPlayer.muted = false;
+        const activeEl = player.activeElement;
+        if (activeEl.muted) {
+            activeEl.muted = false;
             localStorage.setItem('muted', false);
+
+            const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+            if (inactiveEl) inactiveEl.muted = false;
         }
         player.setVolume(position);
         volumeFill.style.width = `${position * 100}%`;
@@ -582,9 +618,13 @@ function initializeSmoothSliders(audioPlayer, player) {
     volumeBar.addEventListener('click', (e) => {
         if (!isAdjustingVolume) {
             seek(volumeBar, e, (position) => {
-                if (audioPlayer.muted) {
-                    audioPlayer.muted = false;
+                const activeEl = player.activeElement;
+                if (activeEl.muted) {
+                    activeEl.muted = false;
                     localStorage.setItem('muted', false);
+
+                    const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+                    if (inactiveEl) inactiveEl.muted = false;
                 }
                 player.setVolume(position);
                 volumeFill.style.width = `${position * 100}%`;
@@ -598,10 +638,14 @@ function initializeSmoothSliders(audioPlayer, player) {
             e.preventDefault();
             const delta = e.deltaY > 0 ? -0.05 : 0.05;
             const newVolume = Math.max(0, Math.min(1, player.userVolume + delta));
+            const activeEl = player.activeElement;
 
-            if (delta > 0 && audioPlayer.muted) {
-                audioPlayer.muted = false;
+            if (delta > 0 && activeEl.muted) {
+                activeEl.muted = false;
                 localStorage.setItem('muted', false);
+
+                const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+                if (inactiveEl) inactiveEl.muted = false;
             }
 
             player.setVolume(newVolume);
@@ -617,10 +661,14 @@ function initializeSmoothSliders(audioPlayer, player) {
             e.preventDefault();
             const delta = e.deltaY > 0 ? -0.05 : 0.05;
             const newVolume = Math.max(0, Math.min(1, player.userVolume + delta));
+            const activeEl = player.activeElement;
 
-            if (delta > 0 && audioPlayer.muted) {
-                audioPlayer.muted = false;
+            if (delta > 0 && activeEl.muted) {
+                activeEl.muted = false;
                 localStorage.setItem('muted', false);
+
+                const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+                if (inactiveEl) inactiveEl.muted = false;
             }
 
             player.setVolume(newVolume);
@@ -767,9 +815,44 @@ export async function handleTrackAction(
     if (!item) return;
 
     // Actions not allowed for unavailable tracks
-    const forbiddenForUnavailable = ['add-to-queue', 'play-next', 'track-mix', 'download'];
+    const forbiddenForUnavailable = [
+        'add-to-queue',
+        'play-next',
+        'track-mix',
+        'download',
+        'start-radio',
+        'start-infinite-radio',
+    ];
     if (item.isUnavailable && forbiddenForUnavailable.includes(action)) {
         showNotification('This track is unavailable.');
+        return;
+    }
+
+    if (action === 'start-radio' || action === 'start-infinite-radio') {
+        let tracks = [];
+        if (type === 'track') {
+            tracks = [item];
+        } else if (item.tracks) {
+            tracks = item.tracks;
+        } else if (type === 'album') {
+            const data = await api.getAlbum(item.id);
+            tracks = data.tracks;
+        } else if (type === 'playlist') {
+            const data = await api.getPlaylist(item.uuid);
+            tracks = data.tracks;
+        } else if (type === 'user-playlist') {
+            const playlist = await db.getPlaylist(item.id);
+            tracks = playlist ? playlist.tracks : [];
+        }
+
+        if (tracks.length > 0) {
+            player.setQueue(tracks, 0);
+            player.playAtIndex(0);
+            player.enableRadio(tracks);
+            showNotification(`Started radio based on ${type}: ${item.title || item.name}`);
+        } else {
+            showNotification('Could not start infinite radio: No tracks found');
+        }
         return;
     }
 
@@ -952,11 +1035,13 @@ export async function handleTrackAction(
         // Track like/unlike
         if (added) {
             if (type === 'track') trackLikeTrack(item);
+            else if (type === 'video') trackEvent('Like Video', { title: item.title });
             else if (type === 'album') trackLikeAlbum(item);
             else if (type === 'artist') trackLikeArtist(item);
             else if (type === 'playlist' || type === 'user-playlist') trackLikePlaylist(item);
         } else {
             if (type === 'track') trackUnlikeTrack(item);
+            else if (type === 'video') trackEvent('Unlike Video', { title: item.title });
             else if (type === 'album') trackUnlikeAlbum(item);
             else if (type === 'artist') trackUnlikeArtist(item);
             else if (type === 'playlist' || type === 'user-playlist') trackUnlikePlaylist(item);
@@ -976,7 +1061,9 @@ export async function handleTrackAction(
         const selector =
             type === 'track'
                 ? `[data-track-id="${id}"] .like-btn`
-                : `.card[data-${type}-id="${id}"] .like-btn, .card[data-playlist-id="${id}"] .like-btn`;
+                : type === 'video'
+                  ? `.card[data-video-id="${id}"] .like-btn`
+                  : `.card[data-${type}-id="${id}"] .like-btn, .card[data-playlist-id="${id}"] .like-btn`;
 
         // Also check header buttons
         const headerBtn = document.getElementById(`like-${type}-btn`);
@@ -985,12 +1072,12 @@ export async function handleTrackAction(
         if (headerBtn) elementsToUpdate.push(headerBtn);
 
         const nowPlayingLikeBtn = document.getElementById('now-playing-like-btn');
-        if (nowPlayingLikeBtn && type === 'track' && player?.currentTrack?.id === item.id) {
+        if (nowPlayingLikeBtn && (type === 'track' || type === 'video') && player?.currentTrack?.id === item.id) {
             elementsToUpdate.push(nowPlayingLikeBtn);
         }
 
         const fsLikeBtn = document.getElementById('fs-like-btn');
-        if (fsLikeBtn && type === 'track' && player?.currentTrack?.id === item.id) {
+        if (fsLikeBtn && (type === 'track' || type === 'video') && player?.currentTrack?.id === item.id) {
             elementsToUpdate.push(fsLikeBtn);
         }
 
@@ -1011,7 +1098,9 @@ export async function handleTrackAction(
             const itemSelector =
                 type === 'track'
                     ? `.track-item[data-track-id="${id}"]`
-                    : `.card[data-${type}-id="${id}"], .card[data-playlist-id="${id}"]`;
+                    : type === 'video'
+                      ? `.video-card[data-video-id="${id}"]`
+                      : `.card[data-${type}-id="${id}"], .card[data-playlist-id="${id}"]`;
 
             const itemEl = document.querySelector(itemSelector);
 
@@ -1020,29 +1109,63 @@ export async function handleTrackAction(
                 const container = itemEl.parentElement;
                 itemEl.remove();
                 if (container && container.children.length === 0) {
-                    const msg = type === 'track' ? 'No liked tracks yet.' : `No liked ${type}s yet.`;
+                    const msg =
+                        type === 'track'
+                            ? 'No liked tracks yet.'
+                            : type === 'video'
+                              ? 'No liked videos yet.'
+                              : `No liked ${type}s yet.`;
                     container.innerHTML = `<div class="placeholder-text">${msg}</div>`;
                 }
-            } else if (added && !itemEl && ui && type === 'track') {
-                // Add item (specifically for tracks currently)
-                const tracksContainer = document.getElementById('library-tracks-container');
-                if (tracksContainer) {
-                    // Remove placeholder if it exists
-                    const placeholder = tracksContainer.querySelector('.placeholder-text');
-                    if (placeholder) placeholder.remove();
+            } else if (added && !itemEl && ui && (type === 'track' || type === 'video')) {
+                // Add item
+                if (type === 'track') {
+                    const tracksContainer = document.getElementById('library-tracks-container');
+                    if (tracksContainer) {
+                        const placeholder = tracksContainer.querySelector('.placeholder-text');
+                        if (placeholder) placeholder.remove();
 
-                    // Create track element
-                    const index = tracksContainer.children.length;
-                    const trackHTML = ui.createTrackItemHTML(item, index, true, false);
+                        const index = tracksContainer.children.length;
+                        const trackHTML = ui.createTrackItemHTML(item, index, true, false);
 
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = trackHTML;
-                    const newEl = tempDiv.firstElementChild;
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = trackHTML;
+                        const newEl = tempDiv.firstElementChild;
 
-                    if (newEl) {
-                        tracksContainer.appendChild(newEl);
-                        trackDataStore.set(newEl, item);
-                        ui.updateLikeState(newEl, 'track', item.id);
+                        if (newEl) {
+                            tracksContainer.appendChild(newEl);
+                            trackDataStore.set(newEl, item);
+                            ui.updateLikeState(newEl, 'track', item.id);
+                        }
+                    }
+                } else if (type === 'video') {
+                    const videosTabContent = document.getElementById('library-tab-videos');
+                    if (videosTabContent) {
+                        const grid = videosTabContent.querySelector('.card-grid');
+                        if (grid) {
+                            const placeholder = grid.querySelector('.placeholder-text');
+                            if (placeholder) grid.innerHTML = '';
+
+                            const videoHTML = ui.createVideoCardHTML(item);
+                            const tempDiv = document.createElement('div');
+                            tempDiv.innerHTML = videoHTML;
+                            const newEl = tempDiv.firstElementChild;
+
+                            if (newEl) {
+                                grid.appendChild(newEl);
+                                trackDataStore.set(newEl, item);
+                                ui.updateLikeState(newEl, 'video', item.id);
+                                newEl.addEventListener('click', (e) => {
+                                    if (
+                                        e.target.closest('.card-play-btn') ||
+                                        e.target.closest('.card-image-container')
+                                    ) {
+                                        e.stopPropagation();
+                                        player.playVideo(item);
+                                    }
+                                });
+                            }
+                        }
                     }
                 }
             }
@@ -1058,10 +1181,14 @@ export async function handleTrackAction(
             // Removed empty check to allow creating new playlist
 
             const trackId = item.id;
+            const trackType = item.type || 'track';
             const playlistsWithTrack = new Set();
 
             for (const playlist of playlists) {
-                if (playlist.tracks && playlist.tracks.some((track) => track.id == trackId)) {
+                if (
+                    playlist.tracks &&
+                    playlist.tracks.some((t) => t.id == trackId && (t.type || 'track') === trackType)
+                ) {
                     playlistsWithTrack.add(playlist.id);
                 }
             }
@@ -1435,9 +1562,10 @@ async function updateContextMenuLikeState(contextMenu, contextTrack) {
     const type = contextMenu._contextType || 'track';
 
     const likeItem = contextMenu.querySelector('li[data-action="toggle-like"]');
+    let isLiked = false;
     if (likeItem) {
-        const isLiked = await db.isFavorite(type, contextTrack.id);
-        likeItem.textContent = isLiked ? 'Unlike' : 'Like';
+        const key = type === 'playlist' ? contextTrack.uuid : contextTrack.id;
+        isLiked = await db.isFavorite(type, key);
     }
 
     const pinItem = contextMenu.querySelector('li[data-action="toggle-pin"]');
@@ -1500,8 +1628,10 @@ async function updateContextMenuLikeState(contextMenu, contextTrack) {
 
         // Update labels for Like/Save
         if (item.dataset.action === 'toggle-like') {
-            const labelKey = `label${type.charAt(0).toUpperCase() + type.slice(1).replace('User-playlist', 'Playlist')}`;
-            const label = item.dataset[labelKey] || item.dataset.labelTrack || 'Like';
+            const labelPrefix = isLiked ? 'labelUnlike' : 'label';
+            const labelKey = `${labelPrefix}${type.charAt(0).toUpperCase() + type.slice(1).replace('User-playlist', 'Playlist')}`;
+            const fallbackKey = isLiked ? 'labelUnlikeTrack' : 'labelTrack';
+            const label = item.dataset[labelKey] || item.dataset[fallbackKey] || (isLiked ? 'Unlike' : 'Like');
             item.textContent = label;
         }
     });
@@ -1642,7 +1772,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                         contextMenu._originalHTML = null;
                     }
                     contextMenu._contextTrack = contextTrack;
-                    contextMenu._contextType = 'track';
+                    contextMenu._contextType = menuBtn.dataset.type || trackItem.dataset.type || 'track';
                     await updateContextMenuLikeState(contextMenu, contextTrack);
                     const rect = menuBtn.getBoundingClientRect();
                     positionMenu(contextMenu, rect.left, rect.bottom + 5, rect);
@@ -1667,15 +1797,19 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             if (isSearch) {
                 const clickedTrack = trackDataStore.get(trackItem);
                 if (clickedTrack) {
-                    player.setQueue([clickedTrack], 0);
-                    document.getElementById('shuffle-btn').classList.remove('active');
-                    player.playTrackFromQueue();
+                    if (trackItem.dataset.type === 'video') {
+                        player.playVideo(clickedTrack);
+                    } else {
+                        player.setQueue([clickedTrack], 0);
+                        document.getElementById('shuffle-btn').classList.remove('active');
+                        player.playTrackFromQueue();
 
-                    api.getTrackRecommendations(clickedTrack.id).then((recs) => {
-                        if (recs && recs.length > 0) {
-                            player.addToQueue(recs);
-                        }
-                    });
+                        api.getTrackRecommendations(clickedTrack.id).then((recs) => {
+                            if (recs && recs.length > 0) {
+                                player.addToQueue(recs);
+                            }
+                        });
+                    }
                 }
             } else {
                 const parentList = trackItem.closest('.track-list');
@@ -1760,7 +1894,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                 });
 
                 contextMenu._contextTrack = contextTrack;
-                contextMenu._contextType = 'track';
+                contextMenu._contextType = contextTrack.type || 'track';
                 await updateContextMenuLikeState(contextMenu, contextTrack);
                 positionMenu(contextMenu, e.clientX, e.clientY);
             }
@@ -1916,7 +2050,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                     player,
                     api,
                     lyricsManager,
-                    'track',
+                    player.currentTrack.type || 'track',
                     ui,
                     scrobbler
                 );
@@ -1954,7 +2088,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                     player,
                     api,
                     lyricsManager,
-                    'track',
+                    player.currentTrack.type || 'track',
                     ui,
                     scrobbler
                 );
@@ -1975,7 +2109,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                     player,
                     api,
                     lyricsManager,
-                    'track',
+                    player.currentTrack.type || 'track',
                     ui,
                     scrobbler
                 );
