@@ -64,7 +64,7 @@ export async function applyAudioPostProcessing(
 
             if (await containerFmt?.needsTranscode(blob)) {
                 blob = await transcodeWithContainerFormat(blob, containerFmt, onProgress, signal);
-            } else if (extension == 'flac') {
+            } else if (extension === 'flac') {
                 blob = await rebuildFlacWithoutMetadata(blob);
             } else {
                 blob = await ffmpegNewContainer(
@@ -76,7 +76,7 @@ export async function applyAudioPostProcessing(
                 );
             }
         } catch (error) {
-            if ((error as Error)?.name === 'AbortError') {
+            if ((error as Error)?.name === 'AbortError' || signal?.aborted) {
                 throw error;
             }
 

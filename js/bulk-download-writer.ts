@@ -98,10 +98,10 @@ export class ZipNeutralinoWriter implements IBulkDownloadWriter {
         }
 
         const { downloadZip } = await loadClientZip();
-        await bridge.filesystem.writeBinaryFile(savePath, new ArrayBuffer(0));
-
         const response = downloadZip(files);
         if (!response.body) throw new Error('ZIP response body is null');
+
+        await bridge.filesystem.writeBinaryFile(savePath, new ArrayBuffer(0));
 
         const reader = response.body.getReader();
         let receivedLength = 0;
@@ -138,10 +138,17 @@ export class FolderPickerWriter implements IBulkDownloadWriter {
     static async create(): Promise<FolderPickerWriter> {
         // showDirectoryPicker is part of the File System Access API (not yet in all TS DOM libs)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const dirHandle: FileSystemDirectoryHandle = await (window as any).showDirectoryPicker({
-            mode: 'readwrite',
-        });
-        return new FolderPickerWriter(dirHandle);
+        try {
+            const dirHandle: FileSystemDirectoryHandle = await (window as any).showDirectoryPicker({
+                mode: 'readwrite',
+            });
+            return new FolderPickerWriter(dirHandle);
+        } catch (error) {
+            if (error instanceof DOMException && error.name === 'AbortError') {
+                throw error;
+            }
+            throw new DOMException('User cancelled directory picker', 'AbortError');
+        }
     }
 
     async write(files: AsyncIterable<WriterEntry>): Promise<void> {
@@ -158,23 +165,25 @@ export class FolderPickerWriter implements IBulkDownloadWriter {
             const fileHandle = await currentDir.getFileHandle(filename, { create: true });
             const writable = await fileHandle.createWritable();
 
-            const { input } = file;
-            if (input instanceof Blob) {
-                await writable.write(input);
-            } else if (typeof input === 'string') {
-                await writable.write(new Blob([input], { type: 'text/plain' }));
-            } else {
-                // ArrayBuffer or Uint8Array – wrap in a Blob to guarantee strict typing.
-                // Use byteOffset/byteLength so only the view's range is included, not the
-                // whole backing ArrayBuffer (which may be larger due to pooling).
-                const buf =
-                    input instanceof Uint8Array
-                        ? input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength)
-                        : input;
-                await writable.write(new Blob([buf as ArrayBuffer]));
-            }
+            try {
+                const { input } = file;
+                if (input instanceof Blob) {
+                    await writable.write(input);
+                } else if (typeof input === 'string') {
+                    await writable.write(new Blob([input], { type: 'text/plain' }));
+                } else {
+                    const buf =
+                        input instanceof Uint8Array
+                            ? input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength)
+                            : input;
+                    await writable.write(new Blob([buf as ArrayBuffer]));
+                }
 
-            await writable.close();
+                await writable.close();
+            } catch (error) {
+                await writable.abort();
+                throw error;
+            }
         }
     }
 }
