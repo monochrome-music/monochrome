@@ -1429,32 +1429,39 @@ export class LosslessAPI {
                 const coverBlobToEmbed = await prefetchPromises.coverFetch;
                 const extraFiles = [];
                 const ffmpegMetadataArgs = [];
-                
+
                 if (coverBlobToEmbed) {
                     const coverBuffer = await coverBlobToEmbed.arrayBuffer();
                     const coverExt = getMimeType(new Uint8Array(coverBuffer)) === 'image/png' ? 'png' : 'jpg';
                     const coverName = `cover.${coverExt}`;
                     extraFiles.push({
                         name: coverName,
-                        data: coverBuffer
+                        data: coverBuffer,
                     });
                     ffmpegMetadataArgs.push('-i', coverName);
                 }
 
                 if (track) {
                     ffmpegMetadataArgs.push(
-                        '-metadata', `title=${getTrackTitle(track)}`,
-                        '-metadata', `artist=${getFullArtistString(track)}`,
-                        '-metadata', `album=${track.album?.title || ''}`,
-                        '-metadata', `album_artist=${track.album?.artist?.name || track.artist?.name || ''}`
+                        '-metadata',
+                        `title=${getTrackTitle(track)}`,
+                        '-metadata',
+                        `artist=${getFullArtistString(track)}`,
+                        '-metadata',
+                        `album=${track.album?.title || ''}`,
+                        '-metadata',
+                        `album_artist=${track.album?.artist?.name || track.artist?.name || ''}`
                     );
-                    
+
                     const trackNum = track.trackNumber;
                     if (trackNum) {
                         const totalTracks = track.album?.numberOfTracks;
-                        ffmpegMetadataArgs.push('-metadata', `track=${trackNum}${totalTracks ? `/${totalTracks}` : ''}`);
+                        ffmpegMetadataArgs.push(
+                            '-metadata',
+                            `track=${trackNum}${totalTracks ? `/${totalTracks}` : ''}`
+                        );
                     }
-                    
+
                     const discNum = track.volumeNumber || track.discNumber;
                     if (discNum) {
                         ffmpegMetadataArgs.push('-metadata', `disc=${discNum}`);
@@ -1473,7 +1480,16 @@ export class LosslessAPI {
                         try {
                             const args = [...ffmpegMetadataArgs, ...format.ffmpegArgs];
                             if (coverBlobToEmbed) {
-                                args.push('-map', '0:a', '-map', '1:v', '-c:v', 'copy', '-disposition:v:0', 'attached_pic');
+                                args.push(
+                                    '-map',
+                                    '0:a',
+                                    '-map',
+                                    '1:v',
+                                    '-c:v',
+                                    'copy',
+                                    '-disposition:v:0',
+                                    'attached_pic'
+                                );
                             }
 
                             blob = await ffmpeg(
@@ -1501,12 +1517,21 @@ export class LosslessAPI {
                     try {
                         const containerType = losslessContainerSettings.getContainer();
                         const containerFmt = getContainerFormat(containerType);
-                        
+
                         if (containerFmt && containerType !== 'nochange') {
                             if (await containerFmt.needsTranscode(blob)) {
                                 const args = [...ffmpegMetadataArgs, ...containerFmt.ffmpegArgs];
                                 if (coverBlobToEmbed) {
-                                    args.push('-map', '0:a', '-map', '1:v', '-c:v', 'copy', '-disposition:v:0', 'attached_pic');
+                                    args.push(
+                                        '-map',
+                                        '0:a',
+                                        '-map',
+                                        '1:v',
+                                        '-c:v',
+                                        'copy',
+                                        '-disposition:v:0',
+                                        'attached_pic'
+                                    );
                                 }
 
                                 blob = await ffmpeg(
@@ -1526,10 +1551,17 @@ export class LosslessAPI {
                             if (actualExtension === 'm4a' || actualExtension === 'mp4') {
                                 try {
                                     const ffmpegArgs = [...ffmpegMetadataArgs];
-                                    
+
                                     ffmpegArgs.push('-map', '0:a');
                                     if (coverBlobToEmbed) {
-                                        ffmpegArgs.push('-map', '1:v', '-c:v', 'copy', '-disposition:v:0', 'attached_pic');
+                                        ffmpegArgs.push(
+                                            '-map',
+                                            '1:v',
+                                            '-c:v',
+                                            'copy',
+                                            '-disposition:v:0',
+                                            'attached_pic'
+                                        );
                                     }
                                     ffmpegArgs.push('-c:a', 'copy', '-movflags', '+faststart', '-strict', '-2');
 
