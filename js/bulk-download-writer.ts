@@ -25,7 +25,7 @@ interface NeutralinoBridge {
 
 async function loadClientZip() {
     try {
-        return await import('https://cdn.jsdelivr.net/npm/client-zip@2.4.5/+esm');
+        return await import('client-zip');
     } catch (error) {
         console.error('Failed to load client-zip:', error);
         throw new Error('Failed to load ZIP library');
