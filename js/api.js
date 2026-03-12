@@ -1504,15 +1504,18 @@ export class LosslessAPI {
 
             // Detect actual format and fix filename extension if needed
             const detectedExtension = await getExtensionFromBlob(blob);
+            const normalizedExtension = isVideo ? 'mp4' : detectedExtension;
             let finalFilename = filename;
 
             // Replace extension if it doesn't match detected format
             const currentExtension = filename.split('.').pop()?.toLowerCase();
-            if (currentExtension && currentExtension !== detectedExtension) {
-                finalFilename = filename.replace(/\.[^.]+$/, `.${detectedExtension}`);
+            if (currentExtension && currentExtension !== normalizedExtension) {
+                finalFilename = filename.replace(/\.[^.]+$/, `.${normalizedExtension}`);
             }
 
-            const savedToNativeMusic = await this.saveTrackToNativeMusicDirectory(blob, finalFilename, track);
+            const savedToNativeMusic = await this.saveTrackToNativeMusicDirectory(blob, finalFilename, track, {
+                forceVideo: isVideo,
+            });
             if (!savedToNativeMusic) {
                 this.triggerDownload(blob, finalFilename);
             }
@@ -1532,7 +1535,7 @@ export class LosslessAPI {
         }
     }
 
-    async saveTrackToNativeMusicDirectory(blob, filename, track = null) {
+    async saveTrackToNativeMusicDirectory(blob, filename, track = null, options = {}) {
         if (!isCapacitorMode()) {
             return false;
         }
@@ -1545,12 +1548,27 @@ export class LosslessAPI {
                 return false;
             }
 
-            await bridge.downloads.saveAudioToMusic({
-                blob,
-                fileName: filename,
-                albumName: track?.album?.title || null,
-                relativePath: 'Music/Monochrome',
-            });
+            const lowerFilename = String(filename || '').toLowerCase();
+            const isVideoTrack =
+                options?.forceVideo === true ||
+                track?.type === 'video' ||
+                String(blob?.type || '').toLowerCase().startsWith('video/') ||
+                /\.(mp4|m4v|mov|webm|mkv|ts)$/.test(lowerFilename);
+
+            if (isVideoTrack && bridge?.downloads?.saveVideoToMovies) {
+                await bridge.downloads.saveVideoToMovies({
+                    blob,
+                    fileName: filename,
+                    relativePath: 'Movies/Monochrome',
+                });
+            } else {
+                await bridge.downloads.saveAudioToMusic({
+                    blob,
+                    fileName: filename,
+                    albumName: track?.album?.title || null,
+                    relativePath: 'Music/Monochrome',
+                });
+            }
 
             return true;
         } catch (error) {

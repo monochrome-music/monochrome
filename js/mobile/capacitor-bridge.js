@@ -3,7 +3,7 @@ import { App } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { Dialog } from '@capacitor/dialog';
 import { Directory, Filesystem } from '@capacitor/filesystem';
-import { MediaSession as CapacitorMediaSession } from '@capgo/capacitor-media-session';
+import { MediaSession as CapacitorMediaSession } from '@jofr/capacitor-media-session';
 import { CapacitorMediaStore } from '@odion-cloud/capacitor-mediastore';
 
 const hasWindow = typeof window !== 'undefined';
@@ -73,23 +73,82 @@ function sanitizeRelativePath(relativePath) {
 }
 
 async function blobToBase64(blob) {
-    const arrayBuffer = await blob.arrayBuffer();
-    return arrayBufferToBase64(arrayBuffer);
+    return await new Promise((resolve, reject) => {
+        try {
+            const reader = new FileReader();
+            reader.onerror = () => reject(reader.error || new Error('Failed to read blob as base64'));
+            reader.onloadend = () => {
+                const result = String(reader.result || '');
+                const commaIndex = result.indexOf(',');
+                resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result);
+            };
+            reader.readAsDataURL(blob);
+        } catch (error) {
+            reject(error);
+        }
+    });
 }
 
-let audioPermissionGranted = false;
+const mediaPermissionGranted = {
+    audio: false,
+    video: false,
+};
 
-async function ensureAudioMediaStorePermission() {
-    if (audioPermissionGranted) return;
+async function ensureMediaStorePermission(type = 'audio') {
+    if (mediaPermissionGranted[type]) return;
 
-    const status = await CapacitorMediaStore.requestPermissions({ types: ['audio'] });
-    const permissionState = status?.readMediaAudio || status?.readExternalStorage || status?.writeExternalStorage;
+    const status = await CapacitorMediaStore.requestPermissions({ types: [type] });
+    const permissionState =
+        (type === 'video' ? status?.readMediaVideo : status?.readMediaAudio) ||
+        status?.readExternalStorage ||
+        status?.writeExternalStorage;
 
     if (permissionState && permissionState !== 'granted') {
-        throw new Error('MediaStore audio permission was not granted');
+        throw new Error(`MediaStore ${type} permission was not granted`);
     }
 
-    audioPermissionGranted = true;
+    mediaPermissionGranted[type] = true;
+}
+
+function pickMimeType(blob, fallback) {
+    const raw = String(blob?.type || '')
+        .split(';')[0]
+        .trim()
+        .toLowerCase();
+    if (!raw || raw === 'application/octet-stream' || raw === 'audio/*' || raw === 'video/*') {
+        return fallback;
+    }
+    return raw;
+}
+
+async function saveToMediaStore({
+    blob,
+    fileName,
+    mediaType,
+    albumName = null,
+    relativePath,
+    fallbackMimeType,
+} = {}) {
+    if (!blob || !fileName) {
+        throw new Error('Missing blob or fileName for MediaStore save');
+    }
+
+    await ensureMediaStorePermission(mediaType);
+
+    const result = await CapacitorMediaStore.saveMedia({
+        data: await blobToBase64(blob),
+        fileName: String(fileName),
+        mediaType,
+        mimeType: pickMimeType(blob, fallbackMimeType),
+        albumName: mediaType === 'audio' ? albumName || undefined : undefined,
+        relativePath: sanitizeRelativePath(relativePath),
+    });
+
+    if (!result?.success) {
+        throw new Error(result?.error || 'Unknown MediaStore save error');
+    }
+
+    return result;
 }
 
 export const init = async () => {
@@ -229,8 +288,11 @@ export const filesystem = {
 };
 
 export const media = {
-    setMetadata: async (options) => {
-        await CapacitorMediaSession.setMetadata(options);
+    setMetadata: async (options = {}) => {
+        await CapacitorMediaSession.setMetadata({
+            ...options,
+            artwork: Array.isArray(options.artwork) ? options.artwork : [],
+        });
     },
     setPlaybackState: async (options) => {
         await CapacitorMediaSession.setPlaybackState(options);
@@ -238,8 +300,8 @@ export const media = {
     setPositionState: async (options) => {
         await CapacitorMediaSession.setPositionState(options);
     },
-    setActionHandler: async ({ action }, handler) => {
-        await CapacitorMediaSession.setActionHandler(action, handler);
+    setActionHandler: async (options, handler) => {
+        await CapacitorMediaSession.setActionHandler(options, handler);
     },
 };
 
@@ -249,26 +311,33 @@ export const downloads = {
             return { success: false, skipped: true, error: 'Not running on Android native platform' };
         }
 
-        if (!blob || !fileName) {
-            throw new Error('Missing blob or fileName for MediaStore save');
-        }
-
         try {
-            await ensureAudioMediaStorePermission();
-
-            const result = await CapacitorMediaStore.saveMedia({
-                data: await blobToBase64(blob),
-                fileName: String(fileName),
+            return await saveToMediaStore({
+                blob,
+                fileName,
                 mediaType: 'audio',
                 albumName: albumName || undefined,
                 relativePath: sanitizeRelativePath(relativePath),
+                fallbackMimeType: 'audio/mpeg',
             });
+        } catch (error) {
+            throw new Error(`MediaStore save failed: ${error?.message || String(error)}`);
+        }
+    },
 
-            if (!result?.success) {
-                throw new Error(result?.error || 'Unknown MediaStore save error');
-            }
+    saveVideoToMovies: async ({ blob, fileName, relativePath = 'Movies/Monochrome' } = {}) => {
+        if (!isCapacitorRuntime || Capacitor.getPlatform() !== 'android') {
+            return { success: false, skipped: true, error: 'Not running on Android native platform' };
+        }
 
-            return result;
+        try {
+            return await saveToMediaStore({
+                blob,
+                fileName,
+                mediaType: 'video',
+                relativePath: sanitizeRelativePath(relativePath),
+                fallbackMimeType: 'video/mp4',
+            });
         } catch (error) {
             throw new Error(`MediaStore save failed: ${error?.message || String(error)}`);
         }

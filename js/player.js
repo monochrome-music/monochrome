@@ -1463,27 +1463,45 @@ export class Player {
         });
     }
 
+    buildMediaArtwork(track) {
+        const artwork = [];
+
+        if (track?.type === 'video' && track.imageId && typeof this.api?.getVideoCoverUrl === 'function') {
+            const videoThumbUrl = this.api.getVideoCoverUrl(track.imageId, '1280');
+            if (videoThumbUrl) {
+                artwork.push({
+                    src: videoThumbUrl,
+                    sizes: '1280x720',
+                    type: 'image/jpeg',
+                });
+            }
+        }
+
+        const coverId = track?.album?.cover || track?.cover || track?.image;
+        if (coverId) {
+            artwork.push({
+                src: this.api.getCoverUrl(coverId, '1280'),
+                sizes: '1280x1280',
+                type: 'image/jpeg',
+            });
+        }
+
+        return artwork;
+    }
+
     updateMediaSession(track) {
         if ('mediaSession' in navigator) {
             // Force a refresh for picky Bluetooth systems by clearing metadata first
             navigator.mediaSession.metadata = null;
 
-            const coverId = track.album?.cover;
             const trackTitle = getTrackTitle(track);
+            const artwork = this.buildMediaArtwork(track);
 
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: trackTitle || 'Unknown Title',
                 artist: getTrackArtists(track) || 'Unknown Artist',
                 album: track.album?.title || 'Unknown Album',
-                artwork: coverId
-                    ? [
-                          {
-                              src: this.api.getCoverUrl(coverId, '1280'),
-                              sizes: '1280x1280',
-                              type: 'image/jpeg',
-                          },
-                      ]
-                    : undefined,
+                artwork: artwork.length ? artwork : undefined,
             });
         }
 
@@ -1527,16 +1545,7 @@ export class Player {
     async updateNativeMediaSession(track) {
         if (!window.CapacitorBridge?.media || !track) return;
 
-        const coverId = track.album?.cover;
-        const artwork = coverId
-            ? [
-                  {
-                      src: this.api.getCoverUrl(coverId, '1280'),
-                      sizes: '1280x1280',
-                      type: 'image/jpeg',
-                  },
-              ]
-            : undefined;
+        const artwork = this.buildMediaArtwork(track);
 
         try {
             await window.CapacitorBridge.media.setMetadata({
