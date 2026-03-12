@@ -162,8 +162,7 @@ For development mode and advanced setups, see [DOCKER.md](DOCKER.md).
 
 #### Prerequisites
 
-- [Node.js](https://nodejs.org/) (Version 20+ or 22+ recommended)
-- [Bun](https://bun.sh/) or [npm](https://www.npmjs.com/)
+- [Bun](https://bun.sh/) (Preferred) or [Node.js](https://nodejs.org/) (Version 20+ or 22+ recommended)
 
 #### Local Development
 
@@ -179,7 +178,7 @@ For development mode and advanced setups, see [DOCKER.md](DOCKER.md).
     ```bash
     bun install
     # or
-    npm install
+    npm install # NPM is included with Node.js
     ```
 
 3. **Start the development server:**
