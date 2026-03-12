@@ -16,7 +16,13 @@ import { AbortError } from './errorTypes.ts';
 import { lyricsSettings, bulkDownloadSettings, playlistSettings } from './storage.js';
 import { generateM3U, generateM3U8, generateCUE, generateNFO, generateJSON } from './playlist-generator.js';
 import { triggerDownload } from './download-utils.ts';
-import { ZipStreamWriter, ZipBlobWriter, ZipNeutralinoWriter, FolderPickerWriter } from './bulk-download-writer.ts';
+import {
+    ZipStreamWriter,
+    ZipBlobWriter,
+    ZipNeutralinoWriter,
+    FolderPickerWriter,
+    SequentialFileWriter,
+} from './bulk-download-writer.ts';
 import { FfmpegProgress } from './ffmpeg.types.js';
 import { DownloadProgress, ProgressMessage, SegmentedDownloadProgress } from './progressEvents.js';
 
@@ -318,44 +324,6 @@ async function downloadTrackBlob(track, quality, api, signal = null, onProgress 
     return { blob, extension };
 }
 
-async function bulkDownloadSequentially(tracks, api, quality, lyricsManager, notification, coverBlob = null) {
-    const { abortController } = bulkDownloadTasks.get(notification);
-    const signal = abortController.signal;
-
-    for (let i = 0; i < tracks.length; i++) {
-        if (signal.aborted) break;
-        const track = tracks[i];
-        const trackTitle = getTrackTitle(track);
-
-        updateBulkDownloadProgress(notification, i, tracks.length, trackTitle);
-
-        try {
-            const { blob, extension } = await downloadTrackBlob(track, quality, api, signal, null);
-            const filename = buildTrackFilename(track, quality, extension);
-            triggerDownload(blob, filename);
-
-            if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
-                try {
-                    const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
-                    if (lyricsData) {
-                        const lrcContent = lyricsManager.generateLRCContent(lyricsData, track);
-                        if (lrcContent) {
-                            const lrcFilename = filename.replace(/\.[^.]+$/, '.lrc');
-                            const lrcBlob = new Blob([lrcContent], { type: 'text/plain' });
-                            triggerDownload(lrcBlob, lrcFilename);
-                        }
-                    }
-                } catch {
-                    // Silent fail for lyrics
-                }
-            }
-        } catch (err) {
-            if (err.name === 'AbortError') throw err;
-            console.error(`Failed to download track ${trackTitle}:`, err);
-        }
-    }
-}
-
 async function bulkDownload(
     tracks,
     folderName,
@@ -548,7 +516,7 @@ async function createBulkWriter(folderName) {
         }
     }
     if (method === 'individual') {
-        return null;
+        return new SequentialFileWriter();
     }
     // method === 'zip' (or folder picker unavailable as fallback)
     if (!forceZipBlob && hasFileSystemAccess) {
@@ -586,9 +554,6 @@ async function startBulkDownload(
                 type,
                 metadata
             );
-        } else {
-            // Individual sequential downloads
-            await bulkDownloadSequentially(tracks, api, quality, lyricsManager, notification);
         }
 
         completeBulkDownload(notification, true);
@@ -803,16 +768,6 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
 
         if (writer) {
             await writer.write(yieldDiscography());
-        } else {
-            // Individual sequential downloads for discography
-            for (let albumIndex = 0; albumIndex < selectedReleases.length; albumIndex++) {
-                if (signal.aborted) break;
-                const album = selectedReleases[albumIndex];
-                updateBulkDownloadProgress(notification, albumIndex, selectedReleases.length, album.title);
-                const { tracks: rawTracks } = await api.getAlbum(album.id);
-                const tracks = await annotateTracksWithDiscInfo(rawTracks, api);
-                await bulkDownloadSequentially(tracks, api, quality, lyricsManager, notification);
-            }
         }
 
         completeBulkDownload(notification, true);
