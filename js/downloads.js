@@ -82,7 +82,7 @@ async function createDiscLayoutContext(tracks, api) {
 
 async function computeDiscInfo(tracks, api = null) {
     // First pass: collect explicit disc numbers from the raw track objects.
-    const explicitDiscNumbers = tracks.map((track) => getExplicitTrackDiscNumber(track));
+    const explicitDiscNumbers = tracks.map((track) => getTrackDiscNumber(track));
     const explicitDistinct = new Set(explicitDiscNumbers.filter(Boolean));
 
     let resolvedDiscNumbers = explicitDiscNumbers;
@@ -97,7 +97,7 @@ async function computeDiscInfo(tracks, api = null) {
                 if (explicitDiscNumbers[index]) return explicitDiscNumbers[index];
                 try {
                     const fullTrack = await api.getTrackMetadata(track.id);
-                    return getExplicitTrackDiscNumber(fullTrack);
+                    return getTrackDiscNumber(fullTrack);
                 } catch {
                     return null;
                 }
@@ -362,7 +362,7 @@ async function downloadTrackBlob(
             }
             if (albumData.tracks?.length > 0) {
                 const { totalDiscs, tracksPerDisc } = await computeDiscInfo(albumData.tracks, api);
-                const discNumber = getExplicitTrackDiscNumber(enrichedTrack) || 1;
+                const discNumber = getTrackDiscNumber(enrichedTrack) || 1;
                 enrichedTrack.album = {
                     ...enrichedTrack.album,
                     totalDiscs,
@@ -1508,7 +1508,7 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
             }
             if (albumData.tracks?.length > 0) {
                 const { totalDiscs, tracksPerDisc } = await computeDiscInfo(albumData.tracks, api);
-                const discNumber = getExplicitTrackDiscNumber(enrichedTrack) || 1;
+                const discNumber = getTrackDiscNumber(enrichedTrack) || 1;
                 enrichedTrack.album = {
                     ...enrichedTrack.album,
                     totalDiscs,
