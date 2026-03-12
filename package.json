@@ -5,14 +5,14 @@
     "description": "[<img src=\"https://github.com/SamidyFR/monochrome/blob/main/assets/512.png?raw=true\" alt=\"Monochrome Logo\">](https://monochrome.samidy.com)",
     "scripts": {
         "dev": "vite",
-        "dev:desktop": "start npm run dev & node scripts/dev-runner.js",
+        "dev:desktop": "start bun run dev & node scripts/dev-runner.js",
         "build": "vite build --mode neutralino && bun x neu build",
         "postbuild": "node -e \"const fs = require('fs'); const path = require('path'); const src = 'extensions'; const dest = path.join('dist', 'Monochrome', 'extensions'); if (fs.existsSync(src)) { fs.mkdirSync(dest, { recursive: true }); fs.cpSync(src, dest, { recursive: true }); console.log('Extensions manually copied to ' + dest); }\"",
         "preview": "vite preview",
         "lint:js": "eslint .",
         "lint:css": "stylelint \"**/*.css\"",
         "lint:html": "htmlhint \"**/*.html\" --ignore=\"dist/**,legacy/**,node_modules/**\"",
-        "lint": "npm run lint:js && npm run lint:css && npm run lint:html",
+        "lint": "bun run lint:js && bun run lint:css && bun run lint:html",
         "format": "prettier --write ."
     },
     "repository": {
