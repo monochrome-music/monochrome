@@ -22,6 +22,21 @@ function trackHasAsianText(track) {
     const artist = getTrackArtists(track) || '';
     return containsAsianText(title) || containsAsianText(artist);
 }
+
+function cleanTrackerSearch(text) {
+    if (!text) return '';
+    // chud emojis will NOT be tolerated in my precious genius lyrics worker
+    let cleaned = text.replace(/[\p{Extended_Pictographic}\p{Emoji_Component}\p{Emoji_Presentation}\p{Emoji_Modifier}\p{Emoji_Modifier_Base}\p{Symbol}]/gu, '');
+    
+    cleaned = cleaned.replace(/[\u2600-\u27BF\u2B50\u2B06\u2194\u21AA\u2934\u203C\u2049\u3030\u303D\u3297\u3299]/g, '');
+
+    cleaned = cleaned.replace(/\[v\s*\d+\s*\]/gi, '');
+
+    cleaned = cleaned.replace(/\s+/g, ' ');
+    
+    return cleaned.trim();
+}
+
 const SVG_GENIUS_INACTIVE = `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="opacity: 0.7;"><path d="M12 24c6.627 0 12-5.373 12-12S18.627 0 12 0 0 5.373 0 12s5.373 12 12 12z" /><path d="M6.3 6.3h11.4v11.4H6.3z" fill="var(--card)"/></svg>`;
 
 class GeniusManager {
@@ -943,13 +958,22 @@ async function renderLyricsComponent(container, track, audioPlayer, lyricsManage
         const durationMs = track.duration ? Math.round(track.duration * 1000) : undefined;
         const isrc = track.isrc || '';
 
+        const isTracker = track.isTracker || (track.id && String(track.id).startsWith('tracker-'));
+        let queryTitle = title;
+        let queryArtist = artist;
+
+        if (isTracker) {
+            queryTitle = cleanTrackerSearch(title);
+            queryArtist = cleanTrackerSearch(artist);
+        }
+
         container.innerHTML = '';
         const amLyrics = document.createElement('am-lyrics');
-        amLyrics.setAttribute('song-title', title);
-        amLyrics.setAttribute('song-artist', artist);
+        amLyrics.setAttribute('song-title', queryTitle);
+        amLyrics.setAttribute('song-artist', queryArtist);
         if (album) amLyrics.setAttribute('song-album', album);
         if (durationMs) amLyrics.setAttribute('song-duration', durationMs);
-        amLyrics.setAttribute('query', `${title} ${artist}`.trim());
+        amLyrics.setAttribute('query', `${queryTitle} ${queryArtist}`.trim());
         if (isrc) amLyrics.setAttribute('isrc', isrc);
 
         amLyrics.setAttribute('highlight-color', getLyricsHighlightColor());
