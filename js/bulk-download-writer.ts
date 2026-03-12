@@ -42,6 +42,35 @@ export interface IBulkDownloadWriter {
 }
 
 /**
+ * Triggers individual downloads for each file entry, one after another.
+ */
+export class SequentialFileWriter implements IBulkDownloadWriter {
+    constructor() {}
+
+    async write(files: AsyncIterable<WriterEntry>): Promise<void> {
+        for await (const file of files) {
+            const name = file.name?.split('/').pop();
+            const ext = name?.split('.').pop().toLowerCase();
+
+            if (!name) {
+                console.warn('No name for file entry.', file);
+                continue;
+            }
+
+            if (['m3u', 'm3u8', 'cue', 'jpg', 'png', 'nfo', 'json'].includes(ext)) {
+                continue;
+            }
+
+            if (file.input instanceof Blob) {
+                triggerDownload(file.input, name);
+            } else {
+                triggerDownload(new Blob([file.input as BlobPart]), name);
+            }
+        }
+    }
+}
+
+/**
  * Streams a ZIP archive to a file via the File System Access API.
  * Prompts the user to choose a save location with showSaveFilePicker.
  */
