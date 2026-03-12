@@ -9,6 +9,7 @@ import {
     getContainerFormat,
     transcodeWithContainerFormat,
 } from './ffmpegFormats';
+import { ffmpeg } from './ffmpeg';
 
 /**
  * Triggers a browser file download for the given blob.
@@ -62,7 +63,7 @@ export async function applyAudioPostProcessing(
             if (containerFmt) {
                 if (await containerFmt.needsTranscode(blob)) {
                     blob = await transcodeWithContainerFormat(blob, containerFmt, onProgress, signal);
-                } else if ((await getExtensionFromBlob(blob)) == 'flac') {
+                } else if ((await getExtensionFromBlob(blob)) === 'flac') {
                     blob = await rebuildFlacWithoutMetadata(blob);
                 }
             }
