@@ -3,8 +3,10 @@ import { App } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { Dialog } from '@capacitor/dialog';
 import { Directory, Filesystem } from '@capacitor/filesystem';
+import { ScreenOrientation } from '@capacitor/screen-orientation';
 import { MediaSession as CapacitorMediaSession } from '@jofr/capacitor-media-session';
 import { CapacitorMediaStore } from '@odion-cloud/capacitor-mediastore';
+import { AppInstallPlugin } from '@m430/capacitor-app-install';
 
 const hasWindow = typeof window !== 'undefined';
 
@@ -63,13 +65,6 @@ function base64ToArrayBuffer(base64) {
         bytes[i] = binary.charCodeAt(i);
     }
     return bytes.buffer;
-}
-
-function sanitizeRelativePath(relativePath) {
-    return String(relativePath || 'Music/Monochrome')
-        .replace(/\\/g, '/')
-        .replace(/^\/+/, '')
-        .replace(/\/+$/, '');
 }
 
 async function blobToBase64(blob) {
@@ -306,18 +301,16 @@ export const media = {
 };
 
 export const downloads = {
-    saveAudioToMusic: async ({ blob, fileName, albumName = null, relativePath = 'Music/Monochrome' } = {}) => {
+    saveAudioToMusic: async ({ blob, fileName, albumName = null } = {}) => {
         if (!isCapacitorRuntime || Capacitor.getPlatform() !== 'android') {
             return { success: false, skipped: true, error: 'Not running on Android native platform' };
         }
-
         try {
             return await saveToMediaStore({
                 blob,
                 fileName,
                 mediaType: 'audio',
                 albumName: albumName || undefined,
-                relativePath: sanitizeRelativePath(relativePath),
                 fallbackMimeType: 'audio/mpeg',
             });
         } catch (error) {
@@ -325,7 +318,7 @@ export const downloads = {
         }
     },
 
-    saveVideoToMovies: async ({ blob, fileName, relativePath = 'Movies/Monochrome' } = {}) => {
+    saveVideoToMovies: async ({ blob, fileName } = {}) => {
         if (!isCapacitorRuntime || Capacitor.getPlatform() !== 'android') {
             return { success: false, skipped: true, error: 'Not running on Android native platform' };
         }
@@ -335,7 +328,7 @@ export const downloads = {
                 blob,
                 fileName,
                 mediaType: 'video',
-                relativePath: sanitizeRelativePath(relativePath),
+                relativePath: 'Movies/Monochrome',
                 fallbackMimeType: 'video/mp4',
             });
         } catch (error) {
@@ -357,6 +350,29 @@ export const nativeWindow = {
     },
 };
 
+export const orientation = {
+    lockLandscape: async () => {
+        if (!isCapacitorRuntime) return;
+        try {
+            await ScreenOrientation.lock({ orientation: 'landscape-primary' });
+        } catch (error) {
+            try {
+                await ScreenOrientation.lock({ orientation: 'landscape' });
+            } catch (fallbackError) {
+                console.warn('[CapacitorBridge] Failed to lock orientation:', fallbackError);
+            }
+        }
+    },
+    unlock: async () => {
+        if (!isCapacitorRuntime) return;
+        try {
+            await ScreenOrientation.unlock();
+        } catch (error) {
+            console.warn('[CapacitorBridge] Failed to unlock orientation:', error);
+        }
+    },
+};
+
 export { nativeWindow as window };
 
 export default {
@@ -368,5 +384,6 @@ export default {
     filesystem,
     media,
     downloads,
+    orientation,
     window: nativeWindow,
 };
