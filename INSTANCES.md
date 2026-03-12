@@ -103,5 +103,5 @@ Want to add your instance to this list?
 
 ## Related Resources
 
-- [Contributing Guide](CONTRIBUTE.md) - Contribute to the project
+- [Contributing Guide](CONTRIBUTING.md) - Contribute to the project
 - [Main Repository](https://github.com/monochrome-music/monochrome) - Source code
