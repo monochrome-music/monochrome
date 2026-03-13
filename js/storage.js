@@ -6,8 +6,24 @@ export const apiSettings = {
         'https://tidal-uptime.props-76styles.workers.dev/',
     ],
     defaultInstances: { api: [], streaming: [] },
+    userInstances: null,
     instancesLoaded: false,
     _loadPromise: null,
+
+    _loadUserInstances() {
+        if (this.userInstances) return this.userInstances;
+        try {
+            const stored = localStorage.getItem('monochrome-user-api-instances-v1');
+            this.userInstances = stored ? JSON.parse(stored) : { api: [], streaming: [] };
+        } catch {
+            this.userInstances = { api: [], streaming: [] };
+        }
+        return this.userInstances;
+    },
+
+    _saveUserInstances() {
+        localStorage.setItem('monochrome-user-api-instances-v1', JSON.stringify(this.userInstances));
+    },
 
     async loadInstancesFromGitHub() {
         if (this.instancesLoaded) {
@@ -126,11 +142,42 @@ export const apiSettings = {
         let instancesObj;
 
         instancesObj = await this.loadInstancesFromGitHub();
+        const userInst = this._loadUserInstances();
 
-        const targetUrls = instancesObj[type] || instancesObj.api || [];
-        if (targetUrls.length === 0) return [];
+        const defaultUrls = instancesObj[type] || instancesObj.api || [];
+        const userUrls = userInst[type] || [];
 
-        return targetUrls;
+        const combined = [...userUrls.map((u) => (typeof u === 'string' ? { url: u, isUser: true } : { ...u, isUser: true })), ...defaultUrls];
+
+        if (combined.length === 0) return [];
+
+        return combined;
+    },
+
+    addUserInstance(type, url) {
+        const userInst = this._loadUserInstances();
+        if (!userInst[type]) userInst[type] = [];
+
+        if (!userInst[type].some((u) => (typeof u === 'string' ? u === url : u.url === url))) {
+            userInst[type].push({ url, isUser: true, version: 'custom' });
+            this._saveUserInstances();
+            return true;
+        }
+        return false;
+    },
+
+    removeUserInstance(type, url) {
+        const userInst = this._loadUserInstances();
+        if (!userInst[type]) return false;
+
+        const initialLength = userInst[type].length;
+        userInst[type] = userInst[type].filter((u) => (typeof u === 'string' ? u !== url : u.url !== url));
+
+        if (userInst[type].length !== initialLength) {
+            this._saveUserInstances();
+            return true;
+        }
+        return false;
     },
 
     async refreshInstances() {
@@ -160,9 +207,23 @@ export const apiSettings = {
     saveInstances(instances, type) {
         if (type) {
             try {
+                this._loadUserInstances();
+                const userInst = instances.filter((i) => i.isUser);
+                const defaultInst = instances.filter((i) => !i.isUser);
+
+                this.userInstances[type] = userInst;
+                this._saveUserInstances();
+
                 const stored = localStorage.getItem(this.STORAGE_KEY);
                 let fullObj = stored ? JSON.parse(stored) : { api: [], streaming: [] };
-                fullObj[type] = instances;
+
+                if (fullObj && fullObj.data) {
+                    fullObj.data[type] = defaultInst;
+                } else {
+                    if (!fullObj) fullObj = { api: [], streaming: [] };
+                    fullObj[type] = defaultInst;
+                }
+
                 localStorage.setItem(this.STORAGE_KEY, JSON.stringify(fullObj));
             } catch (e) {
                 console.error('Failed to save instances:', e);
