@@ -952,7 +952,7 @@ async function renderLyricsComponent(container, track, audioPlayer, lyricsManage
         lyricsManager.isRomajiMode = lyricsManager.getRomajiMode();
         lyricsManager.currentTrackId = track.id;
 
-        const title = track.title;
+        const title = getTrackTitle(track);
         const artist = getTrackArtists(track);
         const album = track.album?.title;
         const durationMs = track.duration ? Math.round(track.duration * 1000) : undefined;
