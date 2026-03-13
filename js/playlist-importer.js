@@ -148,7 +148,9 @@ const HEADER_MAPPINGS = {
 };
 
 function normalizeHeader(header) {
+    if (!header) return '';
     return header
+        .replace(/^\uFEFF/, '')
         .toLowerCase()
         .trim()
         .replace(/[_\s]+/g, ' ');
@@ -255,12 +257,19 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
             const typeValue = values[mappedHeaders.type]?.toLowerCase().trim();
             if (typeValue === 'album' || typeValue === 'favorite album') return 'album';
             if (typeValue === 'artist' || typeValue === 'favorite artist') return 'artist';
-            if (typeValue === 'track' || typeValue === 'favorite' || typeValue === 'favorite track') return 'track';
+            if (
+                typeValue === 'track' ||
+                typeValue === 'favorite' ||
+                typeValue === 'favorite track' ||
+                typeValue === 'playlist'
+            )
+                return 'track';
         }
 
         const hasTrackName = mappedHeaders.track !== undefined && values[mappedHeaders.track];
         const hasArtistName = mappedHeaders.artist !== undefined && values[mappedHeaders.artist];
         const hasAlbumName = mappedHeaders.album !== undefined && values[mappedHeaders.album];
+        if (hasTrackName && hasAlbumName && values[mappedHeaders.track] === values[mappedHeaders.album]) return 'album';
 
         if (hasTrackName && hasArtistName) return 'track';
         if (hasAlbumName && hasArtistName && !hasTrackName) return 'album';
