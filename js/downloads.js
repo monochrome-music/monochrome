@@ -838,7 +838,7 @@ function updateBulkDownloadProgress(notifEl, current, total, currentItem, progre
         const percent = progress.progress || 0;
         progressFill.style.width = `${percent}%`;
         progressFill.style.background = '#3b82f6'; // Blue for encoding
-        statusEl.textContent = `Converting ${Math.ceil(current)}/${total}: ${Math.round(percent)}%`;
+        statusEl.textContent = `Converting ${Math.floor(current + 1)}/${total}: ${Math.round(percent)}%`;
         return;
     }
 
@@ -849,7 +849,7 @@ function updateBulkDownloadProgress(notifEl, current, total, currentItem, progre
     const percent = total > 0 ? Math.round((current / total) * 100) : 0;
     progressFill.style.width = `${percent}%`;
     progressFill.style.background = 'var(--highlight)';
-    statusEl.textContent = `${Math.floor(current)}/${total} - ${currentItem}`;
+    statusEl.textContent = `${Math.floor(current + 1)}/${total} - ${currentItem}`;
 }
 
 function completeBulkDownload(notifEl, success = true, message = null) {
