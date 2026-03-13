@@ -4863,9 +4863,6 @@ input:checked + .slider::before {
     margin-bottom: 1rem;
 }
 
-.shortcuts-list {
-    /* list scrolls with modal */
-}
 
 .customize-shortcut-item {
     display: flex;
