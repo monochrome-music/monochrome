@@ -1558,10 +1558,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 importOptions
                             );
 
-                            const hasMultipleTypes =
-                                result.tracks.length > 0 && (result.albums.length > 0 || result.artists.length > 0);
+                            const isLibraryImport =
+                                result.albums.length > 0 ||
+                                result.artists.length > 0 ||
+                                Object.keys(result.playlists).length > 1;
 
-                            if (hasMultipleTypes) {
+                            if (isLibraryImport) {
                                 currentTrackElement.textContent = 'Adding to library...';
 
                                 const importResults = await importToLibrary(result, db, (progress) => {
