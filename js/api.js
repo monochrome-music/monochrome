@@ -1452,7 +1452,13 @@ export class LosslessAPI {
             }
 
             if (!isVideo) {
-                blob = await applyAudioPostProcessing(blob, quality, onProgress, options.signal);
+                blob = await applyAudioPostProcessing(
+                    blob,
+                    quality,
+                    onProgress,
+                    options.signal,
+                    track?.audioQuality ?? null
+                );
 
                 // Add metadata if track information is provided
                 if (track) {

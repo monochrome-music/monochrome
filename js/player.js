@@ -22,6 +22,7 @@ import { db } from './db.js';
 
 import('./dash-media-player.js');
 import { SVG_CLOCK } from './icons.js';
+import { isIos } from './platform-detection.js';
 export class Player {
     constructor(audioElement, api, quality = 'HI_RES_LOSSLESS') {
         this.audio = audioElement;

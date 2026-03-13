@@ -5,29 +5,38 @@ import {
     RATE_LIMIT_ERROR_MESSAGE,
     getTrackArtists,
     getTrackTitle,
+    formatPathTemplate,
     getCoverBlob,
     getExtensionFromBlob,
     escapeHtml,
     getTrackDiscNumber,
 } from './utils.js';
 import { AbortError } from './errorTypes.ts';
-import { lyricsSettings, bulkDownloadSettings, playlistSettings } from './storage.js';
+import { lyricsSettings, playlistSettings } from './storage.js';
 import { generateM3U, generateM3U8, generateCUE, generateNFO, generateJSON } from './playlist-generator.js';
 import {
     ZipStreamWriter,
     ZipBlobWriter,
     ZipNeutralinoWriter,
     FolderPickerWriter,
+    NeutralinoFolderWriter,
     SequentialFileWriter,
 } from './bulk-download-writer.ts';
 import { FfmpegProgress } from './ffmpeg.types.js';
 import { DownloadProgress, ProgressMessage, SegmentedDownloadProgress } from './progressEvents.js';
+import { db } from './db.js';
+import { modernSettings } from './ModernSettings.js';
 import { SVG_CLOSE } from './icons.ts';
 
 const downloadTasks = new Map();
 const bulkDownloadTasks = new Map();
 const ongoingDownloads = new Set();
 let downloadNotificationContainer = null;
+
+/** Wraps a single {@link WriterEntry}-like object as an AsyncIterable for use with IBulkDownloadWriter.write(). */
+async function* singleWriterEntry(entry) {
+    yield entry;
+}
 
 async function createDiscLayoutContext(tracks, api) {
     if (!playlistSettings.shouldSeparateDiscsInZip()) {
@@ -488,6 +497,71 @@ async function bulkDownload(
 }
 
 /**
+ * Returns a writer that can be used to save a single-track download directly
+ * to the configured folder (Local Media Folder or saved Folder Picker handle),
+ * or `null` if the feature is not active / no folder is configured.
+ *
+ * In contrast to {@link createBulkWriter}, this never prompts the user – it
+ * only succeeds when the folder is already known.
+ */
+async function createSingleTrackFolderWriter() {
+    if (!modernSettings.downloadSinglesToFolder) return null;
+
+    const isNeutralino =
+        typeof window !== 'undefined' &&
+        (window.NL_MODE || window.location.search.includes('mode=neutralino') || window.parent !== window);
+    const method = modernSettings.bulkDownloadMethod;
+    const hasFolderPicker = 'showDirectoryPicker' in window;
+
+    if (method === 'local') {
+        const localHandle = await db.getSetting('local_folder_handle');
+        if (isNeutralino) {
+            if (localHandle?.path) return new NeutralinoFolderWriter(localHandle.path);
+        } else if (hasFolderPicker && localHandle && typeof localHandle.requestPermission === 'function') {
+            try {
+                const permission = await localHandle.requestPermission({ mode: 'readwrite' });
+                if (permission === 'granted') return FolderPickerWriter.fromHandle(localHandle);
+            } catch {
+                // no permission
+            }
+        }
+        return null;
+    }
+
+    if (method === 'folder' && hasFolderPicker) {
+        const rememberFolder = modernSettings.rememberBulkDownloadFolder;
+        const savedHandle = rememberFolder ? modernSettings.bulkDownloadFolder : null;
+        // Try to reuse the saved handle silently first.
+        if (savedHandle && typeof savedHandle.requestPermission === 'function') {
+            try {
+                const permission = await savedHandle.requestPermission({ mode: 'readwrite' });
+                if (permission === 'granted') return FolderPickerWriter.fromHandle(savedHandle);
+            } catch {
+                // fall through to picker
+            }
+        }
+        // No usable saved handle – open the picker so the user can choose a folder.
+        try {
+            const writer = await FolderPickerWriter.create();
+            if (rememberFolder) {
+                modernSettings.bulkDownloadFolder = writer.getDirHandle();
+                await modernSettings.waitPending();
+            }
+            return writer;
+        } catch (error) {
+            if (error instanceof DOMException && error.name === 'AbortError') {
+                // User cancelled the picker – return null so we fall back to the
+                // normal browser download instead of erroring out.
+                return null;
+            }
+            return null;
+        }
+    }
+
+    return null;
+}
+
+/**
  * Returns the appropriate bulk download writer for the current settings and environment,
  * or null when individual sequential downloads should be used.
  */
@@ -495,17 +569,75 @@ async function createBulkWriter(folderName) {
     const isNeutralino =
         typeof window !== 'undefined' &&
         (window.NL_MODE || window.location.search.includes('mode=neutralino') || window.parent !== window);
-    const method = bulkDownloadSettings.getMethod();
-    const forceZipBlob = bulkDownloadSettings.shouldForceZipBlob();
+    const method = modernSettings.bulkDownloadMethod;
+    const forceZipBlob = modernSettings.forceZipBlob;
     const hasFileSystemAccess = 'showSaveFilePicker' in window && 'createWritable' in FileSystemFileHandle.prototype;
     const hasFolderPicker = 'showDirectoryPicker' in window;
 
+    // ── Local Media Folder method ────────────────────────────────────────────
+    if (method === 'local') {
+        const localHandle = await db.getSetting('local_folder_handle');
+        if (isNeutralino) {
+            if (localHandle?.path) {
+                return new NeutralinoFolderWriter(localHandle.path);
+            }
+            // No folder configured – prompt now
+            const bridge = await import('./desktop/neutralino-bridge.js');
+            const pickedPath = await bridge.os.showFolderDialog('Select Download Folder');
+            if (!pickedPath) return null; // user cancelled – fall back to default
+            // Persist as the local media folder so future downloads reuse it
+            const handle = {
+                name: pickedPath.split(/[/\\]/).pop() || pickedPath,
+                isNeutralino: true,
+                path: pickedPath,
+            };
+            await db.saveSetting('local_folder_handle', handle);
+            return new NeutralinoFolderWriter(pickedPath);
+        } else if (hasFolderPicker) {
+            // Browser mode: try to reuse the stored handle with write permission
+            if (localHandle && typeof localHandle.requestPermission === 'function') {
+                try {
+                    const permission = await localHandle.requestPermission({ mode: 'readwrite' });
+                    if (permission === 'granted') {
+                        return FolderPickerWriter.fromHandle(localHandle);
+                    }
+                } catch {
+                    // fall through to picker
+                }
+            }
+            // No usable handle – prompt and persist
+            try {
+                const writer = await FolderPickerWriter.create();
+                await db.saveSetting('local_folder_handle', writer.getDirHandle());
+                return writer;
+            } catch (error) {
+                if (error instanceof DOMException && error.name === 'AbortError') {
+                    throw error;
+                }
+                return null;
+            }
+        }
+        // Browser without File System Access API – fall through to ZIP
+    }
+
+    // ── Neutralino default (ZIP) ─────────────────────────────────────────────
     if (isNeutralino) {
         return new ZipNeutralinoWriter(folderName);
     }
+
+    // ── Folder Picker method ─────────────────────────────────────────────────
     if (method === 'folder' && hasFolderPicker) {
+        const rememberFolder = modernSettings.rememberBulkDownloadFolder;
+        const savedHandle = rememberFolder ? await db.getSetting('bulk_download_folder_handle') : null;
         try {
-            return await FolderPickerWriter.create();
+            const writer = await FolderPickerWriter.create(savedHandle);
+            if (rememberFolder) {
+                await db.saveSetting('bulk_download_folder_handle', writer.getDirHandle());
+            } else {
+                await db.saveSetting('bulk_download_folder_handle', null);
+            }
+
+            return writer;
         } catch (error) {
             if (error instanceof DOMException && error.name === 'AbortError') {
                 throw error;
@@ -513,6 +645,7 @@ async function createBulkWriter(folderName) {
             return null;
         }
     }
+
     if (method === 'individual') {
         return new SequentialFileWriter();
     }
@@ -555,6 +688,11 @@ async function startBulkDownload(
         }
 
         completeBulkDownload(notification, true);
+
+        // If the download went to the local media folder, refresh the local library.
+        if (modernSettings.bulkDownloadMethod === 'local') {
+            window.refreshLocalMediaFolder?.();
+        }
     } catch (error) {
         if (error.name === 'AbortError') {
             removeBulkDownloadTask(notification);
@@ -578,7 +716,7 @@ export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsMana
     const releaseDate = releaseDateStr ? new Date(releaseDateStr) : null;
     const year = releaseDate && !isNaN(releaseDate.getTime()) ? releaseDate.getFullYear() : '';
 
-    const folderName = formatTemplate(localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist}', {
+    const folderName = formatPathTemplate(modernSettings.folderTemplate, {
         albumTitle: album.title,
         albumArtist: album.artist?.name,
         year: year,
@@ -599,7 +737,7 @@ export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsMana
 }
 
 export async function downloadPlaylistAsZip(playlist, tracks, api, quality, lyricsManager = null) {
-    const folderName = formatTemplate(localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist}', {
+    const folderName = formatPathTemplate(modernSettings.folderTemplate, {
         albumTitle: playlist.title,
         albumArtist: 'Playlist',
         year: new Date().getFullYear(),
@@ -642,14 +780,11 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                 const releaseDate = releaseDateStr ? new Date(releaseDateStr) : null;
                 const year = releaseDate && !isNaN(releaseDate.getTime()) ? releaseDate.getFullYear() : '';
 
-                const albumFolder = formatTemplate(
-                    localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist}',
-                    {
-                        albumTitle: fullAlbum.title,
-                        albumArtist: fullAlbum.artist?.name,
-                        year: year,
-                    }
-                );
+                const albumFolder = formatPathTemplate(modernSettings.folderTemplate, {
+                    albumTitle: fullAlbum.title,
+                    albumArtist: fullAlbum.artist?.name,
+                    year: year,
+                });
 
                 const fullFolderPath = `${rootFolder}/${albumFolder}`;
                 if (coverBlob && playlistSettings.shouldIncludeCover())
@@ -941,16 +1076,63 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
     ongoingDownloads.add(downloadKey);
 
     try {
+        // Resolve the folder writer before registering the download task so that
+        // any permission prompt (requestPermission) shows before the UI task appears.
+        const folderWriter = await createSingleTrackFolderWriter();
+
         addDownloadTask(track.id, enrichedTrack, filename, api, controller);
 
-        await api.downloadTrack(track.id, quality, filename, {
-            signal: controller.signal,
-            track: enrichedTrack,
-            onProgress: (progress) => {
-                updateDownloadProgress(track.id, progress);
-            },
-            calculateDashBytes: true,
-        });
+        // Try to write directly to the configured folder when the feature is enabled.
+        if (folderWriter) {
+            // Download the blob (metadata already applied inside downloadTrack)
+            const blob = await api.downloadTrack(track.id, quality, filename, {
+                signal: controller.signal,
+                track: enrichedTrack,
+                onProgress: (progress) => {
+                    updateDownloadProgress(track.id, progress);
+                },
+                calculateDashBytes: true,
+                triggerDownload: false,
+            });
+
+            const currentExtension = filename.split('.').pop()?.toLowerCase();
+            const finalFilename = buildTrackFilename(track, quality, await getExtensionFromBlob(blob))
+                .split('/')
+                .pop();
+
+            // Compute a subfolder path using the same template as bulk downloads so
+            // the track lands in e.g. "Album Title - Artist/" instead of the folder root.
+            const releaseDateStr =
+                enrichedTrack.album?.releaseDate ||
+                (enrichedTrack.streamStartDate ? enrichedTrack.streamStartDate.split('T')[0] : '');
+            const releaseDate = releaseDateStr ? new Date(releaseDateStr) : null;
+            const releaseYear = releaseDate && !isNaN(releaseDate.getTime()) ? releaseDate.getFullYear() : '';
+            const subFolder = formatPathTemplate(modernSettings.folderTemplate, {
+                albumTitle: enrichedTrack.album?.title,
+                albumArtist: enrichedTrack.album?.artist?.name || enrichedTrack.artist?.name,
+                year: releaseYear,
+            });
+            const entryName = subFolder ? `${subFolder}/${finalFilename}` : finalFilename;
+
+            // Write to folder using IBulkDownloadWriter.write() via singleWriterEntry().
+            await folderWriter.write(singleWriterEntry({ name: entryName, lastModified: new Date(), input: blob }));
+
+            // If the target is the local media folder, do a cheap partial update:
+            // pass the downloaded blob and base filename so only this one track's metadata
+            // is read and inserted into localFilesCache instead of re-walking the whole folder.
+            if (modernSettings.bulkDownloadMethod === 'local') {
+                window.refreshLocalMediaFolder?.(blob, finalFilename);
+            }
+        } else {
+            await api.downloadTrack(track.id, quality, filename, {
+                signal: controller.signal,
+                track: enrichedTrack,
+                onProgress: (progress) => {
+                    updateDownloadProgress(track.id, progress);
+                },
+                calculateDashBytes: true,
+            });
+        }
 
         completeDownloadTask(track.id, true);
 

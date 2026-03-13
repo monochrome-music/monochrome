@@ -4034,8 +4034,41 @@
                                     <select id="bulk-download-method">
                                         <option value="zip">ZIP Archive</option>
                                         <option value="folder">Folder Picker</option>
+                                        <option value="local">Local Media Folder</option>
                                         <option value="individual">Individual Files</option>
                                     </select>
+                                </div>
+                                <div class="setting-item" id="remember-folder-setting">
+                                    <div class="info">
+                                        <span class="label">Remember Last Folder</span>
+                                        <span class="description"
+                                            >Re-use the last chosen directory for Folder Picker downloads</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="remember-folder-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item" id="reset-saved-folder-setting">
+                                    <div class="info">
+                                        <span class="label">Reset Saved Folder</span>
+                                        <span class="description">Clear the remembered Folder Picker directory</span>
+                                    </div>
+                                    <button id="reset-saved-folder-btn" class="btn-secondary">Reset</button>
+                                </div>
+                                <div class="setting-item" id="single-to-folder-setting">
+                                    <div class="info">
+                                        <span class="label">Single Downloads to Folder</span>
+                                        <span class="description"
+                                            >Save individual track downloads directly to the configured folder instead
+                                            of triggering a browser download</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="single-to-folder-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
                                 </div>
                                 <div class="setting-item">
                                     <div class="info">
@@ -4135,10 +4168,10 @@
                                 </div>
                                 <div class="setting-item">
                                     <div class="info">
-                                        <span class="label">ZIP Folder Template</span>
+                                        <span class="label">Folder Template</span>
                                         <span class="description"
-                                            >Customize album folder names. Available: {albumTitle}, {albumArtist},
-                                            {year}</span
+                                            >Customize album folder names. Use <code>/</code> for nested folders.
+                                            Available: {albumTitle}, {albumArtist}, {year}</span
                                         >
                                     </div>
                                     <input

@@ -1849,6 +1849,12 @@ export class UIRenderer {
                 if (introDiv) introDiv.style.display = 'block';
                 if (headerDiv) headerDiv.style.display = 'none';
                 if (listContainer) listContainer.innerHTML = '';
+                // Kick off a background scan when there is a saved folder handle but
+                // the cache hasn't been populated yet (e.g. first visit after a page
+                // reload where the startup scan was silently denied permission).
+                if (!window.localFilesScanInProgress && !window.localFilesCache) {
+                    window.refreshLocalMediaFolder?.();
+                }
             }
         } else {
             if (selectBtnText) selectBtnText.textContent = 'Select Music Folder';
