@@ -160,15 +160,24 @@ export async function readTrackMetadata(file, siblings = []) {
 
         if (data) {
             metadata.title = data.title || metadata.title;
-            metadata.artists.push(
-                ...(data.artist || '')
-                    .split(';')
-                    .map((a) => a.trim())
-                    .filter((a) => a)
-            );
-            metadata.artist = data.artist || metadata.artist;
+            const artistNames = (data.artist || "")
+                .split(";")
+                .map((a) => a.trim())
+                .filter((a) => a);
+
+            if (artistNames.length > 0) {
+                metadata.artists = artistNames.map((name) => ({ name }));
+                metadata.artist = metadata.artists[0];
+            }
+
             metadata.album.title = data.albumTitle || metadata.album.title;
             metadata.album.releaseDate = data.releaseDate || metadata.album.releaseDate;
+
+            if (data.albumArtist) {
+                metadata.album.artist = { name: data.albumArtist };
+            } else if (metadata.artist.name !== "Unknown Artist") {
+                metadata.album.artist = { name: metadata.artist.name };
+            }
 
             if (data.cover) {
                 const blob = new Blob([data.cover.data], { type: data.cover.type });
@@ -182,10 +191,6 @@ export async function readTrackMetadata(file, siblings = []) {
         }
     } catch (e) {
         console.warn('Error reading metadata for', file.name, e);
-    }
-
-    if (metadata.artists.length > 0) {
-        metadata.artist = metadata.artists[0];
     }
 
     if (metadata.album.cover === 'assets/appicon.png' && siblings.length > 0) {
