@@ -2823,8 +2823,32 @@ export function initializeSettings(scrobbler, player, api, ui) {
         if (!button) return;
 
         const li = button.closest('li');
-        const index = parseInt(li.dataset.index, 10);
-        const type = li.dataset.type || 'api'; // Default to api if not present
+        const type = button.dataset.type || li?.dataset.type || 'api';
+
+        if (button.classList.contains('add-instance')) {
+            const url = prompt(`Enter custom ${type.toUpperCase()} instance URL (e.g. https://my-instance.com):`);
+            if (url && url.trim()) {
+                let formattedUrl = url.trim();
+                if (!formattedUrl.startsWith('http')) {
+                    formattedUrl = 'https://' + formattedUrl;
+                }
+                api.settings.addUserInstance(type, formattedUrl);
+                ui.renderApiSettings();
+            }
+            return;
+        }
+
+        if (button.classList.contains('delete-instance')) {
+            const url = li.dataset.url;
+            if (url && confirm(`Delete custom instance ${url}?`)) {
+                api.settings.removeUserInstance(type, url);
+                ui.renderApiSettings();
+            }
+            return;
+        }
+
+        const index = parseInt(li?.dataset.index, 10);
+        if (isNaN(index)) return;
 
         const instances = await api.settings.getInstances(type);
 

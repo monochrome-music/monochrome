@@ -4797,18 +4797,29 @@ export class UIRenderer {
                                 ? instance.name || instance.displayName || instance.id || instanceUrl
                                 : instanceUrl;
                             const instanceVersion = isObject && instance.version ? String(instance.version) : '';
+                            const isUser = isObject && instance.isUser;
                             const safeName = escapeHtml(instanceName || 'Unknown instance');
                             const safeUrl = escapeHtml(instanceUrl || '');
                             const safeVersion = escapeHtml(instanceVersion);
 
                             return `
-                        <li data-index="${index}" data-type="${type}">
+                        <li data-index="${index}" data-type="${type}" data-url="${safeUrl}">
                             <div style="flex: 1; min-width: 0;">
-                                <div class="instance-url">${safeName}</div>
+                                <div class="instance-url">${safeName} ${isUser ? '<span style="font-size: 0.6rem; opacity: 0.7; background: var(--muted); padding: 1px 4px; border-radius: 3px; margin-left: 4px; vertical-align: middle;">U</span>' : ''}</div>
                                 ${safeUrl && safeUrl !== safeName ? `<div style="font-size: 0.8rem; color: var(--muted-foreground); margin-top: 0.15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${safeUrl}</div>` : ''}
                                 ${safeVersion ? `<div style="font-size: 0.75rem; color: var(--muted-foreground); margin-top: 0.1rem;">v${safeVersion}</div>` : ''}
                             </div>
                             <div class="controls">
+                                ${
+                                    isUser
+                                        ? `
+                                <button class="delete-instance" title="Delete Instance">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                    </svg>
+                                </button>`
+                                        : ''
+                                }
                                 <button class="move-up" title="Move Up" ${index === 0 ? 'disabled' : ''}>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M12 19V5M5 12l7-7 7 7"/>
@@ -4826,8 +4837,11 @@ export class UIRenderer {
                         .join('');
 
                     return `
-                    <li class="group-header" style="font-weight: bold; padding: 1rem 0 0.5rem; background: transparent; border: none; pointer-events: none;">
-                        ${type === 'api' ? 'API Instances' : 'Streaming Instances'}
+                    <li class="group-header" style="display: flex; justify-content: space-between; align-items: center; font-weight: bold; padding: 1rem 0 0.5rem; background: transparent; border: none;">
+                        <span>${type === 'api' ? 'API Instances' : 'Streaming Instances'}</span>
+                        <button class="add-instance" data-type="${type}" title="Add Custom Instance" style="background: var(--primary); color: var(--primary-foreground); border: none; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; cursor: pointer; pointer-events: auto;">
+                            Add
+                        </button>
                     </li>
                     ${listHtml}
                 `;
