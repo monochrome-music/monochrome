@@ -1,5 +1,5 @@
 # Node Alpine -- multi-arch (amd64 + arm64)
-FROM node:lts-alpine
+FROM node:lts-alpine AS builder
 
 WORKDIR /app
 
@@ -25,8 +25,12 @@ COPY . .
 # Build the project (Bun is now available for "bun x neu build")
 RUN bun run build
 
-# Expose Vite preview port
-EXPOSE 4173
+# Serve with nginx
+FROM nginx:alpine
 
-# Run the built project
-CMD ["bun", "run", "preview", "--", "--host", "0.0.0.0"]
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Expose the nginx port
+EXPOSE 80
