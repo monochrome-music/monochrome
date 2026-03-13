@@ -1594,7 +1594,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     }`
                                 );
                                 progressElement.style.display = 'none';
-                                return;
                             }
 
                             tracks = result.tracks;
