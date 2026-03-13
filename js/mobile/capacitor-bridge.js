@@ -136,7 +136,7 @@ async function saveToMediaStore({
         mediaType,
         mimeType: pickMimeType(blob, fallbackMimeType),
         albumName: mediaType === 'audio' ? albumName || undefined : undefined,
-        relativePath: sanitizeRelativePath(relativePath),
+        relativePath,
     });
 
     if (!result?.success) {
@@ -336,6 +336,94 @@ export const downloads = {
         }
     },
 };
+// updater functionality
+let pendingUpdate = null;
+
+function compareVersions(a, b) {
+    const pa = String(a || '0').split('.').map((n) => parseInt(n, 10) || 0);
+    const pb = String(b || '0').split('.').map((n) => parseInt(n, 10) || 0);
+    const length = Math.max(pa.length, pb.length);
+
+    for (let i = 0; i < length; i += 1) {
+        const av = pa[i] || 0;
+        const bv = pb[i] || 0;
+        if (av > bv) return 1;
+        if (av < bv) return -1;
+    }
+
+    return 0;
+}
+
+
+async function downloadApkToCache(apkUrl) {
+    const response = await fetch(apkUrl);
+    if (!response.ok) {
+        throw new Error(`Failed to download APK: ${response.status} ${response.statusText}`);
+    }
+    const blob = await response.blob();
+    const base64 = await blobToBase64(blob);
+    const path = `update-${Date.now()}.apk`;
+
+    await Filesystem.writeFile({
+        path, 
+        directory: Directory.Cache,
+        data: base64,
+        recursive: true,
+    });
+
+    const result = await Filesystem.getUri({
+        path,
+        directory: Directory.Cache,
+    });
+
+    if (!result?.uri) {
+        throw new Error('i hate my life. guess it\' no updates for you');
+    }
+
+    return result.uri;
+}
+
+export const updater = {
+    checkForUpdates : async () => {
+        if (!isCapacitorRuntime) return;
+        const appInfo = await App.getInfo();
+        const response = await fetch(url, { cache: 'no-store' });
+        if (!response.ok) {
+            throw new Error(`Failed to check for updates: ${response.status} ${response.statusText}`);
+        }
+        const update = await response.json();
+        const remoteVersion = update?.version;
+        const apkUrl = update?.apkUrl;
+        const available = compareVersions(remoteVersion, appInfo.version) > 0;
+        pendingUpdate = available ? { ...update, apk: apkUrl } : null;
+        return { ...update, apk: apkUrl, currentVersion: appInfo.version, available,};
+    },
+
+    install : async () => {
+        const permission = await AppInstallPlugin.canInstallUnknownApps();
+
+        if (!permission?.granted) {
+            await AppInstallPlugin.openInstallUnknownAppsSettings();
+            throw new Error('Permission to install unknown apps is required to update the application.');
+        }
+
+        const filePath = await downloadApkToCache (
+            pendingUpdate.apk,
+            pendingUpdate.version,
+        );
+            
+
+        const result = await AppInstallPlugin.installApk({
+            filePath,
+        });
+
+        if (!result?.completed) {
+            throw new Error(result?.error || 'Failed to install update');
+        }
+
+        return result;
+    }
+};
 
 export const nativeWindow = {
     minimize: async () => {},
@@ -384,6 +472,7 @@ export default {
     filesystem,
     media,
     downloads,
+    updater,
     orientation,
     window: nativeWindow,
 };
