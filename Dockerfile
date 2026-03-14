@@ -1,5 +1,5 @@
 # Node Alpine -- multi-arch (amd64 + arm64)
-FROM node:lts-alpine AS builder
+FROM node:24.14-alpine AS builder
 
 WORKDIR /app
 
@@ -26,7 +26,7 @@ COPY . .
 RUN bun run build
 
 # Serve with nginx
-FROM nginx:alpine
+FROM nginx:1.28.2-alpine
 
 COPY --from=builder /app/dist /usr/share/nginx/html
 
