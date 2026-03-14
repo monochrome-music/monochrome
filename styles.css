@@ -8344,7 +8344,8 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 }
 
 /* Save offline button active state in now-playing bar */
-#save-offline-btn.active {
+#save-offline-btn.active,
+#mobile-save-offline-btn.active {
     color: var(--highlight, var(--primary));
 }
 

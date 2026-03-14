@@ -1035,26 +1035,98 @@ export async function handleTrackAction(
             await removeOfflineTrack(item.id);
             showNotification(`Removed from offline: ${item.title}`);
         } else {
-            showNotification(`Saving offline: ${item.title}...`);
+            // Create a progress notification for offline saving
+            const container = document.getElementById('download-notifications') || (() => {
+                const c = document.createElement('div');
+                c.id = 'download-notifications';
+                document.body.appendChild(c);
+                return c;
+            })();
+
+            const taskEl = document.createElement('div');
+            taskEl.className = 'download-task';
+            const coverUrl = api.getCoverUrl(item.album?.cover);
+            const trackTitle = item.title || 'Unknown';
+            const trackArtist = item.artists?.map(a => a.name).join(', ') || item.artist || '';
+            taskEl.innerHTML = `
+                <div style="display: flex; align-items: start; gap: 0.75rem;">
+                    <img src="${coverUrl}"
+                         style="width: 40px; height: 40px; border-radius: 4px; flex-shrink: 0;">
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-weight: 500; font-size: 0.9rem; margin-bottom: 0.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${trackTitle}</div>
+                        <div style="font-size: 0.8rem; color: var(--muted-foreground); margin-bottom: 0.5rem;">${trackArtist}</div>
+                        <div class="download-progress-bar" style="height: 4px; background: var(--secondary); border-radius: 2px; overflow: hidden;">
+                            <div class="offline-progress-fill" style="width: 0%; height: 100%; background: var(--highlight); transition: width 0.2s;"></div>
+                        </div>
+                        <div class="offline-status" style="font-size: 0.75rem; color: var(--muted-foreground); margin-top: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Downloading audio...</div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(taskEl);
+
+            const progressFill = taskEl.querySelector('.offline-progress-fill');
+            const statusEl = taskEl.querySelector('.offline-status');
+
             try {
                 const quality = downloadQualitySettings.getQuality();
                 const blob = await api.downloadTrack(item.id, quality, `${item.title}.flac`, {
                     track: item,
                     triggerDownload: false,
+                    onProgress: (progress) => {
+                        if (progress.receivedBytes && progress.totalBytes) {
+                            const percent = Math.round((progress.receivedBytes / progress.totalBytes) * 100);
+                            const receivedMB = (progress.receivedBytes / (1024 * 1024)).toFixed(1);
+                            const totalMB = (progress.totalBytes / (1024 * 1024)).toFixed(1);
+                            progressFill.style.width = `${Math.min(percent, 90)}%`;
+                            statusEl.textContent = `Downloading: ${receivedMB} MB / ${totalMB} MB (${percent}%)`;
+                        } else if (progress.currentSegment && progress.totalSegments) {
+                            const percent = Math.round((progress.currentSegment / progress.totalSegments) * 100);
+                            progressFill.style.width = `${Math.min(percent, 90)}%`;
+                            statusEl.textContent = `Downloading: segment ${progress.currentSegment}/${progress.totalSegments} (${percent}%)`;
+                        } else if (progress.message) {
+                            statusEl.textContent = progress.message;
+                        }
+                    },
                 });
+
+                // Fetch cover art
+                progressFill.style.width = '92%';
+                statusEl.textContent = 'Fetching cover art...';
                 let coverBlob = null;
-                const coverUrl = api.getCoverUrl(item.album?.cover, '640');
-                if (coverUrl && !coverUrl.includes('picsum.photos')) {
+                const coverSrc = api.getCoverUrl(item.album?.cover, '640');
+                if (coverSrc && !coverSrc.includes('picsum.photos')) {
                     try {
-                        const coverRes = await fetch(coverUrl);
+                        const coverRes = await fetch(coverSrc);
                         if (coverRes.ok) coverBlob = await coverRes.blob();
                     } catch { /* ignore cover fetch failure */ }
                 }
+
+                // Save to IndexedDB
+                progressFill.style.width = '96%';
+                statusEl.textContent = 'Saving to offline storage...';
                 await saveOfflineTrack(item, blob, coverBlob);
-                showNotification(`Saved offline: ${item.title}`);
+
+                // Done
+                progressFill.style.width = '100%';
+                progressFill.style.background = '#10b981';
+                statusEl.textContent = '⚡ Saved offline!';
+                statusEl.style.color = '#10b981';
+
+                setTimeout(() => {
+                    taskEl.style.animation = 'slide-out 0.3s ease forwards';
+                    setTimeout(() => taskEl.remove(), 300);
+                }, 2500);
             } catch (err) {
                 console.error('Failed to save offline:', err);
-                showNotification(`Failed to save offline: ${item.title}`);
+                progressFill.style.width = '100%';
+                progressFill.style.background = '#ef4444';
+                statusEl.textContent = '✗ Failed to save offline';
+                statusEl.style.color = '#ef4444';
+
+                setTimeout(() => {
+                    taskEl.style.animation = 'slide-out 0.3s ease forwards';
+                    setTimeout(() => taskEl.remove(), 300);
+                }, 3000);
             }
         }
         // Update badge

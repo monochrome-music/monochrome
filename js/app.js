@@ -927,7 +927,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('save-offline-btn')?.addEventListener('click', async () => {
         if (player.currentTrack && !player.currentTrack.isLocal) {
             await handleTrackAction('save-offline', player.currentTrack, player, api, lyricsManager, 'track', ui);
-            // Update button state after save/remove
+            ui.setCurrentTrack(player.currentTrack);
+        }
+    });
+
+    document.getElementById('mobile-save-offline-btn')?.addEventListener('click', async () => {
+        if (player.currentTrack && !player.currentTrack.isLocal) {
+            await handleTrackAction('save-offline', player.currentTrack, player, api, lyricsManager, 'track', ui);
             ui.setCurrentTrack(player.currentTrack);
         }
     });

@@ -252,6 +252,7 @@ export class UIRenderer {
         const fsLikeBtn = document.getElementById('fs-like-btn');
         const fsAddPlaylistBtn = document.getElementById('fs-add-playlist-btn');
         const saveOfflineBtn = document.getElementById('save-offline-btn');
+        const mobileSaveOfflineBtn = document.getElementById('mobile-save-offline-btn');
 
         if (track) {
             const isLocal = track.isLocal;
@@ -302,19 +303,22 @@ export class UIRenderer {
             }
 
             // Update save-offline button
-            if (saveOfflineBtn) {
+            if (saveOfflineBtn || mobileSaveOfflineBtn) {
+                const offlineBtns = [saveOfflineBtn, mobileSaveOfflineBtn].filter(Boolean);
                 if (isLocal || isTracker) {
-                    saveOfflineBtn.style.display = 'none';
+                    offlineBtns.forEach(btn => { btn.style.display = 'none'; });
                 } else {
-                    saveOfflineBtn.style.display = 'flex';
+                    offlineBtns.forEach(btn => { btn.style.display = 'flex'; });
                     import('./offline.js').then(({ isTrackOffline }) => {
                         isTrackOffline(track.id).then((isOffline) => {
-                            saveOfflineBtn.title = isOffline ? 'Remove from Offline' : 'Save Offline';
-                            saveOfflineBtn.classList.toggle('active', isOffline);
-                            const svg = saveOfflineBtn.querySelector('svg');
-                            if (svg) {
-                                svg.setAttribute('fill', isOffline ? 'currentColor' : 'none');
-                            }
+                            offlineBtns.forEach(btn => {
+                                btn.title = isOffline ? 'Remove from Offline' : 'Save Offline';
+                                btn.classList.toggle('active', isOffline);
+                                const svg = btn.querySelector('svg');
+                                if (svg) {
+                                    svg.setAttribute('fill', isOffline ? 'currentColor' : 'none');
+                                }
+                            });
                         });
                     });
                 }
@@ -327,6 +331,7 @@ export class UIRenderer {
             if (fsLikeBtn) fsLikeBtn.style.display = 'none';
             if (fsAddPlaylistBtn) fsAddPlaylistBtn.style.display = 'none';
             if (saveOfflineBtn) saveOfflineBtn.style.display = 'none';
+            if (mobileSaveOfflineBtn) mobileSaveOfflineBtn.style.display = 'none';
         }
     }
 
