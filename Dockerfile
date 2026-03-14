@@ -1,17 +1,11 @@
 # Node Alpine -- multi-arch (amd64 + arm64)
-FROM node:24.14-alpine AS builder
+FROM oven/bun:1.3.10-alpine AS builder
 
 WORKDIR /app
 
 # Install system dependencies required for Bun and Neutralino
 RUN apk add --no-cache wget curl bash
 RUN apk add --no-cache python3 make g++ && ln -sf python3 /usr/bin/python
-
-# Install Bun
-RUN curl -fsSL https://bun.sh/install | bash
-
-# Add Bun to PATH so it can be used in subsequent steps
-ENV PATH="/root/.bun/bin:${PATH}"
 
 # Copy package files first for caching
 COPY package.json package-lock.json ./
