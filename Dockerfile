@@ -34,3 +34,5 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose the nginx port
 EXPOSE 4173
+
+CMD ["nginx", "-g", "daemon off;"]
