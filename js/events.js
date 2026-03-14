@@ -1028,6 +1028,42 @@ export async function handleTrackAction(
     } else if (action === 'download') {
         trackDownloadTrack(item, downloadQualitySettings.getQuality());
         await downloadTrackWithMetadata(item, downloadQualitySettings.getQuality(), api, lyricsManager);
+    } else if (action === 'save-offline') {
+        const { isTrackOffline, saveOfflineTrack, removeOfflineTrack, getOfflineTrackCount } = await import('./offline.js');
+        const alreadyOffline = await isTrackOffline(item.id);
+        if (alreadyOffline) {
+            await removeOfflineTrack(item.id);
+            showNotification(`Removed from offline: ${item.title}`);
+        } else {
+            showNotification(`Saving offline: ${item.title}...`);
+            try {
+                const quality = downloadQualitySettings.getQuality();
+                const blob = await api.downloadTrack(item.id, quality, `${item.title}.flac`, {
+                    track: item,
+                    triggerDownload: false,
+                });
+                let coverBlob = null;
+                const coverUrl = api.getCoverUrl(item.album?.cover, '640');
+                if (coverUrl && !coverUrl.includes('picsum.photos')) {
+                    try {
+                        const coverRes = await fetch(coverUrl);
+                        if (coverRes.ok) coverBlob = await coverRes.blob();
+                    } catch { /* ignore cover fetch failure */ }
+                }
+                await saveOfflineTrack(item, blob, coverBlob);
+                showNotification(`Saved offline: ${item.title}`);
+            } catch (err) {
+                console.error('Failed to save offline:', err);
+                showNotification(`Failed to save offline: ${item.title}`);
+            }
+        }
+        // Update badge
+        const count = await getOfflineTrackCount();
+        const badge = document.getElementById('offline-count-badge');
+        if (badge) {
+            badge.textContent = count;
+            badge.style.display = count > 0 ? 'inline-flex' : 'none';
+        }
     } else if (action === 'toggle-like') {
         const added = await db.toggleFavorite(type, item);
         syncManager.syncLibraryItem(type, item, added);
@@ -1892,6 +1928,18 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                         btn.style.display = contextTrack.isUnavailable ? 'none' : 'block';
                     }
                 });
+
+                // Update save-offline label dynamically
+                const offlineBtn = contextMenu.querySelector('[data-action="save-offline"]');
+                if (offlineBtn && contextTrack.id) {
+                    import('./offline.js').then(({ isTrackOffline }) => {
+                        isTrackOffline(contextTrack.id).then((isOffline) => {
+                            offlineBtn.textContent = isOffline
+                                ? (offlineBtn.dataset.labelRemove || 'Remove from Offline')
+                                : (offlineBtn.dataset.labelSave || 'Save Offline');
+                        });
+                    });
+                }
 
                 contextMenu._contextTrack = contextTrack;
                 contextMenu._contextType = contextTrack.type || 'track';

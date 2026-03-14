@@ -763,6 +763,23 @@ export class Player {
                     activeElement.currentTime = startTime;
                 }
                 const played = await this.safePlay(activeElement);
+            } else if (track.isOffline && track.audioUrl) {
+                streamUrl = track.audioUrl;
+                if (this.playbackSequence !== currentSequence) return;
+
+                this.currentRgValues = null;
+                this.applyReplayGain();
+
+                activeElement.src = streamUrl;
+                this.applyAudioEffects();
+
+                const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
+                if (!canPlay || this.playbackSequence !== currentSequence) return;
+
+                if (startTime > 0) {
+                    activeElement.currentTime = startTime;
+                }
+                const played = await this.safePlay(activeElement);
                 if (!played) return;
             } else if (track.isLocal && track.file) {
                 streamUrl = URL.createObjectURL(track.file);

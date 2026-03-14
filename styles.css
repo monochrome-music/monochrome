@@ -8320,3 +8320,40 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     align-items: center;
     gap: 0.5rem;
 }
+
+/* Offline Badge */
+.offline-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    background: var(--highlight, var(--primary));
+    color: var(--background);
+    margin-left: auto;
+    line-height: 1;
+}
+
+/* Offline remove button */
+.offline-remove-btn:hover {
+    color: var(--destructive, #ef4444) !important;
+}
+
+/* Save offline button active state in now-playing bar */
+#save-offline-btn.active {
+    color: var(--highlight, var(--primary));
+}
+
+/* Offline page empty state animation */
+#offline-empty-state svg {
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}

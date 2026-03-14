@@ -251,6 +251,7 @@ export class UIRenderer {
         const lyricsBtn = document.getElementById('toggle-lyrics-btn');
         const fsLikeBtn = document.getElementById('fs-like-btn');
         const fsAddPlaylistBtn = document.getElementById('fs-add-playlist-btn');
+        const saveOfflineBtn = document.getElementById('save-offline-btn');
 
         if (track) {
             const isLocal = track.isLocal;
@@ -299,6 +300,25 @@ export class UIRenderer {
                 if (shouldHideLikes) fsAddPlaylistBtn.style.display = 'none';
                 else fsAddPlaylistBtn.style.display = 'flex';
             }
+
+            // Update save-offline button
+            if (saveOfflineBtn) {
+                if (isLocal || isTracker) {
+                    saveOfflineBtn.style.display = 'none';
+                } else {
+                    saveOfflineBtn.style.display = 'flex';
+                    import('./offline.js').then(({ isTrackOffline }) => {
+                        isTrackOffline(track.id).then((isOffline) => {
+                            saveOfflineBtn.title = isOffline ? 'Remove from Offline' : 'Save Offline';
+                            saveOfflineBtn.classList.toggle('active', isOffline);
+                            const svg = saveOfflineBtn.querySelector('svg');
+                            if (svg) {
+                                svg.setAttribute('fill', isOffline ? 'currentColor' : 'none');
+                            }
+                        });
+                    });
+                }
+            }
         } else {
             if (likeBtn) likeBtn.style.display = 'none';
             if (addPlaylistBtn) addPlaylistBtn.style.setProperty('display', 'none', 'important');
@@ -306,6 +326,7 @@ export class UIRenderer {
             if (lyricsBtn) lyricsBtn.style.display = 'none';
             if (fsLikeBtn) fsLikeBtn.style.display = 'none';
             if (fsAddPlaylistBtn) fsAddPlaylistBtn.style.display = 'none';
+            if (saveOfflineBtn) saveOfflineBtn.style.display = 'none';
         }
     }
 
@@ -1857,6 +1878,119 @@ export class UIRenderer {
             if (headerDiv) headerDiv.style.display = 'none';
             if (listContainer) listContainer.innerHTML = '';
         }
+    }
+
+    async renderOfflinePage() {
+        this.showPage('offline');
+
+        const { getAllOfflineTracks, getOfflineStorageUsed, getOfflineTrackCount, removeOfflineTrack, clearAllOfflineTracks, buildPlayableTrack } = await import('./offline.js');
+
+        const container = document.getElementById('offline-tracks-container');
+        const emptyState = document.getElementById('offline-empty-state');
+        const storageInfo = document.getElementById('offline-storage-info');
+        const shuffleBtn = document.getElementById('offline-shuffle-btn');
+        const clearBtn = document.getElementById('offline-clear-btn');
+
+        const formatBytes = (bytes) => {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        };
+
+        const render = async () => {
+            const entries = await getAllOfflineTracks();
+            const storageUsed = await getOfflineStorageUsed();
+
+            if (storageInfo) {
+                storageInfo.textContent = `${entries.length} track${entries.length !== 1 ? 's' : ''} • ${formatBytes(storageUsed)} used`;
+            }
+
+            if (entries.length === 0) {
+                if (container) container.innerHTML = '';
+                if (emptyState) emptyState.style.display = 'block';
+                if (shuffleBtn) shuffleBtn.style.display = 'none';
+                if (clearBtn) clearBtn.style.display = 'none';
+                return;
+            }
+
+            if (emptyState) emptyState.style.display = 'none';
+            if (shuffleBtn) shuffleBtn.style.display = 'flex';
+            if (clearBtn) clearBtn.style.display = 'flex';
+
+            // Build playable tracks
+            const playableTracks = entries.map(entry => buildPlayableTrack(entry));
+
+            // Re-use existing track list rendering
+            this.renderListWithTracks(container, playableTracks, true);
+
+            // Add remove buttons to each track item
+            container.querySelectorAll('.track-item').forEach((el) => {
+                const trackId = el.dataset.trackId;
+                if (!trackId) return;
+
+                // Add a remove-from-offline button
+                const actionsArea = el.querySelector('.track-actions') || el;
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'btn-icon offline-remove-btn';
+                removeBtn.title = 'Remove from Offline';
+                removeBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`;
+                removeBtn.style.cssText = 'background: transparent; border: none; color: var(--muted-foreground); cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center; transition: color 0.2s;';
+                removeBtn.addEventListener('mouseenter', () => { removeBtn.style.color = 'var(--destructive, #ef4444)'; });
+                removeBtn.addEventListener('mouseleave', () => { removeBtn.style.color = 'var(--muted-foreground)'; });
+                removeBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    await removeOfflineTrack(parseInt(trackId) || trackId);
+                    const { showNotification } = await import('./downloads.js');
+                    showNotification('Track removed from offline');
+                    render();
+                    // Update badge
+                    const count = await getOfflineTrackCount();
+                    const badge = document.getElementById('offline-count-badge');
+                    if (badge) {
+                        badge.textContent = count;
+                        badge.style.display = count > 0 ? 'inline-flex' : 'none';
+                    }
+                });
+                actionsArea.appendChild(removeBtn);
+            });
+        };
+
+        await render();
+
+        // Shuffle all
+        if (shuffleBtn) {
+            shuffleBtn.onclick = async () => {
+                const entries = await getAllOfflineTracks();
+                if (entries.length === 0) return;
+                const tracks = entries.map(e => buildPlayableTrack(e));
+                const shuffled = [...tracks].sort(() => Math.random() - 0.5);
+                this.player.shuffleActive = true;
+                this.player.setQueue(shuffled, 0);
+                this.player.playAtIndex(0);
+                const { showNotification } = await import('./downloads.js');
+                showNotification(`Shuffling ${shuffled.length} offline tracks`);
+            };
+        }
+
+        // Clear all
+        if (clearBtn) {
+            clearBtn.onclick = async () => {
+                if (!confirm('Remove all offline tracks? This cannot be undone.')) return;
+                await clearAllOfflineTracks();
+                const { showNotification } = await import('./downloads.js');
+                showNotification('All offline tracks removed');
+                render();
+                const badge = document.getElementById('offline-count-badge');
+                if (badge) { badge.textContent = '0'; badge.style.display = 'none'; }
+            };
+        }
+
+        // Listen for external changes
+        const handler = () => { if (this.currentPage === 'offline') render(); };
+        window.removeEventListener('offline-tracks-changed', handler);
+        window.addEventListener('offline-tracks-changed', handler);
     }
 
     async renderHomePage() {

@@ -535,6 +535,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Render pinned items
     await ui.renderPinnedItems();
 
+    // Initialize offline badge count
+    import('./offline.js').then(({ getOfflineTrackCount }) => {
+        getOfflineTrackCount().then(count => {
+            const badge = document.getElementById('offline-count-badge');
+            if (badge) {
+                badge.textContent = count;
+                badge.style.display = count > 0 ? 'inline-flex' : 'none';
+            }
+        });
+    });
     // Load settings module and initialize
     const { initializeSettings } = await loadSettingsModule();
     initializeSettings(scrobbler, player, api, ui);
@@ -911,6 +921,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('download-current-btn')?.addEventListener('click', () => {
         if (player.currentTrack) {
             handleTrackAction('download', player.currentTrack, player, api, lyricsManager, 'track', ui);
+        }
+    });
+
+    document.getElementById('save-offline-btn')?.addEventListener('click', async () => {
+        if (player.currentTrack && !player.currentTrack.isLocal) {
+            await handleTrackAction('save-offline', player.currentTrack, player, api, lyricsManager, 'track', ui);
+            // Update button state after save/remove
+            ui.setCurrentTrack(player.currentTrack);
         }
     });
 
