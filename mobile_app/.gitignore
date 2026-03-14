@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Capacitor generated
+ios/App/App/capacitor.config.json
+ios/App/Pods/
+ios/App/App/public/
+ios/App/output/
+android/app/src/main/assets/capacitorjs/
+android/app/src/main/assets/public/
+android/capacitor-cordova-android-plugins/
+android/.gradle/
+android/app/build/
+android/build/
+android/app/capacitor.build.gradle
+
+# IDE
+.idea/
+*.xcworkspace/
+*.xcuserdata/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+xcuserdata/
+*.xccheckout
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+*.apk
+*.aab
+*.ipa

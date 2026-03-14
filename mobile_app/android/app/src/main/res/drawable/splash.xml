@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Black background -->
+    <item android:drawable="@android:color/black" />
+
+    <!-- Centered app name text isn't possible in drawable, so we use a simple black splash.
+         The actual splash with spinner is handled by Capacitor's SplashScreen plugin. -->
+</layer-list>
