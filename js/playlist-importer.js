@@ -258,9 +258,9 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
             if (typeValue === 'album' || typeValue === 'favorite album') return 'album';
             if (typeValue === 'artist' || typeValue === 'favorite artist') return 'artist';
             if (
-                typeValue === 'track' ||
                 typeValue === 'favorite' ||
                 typeValue === 'favorite track' ||
+                typeValue === 'track' ||
                 typeValue === 'playlist'
             )
                 return 'track';
@@ -269,9 +269,13 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
         const hasTrackName = mappedHeaders.track !== undefined && values[mappedHeaders.track];
         const hasArtistName = mappedHeaders.artist !== undefined && values[mappedHeaders.artist];
         const hasAlbumName = mappedHeaders.album !== undefined && values[mappedHeaders.album];
-        if (hasTrackName && hasAlbumName && values[mappedHeaders.track] === values[mappedHeaders.album]) return 'album';
 
         if (hasTrackName && hasArtistName) return 'track';
+
+        if (hasTrackName && hasAlbumName && values[mappedHeaders.track] === values[mappedHeaders.album]) {
+            return hasArtistName ? 'track' : 'album';
+        }
+
         if (hasAlbumName && hasArtistName && !hasTrackName) return 'album';
         if (hasArtistName && !hasTrackName && !hasAlbumName) return 'artist';
 
@@ -290,6 +294,9 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
         const albumName = mappedHeaders.album !== undefined ? values[mappedHeaders.album] : '';
         const isrc = mappedHeaders.isrc !== undefined ? values[mappedHeaders.isrc] : '';
         const playlistName = mappedHeaders.playlistName !== undefined ? values[mappedHeaders.playlistName] : '';
+        const typeValue =
+            mappedHeaders.type !== undefined ? values[mappedHeaders.type]?.toLowerCase().trim() : '';
+        const isFavorite = typeValue.includes('favorite');
 
         if (onProgress) {
             onProgress({
@@ -322,6 +329,7 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
                 }
 
                 if (foundTrack) {
+                    if (isFavorite) foundTrack.isFavorite = true;
                     tracks.push(foundTrack);
                     if (playlistName) {
                         if (!playlists[playlistName]) {
@@ -350,6 +358,7 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
                 }
 
                 if (foundAlbum) {
+                    if (isFavorite) foundAlbum.isFavorite = true;
                     albums.push(foundAlbum);
                 } else {
                     missingItems.push({
@@ -369,6 +378,7 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
                 }
 
                 if (foundArtist) {
+                    if (isFavorite) foundArtist.isFavorite = true;
                     artists.push(foundArtist);
                 } else {
                     missingItems.push({
@@ -404,7 +414,17 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
     };
 }
 
-export async function importToLibrary(csvResult, db, onProgress) {
+/**
+ * Imports CSV result to library
+ * @param {Object} csvResult - Result from parseDynamicCSV
+ * @param {Object} db - Database instance
+ * @param {Function} onProgress - Progress callback
+ * @param {Object} options - Import options
+ * @returns {Promise<Object} - Results summary
+ */
+export async function importToLibrary(csvResult, db, onProgress, options = {}) {
+    const { favoriteTracks = true, favoriteAlbums = true, favoriteArtists = true } = options;
+
     const results = {
         tracks: { added: 0, failed: 0 },
         albums: { added: 0, failed: 0 },
@@ -419,9 +439,11 @@ export async function importToLibrary(csvResult, db, onProgress) {
     for (const track of csvResult.tracks) {
         if (!addedTrackIds.has(track.id)) {
             try {
-                await db.toggleFavorite('track', track);
+                if (favoriteTracks || track.isFavorite) {
+                    await db.toggleFavorite('track', track);
+                    results.tracks.added++;
+                }
                 addedTrackIds.add(track.id);
-                results.tracks.added++;
             } catch {
                 results.tracks.failed++;
             }
@@ -432,9 +454,11 @@ export async function importToLibrary(csvResult, db, onProgress) {
     for (const album of csvResult.albums) {
         if (!addedAlbumIds.has(album.id)) {
             try {
-                await db.toggleFavorite('album', album);
+                if (favoriteAlbums || album.isFavorite) {
+                    await db.toggleFavorite('album', album);
+                    results.albums.added++;
+                }
                 addedAlbumIds.add(album.id);
-                results.albums.added++;
             } catch {
                 results.albums.failed++;
             }
@@ -445,9 +469,11 @@ export async function importToLibrary(csvResult, db, onProgress) {
     for (const artist of csvResult.artists) {
         if (!addedArtistIds.has(artist.id)) {
             try {
-                await db.toggleFavorite('artist', artist);
+                if (favoriteArtists || artist.isFavorite) {
+                    await db.toggleFavorite('artist', artist);
+                    results.artists.added++;
+                }
                 addedArtistIds.add(artist.id);
-                results.artists.added++;
             } catch {
                 results.artists.failed++;
             }

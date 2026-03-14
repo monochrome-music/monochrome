@@ -1566,13 +1566,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                             if (isLibraryImport) {
                                 currentTrackElement.textContent = 'Adding to library...';
 
-                                const importResults = await importToLibrary(result, db, (progress) => {
-                                    if (progress.action === 'playlist') {
-                                        currentTrackElement.textContent = `Creating playlist: ${progress.item}`;
-                                    } else {
-                                        currentTrackElement.textContent = `Adding ${progress.action}: ${progress.item}`;
+                                const importResults = await importToLibrary(
+                                    result,
+                                    db,
+                                    (progress) => {
+                                        if (progress.action === 'playlist') {
+                                            currentTrackElement.textContent = `Creating playlist: ${progress.item}`;
+                                        } else {
+                                            currentTrackElement.textContent = `Adding ${progress.action}: ${progress.item}`;
+                                        }
+                                    },
+                                    {
+                                        favoriteTracks: false,
+                                        favoriteAlbums: false,
+                                        favoriteArtists: false,
                                     }
-                                });
+                                );
 
                                 console.log('Import results:', importResults);
 
