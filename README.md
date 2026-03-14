@@ -264,6 +264,12 @@ We welcome contributions from the community! Please see our [Contributing Guide]
 </p>
 
 <p align="center">
+  <a href="https://notbyai.fyi">
+    <img src="https://i.samidy.xyz/Developed-By-Humans-Not-By-AI-Badge-black%402x.png" alt="Developed by Humans" height="50">
+  </a>
+</p>
+
+<p align="center">
   Made with ❤️ by the Monochrome team
 </p>
 
