@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Monochrome</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%;
+      background: #000;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .splash {
+      text-align: center;
+      opacity: 1;
+      transition: opacity 0.4s ease;
+    }
+    .splash.fade-out { opacity: 0; }
+    .splash svg { width: 80px; height: 80px; margin-bottom: 24px; }
+    .splash h1 {
+      font-size: 28px; font-weight: 600;
+      letter-spacing: 2px; text-transform: uppercase;
+    }
+    .splash p {
+      margin-top: 8px; font-size: 13px;
+      color: rgba(255,255,255,0.5);
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+    .loading-dots { animation: pulse 1.5s ease-in-out infinite; margin-top: 32px; }
+    .loading-dots span {
+      display: inline-block; width: 6px; height: 6px;
+      background: #fff; border-radius: 50%; margin: 0 3px;
+    }
+    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+  </style>
+</head>
+<body>
+  <div class="splash" id="splash">
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="50" cy="50" r="48" stroke="white" stroke-width="2"/>
+      <circle cx="50" cy="50" r="35" stroke="white" stroke-width="1.5" opacity="0.7"/>
+      <circle cx="50" cy="50" r="22" stroke="white" stroke-width="1" opacity="0.5"/>
+      <circle cx="50" cy="50" r="8" fill="white"/>
+    </svg>
+    <h1>Monochrome</h1>
+    <p>loading</p>
+    <div class="loading-dots">
+      <span></span><span></span><span></span>
+    </div>
+  </div>
+  <!-- Capacitor bridge injection — the live site loads via server.url config -->
+  <script src="capacitor-bridge.js" type="module"></script>
+</body>
+</html>

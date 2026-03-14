@@ -1,3 +1,8 @@
+# Ensure www shell is tracked (overrides root .gitignore)
+!www/
+!www/index.html
+!www/capacitor-bridge.js
+
 # Dependencies
 node_modules/
 
