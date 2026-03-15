@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Monochrome</string>
+    <string name="notification_channel_name">Music Playback</string>
+    <string name="notification_channel_description">Monochrome music playback controls</string>
+    <string name="action_play">Play</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_previous">Previous</string>
+    <string name="action_next">Next</string>
+    <!-- TODO: Replace with your self-hosted Monochrome instance URL -->
+    <string name="pwa_url">https://your-monochrome-instance.example.com</string>
+</resources>
