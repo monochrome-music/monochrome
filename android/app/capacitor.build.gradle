@@ -13,6 +13,7 @@ dependencies {
     implementation project(':capacitor-browser')
     implementation project(':capacitor-dialog')
     implementation project(':capacitor-filesystem')
+    implementation project(':capacitor-screen-orientation')
     implementation project(':capacitor-share')
     implementation project(':jofr-capacitor-media-session')
     implementation project(':odion-cloud-capacitor-mediastore')

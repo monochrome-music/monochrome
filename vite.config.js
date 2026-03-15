@@ -13,8 +13,7 @@ export default defineConfig(() => {
         resolve: {
             alias: {
                 '!': '/node_modules',
-                pocketbase: '/node_modules/pocketbase/dist/pocketbase.es.js',
-                '@uimaxbai/am-lyrics': '/node_modules/@uimaxbai/am-lyrics/dist/src/am-lyrics.js',
+                pocketbase: '/node_modules/pocketbase/dist/pocketbase.es.js'
                 
             },
         },
