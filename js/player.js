@@ -227,6 +227,29 @@ export class Player {
             this.shuffleActive = savedState.shuffleActive || false;
             this.repeatMode = savedState.repeatMode !== undefined ? savedState.repeatMode : REPEAT_MODE.OFF;
 
+            // Fix offline tracks with dead blob URLs after a hard reload.
+            // Blob URLs don't survive page refreshes, so strip them and use
+            // the original TIDAL cover ID (stored in metadata) for display,
+            // then asynchronously re-hydrate from IndexedDB so playback works.
+            const fixDeadBlobUrls = (track) => {
+                if (!track?.isOffline) return;
+                // Strip dead blob: audio URL so playTrackFromQueue knows to re-fetch
+                if (track.audioUrl && track.audioUrl.startsWith('blob:')) {
+                    track.audioUrl = null;
+                }
+                // Strip dead blob: cover URL; fall back to original TIDAL cover ID
+                if (track.album?.cover && track.album.cover.startsWith('blob:')) {
+                    track.album.cover = track.album._originalCover || null;
+                }
+            };
+
+            this.queue.forEach(fixDeadBlobUrls);
+            this.shuffledQueue.forEach(fixDeadBlobUrls);
+            this.originalQueueBeforeShuffle.forEach(fixDeadBlobUrls);
+
+            // Re-hydrate offline tracks from IndexedDB in the background
+            this._rehydrateOfflineTracks();
+
             // Restore current track if queue exists and index is valid
             const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
             if (this.currentQueueIndex >= 0 && this.currentQueueIndex < currentQueue.length) {
@@ -307,6 +330,64 @@ export class Player {
                 this.updatePlayingTrackIndicator();
                 this.updateMediaSession(track);
             }
+        }
+    }
+
+    /**
+     * Re-hydrate offline tracks in all queues from IndexedDB.
+     * Rebuilds blob URLs for audio and cover art so playback works after a hard reload.
+     */
+    async _rehydrateOfflineTracks() {
+        try {
+            const { getOfflineTrack, buildPlayableTrack } = await import('./offline.js');
+
+            const rehydrate = async (trackArray) => {
+                for (let i = 0; i < trackArray.length; i++) {
+                    const track = trackArray[i];
+                    if (!track?.isOffline) continue;
+                    // Only re-hydrate if the audioUrl is missing (was stripped as dead blob)
+                    if (track.audioUrl) continue;
+
+                    try {
+                        const entry = await getOfflineTrack(track.id);
+                        if (entry) {
+                            const playable = buildPlayableTrack(entry);
+                            // Preserve the original TIDAL cover ID for future reloads
+                            if (playable.album) {
+                                playable.album._originalCover = entry.metadata.albumCover || null;
+                            }
+                            trackArray[i] = playable;
+                        }
+                    } catch (e) {
+                        console.warn(`[Offline] Failed to re-hydrate track ${track.id}:`, e);
+                    }
+                }
+            };
+
+            await Promise.all([
+                rehydrate(this.queue),
+                rehydrate(this.shuffledQueue),
+                rehydrate(this.originalQueueBeforeShuffle),
+            ]);
+
+            // Update currentTrack reference after re-hydration
+            const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
+            if (this.currentQueueIndex >= 0 && this.currentQueueIndex < currentQueue.length) {
+                const rehydrated = currentQueue[this.currentQueueIndex];
+                if (rehydrated?.isOffline && rehydrated.audioUrl) {
+                    this.currentTrack = rehydrated;
+
+                    // Update cover art if it was re-hydrated with a fresh blob URL
+                    const coverEl = document.querySelector('.now-playing-bar .cover');
+                    if (coverEl && rehydrated.album?.cover) {
+                        if (coverEl.tagName === 'IMG') {
+                            coverEl.src = rehydrated.album.cover;
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[Offline] Failed to re-hydrate offline tracks:', e);
         }
     }
 
@@ -763,7 +844,37 @@ export class Player {
                     activeElement.currentTime = startTime;
                 }
                 const played = await this.safePlay(activeElement);
-            } else if (track.isOffline && track.audioUrl) {
+            } else if (track.isOffline) {
+                // Re-hydrate from IndexedDB if the blob URL was lost (e.g. after hard reload)
+                if (!track.audioUrl) {
+                    try {
+                        const { getOfflineTrack, buildPlayableTrack } = await import('./offline.js');
+                        const entry = await getOfflineTrack(track.id);
+                        if (entry) {
+                            const playable = buildPlayableTrack(entry);
+                            if (playable.album) {
+                                playable.album._originalCover = entry.metadata.albumCover || null;
+                            }
+                            // Update the queue entry in-place
+                            Object.assign(track, playable);
+                            // Update cover in the now-playing bar
+                            const nowCover = document.querySelector('.now-playing-bar .cover');
+                            if (nowCover && nowCover.tagName === 'IMG' && track.album?.cover) {
+                                nowCover.src = track.album.cover;
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('[Offline] Failed to re-hydrate for playback:', e);
+                    }
+                }
+
+                if (!track.audioUrl) {
+                    console.warn(`Offline track ${trackTitle} has no audio data. Skipping.`);
+                    track.isUnavailable = true;
+                    this.playNext();
+                    return;
+                }
+
                 streamUrl = track.audioUrl;
                 if (this.playbackSequence !== currentSequence) return;
 

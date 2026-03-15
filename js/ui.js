@@ -1895,6 +1895,8 @@ export class UIRenderer {
         const storageInfo = document.getElementById('offline-storage-info');
         const shuffleBtn = document.getElementById('offline-shuffle-btn');
         const clearBtn = document.getElementById('offline-clear-btn');
+        const searchContainer = document.getElementById('offline-search-container');
+        const searchInput = document.getElementById('offline-search-input');
 
         const formatBytes = (bytes) => {
             if (bytes === 0) return '0 B';
@@ -1917,18 +1919,26 @@ export class UIRenderer {
                 if (emptyState) emptyState.style.display = 'block';
                 if (shuffleBtn) shuffleBtn.style.display = 'none';
                 if (clearBtn) clearBtn.style.display = 'none';
+                if (searchContainer) searchContainer.style.display = 'none';
                 return;
             }
 
             if (emptyState) emptyState.style.display = 'none';
             if (shuffleBtn) shuffleBtn.style.display = 'flex';
             if (clearBtn) clearBtn.style.display = 'flex';
+            if (searchContainer) searchContainer.style.display = '';
+
+            // Clear search input on re-render
+            if (searchInput) searchInput.value = '';
 
             // Build playable tracks
             const playableTracks = entries.map(entry => buildPlayableTrack(entry));
 
             // Re-use existing track list rendering
             this.renderListWithTracks(container, playableTracks, true);
+
+            // Setup search filtering for offline tracks
+            this.setupTracklistSearch('offline-search-input', 'offline-tracks-container');
 
             // Add remove buttons to each track item
             container.querySelectorAll('.track-item').forEach((el) => {

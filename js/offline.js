@@ -196,6 +196,9 @@ export function buildPlayableTrack(entry) {
             ...(meta.album || {}),
             title: meta.albumTitle,
             cover: coverUrl || meta.albumCover,
+            // Preserve the original TIDAL cover ID so it can be used
+            // as a fallback after hard reload when blob URLs are dead
+            _originalCover: meta.albumCover || null,
         },
         audioUrl: audioUrl,
         isOffline: true,

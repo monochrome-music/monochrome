@@ -113,6 +113,11 @@ export function initializeUIInteractions(player, api, ui) {
             <button id="download-queue-btn" class="btn-icon" title="Download Queue" style="display: ${showActionBtns ? 'flex' : 'none'}">
                 ${SVG_DOWNLOAD}
             </button>
+            <button id="save-queue-offline-btn" class="btn-icon" title="Save Queue Offline" style="display: ${showActionBtns ? 'flex' : 'none'}">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+            </button>
             <button id="like-queue-btn" class="btn-icon" title="Add Queue to Liked" style="display: ${showActionBtns ? 'flex' : 'none'}">
                 ${SVG_HEART}
             </button>
@@ -138,6 +143,118 @@ export function initializeUIInteractions(player, api, ui) {
         if (downloadBtn) {
             downloadBtn.addEventListener('click', async () => {
                 downloadTracks(currentQueue, api, downloadQualitySettings.getQuality());
+            });
+        }
+
+        // Save Queue Offline
+        const saveOfflineBtn = container.querySelector('#save-queue-offline-btn');
+        if (saveOfflineBtn) {
+            saveOfflineBtn.addEventListener('click', async () => {
+                const { isTrackOffline, saveOfflineTrack, getOfflineTrackCount } = await import('./offline.js');
+
+                // Filter to only saveable tracks (not already offline, not local files, not tracker)
+                const tracksToSave = [];
+                for (const track of currentQueue) {
+                    if (track.isLocal || track.isOffline) continue;
+                    const isTracker = track.isTracker || (track.id && String(track.id).startsWith('tracker-'));
+                    if (isTracker) continue;
+                    const alreadyOffline = await isTrackOffline(track.id);
+                    if (alreadyOffline) continue;
+                    tracksToSave.push(track);
+                }
+
+                if (tracksToSave.length === 0) {
+                    showNotification('All tracks in queue are already saved offline');
+                    return;
+                }
+
+                // Create progress notification
+                const notifContainer = document.getElementById('download-notifications') || (() => {
+                    const c = document.createElement('div');
+                    c.id = 'download-notifications';
+                    document.body.appendChild(c);
+                    return c;
+                })();
+
+                const taskEl = document.createElement('div');
+                taskEl.className = 'download-task';
+                taskEl.innerHTML = `
+                    <div style="display: flex; align-items: start; gap: 0.75rem;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 4px;">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                        </svg>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-weight: 500; font-size: 0.9rem; margin-bottom: 0.25rem;">Saving queue offline</div>
+                            <div class="download-progress-bar" style="height: 4px; background: var(--secondary); border-radius: 2px; overflow: hidden;">
+                                <div class="offline-progress-fill" style="width: 0%; height: 100%; background: var(--highlight); transition: width 0.2s;"></div>
+                            </div>
+                            <div class="offline-status" style="font-size: 0.75rem; color: var(--muted-foreground); margin-top: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">0/${tracksToSave.length} tracks saved</div>
+                        </div>
+                    </div>
+                `;
+                notifContainer.appendChild(taskEl);
+
+                const progressFill = taskEl.querySelector('.offline-progress-fill');
+                const statusEl = taskEl.querySelector('.offline-status');
+
+                let savedCount = 0;
+                let failedCount = 0;
+
+                for (let i = 0; i < tracksToSave.length; i++) {
+                    const track = tracksToSave[i];
+                    const trackTitle = track.title || 'Unknown';
+                    statusEl.textContent = `${savedCount}/${tracksToSave.length} — ${trackTitle}`;
+                    progressFill.style.width = `${(i / tracksToSave.length) * 100}%`;
+
+                    try {
+                        const quality = downloadQualitySettings.getQuality();
+                        const blob = await api.downloadTrack(track.id, quality, `${track.title}.flac`, {
+                            track: track,
+                            triggerDownload: false,
+                        });
+
+                        // Fetch cover art
+                        let coverBlob = null;
+                        const coverSrc = api.getCoverUrl(track.album?.cover, '640');
+                        if (coverSrc && !coverSrc.includes('picsum.photos')) {
+                            try {
+                                const coverRes = await fetch(coverSrc);
+                                if (coverRes.ok) coverBlob = await coverRes.blob();
+                            } catch { /* ignore cover fetch failure */ }
+                        }
+
+                        await saveOfflineTrack(track, blob, coverBlob);
+                        savedCount++;
+                    } catch (err) {
+                        console.warn(`[Offline] Failed to save track "${trackTitle}":`, err);
+                        failedCount++;
+                    }
+                }
+
+                // Done
+                progressFill.style.width = '100%';
+                if (failedCount === 0) {
+                    progressFill.style.background = '#10b981';
+                    statusEl.textContent = `⚡ ${savedCount} track${savedCount > 1 ? 's' : ''} saved offline!`;
+                    statusEl.style.color = '#10b981';
+                } else {
+                    progressFill.style.background = '#f59e0b';
+                    statusEl.textContent = `${savedCount} saved, ${failedCount} failed`;
+                    statusEl.style.color = '#f59e0b';
+                }
+
+                // Update offline badge
+                const count = await getOfflineTrackCount();
+                const badge = document.getElementById('offline-count-badge');
+                if (badge) {
+                    badge.textContent = count;
+                    badge.style.display = count > 0 ? 'inline-flex' : 'none';
+                }
+
+                setTimeout(() => {
+                    taskEl.style.animation = 'slide-out 0.3s ease forwards';
+                    setTimeout(() => taskEl.remove(), 300);
+                }, 3000);
             });
         }
 
