@@ -89,7 +89,7 @@ const mediaPermissionGranted = {
     video: false,
 };
 
-async function ensureMediaStorePermission(type = 'audio') {
+async function ensureMediaStorePermission(type) {
     if (mediaPermissionGranted[type]) return;
 
     const status = await CapacitorMediaStore.requestPermissions({ types: [type] });
@@ -99,6 +99,10 @@ async function ensureMediaStorePermission(type = 'audio') {
         status?.writeExternalStorage;
 
     if (permissionState && permissionState !== 'granted') {
+        await Dialog.alert({
+            title: 'Permission not granted',
+            message: `Please open the Android app settings to grant permission to store music`,
+        });
         throw new Error(`MediaStore ${type} permission was not granted`);
     }
 
@@ -116,6 +120,8 @@ function pickMimeType(blob, fallback) {
     return raw;
 }
 
+// vibe coding moment
+/*
 async function saveToMediaStore({
     blob,
     fileName,
@@ -145,6 +151,7 @@ async function saveToMediaStore({
 
     return result;
 }
+*/
 
 export const init = async () => {
     if (!isCapacitorRuntime) return;
@@ -305,13 +312,21 @@ export const downloads = {
         if (!isCapacitorRuntime || Capacitor.getPlatform() !== 'android') {
             return { success: false, skipped: true, error: 'Not running on Android native platform' };
         }
+        
+        if (!blob || !fileName) {
+            throw new Error('Missing blob or fileName for audio save');
+        }
+        
+        await ensureMediaStorePermission('audio');
+
         try {
-            return await saveToMediaStore({
-                blob,
-                fileName,
-                mediaType: 'audio',
-                albumName: albumName || undefined,
-                fallbackMimeType: 'audio/mpeg',
+                return await CapacitorMediaStore.saveMedia({
+                    data : await blobToBase64(blob),
+                    fileName: String(fileName),
+                    mediaType: 'audio',
+                    albumName: albumName || undefined,
+                    mimeType: pickMimeType(blob, 'audio/mpeg'),
+                    fallbackMimeType: 'audio/mpeg',
             });
         } catch (error) {
             throw new Error(`MediaStore save failed: ${error?.message || String(error)}`);
@@ -323,12 +338,19 @@ export const downloads = {
             return { success: false, skipped: true, error: 'Not running on Android native platform' };
         }
 
+        if (!blob || !fileName) {
+            throw new Error('Missing blob or fileName for video save');
+        }
+        
+        await ensureMediaStorePermission('video');
+
         try {
-            return await saveToMediaStore({
-                blob,
-                fileName,
+            return await CapacitorMediaStore.saveMedia({
+                data: await blobToBase64(blob),
+                fileName: String(fileName),
                 mediaType: 'video',
                 relativePath: 'Movies/Monochrome',
+                mimeType: pickMimeType(blob, 'video/mp4'),
                 fallbackMimeType: 'video/mp4',
             });
         } catch (error) {
