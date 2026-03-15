@@ -4,16 +4,16 @@ services:
         build:
             context: .
             dockerfile: Dockerfile
+            args:
+                - AUTH_ENABLED=${AUTH_ENABLED}
+                - AUTH_SECRET=${AUTH_SECRET}
+                - APPWRITE_ENDPOINT=${APPWRITE_ENDPOINT}
+                - APPWRITE_PROJECT_ID=${APPWRITE_PROJECT_ID}
+                - POCKETBASE_URL=${POCKETBASE_URL}
+                - SESSION_MAX_AGE=${SESSION_MAX_AGE}
         container_name: monochrome
         ports:
             - '${MONOCHROME_PORT:-3000}:4173'
-        environment:
-            AUTH_ENABLED: ${AUTH_ENABLED:-false}
-            AUTH_SECRET: ${AUTH_SECRET:-}
-            APPWRITE_ENDPOINT: ${APPWRITE_ENDPOINT:-https://auth.yourdomain.com/v1}
-            APPWRITE_PROJECT_ID: ${APPWRITE_PROJECT_ID:-auth-for-monochrome}
-            POCKETBASE_URL: ${POCKETBASE_URL:-}
-            SESSION_MAX_AGE: ${SESSION_MAX_AGE:-604800000}
         restart: unless-stopped
         networks:
             - monochrome-network
