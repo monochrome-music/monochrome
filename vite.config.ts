@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
     const IS_NEUTRALINO = mode === 'neutralino';
 
     return {
-        base: './',
+        base: IS_NEUTRALINO ? './' : '/',
         worker: {
             format: 'es',
         },
