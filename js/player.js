@@ -646,6 +646,8 @@ export class Player {
         const isVideoTrack = track.type === 'video';
         const activeElement = isVideoTrack ? this.video : this.audio;
         const inactiveElement = isVideoTrack ? this.audio : this.video;
+
+        this.updatePlaybackOrientation(isVideoTrack);
         if (this.hls) {
             this.hls.destroy();
             this.hls = null;
@@ -1384,6 +1386,7 @@ export class Player {
         const el = this.activeElement;
         el.pause();
         el.src = '';
+        this.updatePlaybackOrientation(false);
         this.currentTrack = null;
         this.queue = [];
         this.shuffledQueue = [];
@@ -1731,5 +1734,20 @@ export class Player {
         } catch (e) {
             console.error('Failed to set window title:', e);
         }
+    }
+
+    updatePlaybackOrientation(isVideoTrack) {
+        const orientation = window.CapacitorBridge?.orientation;
+        if (!orientation) return;
+        const overlay = document.getElementById('fullscreen-cover-overlay');
+        const isVideoPlayerOpen =
+            Boolean(overlay) && (overlay.style.display === 'flex' || getComputedStyle(overlay).display === 'flex');
+
+        if (isVideoTrack && isVideoPlayerOpen) {
+            orientation.lockLandscape();
+            return;
+        }
+
+        orientation.unlock();
     }
 }
