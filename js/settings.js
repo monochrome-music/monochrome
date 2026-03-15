@@ -3125,7 +3125,20 @@ export function initializeSettings(scrobbler, player, api, ui) {
 
                     // Clear IndexedDB - try to clear individual stores, fallback to deleting database
                     try {
-                        const stores = ['tracks', 'albums', 'artists', 'playlists', 'settings', 'history'];
+                        const stores = [
+                            'favorites_tracks',
+                            'favorites_videos',
+                            'favorites_albums',
+                            'favorites_artists',
+                            'favorites_playlists',
+                            'favorites_mixes',
+                            'history_tracks',
+                            'user_playlists',
+                            'user_folders',
+                            'settings',
+                            'pinned_items',
+                        ];
+
                         for (const storeName of stores) {
                             try {
                                 await db.performTransaction(storeName, 'readwrite', (store) => store.clear());
@@ -3133,11 +3146,12 @@ export function initializeSettings(scrobbler, player, api, ui) {
                                 // Store might not exist, continue
                             }
                         }
+
                     } catch (dbError) {
                         console.log('Could not clear IndexedDB stores:', dbError);
                         // Try to delete the entire database as fallback
                         try {
-                            const deleteRequest = indexedDB.deleteDatabase('monochromeDB');
+                            const deleteRequest = indexedDB.deleteDatabase('MonochromeDB');
                             await new Promise((resolve, reject) => {
                                 deleteRequest.onsuccess = resolve;
                                 deleteRequest.onerror = reject;
