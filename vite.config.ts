@@ -38,6 +38,7 @@ export default defineConfig(({ mode }) => {
         build: {
             outDir: 'dist',
             emptyOutDir: true,
+            sourcemap: true,
         },
         plugins: [
             IS_NEUTRALINO && neutralino(),
