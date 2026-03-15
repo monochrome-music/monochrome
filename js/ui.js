@@ -1086,6 +1086,11 @@ export class UIRenderer {
         if (window.location.hash !== '#fullscreen') {
             window.history.pushState({ fullscreen: true }, '', '#fullscreen');
         }
+        if (track.type === 'video') {
+            window.CapacitorBridge?.orientation?.lockLandscape?.();
+        } else {
+            window.CapacitorBridge?.orientation?.unlock?.();
+        }
         const overlay = document.getElementById('fullscreen-cover-overlay');
         const nextTrackEl = document.getElementById('fullscreen-next-track');
         const lyricsToggleBtn = document.getElementById('toggle-fullscreen-lyrics-btn');
@@ -1172,6 +1177,8 @@ export class UIRenderer {
     }
 
     closeFullscreenCover() {
+        window.CapacitorBridge?.orientation?.unlock?.();
+
         const overlay = document.getElementById('fullscreen-cover-overlay');
         overlay.style.display = 'none';
         overlay.classList.remove('visualizer-active', 'ui-hidden');
