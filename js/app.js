@@ -1289,6 +1289,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             let name = document.getElementById('playlist-name-input').value.trim();
             let description = document.getElementById('playlist-description-input').value.trim();
             const isPublic = document.getElementById('playlist-public-toggle')?.checked;
+            const isStrictAlbumMatch = document.getElementById('strict-album-match-toggle')?.checked;
 
             if (name) {
                 const modal = document.getElementById('playlist-modal');
@@ -1341,7 +1342,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const xmlFileInput = document.getElementById('xml-file-input');
                     const m3uFileInput = document.getElementById('m3u-file-input');
 
-                    const importOptions = { strictArtistMatch: true, albumMatch: true };
+                    const importOptions = { strictArtistMatch: true, strictAlbumMatch: isStrictAlbumMatch };
 
                     let tracks = [];
                     let importSource = 'manual';

@@ -534,7 +534,6 @@
                                 color: var(--foreground);
                                 cursor: pointer;
                                 padding: 0.25rem 0.5rem;
-                                opacity: 0.7;
                             "
                         >
                             CSV
@@ -674,6 +673,22 @@
                             <p style="font-size: 0.8rem; margin: 0; opacity: 0.7">
                                 Make sure its headers are in English.
                             </p>
+                        </div>
+
+                        <div
+                            class="setting-item"
+                            style="margin-top: 1rem; margin-bottom: 1rem; background: transparent"
+                        >
+                            <div class="info">
+                                <span style="font-size: 0.9rem; font-weight: 600">Strict Album Matching</span>
+                                <span style="font-size: 0.8rem; max-width: 14rem">
+                                    Album name should strictly match CSV metadata. Disable for better discovery.
+                                </span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="strict-album-match-toggle" />
+                                <span class="slider"></span>
+                            </label>
                         </div>
                     </div>
 
