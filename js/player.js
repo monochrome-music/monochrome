@@ -346,9 +346,7 @@ export class Player {
             if (hasNativeMediaSession) {
                 window.CapacitorBridge.media
                     .setActionHandler({ action }, handler)
-                    .catch((error) =>
-                        console.warn(`Failed to set native MediaSession handler for ${action}:`, error)
-                    );
+                    .catch((error) => console.warn(`Failed to set native MediaSession handler for ${action}:`, error));
             }
         };
 

@@ -1541,8 +1541,7 @@ export class LosslessAPI {
         }
 
         try {
-            const bridge =
-                window.CapacitorBridge || (await import('./mobile/capacitor-bridge.js')).default || null;
+            const bridge = window.CapacitorBridge || (await import('./mobile/capacitor-bridge.js')).default || null;
 
             if (!bridge?.downloads?.saveAudioToMusic) {
                 return false;

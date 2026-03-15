@@ -1269,7 +1269,10 @@ export async function downloadDiscography(artist, selectedReleases, api, quality
                 removeBulkDownloadTask(notification);
                 return;
             }
-            console.warn('[Downloads] Android discography Music-directory save unavailable, falling back to ZIP:', error);
+            console.warn(
+                '[Downloads] Android discography Music-directory save unavailable, falling back to ZIP:',
+                error
+            );
         }
     }
 

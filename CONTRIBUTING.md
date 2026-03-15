@@ -22,7 +22,7 @@ Thank you for your interest in contributing to Monochrome! This guide will help 
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) (Version 20+ or 22+ recommended)
-- [Bun](https://bun.sh/) (preferred) or [npm](https://www.npmjs.com/)
+- [npm](https://www.npmjs.com/)
 
 ### Quick Start
 
@@ -38,16 +38,12 @@ Thank you for your interest in contributing to Monochrome! This guide will help 
 3. Install dependencies:
 
     ```bash
-    bun install
-    # or
     npm install
     ```
 
 4. Start the development server:
 
     ```bash
-    bun run dev
-    # or
     npm run dev
     ```
 
@@ -73,26 +69,29 @@ We maintain high code quality standards. All code must pass our linting checks b
 
 ```bash
 # Check everything (runs all linters)
-bun run lint
+npm run lint
 
 # Auto-format all code
-bun run format
+npm run format
 
 # Fix JavaScript issues automatically
-bun run lint:js -- --fix
+npm run lint:js -- --fix
 
 # Fix CSS issues automatically
-bun run lint:css -- --fix
+npm run lint:css -- --fix
 
 # Check HTML
-bun run lint:html
+npm run lint:html
 
 # Check specific file types
-bun run lint:js
-bun run lint:css
+npm run lint:js
+npm run lint:css
+
+# Build project and sync to android build dir
+npm run build native
 ```
 
-> ⚠️ **Important:** A GitHub Action automatically runs `bun run lint` on every push and pull request. Please ensure all checks pass before committing.
+> ⚠️ **Important:** A GitHub Action automatically runs `npm run lint` on every push and pull request. Please ensure all checks pass before committing.
 
 ---
 
@@ -196,10 +195,10 @@ git checkout -b fix/description-of-fix
 
 ```bash
 # Run all linters
-bun run lint
+npm run lint
 
 # Test the build
-bun run build
+npm run build
 ```
 
 ### 4. Commit Your Changes
@@ -327,7 +326,7 @@ If you need to deploy manually:
 
 ```bash
 # Build for production
-bun run build
+npm run build
 
 # The `dist/` folder contains the deployable files
 ```

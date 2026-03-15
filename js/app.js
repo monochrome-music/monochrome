@@ -2323,8 +2323,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     name.endsWith('.ogg')
                                 ) {
                                     try {
-                                        const buffer =
-                                            await window.CapacitorBridge.filesystem.readBinaryFile(fullPath);
+                                        const buffer = await window.CapacitorBridge.filesystem.readBinaryFile(fullPath);
                                         const stats = await window.CapacitorBridge.filesystem.getStats(fullPath);
                                         const file = new File([buffer], entry.entry, {
                                             lastModified: stats.mtime,

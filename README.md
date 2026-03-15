@@ -4,10 +4,10 @@
   </a>
 </p>
 
-<h1 align="center">Monochrome</h1>
+<h1 align="center">Monochrome Android</h1>
 
 <p align="center">
-  <strong>An open-source, privacy-respecting, ad-free music app.</strong>
+  <strong>An open-source, privacy-respecting, ad-free music app, built for Android using Capacitor</strong>
 </p>
 
 <p align="center">
@@ -35,11 +35,9 @@
 
 ## NOTICE
 
-This is still very much a work in progress. Lots of bugs, unimplemented features and capacitor fuckery I haven't gotten around to fixing or documenting. 
+This is still very much a work in progress. Lots of bugs, unimplemented features and capacitor fuckery I haven't gotten around to fixing or documenting.
 
 Build instructions will be coming soon
-
-
 
 ## What is Monochrome?
 
@@ -63,9 +61,9 @@ Build instructions will be coming soon
 
 ### Audio Quality
 
-- High-quality High-Res/lossless audio streaming
-- Support for local music files
-- API caching for improved performance
+- High-quality Hi-Res/lossless audio streaming
+- ~~Support for local music files~~ not supported yet :(
+- Intelligent API caching for improved performance
 
 ### Interface
 
@@ -99,7 +97,7 @@ Build instructions will be coming soon
 - Account system for cross-device syncing
 - Customizable & Public Profiles
 - Last.fm and ListenBrainz integration for scrobbling
-- Unreleased music from [ArtistGrid](https://artistgrid.cx)
+- ~~Unreleased music from [ArtistGrid](https://artistgrid.cx)~~ not supported due to cors fuckery (fuck cors)
 - Dynamic Discord Embeds
 - Artist Biography + Social Links for learning more about your favorite artists
 - Multiple API instance support with failover
@@ -171,6 +169,7 @@ For development mode and advanced setups, see [DOCKER.md](DOCKER.md).
 
 - [Node.js](https://nodejs.org/) (Version 20+ or 22+ recommended)
 - [npm](https://www.npmjs.com/)
+- [Android Studio](https://developer.android.com/studio) (for building APK)
 
 #### Local Development
 
@@ -182,10 +181,9 @@ For development mode and advanced setups, see [DOCKER.md](DOCKER.md).
     ```
 
 2. **Install dependencies:**
-   > ⚠️ Install dependencies with --legacy-peer-deps
 
     ```bash
-    npm install --legacy-peer-deps
+    npm install
     ```
 
 3. **Start the development server:**
@@ -200,10 +198,27 @@ For development mode and advanced setups, see [DOCKER.md](DOCKER.md).
 #### Building for Production
 
 ```bash
-bun run build
 # or
 npm run build
+# or (for android)
+npm run build:native
 ```
+
+#### Building for Android
+
+Simply run
+
+```bash
+npx cap open
+```
+
+to open in Android Studio, from there you can build
+
+---
+
+## Installation
+
+Grab the latest build from our [Actions tab](https://github.com/subby2006/monochrome-android/actions/workflows/android-apk.yml) (make sure you're signed in)
 
 ---
 
@@ -244,7 +259,7 @@ npm run build
 To sync your library, history, and playlists across devices:
 
 1. Click the "Accounts" Section
-2. Sign in with Google or Email
+2. Sign in with ~~Google or~~ Email
 3. Your data will automatically sync across all devices
 
 ---
