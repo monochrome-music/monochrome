@@ -1733,6 +1733,14 @@ input[type='search']::-webkit-search-cancel-button {
     animation: fade-in-slide-up 0.4s var(--ease-out-back);
 }
 
+/* Prevent settings tab content from overflowing on small displays (fixes #313) */
+.settings-tab-content {
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: visible;
+}
+
 .card-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -2571,6 +2579,9 @@ input[type='search']::-webkit-search-cancel-button {
 
 .settings-list {
     max-width: 800px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .settings-group {
@@ -2615,6 +2626,7 @@ input[type='search']::-webkit-search-cancel-button {
     padding: var(--spacing-lg) 0;
     border-bottom: 1px solid var(--border);
     gap: var(--spacing-lg);
+    min-width: 0;
 }
 
 .setting-item.sidebar-setting-item {
@@ -2654,6 +2666,7 @@ input[type='search']::-webkit-search-cancel-button {
 .setting-item .info {
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 
 .setting-item .label {
@@ -3641,7 +3654,8 @@ input:checked + .slider::before {
     /* Use a CSS variable for the image so we can set it in JS */
     --bg-image: none;
 
-    padding-bottom: 0;
+    /* Reserve space above taskbar / system UI so volume controls stay visible (fixes #322) */
+    padding-bottom: max(env(safe-area-inset-bottom), 1.5rem);
 }
 
 #fullscreen-cover-overlay::before {
@@ -5390,11 +5404,13 @@ img[src=''] {
 
 .fullscreen-main-view {
     flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     padding: 6rem 2rem 2rem;
+    overflow-y: auto;
     transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
