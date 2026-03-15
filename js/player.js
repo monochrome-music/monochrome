@@ -1564,7 +1564,7 @@ export class Player {
         if (!window.CapacitorBridge?.media) return;
 
         const el = this.activeElement;
-        const duration = isFinite(el.duration) ? el.duration : (this.currentTrack?.duration || 0);
+        const duration = isFinite(el.duration) ? el.duration : this.currentTrack?.duration || 0;
         const position = Math.min(el.currentTime || 0, duration || el.currentTime || 0);
         const playbackRate = el.playbackRate || 1;
         const playbackState = el.paused ? 'paused' : 'playing';

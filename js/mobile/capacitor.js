@@ -25,4 +25,3 @@ export async function initDesktop(player) {
         console.error('[Desktop] Failed to initialize desktop environment:', error);
     }
 }
-

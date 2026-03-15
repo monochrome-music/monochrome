@@ -13,8 +13,7 @@ export default defineConfig(() => {
         resolve: {
             alias: {
                 '!': '/node_modules',
-                pocketbase: '/node_modules/pocketbase/dist/pocketbase.es.js'
-                
+                pocketbase: '/node_modules/pocketbase/dist/pocketbase.es.js',
             },
         },
         optimizeDeps: {

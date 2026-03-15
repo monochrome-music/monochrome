@@ -312,21 +312,21 @@ export const downloads = {
         if (!isCapacitorRuntime || Capacitor.getPlatform() !== 'android') {
             return { success: false, skipped: true, error: 'Not running on Android native platform' };
         }
-        
+
         if (!blob || !fileName) {
             throw new Error('Missing blob or fileName for audio save');
         }
-        
+
         await ensureMediaStorePermission('audio');
 
         try {
-                return await CapacitorMediaStore.saveMedia({
-                    data : await blobToBase64(blob),
-                    fileName: String(fileName),
-                    mediaType: 'audio',
-                    albumName: albumName || undefined,
-                    mimeType: pickMimeType(blob, 'audio/mpeg'),
-                    fallbackMimeType: 'audio/mpeg',
+            return await CapacitorMediaStore.saveMedia({
+                data: await blobToBase64(blob),
+                fileName: String(fileName),
+                mediaType: 'audio',
+                albumName: albumName || undefined,
+                mimeType: pickMimeType(blob, 'audio/mpeg'),
+                fallbackMimeType: 'audio/mpeg',
             });
         } catch (error) {
             throw new Error(`MediaStore save failed: ${error?.message || String(error)}`);
@@ -341,7 +341,7 @@ export const downloads = {
         if (!blob || !fileName) {
             throw new Error('Missing blob or fileName for video save');
         }
-        
+
         await ensureMediaStorePermission('video');
 
         try {
@@ -362,8 +362,12 @@ export const downloads = {
 let pendingUpdate = null;
 
 function compareVersions(a, b) {
-    const pa = String(a || '0').split('.').map((n) => parseInt(n, 10) || 0);
-    const pb = String(b || '0').split('.').map((n) => parseInt(n, 10) || 0);
+    const pa = String(a || '0')
+        .split('.')
+        .map((n) => parseInt(n, 10) || 0);
+    const pb = String(b || '0')
+        .split('.')
+        .map((n) => parseInt(n, 10) || 0);
     const length = Math.max(pa.length, pb.length);
 
     for (let i = 0; i < length; i += 1) {
@@ -376,7 +380,6 @@ function compareVersions(a, b) {
     return 0;
 }
 
-
 async function downloadApkToCache(apkUrl) {
     const response = await fetch(apkUrl);
     if (!response.ok) {
@@ -387,7 +390,7 @@ async function downloadApkToCache(apkUrl) {
     const path = `update-${Date.now()}.apk`;
 
     await Filesystem.writeFile({
-        path, 
+        path,
         directory: Directory.Cache,
         data: base64,
         recursive: true,
@@ -399,14 +402,14 @@ async function downloadApkToCache(apkUrl) {
     });
 
     if (!result?.uri) {
-        throw new Error('i hate my life. guess it\' no updates for you');
+        throw new Error("i hate my life. guess it' no updates for you");
     }
 
     return result.uri;
 }
 
 export const updater = {
-    checkForUpdates : async () => {
+    checkForUpdates: async () => {
         if (!isCapacitorRuntime) return;
         const appInfo = await App.getInfo();
         const response = await fetch(url, { cache: 'no-store' });
@@ -418,10 +421,10 @@ export const updater = {
         const apkUrl = update?.apkUrl;
         const available = compareVersions(remoteVersion, appInfo.version) > 0;
         pendingUpdate = available ? { ...update, apk: apkUrl } : null;
-        return { ...update, apk: apkUrl, currentVersion: appInfo.version, available,};
+        return { ...update, apk: apkUrl, currentVersion: appInfo.version, available };
     },
 
-    install : async () => {
+    install: async () => {
         const permission = await AppInstallPlugin.canInstallUnknownApps();
 
         if (!permission?.granted) {
@@ -429,11 +432,10 @@ export const updater = {
             throw new Error('Permission to install unknown apps is required to update the application.');
         }
 
-        const filePath = await downloadApkToCache (
-            pendingUpdate.apk,
+        const filePath = await downloadApkToCache(
+            pendingUpdate.apk
             // pendingUpdate.version, huh?
         );
-            
 
         const result = await AppInstallPlugin.installApk({
             filePath,
@@ -444,7 +446,7 @@ export const updater = {
         }
 
         return result;
-    }
+    },
 };
 
 export const nativeWindow = {

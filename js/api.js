@@ -1551,7 +1551,9 @@ export class LosslessAPI {
             const isVideoTrack =
                 options?.forceVideo === true ||
                 track?.type === 'video' ||
-                String(blob?.type || '').toLowerCase().startsWith('video/') ||
+                String(blob?.type || '')
+                    .toLowerCase()
+                    .startsWith('video/') ||
                 /\.(mp4|m4v|mov|webm|mkv|ts)$/.test(lowerFilename);
 
             if (isVideoTrack && bridge?.downloads?.saveVideoToMovies) {
