@@ -12,6 +12,7 @@ The official Monochrome instance maintained by the core team:
 | ------------------------------------------------------ | -------- | ---------------- |
 | [monochrome.tf](https://monochrome.tf)                 | Official | Primary instance |
 | [monochrome.samidy.com](https://monochrome.samidy.com) | Official | Secondary mirror |
+| [lossless.wtf](https://lossless.wtf)                   | Official | Failover mirror  |
 
 ---
 
