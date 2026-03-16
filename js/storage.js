@@ -182,6 +182,10 @@ export const apiSettings = {
     },
 
     async refreshInstances() {
+        this.instancesLoaded = false;
+        this._loadPromise = null;
+        localStorage.removeItem(this.STORAGE_KEY);
+
         const instances = await this.loadInstancesFromGitHub();
 
         const shuffle = (array) => {
