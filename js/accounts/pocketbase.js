@@ -303,6 +303,13 @@ const syncManager = {
         await this._updateUserJSON(user.$id, 'history', newHistory);
     },
 
+    async clearHistory() {
+        const user = authManager.user;
+        if (!user) return;
+
+        await this._updateUserJSON(user.$id, 'history', []);
+    },
+
     async syncUserPlaylist(playlist, action) {
         const user = authManager.user;
         if (!user) return;

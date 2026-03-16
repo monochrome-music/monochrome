@@ -20,8 +20,10 @@ import { loadFfmpeg, FfmpegError } from './ffmpeg.js';
 import { triggerDownload, applyAudioPostProcessing } from './download-utils.ts';
 import { isCustomFormat } from './ffmpegFormats.ts';
 import { DownloadProgress } from './progressEvents.js';
+import { resolveDownloadTotalBytes } from './downloadProgressUtils.js';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
+export { resolveDownloadTotalBytes };
 const TIDAL_V2_TOKEN = 'txNoH4kkV41MfH25';
 
 export class LosslessAPI {
@@ -1398,6 +1400,22 @@ export class LosslessAPI {
                     throw hlsError;
                 }
             } else {
+                // Try HEAD first to get Content-Length when GET uses chunked encoding (fixes #278)
+                let headContentLength = null;
+                try {
+                    const headResponse = await fetch(streamUrl, {
+                        method: 'HEAD',
+                        cache: 'no-store',
+                        signal: options.signal,
+                    });
+                    if (headResponse.ok) {
+                        const cl = headResponse.headers.get('Content-Length');
+                        if (cl) headContentLength = parseInt(cl, 10);
+                    }
+                } catch (_) {
+                    /* ignore HEAD failure; proceed with GET */
+                }
+
                 const response = await fetch(streamUrl, {
                     cache: 'no-store',
                     signal: options.signal,
@@ -1407,8 +1425,8 @@ export class LosslessAPI {
                     throw new Error(`Fetch failed: ${response.status}`);
                 }
 
-                const contentLength = response.headers.get('Content-Length');
-                const totalBytes = contentLength ? parseInt(contentLength, 10) : 0;
+                const contentLengthHeader = response.headers.get('Content-Length');
+                const totalBytes = resolveDownloadTotalBytes(contentLengthHeader, headContentLength);
 
                 let receivedBytes = 0;
 
