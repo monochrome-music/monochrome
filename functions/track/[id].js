@@ -39,9 +39,7 @@ class ServerAPI {
         }
 
         if (data) {
-            this.apiInstances = (data.api || [])
-                .map((item) => item.url || item)
-                .filter((url) => !url.includes('spotisaver.net'));
+            this.apiInstances = (data.api || []).map((item) => item.url || item);
             return this.apiInstances;
         }
 
