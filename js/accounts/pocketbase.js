@@ -5,7 +5,7 @@ import { authManager } from './auth.js';
 
 const PUBLIC_COLLECTION = 'public_playlists';
 const DEFAULT_POCKETBASE_URL = 'https://data.samidy.xyz';
-const POCKETBASE_URL = localStorage.getItem('monochrome-pocketbase-url') || DEFAULT_POCKETBASE_URL;
+const POCKETBASE_URL = window.__POCKETBASE_URL__ || localStorage.getItem('monochrome-pocketbase-url') || DEFAULT_POCKETBASE_URL;
 
 console.log('[PocketBase] Using URL:', POCKETBASE_URL);
 
@@ -301,6 +301,13 @@ const syncManager = {
 
         const newHistory = [historyEntry, ...history].slice(0, 100);
         await this._updateUserJSON(user.$id, 'history', newHistory);
+    },
+
+    async clearHistory() {
+        const user = authManager.user;
+        if (!user) return;
+
+        await this._updateUserJSON(user.$id, 'history', []);
     },
 
     async syncUserPlaylist(playlist, action) {

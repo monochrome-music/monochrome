@@ -4600,6 +4600,7 @@ export class UIRenderer {
                     if (confirm('Clear all recently played tracks? This cannot be undone.')) {
                         try {
                             await db.clearHistory();
+                            await syncManager.clearHistory();
                             container.innerHTML = createPlaceholder("You haven't played any tracks yet.");
                             clearBtn.style.display = 'none';
                         } catch (err) {
