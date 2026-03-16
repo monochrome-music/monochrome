@@ -5,21 +5,21 @@ function isFuzzyMatch(str1, str2) {
     return s1.includes(s2) || s2.includes(s1);
 }
 
-function findBestMatch(items, targetArtist, targetAlbum, options) {
+function findBestMatch(items, targetArtist, targetAlbum, importOptions) {
     if (!items || items.length === 0) return null;
-    if (!options?.strictArtistMatch && !options?.albumMatch) return items[0];
+    if (!importOptions?.strictArtistMatch && !importOptions?.strictAlbumMatch) return items[0];
 
     return (
         items.find((item) => {
             let artistOk = true;
             let albumOk = true;
 
-            if (options.strictArtistMatch && targetArtist) {
+            if (importOptions.strictArtistMatch && targetArtist) {
                 const itemArtist = item.artist?.name || item.artists?.[0]?.name;
                 if (!isFuzzyMatch(itemArtist, targetArtist)) artistOk = false;
             }
 
-            if (options.albumMatch && targetAlbum) {
+            if (importOptions.strictAlbumMatch && targetAlbum) {
                 const itemAlbum = item.album?.title;
                 if (itemAlbum && !isFuzzyMatch(itemAlbum, targetAlbum)) albumOk = false;
             }
@@ -294,8 +294,7 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
         const albumName = mappedHeaders.album !== undefined ? values[mappedHeaders.album] : '';
         const isrc = mappedHeaders.isrc !== undefined ? values[mappedHeaders.isrc] : '';
         const playlistName = mappedHeaders.playlistName !== undefined ? values[mappedHeaders.playlistName] : '';
-        const typeValue =
-            mappedHeaders.type !== undefined ? values[mappedHeaders.type]?.toLowerCase().trim() : '';
+        const typeValue = mappedHeaders.type !== undefined ? values[mappedHeaders.type]?.toLowerCase().trim() : '';
         const isFavorite = typeValue.includes('favorite');
 
         if (onProgress) {
@@ -497,7 +496,7 @@ export async function importToLibrary(csvResult, db, onProgress, options = {}) {
     return results;
 }
 
-export async function parseCSV(csvText, api, onProgress, options = {}) {
+export async function parseCSV(csvText, api, onProgress, importOptions = {}) {
     const lines = csvText.trim().split('\n');
     if (lines.length < 2) return { tracks: [], missingTracks: [] };
 
@@ -583,7 +582,7 @@ export async function parseCSV(csvText, api, onProgress, options = {}) {
                     const searchResult = await api.searchTracks(searchQuery);
 
                     if (searchResult.items && searchResult.items.length > 0) {
-                        const match = findBestMatch(searchResult.items, artistNames, albumName, options);
+                        const match = findBestMatch(searchResult.items, artistNames, albumName, importOptions);
                         if (match) tracks.push(match);
                         else missingTracks.push({ title: trackTitle, artist: artistNames, album: albumName });
                     } else {

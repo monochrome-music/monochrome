@@ -6,7 +6,7 @@
 - [ ] Docs only
 
 ### Checklist
-- [ ] **I have read the [Contributing Guidelines](../CONTRIBUTING.md).**
+- [ ] **I have read the [Contributing Guidelines](https://github.com/monochrome-music/monochrome/blob/main/CONTRIBUTING.md).**
 - [ ] **I understand every line of code I am submitting.**
 - [ ] I have tested these changes locally, and they work as expected.
 
