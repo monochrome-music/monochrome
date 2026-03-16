@@ -585,6 +585,7 @@ export class MusicDatabase {
 
         // TRIGGER SYNC
         this._dispatchPlaylistSync('create', playlist);
+        window.dispatchEvent(new CustomEvent('playlist-tracks-changed'));
 
         return playlist;
     }
@@ -657,6 +658,7 @@ export class MusicDatabase {
 
         // TRIGGER SYNC (but for deleting)
         this._dispatchPlaylistSync('delete', { id: playlistId });
+        window.dispatchEvent(new CustomEvent('playlist-tracks-changed'));
     }
 
     async getPlaylist(playlistId) {

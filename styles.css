@@ -1994,6 +1994,10 @@ input[type='search']::-webkit-search-cancel-button {
     gap: 2px var(--spacing-xl);
 }
 
+#artist-detail-in-library[hidden] {
+    display: none;
+}
+
 .library-source {
     color: var(--muted-foreground);
     font-size: inherit;
@@ -2365,8 +2369,8 @@ input[type='search']::-webkit-search-cancel-button {
     align-items: center;
     gap: 1rem;
     flex-wrap: wrap;
-    overflow-wrap: break-word;
-    word-break: break-word;
+    overflow-wrap: anywhere;
+    word-break: normal;
     min-width: 0;
 }
 

@@ -3953,11 +3953,13 @@ export class UIRenderer {
         if (inLibrarySection) inLibrarySection.style.display = 'none';
         if (inLibraryContainer) {
             inLibraryContainer.innerHTML = '';
-            inLibraryContainer.style.display = 'none';
+            inLibraryContainer.hidden = true;
         }
-        // Reset chevron state
+        // Reset chevron and toggle state
         const chevronEl = document.getElementById('in-library-chevron');
         if (chevronEl) chevronEl.style.transform = 'rotate(0deg)';
+        const toggleBtn = document.getElementById('in-library-toggle');
+        if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
 
         try {
             const artist = await this.api.getArtist(artistId, provider);
@@ -4199,12 +4201,16 @@ export class UIRenderer {
                 const isTrackByArtist = (track) => {
                     if (track.artists && Array.isArray(track.artists)) {
                         return track.artists.some(
-                            (a) => a && a.name && a.name.toLowerCase() === artistNameLower
+                            (a) => a && ((artist.id && a.id === artist.id) || (a.name && a.name.toLowerCase() === artistNameLower))
                         );
                     }
                     if (track.artist) {
-                        const artistStr = typeof track.artist === 'string' ? track.artist : track.artist.name;
-                        if (artistStr && artistStr.toLowerCase() === artistNameLower) return true;
+                        if (typeof track.artist === 'object') {
+                            if (artist.id && track.artist.id === artist.id) return true;
+                            if (track.artist.name && track.artist.name.toLowerCase() === artistNameLower) return true;
+                        } else if (typeof track.artist === 'string') {
+                            if (track.artist.toLowerCase() === artistNameLower) return true;
+                        }
                     }
                     return false;
                 };
@@ -4285,18 +4291,27 @@ export class UIRenderer {
                                 const sourceSpan = document.createElement('span');
                                 sourceSpan.className = 'library-source';
 
+                                const labelSpan = document.createElement('span');
+                                labelSpan.className = 'library-source-label';
+                                labelSpan.textContent = '· Source:\u00a0';
+
+                                const linkSpan = document.createElement('span');
+                                linkSpan.className = 'library-source-link';
+
+                                sourceSpan.style.cursor = 'pointer';
+                                sourceSpan.appendChild(labelSpan);
+                                sourceSpan.appendChild(linkSpan);
+
                                 if (sources.length === 1) {
                                     const srcLabel = sources[0].label.length > 15 ? sources[0].label.slice(0, 15) + '…' : sources[0].label;
-                                    sourceSpan.innerHTML = `<span class="library-source-label">· Source:&nbsp;</span><span class="library-source-link">${srcLabel}</span>`;
-                                    sourceSpan.style.cursor = 'pointer';
+                                    linkSpan.textContent = srcLabel;
                                     sourceSpan.addEventListener('click', (e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
                                         navigate(sources[0].href);
                                     });
                                 } else {
-                                    sourceSpan.innerHTML = `<span class="library-source-label">· Source:&nbsp;</span><span class="library-source-link">Multiple Playlists</span>`;
-                                    sourceSpan.style.cursor = 'pointer';
+                                    linkSpan.textContent = 'Multiple Playlists';
                                     sourceSpan.addEventListener('click', (e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
@@ -4306,11 +4321,16 @@ export class UIRenderer {
                                         const cancelBtn = document.getElementById('goto-playlist-cancel');
                                         const overlay = modal.querySelector('.modal-overlay');
 
-                                        list.innerHTML = sources.map((s) =>
-                                            `<div class="modal-option" data-href="${s.href}">
-                                                <span>${s.label}</span>
-                                            </div>`
-                                        ).join('');
+                                        list.innerHTML = '';
+                                        sources.forEach((s) => {
+                                            const option = document.createElement('div');
+                                            option.className = 'modal-option';
+                                            option.dataset.href = s.href;
+                                            const span = document.createElement('span');
+                                            span.textContent = s.label;
+                                            option.appendChild(span);
+                                            list.appendChild(option);
+                                        });
 
                                         const closeModal = () => {
                                             modal.classList.remove('active');
@@ -4357,7 +4377,7 @@ export class UIRenderer {
 
                 // Initial load
                 refreshInLibrary().then(() => {
-                    inLibraryContainer.style.display = 'none';
+                    inLibraryContainer.hidden = true;
                 });
 
                 // Setup chevron toggle (once)
@@ -4365,8 +4385,9 @@ export class UIRenderer {
                 const chevron = document.getElementById('in-library-chevron');
                 if (toggle) {
                     toggle.onclick = () => {
-                        const isOpen = inLibraryContainer.style.display !== 'none';
-                        inLibraryContainer.style.display = isOpen ? 'none' : '';
+                        const isOpen = !inLibraryContainer.hidden;
+                        inLibraryContainer.hidden = isOpen;
+                        toggle.setAttribute('aria-expanded', String(!isOpen));
                         if (chevron) {
                             chevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
                         }
@@ -4379,15 +4400,17 @@ export class UIRenderer {
                     clearTimeout(refreshTimeout);
                     refreshTimeout = setTimeout(() => refreshInLibrary(), 300);
                 };
-                window.addEventListener('favorites-changed', debouncedRefresh);
-                window.addEventListener('playlist-tracks-changed', debouncedRefresh);
 
-                // Cleanup listeners when navigating away
+                // Cleanup previous listeners before attaching new ones
                 const cleanupOnNav = () => {
                     window.removeEventListener('favorites-changed', debouncedRefresh);
                     window.removeEventListener('playlist-tracks-changed', debouncedRefresh);
                     window.removeEventListener('popstate', cleanupOnNav);
                 };
+                cleanupOnNav();
+
+                window.addEventListener('favorites-changed', debouncedRefresh);
+                window.addEventListener('playlist-tracks-changed', debouncedRefresh);
                 window.addEventListener('popstate', cleanupOnNav, { once: true });
             }
 
