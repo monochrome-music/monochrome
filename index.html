@@ -3297,13 +3297,15 @@
                         <div class="track-list" id="artist-detail-tracks"></div>
                     </section>
                     <section class="content-section" id="artist-section-in-library" style="display: none">
-                        <h2 class="section-title in-library-toggle" id="in-library-toggle" style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem; user-select: none;">
-                            In Your Library
-                            <svg id="in-library-chevron" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.25s ease; flex-shrink: 0;">
-                                <polyline points="9 18 15 12 9 6"></polyline>
-                            </svg>
+                        <h2 class="section-title">
+                            <button id="in-library-toggle" aria-expanded="false" aria-controls="artist-detail-in-library" style="background: none; border: none; color: inherit; font: inherit; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; padding: 0; user-select: none;">
+                                In Your Library
+                                <svg id="in-library-chevron" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.25s ease; flex-shrink: 0;">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </button>
                         </h2>
-                        <div class="track-list" id="artist-detail-in-library" style="display: none;"></div>
+                        <div class="track-list" id="artist-detail-in-library" hidden></div>
                     </section>
                     <section class="content-section">
                         <h2 class="section-title">Albums</h2>
