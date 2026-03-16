@@ -1115,6 +1115,19 @@
             </div>
         </div>
 
+        <div id="goto-playlist-modal" class="modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <h3>Go to Playlist</h3>
+                <div id="goto-playlist-list" class="modal-list">
+                    <!-- Options will be injected here -->
+                </div>
+                <div class="modal-actions">
+                    <button id="goto-playlist-cancel" class="btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
+
         <div id="shortcuts-modal" class="modal">
             <div class="modal-overlay"></div>
             <div class="modal-content medium">
@@ -3282,6 +3295,15 @@
                     <section class="content-section">
                         <h2 class="section-title">Popular Tracks</h2>
                         <div class="track-list" id="artist-detail-tracks"></div>
+                    </section>
+                    <section class="content-section" id="artist-section-in-library" style="display: none">
+                        <h2 class="section-title in-library-toggle" id="in-library-toggle" style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem; user-select: none;">
+                            In Your Library
+                            <svg id="in-library-chevron" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.25s ease; flex-shrink: 0;">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </h2>
+                        <div class="track-list" id="artist-detail-in-library" style="display: none;"></div>
                     </section>
                     <section class="content-section">
                         <h2 class="section-title">Albums</h2>
