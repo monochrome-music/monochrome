@@ -229,36 +229,113 @@ async function getAllOfflineKeys() {
 }
 
 /**
- * Export offline tracks to a .mcbackup file.
+ * Get keys of tracks that have NOT been backed up yet.
+ */
+async function getUnbackedUpKeys() {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_TRACKS, 'readonly');
+        const req = tx.objectStore(STORE_TRACKS).getAll();
+        req.onsuccess = () => {
+            const unbacked = req.result
+                .filter(entry => !entry.backedUpAt)
+                .map(entry => entry.id);
+            resolve(unbacked);
+        };
+        req.onerror = () => reject(req.error);
+    });
+}
+
+/**
+ * Get count of tracks not yet included in any backup.
+ */
+export async function getUnbackedUpCount() {
+    const keys = await getUnbackedUpKeys();
+    return keys.length;
+}
+
+/**
+ * Stamp exported tracks with backedUpAt so they are skipped in future
+ * incremental exports.
+ */
+export async function markTracksBackedUp(trackKeys) {
+    if (!trackKeys || trackKeys.length === 0) return;
+    const db = await openDB();
+    const tx = db.transaction(STORE_TRACKS, 'readwrite');
+    const store = tx.objectStore(STORE_TRACKS);
+    const now = Date.now();
+
+    for (const key of trackKeys) {
+        const entry = await new Promise((res, rej) => {
+            const r = store.get(key);
+            r.onsuccess = () => res(r.result);
+            r.onerror = () => rej(r.error);
+        });
+        if (entry) {
+            entry.backedUpAt = now;
+            store.put(entry);
+        }
+    }
+
+    await new Promise((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+/**
+ * Export offline tracks to .mcbackup file(s).
  * Fetches one track at a time by key to keep memory low.
  *
  * Format: [MAGIC 4B][VERSION 4B][COUNT 4B] then per track:
  *   [metaLen 4B][audioLen 4B][coverLen 4B][meta JSON][audio bytes][cover bytes]
+ *
+ * Desktop (File System Access API): streams directly to disk — any size.
+ * Mobile (Blob fallback): single-pass with auto-chunking at ~500 MB per file.
+ *   Each chunk is a standalone .mcbackup that can be imported independently.
  */
-export async function exportOfflineTracks(onProgress) {
-    const keys = await getAllOfflineKeys();
-    if (keys.length === 0) throw new Error('No offline tracks to export');
+const BLOB_CHUNK_BYTES = 500 * 1024 * 1024; // 500 MB per chunk for Blob downloads
+
+function buildBackupHeader(trackCount) {
+    const header = new ArrayBuffer(BACKUP_HEADER_BYTES);
+    const hv = new DataView(header);
+    hv.setUint32(0, BACKUP_MAGIC);
+    hv.setUint32(4, BACKUP_VERSION);
+    hv.setUint32(8, trackCount);
+    return header;
+}
+
+function buildEntryLengths(metaLen, audioSize, coverSize) {
+    const buf = new ArrayBuffer(BACKUP_ENTRY_HEADER_BYTES);
+    const lv = new DataView(buf);
+    lv.setUint32(0, metaLen);
+    lv.setUint32(4, audioSize);
+    lv.setUint32(8, coverSize);
+    return buf;
+}
+
+export async function exportOfflineTracks(onProgress, { incremental = false } = {}) {
+    const keys = incremental ? await getUnbackedUpKeys() : await getAllOfflineKeys();
+    if (keys.length === 0) {
+        throw new Error(incremental ? 'All tracks are already backed up' : 'No offline tracks to export');
+    }
 
     const encoder = new TextEncoder();
     const count = keys.length;
-    let totalBytes = BACKUP_HEADER_BYTES;
 
-    emitBackupProgress(onProgress, createBackupProgress('preparing', 0, count, 0, 0));
+    // ── Desktop: streaming export via File System Access API (any size) ──
+    if (window.showSaveFilePicker) {
+        // Pre-calculate total size for accurate progress + verification
+        let totalBytes = BACKUP_HEADER_BYTES;
+        emitBackupProgress(onProgress, createBackupProgress('preparing', 0, count, 0, 0));
 
-    for (let i = 0; i < count; i++) {
-        const entry = await getOfflineTrack(keys[i]);
-        if (!entry) {
-            throw new Error('Failed to read one or more offline tracks for export');
+        for (let i = 0; i < count; i++) {
+            const entry = await getOfflineTrack(keys[i]);
+            if (!entry) throw new Error('Failed to read one or more offline tracks for export');
+            const metaBytes = getSerializedBackupMetadata(entry, encoder);
+            totalBytes += getBackupEntrySize(metaBytes, entry.audioBlob?.size || 0, entry.coverBlob?.size || 0);
         }
 
-        const metaBytes = getSerializedBackupMetadata(entry, encoder);
-        const audioSize = entry.audioBlob?.size || 0;
-        const coverSize = entry.coverBlob?.size || 0;
-        totalBytes += getBackupEntrySize(metaBytes, audioSize, coverSize);
-    }
-
-    // Try streaming export via File System Access API
-    if (window.showSaveFilePicker) {
         try {
             const date = new Date().toISOString().slice(0, 10);
             const handle = await window.showSaveFilePicker({
@@ -268,32 +345,19 @@ export async function exportOfflineTracks(onProgress) {
             const writable = await handle.createWritable();
             let bytesWritten = 0;
 
-            // Write header
-            const header = new ArrayBuffer(BACKUP_HEADER_BYTES);
-            const hv = new DataView(header);
-            hv.setUint32(0, BACKUP_MAGIC);
-            hv.setUint32(4, BACKUP_VERSION);
-            hv.setUint32(8, count);
-            await writable.write(header);
-            bytesWritten += header.byteLength;
+            await writable.write(buildBackupHeader(count));
+            bytesWritten += BACKUP_HEADER_BYTES;
             emitBackupProgress(onProgress, createBackupProgress('writing', 0, count, bytesWritten, totalBytes));
 
             for (let i = 0; i < count; i++) {
                 const entry = await getOfflineTrack(keys[i]);
-                if (!entry) {
-                    throw new Error('Failed to read one or more offline tracks for export');
-                }
+                if (!entry) throw new Error('Failed to read one or more offline tracks for export');
 
                 const metaBytes = getSerializedBackupMetadata(entry, encoder);
                 const audioSize = entry.audioBlob?.size || 0;
                 const coverSize = entry.coverBlob?.size || 0;
 
-                const lengths = new ArrayBuffer(BACKUP_ENTRY_HEADER_BYTES);
-                const lv = new DataView(lengths);
-                lv.setUint32(0, metaBytes.byteLength);
-                lv.setUint32(4, audioSize);
-                lv.setUint32(8, coverSize);
-                await writable.write(lengths);
+                await writable.write(buildEntryLengths(metaBytes.byteLength, audioSize, coverSize));
                 await writable.write(metaBytes);
                 if (audioSize > 0) await writable.write(entry.audioBlob);
                 if (coverSize > 0) await writable.write(entry.coverBlob);
@@ -308,7 +372,7 @@ export async function exportOfflineTracks(onProgress) {
                 throw new Error('Backup file verification failed. Please export again.');
             }
             emitBackupProgress(onProgress, createBackupProgress('verifying', count, count, totalBytes, totalBytes));
-            return { blob: null, count, totalBytes, method: 'file-picker', verified: true };
+            return { blob: null, count, totalBytes, method: 'file-picker', verified: true, exportedKeys: keys };
         } catch (err) {
             if (err.name === 'AbortError') throw new Error('Export cancelled');
             if (err.message?.includes('verification failed')) throw err;
@@ -316,48 +380,70 @@ export async function exportOfflineTracks(onProgress) {
         }
     }
 
-    // Fallback: chunked Blob approach — one track at a time
-    const parts = [];
+    // ── Mobile: single-pass chunked Blob export ──
+    // Each track is read from IDB only once (no pre-calculation pass).
+    // When a chunk exceeds BLOB_CHUNK_BYTES it's finalized as a standalone
+    // .mcbackup file and a new chunk begins. Each chunk imports independently.
+    const chunks = [];       // { blob, count, totalBytes }
+    let parts = [];
+    let chunkTrackCount = 0;
+    let chunkBytes = BACKUP_HEADER_BYTES; // reserve space for header (prepended at finalize)
 
-    const header = new ArrayBuffer(BACKUP_HEADER_BYTES);
-    const hv = new DataView(header);
-    hv.setUint32(0, BACKUP_MAGIC);
-    hv.setUint32(4, BACKUP_VERSION);
-    hv.setUint32(8, count);
-    parts.push(header);
-    let bytesWritten = header.byteLength;
-    emitBackupProgress(onProgress, createBackupProgress('writing', 0, count, bytesWritten, totalBytes));
+    emitBackupProgress(onProgress, createBackupProgress('writing', 0, count, 0, 0));
+
+    const finalizeChunk = () => {
+        // Prepend header with the actual track count for this chunk
+        parts.unshift(buildBackupHeader(chunkTrackCount));
+        const blob = new Blob(parts, { type: 'application/octet-stream' });
+        if (blob.size !== chunkBytes) {
+            throw new Error('Backup file verification failed. Please export again.');
+        }
+        chunks.push({ blob, count: chunkTrackCount, totalBytes: chunkBytes });
+        // Reset for next chunk
+        parts = [];
+        chunkTrackCount = 0;
+        chunkBytes = BACKUP_HEADER_BYTES;
+    };
 
     for (let i = 0; i < count; i++) {
         const entry = await getOfflineTrack(keys[i]);
-        if (!entry) {
-            throw new Error('Failed to read one or more offline tracks for export');
-        }
+        if (!entry) throw new Error('Failed to read one or more offline tracks for export');
 
         const metaBytes = getSerializedBackupMetadata(entry, encoder);
         const audioSize = entry.audioBlob?.size || 0;
         const coverSize = entry.coverBlob?.size || 0;
+        const entryBytes = getBackupEntrySize(metaBytes, audioSize, coverSize);
 
-        const lengths = new ArrayBuffer(BACKUP_ENTRY_HEADER_BYTES);
-        const lv = new DataView(lengths);
-        lv.setUint32(0, metaBytes.byteLength);
-        lv.setUint32(4, audioSize);
-        lv.setUint32(8, coverSize);
-        parts.push(lengths);
-        parts.push(metaBytes.buffer);
+        // If this track would push the chunk past the limit, finalize first
+        if (chunkTrackCount > 0 && chunkBytes + entryBytes > BLOB_CHUNK_BYTES) {
+            finalizeChunk();
+        }
+
+        parts.push(buildEntryLengths(metaBytes.byteLength, audioSize, coverSize));
+        parts.push(metaBytes);
         if (audioSize > 0) parts.push(entry.audioBlob);
         if (coverSize > 0) parts.push(entry.coverBlob);
-        bytesWritten += getBackupEntrySize(metaBytes, audioSize, coverSize);
+        chunkTrackCount++;
+        chunkBytes += entryBytes;
 
-        emitBackupProgress(onProgress, createBackupProgress('writing', i + 1, count, bytesWritten, totalBytes));
+        emitBackupProgress(onProgress, createBackupProgress('writing', i + 1, count));
     }
 
-    const blob = new Blob(parts, { type: 'application/octet-stream' });
-    if (blob.size !== totalBytes) {
-        throw new Error('Backup file verification failed. Please export again.');
+    // Finalize the last (or only) chunk
+    if (chunkTrackCount > 0) {
+        finalizeChunk();
     }
-    emitBackupProgress(onProgress, createBackupProgress('verifying', count, count, totalBytes, totalBytes));
-    return { blob, count, totalBytes, method: 'download', verified: true };
+
+    const grandTotalBytes = chunks.reduce((sum, c) => sum + c.totalBytes, 0);
+    emitBackupProgress(onProgress, createBackupProgress('verifying', count, count, grandTotalBytes, grandTotalBytes));
+
+    // Single chunk — return the same shape as before for backward compat
+    if (chunks.length === 1) {
+        return { blob: chunks[0].blob, count, totalBytes: chunks[0].totalBytes, method: 'download', verified: true, exportedKeys: keys };
+    }
+
+    // Multiple chunks — caller (UI) will trigger one download per chunk
+    return { blob: null, chunks, count, totalBytes: grandTotalBytes, method: 'chunked-download', verified: true, exportedKeys: keys };
 }
 
 /**

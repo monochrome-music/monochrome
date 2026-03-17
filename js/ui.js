@@ -1893,7 +1893,7 @@ export class UIRenderer {
     async renderOfflinePage() {
         this.showPage('offline');
 
-        const { getAllOfflineTracks, getOfflineStorageUsed, getOfflineTrackCount, removeOfflineTrack, clearAllOfflineTracks, buildPlayableTrack, exportOfflineTracks, importOfflineTracks } = await import('./offline.js');
+        const { getAllOfflineTracks, getOfflineStorageUsed, getOfflineTrackCount, removeOfflineTrack, clearAllOfflineTracks, buildPlayableTrack, exportOfflineTracks, importOfflineTracks, markTracksBackedUp, getUnbackedUpCount } = await import('./offline.js');
         const Clusterize = (await import('clusterize.js')).default;
         // Inject minimal Clusterize CSS (skip full CSS to avoid max-height conflicts)
         if (!document.getElementById('clusterize-style')) {
@@ -2254,26 +2254,61 @@ export class UIRenderer {
             };
         }
 
-        // Export
+        // Export — incremental by default (only new tracks since last backup)
+        const triggerBlobDownload = (blob, filename) => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 10000);
+        };
+
         if (exportBtn) {
+            // Show unbacked-up count on the button label
+            const updateExportLabel = async () => {
+                const newCount = await getUnbackedUpCount();
+                const label = exportBtn.querySelector('span');
+                if (label) {
+                    label.textContent = newCount > 0 ? `Export (${newCount} new)` : 'Export';
+                }
+            };
+            updateExportLabel();
+
             exportBtn.onclick = async () => {
                 try {
                     exportBtn.disabled = true;
+                    // Use incremental by default; fall back to full if no new tracks
+                    const newCount = await getUnbackedUpCount();
+                    const useIncremental = newCount > 0;
                     setBackupButtonLabel(exportBtn, 'Export', 'Exporting', { percent: 0 });
                     const result = await exportOfflineTracks((progress) => {
                         setBackupButtonLabel(exportBtn, 'Export', 'Exporting', progress);
-                    });
-                    if (result?.blob) {
-                        const url = URL.createObjectURL(result.blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        const date = new Date().toISOString().slice(0, 10);
-                        a.download = `monochrome-offline-${date}.mcbackup`;
-                        a.click();
-                        setTimeout(() => URL.revokeObjectURL(url), 5000);
+                    }, { incremental: useIncremental });
+
+                    const date = new Date().toISOString().slice(0, 10);
+
+                    if (result.method === 'chunked-download' && result.chunks) {
+                        // Multiple chunk files — trigger sequential downloads
+                        for (let ci = 0; ci < result.chunks.length; ci++) {
+                            const chunk = result.chunks[ci];
+                            triggerBlobDownload(chunk.blob, `monochrome-offline-${date}-part${ci + 1}.mcbackup`);
+                            // Small delay between downloads so browser doesn't block them
+                            if (ci < result.chunks.length - 1) {
+                                await new Promise(r => setTimeout(r, 1000));
+                            }
+                        }
+                        showNotification(`Offline backup split into ${result.chunks.length} files (${formatBytes(result.totalBytes)} total)`);
+                    } else if (result?.blob) {
+                        triggerBlobDownload(result.blob, `monochrome-offline-${date}.mcbackup`);
                         showNotification(`Offline backup ready. Browser download started (${formatBytes(result.totalBytes)})`);
                     } else {
                         showNotification(`Offline backup saved and verified (${formatBytes(result?.totalBytes || 0)})`);
+                    }
+
+                    // Mark exported tracks as backed up
+                    if (result.exportedKeys) {
+                        await markTracksBackedUp(result.exportedKeys);
                     }
                 } catch (err) {
                     if (err.message !== 'Export cancelled') {
@@ -2281,7 +2316,7 @@ export class UIRenderer {
                     }
                 } finally {
                     exportBtn.disabled = false;
-                    setBackupButtonLabel(exportBtn, 'Export', 'Exporting');
+                    updateExportLabel();
                 }
             };
         }
