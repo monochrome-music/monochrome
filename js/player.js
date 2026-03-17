@@ -17,6 +17,7 @@ import {
     exponentialVolumeSettings,
     audioEffectsSettings,
     radioSettings,
+    contentBlockingSettings,
 } from './storage.js';
 import { audioContextManager } from './audio-context.js';
 import { db } from './db.js';
@@ -100,7 +101,12 @@ export class Player {
             }
             if (document.visibilityState === 'visible' && this.autoplayBlocked) {
                 this.autoplayBlocked = false;
-                el.play().catch(() => {});
+                // If audio has no source (queue advance failed while backgrounded), retry from queue
+                if (!el.src || el.error) {
+                    this.playTrackFromQueue(0, 0);
+                } else {
+                    el.play().catch(() => {});
+                }
             }
         });
 
@@ -246,6 +252,12 @@ export class Player {
             this.queue.forEach(fixDeadBlobUrls);
             this.shuffledQueue.forEach(fixDeadBlobUrls);
             this.originalQueueBeforeShuffle.forEach(fixDeadBlobUrls);
+
+            // Pre-cache offline module so it's available during background playback (iOS)
+            // Dynamic import() can be blocked by iOS when the screen is locked
+            if (this.queue.some(t => t?.isOffline) || this.shuffledQueue.some(t => t?.isOffline)) {
+                import('./offline.js');
+            }
 
             // Re-hydrate offline tracks from IndexedDB in the background
             this._rehydrateOfflineTracks();
@@ -680,8 +692,7 @@ export class Player {
             return;
         }
 
-        // Check if track is blocked
-        const { contentBlockingSettings } = await import('./storage.js');
+        // Check if track is blocked (using static import for iOS background compatibility)
         if (contentBlockingSettings.shouldHideTrack(track)) {
             console.warn(`Attempted to play blocked track: ${track.title}. Skipping...`);
             this.playNext();
@@ -1085,45 +1096,45 @@ export class Player {
             return;
         }
 
-        // Import blocking settings dynamically
-        import('./storage.js').then(({ contentBlockingSettings }) => {
-            if (
-                this.repeatMode === REPEAT_MODE.ONE &&
-                !currentQueue[this.currentQueueIndex]?.isUnavailable &&
-                !contentBlockingSettings.shouldHideTrack(currentQueue[this.currentQueueIndex])
-            ) {
-                this.playTrackFromQueue(0, recursiveCount);
-                return;
-            }
-
-            if (!isLastTrack) {
-                this.currentQueueIndex++;
-                const track = currentQueue[this.currentQueueIndex];
-                // Skip unavailable and blocked tracks
-                if (track?.isUnavailable || contentBlockingSettings.shouldHideTrack(track)) {
-                    return this.playNext(recursiveCount + 1);
-                }
-            } else if (this.radioEnabled) {
-                this.fetchRadioRecommendations().then(() => {
-                    const updatedQueue = this.getCurrentQueue();
-                    if (this.currentQueueIndex < updatedQueue.length - 1) {
-                        this.playNext(0);
-                    }
-                });
-                return;
-            } else if (this.repeatMode === REPEAT_MODE.ALL) {
-                this.currentQueueIndex = 0;
-                const track = currentQueue[this.currentQueueIndex];
-                // Skip unavailable and blocked tracks
-                if (track?.isUnavailable || contentBlockingSettings.shouldHideTrack(track)) {
-                    return this.playNext(recursiveCount + 1);
-                }
-            } else {
-                return;
-            }
-
+        // Use statically imported contentBlockingSettings (no dynamic import)
+        // Dynamic import() is killed by iOS when the screen is locked,
+        // which prevents queue progression during background playback.
+        if (
+            this.repeatMode === REPEAT_MODE.ONE &&
+            !currentQueue[this.currentQueueIndex]?.isUnavailable &&
+            !contentBlockingSettings.shouldHideTrack(currentQueue[this.currentQueueIndex])
+        ) {
             this.playTrackFromQueue(0, recursiveCount);
-        });
+            return;
+        }
+
+        if (!isLastTrack) {
+            this.currentQueueIndex++;
+            const track = currentQueue[this.currentQueueIndex];
+            // Skip unavailable and blocked tracks
+            if (track?.isUnavailable || contentBlockingSettings.shouldHideTrack(track)) {
+                return this.playNext(recursiveCount + 1);
+            }
+        } else if (this.radioEnabled) {
+            this.fetchRadioRecommendations().then(() => {
+                const updatedQueue = this.getCurrentQueue();
+                if (this.currentQueueIndex < updatedQueue.length - 1) {
+                    this.playNext(0);
+                }
+            });
+            return;
+        } else if (this.repeatMode === REPEAT_MODE.ALL) {
+            this.currentQueueIndex = 0;
+            const track = currentQueue[this.currentQueueIndex];
+            // Skip unavailable and blocked tracks
+            if (track?.isUnavailable || contentBlockingSettings.shouldHideTrack(track)) {
+                return this.playNext(recursiveCount + 1);
+            }
+        } else {
+            return;
+        }
+
+        this.playTrackFromQueue(0, recursiveCount);
     }
 
     async enableRadio(seeds = []) {
@@ -1655,16 +1666,24 @@ export class Player {
             element.addEventListener('error', onError);
 
             // Timeout after 10 seconds. Treat as autoplay blocked when backgrounded (esp. iOS PWA).
+            // Use shorter timeout for blob URLs (offline tracks from IndexedDB load near-instantly)
+            const src = element.src || '';
+            const effectiveTimeout = src.startsWith('blob:') ? 3000 : timeoutMs;
             setTimeout(() => {
                 element.removeEventListener('canplay', onCanPlay);
                 element.removeEventListener('error', onError);
                 if (document.visibilityState === 'hidden' || (this.isIOS && this.isPwa)) {
+                    // For offline blob URLs, try playing anyway — data is local, not network
+                    if (src.startsWith('blob:')) {
+                        resolve(true);
+                        return;
+                    }
                     this.autoplayBlocked = true;
                     resolve(false);
                     return;
                 }
                 reject(new Error('Timeout waiting for audio to load'));
-            }, timeoutMs);
+            }, effectiveTimeout);
         });
     }
 
