@@ -23,5 +23,8 @@ project(':capacitor-share').projectDir = new File('../node_modules/@capacitor/sh
 include ':jofr-capacitor-media-session'
 project(':jofr-capacitor-media-session').projectDir = new File('../node_modules/@jofr/capacitor-media-session/android')
 
+include ':m430-capacitor-app-install'
+project(':m430-capacitor-app-install').projectDir = new File('../node_modules/@m430/capacitor-app-install/android')
+
 include ':odion-cloud-capacitor-mediastore'
 project(':odion-cloud-capacitor-mediastore').projectDir = new File('../node_modules/@odion-cloud/capacitor-mediastore/android')

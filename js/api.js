@@ -1516,9 +1516,6 @@ export class LosslessAPI {
             const savedToNativeMusic = await this.saveTrackToNativeMusicDirectory(blob, finalFilename, track, {
                 forceVideo: isVideo,
             });
-            if (!savedToNativeMusic) {
-                this.triggerDownload(blob, finalFilename);
-            }
             return blob;
         } catch (error) {
             if (error.name === 'AbortError') {
@@ -1573,8 +1570,8 @@ export class LosslessAPI {
 
             return true;
         } catch (error) {
-            console.warn('[Downloads] Native Music save failed; using browser download fallback.', error);
-            return false;
+            console.warn('[Downloads] Native Music save failed', error);
+            throw error;
         }
     }
 

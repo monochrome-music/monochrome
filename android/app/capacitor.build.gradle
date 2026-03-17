@@ -16,6 +16,7 @@ dependencies {
     implementation project(':capacitor-screen-orientation')
     implementation project(':capacitor-share')
     implementation project(':jofr-capacitor-media-session')
+    implementation project(':m430-capacitor-app-install')
     implementation project(':odion-cloud-capacitor-mediastore')
 
 }
