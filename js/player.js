@@ -43,6 +43,10 @@ export class Player {
         this.isFallbackRetry = false;
         this.isFallbackInProgress = false;
         this.autoplayBlocked = false;
+        // iOS preloaded audio element for seamless background track transitions
+        this._iosPreloadedAudio = null;
+        this._iosPreloadedTrackId = null;
+        this._iosPreloadedStreamUrl = null;
         this.isIOS = typeof window !== 'undefined' && window.__IS_IOS__ === true;
         this.isPwa =
             typeof window !== 'undefined' &&
@@ -107,6 +111,10 @@ export class Player {
                 } else {
                     el.play().catch(() => {});
                 }
+            }
+            // iOS: start preloading the next track into a buffer element when visible
+            if (document.visibilityState === 'visible' && this.isIOS) {
+                this._iosPreloadNextTrackElement();
             }
         });
 
@@ -543,6 +551,73 @@ export class Player {
                 }
             }
         }
+
+        // iOS: also preload the immediate next track into a real audio element
+        // so background track transitions don't need network requests
+        if (this.isIOS) {
+            this._iosPreloadNextTrackElement();
+        }
+    }
+
+    /**
+     * iOS-specific: preload the next track into a hidden audio element.
+     * When the current track ends while the screen is locked, we can swap
+     * to this pre-buffered element instead of making network requests
+     * (which iOS suspends when backgrounded).
+     */
+    async _iosPreloadNextTrackElement() {
+        const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
+        const nextIndex = this.currentQueueIndex + 1;
+
+        if (nextIndex >= currentQueue.length) {
+            // No next track — check repeat all
+            if (this.repeatMode !== REPEAT_MODE.ALL || currentQueue.length === 0) return;
+        }
+
+        const effectiveNextIndex = nextIndex < currentQueue.length ? nextIndex : 0;
+        const nextTrack = currentQueue[effectiveNextIndex];
+        if (!nextTrack || nextTrack.isUnavailable) return;
+        if (nextTrack.type === 'video') return; // Video tracks can't use this optimization
+
+        // Already preloaded this track
+        if (this._iosPreloadedTrackId === nextTrack.id && this._iosPreloadedAudio) return;
+
+        try {
+            let streamUrl;
+            const isTracker = nextTrack.isTracker || (nextTrack.id && String(nextTrack.id).startsWith('tracker-'));
+
+            if (isTracker || (nextTrack.audioUrl && !nextTrack.isLocal)) {
+                streamUrl = nextTrack.audioUrl || nextTrack.remoteUrl;
+            } else if (nextTrack.isOffline && nextTrack.audioUrl) {
+                streamUrl = nextTrack.audioUrl;
+            } else if (nextTrack.isLocal) {
+                return; // Local files don't need preloading
+            } else if (this.preloadCache.has(nextTrack.id)) {
+                streamUrl = this.preloadCache.get(nextTrack.id);
+            } else {
+                // Need to fetch stream URL — do it now while we're in the foreground
+                streamUrl = await this.api.getStreamUrl(nextTrack.id, this.quality);
+                this.preloadCache.set(nextTrack.id, streamUrl);
+            }
+
+            if (!streamUrl || (streamUrl.startsWith('blob:') && !nextTrack.isOffline && !nextTrack.isLocal)) {
+                // DASH blob URLs can't be preloaded into a plain audio element
+                return;
+            }
+
+            // Create or reuse the preload element
+            if (!this._iosPreloadedAudio) {
+                this._iosPreloadedAudio = new Audio();
+                this._iosPreloadedAudio.preload = 'auto';
+                this._iosPreloadedAudio.crossOrigin = 'anonymous';
+            }
+            this._iosPreloadedAudio.src = streamUrl;
+            this._iosPreloadedTrackId = nextTrack.id;
+            this._iosPreloadedStreamUrl = streamUrl;
+            console.log(`[iOS Preload] Pre-buffering next track: ${nextTrack.title || nextTrack.id}`);
+        } catch (e) {
+            console.warn('[iOS Preload] Failed to preload next track element:', e);
+        }
     }
 
     setupHlsVideo(video, result, fallbackImg) {
@@ -961,6 +1036,11 @@ export class Player {
                 await this.safePlay(activeElement);
             } else {
                 const isQobuz = String(track.id).startsWith('q:');
+                // iOS background optimization: if screen is locked and we have a preloaded
+                // stream URL, skip expensive API calls (ReplayGain is nice-to-have, not critical)
+                const isBackgrounded = this.isIOS && document.visibilityState === 'hidden';
+                const hasPreloadedUrl = this.preloadCache.has(track.id) ||
+                    (this._iosPreloadedTrackId === track.id && this._iosPreloadedStreamUrl);
 
                 if (isQobuz) {
                     // Qobuz: skip getTrack call, directly fetch stream URL
@@ -969,8 +1049,22 @@ export class Player {
 
                     if (this.preloadCache.has(track.id)) {
                         streamUrl = this.preloadCache.get(track.id);
+                    } else if (this._iosPreloadedTrackId === track.id && this._iosPreloadedStreamUrl) {
+                        streamUrl = this._iosPreloadedStreamUrl;
                     } else {
                         streamUrl = await this.api.getStreamUrl(track.id, this.quality);
+                    }
+                } else if (isBackgrounded && hasPreloadedUrl) {
+                    // iOS backgrounded: skip getTrack API call, use cached stream URL directly
+                    // ReplayGain data will be applied when user returns to the app
+                    console.log('[iOS Background] Using preloaded stream URL, skipping getTrack API call');
+                    this.currentRgValues = null;
+                    this.applyReplayGain();
+
+                    if (this.preloadCache.has(track.id)) {
+                        streamUrl = this.preloadCache.get(track.id);
+                    } else {
+                        streamUrl = this._iosPreloadedStreamUrl;
                     }
                 } else {
                     // Tidal: Get track data for ReplayGain (should be cached by API)
@@ -1017,7 +1111,17 @@ export class Player {
                     if (!canPlay || this.playbackSequence !== currentSequence) return;
                     await this.safePlay(activeElement);
                 } else {
-                    activeElement.src = streamUrl;
+                    // iOS: if we have a pre-buffered audio element for this track,
+                    // use its ready state instead of loading from scratch
+                    if (this.isIOS && this._iosPreloadedTrackId === track.id &&
+                        this._iosPreloadedAudio && this._iosPreloadedAudio.readyState >= 2) {
+                        console.log('[iOS Background] Using pre-buffered audio element');
+                        // The preloaded element is ready — set src on the main element
+                        // from the same URL (should be instant from browser cache)
+                        activeElement.src = this._iosPreloadedStreamUrl || streamUrl;
+                    } else {
+                        activeElement.src = streamUrl;
+                    }
                     this.applyAudioEffects();
 
                     // Wait for audio to be ready before playing
@@ -1032,6 +1136,15 @@ export class Player {
                 }
             }
 
+            // Clear the iOS preloaded element for the track we just started playing
+            if (this.isIOS && this._iosPreloadedTrackId === track.id) {
+                this._iosPreloadedTrackId = null;
+                this._iosPreloadedStreamUrl = null;
+                if (this._iosPreloadedAudio) {
+                    this._iosPreloadedAudio.src = '';
+                    this._iosPreloadedAudio.removeAttribute('src');
+                }
+            }
             this.preloadNextTracks();
         } catch (error) {
             if (this.playbackSequence !== currentSequence) return;
@@ -1675,6 +1788,15 @@ export class Player {
                 if (document.visibilityState === 'hidden' || (this.isIOS && this.isPwa)) {
                     // For offline blob URLs, try playing anyway — data is local, not network
                     if (src.startsWith('blob:')) {
+                        resolve(true);
+                        return;
+                    }
+                    // iOS: if readyState has progressed at all, try playing anyway.
+                    // iOS may partially load without firing canplay.  Also try if
+                    // the element has HAVE_METADATA (readyState 1) since the audio
+                    // pipeline may still be able to start playback and buffer.
+                    if (this.isIOS && element.readyState >= 1) {
+                        console.log('[iOS Background] Timeout but readyState is', element.readyState, '— trying play anyway');
                         resolve(true);
                         return;
                     }
