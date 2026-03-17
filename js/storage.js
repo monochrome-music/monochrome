@@ -488,6 +488,23 @@ export const nowPlayingSettings = {
     },
 };
 
+export const gaplessPlaybackSettings = {
+    STORAGE_KEY: 'gapless-playback-enabled',
+
+    isEnabled() {
+        try {
+            const val = localStorage.getItem(this.STORAGE_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+};
+
 export const fullscreenCoverClickSettings = {
     STORAGE_KEY: 'fullscreen-cover-click-action',
 

@@ -32,6 +32,7 @@ import {
     pwaUpdateSettings,
     contentBlockingSettings,
     musicProviderSettings,
+    gaplessPlaybackSettings,
     analyticsSettings,
     modalSettings,
 } from './storage.js';
@@ -977,6 +978,14 @@ export function initializeSettings(scrobbler, player, api, ui) {
         includeCoverToggle.checked = playlistSettings.shouldIncludeCover();
         includeCoverToggle.addEventListener('change', (e) => {
             playlistSettings.setIncludeCover(e.target.checked);
+        });
+    }
+
+    const gaplessPlaybackToggle = document.getElementById('gapless-playback-toggle');
+    if (gaplessPlaybackToggle) {
+        gaplessPlaybackToggle.checked = gaplessPlaybackSettings.isEnabled();
+        gaplessPlaybackToggle.addEventListener('change', (e) => {
+            gaplessPlaybackSettings.setEnabled(e.target.checked);
         });
     }
 
