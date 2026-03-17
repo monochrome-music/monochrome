@@ -172,11 +172,13 @@ export class MusicDatabase {
 
         if (exists) {
             await this.performTransaction(storeName, 'readwrite', (store) => store.delete(key));
+            window.dispatchEvent(new CustomEvent('favorites-changed'));
             return false; // Removed
         } else {
             const minified = this._minifyItem(type, item);
             const entry = { ...minified, addedAt: Date.now() };
             await this.performTransaction(storeName, 'readwrite', (store) => store.put(entry));
+            window.dispatchEvent(new CustomEvent('favorites-changed'));
             return true; // Added
         }
     }
@@ -583,6 +585,7 @@ export class MusicDatabase {
 
         // TRIGGER SYNC
         this._dispatchPlaylistSync('create', playlist);
+        window.dispatchEvent(new CustomEvent('playlist-tracks-changed'));
 
         return playlist;
     }
@@ -600,6 +603,7 @@ export class MusicDatabase {
         await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
 
         this._dispatchPlaylistSync('update', playlist);
+        window.dispatchEvent(new CustomEvent('playlist-tracks-changed'));
 
         return playlist;
     }
@@ -623,6 +627,7 @@ export class MusicDatabase {
             this._updatePlaylistMetadata(playlist);
             await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
             this._dispatchPlaylistSync('update', playlist);
+            window.dispatchEvent(new CustomEvent('playlist-tracks-changed'));
         }
 
         return playlist;
@@ -643,6 +648,7 @@ export class MusicDatabase {
         await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
 
         this._dispatchPlaylistSync('update', playlist);
+        window.dispatchEvent(new CustomEvent('playlist-tracks-changed'));
 
         return playlist;
     }
@@ -652,6 +658,7 @@ export class MusicDatabase {
 
         // TRIGGER SYNC (but for deleting)
         this._dispatchPlaylistSync('delete', { id: playlistId });
+        window.dispatchEvent(new CustomEvent('playlist-tracks-changed'));
     }
 
     async getPlaylist(playlistId) {
