@@ -1986,7 +1986,9 @@ export class UIRenderer {
                 { id: 'hip_hop', name: 'Hip Hop / Rap' },
                 { id: 'pop', name: 'Pop' },
                 { id: 'rock', name: 'Rock' },
+                { id: 'rnb', name: 'R&B / Soul'},
                 { id: 'electronic', name: 'Electronic' },
+                { id: 'metal', name: 'Metal'},
                 { id: 'country', name: 'Country' },
                 { id: 'jazz', name: 'Jazz' },
                 { id: 'classical', name: 'Classical' },
@@ -1995,7 +1997,7 @@ export class UIRenderer {
                 { id: 'blues', name: 'Blues' },
                 { id: 'soundtrack', name: 'Soundtrack' },
                 { id: 'alternative', name: 'Alternative' },
-                { id: 'metal', name: 'Metal'}
+                { id: 'kids', name: 'Kids'}
             ];
 
             if (GENRES.length > 0) {
