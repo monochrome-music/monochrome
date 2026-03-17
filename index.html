@@ -2805,7 +2805,9 @@
                         <h3 style="color: var(--foreground); margin-bottom: 0.5rem; font-weight: 600">No offline tracks yet</h3>
                         <p style="color: var(--muted-foreground); font-size: 0.9rem; max-width: 400px; margin: 0 auto">Right-click or long-press any track and select <strong>"Save Offline"</strong> to download it for offline playback.</p>
                     </div>
-                    <div class="track-list" id="offline-tracks-container"></div>
+                    <div id="offline-tracks-scroll" class="track-list" style="overflow-y: auto; max-height: calc(100dvh - 340px); min-height: 200px;">
+                        <div id="offline-tracks-container"></div>
+                    </div>
                 </div>
 
                 <div id="page-unreleased" class="page">

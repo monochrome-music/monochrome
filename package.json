@@ -60,6 +60,7 @@
         "butterchurn": "^2.6.7",
         "butterchurn-presets": "^2.4.7",
         "client-zip": "^2.5.0",
+        "clusterize.js": "^1.0.0",
         "cookie-session": "^2.1.1",
         "dashjs": "^5.1.1",
         "fuse.js": "^7.1.0",

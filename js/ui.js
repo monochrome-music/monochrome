@@ -1889,14 +1889,29 @@ export class UIRenderer {
         this.showPage('offline');
 
         const { getAllOfflineTracks, getOfflineStorageUsed, getOfflineTrackCount, removeOfflineTrack, clearAllOfflineTracks, buildPlayableTrack } = await import('./offline.js');
+        const Clusterize = (await import('clusterize.js')).default;
+        // Inject minimal Clusterize CSS (skip full CSS to avoid max-height conflicts)
+        if (!document.getElementById('clusterize-style')) {
+            const style = document.createElement('style');
+            style.id = 'clusterize-style';
+            style.textContent = '.clusterize-extra-row{margin-top:0!important;margin-bottom:0!important}.clusterize-extra-row.clusterize-keep-parity{display:none}.clusterize-content{outline:0}.clusterize-no-data td{text-align:center}';
+            document.head.appendChild(style);
+        }
 
         const container = document.getElementById('offline-tracks-container');
+        const scrollEl = document.getElementById('offline-tracks-scroll');
         const emptyState = document.getElementById('offline-empty-state');
         const storageInfo = document.getElementById('offline-storage-info');
         const shuffleBtn = document.getElementById('offline-shuffle-btn');
         const clearBtn = document.getElementById('offline-clear-btn');
         const searchContainer = document.getElementById('offline-search-container');
         const searchInput = document.getElementById('offline-search-input');
+
+        // Destroy previous Clusterize instance if exists
+        if (this._offlineClusterize) {
+            this._offlineClusterize.destroy(true);
+            this._offlineClusterize = null;
+        }
 
         const formatBytes = (bytes) => {
             if (bytes === 0) return '0 B';
@@ -1916,14 +1931,20 @@ export class UIRenderer {
 
             if (entries.length === 0) {
                 if (container) container.innerHTML = '';
+                if (scrollEl) scrollEl.style.display = 'none';
                 if (emptyState) emptyState.style.display = 'block';
                 if (shuffleBtn) shuffleBtn.style.display = 'none';
                 if (clearBtn) clearBtn.style.display = 'none';
                 if (searchContainer) searchContainer.style.display = 'none';
+                if (this._offlineClusterize) {
+                    this._offlineClusterize.destroy(true);
+                    this._offlineClusterize = null;
+                }
                 return;
             }
 
             if (emptyState) emptyState.style.display = 'none';
+            if (scrollEl) scrollEl.style.display = '';
             if (shuffleBtn) shuffleBtn.style.display = 'flex';
             if (clearBtn) clearBtn.style.display = 'flex';
             if (searchContainer) searchContainer.style.display = '';
@@ -1934,42 +1955,122 @@ export class UIRenderer {
             // Build playable tracks
             const playableTracks = entries.map(entry => buildPlayableTrack(entry));
 
-            // Re-use existing track list rendering
-            this.renderListWithTracks(container, playableTracks, true);
+            // Store tracks for search/play actions
+            this._offlinePlayableTracks = playableTracks;
 
-            // Setup search filtering for offline tracks
-            this.setupTracklistSearch('offline-search-input', 'offline-tracks-container');
+            // Generate HTML rows for Clusterize
+            const allRows = playableTracks.map((track, i) => this.createTrackItemHTML(track, i, true));
 
-            // Add remove buttons to each track item
-            container.querySelectorAll('.track-item').forEach((el) => {
-                const trackId = el.dataset.trackId;
-                if (!trackId) return;
+            // Helper to attach remove buttons and like state to visible rows
+            const attachOfflineActions = () => {
+                if (!container) return;
+                container.querySelectorAll('.track-item').forEach((el) => {
+                    // Skip already processed items
+                    if (el.dataset.offlineProcessed) return;
+                    el.dataset.offlineProcessed = 'true';
 
-                // Add a remove-from-offline button
-                const actionsArea = el.querySelector('.track-actions') || el;
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'btn-icon offline-remove-btn';
-                removeBtn.title = 'Remove from Offline';
-                removeBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`;
-                removeBtn.style.cssText = 'background: transparent; border: none; color: var(--muted-foreground); cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center; transition: color 0.2s;';
-                removeBtn.addEventListener('mouseenter', () => { removeBtn.style.color = 'var(--destructive, #ef4444)'; });
-                removeBtn.addEventListener('mouseleave', () => { removeBtn.style.color = 'var(--muted-foreground)'; });
-                removeBtn.addEventListener('click', async (e) => {
-                    e.stopPropagation();
-                    await removeOfflineTrack(parseInt(trackId) || trackId);
-                    const { showNotification } = await import('./downloads.js');
-                    showNotification('Track removed from offline');
-                    render();
-                    // Update badge
-                    const count = await getOfflineTrackCount();
-                    const badge = document.getElementById('offline-count-badge');
-                    if (badge) {
-                        badge.textContent = count;
-                        badge.style.display = count > 0 ? 'inline-flex' : 'none';
+                    const trackId = el.dataset.trackId;
+                    if (!trackId) return;
+
+                    // Bind track data from our stored tracks
+                    const track = playableTracks.find(t => String(t.id) === String(trackId));
+                    if (track) {
+                        trackDataStore.set(el, track);
+                        this.updateLikeState(el, 'track', track.id);
+                    }
+
+                    // Add remove-from-offline button
+                    const actionsArea = el.querySelector('.track-item-actions') || el;
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'btn-icon offline-remove-btn';
+                    removeBtn.title = 'Remove from Offline';
+                    removeBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`;
+                    removeBtn.style.cssText = 'background: transparent; border: none; color: var(--muted-foreground); cursor: pointer; padding: 4px; border-radius: 4px; display: flex; align-items: center; transition: color 0.2s;';
+                    removeBtn.addEventListener('mouseenter', () => { removeBtn.style.color = 'var(--destructive, #ef4444)'; });
+                    removeBtn.addEventListener('mouseleave', () => { removeBtn.style.color = 'var(--muted-foreground)'; });
+                    removeBtn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        await removeOfflineTrack(parseInt(trackId) || trackId);
+                        showNotification('Track removed from offline');
+                        render();
+                        // Update badge
+                        const count = await getOfflineTrackCount();
+                        const badge = document.getElementById('offline-count-badge');
+                        if (badge) {
+                            badge.textContent = count;
+                            badge.style.display = count > 0 ? 'inline-flex' : 'none';
+                        }
+                    });
+                    actionsArea.appendChild(removeBtn);
+                });
+            };
+
+            // Initialize or update Clusterize
+            if (this._offlineClusterize) {
+                this._offlineClusterize.update(allRows);
+                attachOfflineActions();
+            } else {
+                this._offlineClusterize = new Clusterize({
+                    rows: allRows,
+                    scrollId: 'offline-tracks-scroll',
+                    contentId: 'offline-tracks-container',
+                    rows_in_block: 30,
+                    blocks_in_cluster: 4,
+                    show_no_data_row: true,
+                    no_data_text: 'No offline tracks found.',
+                    tag: 'div',
+                    callbacks: {
+                        clusterChanged: () => {
+                            attachOfflineActions();
+                        }
                     }
                 });
-                actionsArea.appendChild(removeBtn);
-            });
+                attachOfflineActions();
+            }
+
+            // Setup click handler for playing tracks (delegated on container)
+            if (!container._offlineClickBound) {
+                container.addEventListener('click', (e) => {
+                    const trackItem = e.target.closest('.track-item');
+                    if (!trackItem) return;
+                    // Don't play if clicked on a button
+                    if (e.target.closest('button')) return;
+
+                    const trackId = trackItem.dataset.trackId;
+                    if (!trackId || !this._offlinePlayableTracks) return;
+
+                    const trackIndex = this._offlinePlayableTracks.findIndex(t => String(t.id) === String(trackId));
+                    if (trackIndex >= 0) {
+                        this.player.setQueue([...this._offlinePlayableTracks], trackIndex);
+                        this.player.playTrackFromQueue(0, 0);
+                    }
+                });
+                container._offlineClickBound = true;
+            }
+
+            // Setup search filtering using clusterize.update()
+            if (searchInput && !searchInput._offlineSearchBound) {
+                this.setupSearchClearButton(searchInput);
+                const searchHandler = () => {
+                    const query = searchInput.value.toLowerCase().trim();
+                    if (!query) {
+                        this._offlineClusterize?.update(allRows);
+                    } else {
+                        const filtered = allRows.filter((_row, i) => {
+                            const track = playableTracks[i];
+                            if (!track) return false;
+                            const title = (track.title || '').toLowerCase();
+                            const artist = (track.artist?.name || track.artists?.[0]?.name || '').toLowerCase();
+                            const album = (track.album?.title || '').toLowerCase();
+                            return title.includes(query) || artist.includes(query) || album.includes(query);
+                        });
+                        this._offlineClusterize?.update(filtered);
+                    }
+                };
+                searchInput.addEventListener('input', searchHandler);
+                searchInput._offlineSearchBound = true;
+                searchInput._offlineSearchHandler = searchHandler;
+            }
         };
 
         await render();
@@ -1984,7 +2085,6 @@ export class UIRenderer {
                 this.player.shuffleActive = true;
                 this.player.setQueue(shuffled, 0);
                 this.player.playAtIndex(0);
-                const { showNotification } = await import('./downloads.js');
                 showNotification(`Shuffling ${shuffled.length} offline tracks`);
             };
         }
@@ -1994,7 +2094,6 @@ export class UIRenderer {
             clearBtn.onclick = async () => {
                 if (!confirm('Remove all offline tracks? This cannot be undone.')) return;
                 await clearAllOfflineTracks();
-                const { showNotification } = await import('./downloads.js');
                 showNotification('All offline tracks removed');
                 render();
                 const badge = document.getElementById('offline-count-badge');
