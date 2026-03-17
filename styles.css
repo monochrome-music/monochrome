@@ -2168,6 +2168,13 @@ input[type='search']::-webkit-search-cancel-button {
     transform: scale(0.99);
 }
 
+/* Disable scale transforms inside virtual scroll containers (Clusterize) —
+   scale changes row height and causes layout jitter with virtual scrolling */
+#offline-tracks-scroll .track-item:hover,
+#offline-tracks-scroll .track-item:active {
+    transform: none;
+}
+
 .track-item.playing {
     background-color: rgb(var(--highlight-rgb), 0.15);
     border-left: 3px solid var(--highlight);
