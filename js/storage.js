@@ -95,6 +95,7 @@ export const apiSettings = {
                         { url: 'https://katze.qqdl.site', version: '2.2' },
                         { url: 'https://hund.qqdl.site', version: '2.2' },
                         { url: 'https://wolf.qqdl.site', version: '2.2' },
+                        { url: 'https://hifi.p1nkhamster.xyz/', version: '2.6'},
                     ],
                 };
                 this.instancesLoaded = true;
@@ -105,13 +106,11 @@ export const apiSettings = {
             let groupedInstances = { api: [], streaming: [] };
 
             if (data.api && Array.isArray(data.api)) {
-                groupedInstances.api = data.api.filter((instance) => !instance.url.includes('spotisaver.net'));
+                groupedInstances.api = data.api;
             }
 
             if (data.streaming && Array.isArray(data.streaming)) {
-                groupedInstances.streaming = data.streaming.filter(
-                    (instance) => !instance.url.includes('spotisaver.net')
-                );
+                groupedInstances.streaming = data.streaming;
             } else if (groupedInstances.api.length > 0) {
                 groupedInstances.streaming = [...groupedInstances.api];
             }
@@ -147,7 +146,10 @@ export const apiSettings = {
         const defaultUrls = instancesObj[type] || instancesObj.api || [];
         const userUrls = userInst[type] || [];
 
-        const combined = [...userUrls.map((u) => (typeof u === 'string' ? { url: u, isUser: true } : { ...u, isUser: true })), ...defaultUrls];
+        const combined = [
+            ...userUrls.map((u) => (typeof u === 'string' ? { url: u, isUser: true } : { ...u, isUser: true })),
+            ...defaultUrls,
+        ];
 
         if (combined.length === 0) return [];
 
@@ -181,6 +183,10 @@ export const apiSettings = {
     },
 
     async refreshInstances() {
+        this.instancesLoaded = false;
+        this._loadPromise = null;
+        localStorage.removeItem(this.STORAGE_KEY);
+
         const instances = await this.loadInstancesFromGitHub();
 
         const shuffle = (array) => {

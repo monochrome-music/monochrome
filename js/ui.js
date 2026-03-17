@@ -2135,7 +2135,9 @@ export class UIRenderer {
                 { id: 'hip_hop', name: 'Hip Hop / Rap' },
                 { id: 'pop', name: 'Pop' },
                 { id: 'rock', name: 'Rock' },
+                { id: 'rnb', name: 'R&B / Soul'},
                 { id: 'electronic', name: 'Electronic' },
+                { id: 'metal', name: 'Metal'},
                 { id: 'country', name: 'Country' },
                 { id: 'jazz', name: 'Jazz' },
                 { id: 'classical', name: 'Classical' },
@@ -2144,6 +2146,7 @@ export class UIRenderer {
                 { id: 'blues', name: 'Blues' },
                 { id: 'soundtrack', name: 'Soundtrack' },
                 { id: 'alternative', name: 'Alternative' },
+                { id: 'kids', name: 'Kids'}
             ];
 
             if (GENRES.length > 0) {
@@ -3221,10 +3224,10 @@ export class UIRenderer {
                     dateDisplay =
                         window.innerWidth > 768
                             ? releaseDate.toLocaleDateString('en-US', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric',
-                              })
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                            })
                             : year;
                 }
             }
@@ -4076,6 +4079,8 @@ export class UIRenderer {
         const epsSection = document.getElementById('artist-section-eps');
         const similarContainer = document.getElementById('artist-detail-similar');
         const similarSection = document.getElementById('artist-section-similar');
+        const inLibraryContainer = document.getElementById('artist-detail-in-library');
+        const inLibrarySection = document.getElementById('artist-section-in-library');
         const dlBtn = document.getElementById('download-discography-btn');
         if (dlBtn) dlBtn.innerHTML = `${SVG_DOWNLOAD}<span>Download Discography</span>`;
 
@@ -4097,6 +4102,16 @@ export class UIRenderer {
         if (loadUnreleasedSection) loadUnreleasedSection.style.display = 'none';
         if (similarContainer) similarContainer.innerHTML = this.createSkeletonCards(6, true);
         if (similarSection) similarSection.style.display = 'block';
+        if (inLibrarySection) inLibrarySection.style.display = 'none';
+        if (inLibraryContainer) {
+            inLibraryContainer.innerHTML = '';
+            inLibraryContainer.hidden = true;
+        }
+        // Reset chevron and toggle state
+        const chevronEl = document.getElementById('in-library-chevron');
+        if (chevronEl) chevronEl.style.transform = 'rotate(0deg)';
+        const toggleBtn = document.getElementById('in-library-toggle');
+        if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
 
         try {
             const artist = await this.api.getArtist(artistId, provider);
@@ -4317,9 +4332,9 @@ export class UIRenderer {
                 <span>${artist.popularity}% popularity</span>
                 <div class="artist-tags">
                     ${(artist.artistRoles || [])
-                        .filter((role) => role.category)
-                        .map((role) => `<span class="artist-tag">${role.category}</span>`)
-                        .join('')}
+                    .filter((role) => role.category)
+                    .map((role) => `<span class="artist-tag">${role.category}</span>`)
+                    .join('')}
                 </div>
             `;
 
@@ -4330,6 +4345,226 @@ export class UIRenderer {
             });
 
             this.renderListWithTracks(tracksContainer, artist.tracks, true);
+
+            // "In your library" section: find liked tracks and playlist tracks for this artist
+            if (inLibraryContainer && inLibrarySection) {
+                const artistNameLower = artist.name.toLowerCase();
+
+                const isTrackByArtist = (track) => {
+                    if (track.artists && Array.isArray(track.artists)) {
+                        return track.artists.some(
+                            (a) => a && ((artist.id && a.id === artist.id) || (a.name && a.name.toLowerCase() === artistNameLower))
+                        );
+                    }
+                    if (track.artist) {
+                        if (typeof track.artist === 'object') {
+                            if (artist.id && track.artist.id === artist.id) return true;
+                            if (track.artist.name && track.artist.name.toLowerCase() === artistNameLower) return true;
+                        } else if (typeof track.artist === 'string') {
+                            if (track.artist.toLowerCase() === artistNameLower) return true;
+                        }
+                    }
+                    return false;
+                };
+
+                const refreshInLibrary = async () => {
+                    try {
+                        const seenIds = new Set();
+                        const libraryTracks = [];
+                        const trackSourceMap = new Map(); // trackId -> Array<{ label, href }>
+
+                        const addSource = (trackId, source) => {
+                            if (!trackSourceMap.has(trackId)) {
+                                trackSourceMap.set(trackId, []);
+                            }
+                            trackSourceMap.get(trackId).push(source);
+                        };
+
+                        // Get liked tracks
+                        const likedTracks = await db.getFavorites('track');
+                        for (const track of likedTracks) {
+                            if (isTrackByArtist(track)) {
+                                if (!seenIds.has(track.id)) {
+                                    seenIds.add(track.id);
+                                    libraryTracks.push(track);
+                                }
+                                addSource(track.id, { label: 'Liked Tracks', href: '/library' });
+                            }
+                        }
+
+                        // Get tracks from user playlists
+                        const userPlaylists = await db.getPlaylists(true);
+                        for (const playlist of userPlaylists) {
+                            if (playlist.tracks && Array.isArray(playlist.tracks)) {
+                                for (const track of playlist.tracks) {
+                                    if (isTrackByArtist(track)) {
+                                        if (!seenIds.has(track.id)) {
+                                            seenIds.add(track.id);
+                                            libraryTracks.push(track);
+                                        }
+                                        const label = playlist.name || playlist.title || 'Playlist';
+                                        addSource(track.id, {
+                                            label,
+                                            href: `/userplaylist/${playlist.id}`
+                                        });
+                                    }
+                                }
+                            }
+                        }
+
+                        // Sort alphabetically by title
+                        libraryTracks.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+
+                        if (libraryTracks.length > 0) {
+                            inLibrarySection.style.display = 'block';
+                            this.renderListWithTracks(inLibraryContainer, libraryTracks, true);
+
+                            // Inject source labels into each track's .artist div
+                            const trackElements = inLibraryContainer.querySelectorAll('.track-item');
+                            trackElements.forEach((el, idx) => {
+                                const track = libraryTracks[idx];
+                                if (!track) return;
+                                const sources = trackSourceMap.get(track.id);
+                                if (!sources || sources.length === 0) return;
+                                const artistDiv = el.querySelector('.track-item-details .artist');
+                                if (!artistDiv) return;
+
+                                // Extract artist name and year from existing content
+                                const artistLinks = artistDiv.querySelectorAll('.artist-link');
+                                const artistNames = Array.from(artistLinks).map(a => a.textContent).join(', ');
+                                const truncatedArtist = artistNames.length > 15 ? artistNames.slice(0, 20) + '…' : artistNames;
+
+                                // Extract year from text content (pattern: " • 2024")
+                                const fullText = artistDiv.textContent;
+                                const yearMatch = fullText.match(/\s•\s(\d{4})/);
+                                const yearText = yearMatch ? ` • ${yearMatch[1]}` : '';
+
+                                // Build source content
+                                const sourceSpan = document.createElement('span');
+                                sourceSpan.className = 'library-source';
+
+                                const labelSpan = document.createElement('span');
+                                labelSpan.className = 'library-source-label';
+                                labelSpan.textContent = '· Source:\u00a0';
+
+                                const linkSpan = document.createElement('span');
+                                linkSpan.className = 'library-source-link';
+
+                                sourceSpan.style.cursor = 'pointer';
+                                sourceSpan.appendChild(labelSpan);
+                                sourceSpan.appendChild(linkSpan);
+
+                                if (sources.length === 1) {
+                                    const srcLabel = sources[0].label.length > 15 ? sources[0].label.slice(0, 15) + '…' : sources[0].label;
+                                    linkSpan.textContent = srcLabel;
+                                    sourceSpan.addEventListener('click', (e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        navigate(sources[0].href);
+                                    });
+                                } else {
+                                    linkSpan.textContent = 'Multiple Playlists';
+                                    sourceSpan.addEventListener('click', (e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+
+                                        const modal = document.getElementById('goto-playlist-modal');
+                                        const list = document.getElementById('goto-playlist-list');
+                                        const cancelBtn = document.getElementById('goto-playlist-cancel');
+                                        const overlay = modal.querySelector('.modal-overlay');
+
+                                        list.innerHTML = '';
+                                        sources.forEach((s) => {
+                                            const option = document.createElement('div');
+                                            option.className = 'modal-option';
+                                            option.dataset.href = s.href;
+                                            const span = document.createElement('span');
+                                            span.textContent = s.label;
+                                            option.appendChild(span);
+                                            list.appendChild(option);
+                                        });
+
+                                        const closeModal = () => {
+                                            modal.classList.remove('active');
+                                        };
+
+                                        list.onclick = (ev) => {
+                                            const option = ev.target.closest('.modal-option');
+                                            if (!option) return;
+                                            const href = option.dataset.href;
+                                            closeModal();
+                                            if (href) navigate(href);
+                                        };
+
+                                        cancelBtn.onclick = closeModal;
+                                        overlay.onclick = closeModal;
+                                        modal.classList.add('active');
+                                    });
+                                }
+
+                                // Rebuild artist div with structured layout
+                                artistDiv.innerHTML = '';
+                                artistDiv.classList.add('library-artist-flex');
+
+                                const artistNameSpan = document.createElement('span');
+                                artistNameSpan.className = 'library-artist-name';
+                                artistNameSpan.textContent = truncatedArtist;
+
+                                const yearSpan = document.createElement('span');
+                                yearSpan.className = 'library-year';
+                                yearSpan.textContent = yearText;
+
+                                artistDiv.appendChild(artistNameSpan);
+                                artistDiv.appendChild(yearSpan);
+                                artistDiv.appendChild(sourceSpan);
+                            });
+                        } else {
+                            inLibrarySection.style.display = 'none';
+                        }
+                    } catch (err) {
+                        console.warn('Failed to load library tracks for artist:', err);
+                        inLibrarySection.style.display = 'none';
+                    }
+                };
+
+                // Initial load
+                refreshInLibrary().then(() => {
+                    inLibraryContainer.hidden = true;
+                });
+
+                // Setup chevron toggle (once)
+                const toggle = document.getElementById('in-library-toggle');
+                const chevron = document.getElementById('in-library-chevron');
+                if (toggle) {
+                    toggle.onclick = () => {
+                        const isOpen = !inLibraryContainer.hidden;
+                        inLibraryContainer.hidden = isOpen;
+                        toggle.setAttribute('aria-expanded', String(!isOpen));
+                        if (chevron) {
+                            chevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(90deg)';
+                        }
+                    };
+                }
+
+                // Real-time updates: refresh when favorites or playlists change
+                let refreshTimeout;
+                const debouncedRefresh = () => {
+                    clearTimeout(refreshTimeout);
+                    refreshTimeout = setTimeout(() => refreshInLibrary(), 300);
+                };
+
+                // Cleanup previous listeners before attaching new ones
+                const cleanupOnNav = () => {
+                    window.removeEventListener('favorites-changed', debouncedRefresh);
+                    window.removeEventListener('playlist-tracks-changed', debouncedRefresh);
+                    window.removeEventListener('popstate', cleanupOnNav);
+                };
+                cleanupOnNav();
+
+                window.addEventListener('favorites-changed', debouncedRefresh);
+                window.addEventListener('playlist-tracks-changed', debouncedRefresh);
+                window.addEventListener('popstate', cleanupOnNav, { once: true });
+            }
 
             // Update header like button
             const artistLikeBtn = document.getElementById('like-artist-btn');
@@ -4962,13 +5197,13 @@ export class UIRenderer {
                             <div class="controls">
                                 ${
                                     isUser
-                                        ? `
+                                    ? `
                                 <button class="delete-instance" title="Delete Instance">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                                     </svg>
                                 </button>`
-                                        : ''
+                                    : ''
                                 }
                                 <button class="move-up" title="Move Up" ${index === 0 ? 'disabled' : ''}>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

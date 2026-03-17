@@ -4,6 +4,7 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Monochrome Music</title>
+        <link rel="canonical" href="https://monochrome.tf/" />
         <meta name="theme-color" content="#000000" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -1132,6 +1133,19 @@
                 </div>
                 <div class="modal-actions">
                     <button id="playlist-select-cancel" class="btn-secondary">Cancel</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="goto-playlist-modal" class="modal">
+            <div class="modal-overlay"></div>
+            <div class="modal-content">
+                <h3>Go to Playlist</h3>
+                <div id="goto-playlist-list" class="modal-list">
+                    <!-- Options will be injected here -->
+                </div>
+                <div class="modal-actions">
+                    <button id="goto-playlist-cancel" class="btn-secondary">Cancel</button>
                 </div>
             </div>
         </div>
@@ -3399,6 +3413,17 @@
                     <section class="content-section">
                         <h2 class="section-title">Popular Tracks</h2>
                         <div class="track-list" id="artist-detail-tracks"></div>
+                    </section>
+                    <section class="content-section" id="artist-section-in-library" style="display: none">
+                        <h2 class="section-title">
+                            <button id="in-library-toggle" aria-expanded="false" aria-controls="artist-detail-in-library" style="background: none; border: none; color: inherit; font: inherit; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; padding: 0; user-select: none;">
+                                In Your Library
+                                <svg id="in-library-chevron" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.25s ease; flex-shrink: 0;">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </button>
+                        </h2>
+                        <div class="track-list" id="artist-detail-in-library" hidden></div>
                     </section>
                     <section class="content-section">
                         <h2 class="section-title">Albums</h2>
