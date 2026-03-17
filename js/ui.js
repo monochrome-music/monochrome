@@ -2255,13 +2255,45 @@ export class UIRenderer {
         }
 
         // Export — incremental by default (only new tracks since last backup)
-        const triggerBlobDownload = (blob, filename) => {
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+        const triggerBlobDownload = async (blob, filename) => {
+            // 1. Web Share API — best on mobile (iOS 15.4+, Android)
+            if (navigator.canShare) {
+                try {
+                    const file = new File([blob], filename, { type: 'application/octet-stream' });
+                    if (navigator.canShare({ files: [file] })) {
+                        await navigator.share({ files: [file] });
+                        return;
+                    }
+                } catch (err) {
+                    if (err.name === 'AbortError') return; // user cancelled
+                    // Fall through to next method
+                }
+            }
+
             const url = URL.createObjectURL(blob);
+
+            // 2. iOS Safari without Web Share — <a download> doesn't work,
+            //    open the blob in a new tab so user can long-press → Save
+            if (isSafari) {
+                window.open(url, '_blank');
+                // Don't revoke — the new tab needs time to load
+                setTimeout(() => URL.revokeObjectURL(url), 120000);
+                return;
+            }
+
+            // 3. Standard download link (Android Chrome, desktop fallback)
             const a = document.createElement('a');
             a.href = url;
             a.download = filename;
+            a.style.display = 'none';
+            document.body.appendChild(a);
             a.click();
-            setTimeout(() => URL.revokeObjectURL(url), 10000);
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 60000);
         };
 
         if (exportBtn) {
@@ -2292,7 +2324,7 @@ export class UIRenderer {
                         // Multiple chunk files — trigger sequential downloads
                         for (let ci = 0; ci < result.chunks.length; ci++) {
                             const chunk = result.chunks[ci];
-                            triggerBlobDownload(chunk.blob, `monochrome-offline-${date}-part${ci + 1}.mcbackup`);
+                            await triggerBlobDownload(chunk.blob, `monochrome-offline-${date}-part${ci + 1}.mcbackup`);
                             // Small delay between downloads so browser doesn't block them
                             if (ci < result.chunks.length - 1) {
                                 await new Promise(r => setTimeout(r, 1000));
@@ -2300,7 +2332,7 @@ export class UIRenderer {
                         }
                         showNotification(`Offline backup split into ${result.chunks.length} files (${formatBytes(result.totalBytes)} total)`);
                     } else if (result?.blob) {
-                        triggerBlobDownload(result.blob, `monochrome-offline-${date}.mcbackup`);
+                        await triggerBlobDownload(result.blob, `monochrome-offline-${date}.mcbackup`);
                         showNotification(`Offline backup ready. Browser download started (${formatBytes(result.totalBytes)})`);
                     } else {
                         showNotification(`Offline backup saved and verified (${formatBytes(result?.totalBytes || 0)})`);
