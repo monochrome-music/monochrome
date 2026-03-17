@@ -1995,6 +1995,7 @@ export class UIRenderer {
                 { id: 'blues', name: 'Blues' },
                 { id: 'soundtrack', name: 'Soundtrack' },
                 { id: 'alternative', name: 'Alternative' },
+                { id: 'metal', name: 'Metal'}
             ];
 
             if (GENRES.length > 0) {
