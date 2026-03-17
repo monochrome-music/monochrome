@@ -7234,6 +7234,10 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     background: var(--input);
 }
 
+#offline-artist-filter::-webkit-scrollbar {
+    display: none;
+}
+
 /* Selection */
 ::selection {
     background: var(--primary);

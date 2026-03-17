@@ -1888,7 +1888,7 @@ export class UIRenderer {
     async renderOfflinePage() {
         this.showPage('offline');
 
-        const { getAllOfflineTracks, getOfflineStorageUsed, getOfflineTrackCount, removeOfflineTrack, clearAllOfflineTracks, buildPlayableTrack } = await import('./offline.js');
+        const { getAllOfflineTracks, getOfflineStorageUsed, getOfflineTrackCount, removeOfflineTrack, clearAllOfflineTracks, buildPlayableTrack, exportOfflineTracks, importOfflineTracks } = await import('./offline.js');
         const Clusterize = (await import('clusterize.js')).default;
         // Inject minimal Clusterize CSS (skip full CSS to avoid max-height conflicts)
         if (!document.getElementById('clusterize-style')) {
@@ -1906,6 +1906,10 @@ export class UIRenderer {
         const clearBtn = document.getElementById('offline-clear-btn');
         const searchContainer = document.getElementById('offline-search-container');
         const searchInput = document.getElementById('offline-search-input');
+        const artistFilter = document.getElementById('offline-artist-filter');
+        const exportBtn = document.getElementById('offline-export-btn');
+        const importBtn = document.getElementById('offline-import-btn');
+        const importFile = document.getElementById('offline-import-file');
 
         // Destroy previous Clusterize instance if exists
         if (this._offlineClusterize) {
@@ -1936,6 +1940,8 @@ export class UIRenderer {
                 if (shuffleBtn) shuffleBtn.style.display = 'none';
                 if (clearBtn) clearBtn.style.display = 'none';
                 if (searchContainer) searchContainer.style.display = 'none';
+                if (artistFilter) artistFilter.style.display = 'none';
+                if (exportBtn) exportBtn.style.display = 'none';
                 if (this._offlineClusterize) {
                     this._offlineClusterize.destroy(true);
                     this._offlineClusterize = null;
@@ -1947,6 +1953,7 @@ export class UIRenderer {
             if (scrollEl) scrollEl.style.display = '';
             if (shuffleBtn) shuffleBtn.style.display = 'flex';
             if (clearBtn) clearBtn.style.display = 'flex';
+            if (exportBtn) exportBtn.style.display = 'flex';
             if (searchContainer) searchContainer.style.display = '';
 
             // Clear search input on re-render
@@ -1958,8 +1965,87 @@ export class UIRenderer {
             // Store tracks for search/play actions
             this._offlinePlayableTracks = playableTracks;
 
+            // Populate artist filter pills
+            this._offlineSelectedArtist = null;
+            if (artistFilter) {
+                const artistCounts = {};
+                playableTracks.forEach(t => {
+                    const name = t.artist?.name || t.artists?.[0]?.name || 'Unknown Artist';
+                    artistCounts[name] = (artistCounts[name] || 0) + 1;
+                });
+                const artists = Object.keys(artistCounts).sort((a, b) => a.localeCompare(b));
+
+                if (artists.length >= 1) {
+                    artistFilter.style.display = 'block';
+                    artistFilter.innerHTML = '';
+
+                    const pillStyle = 'display:inline-block;padding:5px 14px;margin-right:6px;border-radius:9999px;font-size:0.8rem;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--foreground);transition:all 0.15s;white-space:nowrap;';
+                    const activePillStyle = 'display:inline-block;padding:5px 14px;margin-right:6px;border-radius:9999px;font-size:0.8rem;cursor:pointer;border:1px solid var(--foreground);background:var(--foreground);color:var(--background);transition:all 0.15s;white-space:nowrap;';
+
+                    const allPill = document.createElement('button');
+                    allPill.textContent = `All`;
+                    allPill.style.cssText = activePillStyle;
+                    allPill.dataset.artist = '';
+                    artistFilter.appendChild(allPill);
+
+                    artists.forEach(name => {
+                        const pill = document.createElement('button');
+                        pill.textContent = `${name} (${artistCounts[name]})`;
+                        pill.style.cssText = pillStyle;
+                        pill.dataset.artist = name;
+                        artistFilter.appendChild(pill);
+                    });
+
+                    artistFilter.onclick = (e) => {
+                        const pill = e.target.closest('button');
+                        if (!pill) return;
+                        const selected = pill.dataset.artist || null;
+                        this._offlineSelectedArtist = selected;
+
+                        // Update pill styles
+                        artistFilter.querySelectorAll('button').forEach(p => {
+                            p.style.cssText = (p.dataset.artist === (selected || '')) ? activePillStyle : pillStyle;
+                        });
+
+                        // Re-apply combined filter
+                        applyFilters();
+                    };
+                } else {
+                    artistFilter.style.display = 'none';
+                }
+            }
+
             // Generate HTML rows for Clusterize
             const allRows = playableTracks.map((track, i) => this.createTrackItemHTML(track, i, true));
+
+            // Combined filter function for search + artist
+            const applyFilters = () => {
+                const query = (searchInput?.value || '').toLowerCase().trim();
+                const selectedArtist = this._offlineSelectedArtist;
+
+                const filtered = allRows.filter((_row, i) => {
+                    const track = playableTracks[i];
+                    if (!track) return false;
+
+                    // Artist filter
+                    if (selectedArtist) {
+                        const artistName = track.artist?.name || track.artists?.[0]?.name || 'Unknown Artist';
+                        if (artistName !== selectedArtist) return false;
+                    }
+
+                    // Search filter
+                    if (query) {
+                        const title = (track.title || '').toLowerCase();
+                        const artist = (track.artist?.name || track.artists?.[0]?.name || '').toLowerCase();
+                        const album = (track.album?.title || '').toLowerCase();
+                        if (!title.includes(query) && !artist.includes(query) && !album.includes(query)) return false;
+                    }
+
+                    return true;
+                });
+
+                this._offlineClusterize?.update(filtered.length > 0 ? filtered : ['<div style="text-align:center;padding:2rem;color:var(--muted-foreground)">No matching tracks</div>']);
+            };
 
             // Helper to attach remove buttons and like state to visible rows
             const attachOfflineActions = () => {
@@ -2048,28 +2134,12 @@ export class UIRenderer {
                 container._offlineClickBound = true;
             }
 
-            // Setup search filtering using clusterize.update()
+            // Setup search filtering using combined filter (search + artist)
             if (searchInput && !searchInput._offlineSearchBound) {
                 this.setupSearchClearButton(searchInput);
-                const searchHandler = () => {
-                    const query = searchInput.value.toLowerCase().trim();
-                    if (!query) {
-                        this._offlineClusterize?.update(allRows);
-                    } else {
-                        const filtered = allRows.filter((_row, i) => {
-                            const track = playableTracks[i];
-                            if (!track) return false;
-                            const title = (track.title || '').toLowerCase();
-                            const artist = (track.artist?.name || track.artists?.[0]?.name || '').toLowerCase();
-                            const album = (track.album?.title || '').toLowerCase();
-                            return title.includes(query) || artist.includes(query) || album.includes(query);
-                        });
-                        this._offlineClusterize?.update(filtered);
-                    }
-                };
-                searchInput.addEventListener('input', searchHandler);
+                searchInput.addEventListener('input', applyFilters);
                 searchInput._offlineSearchBound = true;
-                searchInput._offlineSearchHandler = searchHandler;
+                searchInput._offlineSearchHandler = applyFilters;
             }
         };
 
@@ -2098,6 +2168,68 @@ export class UIRenderer {
                 render();
                 const badge = document.getElementById('offline-count-badge');
                 if (badge) { badge.textContent = '0'; badge.style.display = 'none'; }
+            };
+        }
+
+        // Export
+        if (exportBtn) {
+            exportBtn.onclick = async () => {
+                try {
+                    exportBtn.disabled = true;
+                    exportBtn.querySelector('span').textContent = 'Exporting...';
+                    const blob = await exportOfflineTracks((done, total) => {
+                        exportBtn.querySelector('span').textContent = `${done}/${total}...`;
+                    });
+                    // blob is null when File System Access API was used (already saved)
+                    if (blob) {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        const date = new Date().toISOString().slice(0, 10);
+                        a.download = `monochrome-offline-${date}.mcbackup`;
+                        a.click();
+                        setTimeout(() => URL.revokeObjectURL(url), 5000);
+                    }
+                    showNotification('Offline tracks exported successfully');
+                } catch (err) {
+                    if (err.message !== 'Export cancelled') {
+                        showNotification(err.message || 'Export failed');
+                    }
+                } finally {
+                    exportBtn.disabled = false;
+                    exportBtn.querySelector('span').textContent = 'Export';
+                }
+            };
+        }
+
+        // Import
+        if (importBtn && importFile) {
+            importBtn.onclick = () => importFile.click();
+            importFile.onchange = async () => {
+                const file = importFile.files?.[0];
+                if (!file) return;
+                try {
+                    importBtn.disabled = true;
+                    importBtn.querySelector('span').textContent = 'Importing...';
+                    const result = await importOfflineTracks(file, (done, total) => {
+                        importBtn.querySelector('span').textContent = `${done}/${total}...`;
+                    });
+                    showNotification(`Imported ${result.imported} track${result.imported !== 1 ? 's' : ''}${result.skipped > 0 ? `, ${result.skipped} already existed` : ''}`);
+                    render();
+                    // Update badge
+                    const count = await getOfflineTrackCount();
+                    const badge = document.getElementById('offline-count-badge');
+                    if (badge) {
+                        badge.textContent = count;
+                        badge.style.display = count > 0 ? 'inline-flex' : 'none';
+                    }
+                } catch (err) {
+                    showNotification(err.message || 'Import failed');
+                } finally {
+                    importBtn.disabled = false;
+                    importBtn.querySelector('span').textContent = 'Import';
+                    importFile.value = '';
+                }
             };
         }
 

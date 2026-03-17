@@ -2749,7 +2749,24 @@
                                     <path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45" />
                                 </svg>
                             </button>
-                            <button id="offline-clear-btn" class="btn-secondary" title="Remove All Offline Tracks" style="display: none">
+                            <button id="offline-export-btn" class="btn-secondary" title="Export Offline Tracks" style="display: none; align-items: center; gap: 0.4rem">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="17 8 12 3 7 8" />
+                                    <line x1="12" y1="3" x2="12" y2="15" />
+                                </svg>
+                                <span>Export</span>
+                            </button>
+                            <button id="offline-import-btn" class="btn-secondary" title="Import Offline Tracks" style="display: flex; align-items: center; gap: 0.4rem">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
+                                <span>Import</span>
+                            </button>
+                            <input type="file" id="offline-import-file" accept=".mcbackup" style="display: none" />
+                            <button id="offline-clear-btn" class="btn-secondary" title="Remove All Offline Tracks" style="display: none; align-items: center; gap: 0.4rem">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M3 6h18" />
                                     <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
@@ -2760,6 +2777,8 @@
                                 <span>Clear All</span>
                             </button>
                         </div>
+                    </div>
+                    <div id="offline-artist-filter" style="display: none; overflow-x: auto; white-space: nowrap; padding: 0 0 0.5rem; margin-bottom: 0.5rem; -webkit-overflow-scrolling: touch; scrollbar-width: none;">
                     </div>
                     <form class="track-list-search-container" id="offline-search-container" onsubmit="return false;" style="display: none">
                         <svg
