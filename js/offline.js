@@ -4,8 +4,49 @@
 const DB_NAME = 'MonochromeOfflineDB';
 const DB_VERSION = 1;
 const STORE_TRACKS = 'offline_tracks'; // { id, metadata, audioBlob, coverBlob, savedAt }
+const BACKUP_MAGIC = 0x4D434241;
+const BACKUP_VERSION = 1;
+const BACKUP_HEADER_BYTES = 12;
+const BACKUP_ENTRY_HEADER_BYTES = 12;
 
 let _db = null;
+
+function emitBackupProgress(onProgress, progress) {
+    if (typeof onProgress !== 'function') return;
+    if (onProgress.length >= 2) {
+        onProgress(progress.processed, progress.total, progress);
+        return;
+    }
+    onProgress(progress);
+}
+
+function createBackupProgress(phase, processed, total, bytesProcessed = 0, totalBytes = 0) {
+    const normalizedTotal = Math.max(total, 1);
+    const percent = totalBytes > 0
+        ? Math.min(100, Math.round((bytesProcessed / totalBytes) * 100))
+        : Math.min(100, Math.round((processed / normalizedTotal) * 100));
+
+    return {
+        phase,
+        processed,
+        total,
+        bytesProcessed,
+        totalBytes,
+        percent,
+    };
+}
+
+function getSerializedBackupMetadata(entry, encoder) {
+    return encoder.encode(JSON.stringify({
+        id: entry.id,
+        metadata: entry.metadata,
+        savedAt: entry.savedAt,
+    }));
+}
+
+function getBackupEntrySize(metaBytes, audioSize, coverSize) {
+    return BACKUP_ENTRY_HEADER_BYTES + metaBytes.byteLength + audioSize + coverSize;
+}
 
 async function openDB() {
     if (_db) return _db;
@@ -200,6 +241,21 @@ export async function exportOfflineTracks(onProgress) {
 
     const encoder = new TextEncoder();
     const count = keys.length;
+    let totalBytes = BACKUP_HEADER_BYTES;
+
+    emitBackupProgress(onProgress, createBackupProgress('preparing', 0, count, 0, 0));
+
+    for (let i = 0; i < count; i++) {
+        const entry = await getOfflineTrack(keys[i]);
+        if (!entry) {
+            throw new Error('Failed to read one or more offline tracks for export');
+        }
+
+        const metaBytes = getSerializedBackupMetadata(entry, encoder);
+        const audioSize = entry.audioBlob?.size || 0;
+        const coverSize = entry.coverBlob?.size || 0;
+        totalBytes += getBackupEntrySize(metaBytes, audioSize, coverSize);
+    }
 
     // Try streaming export via File System Access API
     if (window.showSaveFilePicker) {
@@ -210,26 +266,29 @@ export async function exportOfflineTracks(onProgress) {
                 types: [{ description: 'Monochrome Backup', accept: { 'application/octet-stream': ['.mcbackup'] } }],
             });
             const writable = await handle.createWritable();
+            let bytesWritten = 0;
 
             // Write header
-            const header = new ArrayBuffer(12);
+            const header = new ArrayBuffer(BACKUP_HEADER_BYTES);
             const hv = new DataView(header);
-            hv.setUint32(0, 0x4D434241);
-            hv.setUint32(4, 1);
+            hv.setUint32(0, BACKUP_MAGIC);
+            hv.setUint32(4, BACKUP_VERSION);
             hv.setUint32(8, count);
             await writable.write(header);
+            bytesWritten += header.byteLength;
+            emitBackupProgress(onProgress, createBackupProgress('writing', 0, count, bytesWritten, totalBytes));
 
             for (let i = 0; i < count; i++) {
                 const entry = await getOfflineTrack(keys[i]);
-                if (!entry) continue;
+                if (!entry) {
+                    throw new Error('Failed to read one or more offline tracks for export');
+                }
 
-                const metaBytes = encoder.encode(JSON.stringify({
-                    id: entry.id, metadata: entry.metadata, savedAt: entry.savedAt
-                }));
+                const metaBytes = getSerializedBackupMetadata(entry, encoder);
                 const audioSize = entry.audioBlob?.size || 0;
                 const coverSize = entry.coverBlob?.size || 0;
 
-                const lengths = new ArrayBuffer(12);
+                const lengths = new ArrayBuffer(BACKUP_ENTRY_HEADER_BYTES);
                 const lv = new DataView(lengths);
                 lv.setUint32(0, metaBytes.byteLength);
                 lv.setUint32(4, audioSize);
@@ -238,14 +297,21 @@ export async function exportOfflineTracks(onProgress) {
                 await writable.write(metaBytes);
                 if (audioSize > 0) await writable.write(entry.audioBlob);
                 if (coverSize > 0) await writable.write(entry.coverBlob);
+                bytesWritten += getBackupEntrySize(metaBytes, audioSize, coverSize);
 
-                if (onProgress) onProgress(i + 1, count);
+                emitBackupProgress(onProgress, createBackupProgress('writing', i + 1, count, bytesWritten, totalBytes));
             }
 
             await writable.close();
-            return null; // File already saved via picker
+            const savedFile = await handle.getFile();
+            if (savedFile.size !== totalBytes) {
+                throw new Error('Backup file verification failed. Please export again.');
+            }
+            emitBackupProgress(onProgress, createBackupProgress('verifying', count, count, totalBytes, totalBytes));
+            return { blob: null, count, totalBytes, method: 'file-picker', verified: true };
         } catch (err) {
             if (err.name === 'AbortError') throw new Error('Export cancelled');
+            if (err.message?.includes('verification failed')) throw err;
             // Fall through to Blob approach
         }
     }
@@ -253,24 +319,26 @@ export async function exportOfflineTracks(onProgress) {
     // Fallback: chunked Blob approach — one track at a time
     const parts = [];
 
-    const header = new ArrayBuffer(12);
+    const header = new ArrayBuffer(BACKUP_HEADER_BYTES);
     const hv = new DataView(header);
-    hv.setUint32(0, 0x4D434241);
-    hv.setUint32(4, 1);
+    hv.setUint32(0, BACKUP_MAGIC);
+    hv.setUint32(4, BACKUP_VERSION);
     hv.setUint32(8, count);
     parts.push(header);
+    let bytesWritten = header.byteLength;
+    emitBackupProgress(onProgress, createBackupProgress('writing', 0, count, bytesWritten, totalBytes));
 
     for (let i = 0; i < count; i++) {
         const entry = await getOfflineTrack(keys[i]);
-        if (!entry) continue;
+        if (!entry) {
+            throw new Error('Failed to read one or more offline tracks for export');
+        }
 
-        const metaBytes = encoder.encode(JSON.stringify({
-            id: entry.id, metadata: entry.metadata, savedAt: entry.savedAt
-        }));
+        const metaBytes = getSerializedBackupMetadata(entry, encoder);
         const audioSize = entry.audioBlob?.size || 0;
         const coverSize = entry.coverBlob?.size || 0;
 
-        const lengths = new ArrayBuffer(12);
+        const lengths = new ArrayBuffer(BACKUP_ENTRY_HEADER_BYTES);
         const lv = new DataView(lengths);
         lv.setUint32(0, metaBytes.byteLength);
         lv.setUint32(4, audioSize);
@@ -279,11 +347,17 @@ export async function exportOfflineTracks(onProgress) {
         parts.push(metaBytes.buffer);
         if (audioSize > 0) parts.push(entry.audioBlob);
         if (coverSize > 0) parts.push(entry.coverBlob);
+        bytesWritten += getBackupEntrySize(metaBytes, audioSize, coverSize);
 
-        if (onProgress) onProgress(i + 1, count);
+        emitBackupProgress(onProgress, createBackupProgress('writing', i + 1, count, bytesWritten, totalBytes));
     }
 
-    return new Blob(parts, { type: 'application/octet-stream' });
+    const blob = new Blob(parts, { type: 'application/octet-stream' });
+    if (blob.size !== totalBytes) {
+        throw new Error('Backup file verification failed. Please export again.');
+    }
+    emitBackupProgress(onProgress, createBackupProgress('verifying', count, count, totalBytes, totalBytes));
+    return { blob, count, totalBytes, method: 'download', verified: true };
 }
 
 /**
@@ -293,20 +367,37 @@ function readFileSlice(file, start, length) {
     return file.slice(start, start + length).arrayBuffer();
 }
 
+async function readExactFileSlice(file, start, length, label) {
+    if (length < 0 || start < 0 || start + length > file.size) {
+        throw new Error(`Backup file is truncated while reading ${label}`);
+    }
+
+    const buffer = await readFileSlice(file, start, length);
+    if (buffer.byteLength !== length) {
+        throw new Error(`Backup file is truncated while reading ${label}`);
+    }
+
+    return buffer;
+}
+
 /**
  * Import offline tracks from a .mcbackup file.
  * Reads the file in slices (one track at a time) to keep memory low.
  * Deduplicates by track ID — skips tracks that already exist.
  */
 export async function importOfflineTracks(file, onProgress, overwrite = false) {
-    // Read header (12 bytes)
-    const headerBuf = await readFileSlice(file, 0, 12);
+    if (!file || file.size < BACKUP_HEADER_BYTES) {
+        throw new Error('Backup file is missing or too small');
+    }
+
+    // Read header
+    const headerBuf = await readExactFileSlice(file, 0, BACKUP_HEADER_BYTES, 'backup header');
     const headerView = new DataView(headerBuf);
 
     const magic = headerView.getUint32(0);
-    if (magic !== 0x4D434241) throw new Error('Invalid backup file');
+    if (magic !== BACKUP_MAGIC) throw new Error('Invalid backup file');
     const version = headerView.getUint32(4);
-    if (version !== 1) throw new Error('Unsupported backup version');
+    if (version !== BACKUP_VERSION) throw new Error('Unsupported backup version');
     const count = headerView.getUint32(8);
 
     // Pre-load existing IDs for fast duplicate check
@@ -322,45 +413,58 @@ export async function importOfflineTracks(file, onProgress, overwrite = false) {
     }
 
     const decoder = new TextDecoder();
-    let offset = 12;
+    let offset = BACKUP_HEADER_BYTES;
     let imported = 0;
     let skipped = 0;
     const seenIds = new Set(); // catch duplicates within the file itself
+    emitBackupProgress(onProgress, createBackupProgress('reading', 0, count, offset, file.size));
 
     for (let i = 0; i < count; i++) {
-        // Read length header (12 bytes)
-        const lenBuf = await readFileSlice(file, offset, 12);
+        // Read length header
+        const lenBuf = await readExactFileSlice(file, offset, BACKUP_ENTRY_HEADER_BYTES, `backup entry ${i + 1} header`);
         const lenView = new DataView(lenBuf);
         const metaLen = lenView.getUint32(0);
         const audioLen = lenView.getUint32(4);
         const coverLen = lenView.getUint32(8);
-        offset += 12;
+        offset += BACKUP_ENTRY_HEADER_BYTES;
 
         // Read metadata
-        const metaBuf = await readFileSlice(file, offset, metaLen);
-        const metaJson = decoder.decode(new Uint8Array(metaBuf));
+        const metaBuf = await readExactFileSlice(file, offset, metaLen, `backup entry ${i + 1} metadata`);
+        let metaJson;
+        let parsed;
+        try {
+            metaJson = decoder.decode(new Uint8Array(metaBuf));
+            parsed = JSON.parse(metaJson);
+        } catch {
+            throw new Error(`Backup file is corrupted near track ${i + 1}`);
+        }
         offset += metaLen;
 
-        const parsed = JSON.parse(metaJson);
+        if (!parsed || typeof parsed !== 'object' || parsed.id === undefined || !parsed.metadata || typeof parsed.metadata !== 'object') {
+            throw new Error(`Backup file is missing metadata for track ${i + 1}`);
+        }
         const trackId = String(parsed.id);
 
         // Skip if duplicate within file or already exists in DB
         if (seenIds.has(trackId) || (!overwrite && existingIds.has(trackId))) {
+            if (offset + audioLen + coverLen > file.size) {
+                throw new Error(`Backup file is truncated while skipping track ${i + 1}`);
+            }
             offset += audioLen + coverLen;
             skipped++;
-            if (onProgress) onProgress(i + 1, count);
+            emitBackupProgress(onProgress, createBackupProgress('reading', i + 1, count, offset, file.size));
             continue;
         }
         seenIds.add(trackId);
 
         // Read audio and cover as Blobs (slice — no full copy into memory)
         const audioBlob = audioLen > 0
-            ? new Blob([await readFileSlice(file, offset, audioLen)], { type: 'audio/flac' })
+            ? new Blob([await readExactFileSlice(file, offset, audioLen, `audio data for track ${i + 1}`)], { type: 'audio/flac' })
             : new Blob([]);
         offset += audioLen;
 
         const coverBlob = coverLen > 0
-            ? new Blob([await readFileSlice(file, offset, coverLen)], { type: 'image/jpeg' })
+            ? new Blob([await readExactFileSlice(file, offset, coverLen, `cover art for track ${i + 1}`)], { type: 'image/jpeg' })
             : null;
         offset += coverLen;
 
@@ -380,7 +484,11 @@ export async function importOfflineTracks(file, onProgress, overwrite = false) {
         });
 
         imported++;
-        if (onProgress) onProgress(i + 1, count);
+        emitBackupProgress(onProgress, createBackupProgress('reading', i + 1, count, offset, file.size));
+    }
+
+    if (offset !== file.size) {
+        throw new Error('Backup file has unexpected extra data and may be corrupted');
     }
 
     window.dispatchEvent(new CustomEvent('offline-tracks-changed'));
