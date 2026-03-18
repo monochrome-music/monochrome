@@ -541,6 +541,9 @@ async function bulkDownloadToMusicCapacitor(tracks, folderName, api, quality, no
             await saveTrackToCapacitorMusic(bridge, track, quality, api, signal, relativePath);
         } catch (err) {
             if (err.name === 'AbortError') throw err;
+            if (String(err?.message || '').includes('MediaStore audio permission was not granted')) {
+                throw err;
+            }
             console.error(`Failed to save track ${trackTitle} to Music directory:`, err);
         }
     }
@@ -1076,10 +1079,18 @@ async function startBulkDownload(
                 await bulkDownloadToMusicCapacitor(tracks, defaultName, api, quality, notification);
                 completeBulkDownload(notification, true);
             } catch (nativeError) {
+                const message = String(nativeError?.message || nativeError || '');
+
+                if (message.includes('MediaStore audio permission was not granted')) {
+                    throw nativeError;
+                }
+                
+                /*
                 console.warn(
                     '[Downloads] Android Music-directory bulk save unavailable, falling back to ZIP save:',
-                    nativeError
+                    error(nativeError)
                 );
+                */
                 await bulkDownloadToZipCapacitor(
                     tracks,
                     defaultName,
@@ -1555,6 +1566,10 @@ function completeBulkDownload(notifEl, success = true, message = null) {
             setTimeout(() => notifEl.remove(), 300);
         }, 3000);
     } else {
+        const isMediaStoreError = String(message || '').includes('MediaStore audio permission was not granted');
+        if (isMediaStoreError) {
+            progressFill.style.width = '100%';
+        }
         progressFill.style.background = '#ef4444';
         statusEl.textContent = message || '✗ Download failed';
         statusEl.style.color = '#ef4444';
