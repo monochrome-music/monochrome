@@ -3976,6 +3976,7 @@ input:checked + .slider::before {
     flex-direction: column;
     gap: 1rem;
     z-index: 10;
+    pointer-events: auto;
 }
 
 .fullscreen-progress-container {
