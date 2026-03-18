@@ -2,7 +2,7 @@
     "name": "monochrome",
     "type": "module",
     "version": "2.5.0",
-    "description": "[<img src=\"https://github.com/monochrome-music/monochrome/blob/main/assets/512.png?raw=true\" alt=\"Monochrome Logo\">](https://monochrome-music-player.vercel.app)",
+    "description": "[<img src=\"https://github.com/DaffaAgradhyasto/monochrome/blob/main/assets/512.png?raw=true\" alt=\"Monochrome Logo\">](https://monochrome-music-player.vercel.app)",
     "scripts": {
         "dev": "vite",
         "dev:desktop": "start bun run dev & node scripts/dev-runner.js",
@@ -18,15 +18,15 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/monochrome-music/monochrome.git"
+        "url": "git+https://github.com/DaffaAgradhyasto/monochrome.git"
     },
     "keywords": [],
     "author": "",
     "license": "ISC",
     "bugs": {
-        "url": "https://github.com/monochrome-music/monochrome/issues"
+        "url": "https://github.com/DaffaAgradhyasto/monochrome/issues"
     },
-    "homepage": "https://github.com/monochrome-music/monochrome#readme",
+    "homepage": "https://github.com/DaffaAgradhyasto/monochrome#readme",
     "devDependencies": {
         "@neutralinojs/neu": "^11.7.0",
         "@types/node": "^25.3.5",

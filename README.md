@@ -1,6 +1,6 @@
  <p align="center">
   <a href="https://monochrome-music-player.vercel.app">
-    <img src="https://github.com/monochrome-music/monochrome/blob/main/public/assets/512.png?raw=true" alt="Monochrome Logo" width="150px">
+    <img src="https://github.com/DaffaAgradhyasto/monochrome/blob/main/public/assets/512.png?raw=true" alt="Monochrome Logo" width="150px">
   </a>
 </p>
 
@@ -20,14 +20,14 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/monochrome-music/monochrome/stargazers">
-    <img src="https://img.shields.io/github/stars/monochrome-music/monochrome?style=for-the-badge&color=ffffff&labelColor=000000" alt="GitHub stars">
+  <a href="https://github.com/DaffaAgradhyasto/monochrome/stargazers">
+    <img src="https://img.shields.io/github/stars/DaffaAgradhyasto/monochrome?style=for-the-badge&color=ffffff&labelColor=000000" alt="GitHub stars">
   </a>
-  <a href="https://github.com/monochrome-music/monochrome/forks">
-    <img src="https://img.shields.io/github/forks/monochrome-music/monochrome?style=for-the-badge&color=ffffff&labelColor=000000" alt="GitHub forks">
+  <a href="https://github.com/DaffaAgradhyasto/monochrome/forks">
+    <img src="https://img.shields.io/github/forks/DaffaAgradhyasto/monochrome?style=for-the-badge&color=ffffff&labelColor=000000" alt="GitHub forks">
   </a>
-  <a href="https://github.com/monochrome-music/monochrome/issues">
-    <img src="https://img.shields.io/github/issues/monochrome-music/monochrome?style=for-the-badge&color=ffffff&labelColor=000000" alt="GitHub issues">
+  <a href="https://github.com/DaffaAgradhyasto/monochrome/issues">
+    <img src="https://img.shields.io/github/issues/DaffaAgradhyasto/monochrome?style=for-the-badge&color=ffffff&labelColor=000000" alt="GitHub issues">
   </a>
 </p>
 
@@ -124,7 +124,7 @@ We had to heavily customize the authentication system and write several custom s
 ### Option 1: Docker (Recommended)
 
 ```bash
-git clone https://github.com/monochrome-music/monochrome.git
+git clone https://github.com/DaffaAgradhyasto/monochrome.git
 cd monochrome
 docker compose up -d
 ```
@@ -169,7 +169,7 @@ For development mode and advanced setups, see [DOCKER.md](DOCKER.md).
 1. **Clone the repository:**
 
     ```bash
-    git clone https://github.com/monochrome-music/monochrome.git
+    git clone https://github.com/DaffaAgradhyasto/monochrome.git
     cd monochrome
     ```
 
@@ -259,7 +259,7 @@ We welcome contributions from the community! Please see our [Contributing Guide]
 
 <p align="center">
   <a href="https://fmhy.net/audio#streaming-sites">
-    <img src="https://raw.githubusercontent.com/monochrome-music/monochrome/refs/heads/main/public/assets/asseenonfmhy880x310.png" alt="As seen on FMHY" height="50">
+    <img src="https://raw.githubusercontent.com/DaffaAgradhyasto/monochrome/refs/heads/main/public/assets/asseenonfmhy880x310.png" alt="As seen on FMHY" height="50">
   </a>
 </p>
 
@@ -275,11 +275,11 @@ We welcome contributions from the community! Please see our [Contributing Guide]
 
 ## Star History
 
-<a href="https://www.star-history.com/#monochrome-music/monochrome&type=date&logscale&legend=top-left">
+<a href="https://www.star-history.com/#DaffaAgradhyasto/monochrome&type=date&logscale&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=monochrome-music/monochrome&type=date&theme=dark&logscale&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=monochrome-music/monochrome&type=date&logscale&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=monochrome-music/monochrome&type=date&logscale&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=DaffaAgradhyasto/monochrome&type=date&theme=dark&logscale&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=DaffaAgradhyasto/monochrome&type=date&logscale&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=DaffaAgradhyasto/monochrome&type=date&logscale&legend=top-left" />
  </picture>
 </a>
 
