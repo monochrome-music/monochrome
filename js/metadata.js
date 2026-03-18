@@ -11,13 +11,6 @@ import { fetchTagLib, addMetadataWithTagLib, getMetadataWithTagLib } from './tag
 import { doTimed, doTimedAsync } from './doTimed.ts';
 import { managers } from './app.js';
 
-export const METADATA_STRINGS = {
-    VENDOR_STRING: 'Monochrome',
-    DEFAULT_TITLE: 'Unknown Title',
-    DEFAULT_ARTIST: 'Unknown Artist',
-    DEFAULT_ALBUM: 'Unknown Album',
-};
-
 export function prefetchMetadataObjects(track, api, coverBlob = null) {
     const _tagLib = fetchTagLib().catch(console.error);
     const coverId = getTrackCoverId(track);
