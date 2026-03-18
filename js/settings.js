@@ -830,6 +830,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
         };
         const categoryOrder = ['Lossless', 'AAC', 'MP3', 'OGG'];
         allOptions.sort((a, b) => {
+            if (a.category == b.category && a.category === 'Lossless') return 0; // Preserve original order for lossless options
             const ai = categoryOrder.indexOf(a.category);
             const bi = categoryOrder.indexOf(b.category);
             const categoryDiff = (ai === -1 ? categoryOrder.length : ai) - (bi === -1 ? categoryOrder.length : bi);
@@ -3155,7 +3156,6 @@ export function initializeSettings(scrobbler, player, api, ui) {
                                 // Store might not exist, continue
                             }
                         }
-
                     } catch (dbError) {
                         console.log('Could not clear IndexedDB stores:', dbError);
                         // Try to delete the entire database as fallback
