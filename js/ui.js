@@ -2514,21 +2514,24 @@ export class UIRenderer {
             container.innerHTML = '';
 
             const GENRES = [
-                { id: 'hip_hop', name: 'Hip Hop / Rap' },
-                { id: 'pop', name: 'Pop' },
-                { id: 'rock', name: 'Rock' },
-                { id: 'rnb', name: 'R&B / Soul'},
-                { id: 'electronic', name: 'Electronic' },
-                { id: 'metal', name: 'Metal'},
-                { id: 'country', name: 'Country' },
-                { id: 'jazz', name: 'Jazz' },
-                { id: 'classical', name: 'Classical' },
-                { id: 'latin', name: 'Latin' },
-                { id: 'reggae', name: 'Reggae / Dancehall' },
+                { id: 'hip_hop', name: 'Hip-Hop' },
+                { id: 'rnb', name: 'R&B / Soul' },
                 { id: 'blues', name: 'Blues' },
-                { id: 'soundtrack', name: 'Soundtrack' },
-                { id: 'alternative', name: 'Alternative' },
-                { id: 'kids', name: 'Kids'}
+                { id: 'classical', name: 'Classical' },
+                { id: 'country', name: 'Country' },
+                { id: 'dance_electronic', name: 'Dance & Electronic' },
+                { id: 'americana', name: 'Folk / Americana' },
+                { id: 'world', name: 'Global' },
+                { id: 'gospel', name: 'Gospel / Christian' },
+                { id: 'jazz', name: 'Jazz' },
+                { id: 'kpop', name: 'K-Pop' },
+                { id: 'kids', name: 'Kids' },
+                { id: 'latin', name: 'Latin' },
+                { id: 'metal', name: 'Metal' },
+                { id: 'pop', name: 'Pop' },
+                { id: 'reggae', name: 'Reggae / Dancehall' },
+                { id: 'retro', name: 'Legacy' },
+                { id: 'indierock', name: 'Rock / Indie' },
             ];
 
             if (GENRES.length > 0) {
@@ -3606,10 +3609,10 @@ export class UIRenderer {
                     dateDisplay =
                         window.innerWidth > 768
                             ? releaseDate.toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                            })
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric',
+                              })
                             : year;
                 }
             }
@@ -4714,9 +4717,9 @@ export class UIRenderer {
                 <span>${artist.popularity}% popularity</span>
                 <div class="artist-tags">
                     ${(artist.artistRoles || [])
-                    .filter((role) => role.category)
-                    .map((role) => `<span class="artist-tag">${role.category}</span>`)
-                    .join('')}
+                        .filter((role) => role.category)
+                        .map((role) => `<span class="artist-tag">${role.category}</span>`)
+                        .join('')}
                 </div>
             `;
 
@@ -4735,7 +4738,10 @@ export class UIRenderer {
                 const isTrackByArtist = (track) => {
                     if (track.artists && Array.isArray(track.artists)) {
                         return track.artists.some(
-                            (a) => a && ((artist.id && a.id === artist.id) || (a.name && a.name.toLowerCase() === artistNameLower))
+                            (a) =>
+                                a &&
+                                ((artist.id && a.id === artist.id) ||
+                                    (a.name && a.name.toLowerCase() === artistNameLower))
                         );
                     }
                     if (track.artist) {
@@ -4787,7 +4793,7 @@ export class UIRenderer {
                                         const label = playlist.name || playlist.title || 'Playlist';
                                         addSource(track.id, {
                                             label,
-                                            href: `/userplaylist/${playlist.id}`
+                                            href: `/userplaylist/${playlist.id}`,
                                         });
                                     }
                                 }
@@ -4813,8 +4819,11 @@ export class UIRenderer {
 
                                 // Extract artist name and year from existing content
                                 const artistLinks = artistDiv.querySelectorAll('.artist-link');
-                                const artistNames = Array.from(artistLinks).map(a => a.textContent).join(', ');
-                                const truncatedArtist = artistNames.length > 15 ? artistNames.slice(0, 20) + '…' : artistNames;
+                                const artistNames = Array.from(artistLinks)
+                                    .map((a) => a.textContent)
+                                    .join(', ');
+                                const truncatedArtist =
+                                    artistNames.length > 15 ? artistNames.slice(0, 20) + '…' : artistNames;
 
                                 // Extract year from text content (pattern: " • 2024")
                                 const fullText = artistDiv.textContent;
@@ -4837,7 +4846,10 @@ export class UIRenderer {
                                 sourceSpan.appendChild(linkSpan);
 
                                 if (sources.length === 1) {
-                                    const srcLabel = sources[0].label.length > 15 ? sources[0].label.slice(0, 15) + '…' : sources[0].label;
+                                    const srcLabel =
+                                        sources[0].label.length > 15
+                                            ? sources[0].label.slice(0, 15) + '…'
+                                            : sources[0].label;
                                     linkSpan.textContent = srcLabel;
                                     sourceSpan.addEventListener('click', (e) => {
                                         e.preventDefault();
@@ -5579,13 +5591,13 @@ export class UIRenderer {
                             <div class="controls">
                                 ${
                                     isUser
-                                    ? `
+                                        ? `
                                 <button class="delete-instance" title="Delete Instance">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                                     </svg>
                                 </button>`
-                                    : ''
+                                        : ''
                                 }
                                 <button class="move-up" title="Move Up" ${index === 0 ? 'disabled' : ''}>
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
