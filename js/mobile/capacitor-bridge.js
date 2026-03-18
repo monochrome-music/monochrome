@@ -3,8 +3,10 @@ import { App } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { Dialog } from '@capacitor/dialog';
 import { Directory, Filesystem } from '@capacitor/filesystem';
-import { MediaSession as CapacitorMediaSession } from '@capgo/capacitor-media-session';
+import { ScreenOrientation } from '@capacitor/screen-orientation';
+import { MediaSession as CapacitorMediaSession } from '@jofr/capacitor-media-session';
 import { CapacitorMediaStore } from '@odion-cloud/capacitor-mediastore';
+import { AppInstallPlugin } from '@m430/capacitor-app-install';
 
 const hasWindow = typeof window !== 'undefined';
 
@@ -65,32 +67,91 @@ function base64ToArrayBuffer(base64) {
     return bytes.buffer;
 }
 
-function sanitizeRelativePath(relativePath) {
-    return String(relativePath || 'Music/Monochrome')
-        .replace(/\\/g, '/')
-        .replace(/^\/+/, '')
-        .replace(/\/+$/, '');
-}
-
 async function blobToBase64(blob) {
-    const arrayBuffer = await blob.arrayBuffer();
-    return arrayBufferToBase64(arrayBuffer);
+    return await new Promise((resolve, reject) => {
+        try {
+            const reader = new FileReader();
+            reader.onerror = () => reject(reader.error || new Error('Failed to read blob as base64'));
+            reader.onloadend = () => {
+                const result = String(reader.result || '');
+                const commaIndex = result.indexOf(',');
+                resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result);
+            };
+            reader.readAsDataURL(blob);
+        } catch (error) {
+            reject(error);
+        }
+    });
 }
 
-let audioPermissionGranted = false;
+const mediaPermissionGranted = {
+    audio: false,
+    video: false,
+};
 
-async function ensureAudioMediaStorePermission() {
-    if (audioPermissionGranted) return;
+async function ensureMediaStorePermission(type) {
+    if (mediaPermissionGranted[type]) return;
 
-    const status = await CapacitorMediaStore.requestPermissions({ types: ['audio'] });
-    const permissionState = status?.readMediaAudio || status?.readExternalStorage || status?.writeExternalStorage;
+    const status = await CapacitorMediaStore.requestPermissions({ types: [type] });
+    const permissionState =
+        (type === 'video' ? status?.readMediaVideo : status?.readMediaAudio) ||
+        status?.readExternalStorage ||
+        status?.writeExternalStorage;
 
     if (permissionState && permissionState !== 'granted') {
-        throw new Error('MediaStore audio permission was not granted');
+        await Dialog.alert({
+            title: 'Permission not granted',
+            message: `Please open the Android app settings to grant permission to store music`,
+        });
+        throw new Error(`MediaStore ${type} permission was not granted`);
     }
 
-    audioPermissionGranted = true;
+    mediaPermissionGranted[type] = true;
 }
+
+function pickMimeType(blob, fallback) {
+    const raw = String(blob?.type || '')
+        .split(';')[0]
+        .trim()
+        .toLowerCase();
+    if (!raw || raw === 'application/octet-stream' || raw === 'audio/*' || raw === 'video/*') {
+        return fallback;
+    }
+    return raw;
+}
+
+// vibe coding moment
+/*
+async function saveToMediaStore({
+    blob,
+    fileName,
+    mediaType,
+    albumName = null,
+    relativePath,
+    fallbackMimeType,
+} = {}) {
+    if (!blob || !fileName) {
+        throw new Error('Missing blob or fileName for MediaStore save');
+    }
+
+    await ensureMediaStorePermission(mediaType);
+
+    const result = await CapacitorMediaStore.saveMedia({
+        data: await blobToBase64(blob),
+        fileName: String(fileName),
+        mediaType,
+        mimeType: pickMimeType(blob, fallbackMimeType),
+        albumName: mediaType === 'audio' ? albumName || undefined : undefined,
+        relativePath,
+    });
+
+    if (!result?.success) {
+        throw new Error(result?.error || 'Unknown MediaStore save error');
+    }
+
+    return result;
+}
+*/
 
 export const init = async () => {
     if (!isCapacitorRuntime) return;
@@ -229,8 +290,11 @@ export const filesystem = {
 };
 
 export const media = {
-    setMetadata: async (options) => {
-        await CapacitorMediaSession.setMetadata(options);
+    setMetadata: async (options = {}) => {
+        await CapacitorMediaSession.setMetadata({
+            ...options,
+            artwork: Array.isArray(options.artwork) ? options.artwork : [],
+        });
     },
     setPlaybackState: async (options) => {
         await CapacitorMediaSession.setPlaybackState(options);
@@ -238,40 +302,153 @@ export const media = {
     setPositionState: async (options) => {
         await CapacitorMediaSession.setPositionState(options);
     },
-    setActionHandler: async ({ action }, handler) => {
-        await CapacitorMediaSession.setActionHandler(action, handler);
+    setActionHandler: async (options, handler) => {
+        await CapacitorMediaSession.setActionHandler(options, handler);
     },
 };
 
 export const downloads = {
-    saveAudioToMusic: async ({ blob, fileName, albumName = null, relativePath = 'Music/Monochrome' } = {}) => {
+    saveAudioToMusic: async ({ blob, fileName, albumName = null } = {}) => {
         if (!isCapacitorRuntime || Capacitor.getPlatform() !== 'android') {
             return { success: false, skipped: true, error: 'Not running on Android native platform' };
         }
 
         if (!blob || !fileName) {
-            throw new Error('Missing blob or fileName for MediaStore save');
+            throw new Error('Missing blob or fileName for audio save');
         }
 
-        try {
-            await ensureAudioMediaStorePermission();
+        await ensureMediaStorePermission('audio');
 
-            const result = await CapacitorMediaStore.saveMedia({
+        try {
+            return await CapacitorMediaStore.saveMedia({
                 data: await blobToBase64(blob),
                 fileName: String(fileName),
                 mediaType: 'audio',
                 albumName: albumName || undefined,
-                relativePath: sanitizeRelativePath(relativePath),
+                mimeType: pickMimeType(blob, 'audio/mpeg'),
+                fallbackMimeType: 'audio/mpeg',
             });
-
-            if (!result?.success) {
-                throw new Error(result?.error || 'Unknown MediaStore save error');
-            }
-
-            return result;
         } catch (error) {
             throw new Error(`MediaStore save failed: ${error?.message || String(error)}`);
         }
+    },
+
+    saveVideoToMovies: async ({ blob, fileName } = {}) => {
+        if (!isCapacitorRuntime || Capacitor.getPlatform() !== 'android') {
+            return { success: false, skipped: true, error: 'Not running on Android native platform' };
+        }
+
+        if (!blob || !fileName) {
+            throw new Error('Missing blob or fileName for video save');
+        }
+
+        await ensureMediaStorePermission('video');
+
+        try {
+            return await CapacitorMediaStore.saveMedia({
+                data: await blobToBase64(blob),
+                fileName: String(fileName),
+                mediaType: 'video',
+                relativePath: 'Movies/Monochrome',
+                mimeType: pickMimeType(blob, 'video/mp4'),
+                fallbackMimeType: 'video/mp4',
+            });
+        } catch (error) {
+            throw new Error(`MediaStore save failed: ${error?.message || String(error)}`);
+        }
+    },
+};
+// updater functionality
+let pendingUpdate = null;
+
+function compareVersions(a, b) {
+    const pa = String(a || '0')
+        .split('.')
+        .map((n) => parseInt(n, 10) || 0);
+    const pb = String(b || '0')
+        .split('.')
+        .map((n) => parseInt(n, 10) || 0);
+    const length = Math.max(pa.length, pb.length);
+
+    for (let i = 0; i < length; i += 1) {
+        const av = pa[i] || 0;
+        const bv = pb[i] || 0;
+        if (av > bv) return 1;
+        if (av < bv) return -1;
+    }
+
+    return 0;
+}
+
+async function downloadApkToCache(apkUrl) {
+    const response = await fetch(apkUrl);
+    if (!response.ok) {
+        throw new Error(`Failed to download APK: ${response.status} ${response.statusText}`);
+    }
+    const blob = await response.blob();
+    const base64 = await blobToBase64(blob);
+    const path = `update-${Date.now()}.apk`;
+
+    await Filesystem.writeFile({
+        path,
+        directory: Directory.Cache,
+        data: base64,
+        recursive: true,
+    });
+
+    const result = await Filesystem.getUri({
+        path,
+        directory: Directory.Cache,
+    });
+
+    if (!result?.uri) {
+        throw new Error("i hate my life. guess it' no updates for you");
+    }
+
+    return result.uri;
+}
+
+export const updater = {
+    checkForUpdates: async (url) => {
+        if (!isCapacitorRuntime) return;
+        if (!url) {
+            throw new Error('Missing update manifest URL');
+        }
+        const appInfo = await App.getInfo();
+        const response = await fetch(url, { cache: 'no-store' });
+        if (!response.ok) {
+            throw new Error(`Failed to check for updates: ${response.status} ${response.statusText}`);
+        }
+        const update = await response.json();
+        const remoteVersion = update?.version;
+        const apkUrl = update?.apkUrl;
+        const available = compareVersions(remoteVersion, appInfo.version) > 0;
+        pendingUpdate = available ? { ...update, apk: apkUrl } : null;
+        return { ...update, apk: apkUrl, currentVersion: appInfo.version, available };
+    },
+
+    install: async () => {
+        const permission = await AppInstallPlugin.canInstallUnknownApps();
+
+        if (!permission?.granted) {
+            await AppInstallPlugin.openInstallUnknownAppsSettings();
+            throw new Error('Permission to install unknown apps is required to update the application.');
+        }
+
+        const filePath = await downloadApkToCache(
+            pendingUpdate.apk
+            // pendingUpdate.version, huh?
+        );
+
+        const result = await AppInstallPlugin.installApk({
+            filePath,
+        });
+
+        if (!result?.completed) {
+            throw new Error(result?.error || 'Failed to install update');
+        }
+
+        return result;
     },
 };
 
@@ -288,6 +465,29 @@ export const nativeWindow = {
     },
 };
 
+export const orientation = {
+    lockLandscape: async () => {
+        if (!isCapacitorRuntime) return;
+        try {
+            await ScreenOrientation.lock({ orientation: 'landscape-primary' });
+        } catch (error) {
+            try {
+                await ScreenOrientation.lock({ orientation: 'landscape' });
+            } catch (fallbackError) {
+                console.warn('[CapacitorBridge] Failed to lock orientation:', fallbackError);
+            }
+        }
+    },
+    unlock: async () => {
+        if (!isCapacitorRuntime) return;
+        try {
+            await ScreenOrientation.unlock();
+        } catch (error) {
+            console.warn('[CapacitorBridge] Failed to unlock orientation:', error);
+        }
+    },
+};
+
 export { nativeWindow as window };
 
 export default {
@@ -299,5 +499,7 @@ export default {
     filesystem,
     media,
     downloads,
+    updater,
+    orientation,
     window: nativeWindow,
 };

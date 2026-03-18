@@ -8,10 +8,12 @@ import {
 } from './utils.js';
 import { trackDateSettings, losslessContainerSettings } from './storage.js';
 import { APICache } from './cache.js';
-import { addMetadataToAudio } from './metadata.js';
+import { addMetadataToAudio, prefetchMetadataObjects } from './metadata.js';
 import { DashDownloader } from './dash-downloader.js';
+import { HlsDownloader } from './hls-downloader.js';
 import { encodeToMp3, MP3EncodingError } from './mp3-encoder.js';
-import { ffmpeg } from './ffmpeg.js';
+import { ffmpeg, loadFfmpeg } from './ffmpeg.js';
+import { rebuildFlacWithoutMetadata } from './metadata.flac.js';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 const TIDAL_V2_TOKEN = 'txNoH4kkV41MfH25';
@@ -65,6 +67,18 @@ export class LosslessAPI {
             });
             if (instances.length === 0) {
                 throw new Error(`No API instances configured for type: ${type} with minVersion: ${options.minVersion}`);
+            }
+        }
+
+        if (options.allowedDomains) {
+            instances = instances.filter((instance) => {
+                const url = typeof instance === 'string' ? instance : instance.url;
+                return options.allowedDomains.some((domain) => url.includes(domain));
+            });
+            if (instances.length === 0) {
+                throw new Error(
+                    `No API instances configured for type: ${type} matching allowedDomains: ${options.allowedDomains.join(', ')}`
+                );
             }
         }
 
@@ -165,8 +179,15 @@ export class LosslessAPI {
     prepareTrack(track) {
         let normalized = track;
 
+        if (track.type && typeof track.type === 'string') {
+            const lowType = track.type.toLowerCase();
+            if (lowType === 'video' || lowType === 'track') {
+                normalized = { ...track, type: lowType };
+            }
+        }
+
         if (!track.artist && Array.isArray(track.artists) && track.artists.length > 0) {
-            normalized = { ...track, artist: track.artists[0] };
+            normalized = { ...normalized, artist: track.artists[0] };
         }
 
         const derivedQuality = deriveTrackQuality(normalized);
@@ -188,6 +209,16 @@ export class LosslessAPI {
 
     preparePlaylist(playlist) {
         return playlist;
+    }
+
+    prepareVideo(video) {
+        let normalized = { ...video, type: 'video' };
+
+        if (!video.artist && Array.isArray(video.artists) && video.artists.length > 0) {
+            normalized.artist = video.artists[0];
+        }
+
+        return normalized;
     }
 
     prepareArtist(artist) {
@@ -273,8 +304,37 @@ export class LosslessAPI {
     }
 
     extractStreamUrlFromManifest(manifest) {
+        if (!manifest) return null;
+
         try {
-            const decoded = atob(manifest);
+            let decoded;
+            if (typeof manifest === 'string') {
+                try {
+                    decoded = atob(manifest);
+                } catch {
+                    decoded = manifest;
+                }
+            } else if (typeof manifest === 'object') {
+                if (manifest.urls && Array.isArray(manifest.urls)) {
+                    const priorityKeywords = ['flac', 'lossless', 'hi-res', 'high'];
+                    const sortedUrls = [...manifest.urls].sort((a, b) => {
+                        const aLow = a.toLowerCase();
+                        const bLow = b.toLowerCase();
+                        const aScore = priorityKeywords.findIndex((k) => aLow.includes(k));
+                        const bScore = priorityKeywords.findIndex((k) => bLow.includes(k));
+
+                        const finalAScore = aScore === -1 ? 999 : aScore;
+                        const finalBScore = bScore === -1 ? 999 : bScore;
+
+                        return finalAScore - finalBScore;
+                    });
+                    return sortedUrls[0];
+                }
+                if (manifest.urls?.[0]) return manifest.urls[0];
+                return null;
+            } else {
+                return null;
+            }
 
             // Check if it's a DASH manifest (XML)
             if (decoded.includes('<MPD')) {
@@ -284,6 +344,19 @@ export class LosslessAPI {
 
             try {
                 const parsed = JSON.parse(decoded);
+                if (parsed?.urls && Array.isArray(parsed.urls)) {
+                    const priorityKeywords = ['flac', 'lossless', 'hi-res', 'high'];
+                    const sortedUrls = [...parsed.urls].sort((a, b) => {
+                        const aLow = a.toLowerCase();
+                        const bLow = b.toLowerCase();
+                        const aScore = priorityKeywords.findIndex((k) => aLow.includes(k));
+                        const bScore = priorityKeywords.findIndex((k) => bLow.includes(k));
+                        const finalAScore = aScore === -1 ? 999 : aScore;
+                        const finalBScore = bScore === -1 ? 999 : bScore;
+                        return finalAScore - finalBScore;
+                    });
+                    return sortedUrls[0];
+                }
                 if (parsed?.urls?.[0]) {
                     return parsed.urls[0];
                 }
@@ -421,6 +494,53 @@ export class LosslessAPI {
             console.error('Playlist search failed:', error);
             return { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 };
         }
+    }
+
+    async searchVideos(query, options = {}) {
+        const cached = await this.cache.get('search_videos', query);
+        if (cached) return cached;
+
+        try {
+            const response = await this.fetchWithRetry(`/search/?v=${encodeURIComponent(query)}`, {
+                ...options,
+                allowedDomains: ['api.monochrome.tf', 'arran.monochrome.tf'],
+            });
+            const data = await response.json();
+            const normalized = this.normalizeSearchResponse(data, 'videos');
+            const result = {
+                ...normalized,
+                items: normalized.items.map((v) => this.prepareVideo(v)),
+            };
+
+            await this.cache.set('search_videos', query, result);
+            return result;
+        } catch (error) {
+            if (error.name === 'AbortError') throw error;
+            console.error('Video search failed:', error);
+            return { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 };
+        }
+    }
+
+    async getVideo(id) {
+        const cached = await this.cache.get('video', id);
+        if (cached) return cached;
+
+        const response = await this.fetchWithRetry(`/video/?id=${id}`, {
+            type: 'streaming',
+            allowedDomains: ['api.monochrome.tf', 'arran.monochrome.tf'],
+        });
+        const jsonResponse = await response.json();
+
+        const data = jsonResponse.data || jsonResponse;
+
+        const result = {
+            track: data,
+            info: data,
+            originalTrackUrl: data.OriginalTrackUrl || null,
+        };
+
+        await this.cache.set('video', id, result);
+        return result;
     }
 
     async getAlbum(id) {
@@ -778,11 +898,13 @@ export class LosslessAPI {
 
         const albumMap = new Map();
         const trackMap = new Map();
+        const videoMap = new Map();
 
-        const isTrack = (v) => v?.id && v.duration && v.album;
+        const isTrack = (v) => v?.id && v.duration;
         const isAlbum = (v) => v?.id && 'numberOfTracks' in v;
+        const isVideo = (v) => v?.id && v.type === 'VIDEO';
 
-        const scan = (value, visited = new Set()) => {
+        const scan = (value, visited) => {
             if (!value || typeof value !== 'object' || visited.has(value)) return;
             visited.add(value);
 
@@ -793,33 +915,36 @@ export class LosslessAPI {
 
             const item = value.item || value;
             if (isAlbum(item)) albumMap.set(item.id, this.prepareAlbum(item));
-            if (isTrack(item)) trackMap.set(item.id, this.prepareTrack(item));
+            if (isTrack(item) && !isAlbum(item) && !isVideo(item)) {
+                trackMap.set(item.id, this.prepareTrack(item));
+            }
+            if (isVideo(item)) videoMap.set(item.id, this.prepareVideo(item));
 
             Object.values(value).forEach((nested) => scan(nested, visited));
         };
 
-        entries.forEach((entry) => scan(entry));
+        const visited = new Set();
+        entries.forEach((entry) => scan(entry, visited));
+        scan(primaryData, visited);
 
         if (!options.lightweight) {
-            // Attempt to find more albums/EPs via search since the direct feed might be limited
             try {
-                const searchResults = await this.searchAlbums(artist.name);
-                if (searchResults && searchResults.items) {
+                const videoSearch = await this.searchVideos(artist.name);
+                if (videoSearch && videoSearch.items) {
                     const numericArtistId = Number(artistId);
-
-                    for (const item of searchResults.items) {
+                    for (const item of videoSearch.items) {
                         const itemArtistId = item.artist?.id;
                         const matchesArtist =
                             itemArtistId === numericArtistId ||
                             (Array.isArray(item.artists) && item.artists.some((a) => a.id === numericArtistId));
 
-                        if (matchesArtist && !albumMap.has(item.id)) {
-                            albumMap.set(item.id, item);
+                        if (matchesArtist && !videoMap.has(item.id)) {
+                            videoMap.set(item.id, item);
                         }
                     }
                 }
             } catch (e) {
-                console.warn('Failed to fetch additional albums via search:', e);
+                console.warn('Failed to fetch additional videos via search:', e);
             }
         }
 
@@ -835,10 +960,14 @@ export class LosslessAPI {
             .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
             .slice(0, 15);
 
+        const videos = Array.from(videoMap.values()).sort(
+            (a, b) => new Date(b.releaseDate || 0) - new Date(a.releaseDate || 0)
+        );
+
         // Enrich tracks with album release dates
         const tracks = options.lightweight ? topTracks : await this.enrichTracksWithAlbumDates(topTracks);
 
-        const result = { ...artist, albums, eps, tracks };
+        const result = { ...artist, albums, eps, tracks, videos };
 
         await this.cache.set('artist', cacheKey, result);
         return result;
@@ -977,13 +1106,8 @@ export class LosslessAPI {
         const recommendedTracks = [];
         const seenTrackIds = new Set(tracks.map((t) => t.id));
 
-        // Shuffle artists if refreshing to get different results
-        let shuffledArtists = artists;
-        if (options.refresh) {
-            shuffledArtists = [...artists].sort(() => Math.random() - 0.5);
-        }
-
-        const artistsToProcess = shuffledArtists.slice(0, Math.min(5, shuffledArtists.length));
+        const shuffledArtists = [...artists].sort(() => Math.random() - 0.5);
+        const artistsToProcess = shuffledArtists.slice(0, Math.min(15, shuffledArtists.length));
 
         const artistPromises = artistsToProcess.map(async (artist) => {
             try {
@@ -991,11 +1115,19 @@ export class LosslessAPI {
                 const artistData = await this.getArtist(artist.id, { lightweight: true, skipCache: options.refresh });
                 if (artistData && artistData.tracks && artistData.tracks.length > 0) {
                     const availableTracks = artistData.tracks.filter((track) => !seenTrackIds.has(track.id));
-                    // Shuffle and pick different tracks when refreshing
-                    const shuffled = options.refresh
-                        ? availableTracks.sort(() => Math.random() - 0.5)
+
+                    const newTracks = options.knownTrackIds
+                        ? availableTracks.filter((t) => !options.knownTrackIds.has(t.id))
                         : availableTracks;
-                    return shuffled.slice(0, 4);
+                    const knownTracks = options.knownTrackIds
+                        ? availableTracks.filter((t) => options.knownTrackIds.has(t.id))
+                        : [];
+
+                    const shuffledNew = [...newTracks].sort(() => Math.random() - 0.5);
+                    const shuffledKnown = [...knownTracks].sort(() => Math.random() - 0.5);
+
+                    const combined = [...shuffledNew, ...shuffledKnown];
+                    return combined.slice(0, 2);
                 } else {
                     console.warn(`No tracks found for artist ${artist.name}`);
                     return [];
@@ -1010,7 +1142,7 @@ export class LosslessAPI {
         results.forEach((tracks) => {
             if (tracks.length > 0) {
                 recommendedTracks.push(...tracks);
-                seenTrackIds.add(...tracks.map((t) => t.id));
+                tracks.forEach((t) => seenTrackIds.add(t.id));
             }
         });
 
@@ -1117,21 +1249,97 @@ export class LosslessAPI {
         return streamUrl;
     }
 
+    async getVideoStreamUrl(id) {
+        const cacheKey = `video_stream_${id}`;
+
+        if (this.streamCache.has(cacheKey)) {
+            return this.streamCache.get(cacheKey);
+        }
+
+        const lookup = await this.getVideo(id);
+
+        let streamUrl;
+
+        const findValue = (obj, key) => {
+            if (!obj || typeof obj !== 'object') return null;
+            if (obj[key]) return obj[key];
+            for (const v of Object.values(obj)) {
+                if (v && typeof v === 'object') {
+                    const f = findValue(v, key);
+                    if (f) return f;
+                }
+            }
+            return null;
+        };
+
+        const manifest = findValue(lookup, 'manifest') || findValue(lookup, 'Manifest');
+        if (manifest) {
+            streamUrl = this.extractStreamUrlFromManifest(manifest);
+        }
+
+        if (!streamUrl) {
+            streamUrl =
+                findValue(lookup, 'OriginalTrackUrl') ||
+                findValue(lookup, 'originalTrackUrl') ||
+                findValue(lookup, 'url') ||
+                findValue(lookup, 'streamUrl') ||
+                findValue(lookup, 'manifestUrl');
+        }
+
+        if (!streamUrl) {
+            throw new Error(`Could not resolve video stream URL for ID: ${id}`);
+        }
+
+        this.streamCache.set(cacheKey, streamUrl);
+        return streamUrl;
+    }
+
     async downloadTrack(id, quality = 'HI_RES_LOSSLESS', filename, options = {}) {
+        // Load ffmpeg in the background.
+        loadFfmpeg().catch(console.error);
+
         const { onProgress, track } = options;
+        const prefetchPromises = prefetchMetadataObjects(track, this);
+        const isVideo = track?.type === 'video';
 
         try {
             // MP3_320 is not a native TIDAL quality, we download LOSSLESS and convert
             const downloadQuality = quality === 'MP3_320' ? 'LOSSLESS' : quality;
 
-            const lookup = await this.getTrack(id, downloadQuality);
+            let lookup;
+            if (isVideo) {
+                lookup = await this.getVideo(id);
+            } else {
+                lookup = await this.getTrack(id, downloadQuality);
+            }
+
             let streamUrl;
             let blob;
 
             if (lookup.originalTrackUrl) {
                 streamUrl = lookup.originalTrackUrl;
             } else {
-                streamUrl = this.extractStreamUrlFromManifest(lookup.info.manifest);
+                const findValue = (obj, key) => {
+                    if (!obj || typeof obj !== 'object') return null;
+                    if (obj[key]) return obj[key];
+                    for (const v of Object.values(obj)) {
+                        if (v && typeof v === 'object') {
+                            const f = findValue(v, key);
+                            if (f) return f;
+                        }
+                    }
+                    return null;
+                };
+
+                const manifest = isVideo
+                    ? findValue(lookup, 'manifest') || findValue(lookup, 'Manifest')
+                    : lookup.info?.manifest;
+
+                if (!manifest) {
+                    throw new Error('Could not resolve manifest');
+                }
+
+                streamUrl = this.extractStreamUrlFromManifest(manifest);
                 if (!streamUrl) {
                     throw new Error('Could not resolve stream URL');
                 }
@@ -1147,12 +1355,25 @@ export class LosslessAPI {
                     });
                 } catch (dashError) {
                     console.error('DASH download failed:', dashError);
+                    if (isVideo) throw dashError;
+
                     // Fallback to LOSSLESS if DASH fails, but not if we're already downloading LOSSLESS
                     if (downloadQuality !== 'LOSSLESS') {
                         console.warn('Falling back to LOSSLESS (16-bit) download.');
                         return this.downloadTrack(id, 'LOSSLESS', filename, options);
                     }
                     throw dashError;
+                }
+            } else if (streamUrl.includes('.m3u8') || streamUrl.includes('application/vnd.apple.mpegurl')) {
+                try {
+                    const downloader = new HlsDownloader();
+                    blob = await downloader.downloadHlsStream(streamUrl, {
+                        signal: options.signal,
+                        onProgress: options.onProgress,
+                    });
+                } catch (hlsError) {
+                    console.error('HLS download failed:', hlsError);
+                    throw hlsError;
                 }
             } else {
                 const response = await fetch(streamUrl, {
@@ -1164,7 +1385,6 @@ export class LosslessAPI {
                     throw new Error(`Fetch failed: ${response.status}`);
                 }
 
-                // ... (standard handling for Content-Length and body reader)
                 const contentLength = response.headers.get('Content-Length');
                 const totalBytes = contentLength ? parseInt(contentLength, 10) : 0;
 
@@ -1190,7 +1410,8 @@ export class LosslessAPI {
                         }
                     }
 
-                    blob = new Blob(chunks, { type: response.headers.get('Content-Type') || 'audio/flac' });
+                    const defaultMime = isVideo ? 'video/mp4' : 'audio/flac';
+                    blob = new Blob(chunks, { type: response.headers.get('Content-Type') || defaultMime });
                 } else {
                     blob = await response.blob();
                     if (onProgress) {
@@ -1203,94 +1424,99 @@ export class LosslessAPI {
                 }
             }
 
-            // Convert to MP3 320kbps if requested
-            if (quality === 'MP3_320') {
-                try {
-                    blob = await encodeToMp3(blob, onProgress, options.signal);
-                } catch (encodingError) {
-                    if (onProgress) {
-                        onProgress({
-                            stage: 'error',
-                            message: `Encoding failed: ${encodingError.message}`,
-                        });
+            if (!isVideo) {
+                // Convert to MP3 320kbps if requested
+                if (quality === 'MP3_320') {
+                    try {
+                        blob = await encodeToMp3(blob, onProgress, options.signal);
+                    } catch (encodingError) {
+                        if (onProgress) {
+                            onProgress({
+                                stage: 'error',
+                                message: `Encoding failed: ${encodingError.message}`,
+                            });
+                        }
+                        throw encodingError;
                     }
-                    throw encodingError;
                 }
-            }
 
-            if (quality.endsWith('LOSSLESS')) {
-                try {
-                    switch (losslessContainerSettings.getContainer()) {
-                        case 'flac':
-                            if ((await getExtensionFromBlob(blob)) != 'flac') {
+                if (quality.endsWith('LOSSLESS')) {
+                    try {
+                        switch (losslessContainerSettings.getContainer()) {
+                            case 'flac':
+                                if ((await getExtensionFromBlob(blob)) != 'flac') {
+                                    blob = await ffmpeg(
+                                        blob,
+                                        { args: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'flac'] },
+                                        'output.flac',
+                                        'audio/flac',
+                                        onProgress,
+                                        options.signal
+                                    );
+                                } else {
+                                    blob = await rebuildFlacWithoutMetadata(blob);
+                                }
+                                break;
+                            case 'alac':
                                 blob = await ffmpeg(
                                     blob,
-                                    { args: ['-c:a', 'copy'] },
-                                    'output.flac',
-                                    'audio/flac',
+                                    { args: ['-c:a', 'alac'] },
+                                    'output.m4a',
+                                    'audio/mp4',
                                     onProgress,
                                     options.signal
                                 );
-                            }
-                            break;
-                        case 'alac':
-                            blob = await ffmpeg(
-                                blob,
-                                { args: ['-c:a', 'alac'] },
-                                'output.m4a',
-                                'audio/mp4',
-                                onProgress,
-                                options.signal
-                            );
-                            break;
-                        default:
-                            break;
+                                break;
+                            default:
+                                break;
+                        }
+                    } catch (error) {
+                        if (error?.name === 'AbortError') {
+                            throw error;
+                        }
+
+                        console.error('Lossless container conversion failed:', error);
                     }
-                } catch (error) {
-                    if (error?.name === 'AbortError') {
-                        throw error;
+                }
+
+                // Add metadata if track information is provided
+                if (track) {
+                    if (onProgress) {
+                        onProgress({
+                            stage: 'processing',
+                            message: 'Adding metadata...',
+                        });
                     }
 
-                    console.error('Lossless container conversion failed:', error);
-                }
-            }
+                    const enrichedTrack = { ...track };
+                    if (lookup.info) {
+                        enrichedTrack.replayGain = {
+                            trackReplayGain: lookup.info.trackReplayGain,
+                            trackPeakAmplitude: lookup.info.trackPeakAmplitude,
+                            albumReplayGain: lookup.info.albumReplayGain,
+                            albumPeakAmplitude: lookup.info.albumPeakAmplitude,
+                        };
+                    }
 
-            // Add metadata if track information is provided
-            if (track) {
-                if (onProgress) {
-                    onProgress({
-                        stage: 'processing',
-                        message: 'Adding metadata...',
-                    });
+                    blob = await addMetadataToAudio(blob, enrichedTrack, this, quality, prefetchPromises);
                 }
-
-                const enrichedTrack = { ...track };
-                if (lookup.info) {
-                    enrichedTrack.replayGain = {
-                        trackReplayGain: lookup.info.trackReplayGain,
-                        trackPeakAmplitude: lookup.info.trackPeakAmplitude,
-                        albumReplayGain: lookup.info.albumReplayGain,
-                        albumPeakAmplitude: lookup.info.albumPeakAmplitude,
-                    };
-                }
-
-                blob = await addMetadataToAudio(blob, enrichedTrack, this, quality);
             }
 
             // Detect actual format and fix filename extension if needed
             const detectedExtension = await getExtensionFromBlob(blob);
+            const normalizedExtension = isVideo ? 'mp4' : detectedExtension;
             let finalFilename = filename;
 
             // Replace extension if it doesn't match detected format
             const currentExtension = filename.split('.').pop()?.toLowerCase();
-            if (currentExtension && currentExtension !== detectedExtension) {
-                finalFilename = filename.replace(/\.[^.]+$/, `.${detectedExtension}`);
+            if (currentExtension && currentExtension !== normalizedExtension) {
+                finalFilename = filename.replace(/\.[^.]+$/, `.${normalizedExtension}`);
             }
 
-            const savedToNativeMusic = await this.saveTrackToNativeMusicDirectory(blob, finalFilename, track);
-            if (!savedToNativeMusic) {
-                this.triggerDownload(blob, finalFilename);
-            }
+            const savedToNativeMusic = await this.saveTrackToNativeMusicDirectory(blob, finalFilename, track, {
+                forceVideo: isVideo,
+            });
+            return blob;
         } catch (error) {
             if (error.name === 'AbortError') {
                 throw error;
@@ -1306,7 +1532,7 @@ export class LosslessAPI {
         }
     }
 
-    async saveTrackToNativeMusicDirectory(blob, filename, track = null) {
+    async saveTrackToNativeMusicDirectory(blob, filename, track = null, options = {}) {
         if (!isCapacitorMode()) {
             return false;
         }
@@ -1318,17 +1544,34 @@ export class LosslessAPI {
                 return false;
             }
 
-            await bridge.downloads.saveAudioToMusic({
-                blob,
-                fileName: filename,
-                albumName: track?.album?.title || null,
-                relativePath: 'Music/Monochrome',
-            });
+            const lowerFilename = String(filename || '').toLowerCase();
+            const isVideoTrack =
+                options?.forceVideo === true ||
+                track?.type === 'video' ||
+                String(blob?.type || '')
+                    .toLowerCase()
+                    .startsWith('video/') ||
+                /\.(mp4|m4v|mov|webm|mkv|ts)$/.test(lowerFilename);
+
+            if (isVideoTrack && bridge?.downloads?.saveVideoToMovies) {
+                await bridge.downloads.saveVideoToMovies({
+                    blob,
+                    fileName: filename,
+                    relativePath: 'Movies/Monochrome',
+                });
+            } else {
+                await bridge.downloads.saveAudioToMusic({
+                    blob,
+                    fileName: filename,
+                    albumName: track?.album?.title || null,
+                    relativePath: 'Music/Monochrome',
+                });
+            }
 
             return true;
         } catch (error) {
-            console.warn('[Downloads] Native Music save failed; using browser download fallback.', error);
-            return false;
+            console.warn('[Downloads] Native Music save failed', error);
+            throw error;
         }
     }
 
@@ -1352,21 +1595,8 @@ export class LosslessAPI {
             return id;
         }
 
-        const formattedId = id.replace(/-/g, '/');
+        const formattedId = String(id).replace(/-/g, '/');
         return `https://resources.tidal.com/images/${formattedId}/${size}x${size}.jpg`;
-    }
-
-    getVideoCoverUrl(id, size = '1280') {
-        if (!id) {
-            return null;
-        }
-
-        const parts = id.split('-');
-        if (parts.length !== 5) {
-            return null;
-        }
-
-        return `https://resources.tidal.com/videos/${parts[0]}/${parts[1]}/${parts[2]}/${parts[3]}/${parts[4]}/${size}x${size}.mp4`;
     }
 
     getArtistPictureUrl(id, size = '320') {
@@ -1378,8 +1608,24 @@ export class LosslessAPI {
             return id;
         }
 
-        const formattedId = id.replace(/-/g, '/');
+        const formattedId = String(id).replace(/-/g, '/');
         return `https://resources.tidal.com/images/${formattedId}/${size}x${size}.jpg`;
+    }
+
+    getVideoCoverUrl(imageId, size = '1280') {
+        if (!imageId) {
+            return null;
+        }
+
+        if (
+            typeof imageId === 'string' &&
+            (imageId.startsWith('http') || imageId.startsWith('blob:') || imageId.startsWith('assets/'))
+        ) {
+            return imageId;
+        }
+
+        const formattedId = String(imageId).replace(/-/g, '/');
+        return `https://resources.tidal.com/images/${formattedId}/${size}x720.jpg`;
     }
 
     async clearCache() {

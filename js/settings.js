@@ -35,7 +35,6 @@ import {
     musicProviderSettings,
     analyticsSettings,
     modalSettings,
-    keyboardShortcuts,
 } from './storage.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
 import { getButterchurnPresets } from './visualizers/butterchurn.js';
@@ -903,33 +902,56 @@ export function initializeSettings(scrobbler, player, api, ui) {
     // ========================================
     const playbackSpeedSlider = document.getElementById('playback-speed-slider');
     const playbackSpeedInput = document.getElementById('playback-speed-input');
+    const playbackSpeedReset = document.getElementById('playback-speed-reset');
+
     if (playbackSpeedSlider && playbackSpeedInput) {
-        const currentSpeed = audioEffectsSettings.getSpeed();
-        // Clamp slider to its range (0.25-4), but show actual value in input
-        playbackSpeedSlider.value = Math.max(0.25, Math.min(4.0, currentSpeed));
-        playbackSpeedInput.value = currentSpeed;
-
-        // Slider only controls 0.25-4 range
-        playbackSpeedSlider.addEventListener('input', (e) => {
-            const speed = parseFloat(e.target.value) || 1.0;
-            playbackSpeedInput.value = speed;
-            player.setPlaybackSpeed(speed);
-        });
-
-        // Input allows full 0.01-100 range
-        const handleInputChange = () => {
-            const speed = parseFloat(playbackSpeedInput.value) || 1.0;
-            const validSpeed = Math.max(0.01, Math.min(100, speed));
+        // Helper function to update both controls
+        const updatePlaybackSpeedControls = (speed) => {
+            const validSpeed = Math.max(0.01, Math.min(100, parseFloat(speed) || 1.0));
             playbackSpeedInput.value = validSpeed;
             // Only update slider if value is within slider range
             if (validSpeed >= 0.25 && validSpeed <= 4.0) {
                 playbackSpeedSlider.value = validSpeed;
             }
-            player.setPlaybackSpeed(validSpeed);
+            return validSpeed;
         };
 
-        playbackSpeedInput.addEventListener('change', handleInputChange);
-        playbackSpeedInput.addEventListener('blur', handleInputChange);
+        // Initialize with current value
+        const currentSpeed = audioEffectsSettings.getSpeed();
+        updatePlaybackSpeedControls(currentSpeed);
+
+        playbackSpeedSlider.addEventListener('input', (e) => {
+            const speed = parseFloat(e.target.value);
+            playbackSpeedInput.value = speed;
+            audioEffectsSettings.setSpeed(speed);
+            player.setPlaybackSpeed(speed);
+        });
+
+        playbackSpeedInput.addEventListener('input', (e) => {
+            const speed = parseFloat(e.target.value);
+            if (!isNaN(speed) && speed >= 0.01 && speed <= 100) {
+                if (speed >= 0.25 && speed <= 4.0) {
+                    playbackSpeedSlider.value = speed;
+                }
+                audioEffectsSettings.setSpeed(speed);
+                player.setPlaybackSpeed(speed);
+            }
+        });
+
+        playbackSpeedInput.addEventListener('change', (e) => {
+            const speed = parseFloat(e.target.value);
+            const validSpeed = updatePlaybackSpeedControls(speed);
+            audioEffectsSettings.setSpeed(validSpeed);
+            player.setPlaybackSpeed(validSpeed);
+        });
+
+        if (playbackSpeedReset) {
+            playbackSpeedReset.addEventListener('click', () => {
+                const defaultSpeed = audioEffectsSettings.resetSpeed();
+                updatePlaybackSpeedControls(defaultSpeed);
+                player.setPlaybackSpeed(defaultSpeed);
+            });
+        }
     }
 
     // ========================================
@@ -2112,6 +2134,21 @@ export function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
+    const visualizerDimmingSlider = document.getElementById('visualizer-dimming-slider');
+    const visualizerDimmingValue = document.getElementById('visualizer-dimming-value');
+    if (visualizerDimmingSlider && visualizerDimmingValue) {
+        const currentDimming = visualizerSettings.getDimAmount();
+        visualizerDimmingSlider.value = currentDimming;
+        visualizerDimmingValue.textContent = `${(currentDimming * 100).toFixed(0)}%`;
+
+        visualizerDimmingSlider.addEventListener('input', (e) => {
+            const newDimming = parseFloat(e.target.value);
+            visualizerSettings.setDimAmount(newDimming);
+            visualizerDimmingValue.textContent = `${(newDimming * 100).toFixed(0)}%`;
+            window.dispatchEvent(new CustomEvent('visualizer-dim-change', { detail: { dimAmount: newDimming } }));
+        });
+    }
+
     // Visualizer Smart Intensity
     const smartIntensityToggle = document.getElementById('smart-intensity-toggle');
     if (smartIntensityToggle) {
@@ -2239,6 +2276,9 @@ export function initializeSettings(scrobbler, player, api, ui) {
                 ui.visualizer.setPreset(val);
             }
             updateButterchurnSettingsVisibility();
+
+            //Since changing the preset breaks the visualizer, a location.reload() is added to make sure that it works
+            window.location.reload();
         });
     }
 
@@ -2290,20 +2330,20 @@ export function initializeSettings(scrobbler, player, api, ui) {
         updateButterchurnSettingsVisibility();
     }
 
-    // Watch for audio tab becoming active and refresh presets
-    const audioTabContent = document.getElementById('settings-tab-audio');
-    if (audioTabContent) {
+    // Watch for appearance tab becoming active and refresh presets
+    const appearanceTabContent = document.getElementById('settings-tab-appearance');
+    if (appearanceTabContent) {
         const observer = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
                 if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                    if (audioTabContent.classList.contains('active')) {
-                        console.log('[Settings] Audio tab became active, refreshing presets');
+                    if (appearanceTabContent.classList.contains('active')) {
+                        console.log('[Settings] Appearance tab became active, refreshing presets');
                         updateButterchurnSettingsVisibility();
                     }
                 }
             });
         });
-        observer.observe(audioTabContent, { attributes: true });
+        observer.observe(appearanceTabContent, { attributes: true });
     }
 
     // Visualizer Mode Select
@@ -2711,7 +2751,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
         }
     });
 
-    document.getElementById('firebase-clear-cloud-btn')?.addEventListener('click', async () => {
+    document.getElementById('auth-clear-cloud-btn')?.addEventListener('click', async () => {
         if (confirm('Are you sure you want to delete ALL your data from the cloud? This cannot be undone.')) {
             try {
                 await syncManager.clearCloudData();
@@ -2844,41 +2884,38 @@ export function initializeSettings(scrobbler, player, api, ui) {
     const customDbBtn = document.getElementById('custom-db-btn');
     const customDbModal = document.getElementById('custom-db-modal');
     const customPbUrlInput = document.getElementById('custom-pb-url');
-    const customFirebaseConfigInput = document.getElementById('custom-firebase-config');
+    const customAppwriteEndpointInput = document.getElementById('custom-appwrite-endpoint');
+    const customAppwriteProjectInput = document.getElementById('custom-appwrite-project');
     const customDbSaveBtn = document.getElementById('custom-db-save');
     const customDbResetBtn = document.getElementById('custom-db-reset');
     const customDbCancelBtn = document.getElementById('custom-db-cancel');
 
     if (customDbBtn && customDbModal) {
-        const fbFromEnv = !!window.__FIREBASE_CONFIG__;
+        const appwriteFromEnv = !!(window.__APPWRITE_ENDPOINT__ || window.__APPWRITE_PROJECT_ID__);
         const pbFromEnv = !!window.__POCKETBASE_URL__;
 
         // Hide entire setting if both are server-configured
-        if (fbFromEnv && pbFromEnv) {
+        if (appwriteFromEnv && pbFromEnv) {
             const settingItem = customDbBtn.closest('.setting-item');
             if (settingItem) settingItem.style.display = 'none';
         }
 
         // Hide individual fields in the modal
         if (pbFromEnv && customPbUrlInput) customPbUrlInput.closest('div[style]').style.display = 'none';
-        if (fbFromEnv && customFirebaseConfigInput)
-            customFirebaseConfigInput.closest('div[style]').style.display = 'none';
+        if (appwriteFromEnv) {
+            if (customAppwriteEndpointInput) customAppwriteEndpointInput.closest('div[style]').style.display = 'none';
+            if (customAppwriteProjectInput) customAppwriteProjectInput.closest('div[style]').style.display = 'none';
+        }
 
         customDbBtn.addEventListener('click', () => {
             const pbUrl = localStorage.getItem('monochrome-pocketbase-url') || '';
-            const fbConfig = localStorage.getItem('monochrome-firebase-config');
+            const appwriteEndpoint = localStorage.getItem('monochrome-appwrite-endpoint') || '';
+            const appwriteProject = localStorage.getItem('monochrome-appwrite-project') || '';
 
-            if (!pbFromEnv) customPbUrlInput.value = pbUrl;
-            if (!fbFromEnv) {
-                if (fbConfig) {
-                    try {
-                        customFirebaseConfigInput.value = JSON.stringify(JSON.parse(fbConfig), null, 2);
-                    } catch {
-                        customFirebaseConfigInput.value = fbConfig;
-                    }
-                } else {
-                    customFirebaseConfigInput.value = '';
-                }
+            if (!pbFromEnv && customPbUrlInput) customPbUrlInput.value = pbUrl;
+            if (!appwriteFromEnv) {
+                if (customAppwriteEndpointInput) customAppwriteEndpointInput.value = appwriteEndpoint;
+                if (customAppwriteProjectInput) customAppwriteProjectInput.value = appwriteProject;
             }
 
             customDbModal.classList.add('active');
@@ -2892,25 +2929,30 @@ export function initializeSettings(scrobbler, player, api, ui) {
         customDbModal.querySelector('.modal-overlay').addEventListener('click', closeCustomDbModal);
 
         customDbSaveBtn.addEventListener('click', () => {
-            const pbUrl = customPbUrlInput.value.trim();
-            const fbConfigStr = customFirebaseConfigInput.value.trim();
-
-            if (pbUrl) {
-                localStorage.setItem('monochrome-pocketbase-url', pbUrl);
-            } else {
-                localStorage.removeItem('monochrome-pocketbase-url');
+            if (!pbFromEnv && customPbUrlInput) {
+                const pbUrl = customPbUrlInput.value.trim();
+                if (pbUrl) {
+                    localStorage.setItem('monochrome-pocketbase-url', pbUrl);
+                } else {
+                    localStorage.removeItem('monochrome-pocketbase-url');
+                }
             }
 
-            if (fbConfigStr) {
-                try {
-                    const fbConfig = JSON.parse(fbConfigStr);
-                    saveFirebaseConfig(fbConfig);
-                } catch {
-                    alert('Invalid JSON for Firebase Config');
-                    return;
+            if (!appwriteFromEnv) {
+                const endpoint = customAppwriteEndpointInput?.value.trim();
+                const project = customAppwriteProjectInput?.value.trim();
+
+                if (endpoint) {
+                    localStorage.setItem('monochrome-appwrite-endpoint', endpoint);
+                } else {
+                    localStorage.removeItem('monochrome-appwrite-endpoint');
                 }
-            } else {
-                clearFirebaseConfig();
+
+                if (project) {
+                    localStorage.setItem('monochrome-appwrite-project', project);
+                } else {
+                    localStorage.removeItem('monochrome-appwrite-project');
+                }
             }
 
             alert('Settings saved. Reloading...');
@@ -2920,7 +2962,8 @@ export function initializeSettings(scrobbler, player, api, ui) {
         customDbResetBtn.addEventListener('click', () => {
             if (confirm('Reset custom database settings to default?')) {
                 localStorage.removeItem('monochrome-pocketbase-url');
-                clearFirebaseConfig();
+                localStorage.removeItem('monochrome-appwrite-endpoint');
+                localStorage.removeItem('monochrome-appwrite-project');
                 alert('Settings reset. Reloading...');
                 window.location.reload();
             }

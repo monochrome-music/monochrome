@@ -12,21 +12,26 @@ export class AuthManager {
         const params = new URLSearchParams(window.location.search);
         const userId = params.get('userId');
         const secret = params.get('secret');
+        const isOAuthRedirect = params.get('oauth') === '1';
 
-        if (userId && secret) {
+        if (userId && secret && userId !== 'null' && secret !== 'null') {
             try {
                 await auth.createSession(userId, secret);
                 window.history.replaceState({}, '', window.location.pathname);
             } catch (error) {
-                console.error('OAuth session creation failed:', error);
+                console.warn('OAuth session handoff failed:', error.message);
+                window.history.replaceState({}, '', window.location.pathname);
             }
+        } else if (isOAuthRedirect) {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            window.history.replaceState({}, '', window.location.pathname);
         }
 
         try {
             this.user = await auth.get();
             this.updateUI(this.user);
             this.authListeners.forEach((listener) => listener(this.user));
-        } catch (error) {
+        } catch {
             this.user = null;
             this.updateUI(null);
         }
@@ -44,7 +49,7 @@ export class AuthManager {
         try {
             auth.createOAuth2Session(
                 'google',
-                window.location.origin + '/index.html',
+                window.location.origin + '/index.html?oauth=1',
                 window.location.origin + '/login.html'
             );
         } catch (error) {
@@ -112,15 +117,14 @@ export class AuthManager {
     }
 
     updateUI(user) {
-        const connectBtn = document.getElementById('firebase-connect-btn');
-        const clearDataBtn = document.getElementById('firebase-clear-cloud-btn');
-        const statusText = document.getElementById('firebase-status');
+        const connectBtn = document.getElementById('auth-connect-btn');
+        const clearDataBtn = document.getElementById('auth-clear-cloud-btn');
+        const statusText = document.getElementById('auth-status');
         const emailContainer = document.getElementById('email-auth-container');
         const emailToggleBtn = document.getElementById('toggle-email-auth-btn');
 
-        if (!connectBtn) return; // UI might not be rendered yet
+        if (!connectBtn) return;
 
-        // Auth gate active: strip down to status + sign out only
         if (window.__AUTH_GATE__) {
             connectBtn.textContent = 'Sign Out';
             connectBtn.classList.add('danger');
@@ -135,7 +139,7 @@ export class AuthManager {
                 const title = accountPage.querySelector('.section-title');
                 if (title) title.textContent = 'Account';
                 accountPage.querySelectorAll('.account-content > p, .account-content > div').forEach((el) => {
-                    if (el.id !== 'firebase-status' && el.id !== 'auth-buttons-container') {
+                    if (el.id !== 'auth-status' && el.id !== 'auth-buttons-container') {
                         el.style.display = 'none';
                     }
                 });

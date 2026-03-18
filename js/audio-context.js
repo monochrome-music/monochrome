@@ -91,6 +91,7 @@ class AudioContextManager {
     constructor() {
         this.audioContext = null;
         this.source = null;
+        this.sources = new Map();
         this.analyser = null;
         this.filters = [];
         this.outputNode = null;
@@ -299,69 +300,82 @@ class AudioContextManager {
         this.audio = audioElement;
 
         // Detect iOS - skip Web Audio initialization on iOS to avoid lock screen audio issues
-        // iOS suspends AudioContext when screen locks, and MediaSession controls don't count
-        // as user gestures to resume it, causing audio to play silently.
-        // Use window.__IS_IOS__ (set before UA spoof in index.html) so detection works on real iOS.
         const isIOS = typeof window !== 'undefined' && window.__IS_IOS__ === true;
         if (isIOS) {
             console.log('[AudioContext] Skipping Web Audio initialization on iOS for lock screen compatibility');
-            // Don't set isInitialized - let it remain false so isReady() returns false
-            // This prevents other code from trying to use the non-existent audio context
             return;
         }
 
         try {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
-
-            // "playback" latency hint maximizes buffer size to prevent audio glitches (stuttering),
-            // which is critical for high-fidelity music listening.
-            // We also attempt to request 192kHz sample rate for high-res audio support.
             const highResOptions = { sampleRate: 192000, latencyHint: 'playback' };
 
             try {
                 this.audioContext = new AudioContext(highResOptions);
                 console.log(`[AudioContext] Created with high-res settings: ${this.audioContext.sampleRate}Hz`);
-            } catch (e) {
-                console.warn('[AudioContext] 192kHz/playback init failed, falling back to system defaults:', e);
-                // Fallback: Try just playback latency preference without forcing sample rate
+            } catch {
                 try {
                     this.audioContext = new AudioContext({ latencyHint: 'playback' });
-                    console.log(`[AudioContext] Created with system default rate: ${this.audioContext.sampleRate}Hz`);
-                } catch (e2) {
-                    console.warn('[AudioContext] Playback latency hint failed, using defaults:', e2);
+                } catch {
                     this.audioContext = new AudioContext();
                 }
             }
 
-            // Create the media element source
-            this.source = this.audioContext.createMediaElementSource(audioElement);
+            if (!this.sources.has(audioElement)) {
+                this.sources.set(audioElement, this.audioContext.createMediaElementSource(audioElement));
+            }
+            this.source = this.sources.get(audioElement);
 
-            // Create analyser for visualizer
             this.analyser = this.audioContext.createAnalyser();
             this.analyser.fftSize = 1024;
             this.analyser.smoothingTimeConstant = 0.7;
 
-            // Create biquad filters for EQ with dynamic band count
             this._createEQ();
 
-            // Create output gain node
             this.outputNode = this.audioContext.createGain();
             this.outputNode.gain.value = 1;
 
-            // Create volume node
             this.volumeNode = this.audioContext.createGain();
             this.volumeNode.gain.value = this.currentVolume;
 
-            // Create mono audio merger node
             this.monoMergerNode = this.audioContext.createChannelMerger(2);
 
-            // Connect the audio graph based on EQ and mono state
             this._connectGraph();
 
             this.isInitialized = true;
-            console.log(`[AudioContext] Initialized with ${this.bandCount}-band EQ`);
         } catch (e) {
             console.warn('[AudioContext] Init failed:', e);
+        }
+    }
+
+    changeSource(audioElement) {
+        if (!this.audioContext) {
+            this.init(audioElement);
+            return;
+        }
+        if (this.audio === audioElement) return;
+
+        try {
+            if (this.source) {
+                try {
+                    this.source.disconnect();
+                } catch {
+                    // Source may already be disconnected.
+                }
+            }
+
+            this.audio = audioElement;
+
+            if (!this.sources.has(audioElement)) {
+                this.sources.set(audioElement, this.audioContext.createMediaElementSource(audioElement));
+            }
+            this.source = this.sources.get(audioElement);
+
+            if (this.isInitialized) {
+                this._connectGraph();
+            }
+        } catch (e) {
+            console.warn('changeSource failed:', e);
         }
     }
 
@@ -369,11 +383,15 @@ class AudioContextManager {
      * Connect the audio graph based on EQ and mono audio state
      */
     _connectGraph() {
-        if (!this.source || !this.audioContext) return;
+        if (!this.isInitialized || !this.source || !this.audioContext) return;
 
         try {
             // Disconnect everything first
-            this.source.disconnect();
+            try {
+                this.source.disconnect();
+            } catch {
+                // Source may already be disconnected.
+            }
             this.outputNode.disconnect();
             if (this.volumeNode) {
                 this.volumeNode.disconnect();

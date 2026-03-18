@@ -1,6 +1,7 @@
 //js/lyrics.js
 import { getTrackTitle, getTrackArtists, buildTrackFilename, SVG_CLOSE } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
+import '@uimaxbai/am-lyrics/am-lyrics.js';
 
 const SVG_GENIUS_ACTIVE = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 24c6.627 0 12-5.373 12-12S18.627 0 12 0 0 5.373 0 12s5.373 12 12 12z" fill="#ffff64"/><path d="M6.3 6.3h11.4v11.4H6.3z" fill="#000"/></svg>`;
 
@@ -360,33 +361,10 @@ export class LyricsManager {
     async ensureComponentLoaded() {
         if (this.componentLoaded) return;
 
-        if (typeof customElements !== 'undefined' && customElements.get('am-lyrics')) {
+        if (typeof customElements === 'undefined') {
+            await customElements.whenDefined('am-lyrics');
             this.componentLoaded = true;
-            return;
         }
-
-        return new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.type = 'module';
-            script.src = 'https://cdn.jsdelivr.net/npm/@uimaxbai/am-lyrics/dist/src/am-lyrics.min.js';
-
-            script.onload = () => {
-                if (typeof customElements !== 'undefined') {
-                    customElements
-                        .whenDefined('am-lyrics')
-                        .then(() => {
-                            this.componentLoaded = true;
-                            resolve();
-                        })
-                        .catch(reject);
-                } else {
-                    resolve();
-                }
-            };
-
-            script.onerror = () => reject(new Error('Failed to load lyrics component'));
-            document.head.appendChild(script);
-        });
     }
 
     async fetchLyrics(trackId, track = null) {
@@ -779,9 +757,6 @@ export function openLyricsPanel(track, audioPlayer, lyricsManager, forceOpen = f
         const offsetDisplay = manager.getOffsetDisplayString(manager.timingOffset);
 
         container.innerHTML = `
-            <button id="close-side-panel-btn" class="btn-icon" title="Close">
-                ${SVG_CLOSE}
-            </button>
             <div class="lyrics-timing-controls">
                 <button id="lyrics-timing-minus-btn" class="btn-icon" title="Decrease delay (lyrics earlier) -0.5s">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -809,6 +784,9 @@ export function openLyricsPanel(track, audioPlayer, lyricsManager, forceOpen = f
             </button>
             <button id="genius-toggle-btn" class="btn-icon ${isGeniusMode ? 'active-genius' : ''}" title="Genius Mode" style="${isGeniusMode ? 'color: #ffff64;' : ''}">
                 ${isGeniusMode ? SVG_GENIUS_ACTIVE : SVG_GENIUS_INACTIVE}
+            </button>
+            <button id="close-side-panel-btn" class="btn-icon" title="Close">
+                ${SVG_CLOSE}
             </button>
         `;
 

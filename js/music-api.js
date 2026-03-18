@@ -10,6 +10,7 @@ export class MusicAPI {
         this.tidalAPI = new LosslessAPI(settings);
         this.qobuzAPI = new QobuzAPI();
         this._settings = settings;
+        this.videoArtworkCache = new Map();
     }
 
     getCurrentProvider() {
@@ -45,6 +46,11 @@ export class MusicAPI {
             return { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 };
         }
         return this.tidalAPI.searchPlaylists(query, options);
+    }
+
+    async searchVideos(query, options = {}) {
+        const provider = options.provider || this.getCurrentProvider();
+        return this.tidalAPI.searchVideos(query, options);
     }
 
     // Get methods
@@ -86,6 +92,22 @@ export class MusicAPI {
             return api.getArtistBiography(cleanId);
         }
         return null;
+    }
+
+    async getVideo(id, provider = null) {
+        const p = provider || this.getProviderFromId(id) || this.getCurrentProvider();
+        const api = this.getAPI(p);
+        const cleanId = this.stripProviderPrefix(id);
+        return api.getVideo(cleanId);
+    }
+
+    async getVideoStreamUrl(id, provider = null) {
+        const p = provider || this.getProviderFromId(id) || this.getCurrentProvider();
+        const api = this.getAPI(p);
+        const cleanId = this.stripProviderPrefix(id);
+        if (typeof api.getVideoStreamUrl === 'function') {
+            return api.getVideoStreamUrl(cleanId);
+        }
     }
 
     async getArtistSocials(artistName) {
@@ -131,12 +153,40 @@ export class MusicAPI {
         return this.tidalAPI.getCoverUrl(id, size);
     }
 
-    getVideoCoverUrl(videoCoverId, fallbackCoverId, size = '1280') {
-        if (videoCoverId) {
-            const videoUrl = this.tidalAPI.getVideoCoverUrl(videoCoverId, size);
-            if (videoUrl) return videoUrl;
+    getVideoCoverUrl(imageId, size = '1280') {
+        if (!imageId) {
+            return null;
         }
-        return this.getCoverUrl(fallbackCoverId, size);
+        if (typeof imageId === 'string' && imageId.startsWith('blob:')) {
+            return imageId;
+        }
+        if (typeof imageId === 'string' && imageId.startsWith('q:')) {
+            return null;
+        }
+        return this.tidalAPI.getVideoCoverUrl(imageId, size);
+    }
+
+    async getVideoArtwork(title, artist) {
+        const cacheKey = `${title}-${artist}`.toLowerCase();
+        if (this.videoArtworkCache.has(cacheKey)) {
+            return this.videoArtworkCache.get(cacheKey);
+        }
+
+        try {
+            const url = `https://artwork.boidu.dev/?s=${encodeURIComponent(title)}&a=${encodeURIComponent(artist)}`;
+            const response = await fetch(url);
+            if (!response.ok) return null;
+            const data = await response.json();
+            const result = {
+                videoUrl: data.videoUrl || null,
+                hlsUrl: data.animated || null,
+            };
+            this.videoArtworkCache.set(cacheKey, result);
+            return result;
+        } catch (error) {
+            console.warn('Failed to fetch video artwork:', error);
+            return null;
+        }
     }
 
     getArtistPictureUrl(id, size = '320') {

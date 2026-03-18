@@ -15,6 +15,7 @@ pb.autoCancellation(false);
 const syncManager = {
     pb: pb,
     _userRecordCache: null,
+    _getUserRecordPromise: null,
     _isSyncing: false,
 
     async _getUserRecord(uid) {
@@ -24,12 +25,24 @@ const syncManager = {
             return this._userRecordCache;
         }
 
-        try {
-            const record = await this.pb.collection('DB_users').getFirstListItem(`firebase_id="${uid}"`, { f_id: uid });
-            this._userRecordCache = record;
-            return record;
-        } catch (error) {
-            if (error.status === 404) {
+        if (this._getUserRecordPromise && this._getUserRecordPromise.uid === uid) {
+            return this._getUserRecordPromise.promise;
+        }
+
+        const promise = (async () => {
+            try {
+                const result = await this.pb.collection('DB_users').getList(1, 1, {
+                    filter: `firebase_id="${uid}"`,
+                    sort: '-username',
+                    f_id: uid,
+                });
+
+                if (result.items.length > 0) {
+                    const record = result.items[0];
+                    this._userRecordCache = record;
+                    return record;
+                }
+
                 try {
                     const newRecord = await this.pb.collection('DB_users').create(
                         {
@@ -44,13 +57,27 @@ const syncManager = {
                     this._userRecordCache = newRecord;
                     return newRecord;
                 } catch (createError) {
+                    const retryResult = await this.pb.collection('DB_users').getList(1, 1, {
+                        filter: `firebase_id="${uid}"`,
+                        f_id: uid,
+                    });
+                    if (retryResult.items.length > 0) {
+                        this._userRecordCache = retryResult.items[0];
+                        return this._userRecordCache;
+                    }
                     console.error('[PocketBase] Failed to create user:', createError);
                     return null;
                 }
+            } catch (error) {
+                console.error('[PocketBase] Failed to get user:', error);
+                return null;
+            } finally {
+                this._getUserRecordPromise = null;
             }
-            console.error('[PocketBase] Failed to get user:', error);
-            return null;
-        }
+        })();
+
+        this._getUserRecordPromise = { uid, promise };
+        return promise;
     },
 
     async getUserData() {
@@ -200,6 +227,19 @@ const syncManager = {
             };
         }
 
+        if (type === 'video') {
+            return {
+                ...base,
+                type: 'video',
+                title: item.title || null,
+                duration: item.duration || null,
+                image: item.image || item.cover || null,
+                artist: item.artist || (item.artists && item.artists.length > 0 ? item.artists[0] : null) || null,
+                artists: item.artists?.map((a) => ({ id: a.id, name: a.name || null })) || [],
+                album: item.album || { title: 'Video', cover: item.image || item.cover },
+            };
+        }
+
         if (type === 'album') {
             return {
                 ...base,
@@ -280,7 +320,7 @@ const syncManager = {
                 id: playlist.id,
                 name: playlist.name,
                 cover: playlist.cover || null,
-                tracks: playlist.tracks ? playlist.tracks.map((t) => this._minifyItem('track', t)) : [],
+                tracks: playlist.tracks ? playlist.tracks.map((t) => this._minifyItem(t.type || 'track', t)) : [],
                 createdAt: playlist.createdAt || Date.now(),
                 updatedAt: playlist.updatedAt || Date.now(),
                 numberOfTracks: playlist.tracks ? playlist.tracks.length : 0,
@@ -471,14 +511,9 @@ const syncManager = {
         if (!record) return;
 
         const updateData = { ...data };
-        if (updateData.privacy) {
-            updateData.privacy = JSON.stringify(updateData.privacy);
-        }
 
-        await this.pb.collection('DB_users').update(record.id, updateData, { f_id: user.$id });
-        if (this._userRecordCache) {
-            this._userRecordCache = { ...this._userRecordCache, ...updateData };
-        }
+        const updated = await this.pb.collection('DB_users').update(record.id, updateData, { f_id: user.$id });
+        this._userRecordCache = updated;
     },
 
     async isUsernameTaken(username) {
@@ -524,22 +559,15 @@ const syncManager = {
                         database = await database;
                     }
 
-                    const getAll = async (store) => {
-                        if (database && typeof database.getAll === 'function') return database.getAll(store);
-                        if (database && database.db && typeof database.db.getAll === 'function')
-                            return database.db.getAll(store);
-                        return [];
-                    };
-
                     const localData = {
-                        tracks: (await getAll('favorites_tracks')) || [],
-                        albums: (await getAll('favorites_albums')) || [],
-                        artists: (await getAll('favorites_artists')) || [],
-                        playlists: (await getAll('favorites_playlists')) || [],
-                        mixes: (await getAll('favorites_mixes')) || [],
-                        history: (await getAll('history_tracks')) || [],
-                        userPlaylists: (await getAll('user_playlists')) || [],
-                        userFolders: (await getAll('user_folders')) || [],
+                        tracks: (await database.getAll('favorites_tracks')) || [],
+                        albums: (await database.getAll('favorites_albums')) || [],
+                        artists: (await database.getAll('favorites_artists')) || [],
+                        playlists: (await database.getAll('favorites_playlists')) || [],
+                        mixes: (await database.getAll('favorites_mixes')) || [],
+                        history: (await database.getAll('history_tracks')) || [],
+                        userPlaylists: (await database.getAll('user_playlists')) || [],
+                        userFolders: (await database.getAll('user_folders')) || [],
                     };
 
                     let { library, history, userPlaylists, userFolders } = cloudData;
@@ -575,7 +603,9 @@ const syncManager = {
                                 id: playlist.id,
                                 name: playlist.name,
                                 cover: playlist.cover || null,
-                                tracks: playlist.tracks ? playlist.tracks.map((t) => this._minifyItem('track', t)) : [],
+                                tracks: playlist.tracks
+                                    ? playlist.tracks.map((t) => this._minifyItem(t.type || 'track', t))
+                                    : [],
                                 createdAt: playlist.createdAt || Date.now(),
                                 updatedAt: playlist.updatedAt || Date.now(),
                                 numberOfTracks: playlist.tracks ? playlist.tracks.length : 0,
@@ -600,8 +630,23 @@ const syncManager = {
                         }
                     });
 
-                    if (history.length === 0 && localData.history.length > 0) {
-                        history = localData.history;
+                    const combinedHistory = [...history, ...localData.history];
+                    combinedHistory.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+
+                    const uniqueHistory = [];
+                    const seenTimestamps = new Set();
+
+                    for (const item of combinedHistory) {
+                        if (!item.timestamp) continue;
+                        if (!seenTimestamps.has(item.timestamp)) {
+                            seenTimestamps.add(item.timestamp);
+                            uniqueHistory.push(item);
+                        }
+                        if (uniqueHistory.length >= 100) break;
+                    }
+
+                    if (JSON.stringify(history) !== JSON.stringify(uniqueHistory)) {
+                        history = uniqueHistory;
                         needsUpdate = true;
                     }
 

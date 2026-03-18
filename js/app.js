@@ -21,12 +21,14 @@ import { initializeUIInteractions } from './ui-interactions.js';
 import { debounce, SVG_PLAY, getShareUrl } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 import { db } from './db.js';
+import { showNotification } from './downloads.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { authManager } from './accounts/auth.js';
 import { registerSW } from 'virtual:pwa-register';
 import './smooth-scrolling.js';
 import { openEditProfile } from './profile.js';
 import { ThemeStore } from './themeStore.js';
+import './commandPalette.js';
 
 import { initTracker } from './tracker.js';
 import {
@@ -61,10 +63,43 @@ import {
     importToLibrary,
 } from './playlist-importer.js';
 
+// Capture real iOS state before spoofing (needed for background audio)
+if (typeof window !== 'undefined') {
+    const _ua = navigator.userAgent.toLowerCase();
+    window.__IS_IOS__ = /iphone|ipad|ipod/.test(_ua) || (_ua.includes('mac') && navigator.maxTouchPoints > 1);
+
+    // Spoof User-Agent to bypass Google's embedded browser check
+    Object.defineProperty(navigator, 'userAgent', {
+        get: function () {
+            return 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+        },
+    });
+
+    // analytics
+    const plausibleScript = document.createElement('script');
+    plausibleScript.async = true;
+    plausibleScript.src = 'https://plausible.canine.tools/js/pa-dCMvQpiD1-AJmi8o3xviO.js';
+    document.head.appendChild(plausibleScript);
+
+    window.plausible =
+        window.plausible ||
+        function () {
+            (window.plausible.q = window.plausible.q || []).push(arguments);
+        };
+    window.plausible.init =
+        window.plausible.init ||
+        function (i) {
+            window.plausible.o = i || {};
+        };
+    window.plausible.init();
+}
+
 // Lazy-loaded modules
 let settingsModule = null;
 let downloadsModule = null;
 let metadataModule = null;
+
+export const managers = {};
 
 async function loadSettingsModule() {
     if (!settingsModule) {
@@ -160,7 +195,7 @@ function initializeCasting(audioPlayer, castBtn) {
     }
 }
 
-function initializeKeyboardShortcuts(player, audioPlayer) {
+function initializeKeyboardShortcuts(player, _audioPlayer) {
     const keyActionMap = {
         playPause: () => {
             trackKeyboardShortcut('Space');
@@ -168,11 +203,11 @@ function initializeKeyboardShortcuts(player, audioPlayer) {
         },
         seekForward: () => {
             trackKeyboardShortcut('Right');
-            audioPlayer.currentTime = Math.min(audioPlayer.duration, audioPlayer.currentTime + 10);
+            player.seekForward(10);
         },
         seekBackward: () => {
             trackKeyboardShortcut('Left');
-            audioPlayer.currentTime = Math.max(0, audioPlayer.currentTime - 10);
+            player.seekBackward(10);
         },
         nextTrack: () => {
             trackKeyboardShortcut('Shift+Right');
@@ -192,7 +227,8 @@ function initializeKeyboardShortcuts(player, audioPlayer) {
         },
         mute: () => {
             trackKeyboardShortcut('M');
-            audioPlayer.muted = !audioPlayer.muted;
+            const el = player.activeElement;
+            el.muted = !el.muted;
         },
         shuffle: () => {
             trackKeyboardShortcut('S');
@@ -218,7 +254,7 @@ function initializeKeyboardShortcuts(player, audioPlayer) {
             trackKeyboardShortcut('Escape');
             document.getElementById('search-input')?.blur();
             sidePanelManager.close();
-            clearLyricsPanelSync(audioPlayer, sidePanelManager.panel);
+            clearLyricsPanelSync(player.activeElement, sidePanelManager.panel);
         },
         visualizerNext: () => {
             trackKeyboardShortcut('VisualizerNext');
@@ -408,8 +444,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 player.handlePlayPause();
             });
             events.on('mediaStop', () => {
-                player.audio.pause();
-                player.audio.currentTime = 0;
+                const el = player.activeElement;
+                el.pause();
+                el.currentTime = 0;
             });
             events.on('backButton', () => {
                 if (window.history.length > 1) {
@@ -437,7 +474,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const ui = new UIRenderer(api, player);
     window.monochromeUi = ui;
     const scrobbler = new MultiScrobbler();
+    window.monochromeScrobbler = scrobbler;
     const lyricsManager = new LyricsManager(api);
+    ui.lyricsManager = lyricsManager;
+    managers.lyricsManager = lyricsManager;
 
     // Check browser support for local files
     const selectLocalBtn = document.getElementById('select-local-folder-btn');
@@ -537,9 +577,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (isActive) {
                 sidePanelManager.close();
-                clearLyricsPanelSync(audioPlayer, sidePanelManager.panel);
+                clearLyricsPanelSync(player.activeElement, sidePanelManager.panel);
             } else {
-                openLyricsPanel(player.currentTrack, audioPlayer, lyricsManager);
+                openLyricsPanel(player.currentTrack, player.activeElement, lyricsManager);
             }
         } else if (mode === 'cover') {
             const overlay = document.getElementById('fullscreen-cover-overlay');
@@ -551,7 +591,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             } else {
                 const nextTrack = player.getNextTrack();
-                ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, audioPlayer);
+                ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, player.activeElement);
             }
         } else {
             // Default to 'album' mode - navigate to album
@@ -839,9 +879,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (isActive) {
             sidePanelManager.close();
-            clearLyricsPanelSync(audioPlayer, sidePanelManager.panel);
+            clearLyricsPanelSync(player.activeElement, sidePanelManager.panel);
         } else {
-            openLyricsPanel(player.currentTrack, audioPlayer, lyricsManager);
+            openLyricsPanel(player.currentTrack, player.activeElement, lyricsManager);
         }
     });
 
@@ -869,14 +909,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Update lyrics panel if it's open
         if (sidePanelManager.isActive('lyrics')) {
             // Re-open forces update/refresh of content and sync
-            openLyricsPanel(player.currentTrack, audioPlayer, lyricsManager, true);
+            openLyricsPanel(player.currentTrack, player.activeElement, lyricsManager, true);
         }
 
         // Update Fullscreen if it's open
         const fullscreenOverlay = document.getElementById('fullscreen-cover-overlay');
         if (fullscreenOverlay && getComputedStyle(fullscreenOverlay).display !== 'none') {
             const nextTrack = player.getNextTrack();
-            ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, audioPlayer);
+            ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, player.activeElement);
         }
 
         // DEV: Auto-open fullscreen mode if ?fullscreen=1 in URL
@@ -887,7 +927,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             getComputedStyle(fullscreenOverlay).display === 'none'
         ) {
             const nextTrack = player.getNextTrack();
-            ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, audioPlayer);
+            ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, player.activeElement);
         }
     });
 
@@ -1179,6 +1219,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 ui.renderLibraryPage();
                 document.getElementById('folder-modal').classList.remove('active');
                 trackCloseModal('Create Folder');
+            } else {
+                showNotification('Please enter a folder name.');
             }
         }
 
@@ -1756,6 +1798,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         trackCloseModal('Create Playlist');
                     });
                 }
+            } else {
+                showNotification('Please enter a playlist name.');
             }
         }
 
@@ -1902,20 +1946,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             db.getPlaylist(playlistId).then(async (playlist) => {
                 let trackId = null;
+                let trackType = null;
 
                 // Prefer ID if available (from sorted view)
                 if (btn.dataset.trackId) {
                     trackId = btn.dataset.trackId;
+                    trackType = btn.dataset.type || 'track';
                 } else if (btn.dataset.trackIndex) {
                     // Fallback to index (legacy/unsorted)
                     const index = parseInt(btn.dataset.trackIndex);
                     if (playlist && playlist.tracks[index]) {
                         trackId = playlist.tracks[index].id;
+                        trackType = playlist.tracks[index].type || 'track';
                     }
                 }
 
                 if (trackId) {
-                    const updatedPlaylist = await db.removeTrackFromPlaylist(playlistId, trackId);
+                    const updatedPlaylist = await db.removeTrackFromPlaylist(playlistId, trackId, trackType);
                     syncManager.syncUserPlaylist(updatedPlaylist, 'update');
                     const scrollTop = document.querySelector('.main-content').scrollTop;
                     await ui.renderPlaylistPage(playlistId, 'user');
@@ -2927,8 +2974,6 @@ function showCustomizeShortcutsModal() {
     const shortcutsList = document.getElementById('shortcuts-list');
     let recordingAction = null;
     let recordingTimeout = null;
-
-    const shortcuts = keyboardShortcuts.getShortcuts();
 
     const formatKey = (key) => {
         if (!key) return 'none';

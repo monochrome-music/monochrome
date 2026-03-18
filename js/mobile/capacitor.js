@@ -3,14 +3,14 @@ import CapacitorBridge from './capacitor-bridge.js';
 // import { initializeDiscordRPC } from './discord-rpc.js';
 
 export async function initDesktop(player) {
-    console.log('[Desktop] Initializing desktop features...');
+    console.log('[Capacitor] Initializing mobile features...');
 
     // Expose bridge globally for modules that do runtime native checks
     window.CapacitorBridge = CapacitorBridge;
 
     try {
         await CapacitorBridge.init();
-        console.log('[Desktop] Capacitor bridge initialized.');
+        console.log('[Capacitor] Capacitor bridge initialized.');
         if (player && typeof player.setupMediaSession === 'function') {
             player.setupMediaSession();
         }
