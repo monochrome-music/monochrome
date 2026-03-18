@@ -1026,6 +1026,7 @@ export class LosslessAPI {
             upsertTrack(track, weight, track.timestamp || now - index * 60000);
         });
         likedTracks.forEach((track, index) =>
+            // For tracks without addedAt, generate deterministic synthetic recency ordering.
             upsertTrack(track, LIKED_TRACK_WEIGHT, track.addedAt || now - index * LIKED_ACTIVITY_OFFSET)
         );
         playlists.forEach((playlist, playlistIndex) => {

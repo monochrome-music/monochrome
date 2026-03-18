@@ -3503,7 +3503,7 @@ export class UIRenderer {
 
                 const tracks = playlistData.tracks || [];
                 const totalDuration = calculateTotalDuration(tracks);
-                const canCollaborate = !ownedPlaylist && playlistData.isPublic;
+                const canCollaborate = !ownedPlaylist && playlistData.isPublic && playlistData.collaborative !== false;
 
                 const collaborativeTag = canCollaborate ? ' • Collaborative' : '';
                 metaEl.textContent = `${tracks.length} tracks • ${formatDuration(totalDuration)}${collaborativeTag}`;

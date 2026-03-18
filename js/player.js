@@ -1013,7 +1013,7 @@ export class Player {
             return;
         }
 
-        const steps = 10;
+        const steps = Math.max(8, Math.min(48, Math.round(fadeDurationMs / 80)));
         const stepDelay = Math.max(20, Math.floor(fadeDurationMs / steps));
         const originalVolume = Math.max(0, Math.min(1, this.userVolume));
 
@@ -1027,10 +1027,11 @@ export class Player {
             await delay(stepDelay);
         }
 
+        const REPLAY_GAIN_APPLY_DELAY_MS = 120;
         this.playNext();
         setTimeout(() => {
             this.applyReplayGain();
-        }, 120);
+        }, REPLAY_GAIN_APPLY_DELAY_MS);
     }
 
     async enableRadio(seeds = []) {

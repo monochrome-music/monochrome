@@ -498,12 +498,16 @@ const syncManager = {
         }
 
         const record = existing.items[0];
+        if (record.collaborative === false) {
+            throw new Error('Collaborative editing is disabled for this playlist');
+        }
+
         const payload = {
             tracks: JSON.stringify(tracks),
             title: metadata.title || record.title || record.name || 'Untitled Playlist',
             name: metadata.title || record.name || record.title || 'Untitled Playlist',
             description: metadata.description ?? record.description ?? '',
-            collaborative: true,
+            collaborative: record.collaborative !== false,
             data: {
                 title: metadata.title || record.title || record.name || 'Untitled Playlist',
                 cover: metadata.cover || record.cover || record.image || '',
