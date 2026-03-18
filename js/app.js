@@ -2441,6 +2441,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const handleExternalLink = (query) => {
         const isExternalLink =
+            query.includes('monochrome-music-player.vercel.app/') ||
             query.includes('monochrome.tf/') ||
             query.includes('monochrome.samidy.com/') ||
             query.includes('tidal.com/');

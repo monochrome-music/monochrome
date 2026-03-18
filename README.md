@@ -1,5 +1,5 @@
  <p align="center">
-  <a href="https://monochrome.tf">
+  <a href="https://monochrome-music-player.vercel.app">
     <img src="https://github.com/monochrome-music/monochrome/blob/main/public/assets/512.png?raw=true" alt="Monochrome Logo" width="150px">
   </a>
 </p>
@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://monochrome.tf">Website</a> -
+  <a href="https://monochrome-music-player.vercel.app">Website</a> -
   <a href="https://ko-fi.com/monochromemusic">Donate</a> -
   <a href="#features">Features</a> -
   <a href="#usage">Usage</a> -
@@ -38,13 +38,13 @@
 **Monochrome** is an open-source, privacy-respecting, ad-free [TIDAL](https://tidal.com) web UI, built on top of Hi-Fi. It provides a beautiful, minimalist interface for streaming high-quality music without the clutter of traditional streaming platforms.
 
 <p align="center">
-  <a href="https://monochrome.tf/album/90502209">
+  <a href="https://monochrome-music-player.vercel.app/album/90502209">
     <img width="2559" height="1439" alt="Image of 'NASIR' By Nas On Monochrome" src="https://i.samidy.xyz/NASIR.png"  alt="Monochrome UI" width="800">
   </a>
 </p>
 
 <p align="center">
-  <a href="https://monochrome.tf/album/413189044">
+  <a href="https://monochrome-music-player.vercel.app/album/413189044">
     <img width="2559" height="1439" alt="Image of 'Jump Out' By Osamason On Monochrome" src="https://i.samidy.xyz/jumpout.png"  alt="Monochrome UI" width="800">
   </a>
 </p>
@@ -108,7 +108,7 @@
 
 Our Recommended way to use monochrome is through our official instance:
 
-**[monochrome.tf](https://monochrome.tf)** / **[monochrome.samidy.com](https://monochrome.samidy.com)**
+**[monochrome-music-player.vercel.app](https://monochrome-music-player.vercel.app)** / **[monochrome.samidy.com](https://monochrome.samidy.com)**
 
 
 For alternative instances, check [INSTANCES.md](INSTANCES.md).
@@ -206,7 +206,7 @@ npm run build
 
 ### Basic Usage
 
-1. Visit the [Website](https://monochrome.tf) or your local development server
+1. Visit the [Website](https://monochrome-music-player.vercel.app) or your local development server
 2. Search for your favorite artists, albums, or tracks
 3. Click play to start streaming
 4. Use the media controls to manage playback, queue, and volume

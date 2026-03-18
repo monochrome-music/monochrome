@@ -2,7 +2,7 @@
     "name": "monochrome",
     "type": "module",
     "version": "2.5.0",
-    "description": "[<img src=\"https://github.com/monochrome-music/monochrome/blob/main/assets/512.png?raw=true\" alt=\"Monochrome Logo\">](https://monochrome.tf)",
+    "description": "[<img src=\"https://github.com/monochrome-music/monochrome/blob/main/assets/512.png?raw=true\" alt=\"Monochrome Logo\">](https://monochrome-music-player.vercel.app)",
     "scripts": {
         "dev": "vite",
         "dev:desktop": "start bun run dev & node scripts/dev-runner.js",
