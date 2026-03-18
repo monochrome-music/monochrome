@@ -5,6 +5,8 @@ import authGatePlugin from './vite-plugin-auth-gate.js';
 import path from 'path';
 import uploadPlugin from './vite-plugin-upload.js';
 import blobAssetPlugin from './vite-plugin-blob.js';
+import injectHTML from 'vite-plugin-html-inject';
+import svgUse from './vite-plugin-svg-use.js';
 
 export default defineConfig(({ mode }) => {
     const IS_NEUTRALINO = mode === 'neutralino';
@@ -16,7 +18,10 @@ export default defineConfig(({ mode }) => {
         },
         resolve: {
             alias: {
+                '!lucide': '/node_modules/lucide-static/icons',
+                '!simpleicons': '/node_modules/simple-icons/icons',
                 '!': '/node_modules',
+
                 pocketbase: '/node_modules/pocketbase/dist/pocketbase.es.js',
             },
         },
@@ -44,6 +49,8 @@ export default defineConfig(({ mode }) => {
             authGatePlugin(),
             uploadPlugin(),
             blobAssetPlugin(),
+            svgUse(),
+            injectHTML(),
             VitePWA({
                 registerType: 'prompt',
                 workbox: {
