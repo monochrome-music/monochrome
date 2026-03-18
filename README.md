@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="https://monochrome-music-player.vercel.app">Website</a> -
-  <a href="https://ko-fi.com/monochromemusic">Donate</a> -
+  <a href="https://ko-fi.com/boysgmnglegends">Donate</a> -
   <a href="#features">Features</a> -
   <a href="#usage">Usage</a> -
   <a href="#self-hosting">Self-Hosting</a> -
