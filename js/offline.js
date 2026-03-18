@@ -349,7 +349,12 @@ export async function exportOfflineTracks(onProgress, { incremental = false } = 
     const count = keys.length;
 
     // ── Desktop: streaming export via File System Access API (any size) ──
-    if (window.showSaveFilePicker) {
+    // Skip on mobile — Chrome Android exposes showSaveFilePicker over HTTPS
+    // but handle.getFile() returns unreliable size, breaking verification.
+    // The Blob + Web Share API fallback is more reliable on mobile.
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+        || (navigator.maxTouchPoints > 1 && /Macintosh/i.test(navigator.userAgent)); // iPadOS 13+
+    if (window.showSaveFilePicker && !isMobile) {
         // Pre-calculate total size for accurate progress + verification
         let totalBytes = BACKUP_HEADER_BYTES;
         emitBackupProgress(onProgress, createBackupProgress('preparing', 0, count, 0, 0));

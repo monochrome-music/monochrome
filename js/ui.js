@@ -2255,7 +2255,10 @@ export class UIRenderer {
         }
 
         // Export — incremental by default (only new tracks since last backup)
-        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        // Detect iOS/iPadOS — ALL browsers on iOS/iPadOS are WebKit under the hood,
+        // so <a download> never works reliably. Use Web Share or window.open.
+        const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent)
+            || (/Macintosh/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
 
         const triggerBlobDownload = async (blob, filename) => {
             // 1. Web Share API — best on mobile (iOS 15.4+, Android)
@@ -2267,18 +2270,19 @@ export class UIRenderer {
                         return;
                     }
                 } catch (err) {
-                    if (err.name === 'AbortError') return; // user cancelled
-                    // Fall through to next method
+                    if (err.name === 'AbortError') return; // user cancelled share
+                    console.warn('Web Share failed, falling back to download:', err.message);
+                    // Fall through to platform-specific fallback
                 }
             }
 
             const url = URL.createObjectURL(blob);
 
-            // 2. iOS Safari without Web Share — <a download> doesn't work,
-            //    open the blob in a new tab so user can long-press → Save
-            if (isSafari) {
+            // 2. iOS/iPadOS fallback — <a download> doesn't work on ANY iOS browser
+            //    (Chrome, Firefox, Safari — all WebKit). Open blob in new tab.
+            if (isIOS) {
                 window.open(url, '_blank');
-                // Don't revoke — the new tab needs time to load
+                // Keep blob URL alive for 2 min so the new tab can load
                 setTimeout(() => URL.revokeObjectURL(url), 120000);
                 return;
             }
@@ -2293,7 +2297,7 @@ export class UIRenderer {
             setTimeout(() => {
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-            }, 60000);
+            }, 120000); // 2 min — mobile downloads can be slow
         };
 
         if (exportBtn) {
