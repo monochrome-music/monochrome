@@ -135,9 +135,7 @@ export class ZipNeutralinoWriter implements IBulkDownloadWriter {
         const reader = response.body.getReader();
         let receivedLength = 0;
 
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+        for await (const value of readableStreamIterator(response.body)) {
             const chunk = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength);
             await bridge.filesystem.appendBinaryFile(savePath, chunk);
             receivedLength += value.length;
