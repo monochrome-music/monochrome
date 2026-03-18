@@ -409,8 +409,11 @@ async function downloadApkToCache(apkUrl) {
 }
 
 export const updater = {
-    checkForUpdates: async () => {
+    checkForUpdates: async (url) => {
         if (!isCapacitorRuntime) return;
+        if (!url) {
+            throw new Error('Missing update manifest URL');
+        }
         const appInfo = await App.getInfo();
         const response = await fetch(url, { cache: 'no-store' });
         if (!response.ok) {

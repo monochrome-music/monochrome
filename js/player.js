@@ -123,7 +123,9 @@ export class Player {
                             if (this.video.readyState >= 2 && (this.audio.readyState > 0 || this.audio.src)) {
                                 this.audio.currentTime = this.video.currentTime;
                             }
-                        } catch (err) {}
+                        } catch {
+                            // Ignore transient sync errors while switching sources.
+                        }
                     }
 
                     const syncedEvent = new Event(eventName, { bubbles: e.bubbles, cancelable: e.cancelable });
@@ -934,12 +936,12 @@ export class Player {
                 try {
                     await this.playTrackFromQueue(startTime, recursiveCount, true);
                     return;
-                } catch (retryError) {
+                } catch {
+                    // Ignore and continue to normal error handling path below.
                 } finally {
                     this.quality = originalQuality;
                     this.isFallbackRetry = false;
                     this.isFallbackInProgress = false;
-                    return;
                 }
             }
 
