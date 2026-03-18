@@ -291,6 +291,79 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
         });
     }
 
+    // Playback Speed Control for miniplayer
+    const playbackSpeedBtn = document.getElementById('playback-speed-btn');
+    const playbackSpeedPopup = document.getElementById('playback-speed-popup');
+    const miniSpeedSlider = document.getElementById('mini-playback-speed-slider');
+    const speedValue = playbackSpeedBtn?.querySelector('.speed-value');
+    const speedPopupClose = document.querySelector('.speed-popup-close');
+    const speedPresetBtns = document.querySelectorAll('.speed-preset-btn');
+
+    if (playbackSpeedBtn && playbackSpeedPopup && miniSpeedSlider) {
+        // Get initial speed from storage (dynamic import in async context)
+        import('./storage.js').then(({ audioEffectsSettings }) => {
+            const currentSpeed = audioEffectsSettings.getSpeed();
+            miniSpeedSlider.value = currentSpeed;
+            if (speedValue) speedValue.textContent = `${currentSpeed.toFixed(2)}x`;
+        });
+
+        // Toggle popup
+        playbackSpeedBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isVisible = playbackSpeedPopup.style.display === 'block';
+            playbackSpeedPopup.style.display = isVisible ? 'none' : 'block';
+        });
+
+        // Close popup
+        if (speedPopupClose) {
+            speedPopupClose.addEventListener('click', () => {
+                playbackSpeedPopup.style.display = 'none';
+            });
+        }
+
+        // Close popup when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!playbackSpeedBtn.contains(e.target) && !playbackSpeedPopup.contains(e.target)) {
+                playbackSpeedPopup.style.display = 'none';
+            }
+        });
+
+        // Slider change
+        miniSpeedSlider.addEventListener('input', (e) => {
+            const speed = parseFloat(e.target.value);
+            import('./storage.js').then(({ audioEffectsSettings }) => {
+                audioEffectsSettings.setSpeed(speed);
+                player.setPlaybackSpeed(speed);
+                if (speedValue) speedValue.textContent = `${speed.toFixed(2)}x`;
+
+                // Update fullscreen speed if exists
+                const fsSpeedSlider = document.getElementById('fs-playback-speed-slider');
+                const fsSpeedValue = document.querySelector('.fs-speed-value');
+                if (fsSpeedSlider) fsSpeedSlider.value = speed;
+                if (fsSpeedValue) fsSpeedValue.textContent = `${speed.toFixed(2)}x`;
+            });
+        });
+
+        // Preset buttons
+        speedPresetBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const speed = parseFloat(btn.dataset.speed);
+                miniSpeedSlider.value = speed;
+                import('./storage.js').then(({ audioEffectsSettings }) => {
+                    audioEffectsSettings.setSpeed(speed);
+                    player.setPlaybackSpeed(speed);
+                    if (speedValue) speedValue.textContent = `${speed.toFixed(2)}x`;
+
+                    // Update fullscreen speed if exists
+                    const fsSpeedSlider = document.getElementById('fs-playback-speed-slider');
+                    const fsSpeedValue = document.querySelector('.fs-speed-value');
+                    if (fsSpeedSlider) fsSpeedSlider.value = speed;
+                    if (fsSpeedValue) fsSpeedValue.textContent = `${speed.toFixed(2)}x`;
+                });
+            });
+        });
+    }
+
     // Waveform Masking Logic
     const updateWaveform = async () => {
         const progressBar = document.getElementById('progress-bar');

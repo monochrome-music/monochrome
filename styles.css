@@ -3976,6 +3976,7 @@ input:checked + .slider::before {
     flex-direction: column;
     gap: 1rem;
     z-index: 10;
+    pointer-events: auto;
 }
 
 .fullscreen-progress-container {
@@ -5377,6 +5378,172 @@ input:checked + .slider::before {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* Playback Speed Button Styles */
+.playback-speed-btn,
+.fs-playback-speed-btn {
+    position: relative;
+    display: flex !important;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.playback-speed-btn .speed-value,
+.fs-playback-speed-btn .fs-speed-value {
+    font-size: 0.75rem;
+    font-weight: 600;
+    min-width: 2.5rem;
+    text-align: center;
+}
+
+/* Playback Speed Popup */
+.playback-speed-popup,
+.fs-playback-speed-popup {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 0.5rem;
+    background: var(--popover);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    width: 280px;
+    z-index: 1000;
+    animation: slideUp 0.2s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.speed-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.speed-popup-close,
+.fs-speed-popup-close {
+    background: transparent;
+    border: none;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    font-size: 1.5rem;
+    line-height: 1;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s;
+}
+
+.speed-popup-close:hover,
+.fs-speed-popup-close:hover {
+    background: var(--accent);
+    color: var(--foreground);
+}
+
+.speed-popup-content {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.speed-popup-slider {
+    width: 100%;
+    height: 6px;
+    border-radius: var(--radius-full);
+    background: var(--border);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+}
+
+.speed-popup-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    transition: transform 0.1s ease;
+}
+
+.speed-popup-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+.speed-popup-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    border: none;
+    transition: transform 0.1s ease;
+}
+
+.speed-popup-slider::-moz-range-thumb:hover {
+    transform: scale(1.2);
+}
+
+.speed-presets {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}
+
+.speed-preset-btn,
+.fs-speed-preset-btn {
+    padding: 0.5rem;
+    background: var(--accent);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--foreground);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.speed-preset-btn:hover,
+.fs-speed-preset-btn:hover {
+    background: var(--accent-foreground);
+    color: var(--accent);
+    border-color: var(--primary);
+}
+
+.speed-preset-btn:active,
+.fs-speed-preset-btn:active {
+    transform: scale(0.95);
+}
+
+.speed-preset-btn.active,
+.fs-speed-preset-btn.active {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border-color: var(--primary);
 }
 
 /* Show a grey box for images with no source, hiding the broken icon */
