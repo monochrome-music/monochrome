@@ -401,6 +401,48 @@
                                 <span class="fs-quality-label" data-i18n="player.qualityAuto">Auto</span>
                             </button>
                             <div id="fs-quality-menu" class="fs-quality-menu" style="display: none"></div>
+                            <button id="fs-playback-speed-btn" class="fs-playback-speed-btn" title="Playback Speed" data-i18n-title="player.playbackSpeed">
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                <span class="fs-speed-value">1.0x</span>
+                            </button>
+                            <div id="fs-playback-speed-popup" class="fs-playback-speed-popup" style="display: none;">
+                                <div class="speed-popup-header">
+                                    <span data-i18n="player.playbackSpeed">Playback Speed</span>
+                                    <button class="fs-speed-popup-close">&times;</button>
+                                </div>
+                                <div class="speed-popup-content">
+                                    <input
+                                        type="range"
+                                        id="fs-playback-speed-slider"
+                                        min="0.25"
+                                        max="2.0"
+                                        step="0.05"
+                                        value="1.0"
+                                        class="speed-popup-slider"
+                                    />
+                                    <div class="speed-presets">
+                                        <button class="fs-speed-preset-btn" data-speed="0.5">0.5x</button>
+                                        <button class="fs-speed-preset-btn" data-speed="0.75">0.75x</button>
+                                        <button class="fs-speed-preset-btn" data-speed="1.0">1.0x</button>
+                                        <button class="fs-speed-preset-btn" data-speed="1.25">1.25x</button>
+                                        <button class="fs-speed-preset-btn" data-speed="1.5">1.5x</button>
+                                        <button class="fs-speed-preset-btn" data-speed="2.0">2.0x</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="fullscreen-volume-container">
                             <button id="fs-volume-btn" class="fs-volume-btn" title="Mute" data-i18n-title="player.mute">
@@ -6006,6 +6048,48 @@
                                 <path d="M2 22h.01"></path>
                             </svg>
                         </button>
+                        <button id="playback-speed-btn" class="playback-speed-btn" title="Playback Speed" data-i18n-title="player.playbackSpeed">
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            <span class="speed-value">1.0x</span>
+                        </button>
+                        <div id="playback-speed-popup" class="playback-speed-popup" style="display: none;">
+                            <div class="speed-popup-header">
+                                <span data-i18n="player.playbackSpeed">Playback Speed</span>
+                                <button class="speed-popup-close">&times;</button>
+                            </div>
+                            <div class="speed-popup-content">
+                                <input
+                                    type="range"
+                                    id="mini-playback-speed-slider"
+                                    min="0.25"
+                                    max="2.0"
+                                    step="0.05"
+                                    value="1.0"
+                                    class="speed-popup-slider"
+                                />
+                                <div class="speed-presets">
+                                    <button class="speed-preset-btn" data-speed="0.5">0.5x</button>
+                                    <button class="speed-preset-btn" data-speed="0.75">0.75x</button>
+                                    <button class="speed-preset-btn" data-speed="1.0">1.0x</button>
+                                    <button class="speed-preset-btn" data-speed="1.25">1.25x</button>
+                                    <button class="speed-preset-btn" data-speed="1.5">1.5x</button>
+                                    <button class="speed-preset-btn" data-speed="2.0">2.0x</button>
+                                </div>
+                            </div>
+                        </div>
 
                         <button id="mobile-add-playlist-btn" class="mobile-only">
                             <svg

@@ -1587,6 +1587,79 @@ export class UIRenderer {
             updateFsVolumeUI();
         }
 
+        // Playback Speed Control for fullscreen
+        const fsPlaybackSpeedBtn = document.getElementById('fs-playback-speed-btn');
+        const fsPlaybackSpeedPopup = document.getElementById('fs-playback-speed-popup');
+        const fsSpeedSlider = document.getElementById('fs-playback-speed-slider');
+        const fsSpeedValue = fsPlaybackSpeedBtn?.querySelector('.fs-speed-value');
+        const fsSpeedPopupClose = document.querySelector('.fs-speed-popup-close');
+        const fsSpeedPresetBtns = document.querySelectorAll('.fs-speed-preset-btn');
+
+        if (fsPlaybackSpeedBtn && fsPlaybackSpeedPopup && fsSpeedSlider) {
+            // Get initial speed from storage
+            import('./storage.js').then(({ audioEffectsSettings }) => {
+                const currentSpeed = audioEffectsSettings.getSpeed();
+                fsSpeedSlider.value = currentSpeed;
+                if (fsSpeedValue) fsSpeedValue.textContent = `${currentSpeed.toFixed(2)}x`;
+            });
+
+            // Toggle popup
+            fsPlaybackSpeedBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isVisible = fsPlaybackSpeedPopup.style.display === 'block';
+                fsPlaybackSpeedPopup.style.display = isVisible ? 'none' : 'block';
+            });
+
+            // Close popup
+            if (fsSpeedPopupClose) {
+                fsSpeedPopupClose.addEventListener('click', () => {
+                    fsPlaybackSpeedPopup.style.display = 'none';
+                });
+            }
+
+            // Close popup when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!fsPlaybackSpeedBtn.contains(e.target) && !fsPlaybackSpeedPopup.contains(e.target)) {
+                    fsPlaybackSpeedPopup.style.display = 'none';
+                }
+            });
+
+            // Slider change
+            fsSpeedSlider.addEventListener('input', (e) => {
+                const speed = parseFloat(e.target.value);
+                import('./storage.js').then(({ audioEffectsSettings }) => {
+                    audioEffectsSettings.setSpeed(speed);
+                    this.player.setPlaybackSpeed(speed);
+                    if (fsSpeedValue) fsSpeedValue.textContent = `${speed.toFixed(2)}x`;
+
+                    // Update miniplayer speed if exists
+                    const miniSpeedSlider = document.getElementById('mini-playback-speed-slider');
+                    const speedValue = document.querySelector('.speed-value');
+                    if (miniSpeedSlider) miniSpeedSlider.value = speed;
+                    if (speedValue) speedValue.textContent = `${speed.toFixed(2)}x`;
+                });
+            });
+
+            // Preset buttons
+            fsSpeedPresetBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const speed = parseFloat(btn.dataset.speed);
+                    fsSpeedSlider.value = speed;
+                    import('./storage.js').then(({ audioEffectsSettings }) => {
+                        audioEffectsSettings.setSpeed(speed);
+                        this.player.setPlaybackSpeed(speed);
+                        if (fsSpeedValue) fsSpeedValue.textContent = `${speed.toFixed(2)}x`;
+
+                        // Update miniplayer speed if exists
+                        const miniSpeedSlider = document.getElementById('mini-playback-speed-slider');
+                        const speedValue = document.querySelector('.speed-value');
+                        if (miniSpeedSlider) miniSpeedSlider.value = speed;
+                        if (speedValue) speedValue.textContent = `${speed.toFixed(2)}x`;
+                    });
+                });
+            });
+        }
+
         const update = () => {
             if (document.getElementById('fullscreen-cover-overlay').style.display === 'none') return;
 
