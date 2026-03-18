@@ -876,6 +876,17 @@ export class LosslessAPI {
 
         const poolMap = new Map();
         const now = Date.now();
+        // Signal extraction and weighting constants for smart mix generation.
+        // Activity offsets are in milliseconds and keep deterministic recency ordering.
+        const TOP_SIGNAL_LIMIT = 6;
+        const HISTORY_WEIGHT_WINDOW = 30;
+        const HISTORY_WEIGHT_DIVISOR = 6;
+        const LIKED_TRACK_WEIGHT = 2.5;
+        const PLAYLIST_TRACK_WEIGHT = 1.5;
+        const LIKED_ACTIVITY_OFFSET = 120000;
+        const PLAYLIST_ACTIVITY_OFFSET = 180000;
+        const MIN_GENRE_TOKEN_LENGTH = 3;
+        const MAX_GENRE_TOKEN_LENGTH = 30;
         const qualityTokens = new Set(['hi_res_lossless', 'lossless', 'high', 'dolby_atmos', 'atmos', 'mqa']);
         const moodKeywords = ['chill', 'happy', 'sad', 'focus', 'party', 'upbeat', 'calm', 'energetic', 'sleep'];
         const artistScores = new Map();
@@ -885,9 +896,9 @@ export class LosslessAPI {
         const safeString = (value) => (typeof value === 'string' ? value.trim() : '');
         const parseReleaseDate = (track) => {
             const raw = track?.album?.releaseDate || track?.streamStartDate;
-            if (!raw) return 0;
+            if (!raw) return -Infinity;
             const timestamp = new Date(raw).getTime();
-            return Number.isFinite(timestamp) ? timestamp : 0;
+            return Number.isFinite(timestamp) ? timestamp : -Infinity;
         };
         const cleanTrack = (track) => {
             const cloned = { ...track };
@@ -907,6 +918,8 @@ export class LosslessAPI {
 
             return Array.from(new Set(tags));
         };
+        const isValidGenreToken = (tag) =>
+            tag.length >= MIN_GENRE_TOKEN_LENGTH && tag.length <= MAX_GENRE_TOKEN_LENGTH && /^[a-z\s-]+$/.test(tag);
         const registerScore = (map, key, amount = 1) => {
             if (!key) return;
             map.set(key, (map.get(key) || 0) + amount);
@@ -916,6 +929,10 @@ export class LosslessAPI {
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, limit)
                 .map(([key]) => key);
+        const pickSignal = (signals, index) => {
+            if (!Array.isArray(signals) || signals.length === 0) return null;
+            return signals[index % signals.length];
+        };
         const upsertTrack = (track, scoreWeight, activityAt) => {
             if (!track?.id) return;
 
@@ -944,7 +961,7 @@ export class LosslessAPI {
                     registerScore(moodScores, mood, scoreWeight);
                     return;
                 }
-                if (/^[a-z\s-]{3,30}$/.test(tag)) {
+                if (isValidGenreToken(tag)) {
                     registerScore(genreScores, tag, scoreWeight);
                 }
             });
@@ -1003,20 +1020,27 @@ export class LosslessAPI {
             return deduped;
         };
 
-        history.forEach((track, index) => {
-            const weight = Math.max(1, 30 - index) / 6;
+        history.slice(0, HISTORY_WEIGHT_WINDOW).forEach((track, index) => {
+            // More recent history entries receive larger weights.
+            const weight = Math.max(1, HISTORY_WEIGHT_WINDOW - index) / HISTORY_WEIGHT_DIVISOR;
             upsertTrack(track, weight, track.timestamp || now - index * 60000);
         });
-        likedTracks.forEach((track, index) => upsertTrack(track, 2.5, track.addedAt || now - index * 120000));
+        likedTracks.forEach((track, index) =>
+            upsertTrack(track, LIKED_TRACK_WEIGHT, track.addedAt || now - index * LIKED_ACTIVITY_OFFSET)
+        );
         playlists.forEach((playlist, playlistIndex) => {
             (playlist.tracks || []).forEach((track, trackIndex) => {
-                upsertTrack(track, 1.5, track.addedAt || now - (playlistIndex + trackIndex) * 180000);
+                upsertTrack(
+                    track,
+                    PLAYLIST_TRACK_WEIGHT,
+                    track.addedAt || now - (playlistIndex + trackIndex) * PLAYLIST_ACTIVITY_OFFSET
+                );
             });
         });
 
-        const topArtists = getTopKeys(artistScores, 6);
-        const topGenres = getTopKeys(genreScores, 6);
-        const topMoods = getTopKeys(moodScores, 6);
+        const topArtists = getTopKeys(artistScores, TOP_SIGNAL_LIMIT);
+        const topGenres = getTopKeys(genreScores, TOP_SIGNAL_LIMIT);
+        const topMoods = getTopKeys(moodScores, TOP_SIGNAL_LIMIT);
         const hasSignals = poolMap.size > 0;
 
         const mixes = [];
@@ -1029,9 +1053,9 @@ export class LosslessAPI {
             if (!hasSignals) {
                 description = 'Play more music to generate this mix automatically.';
             } else if (definition.id.startsWith('smart-daily-mix-')) {
-                const artistKey = topArtists[index % Math.max(1, topArtists.length)] || null;
-                const genre = topGenres[index % Math.max(1, topGenres.length)] || null;
-                const mood = topMoods[index % Math.max(1, topMoods.length)] || null;
+                const artistKey = pickSignal(topArtists, index);
+                const genre = pickSignal(topGenres, index);
+                const mood = pickSignal(topMoods, index);
                 tracks = selectTracks({ artistKey, genre, mood, limit: 30, preferRecent: true });
                 description = `Auto-mix based on your listening history${genre ? `, genre: ${genre}` : ''}${mood ? `, mood: ${mood}` : ''}.`;
                 subTitle = `${tracks.length} tracks`;
@@ -1049,10 +1073,15 @@ export class LosslessAPI {
                 }
                 const combined = [...recommended, ...selectTracks({ limit: 30, preferRecent: false })];
                 const seen = new Set();
-                tracks = combined
-                    .filter((track) => track?.id && !seen.has(String(track.id)) && (seen.add(String(track.id)) || true))
-                    .slice(0, 30)
-                    .map((track) => cleanTrack(track));
+                tracks = [];
+                for (const track of combined) {
+                    if (!track?.id) continue;
+                    const key = String(track.id);
+                    if (seen.has(key)) continue;
+                    seen.add(key);
+                    tracks.push(cleanTrack(track));
+                    if (tracks.length >= 30) break;
+                }
                 description = 'Fresh recommendations generated from your favorite artists and listening habits.';
                 subTitle = `${tracks.length} discovery tracks`;
             } else if (definition.id === 'smart-release-radar') {
