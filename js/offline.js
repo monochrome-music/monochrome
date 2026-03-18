@@ -320,6 +320,7 @@ export async function markTracksBackedUp(trackKeys) {
  */
 const BLOB_CHUNK_BYTES = 500 * 1024 * 1024; // 500 MB per chunk for Blob downloads
 
+
 function buildBackupHeader(trackCount) {
     const header = new ArrayBuffer(BACKUP_HEADER_BYTES);
     const hv = new DataView(header);
