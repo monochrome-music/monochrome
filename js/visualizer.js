@@ -1,10 +1,5 @@
 // js/visualizer.js
 import { visualizerSettings } from './storage.js';
-import { LCDPreset } from './visualizers/lcd.js';
-import { ParticlesPreset } from './visualizers/particles.js';
-import { UnknownPleasuresWebGL } from './visualizers/unknown_pleasures_webgl.js';
-import { ButterchurnPreset } from './visualizers/butterchurn.js';
-import { KawarpPreset } from './visualizers/kawarp.js';
 import { audioContextManager } from './audio-context.js';
 
 export class Visualizer {
@@ -12,21 +7,10 @@ export class Visualizer {
         this.canvas = canvas;
         this.ctx = null;
         this.audio = audio;
-
         this.audioContext = null;
         this.analyser = null;
-
         this.isActive = false;
         this.animationId = null;
-
-        this.presets = {
-            lcd: new LCDPreset(),
-            particles: new ParticlesPreset(),
-            'unknown-pleasures': new UnknownPleasuresWebGL(),
-            butterchurn: new ButterchurnPreset(),
-            kawarp: new KawarpPreset(),
-        };
-
         this.activePresetKey = visualizerSettings.getPreset();
 
         // ---- AUDIO BUFFERS (REUSED) ----
@@ -51,6 +35,19 @@ export class Visualizer {
         this._resizeBound = () => this.resize();
     }
 
+    /**
+     * Must be called after class is constructed!
+     */
+    async initPresets() {
+        this.presets = {
+            lcd: new (await import('./visualizers/lcd.js')).LCDPreset(),
+            particles: new (await import('./visualizers/particles.js')).ParticlesPreset(),
+            'unknown-pleasures': new (await import('./visualizers/unknown_pleasures_webgl.js')).UnknownPleasuresWebGL(),
+            butterchurn: new (await import('./visualizers/butterchurn.js')).ButterchurnPreset(),
+            kawarp: new (await import('./visualizers/kawarp.js')).KawarpPreset(),
+        };
+    }
+
     updateDimming() {
         if (!this.canvas || !this.canvas.parentElement) return;
         const dimAmount = visualizerSettings.getDimAmount();
@@ -61,7 +58,7 @@ export class Visualizer {
         return this.presets[this.activePresetKey] || this.presets['lcd'];
     }
 
-    init() {
+    async init() {
         // Ensure shared audio context is initialized
         if (!audioContextManager.isReady()) {
             audioContextManager.init(this.audio);

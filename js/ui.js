@@ -1126,7 +1126,7 @@ export class UIRenderer {
 
         overlay.style.display = 'flex';
 
-        const startVisualizer = () => {
+        const startVisualizer = async () => {
             if (!visualizerSettings.isEnabled()) {
                 if (this.visualizer) this.visualizer.stop();
                 return;
@@ -1136,6 +1136,7 @@ export class UIRenderer {
                 const canvas = document.getElementById('visualizer-canvas');
                 if (canvas) {
                     this.visualizer = new Visualizer(canvas, activeElement);
+                    await this.visualizer.initPresets();
                 }
             }
             if (this.visualizer) {
@@ -1150,7 +1151,7 @@ export class UIRenderer {
         this.setupUIToggleButton(overlay);
 
         if (localStorage.getItem('epilepsy-warning-dismissed') === 'true') {
-            startVisualizer();
+            await startVisualizer();
         } else {
             const modal = document.getElementById('epilepsy-warning-modal');
             if (modal) {
@@ -1159,17 +1160,17 @@ export class UIRenderer {
                 const acceptBtn = document.getElementById('epilepsy-accept-btn');
                 const cancelBtn = document.getElementById('epilepsy-cancel-btn');
 
-                acceptBtn.onclick = () => {
+                acceptBtn.onclick = async () => {
                     modal.classList.remove('active');
                     localStorage.setItem('epilepsy-warning-dismissed', 'true');
-                    startVisualizer();
+                    await startVisualizer();
                 };
                 cancelBtn.onclick = () => {
                     modal.classList.remove('active');
                     this.closeFullscreenCover();
                 };
             } else {
-                startVisualizer();
+                await startVisualizer();
             }
         }
     }

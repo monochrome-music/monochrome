@@ -37,11 +37,15 @@ import {
     modalSettings,
 } from './storage.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
-import { getButterchurnPresets } from './visualizers/butterchurn.js';
 import { db } from './db.js';
 import { authManager } from './accounts/auth.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { containerFormats, customFormats } from './ffmpegFormats.ts';
+
+async function getButterchurnPresets(...args) {
+    const butterchurnModule = await import('./visualizers/butterchurn.js');
+    return butterchurnModule.getButterchurnPresets(...args);
+}
 
 export function initializeSettings(scrobbler, player, api, ui) {
     // Restore last active settings tab
@@ -2311,7 +2315,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
     const butterchurnDurationInput = document.getElementById('butterchurn-duration-input');
     const butterchurnRandomizeToggle = document.getElementById('butterchurn-randomize-toggle');
 
-    const updateButterchurnSettingsVisibility = () => {
+    const updateButterchurnSettingsVisibility = async () => {
         const isEnabled = visualizerEnabledToggle ? visualizerEnabledToggle.checked : false;
         const isButterchurn = visualizerPresetSelect ? visualizerPresetSelect.value === 'butterchurn' : false;
         const show = isEnabled && isButterchurn;
@@ -2327,7 +2331,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
         if (butterchurnRandomizeSetting) butterchurnRandomizeSetting.style.display = showSubSettings ? 'flex' : 'none';
 
         // Populate preset list using module-level cache (works even before visualizer initializes)
-        const { keys: presetNames } = getButterchurnPresets();
+        const { keys: presetNames } = await getButterchurnPresets();
         const select = butterchurnSpecificPresetSelect;
 
         if (select && presetNames.length > 0) {
@@ -2362,7 +2366,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
         }
     };
 
-    const updateVisualizerSettingsVisibility = (enabled) => {
+    const updateVisualizerSettingsVisibility = async (enabled) => {
         const display = enabled ? 'flex' : 'none';
         if (visualizerModeSetting) visualizerModeSetting.style.display = display;
         if (visualizerSmartIntensitySetting) visualizerSmartIntensitySetting.style.display = display;
@@ -2370,7 +2374,7 @@ export function initializeSettings(scrobbler, player, api, ui) {
         if (visualizerPresetSetting) visualizerPresetSetting.style.display = display;
 
         // Also update Butterchurn specific visibility
-        updateButterchurnSettingsVisibility();
+        await updateButterchurnSettingsVisibility();
     };
 
     // Initialize preset select value early so visibility logic works correctly on load
@@ -2381,24 +2385,24 @@ export function initializeSettings(scrobbler, player, api, ui) {
     if (visualizerEnabledToggle) {
         visualizerEnabledToggle.checked = visualizerSettings.isEnabled();
 
-        updateVisualizerSettingsVisibility(visualizerEnabledToggle.checked);
+        await updateVisualizerSettingsVisibility(visualizerEnabledToggle.checked);
 
-        visualizerEnabledToggle.addEventListener('change', (e) => {
+        visualizerEnabledToggle.addEventListener('change', async (e) => {
             visualizerSettings.setEnabled(e.target.checked);
-            updateVisualizerSettingsVisibility(e.target.checked);
+            await updateVisualizerSettingsVisibility(e.target.checked);
         });
     }
 
     // Visualizer Preset Select
     if (visualizerPresetSelect) {
         // value set above
-        visualizerPresetSelect.addEventListener('change', (e) => {
+        visualizerPresetSelect.addEventListener('change', async (e) => {
             const val = e.target.value;
             visualizerSettings.setPreset(val);
             if (ui && ui.visualizer) {
                 ui.visualizer.setPreset(val);
             }
-            updateButterchurnSettingsVisibility();
+            await updateButterchurnSettingsVisibility();
 
             //Since changing the preset breaks the visualizer, a location.reload() is added to make sure that it works
             window.location.reload();
@@ -2407,9 +2411,9 @@ export function initializeSettings(scrobbler, player, api, ui) {
 
     if (butterchurnCycleToggle) {
         butterchurnCycleToggle.checked = visualizerSettings.isButterchurnCycleEnabled();
-        butterchurnCycleToggle.addEventListener('change', (e) => {
+        butterchurnCycleToggle.addEventListener('change', async (e) => {
             visualizerSettings.setButterchurnCycleEnabled(e.target.checked);
-            updateButterchurnSettingsVisibility();
+            await updateButterchurnSettingsVisibility();
         });
     }
 
@@ -2441,30 +2445,30 @@ export function initializeSettings(scrobbler, player, api, ui) {
     }
 
     // Refresh settings when presets are loaded asynchronously
-    window.addEventListener('butterchurn-presets-loaded', () => {
+    window.addEventListener('butterchurn-presets-loaded', async () => {
         console.log('[Settings] Butterchurn presets loaded event received');
-        updateButterchurnSettingsVisibility();
+        await updateButterchurnSettingsVisibility();
     });
 
     // Check if presets already cached and update immediately
-    const { keys: cachedKeys } = getButterchurnPresets();
+    const { keys: cachedKeys } = await getButterchurnPresets();
     if (cachedKeys.length > 0) {
         console.log('[Settings] Presets already cached, updating dropdown immediately');
-        updateButterchurnSettingsVisibility();
+        await updateButterchurnSettingsVisibility();
     }
 
     // Watch for appearance tab becoming active and refresh presets
     const appearanceTabContent = document.getElementById('settings-tab-appearance');
     if (appearanceTabContent) {
-        const observer = new MutationObserver((mutations) => {
-            mutations.forEach((mutation) => {
+        const observer = new MutationObserver(async (mutations) => {
+            for (const mutation of mutations) {
                 if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
                     if (appearanceTabContent.classList.contains('active')) {
                         console.log('[Settings] Appearance tab became active, refreshing presets');
-                        updateButterchurnSettingsVisibility();
+                        await updateButterchurnSettingsVisibility();
                     }
                 }
-            });
+            }
         });
         observer.observe(appearanceTabContent, { attributes: true });
     }
