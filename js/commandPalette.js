@@ -1,6 +1,7 @@
 import { debounce } from './utils.js';
 import { db } from './db.js';
 import Fuse from 'fuse.js';
+import { navigate } from './router.js';
 
 class CommandPalette {
     constructor() {
@@ -368,7 +369,7 @@ class CommandPalette {
                     description: `Navigate to ${p}`,
                     action: () => {
                         this.close();
-                        import('./router.js').then((m) => m.navigate(p === 'home' ? '/' : `/${p}`));
+                        navigate(p === 'home' ? '/' : `/${p}`);
                     },
                     type: 'command',
                 }))
@@ -380,7 +381,7 @@ class CommandPalette {
 
         if (validPages.includes(page)) {
             this.close();
-            import('./router.js').then((m) => m.navigate(page === 'home' ? '/' : `/${page}`));
+            navigate(page === 'home' ? '/' : `/${page}`);
         } else {
             this.showNotification(`Unknown page: ${page}`);
         }
@@ -673,8 +674,7 @@ class CommandPalette {
     }
 
     async navigateToSetting(setting) {
-        const router = await import('./router.js');
-        router.navigate('/settings');
+        navigate('/settings');
 
         await new Promise((resolve) => setTimeout(resolve, 100));
 
