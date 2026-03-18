@@ -2445,6 +2445,41 @@
                                         margin-bottom: 1rem;
                                     "
                                 >
+                                    <h2 class="section-title" style="margin-bottom: 0">Made For You</h2>
+                                    <button
+                                        class="btn-secondary"
+                                        id="refresh-smart-mixes-btn"
+                                        title="Refresh"
+                                        data-i18n-title="common.refresh"
+                                        style="padding: 4px 8px"
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        >
+                                            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                                            <path d="M21 3v5h-5" />
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="card-grid" id="home-personalized-mixes"></div>
+                            </section>
+                            <section class="content-section">
+                                <div
+                                    style="
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: space-between;
+                                        margin-bottom: 1rem;
+                                    "
+                                >
                                     <h2 class="section-title" style="margin-bottom: 0" data-i18n="home.jumpBackIn">Jump Back In</h2>
                                     <button
                                         class="btn-secondary"
@@ -4763,6 +4798,29 @@
                                         <input type="checkbox" id="gapless-playback-toggle" checked />
                                         <span class="slider"></span>
                                     </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Crossfade</span>
+                                        <span class="description">Fade out and into the next track for smoother transitions</span>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem">
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" id="crossfade-toggle" />
+                                            <span class="slider"></span>
+                                        </label>
+                                        <input
+                                            type="number"
+                                            id="crossfade-duration-input"
+                                            min="0.5"
+                                            max="12"
+                                            step="0.1"
+                                            value="2"
+                                            style="width: 64px"
+                                            aria-label="Crossfade duration in seconds"
+                                        />
+                                        <span style="font-size: 0.8rem; opacity: 0.8">sec</span>
+                                    </div>
                                 </div>
                             </div>
 

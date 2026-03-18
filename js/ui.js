@@ -1908,11 +1908,13 @@ export class UIRenderer {
             const refreshSongsBtn = document.getElementById('refresh-songs-btn');
             const refreshAlbumsBtn = document.getElementById('refresh-albums-btn');
             const refreshArtistsBtn = document.getElementById('refresh-artists-btn');
+            const refreshMixesBtn = document.getElementById('refresh-smart-mixes-btn');
             const clearRecentBtn = document.getElementById('clear-recent-btn');
 
             if (refreshSongsBtn) refreshSongsBtn.onclick = () => this.renderHomeSongs(true);
             if (refreshAlbumsBtn) refreshAlbumsBtn.onclick = () => this.renderHomeAlbums(true);
             if (refreshArtistsBtn) refreshArtistsBtn.onclick = () => this.renderHomeArtists(true);
+            if (refreshMixesBtn) refreshMixesBtn.onclick = () => this.renderHomeSmartMixes(true);
             if (clearRecentBtn)
                 clearRecentBtn.onclick = () => {
                     if (confirm('Clear recent activity?')) {
@@ -1926,6 +1928,7 @@ export class UIRenderer {
             // Load dynamic sections in parallel with pre-fetched seeds
             const seeds = await this.getSeeds();
             await Promise.all([
+                this.renderHomeSmartMixes(false),
                 this.renderHomeSongs(false, seeds),
                 this.renderHomeAlbums(false, seeds),
                 this.renderHomeArtists(false, seeds),
@@ -2593,6 +2596,36 @@ export class UIRenderer {
             } else {
                 recentContainer.innerHTML = createPlaceholder('No recent items yet...');
             }
+        }
+    }
+
+    async renderHomeSmartMixes(forceRefresh = false) {
+        const mixesContainer = document.getElementById('home-personalized-mixes');
+        if (!mixesContainer) return;
+
+        if (forceRefresh || mixesContainer.children.length === 0) {
+            mixesContainer.innerHTML = this.createSkeletonCards(8, true);
+        }
+
+        try {
+            const mixes = await this.api.getPersonalizedMixes(forceRefresh);
+
+            if (!mixes || mixes.length === 0) {
+                mixesContainer.innerHTML = createPlaceholder('Play more songs to unlock personalized mixes.');
+                return;
+            }
+
+            mixesContainer.innerHTML = mixes.map((mix) => this.createMixCardHTML(mix)).join('');
+            mixes.forEach((mix) => {
+                const el = mixesContainer.querySelector(`[data-mix-id="${mix.id}"]`);
+                if (el) {
+                    trackDataStore.set(el, mix);
+                    this.updateLikeState(el, 'mix', mix.id);
+                }
+            });
+        } catch (error) {
+            console.error('Failed to render personalized mixes:', error);
+            mixesContainer.innerHTML = createPlaceholder('Failed to load personalized mixes.');
         }
     }
 
@@ -3318,12 +3351,10 @@ export class UIRenderer {
                                             this.renderListWithTracks(tracklistContainer, updatedPlaylist.tracks, true);
 
                                             if (document.querySelector('.remove-from-playlist-btn')) {
-                                                this.enableTrackReordering(
-                                                    tracklistContainer,
-                                                    updatedPlaylist.tracks,
-                                                    playlistId,
-                                                    syncManager
-                                                );
+                                                this.enableTrackReordering(tracklistContainer, updatedPlaylist.tracks, async (newTracks) => {
+                                                    const updated = await db.updatePlaylistTracks(playlistId, newTracks);
+                                                    syncManager.syncUserPlaylist(updated, 'update');
+                                                });
                                             }
 
                                             // Update the playlist metadata
@@ -3472,8 +3503,10 @@ export class UIRenderer {
 
                 const tracks = playlistData.tracks || [];
                 const totalDuration = calculateTotalDuration(tracks);
+                const canCollaborate = !ownedPlaylist && playlistData.isPublic && playlistData.collaborative !== false;
 
-                metaEl.textContent = `${tracks.length} tracks • ${formatDuration(totalDuration)}`;
+                const collaborativeTag = canCollaborate ? ' • Collaborative' : '';
+                metaEl.textContent = `${tracks.length} tracks • ${formatDuration(totalDuration)}${collaborativeTag}`;
                 descEl.textContent = playlistData.description || '';
 
                 const originalTracks = [...tracks];
@@ -3494,22 +3527,24 @@ export class UIRenderer {
                     `;
                     this.renderListWithTracks(container, currentTracks, true, true);
 
-                    // Add remove buttons and enable reordering ONLY IF OWNED
-                    if (ownedPlaylist) {
+                    // Add remove buttons and enable reordering for owned or collaborative public playlists
+                    if (ownedPlaylist || canCollaborate) {
                         const trackItems = container.querySelectorAll('.track-item');
-                        trackItems.forEach((item, index) => {
-                            const actionsDiv = item.querySelector('.track-item-actions');
-                            const removeBtn = document.createElement('button');
-                            removeBtn.className = 'track-action-btn remove-from-playlist-btn';
-                            removeBtn.title = 'Remove from playlist';
-                            removeBtn.innerHTML =
-                                '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
-                            removeBtn.dataset.trackId = currentTracks[index].id;
-                            removeBtn.dataset.type = currentTracks[index].type || 'track';
+                        if (ownedPlaylist) {
+                            trackItems.forEach((item, index) => {
+                                const actionsDiv = item.querySelector('.track-item-actions');
+                                const removeBtn = document.createElement('button');
+                                removeBtn.className = 'track-action-btn remove-from-playlist-btn';
+                                removeBtn.title = 'Remove from playlist';
+                                removeBtn.innerHTML =
+                                    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+                                removeBtn.dataset.trackId = currentTracks[index].id;
+                                removeBtn.dataset.type = currentTracks[index].type || 'track';
 
-                            const menuBtn = actionsDiv.querySelector('.track-menu-btn');
-                            actionsDiv.insertBefore(removeBtn, menuBtn);
-                        });
+                                const menuBtn = actionsDiv.querySelector('.track-menu-btn');
+                                actionsDiv.insertBefore(removeBtn, menuBtn);
+                            });
+                        }
 
                         // Always add is-editable class for owned playlists to fix layout
                         // This expands the grid columns to accommodate the remove button
@@ -3517,7 +3552,21 @@ export class UIRenderer {
 
                         // Only enable drag-and-drop reordering in custom sort mode
                         if (currentSort === 'custom') {
-                            this.enableTrackReordering(container, currentTracks, playlistId, syncManager);
+                            const saveTrackOrder = async (newTracks) => {
+                                if (ownedPlaylist) {
+                                    const updatedPlaylist = await db.updatePlaylistTracks(playlistId, newTracks);
+                                    syncManager.syncUserPlaylist(updatedPlaylist, 'update');
+                                    return;
+                                }
+
+                                await syncManager.updatePublicPlaylistTracks(playlistId, newTracks, {
+                                    title: playlistData.name || playlistData.title,
+                                    description: playlistData.description || '',
+                                    cover: playlistData.cover || null,
+                                });
+                                showNotification('Collaborative playlist updated');
+                            };
+                            this.enableTrackReordering(container, currentTracks, saveTrackOrder);
                         }
                     } else {
                         container.classList.remove('is-editable');
@@ -4900,7 +4949,7 @@ export class UIRenderer {
         }
     }
 
-    enableTrackReordering(container, tracks, playlistId, syncManager) {
+    enableTrackReordering(container, tracks, saveTrackOrder) {
         // Clone to remove old listeners
         const newContainer = container.cloneNode(true);
         if (container.parentNode) {
@@ -4973,9 +5022,9 @@ export class UIRenderer {
 
                 tracks.splice(0, tracks.length, ...newTracks);
 
-                // Save to DB
-                const updatedPlaylist = await db.updatePlaylistTracks(playlistId, newTracks);
-                syncManager.syncUserPlaylist(updatedPlaylist, 'update');
+                if (typeof saveTrackOrder === 'function') {
+                    await saveTrackOrder(newTracks);
+                }
 
                 draggedElement = null;
                 draggedIndex = -1;

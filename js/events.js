@@ -141,7 +141,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
 
         element.addEventListener('ended', () => {
             if (player.activeElement !== element) return;
-            player.playNext();
+            player.playNextWithCrossfade();
         });
 
         element.addEventListener('timeupdate', async () => {
