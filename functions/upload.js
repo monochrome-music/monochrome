@@ -109,11 +109,10 @@ export async function onRequest(context) {
 
                 const host = new URL(R2_ENDPOINT).host;
                 const headers = {
-                    'Content-Type': fileType,
-                    'Content-Length': file.byteLength,
-                    'x-amz-date': amzDate,
+                    host,
+                    'content-type': fileType,
                     'x-amz-content-sha256': payloadHash,
-                    Host: host,
+                    'x-amz-date': amzDate,
                 };
 
                 const auth = await createSignature(
@@ -130,7 +129,12 @@ export async function onRequest(context) {
 
                 const res = await fetch(`${R2_ENDPOINT}/${R2_BUCKET}/${key}`, {
                     method: 'PUT',
-                    headers,
+                    headers: {
+                        'content-type': fileType,
+                        'x-amz-content-sha256': payloadHash,
+                        'x-amz-date': amzDate,
+                        Authorization: auth,
+                    },
                     body: new Uint8Array(file),
                 });
 
@@ -142,25 +146,10 @@ export async function onRequest(context) {
                 url = `${R2_PUBLIC_URL}/${key}`;
             } catch (r2Err) {
                 console.error('R2 upload error:', r2Err);
-                return jsonError(`R2 upload failed: ${r2Err.message}`, 500);
+                url = await uploadToCatbox(file, fileName, fileType);
             }
         } else {
-            const formData = new FormData();
-            formData.append('reqtype', 'fileupload');
-            formData.append('fileToUpload', new Blob([file], { type: fileType }), fileName);
-
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                body: formData,
-            });
-
-            const responseText = await response.text();
-
-            if (!response.ok) {
-                throw new Error(`Upload failed: ${responseText}`);
-            }
-
-            url = responseText.trim();
+            url = await uploadToCatbox(file, fileName, fileType);
         }
 
         return jsonResponse({
@@ -170,6 +159,30 @@ export async function onRequest(context) {
     } catch (err) {
         return jsonError(err.message, 500);
     }
+}
+
+async function uploadToCatbox(file, fileName, fileType) {
+    const formData = new FormData();
+    formData.append('reqtype', 'fileupload');
+    formData.append('fileToUpload', new Blob([file], { type: fileType }), fileName);
+
+    const response = await fetch(API_URL, {
+        method: 'POST',
+        body: formData,
+    });
+
+    const responseText = await response.text();
+
+    if (!response.ok) {
+        throw new Error(`Upload failed: ${responseText}`);
+    }
+
+    const url = responseText.trim();
+    if (!/^https?:\/\//i.test(url)) {
+        throw new Error(`Upload service returned invalid URL: ${url}`);
+    }
+
+    return url;
 }
 
 function jsonResponse(obj, status = 200) {
