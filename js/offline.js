@@ -319,6 +319,8 @@ export async function markTracksBackedUp(trackKeys) {
  *   Each chunk is a standalone .mcbackup that can be imported independently.
  */
 const BLOB_CHUNK_BYTES = 500 * 1024 * 1024; // 500 MB per chunk for Blob downloads
+const MOBILE_CHUNK_BYTES = 500 * 1024 * 1024; // 500 MB — ~12 FLAC tracks per chunk
+const MOBILE_EXPORT_CAP = 5 * 1024 * 1024 * 1024; // 5 GB per export tap (~125 FLAC tracks)
 
 
 function buildBackupHeader(trackCount) {
@@ -339,7 +341,7 @@ function buildEntryLengths(metaLen, audioSize, coverSize) {
     return buf;
 }
 
-export async function exportOfflineTracks(onProgress, { incremental = false } = {}) {
+export async function exportOfflineTracks(onProgress, { incremental = false, onChunkReady = null } = {}) {
     const keys = incremental ? await getUnbackedUpKeys() : await getAllOfflineKeys();
     if (keys.length === 0) {
         throw new Error(incremental ? 'All tracks are already backed up' : 'No offline tracks to export');
@@ -412,44 +414,62 @@ export async function exportOfflineTracks(onProgress, { incremental = false } = 
         }
     }
 
-    // ── Mobile: single-pass chunked Blob export ──
-    // Each track is read from IDB only once (no pre-calculation pass).
-    // All data is normalized to Uint8Array to avoid mobile browser Blob quirks.
-    // When a chunk exceeds BLOB_CHUNK_BYTES it's finalized as a standalone
-    // .mcbackup file and a new chunk begins. Each chunk imports independently.
-    const chunks = [];       // { blob, count, totalBytes }
+    // ── Mobile / Fallback: Blob export ──
+    // When onChunkReady is provided (mobile), each chunk is downloaded
+    // immediately and freed from memory — peak usage stays at ~chunkSize
+    // regardless of library size.  A cumulative byte cap (MOBILE_EXPORT_CAP)
+    // prevents overwhelming the user with too many downloads; remaining
+    // tracks stay "unbacked-up" and are picked up on the next Export tap.
+    const isStreaming = typeof onChunkReady === 'function';
+    const effectiveChunkBytes = isStreaming ? MOBILE_CHUNK_BYTES : BLOB_CHUNK_BYTES;
+    const chunks = [];       // only used when NOT streaming
     let parts = [];          // Uint8Array / ArrayBuffer parts only — no raw Blobs
     let chunkTrackCount = 0;
-    let chunkBytes = BACKUP_HEADER_BYTES; // reserve space for header (prepended at finalize)
+    let currentChunkBytes = BACKUP_HEADER_BYTES;
+    let chunkIndex = 0;
+    let cumulativeBytes = 0;
+    let tracksProcessed = 0;
 
     emitBackupProgress(onProgress, createBackupProgress('writing', 0, count, 0, 0));
 
-    const finalizeChunk = () => {
-        // Prepend header with the actual track count for this chunk
+    const finalizeChunk = async () => {
         parts.unshift(new Uint8Array(buildBackupHeader(chunkTrackCount)));
         const blob = new Blob(parts, { type: 'application/octet-stream' });
-        chunks.push({ blob, count: chunkTrackCount, totalBytes: blob.size });
-        // Reset for next chunk
+        chunkIndex++;
+        cumulativeBytes += blob.size;
+
+        if (isStreaming) {
+            await onChunkReady(blob, chunkIndex);
+            // blob + parts can now be garbage-collected
+        } else {
+            chunks.push({ blob, count: chunkTrackCount, totalBytes: blob.size });
+        }
+
         parts = [];
         chunkTrackCount = 0;
-        chunkBytes = BACKUP_HEADER_BYTES;
+        currentChunkBytes = BACKUP_HEADER_BYTES;
     };
 
     for (let i = 0; i < count; i++) {
+        // Enforce export cap — only at the start of a new chunk so we
+        // never leave a half-written chunk behind.
+        if (isStreaming && chunkTrackCount === 0 && cumulativeBytes >= MOBILE_EXPORT_CAP) {
+            break;
+        }
+
         const entry = await getOfflineTrack(keys[i]);
         if (!entry) throw new Error('Failed to read one or more offline tracks for export');
 
         const metaBytes = getSerializedBackupMetadata(entry, encoder);
-        // Normalize IDB data — may be Blob, ArrayBuffer or Uint8Array on different devices
         const audioBytes = await toUint8Array(entry.audioBlob);
         const coverBytes = await toUint8Array(entry.coverBlob);
         const audioSize = audioBytes.byteLength;
         const coverSize = coverBytes.byteLength;
         const entryBytes = getBackupEntrySize(metaBytes, audioSize, coverSize);
 
-        // If this track would push the chunk past the limit, finalize first
-        if (chunkTrackCount > 0 && chunkBytes + entryBytes > BLOB_CHUNK_BYTES) {
-            finalizeChunk();
+        // Chunk full → finalize (stream/download) before adding this track
+        if (chunkTrackCount > 0 && currentChunkBytes + entryBytes > effectiveChunkBytes) {
+            await finalizeChunk();
         }
 
         parts.push(new Uint8Array(buildEntryLengths(metaBytes.byteLength, audioSize, coverSize)));
@@ -457,26 +477,44 @@ export async function exportOfflineTracks(onProgress, { incremental = false } = 
         if (audioSize > 0) parts.push(audioBytes);
         if (coverSize > 0) parts.push(coverBytes);
         chunkTrackCount++;
-        chunkBytes += entryBytes;
+        currentChunkBytes += entryBytes;
+        tracksProcessed = i + 1;
 
-        emitBackupProgress(onProgress, createBackupProgress('writing', i + 1, count));
+        emitBackupProgress(onProgress, createBackupProgress('writing', tracksProcessed, count));
     }
 
     // Finalize the last (or only) chunk
     if (chunkTrackCount > 0) {
-        finalizeChunk();
+        await finalizeChunk();
     }
 
+    const exportedKeys = keys.slice(0, tracksProcessed);
+    const remaining = count - tracksProcessed;
+
+    // ── Streaming mode: chunks already delivered ──
+    if (isStreaming) {
+        emitBackupProgress(onProgress, createBackupProgress('verifying', tracksProcessed, count, cumulativeBytes, cumulativeBytes));
+        return {
+            blob: null,
+            count: tracksProcessed,
+            totalBytes: cumulativeBytes,
+            chunkCount: chunkIndex,
+            method: 'streamed',
+            verified: true,
+            exportedKeys,
+            remaining,
+        };
+    }
+
+    // ── Non-streaming fallback (desktop File System Access API failure) ──
     const grandTotalBytes = chunks.reduce((sum, c) => sum + c.totalBytes, 0);
     emitBackupProgress(onProgress, createBackupProgress('verifying', count, count, grandTotalBytes, grandTotalBytes));
 
-    // Single chunk — return the same shape as before for backward compat
     if (chunks.length === 1) {
-        return { blob: chunks[0].blob, count, totalBytes: chunks[0].totalBytes, method: 'download', verified: true, exportedKeys: keys };
+        return { blob: chunks[0].blob, count, totalBytes: chunks[0].totalBytes, method: 'download', verified: true, exportedKeys: keys, remaining: 0 };
     }
 
-    // Multiple chunks — caller (UI) will trigger one download per chunk
-    return { blob: null, chunks, count, totalBytes: grandTotalBytes, method: 'chunked-download', verified: true, exportedKeys: keys };
+    return { blob: null, chunks, count, totalBytes: grandTotalBytes, method: 'chunked-download', verified: true, exportedKeys: keys, remaining: 0 };
 }
 
 /**

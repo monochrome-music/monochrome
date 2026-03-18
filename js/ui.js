@@ -2314,22 +2314,36 @@ export class UIRenderer {
             exportBtn.onclick = async () => {
                 try {
                     exportBtn.disabled = true;
-                    // Use incremental by default; fall back to full if no new tracks
                     const newCount = await getUnbackedUpCount();
                     const useIncremental = newCount > 0;
+                    const date = new Date().toISOString().slice(0, 10);
                     setBackupButtonLabel(exportBtn, 'Export', 'Exporting', { percent: 0 });
+
+                    // Mobile: stream chunks one-at-a-time to avoid OOM
+                    const isMobileDevice = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+                        || (navigator.maxTouchPoints > 1 && /Macintosh/i.test(navigator.userAgent));
+
+                    const onChunkReady = isMobileDevice ? async (blob, chunkIdx) => {
+                        setBackupButtonLabel(exportBtn, 'Export', `Saving part ${chunkIdx}`, { percent: 0 });
+                        await triggerBlobDownload(blob, `monochrome-offline-${date}-part${chunkIdx}.mcbackup`);
+                    } : null;
+
                     const result = await exportOfflineTracks((progress) => {
                         setBackupButtonLabel(exportBtn, 'Export', 'Exporting', progress);
-                    }, { incremental: useIncremental });
+                    }, { incremental: useIncremental, onChunkReady });
 
-                    const date = new Date().toISOString().slice(0, 10);
-
-                    if (result.method === 'chunked-download' && result.chunks) {
-                        // Multiple chunk files — trigger sequential downloads
+                    if (result.method === 'streamed') {
+                        let msg = `Exported ${result.count} tracks`;
+                        if (result.chunkCount > 1) msg += ` in ${result.chunkCount} files`;
+                        msg += ` (${formatBytes(result.totalBytes)})`;
+                        if (result.remaining > 0) {
+                            msg += `. ${result.remaining} remaining — tap Export again`;
+                        }
+                        showNotification(msg);
+                    } else if (result.method === 'chunked-download' && result.chunks) {
                         for (let ci = 0; ci < result.chunks.length; ci++) {
                             const chunk = result.chunks[ci];
                             await triggerBlobDownload(chunk.blob, `monochrome-offline-${date}-part${ci + 1}.mcbackup`);
-                            // Small delay between downloads so browser doesn't block them
                             if (ci < result.chunks.length - 1) {
                                 await new Promise(r => setTimeout(r, 1000));
                             }
@@ -2337,7 +2351,7 @@ export class UIRenderer {
                         showNotification(`Offline backup split into ${result.chunks.length} files (${formatBytes(result.totalBytes)} total)`);
                     } else if (result?.blob) {
                         await triggerBlobDownload(result.blob, `monochrome-offline-${date}.mcbackup`);
-                        showNotification(`Offline backup ready. Browser download started (${formatBytes(result.totalBytes)})`);
+                        showNotification(`Offline backup ready (${formatBytes(result.totalBytes)})`);
                     } else {
                         showNotification(`Offline backup saved and verified (${formatBytes(result?.totalBytes || 0)})`);
                     }
@@ -2357,19 +2371,33 @@ export class UIRenderer {
             };
         }
 
-        // Import
+        // Import (supports selecting multiple .mcbackup files at once)
         if (importBtn && importFile) {
             importBtn.onclick = () => importFile.click();
             importFile.onchange = async () => {
-                const file = importFile.files?.[0];
-                if (!file) return;
+                const files = [...(importFile.files || [])];
+                if (files.length === 0) return;
                 try {
                     importBtn.disabled = true;
-                    setBackupButtonLabel(importBtn, 'Import', 'Importing', { percent: 0 });
-                    const result = await importOfflineTracks(file, (progress) => {
-                        setBackupButtonLabel(importBtn, 'Import', 'Importing', progress);
-                    });
-                    showNotification(`Imported ${result.imported} track${result.imported !== 1 ? 's' : ''}${result.skipped > 0 ? `, ${result.skipped} already existed` : ''}`);
+                    let totalImported = 0;
+                    let totalSkipped = 0;
+
+                    for (let fi = 0; fi < files.length; fi++) {
+                        const label = files.length > 1
+                            ? `Importing ${fi + 1}/${files.length}`
+                            : 'Importing';
+                        setBackupButtonLabel(importBtn, 'Import', label, { percent: 0 });
+                        const result = await importOfflineTracks(files[fi], (progress) => {
+                            setBackupButtonLabel(importBtn, 'Import', label, progress);
+                        });
+                        totalImported += result.imported;
+                        totalSkipped += result.skipped;
+                    }
+
+                    let msg = `Imported ${totalImported} track${totalImported !== 1 ? 's' : ''}`;
+                    if (files.length > 1) msg += ` from ${files.length} files`;
+                    if (totalSkipped > 0) msg += `, ${totalSkipped} already existed`;
+                    showNotification(msg);
                     render();
                     // Update badge
                     const count = await getOfflineTrackCount();
