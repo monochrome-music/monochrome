@@ -505,6 +505,38 @@ export const gaplessPlaybackSettings = {
     },
 };
 
+export const crossfadeSettings = {
+    ENABLED_KEY: 'crossfade-enabled',
+    DURATION_KEY: 'crossfade-duration-seconds',
+
+    isEnabled() {
+        try {
+            return localStorage.getItem(this.ENABLED_KEY) === 'true';
+        } catch {
+            return false;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.ENABLED_KEY, enabled ? 'true' : 'false');
+    },
+
+    getDuration() {
+        try {
+            const stored = parseFloat(localStorage.getItem(this.DURATION_KEY));
+            if (!Number.isFinite(stored)) return 2;
+            return Math.max(0.5, Math.min(12, stored));
+        } catch {
+            return 2;
+        }
+    },
+
+    setDuration(seconds) {
+        const value = Math.max(0.5, Math.min(12, parseFloat(seconds) || 2));
+        localStorage.setItem(this.DURATION_KEY, String(value));
+    },
+};
+
 export const fullscreenCoverClickSettings = {
     STORAGE_KEY: 'fullscreen-cover-click-action',
 
@@ -2772,4 +2804,3 @@ export const keyboardShortcuts = {
         return shortcuts[action] || this.DEFAULT_SHORTCUTS[action];
     },
 };
-

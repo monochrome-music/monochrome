@@ -3351,12 +3351,10 @@ export class UIRenderer {
                                             this.renderListWithTracks(tracklistContainer, updatedPlaylist.tracks, true);
 
                                             if (document.querySelector('.remove-from-playlist-btn')) {
-                                                this.enableTrackReordering(
-                                                    tracklistContainer,
-                                                    updatedPlaylist.tracks,
-                                                    playlistId,
-                                                    syncManager
-                                                );
+                                                this.enableTrackReordering(tracklistContainer, updatedPlaylist.tracks, async (newTracks) => {
+                                                    const updated = await db.updatePlaylistTracks(playlistId, newTracks);
+                                                    syncManager.syncUserPlaylist(updated, 'update');
+                                                });
                                             }
 
                                             // Update the playlist metadata
@@ -3505,8 +3503,10 @@ export class UIRenderer {
 
                 const tracks = playlistData.tracks || [];
                 const totalDuration = calculateTotalDuration(tracks);
+                const canCollaborate = !ownedPlaylist && playlistData.isPublic;
 
-                metaEl.textContent = `${tracks.length} tracks • ${formatDuration(totalDuration)}`;
+                const collaborativeTag = canCollaborate ? ' • Collaborative' : '';
+                metaEl.textContent = `${tracks.length} tracks • ${formatDuration(totalDuration)}${collaborativeTag}`;
                 descEl.textContent = playlistData.description || '';
 
                 const originalTracks = [...tracks];
@@ -3527,22 +3527,24 @@ export class UIRenderer {
                     `;
                     this.renderListWithTracks(container, currentTracks, true, true);
 
-                    // Add remove buttons and enable reordering ONLY IF OWNED
-                    if (ownedPlaylist) {
+                    // Add remove buttons and enable reordering for owned or collaborative public playlists
+                    if (ownedPlaylist || canCollaborate) {
                         const trackItems = container.querySelectorAll('.track-item');
-                        trackItems.forEach((item, index) => {
-                            const actionsDiv = item.querySelector('.track-item-actions');
-                            const removeBtn = document.createElement('button');
-                            removeBtn.className = 'track-action-btn remove-from-playlist-btn';
-                            removeBtn.title = 'Remove from playlist';
-                            removeBtn.innerHTML =
-                                '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
-                            removeBtn.dataset.trackId = currentTracks[index].id;
-                            removeBtn.dataset.type = currentTracks[index].type || 'track';
+                        if (ownedPlaylist) {
+                            trackItems.forEach((item, index) => {
+                                const actionsDiv = item.querySelector('.track-item-actions');
+                                const removeBtn = document.createElement('button');
+                                removeBtn.className = 'track-action-btn remove-from-playlist-btn';
+                                removeBtn.title = 'Remove from playlist';
+                                removeBtn.innerHTML =
+                                    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+                                removeBtn.dataset.trackId = currentTracks[index].id;
+                                removeBtn.dataset.type = currentTracks[index].type || 'track';
 
-                            const menuBtn = actionsDiv.querySelector('.track-menu-btn');
-                            actionsDiv.insertBefore(removeBtn, menuBtn);
-                        });
+                                const menuBtn = actionsDiv.querySelector('.track-menu-btn');
+                                actionsDiv.insertBefore(removeBtn, menuBtn);
+                            });
+                        }
 
                         // Always add is-editable class for owned playlists to fix layout
                         // This expands the grid columns to accommodate the remove button
@@ -3550,7 +3552,21 @@ export class UIRenderer {
 
                         // Only enable drag-and-drop reordering in custom sort mode
                         if (currentSort === 'custom') {
-                            this.enableTrackReordering(container, currentTracks, playlistId, syncManager);
+                            const saveTrackOrder = async (newTracks) => {
+                                if (ownedPlaylist) {
+                                    const updatedPlaylist = await db.updatePlaylistTracks(playlistId, newTracks);
+                                    syncManager.syncUserPlaylist(updatedPlaylist, 'update');
+                                    return;
+                                }
+
+                                await syncManager.updatePublicPlaylistTracks(playlistId, newTracks, {
+                                    title: playlistData.name || playlistData.title,
+                                    description: playlistData.description || '',
+                                    cover: playlistData.cover || null,
+                                });
+                                showNotification('Collaborative playlist updated');
+                            };
+                            this.enableTrackReordering(container, currentTracks, saveTrackOrder);
                         }
                     } else {
                         container.classList.remove('is-editable');
@@ -4933,7 +4949,7 @@ export class UIRenderer {
         }
     }
 
-    enableTrackReordering(container, tracks, playlistId, syncManager) {
+    enableTrackReordering(container, tracks, saveTrackOrder) {
         // Clone to remove old listeners
         const newContainer = container.cloneNode(true);
         if (container.parentNode) {
@@ -5006,9 +5022,9 @@ export class UIRenderer {
 
                 tracks.splice(0, tracks.length, ...newTracks);
 
-                // Save to DB
-                const updatedPlaylist = await db.updatePlaylistTracks(playlistId, newTracks);
-                syncManager.syncUserPlaylist(updatedPlaylist, 'update');
+                if (typeof saveTrackOrder === 'function') {
+                    await saveTrackOrder(newTracks);
+                }
 
                 draggedElement = null;
                 draggedIndex = -1;

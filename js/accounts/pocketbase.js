@@ -427,6 +427,7 @@ const syncManager = {
                 numberOfTracks: tracks.length,
                 type: 'user-playlist',
                 isPublic: true,
+                collaborative: record.collaborative !== false,
                 user: { name: 'Community Playlist' },
             };
         } catch (error) {
@@ -454,6 +455,7 @@ const syncManager = {
             description: playlist.description || '',
             tracks: JSON.stringify(playlist.tracks || []),
             isPublic: true,
+            collaborative: playlist.collaborative !== false,
             data: {
                 title: playlist.name,
                 cover: playlist.cover,
@@ -475,6 +477,43 @@ const syncManager = {
         } catch (error) {
             console.error('Failed to publish playlist:', error);
         }
+    },
+
+    async updatePublicPlaylistTracks(uuid, tracks, metadata = {}) {
+        if (!uuid || !Array.isArray(tracks)) {
+            throw new Error('Invalid collaborative playlist payload');
+        }
+
+        const uid = authManager.user?.$id;
+        if (!uid) {
+            throw new Error('Sign in required for collaborative edits');
+        }
+
+        const existing = await this.pb.collection(PUBLIC_COLLECTION).getList(1, 1, {
+            filter: `uuid="${uuid}"`,
+            p_id: uuid,
+        });
+        if (!existing.items?.length) {
+            throw new Error('Public playlist not found');
+        }
+
+        const record = existing.items[0];
+        const payload = {
+            tracks: JSON.stringify(tracks),
+            title: metadata.title || record.title || record.name || 'Untitled Playlist',
+            name: metadata.title || record.name || record.title || 'Untitled Playlist',
+            description: metadata.description ?? record.description ?? '',
+            collaborative: true,
+            data: {
+                title: metadata.title || record.title || record.name || 'Untitled Playlist',
+                cover: metadata.cover || record.cover || record.image || '',
+                description: metadata.description ?? record.description ?? '',
+                lastCollaborator: uid,
+                updatedAt: Date.now(),
+            },
+        };
+
+        await this.pb.collection(PUBLIC_COLLECTION).update(record.id, payload, { f_id: uid, p_id: uuid });
     },
 
     async unpublishPlaylist(uuid) {

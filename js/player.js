@@ -9,6 +9,7 @@ import {
     getTrackYearDisplay,
     createQualityBadgeHTML,
     escapeHtml,
+    delay,
 } from './utils.js';
 import {
     queueManager,
@@ -17,6 +18,7 @@ import {
     exponentialVolumeSettings,
     audioEffectsSettings,
     radioSettings,
+    crossfadeSettings,
 } from './storage.js';
 import { audioContextManager } from './audio-context.js';
 import { db } from './db.js';
@@ -996,6 +998,39 @@ export class Player {
 
             this.playTrackFromQueue(0, recursiveCount);
         });
+    }
+
+    async playNextWithCrossfade() {
+        if (!crossfadeSettings.isEnabled()) {
+            this.playNext();
+            return;
+        }
+
+        const el = this.activeElement;
+        const fadeDurationMs = Math.round(crossfadeSettings.getDuration() * 1000);
+        if (!el || fadeDurationMs <= 0 || el.paused) {
+            this.playNext();
+            return;
+        }
+
+        const steps = 10;
+        const stepDelay = Math.max(20, Math.floor(fadeDurationMs / steps));
+        const originalVolume = Math.max(0, Math.min(1, this.userVolume));
+
+        for (let step = steps; step >= 0; step--) {
+            const ratio = step / steps;
+            if (audioContextManager.isReady()) {
+                audioContextManager.setVolume(originalVolume * ratio);
+            } else {
+                el.volume = originalVolume * ratio;
+            }
+            await delay(stepDelay);
+        }
+
+        this.playNext();
+        setTimeout(() => {
+            this.applyReplayGain();
+        }, 120);
     }
 
     async enableRadio(seeds = []) {

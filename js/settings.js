@@ -33,6 +33,7 @@ import {
     contentBlockingSettings,
     musicProviderSettings,
     gaplessPlaybackSettings,
+    crossfadeSettings,
     analyticsSettings,
     modalSettings,
 } from './storage.js';
@@ -987,6 +988,24 @@ export function initializeSettings(scrobbler, player, api, ui) {
         gaplessPlaybackToggle.checked = gaplessPlaybackSettings.isEnabled();
         gaplessPlaybackToggle.addEventListener('change', (e) => {
             gaplessPlaybackSettings.setEnabled(e.target.checked);
+        });
+    }
+
+    const crossfadeToggle = document.getElementById('crossfade-toggle');
+    const crossfadeDurationInput = document.getElementById('crossfade-duration-input');
+    if (crossfadeToggle && crossfadeDurationInput) {
+        crossfadeToggle.checked = crossfadeSettings.isEnabled();
+        crossfadeDurationInput.value = String(crossfadeSettings.getDuration());
+        crossfadeDurationInput.disabled = !crossfadeToggle.checked;
+
+        crossfadeToggle.addEventListener('change', (e) => {
+            crossfadeSettings.setEnabled(e.target.checked);
+            crossfadeDurationInput.disabled = !e.target.checked;
+        });
+
+        crossfadeDurationInput.addEventListener('change', (e) => {
+            crossfadeSettings.setDuration(parseFloat(e.target.value));
+            crossfadeDurationInput.value = String(crossfadeSettings.getDuration());
         });
     }
 
