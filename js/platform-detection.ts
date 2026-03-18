@@ -4,9 +4,9 @@ export const originalUserAgent = navigator.userAgent;
 /** A lowercase version of the original user agent string. */
 const lowerCaseOriginalUserAgent = originalUserAgent.toLowerCase();
 
-/** If the device is an iOS device. */
+/** If the device is an iOS device. (iPhone, iPad, iPod, or Apple Vision) */
 export const isIos =
-    /iphone|ipad|ipod/.test(lowerCaseOriginalUserAgent) ||
+    /iphone|ipad|ipod|applevision/.test(lowerCaseOriginalUserAgent) ||
     (lowerCaseOriginalUserAgent.includes('mac') && navigator.maxTouchPoints > 1);
 
 /** If the browser is Safari (excluding Chrome, Chromium-based browsers, and Android browsers). */
