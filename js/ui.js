@@ -1908,11 +1908,13 @@ export class UIRenderer {
             const refreshSongsBtn = document.getElementById('refresh-songs-btn');
             const refreshAlbumsBtn = document.getElementById('refresh-albums-btn');
             const refreshArtistsBtn = document.getElementById('refresh-artists-btn');
+            const refreshMixesBtn = document.getElementById('refresh-smart-mixes-btn');
             const clearRecentBtn = document.getElementById('clear-recent-btn');
 
             if (refreshSongsBtn) refreshSongsBtn.onclick = () => this.renderHomeSongs(true);
             if (refreshAlbumsBtn) refreshAlbumsBtn.onclick = () => this.renderHomeAlbums(true);
             if (refreshArtistsBtn) refreshArtistsBtn.onclick = () => this.renderHomeArtists(true);
+            if (refreshMixesBtn) refreshMixesBtn.onclick = () => this.renderHomeSmartMixes(true);
             if (clearRecentBtn)
                 clearRecentBtn.onclick = () => {
                     if (confirm('Clear recent activity?')) {
@@ -1926,6 +1928,7 @@ export class UIRenderer {
             // Load dynamic sections in parallel with pre-fetched seeds
             const seeds = await this.getSeeds();
             await Promise.all([
+                this.renderHomeSmartMixes(false),
                 this.renderHomeSongs(false, seeds),
                 this.renderHomeAlbums(false, seeds),
                 this.renderHomeArtists(false, seeds),
@@ -2593,6 +2596,36 @@ export class UIRenderer {
             } else {
                 recentContainer.innerHTML = createPlaceholder('No recent items yet...');
             }
+        }
+    }
+
+    async renderHomeSmartMixes(forceRefresh = false) {
+        const mixesContainer = document.getElementById('home-personalized-mixes');
+        if (!mixesContainer) return;
+
+        if (forceRefresh || mixesContainer.children.length === 0) {
+            mixesContainer.innerHTML = this.createSkeletonCards(8, true);
+        }
+
+        try {
+            const mixes = await this.api.getPersonalizedMixes(forceRefresh);
+
+            if (!mixes || mixes.length === 0) {
+                mixesContainer.innerHTML = createPlaceholder('Play more songs to unlock personalized mixes.');
+                return;
+            }
+
+            mixesContainer.innerHTML = mixes.map((mix) => this.createMixCardHTML(mix)).join('');
+            mixes.forEach((mix) => {
+                const el = mixesContainer.querySelector(`[data-mix-id="${mix.id}"]`);
+                if (el) {
+                    trackDataStore.set(el, mix);
+                    this.updateLikeState(el, 'mix', mix.id);
+                }
+            });
+        } catch (error) {
+            console.error('Failed to render personalized mixes:', error);
+            mixesContainer.innerHTML = createPlaceholder('Failed to load personalized mixes.');
         }
     }
 

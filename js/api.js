@@ -11,6 +11,7 @@ import {
     getMimeType,
 } from './utils.js';
 import { trackDateSettings } from './storage.js';
+import { db } from './db.js';
 import { APICache } from './cache.js';
 import { addMetadataToAudio, prefetchMetadataObjects } from './metadata.js';
 import { DashDownloader } from './dash-downloader.ts';
@@ -25,6 +26,16 @@ import { resolveDownloadTotalBytes } from './downloadProgressUtils.js';
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 export { resolveDownloadTotalBytes };
 const TIDAL_V2_TOKEN = 'txNoH4kkV41MfH25';
+const SMART_MIX_DEFINITIONS = [
+    { id: 'smart-daily-mix-1', title: 'Daily Mix 1', mixType: 'DAILY_MIX' },
+    { id: 'smart-daily-mix-2', title: 'Daily Mix 2', mixType: 'DAILY_MIX' },
+    { id: 'smart-daily-mix-3', title: 'Daily Mix 3', mixType: 'DAILY_MIX' },
+    { id: 'smart-daily-mix-4', title: 'Daily Mix 4', mixType: 'DAILY_MIX' },
+    { id: 'smart-daily-mix-5', title: 'Daily Mix 5', mixType: 'DAILY_MIX' },
+    { id: 'smart-daily-mix-6', title: 'Daily Mix 6', mixType: 'DAILY_MIX' },
+    { id: 'smart-discover-weekly', title: 'Discover Weekly', mixType: 'DISCOVER_WEEKLY' },
+    { id: 'smart-release-radar', title: 'Release Radar', mixType: 'RELEASE_RADAR' },
+];
 
 export class LosslessAPI {
     constructor(settings) {
@@ -34,6 +45,10 @@ export class LosslessAPI {
             ttl: 1000 * 60 * 30,
         });
         this.streamCache = new Map();
+        this.smartMixCache = {
+            key: null,
+            mixes: [],
+        };
 
         setInterval(
             () => {
@@ -782,6 +797,22 @@ export class LosslessAPI {
     }
 
     async getMix(id) {
+        if (this.isSmartMixId(id)) {
+            const mixes = await this.generatePersonalizedMixes();
+            const match = mixes.find((mix) => mix.id === id);
+            if (!match) throw new Error('Mix not found');
+
+            const mix = {
+                id: match.id,
+                title: match.title,
+                subTitle: match.subTitle || '',
+                description: match.description || '',
+                mixType: match.mixType || 'DAILY_MIX',
+                cover: match.cover || null,
+            };
+            return { mix, tracks: match.tracks };
+        }
+
         const cached = await this.cache.get('mix', id);
         if (cached) return cached;
 
@@ -813,6 +844,239 @@ export class LosslessAPI {
         const result = { mix, tracks };
         await this.cache.set('mix', id, result);
         return result;
+    }
+
+    isSmartMixId(id) {
+        return typeof id === 'string' && id.startsWith('smart-');
+    }
+
+    async getPersonalizedMixes(forceRefresh = false) {
+        const mixes = await this.generatePersonalizedMixes(forceRefresh);
+        return mixes.map(({ tracks, ...mix }) => ({
+            ...mix,
+            numberOfTracks: tracks.length,
+        }));
+    }
+
+    async generatePersonalizedMixes(forceRefresh = false) {
+        const history = await db.getHistory();
+        const likedTracks = await db.getFavorites('track');
+        const playlists = await db.getPlaylists(true);
+
+        const recentHistoryFingerprint = history
+            .slice(0, 10)
+            .map((track) => `${track.id}:${track.timestamp || 0}`)
+            .join('|');
+        const today = new Date().toISOString().slice(0, 10);
+        const cacheKey = `${today}:${history.length}:${likedTracks.length}:${playlists.length}:${recentHistoryFingerprint}`;
+
+        if (!forceRefresh && this.smartMixCache.key === cacheKey && this.smartMixCache.mixes.length > 0) {
+            return this.smartMixCache.mixes;
+        }
+
+        const poolMap = new Map();
+        const now = Date.now();
+        const qualityTokens = new Set(['hi_res_lossless', 'lossless', 'high', 'dolby_atmos', 'atmos', 'mqa']);
+        const moodKeywords = ['chill', 'happy', 'sad', 'focus', 'party', 'upbeat', 'calm', 'energetic', 'sleep'];
+        const artistScores = new Map();
+        const genreScores = new Map();
+        const moodScores = new Map();
+
+        const safeString = (value) => (typeof value === 'string' ? value.trim() : '');
+        const parseReleaseDate = (track) => {
+            const raw = track?.album?.releaseDate || track?.streamStartDate;
+            if (!raw) return 0;
+            const timestamp = new Date(raw).getTime();
+            return Number.isFinite(timestamp) ? timestamp : 0;
+        };
+        const cleanTrack = (track) => {
+            const cloned = { ...track };
+            delete cloned._score;
+            delete cloned._activityAt;
+            return cloned;
+        };
+        const readTags = (track) => {
+            const tags = [
+                ...(Array.isArray(track?.mediaMetadata?.tags) ? track.mediaMetadata.tags : []),
+                ...(Array.isArray(track?.album?.mediaMetadata?.tags) ? track.album.mediaMetadata.tags : []),
+            ]
+                .filter((tag) => typeof tag === 'string')
+                .flatMap((tag) => tag.toLowerCase().split(/[|,/]/))
+                .map((tag) => tag.trim())
+                .filter(Boolean);
+
+            return Array.from(new Set(tags));
+        };
+        const registerScore = (map, key, amount = 1) => {
+            if (!key) return;
+            map.set(key, (map.get(key) || 0) + amount);
+        };
+        const getTopKeys = (map, limit) =>
+            Array.from(map.entries())
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, limit)
+                .map(([key]) => key);
+        const upsertTrack = (track, scoreWeight, activityAt) => {
+            if (!track?.id) return;
+
+            const key = String(track.id);
+            const existing = poolMap.get(key);
+            if (!existing) {
+                const entry = {
+                    ...track,
+                    _score: scoreWeight,
+                    _activityAt: activityAt || 0,
+                };
+                poolMap.set(key, entry);
+            } else {
+                existing._score += scoreWeight;
+                existing._activityAt = Math.max(existing._activityAt || 0, activityAt || 0);
+            }
+
+            const artists = track.artists?.length ? track.artists : track.artist ? [track.artist] : [];
+            artists.forEach((artist) => registerScore(artistScores, safeString(artist?.id || artist?.name), scoreWeight));
+
+            const tags = readTags(track);
+            tags.forEach((tag) => {
+                if (qualityTokens.has(tag)) return;
+                if (moodKeywords.some((keyword) => tag.includes(keyword))) {
+                    const mood = moodKeywords.find((keyword) => tag.includes(keyword));
+                    registerScore(moodScores, mood, scoreWeight);
+                    return;
+                }
+                if (/^[a-z\s-]{3,30}$/.test(tag)) {
+                    registerScore(genreScores, tag, scoreWeight);
+                }
+            });
+
+            const lowerTitle = safeString(track.title).toLowerCase();
+            moodKeywords.forEach((keyword) => {
+                if (lowerTitle.includes(keyword)) {
+                    registerScore(moodScores, keyword, scoreWeight / 2);
+                }
+            });
+        };
+        const selectTracks = ({ artistKey = null, genre = null, mood = null, limit = 30, preferRecent = false } = {}) => {
+            let candidates = Array.from(poolMap.values());
+
+            if (artistKey) {
+                candidates = candidates.filter((track) => {
+                    const artists = track.artists?.length ? track.artists : track.artist ? [track.artist] : [];
+                    return artists.some((artist) => safeString(artist?.id || artist?.name) === artistKey);
+                });
+            }
+
+            if (genre) {
+                candidates = candidates.filter((track) => readTags(track).some((tag) => tag.includes(genre)));
+            }
+
+            if (mood) {
+                candidates = candidates.filter((track) => {
+                    const tags = readTags(track);
+                    const title = safeString(track.title).toLowerCase();
+                    return tags.some((tag) => tag.includes(mood)) || title.includes(mood);
+                });
+            }
+
+            if (candidates.length < limit) {
+                const candidateIds = new Set(candidates.map((track) => String(track.id)));
+                const filler = Array.from(poolMap.values()).filter((track) => !candidateIds.has(String(track.id)));
+                candidates = candidates.concat(filler);
+            }
+
+            candidates.sort((a, b) => {
+                const scoreDiff = (b._score || 0) - (a._score || 0);
+                if (scoreDiff !== 0) return scoreDiff;
+                if (preferRecent) return (b._activityAt || 0) - (a._activityAt || 0);
+                return (parseReleaseDate(b) || 0) - (parseReleaseDate(a) || 0);
+            });
+
+            const deduped = [];
+            const seen = new Set();
+            for (const track of candidates) {
+                const key = String(track.id);
+                if (seen.has(key)) continue;
+                seen.add(key);
+                deduped.push(cleanTrack(track));
+                if (deduped.length >= limit) break;
+            }
+            return deduped;
+        };
+
+        history.forEach((track, index) => {
+            const weight = Math.max(1, 30 - index) / 6;
+            upsertTrack(track, weight, track.timestamp || now - index * 60000);
+        });
+        likedTracks.forEach((track, index) => upsertTrack(track, 2.5, track.addedAt || now - index * 120000));
+        playlists.forEach((playlist, playlistIndex) => {
+            (playlist.tracks || []).forEach((track, trackIndex) => {
+                upsertTrack(track, 1.5, track.addedAt || now - (playlistIndex + trackIndex) * 180000);
+            });
+        });
+
+        const topArtists = getTopKeys(artistScores, 6);
+        const topGenres = getTopKeys(genreScores, 6);
+        const topMoods = getTopKeys(moodScores, 6);
+        const hasSignals = poolMap.size > 0;
+
+        const mixes = [];
+        for (let index = 0; index < SMART_MIX_DEFINITIONS.length; index++) {
+            const definition = SMART_MIX_DEFINITIONS[index];
+            let tracks = [];
+            let description = '';
+            let subTitle = '';
+
+            if (!hasSignals) {
+                description = 'Play more music to generate this mix automatically.';
+            } else if (definition.id.startsWith('smart-daily-mix-')) {
+                const artistKey = topArtists[index % Math.max(1, topArtists.length)] || null;
+                const genre = topGenres[index % Math.max(1, topGenres.length)] || null;
+                const mood = topMoods[index % Math.max(1, topMoods.length)] || null;
+                tracks = selectTracks({ artistKey, genre, mood, limit: 30, preferRecent: true });
+                description = `Auto-mix based on your listening history${genre ? `, genre: ${genre}` : ''}${mood ? `, mood: ${mood}` : ''}.`;
+                subTitle = `${tracks.length} tracks`;
+            } else if (definition.id === 'smart-discover-weekly') {
+                const seedTracks = selectTracks({ limit: 20, preferRecent: true });
+                const knownTrackIds = new Set(Array.from(poolMap.keys()));
+                let recommended = [];
+                try {
+                    recommended = await this.getRecommendedTracksForPlaylist(seedTracks, 40, {
+                        knownTrackIds,
+                        refresh: forceRefresh,
+                    });
+                } catch (error) {
+                    console.warn('Failed to build Discover Weekly recommendations:', error);
+                }
+                const combined = [...recommended, ...selectTracks({ limit: 30, preferRecent: false })];
+                const seen = new Set();
+                tracks = combined
+                    .filter((track) => track?.id && !seen.has(String(track.id)) && (seen.add(String(track.id)) || true))
+                    .slice(0, 30)
+                    .map((track) => cleanTrack(track));
+                description = 'Fresh recommendations generated from your favorite artists and listening habits.';
+                subTitle = `${tracks.length} discovery tracks`;
+            } else if (definition.id === 'smart-release-radar') {
+                tracks = selectTracks({ limit: 60, preferRecent: false })
+                    .sort((a, b) => parseReleaseDate(b) - parseReleaseDate(a))
+                    .slice(0, 30);
+                description = 'Latest releases prioritized from artists you listen to the most.';
+                subTitle = `${tracks.length} recent tracks`;
+            }
+
+            const cover = tracks.find((track) => track?.album?.cover)?.album?.cover || '/assets/appicon.png';
+            mixes.push({
+                id: definition.id,
+                title: definition.title,
+                mixType: definition.mixType,
+                subTitle,
+                description,
+                cover,
+                tracks,
+            });
+        }
+
+        this.smartMixCache = { key: cacheKey, mixes };
+        return mixes;
     }
 
     async getArtistSocials(artistName) {
