@@ -10,7 +10,7 @@ The official Monochrome instance maintained by the core team:
 
 | URL                                                    | Status   | Notes            |
 | ------------------------------------------------------ | -------- | ---------------- |
-| [monochrome.tf](https://monochrome.tf)                 | Official | Primary instance |
+| [monochrome-music-player.vercel.app](https://monochrome-music-player.vercel.app) | Official | Primary instance |
 | [monochrome.samidy.com](https://monochrome.samidy.com) | Official | Secondary mirror |
 | [lossless.wtf](https://lossless.wtf)                   | Official | Failover mirror  |
 
