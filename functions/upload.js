@@ -179,7 +179,7 @@ async function uploadToCatbox(file, fileName, fileType) {
 
     const url = responseText.trim();
     if (!/^https?:\/\//i.test(url)) {
-        throw new Error('Upload service returned invalid URL');
+        throw new Error(`Upload service returned invalid URL: ${url}`);
     }
 
     return url;

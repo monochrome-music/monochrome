@@ -566,14 +566,14 @@ async function saveProfile() {
     const bannerUrl = normalizeImageUrl(editBanner.value);
 
     if (editAvatar.value.trim() && !avatarUrl) {
-        alert('Avatar URL is invalid. Please enter a valid image URL.');
+        alert('Avatar URL is invalid. Please enter a valid image URL starting with http:// or https://');
         saveProfileBtn.disabled = false;
         saveProfileBtn.textContent = 'Save Profile';
         return;
     }
 
     if (editBanner.value.trim() && !bannerUrl) {
-        alert('Banner URL is invalid. Please enter a valid image URL.');
+        alert('Banner URL is invalid. Please enter a valid image URL starting with http:// or https://');
         saveProfileBtn.disabled = false;
         saveProfileBtn.textContent = 'Save Profile';
         return;
