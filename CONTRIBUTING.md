@@ -131,7 +131,7 @@ To ensure a smooth contribution process and avoid wasted effort, please adhere t
 
 ### Consult on Major Features
 
-If you're looking into contributing a big feature, please speak with us before starting work. You might be implementing something we are already working on, or a feature that could create more issues long-term. You can reach us via a [GitHub Issue](https://github.com/monochrome-music/monochrome/issues) or on our **[Discord](https://monochrome-music-player.vercel.app/discord)**.
+If you're looking into contributing a big feature, please speak with us before starting work. You might be implementing something we are already working on, or a feature that could create more issues long-term. You can reach us via a [GitHub Issue](https://github.com/DaffaAgradhyasto/monochrome/issues) or on our **[Discord](https://monochrome-music-player.vercel.app/discord)**.
 
 ### Open Draft PRs Early
 

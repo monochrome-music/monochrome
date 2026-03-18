@@ -89,4 +89,4 @@ Want to add your instance to this list?
 ## Related Resources
 
 - [Contributing Guide](CONTRIBUTING.md) - Contribute to the project
-- [Main Repository](https://github.com/monochrome-music/monochrome) - Source code
+- [Main Repository](https://github.com/DaffaAgradhyasto/monochrome) - Source code
