@@ -1932,7 +1932,7 @@
                                             d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
                                         />
                                     </svg>
-                                    <span>Home</span>
+                                    <span data-i18n="nav.home">Home</span>
                                 </a>
                             </li>
                             <li class="nav-item" id="sidebar-nav-library">
@@ -1953,7 +1953,7 @@
                                         <path d="M8 8v12" />
                                         <path d="M4 4v16" />
                                     </svg>
-                                    <span>Library</span>
+                                    <span data-i18n="nav.library">Library</span>
                                 </a>
                             </li>
                             <li class="nav-item" id="sidebar-nav-recent">
@@ -1973,7 +1973,7 @@
                                         <path d="M3 3v5h5" />
                                         <path d="M12 7v5l4 2" />
                                     </svg>
-                                    <span>Recent</span>
+                                    <span data-i18n="nav.recent">Recent</span>
                                 </a>
                             </li>
                             <li class="nav-item" id="sidebar-nav-unreleased">
@@ -1994,7 +1994,7 @@
                                         <rect x="14" y="14" width="7" height="7" />
                                         <rect x="3" y="14" width="7" height="7" />
                                     </svg>
-                                    <span>Unreleased</span>
+                                    <span data-i18n="nav.unreleased">Unreleased</span>
                                 </a>
                             </li>
                             <li class="nav-item" id="sidebar-nav-donate">
@@ -2019,7 +2019,7 @@
                                             d="m7 20 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a1 1 0 0 0-2.75-2.91"
                                         />
                                     </svg>
-                                    <span>Donate</span>
+                                    <span data-i18n="nav.donate">Donate</span>
                                 </a>
                             </li>
                             <li class="nav-item" id="sidebar-nav-settings">
@@ -2040,7 +2040,7 @@
                                         />
                                         <circle cx="12" cy="12" r="3" />
                                     </svg>
-                                    <span>Settings</span>
+                                    <span data-i18n="nav.settings">Settings</span>
                                 </a>
                             </li>
                         </ul>
@@ -3589,21 +3589,21 @@
                         </button>
                     </form>
                     <div class="settings-tabs">
-                        <button class="settings-tab active" data-tab="appearance">Appearance</button>
-                        <button class="settings-tab" data-tab="interface">Interface</button>
-                        <button class="settings-tab" data-tab="scrobbling">Scrobbling</button>
-                        <button class="settings-tab" data-tab="audio">Audio</button>
-                        <button class="settings-tab" data-tab="downloads">Downloads</button>
-                        <button class="settings-tab" data-tab="instances">Instances</button>
-                        <button class="settings-tab" data-tab="system">System</button>
+                        <button class="settings-tab active" data-tab="appearance" data-i18n="settings.tab.appearance">Appearance</button>
+                        <button class="settings-tab" data-tab="interface" data-i18n="settings.tab.interface">Interface</button>
+                        <button class="settings-tab" data-tab="scrobbling" data-i18n="settings.tab.scrobbling">Scrobbling</button>
+                        <button class="settings-tab" data-tab="audio" data-i18n="settings.tab.audio">Audio</button>
+                        <button class="settings-tab" data-tab="downloads" data-i18n="settings.tab.downloads">Downloads</button>
+                        <button class="settings-tab" data-tab="instances" data-i18n="settings.tab.instances">Instances</button>
+                        <button class="settings-tab" data-tab="system" data-i18n="settings.tab.system">System</button>
                     </div>
                     <div class="settings-tab-content active" id="settings-tab-appearance">
                         <div class="settings-list">
                             <div class="settings-group">
                                 <div class="setting-item">
                                     <div class="info">
-                                        <span class="label">Theme</span>
-                                        <span class="description">Choose your preferred color scheme</span>
+                                        <span class="label" data-i18n="settings.appearance.theme">Theme</span>
+                                        <span class="description" data-i18n="settings.appearance.theme.desc">Choose your preferred color scheme</span>
                                     </div>
                                 </div>
                                 <div class="theme-picker" id="theme-picker">
@@ -3783,8 +3783,26 @@
                                 </div>
                                 <div class="setting-item">
                                     <div class="info">
-                                        <span class="label">Waveform Seekbar</span>
-                                        <span class="description"
+                                        <span class="label" data-i18n="settings.appearance.language">Language</span>
+                                        <span class="description" data-i18n="settings.appearance.language.desc"
+                                            >Choose your preferred display language</span
+                                        >
+                                    </div>
+                                    <select id="language-select">
+                                        <option value="en">English</option>
+                                        <option value="id">Bahasa Indonesia</option>
+                                        <option value="es">Español</option>
+                                        <option value="fr">Français</option>
+                                        <option value="de">Deutsch</option>
+                                        <option value="ja">日本語</option>
+                                        <option value="pt">Português</option>
+                                        <option value="zh">中文</option>
+                                    </select>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label" data-i18n="settings.appearance.waveform">Waveform Seekbar</span>
+                                        <span class="description" data-i18n="settings.appearance.waveform.desc"
                                             >Show a visual waveform of the track in the progress bar
                                             (Experimental)</span
                                         >

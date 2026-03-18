@@ -2772,3 +2772,4 @@ export const keyboardShortcuts = {
         return shortcuts[action] || this.DEFAULT_SHORTCUTS[action];
     },
 };
+

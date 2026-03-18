@@ -36,6 +36,7 @@ import {
     analyticsSettings,
     modalSettings,
 } from './storage.js';
+import { switchLanguage, getCurrentLanguage, applyTranslations } from './i18n.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
 import { getButterchurnPresets } from './visualizers/butterchurn.js';
 import { db } from './db.js';
@@ -3183,6 +3184,9 @@ export function initializeSettings(scrobbler, player, api, ui) {
     // Font Settings
     initializeFontSettings();
 
+    // Language Settings
+    initializeLanguageSettings();
+
     // Settings Search functionality
     setupSettingsSearch();
 
@@ -3624,6 +3628,21 @@ function initializeBlockedContentManager() {
 
     // Initial render
     renderBlockedLists();
+}
+
+function initializeLanguageSettings() {
+    const languageSelect = document.getElementById('language-select');
+    if (!languageSelect) return;
+
+    // Set the select to the current language
+    languageSelect.value = getCurrentLanguage();
+
+    languageSelect.addEventListener('change', async (e) => {
+        const lang = e.target.value;
+        await switchLanguage(lang);
+        // Re-apply translations to settings panel after language change
+        applyTranslations();
+    });
 }
 
 function escapeHtml(text) {

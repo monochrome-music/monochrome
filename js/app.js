@@ -61,6 +61,7 @@ import {
     parseDynamicCSV,
     importToLibrary,
 } from './playlist-importer.js';
+import { initI18n } from './i18n.js';
 
 // Capture real iOS state before spoofing (needed for background audio)
 if (typeof window !== 'undefined') {
@@ -381,6 +382,9 @@ async function uploadCoverImage(file) {
 document.addEventListener('DOMContentLoaded', async () => {
     // Initialize analytics
     initAnalytics();
+
+    // Initialize i18n (language support)
+    initI18n().catch((err) => console.warn('[i18n] Initialization failed:', err));
 
     new ThemeStore();
 
