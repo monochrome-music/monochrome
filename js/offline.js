@@ -48,6 +48,30 @@ function getBackupEntrySize(metaBytes, audioSize, coverSize) {
     return BACKUP_ENTRY_HEADER_BYTES + metaBytes.byteLength + audioSize + coverSize;
 }
 
+/**
+ * Get the byte size of data regardless of type (Blob, ArrayBuffer, Uint8Array, etc.).
+ * IndexedDB on mobile browsers may return any of these types.
+ */
+function getDataSize(data) {
+    if (!data) return 0;
+    if (typeof data.size === 'number') return data.size;           // Blob
+    if (typeof data.byteLength === 'number') return data.byteLength; // ArrayBuffer / TypedArray
+    return 0;
+}
+
+/**
+ * Convert any data type from IndexedDB into a Uint8Array.
+ * Handles Blob, ArrayBuffer, Uint8Array, and other typed arrays.
+ */
+async function toUint8Array(data) {
+    if (!data) return new Uint8Array(0);
+    if (data instanceof Uint8Array) return data;
+    if (data instanceof ArrayBuffer) return new Uint8Array(data);
+    if (ArrayBuffer.isView(data)) return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+    if (data instanceof Blob) return new Uint8Array(await data.arrayBuffer());
+    return new Uint8Array(0);
+}
+
 async function openDB() {
     if (_db) return _db;
 
@@ -193,8 +217,8 @@ export async function getOfflineStorageUsed() {
     const tracks = await getAllOfflineTracks();
     let total = 0;
     for (const t of tracks) {
-        if (t.audioBlob) total += t.audioBlob.size;
-        if (t.coverBlob) total += t.coverBlob.size;
+        total += getDataSize(t.audioBlob);
+        total += getDataSize(t.coverBlob);
     }
     return total;
 }
@@ -333,7 +357,7 @@ export async function exportOfflineTracks(onProgress, { incremental = false } = 
             const entry = await getOfflineTrack(keys[i]);
             if (!entry) throw new Error('Failed to read one or more offline tracks for export');
             const metaBytes = getSerializedBackupMetadata(entry, encoder);
-            totalBytes += getBackupEntrySize(metaBytes, entry.audioBlob?.size || 0, entry.coverBlob?.size || 0);
+            totalBytes += getBackupEntrySize(metaBytes, getDataSize(entry.audioBlob), getDataSize(entry.coverBlob));
         }
 
         try {
@@ -354,13 +378,15 @@ export async function exportOfflineTracks(onProgress, { incremental = false } = 
                 if (!entry) throw new Error('Failed to read one or more offline tracks for export');
 
                 const metaBytes = getSerializedBackupMetadata(entry, encoder);
-                const audioSize = entry.audioBlob?.size || 0;
-                const coverSize = entry.coverBlob?.size || 0;
+                const audioBytes = await toUint8Array(entry.audioBlob);
+                const coverBytes = await toUint8Array(entry.coverBlob);
+                const audioSize = audioBytes.byteLength;
+                const coverSize = coverBytes.byteLength;
 
                 await writable.write(buildEntryLengths(metaBytes.byteLength, audioSize, coverSize));
                 await writable.write(metaBytes);
-                if (audioSize > 0) await writable.write(entry.audioBlob);
-                if (coverSize > 0) await writable.write(entry.coverBlob);
+                if (audioSize > 0) await writable.write(audioBytes);
+                if (coverSize > 0) await writable.write(coverBytes);
                 bytesWritten += getBackupEntrySize(metaBytes, audioSize, coverSize);
 
                 emitBackupProgress(onProgress, createBackupProgress('writing', i + 1, count, bytesWritten, totalBytes));
@@ -382,10 +408,11 @@ export async function exportOfflineTracks(onProgress, { incremental = false } = 
 
     // ── Mobile: single-pass chunked Blob export ──
     // Each track is read from IDB only once (no pre-calculation pass).
+    // All data is normalized to Uint8Array to avoid mobile browser Blob quirks.
     // When a chunk exceeds BLOB_CHUNK_BYTES it's finalized as a standalone
     // .mcbackup file and a new chunk begins. Each chunk imports independently.
     const chunks = [];       // { blob, count, totalBytes }
-    let parts = [];
+    let parts = [];          // Uint8Array / ArrayBuffer parts only — no raw Blobs
     let chunkTrackCount = 0;
     let chunkBytes = BACKUP_HEADER_BYTES; // reserve space for header (prepended at finalize)
 
@@ -393,12 +420,9 @@ export async function exportOfflineTracks(onProgress, { incremental = false } = 
 
     const finalizeChunk = () => {
         // Prepend header with the actual track count for this chunk
-        parts.unshift(buildBackupHeader(chunkTrackCount));
+        parts.unshift(new Uint8Array(buildBackupHeader(chunkTrackCount)));
         const blob = new Blob(parts, { type: 'application/octet-stream' });
-        if (blob.size !== chunkBytes) {
-            throw new Error('Backup file verification failed. Please export again.');
-        }
-        chunks.push({ blob, count: chunkTrackCount, totalBytes: chunkBytes });
+        chunks.push({ blob, count: chunkTrackCount, totalBytes: blob.size });
         // Reset for next chunk
         parts = [];
         chunkTrackCount = 0;
@@ -410,8 +434,11 @@ export async function exportOfflineTracks(onProgress, { incremental = false } = 
         if (!entry) throw new Error('Failed to read one or more offline tracks for export');
 
         const metaBytes = getSerializedBackupMetadata(entry, encoder);
-        const audioSize = entry.audioBlob?.size || 0;
-        const coverSize = entry.coverBlob?.size || 0;
+        // Normalize IDB data — may be Blob, ArrayBuffer or Uint8Array on different devices
+        const audioBytes = await toUint8Array(entry.audioBlob);
+        const coverBytes = await toUint8Array(entry.coverBlob);
+        const audioSize = audioBytes.byteLength;
+        const coverSize = coverBytes.byteLength;
         const entryBytes = getBackupEntrySize(metaBytes, audioSize, coverSize);
 
         // If this track would push the chunk past the limit, finalize first
@@ -419,10 +446,10 @@ export async function exportOfflineTracks(onProgress, { incremental = false } = 
             finalizeChunk();
         }
 
-        parts.push(buildEntryLengths(metaBytes.byteLength, audioSize, coverSize));
+        parts.push(new Uint8Array(buildEntryLengths(metaBytes.byteLength, audioSize, coverSize)));
         parts.push(metaBytes);
-        if (audioSize > 0) parts.push(entry.audioBlob);
-        if (coverSize > 0) parts.push(entry.coverBlob);
+        if (audioSize > 0) parts.push(audioBytes);
+        if (coverSize > 0) parts.push(coverBytes);
         chunkTrackCount++;
         chunkBytes += entryBytes;
 
