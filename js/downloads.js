@@ -1084,7 +1084,7 @@ async function startBulkDownload(
                 if (message.includes('MediaStore audio permission was not granted')) {
                     throw nativeError;
                 }
-                
+
                 /*
                 console.warn(
                     '[Downloads] Android Music-directory bulk save unavailable, falling back to ZIP save:',
