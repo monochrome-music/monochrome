@@ -1,13 +1,8 @@
 //js/events.js
 import {
-    SVG_PLAY,
-    SVG_PAUSE,
-    SVG_VOLUME,
-    SVG_MUTE,
     REPEAT_MODE,
     trackDataStore,
     formatTime,
-    SVG_BIN,
     getTrackArtists,
     positionMenu,
     getShareUrl,
@@ -52,6 +47,7 @@ import {
     trackStartMix,
     trackEvent,
 } from './analytics.js';
+import { SVG_BIN, SVG_MUTE, SVG_PAUSE, SVG_PLAY, SVG_VOLUME } from './icons.js';
 
 let currentTrackIdForWaveform = null;
 
@@ -72,7 +68,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
         const activeEl = player.activeElement;
         const { muted } = activeEl;
         const volume = player.userVolume;
-        volumeBtn.innerHTML = muted || volume === 0 ? SVG_MUTE : SVG_VOLUME;
+        volumeBtn.innerHTML = muted || volume === 0 ? SVG_MUTE(20) : SVG_VOLUME(20);
         const effectiveVolume = muted ? 0 : volume * 100;
         volumeFill.style.setProperty('--volume-level', `${effectiveVolume}%`);
         volumeFill.style.width = `${effectiveVolume}%`;
@@ -117,7 +113,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
                 updateWaveform();
             }
 
-            playPauseBtn.innerHTML = SVG_PAUSE;
+            playPauseBtn.innerHTML = SVG_PAUSE(20);
             player.updateMediaSessionPlaybackState();
             player.updateMediaSessionPositionState();
             updateTabTitle(player);
@@ -134,7 +130,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
             if (player.currentTrack) {
                 trackPauseTrack(player.currentTrack);
             }
-            playPauseBtn.innerHTML = SVG_PLAY;
+            playPauseBtn.innerHTML = SVG_PLAY(20);
             player.updateMediaSessionPlaybackState();
             player.updateMediaSessionPositionState();
         });
@@ -200,7 +196,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
             }
 
             console.error(`Media playback error (${element.id}):`, errorMsg, e);
-            playPauseBtn.innerHTML = SVG_PLAY;
+            playPauseBtn.innerHTML = SVG_PLAY(20);
 
             const canFallback =
                 player.quality === 'HI_RES_LOSSLESS' &&
@@ -712,7 +708,7 @@ export async function showAddToPlaylistModal(track) {
                     <span>${p.name}</span>
                     ${
                         alreadyContains
-                            ? `<button class="remove-from-playlist-btn-modal" title="Remove from playlist" style="background: transparent; border: none; color: inherit; cursor: pointer; padding: 4px; display: flex; align-items: center;">${SVG_BIN}</button>`
+                            ? `<button class="remove-from-playlist-btn-modal" title="Remove from playlist" style="background: transparent; border: none; color: inherit; cursor: pointer; padding: 4px; display: flex; align-items: center;">${SVG_BIN(20)}</button>`
                             : ''
                     }
                 </div>
@@ -1207,7 +1203,7 @@ export async function handleTrackAction(
                         <span>${p.name}</span>
                         ${
                             alreadyContains
-                                ? `<button class="remove-from-playlist-btn-modal" title="Remove from playlist" style="background: transparent; border: none; color: inherit; cursor: pointer; padding: 4px; display: flex; align-items: center;">${SVG_BIN}</button>`
+                                ? `<button class="remove-from-playlist-btn-modal" title="Remove from playlist" style="background: transparent; border: none; color: inherit; cursor: pointer; padding: 4px; display: flex; align-items: center;">${SVG_BIN(20)}</button>`
                                 : ''
                         }
                     </div>

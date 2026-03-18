@@ -1,6 +1,7 @@
 //js/tracker.js
-import { escapeHtml, SVG_MENU, SVG_PLAY, trackDataStore, formatTime, SVG_HEART } from './utils.js';
+import { escapeHtml, trackDataStore, formatTime } from './utils.js';
 import { navigate } from './router.js';
+import { SVG_MENU, SVG_PLAY, SVG_HEART } from './icons.js';
 
 let artistsData = [];
 let artistsPopularity = new Map(); // name -> popularity score
@@ -218,7 +219,7 @@ function createTrackerTrackItemHTML(track, index) {
         ? ''
         : `
         <button class="track-menu-btn" type="button" title="More options">
-            ${SVG_MENU}
+            ${SVG_MENU(20)}
         </button>
     `;
 
@@ -282,10 +283,10 @@ function renderTrackerTracks(container, tracks) {
 export function createProjectCardHTML(era, artist, sheetId, trackCount) {
     const playBtnHTML = `
         <button class="play-btn card-play-btn" data-action="play-card" data-type="tracker-project" data-id="${encodeURIComponent(era.name)}" title="Play">
-            ${SVG_PLAY}
+            ${SVG_PLAY(20)}
         </button>
         <button class="card-menu-btn" data-action="card-menu" data-type="tracker-project" data-id="${encodeURIComponent(era.name)}" title="Menu">
-            ${SVG_MENU}
+            ${SVG_MENU(20)}
         </button>
     `;
 
@@ -298,7 +299,7 @@ export function createProjectCardHTML(era, artist, sheetId, trackCount) {
                      loading="lazy"
                      onerror="this.src='assets/logo.svg'">
                 <button class="like-btn card-like-btn" data-action="toggle-like" data-type="tracker-project" title="Add to Liked">
-                    ${SVG_HEART}
+                    ${SVG_HEART(20)}
                 </button>
                 ${playBtnHTML}
             </div>
@@ -596,7 +597,7 @@ export async function renderTrackerProjectPage(sheetId, projectName, container, 
 
     // Setup buttons
     if (playBtn) {
-        playBtn.innerHTML = `${SVG_PLAY}<span>Play Project</span>`;
+        playBtn.innerHTML = `${SVG_PLAY(20)}<span>Play Project</span>`;
         playBtn.onclick = () => {
             const availableTracks = eraTracks.filter((t) => !t.unavailable);
             if (availableTracks.length > 0) {
@@ -901,7 +902,7 @@ export async function renderTrackerTrackPage(trackId, container, _ui) {
     prodEl.innerHTML = `By <a href="/unreleased/${sheetId}">${artist.name}</a> • From <a href="/unreleased/${sheetId}/${encodeURIComponent(era.name)}">${era.name}</a>`;
 
     if (playBtn) {
-        playBtn.innerHTML = `${SVG_PLAY}<span>Play Track</span>`;
+        playBtn.innerHTML = `${SVG_PLAY(20)}<span>Play Track</span>`;
         playBtn.onclick = () => {
             const availableTracks = allTracks.filter((t) => !t.unavailable);
             const trackPos = availableTracks.findIndex((t) => t.id === currentTrack.id);

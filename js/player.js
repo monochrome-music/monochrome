@@ -21,8 +21,7 @@ import {
 import { audioContextManager } from './audio-context.js';
 import { db } from './db.js';
 import Hls from 'hls.js';
-import { isIos } from './platform-detection.js';
-
+import { SVG_CLOCK } from './icons.js';
 export class Player {
     constructor(audioElement, api, quality = 'HI_RES_LOSSLESS') {
         this.audio = audioElement;
@@ -1603,23 +1602,13 @@ export class Player {
                     btn.classList.add('active');
                     btn.style.color = 'var(--primary)';
                 } else {
-                    btn.innerHTML = `
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"/>
-                            <polyline points="12,6 12,12 16,14"/>
-                        </svg>
-                    `;
+                    btn.innerHTML = SVG_CLOCK(20);
                     btn.title = 'Sleep Timer';
                     btn.classList.remove('active');
                     btn.style.color = '';
                 }
             } else {
-                btn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"/>
-                        <polyline points="12,6 12,12 16,14"/>
-                    </svg>
-                `;
+                btn.innerHTML = SVG_CLOCK(20);
                 btn.title = 'Sleep Timer';
                 btn.classList.remove('active');
                 btn.style.color = '';
