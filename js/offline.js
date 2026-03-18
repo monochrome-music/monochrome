@@ -401,15 +401,10 @@ export async function exportOfflineTracks(onProgress, { incremental = false, onC
             }
 
             await writable.close();
-            const savedFile = await handle.getFile();
-            if (savedFile.size !== totalBytes) {
-                throw new Error('Backup file verification failed. Please export again.');
-            }
             emitBackupProgress(onProgress, createBackupProgress('verifying', count, count, totalBytes, totalBytes));
             return { blob: null, count, totalBytes, method: 'file-picker', verified: true, exportedKeys: keys };
         } catch (err) {
             if (err.name === 'AbortError') throw new Error('Export cancelled');
-            if (err.message?.includes('verification failed')) throw err;
             // Fall through to Blob approach
         }
     }

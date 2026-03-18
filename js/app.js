@@ -382,6 +382,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize analytics
     initAnalytics();
 
+    // Set version from config.js
+    const aboutVersion = document.getElementById('about-version');
+    if (aboutVersion && typeof APP_VERSION !== 'undefined') {
+        aboutVersion.textContent = `v${APP_VERSION}`;
+    }
+
     new ThemeStore();
 
     const api = new MusicAPI(apiSettings);
