@@ -18,6 +18,7 @@ import {
     radioSettings,
 } from './storage.js';
 import { audioContextManager } from './audio-context.js';
+import { isIos } from './platform-detection.js';
 import { db } from './db.js';
 
 import('./dash-media-player.js');
