@@ -653,10 +653,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.getElementById('close-fullscreen-cover-btn')?.addEventListener('click', () => {
-        // Block closing in radio mode
-        const overlay = document.getElementById('fullscreen-cover-overlay');
-        if (overlay?.classList.contains('radio-mode')) return;
-
         trackCloseFullscreenCover();
         if (window.location.hash.startsWith('#fullscreen')) {
             window.history.back();
@@ -2579,11 +2575,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isFullscreenOpen = overlay && getComputedStyle(overlay).display === 'flex';
 
         if (isFullscreenOpen && !window.location.hash.startsWith('#fullscreen')) {
-            // Block back-navigation when in radio mode — re-push the radio hash
-            if (overlay.classList.contains('radio-mode')) {
-                window.history.pushState({ fullscreen: true, radio: true }, '', '#fullscreen?radio=true');
-                return;
-            }
             ui.closeFullscreenCover();
         }
 
@@ -2643,17 +2634,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         disablePwaForAuthGate();
     } else {
         const updateSW = registerSW({
-            onNeedRefresh() {
-                if (pwaUpdateSettings.isAutoUpdateEnabled()) {
-                    // Auto-update: immediately activate the new service worker
-                    trackPwaUpdate();
-                    updateSW(true);
-                } else {
-                    // Show notification with Update button and dismiss option
-                    showUpdateNotification(() => {
-                        trackPwaUpdate();
-                        updateSW(true);
-                    });
+            onRegisteredSW(swUrl, registration) {
+                // Check for updates every 60 seconds
+                if (registration) {
+                    setInterval(() => {
+                        registration.update();
+                    }, 60 * 1000);
                 }
             },
             onOfflineReady() {

@@ -8674,7 +8674,6 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 }
 
 /* === Radio Mode (24/7) — lock all controls except play/pause === */
-#fullscreen-cover-overlay.radio-mode #close-fullscreen-cover-btn,
 #fullscreen-cover-overlay.radio-mode .fullscreen-ui-toggle,
 #fullscreen-cover-overlay.radio-mode .fullscreen-lyrics-toggle {
     display: none !important;
@@ -8743,6 +8742,11 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 /* Vinyl grooves + center hole overlay */
 #fullscreen-cover-overlay.radio-mode .fullscreen-main-view {
     position: relative;
+    overflow: hidden;
+}
+
+#fullscreen-cover-overlay.radio-mode .fullscreen-cover-content {
+    overflow: hidden;
 }
 
 #fullscreen-cover-overlay.radio-mode #fullscreen-cover-image + .vinyl-overlay,

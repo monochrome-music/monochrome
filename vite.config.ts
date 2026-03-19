@@ -45,10 +45,12 @@ export default defineConfig(({ mode }) => {
             uploadPlugin(),
             blobAssetPlugin(),
             VitePWA({
-                registerType: 'prompt',
+                registerType: 'autoUpdate',
                 workbox: {
                     globPatterns: ['**/*.{js,css,html,ico,png,svg,json}'],
                     cleanupOutdatedCaches: true,
+                    skipWaiting: true,
+                    clientsClaim: true,
                     maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // 3 MiB limit
                     // Define runtime caching strategies
                     runtimeCaching: [
