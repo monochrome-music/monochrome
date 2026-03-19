@@ -476,15 +476,12 @@
                     <div id="jspf-import-panel" class="import-panel" style="display: none">
                         <p style="margin-bottom: 0.5rem; font-size: 0.9rem">Import from JSPF</p>
                         <p style="font-size: 0.8rem; margin: 0">
-                            JSPF (JSON Shareable Playlist Format) is supported by     const replayGainPreamp = document.getElementById('replay-gain-preamp');
-    if (replayGainPreamp) {
-        replayGainPreamp.value = replayGainSettings.getPreamp();
-        replayGainPreamp.addEventListener('change', (e) => {
-            const val = parseFloat(e.target.value);
-            replayGainSettings.setPreamp(isNaN(val) ? 3 : val);
-            player.applyReplayGain();
-        });
-    }                Import playlists with rich metadata including MusicBrainz identifiers.
+                            JSPF (JSON Shareable Playlist Format) is supported by const replayGainPreamp =
+                            document.getElementById('replay-gain-preamp'); if (replayGainPreamp) {
+                            replayGainPreamp.value = replayGainSettings.getPreamp();
+                            replayGainPreamp.addEventListener('change', (e) => { const val = parseFloat(e.target.value);
+                            replayGainSettings.setPreamp(isNaN(val) ? 3 : val); player.applyReplayGain(); }); } Import
+                            playlists with rich metadata including MusicBrainz identifiers.
                         </p>
                         <br />
                         <input
@@ -2350,7 +2347,23 @@
                     </section>
                     <section class="content-section" id="artist-section-in-library" style="display: none">
                         <h2 class="section-title">
-                            <button id="in-library-toggle" aria-expanded="false" aria-controls="artist-detail-in-library" style="background: none; border: none; color: inherit; font: inherit; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; padding: 0; user-select: none;">
+                            <button
+                                id="in-library-toggle"
+                                aria-expanded="false"
+                                aria-controls="artist-detail-in-library"
+                                style="
+                                    background: none;
+                                    border: none;
+                                    color: inherit;
+                                    font: inherit;
+                                    cursor: pointer;
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 0.5rem;
+                                    padding: 0;
+                                    user-select: none;
+                                "
+                            >
                                 In Your Library
                                 <use
                                     svg="!lucide/chevron-right.svg"

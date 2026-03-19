@@ -98,7 +98,7 @@ export const apiSettings = {
                         { url: 'https://katze.qqdl.site', version: '2.2' },
                         { url: 'https://hund.qqdl.site', version: '2.2' },
                         { url: 'https://wolf.qqdl.site', version: '2.2' },
-                        { url: 'https://hifi.p1nkhamster.xyz/', version: '2.6'},
+                        { url: 'https://hifi.p1nkhamster.xyz/', version: '2.6' },
                     ],
                 };
                 this.instancesLoaded = true;
