@@ -15,7 +15,6 @@ import {
 import { AbortError } from './errorTypes.ts';
 import { lyricsSettings, bulkDownloadSettings, playlistSettings } from './storage.js';
 import { generateM3U, generateM3U8, generateCUE, generateNFO, generateJSON } from './playlist-generator.js';
-import { triggerDownload } from './download-utils.ts';
 import {
     ZipStreamWriter,
     ZipBlobWriter,
