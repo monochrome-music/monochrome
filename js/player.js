@@ -19,6 +19,7 @@ import {
     audioEffectsSettings,
     radioSettings,
     crossfadeSettings,
+    playbackContinuationSettings,
 } from './storage.js';
 import { audioContextManager } from './audio-context.js';
 import { db } from './db.js';
@@ -85,6 +86,7 @@ export class Player {
         this.radioFetchPromise = null;
 
         this.playbackSequence = 0;
+        this.lastContinuationSaveAt = 0;
 
         window.addEventListener('beforeunload', () => {
             this.saveQueueState();
@@ -595,6 +597,7 @@ export class Player {
         }
 
         const track = currentQueue[this.currentQueueIndex];
+        const resolvedStartTime = startTime > 0 ? startTime : playbackContinuationSettings.getPosition(track?.id);
         if (track.isUnavailable) {
             console.warn(`Attempted to play unavailable track: ${track.title}. Skipping...`);
             this.playNext();
@@ -761,8 +764,8 @@ export class Player {
                 const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
                 if (!canPlay || this.playbackSequence !== currentSequence) return;
 
-                if (startTime > 0) {
-                    activeElement.currentTime = startTime;
+                if (resolvedStartTime > 0) {
+                    activeElement.currentTime = resolvedStartTime;
                 }
                 const played = await this.safePlay(activeElement);
                 if (!played) return;
@@ -780,8 +783,8 @@ export class Player {
                 const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
                 if (!canPlay || this.playbackSequence !== currentSequence) return;
 
-                if (startTime > 0) {
-                    activeElement.currentTime = startTime;
+                if (resolvedStartTime > 0) {
+                    activeElement.currentTime = resolvedStartTime;
                 }
                 const played = await this.safePlay(activeElement);
                 if (!played) return;
@@ -817,8 +820,8 @@ export class Player {
                 const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
                 if (!canPlay || this.playbackSequence !== currentSequence) return;
 
-                if (startTime > 0) {
-                    activeElement.currentTime = startTime;
+                if (resolvedStartTime > 0) {
+                    activeElement.currentTime = resolvedStartTime;
                 }
 
                 await this.safePlay(activeElement);
@@ -872,8 +875,8 @@ export class Player {
                     this.dashInitialized = true;
                     this.applyAudioEffects();
 
-                    if (startTime > 0) {
-                        this.dashPlayer.seek(startTime);
+                    if (resolvedStartTime > 0) {
+                        this.dashPlayer.seek(resolvedStartTime);
                     }
 
                     const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
@@ -887,8 +890,8 @@ export class Player {
                     const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
                     if (!canPlay || this.playbackSequence !== currentSequence) return;
 
-                    if (startTime > 0) {
-                        activeElement.currentTime = startTime;
+                    if (resolvedStartTime > 0) {
+                        activeElement.currentTime = resolvedStartTime;
                     }
                     const played = await this.safePlay(activeElement);
                     if (!played) return;
@@ -1266,10 +1269,7 @@ export class Player {
                 tracksToShuffle.splice(this.currentQueueIndex, 1);
             }
 
-            for (let i = tracksToShuffle.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [tracksToShuffle[i], tracksToShuffle[j]] = [tracksToShuffle[j], tracksToShuffle[i]];
-            }
+            tracksToShuffle.sort((a, b) => this.getSmartShuffleScore(b) - this.getSmartShuffleScore(a));
 
             if (currentTrack) {
                 this.shuffledQueue = [currentTrack, ...tracksToShuffle];
@@ -1287,6 +1287,30 @@ export class Player {
         this.preloadCache.clear();
         this.preloadNextTracks();
         this.saveQueueState();
+    }
+
+    getSmartShuffleScore(track) {
+        if (!track || !track.id) return 0;
+
+        let score = Math.random() * 0.001;
+
+        if (track.addedAt) {
+            const ageDays = Math.max(1, (Date.now() - track.addedAt) / (1000 * 60 * 60 * 24));
+            score += 1 / ageDays;
+        }
+
+        if (track.explicit === false) score += 0.25;
+
+        const artistName = track.artist?.name || track.artists?.[0]?.name || '';
+        if (artistName) {
+            score += artistName
+                .split('')
+                .reduce((acc, char) => acc + char.charCodeAt(0), 0)
+                .toString()
+                .slice(-2) / 100;
+        }
+
+        return score;
     }
 
     toggleRepeat() {
@@ -1527,6 +1551,24 @@ export class Player {
         } catch (error) {
             console.log('Failed to update Media Session position:', error);
         }
+    }
+
+    savePlaybackContinuation() {
+        const trackId = this.currentTrack?.id;
+        if (!trackId) return;
+        const el = this.activeElement;
+        const position = Number(el?.currentTime || 0);
+        if (!isFinite(position) || position < 5) return;
+        const now = Date.now();
+        if (now - this.lastContinuationSaveAt < 5000) return;
+        this.lastContinuationSaveAt = now;
+        playbackContinuationSettings.setPosition(trackId, position);
+    }
+
+    clearPlaybackContinuationForCurrentTrack() {
+        const trackId = this.currentTrack?.id;
+        if (!trackId) return;
+        playbackContinuationSettings.clearPosition(trackId);
     }
 
     async safePlay(element = this.activeElement) {

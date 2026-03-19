@@ -4766,6 +4766,12 @@ export class UIRenderer {
                 return;
             }
 
+            const recapCard = this.createMonthlyRecapCard(history);
+            container.innerHTML = '';
+            if (recapCard) {
+                container.appendChild(recapCard);
+            }
+
             // Group by date
             const groups = {};
             const today = new Date().setHours(0, 0, 0, 0);
@@ -4789,8 +4795,6 @@ export class UIRenderer {
                 if (!groups[label]) groups[label] = [];
                 groups[label].push(item);
             });
-
-            container.innerHTML = '';
 
             for (const [label, tracks] of Object.entries(groups)) {
                 const header = document.createElement('h3');
@@ -4835,6 +4839,45 @@ export class UIRenderer {
             container.innerHTML = createPlaceholder('Failed to load history.');
             if (clearBtn) clearBtn.style.display = 'none';
         }
+    }
+
+    createMonthlyRecapCard(history) {
+        if (!Array.isArray(history) || history.length === 0) return null;
+
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+        const monthHistory = history.filter((item) => item?.timestamp && item.timestamp >= startOfMonth);
+        if (monthHistory.length === 0) return null;
+
+        const uniqueTracks = new Set();
+        const artistCounts = new Map();
+        let totalSeconds = 0;
+
+        monthHistory.forEach((item) => {
+            if (item.id) uniqueTracks.add(item.id);
+            const artistName = item.artist?.name || item.artists?.[0]?.name || 'Unknown Artist';
+            artistCounts.set(artistName, (artistCounts.get(artistName) || 0) + 1);
+            if (typeof item.duration === 'number' && isFinite(item.duration) && item.duration > 0) {
+                totalSeconds += item.duration;
+            }
+        });
+
+        const topArtist = [...artistCounts.entries()].sort((a, b) => b[1] - a[1])[0];
+        const recap = document.createElement('div');
+        recap.className = 'settings-card';
+        recap.style.marginBottom = '1rem';
+        recap.style.padding = '1rem';
+        recap.innerHTML = `
+            <h3 style="margin:0 0 .75rem 0;">Monthly Recap</h3>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:.75rem;">
+                <div><strong>Plays</strong><br><span>${monthHistory.length}</span></div>
+                <div><strong>Unique Tracks</strong><br><span>${uniqueTracks.size}</span></div>
+                <div><strong>Listen Time</strong><br><span>${formatDuration(totalSeconds)}</span></div>
+                <div><strong>Top Artist</strong><br><span>${escapeHtml(topArtist ? topArtist[0] : 'Unknown Artist')}</span></div>
+            </div>
+        `;
+
+        return recap;
     }
 
     async renderUnreleasedPage() {

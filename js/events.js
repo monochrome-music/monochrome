@@ -141,6 +141,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
 
         element.addEventListener('ended', () => {
             if (player.activeElement !== element) return;
+            player.clearPlaybackContinuationForCurrentTrack();
             player.playNextWithCrossfade();
         });
 
@@ -164,6 +165,8 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
                         ui.renderRecentPage();
                     }
                 }
+
+                player.savePlaybackContinuation();
             }
         });
 
