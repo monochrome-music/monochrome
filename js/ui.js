@@ -1603,11 +1603,32 @@ export class UIRenderer {
                 if (fsSpeedValue) fsSpeedValue.textContent = `${currentSpeed.toFixed(2)}x`;
             });
 
+            // Helper: position popup above the button using fixed coords
+            const positionFsSpeedPopup = () => {
+                const btnRect = fsPlaybackSpeedBtn.getBoundingClientRect();
+                const popupWidth = 280;
+                let left = btnRect.left + btnRect.width / 2 - popupWidth / 2;
+                // Clamp so popup stays on screen
+                left = Math.max(8, Math.min(left, window.innerWidth - popupWidth - 8));
+                const top = btnRect.top - 8; // will use transform to shift up
+                fsPlaybackSpeedPopup.style.position = 'fixed';
+                fsPlaybackSpeedPopup.style.left = `${left}px`;
+                fsPlaybackSpeedPopup.style.top = `${top}px`;
+                fsPlaybackSpeedPopup.style.transform = 'translateY(-100%)';
+                fsPlaybackSpeedPopup.style.bottom = 'auto';
+                fsPlaybackSpeedPopup.style.zIndex = '9999';
+            };
+
             // Toggle popup
             fsPlaybackSpeedBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const isVisible = fsPlaybackSpeedPopup.style.display === 'block';
-                fsPlaybackSpeedPopup.style.display = isVisible ? 'none' : 'block';
+                if (!isVisible) {
+                    fsPlaybackSpeedPopup.style.display = 'block';
+                    positionFsSpeedPopup();
+                } else {
+                    fsPlaybackSpeedPopup.style.display = 'none';
+                }
             });
 
             // Close popup

@@ -3707,7 +3707,7 @@ input:checked + .slider::before {
     align-items: center;
     justify-content: center;
     animation: fade-in 0.3s ease;
-    overflow: hidden;
+    overflow: visible;
     background-color: var(--background);
 
     /* Use a CSS variable for the image so we can set it in JS */
@@ -4036,6 +4036,7 @@ input:checked + .slider::before {
     align-items: center;
     justify-content: center;
     gap: 2rem;
+    position: relative;
 }
 
 .fullscreen-buttons button {
@@ -5389,6 +5390,7 @@ input:checked + .slider::before {
     gap: 0.25rem;
     font-size: 0.85rem;
     font-weight: 500;
+    z-index: 10;
 }
 
 .playback-speed-btn .speed-value,
@@ -5403,17 +5405,17 @@ input:checked + .slider::before {
 .playback-speed-popup,
 .fs-playback-speed-popup {
     position: absolute;
-    bottom: 100%;
+    bottom: calc(100% + 0.5rem);
     left: 50%;
     transform: translateX(-50%);
-    margin-bottom: 0.5rem;
     background: var(--popover);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
     width: 280px;
-    z-index: 1000;
+    z-index: 9999;
     animation: slideUp 0.2s ease-out;
+    pointer-events: auto;
 }
 
 @keyframes slideUp {
