@@ -4766,8 +4766,8 @@ export class UIRenderer {
                 return;
             }
 
-            const recapCard = this.createMonthlyRecapCard(history);
             container.innerHTML = '';
+            const recapCard = this.createMonthlyRecapCard(history);
             if (recapCard) {
                 container.appendChild(recapCard);
             }
@@ -4862,7 +4862,7 @@ export class UIRenderer {
             }
         });
 
-        const topArtist = [...artistCounts.entries()].sort((a, b) => b[1] - a[1])[0];
+        const topArtist = [...artistCounts.entries()].sort((a, b) => b[1] - a[1])[0] || null;
         const recap = document.createElement('div');
         recap.className = 'settings-card';
         recap.style.marginBottom = '1rem';
@@ -4873,7 +4873,7 @@ export class UIRenderer {
                 <div><strong>Plays</strong><br><span>${monthHistory.length}</span></div>
                 <div><strong>Unique Tracks</strong><br><span>${uniqueTracks.size}</span></div>
                 <div><strong>Listen Time</strong><br><span>${formatDuration(totalSeconds)}</span></div>
-                <div><strong>Top Artist</strong><br><span>${escapeHtml(topArtist ? topArtist[0] : 'Unknown Artist')}</span></div>
+                <div><strong>Top Artist</strong><br><span>${escapeHtml(topArtist?.[0] || 'Unknown Artist')}</span></div>
             </div>
         `;
 

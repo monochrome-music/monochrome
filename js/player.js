@@ -25,6 +25,12 @@ import { audioContextManager } from './audio-context.js';
 import { db } from './db.js';
 import Hls from 'hls.js';
 
+const MIN_PLAYBACK_CONTINUATION_SECONDS = 5;
+const PLAYBACK_CONTINUATION_SAVE_INTERVAL_MS = 5000;
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+const SMART_SHUFFLE_NON_EXPLICIT_BONUS = 0.25;
+const SMART_SHUFFLE_DURATION_THRESHOLD_SECONDS = 1200;
+
 export class Player {
     constructor(audioElement, api, quality = 'HI_RES_LOSSLESS') {
         this.audio = audioElement;
@@ -1269,7 +1275,8 @@ export class Player {
                 tracksToShuffle.splice(this.currentQueueIndex, 1);
             }
 
-            tracksToShuffle.sort((a, b) => this.getSmartShuffleScore(b) - this.getSmartShuffleScore(a));
+            const scoreByTrackId = new Map(tracksToShuffle.map((track) => [track.id, this.getSmartShuffleScore(track)]));
+            tracksToShuffle.sort((a, b) => (scoreByTrackId.get(b.id) || 0) - (scoreByTrackId.get(a.id) || 0));
 
             if (currentTrack) {
                 this.shuffledQueue = [currentTrack, ...tracksToShuffle];
@@ -1292,22 +1299,17 @@ export class Player {
     getSmartShuffleScore(track) {
         if (!track || !track.id) return 0;
 
-        let score = Math.random() * 0.001;
+        let score = 0;
 
         if (track.addedAt) {
-            const ageDays = Math.max(1, (Date.now() - track.addedAt) / (1000 * 60 * 60 * 24));
+            const ageDays = Math.max(1, (Date.now() - track.addedAt) / MS_PER_DAY);
             score += 1 / ageDays;
         }
 
-        if (track.explicit === false) score += 0.25;
-
-        const artistName = track.artist?.name || track.artists?.[0]?.name || '';
-        if (artistName) {
-            score += artistName
-                .split('')
-                .reduce((acc, char) => acc + char.charCodeAt(0), 0)
-                .toString()
-                .slice(-2) / 100;
+        if (track.explicit !== true) score += SMART_SHUFFLE_NON_EXPLICIT_BONUS;
+        if (typeof track.duration === 'number' && isFinite(track.duration) && track.duration > 0) {
+            const shorterTrackBonus = Math.max(0, 1 - track.duration / SMART_SHUFFLE_DURATION_THRESHOLD_SECONDS);
+            score += shorterTrackBonus;
         }
 
         return score;
@@ -1558,9 +1560,9 @@ export class Player {
         if (!trackId) return;
         const el = this.activeElement;
         const position = Number(el?.currentTime || 0);
-        if (!isFinite(position) || position < 5) return;
+        if (!isFinite(position) || position < MIN_PLAYBACK_CONTINUATION_SECONDS) return;
         const now = Date.now();
-        if (now - this.lastContinuationSaveAt < 5000) return;
+        if (now - this.lastContinuationSaveAt < PLAYBACK_CONTINUATION_SAVE_INTERVAL_MS) return;
         this.lastContinuationSaveAt = now;
         playbackContinuationSettings.setPosition(trackId, position);
     }
