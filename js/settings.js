@@ -47,7 +47,7 @@ async function getButterchurnPresets(...args) {
     return butterchurnModule.getButterchurnPresets(...args);
 }
 
-export function initializeSettings(scrobbler, player, api, ui) {
+export async function initializeSettings(scrobbler, player, api, ui) {
     // Restore last active settings tab
     const savedTab = settingsUiState.getActiveTab();
     const settingsTab = document.querySelector(`.settings-tab[data-tab="${savedTab}"]`);
