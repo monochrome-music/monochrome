@@ -1,6 +1,7 @@
 import { syncManager } from './accounts/pocketbase.js';
 import { authManager } from './accounts/auth.js';
 import { navigate } from './router.js';
+import { SVG_BIN, SVG_SQUARE_PEN } from './icons.js';
 
 const THEMES_PER_PAGE = 50;
 
@@ -196,10 +197,10 @@ export class ThemeStore {
             actionBtnsHtml = `
                 <div style="position: absolute; top: 0.5rem; right: 0.5rem; display: flex; gap: 0.25rem; z-index: 10;">
                     <button class="btn-icon edit-theme-btn" title="Edit Theme" style="background: rgba(0,0,0,0.6); color: white; border-radius: 50%; padding: 0.25rem; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        ${SVG_SQUARE_PEN(14)}
                     </button>
                     <button class="btn-icon delete-theme-btn" title="Delete Theme" style="background: rgba(0,0,0,0.6); color: white; border-radius: 50%; padding: 0.25rem; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                        ${SVG_BIN(20)}
                     </button>
                 </div>
             `;

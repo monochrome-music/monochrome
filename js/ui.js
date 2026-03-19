@@ -1,12 +1,6 @@
 //js/ui.js
 import { showNotification } from './downloads.js';
 import {
-    SVG_PLAY,
-    SVG_DOWNLOAD,
-    SVG_MENU,
-    SVG_HEART,
-    SVG_VOLUME,
-    SVG_MUTE,
     formatTime,
     createPlaceholder,
     trackDataStore,
@@ -55,22 +49,41 @@ import Hls from 'hls.js';
 fontSettings.applyFont();
 fontSettings.applyFontSize();
 
-const SVG_GLOBE =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>';
-const SVG_INSTAGRAM =
-    '<svg width="64px" height="64px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke=""><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fill-rule="evenodd" clip-rule="evenodd" d="M12 18C15.3137 18 18 15.3137 18 12C18 8.68629 15.3137 6 12 6C8.68629 6 6 8.68629 6 12C6 15.3137 8.68629 18 12 18ZM12 16C14.2091 16 16 14.2091 16 12C16 9.79086 14.2091 8 12 8C9.79086 8 8 9.79086 8 12C8 14.2091 9.79086 16 12 16Z" fill="#9E9E9E"></path> <path d="M18 5C17.4477 5 17 5.44772 17 6C17 6.55228 17.4477 7 18 7C18.5523 7 19 6.55228 19 6C19 5.44772 18.5523 5 18 5Z" fill="#9E9E9E"></path> <path fill-rule="evenodd" clip-rule="evenodd" d="M1.65396 4.27606C1 5.55953 1 7.23969 1 10.6V13.4C1 16.7603 1 18.4405 1.65396 19.7239C2.2292 20.8529 3.14708 21.7708 4.27606 22.346C5.55953 23 7.23969 23 10.6 23H13.4C16.7603 23 18.4405 23 19.7239 22.346C20.8529 21.7708 21.7708 20.8529 22.346 19.7239C23 18.4405 23 16.7603 23 13.4V10.6C23 7.23969 23 5.55953 22.346 4.27606C21.7708 3.14708 20.8529 2.2292 19.7239 1.65396C18.4405 1 16.7603 1 13.4 1H10.6C7.23969 1 5.55953 1 4.27606 1.65396C3.14708 2.2292 2.2292 3.14708 1.65396 4.27606ZM13.4 3H10.6C8.88684 3 7.72225 3.00156 6.82208 3.0751C5.94524 3.14674 5.49684 3.27659 5.18404 3.43597C4.43139 3.81947 3.81947 4.43139 3.43597 5.18404C3.27659 5.49684 3.14674 5.94524 3.0751 6.82208C3.00156 7.72225 3 8.88684 3 10.6V13.4C3 15.1132 3.00156 16.2777 3.0751 17.1779C3.14674 18.0548 3.27659 18.5032 3.43597 18.816C3.81947 19.5686 4.43139 20.1805 5.18404 20.564C5.49684 20.7234 5.94524 20.8533 6.82208 20.9249C7.72225 20.9984 8.88684 21 10.6 21H13.4C15.1132 21 16.2777 20.9984 17.1779 20.9249C18.0548 20.8533 18.5032 20.7234 18.816 20.564C19.5686 20.1805 20.1805 19.5686 20.564 18.816C20.7234 18.5032 20.8533 18.0548 20.9249 17.1779C20.9984 16.2777 21 15.1132 21 13.4V10.6C21 8.88684 20.9984 7.72225 20.9249 6.82208C20.8533 5.94524 20.7234 5.49684 20.564 5.18404C20.1805 4.43139 19.5686 3.81947 18.816 3.43597C18.5032 3.27659 18.0548 3.14674 17.1779 3.0751C16.2777 3.00156 15.1132 3 13.4 3Z" fill="#9E9E9E"></path> </g></svg>';
-const SVG_FACEBOOK =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>';
-const SVG_YOUTUBE =
-    '<svg viewBox="0 -3 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#000000"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <title>youtube [#9E9E9E168]</title> <desc>Created with Sketch.</desc> <defs> </defs> <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"> <g id="Dribbble-Light-Preview" transform="translate(-300.000000, -7442.000000)" fill="#9E9E9E"> <g id="icons" transform="translate(56.000000, 160.000000)"> <path d="M251.988432,7291.58588 L251.988432,7285.97425 C253.980638,7286.91168 255.523602,7287.8172 257.348463,7288.79353 C255.843351,7289.62824 253.980638,7290.56468 251.988432,7291.58588 M263.090998,7283.18289 C262.747343,7282.73013 262.161634,7282.37809 261.538073,7282.26141 C259.705243,7281.91336 248.270974,7281.91237 246.439141,7282.26141 C245.939097,7282.35515 245.493839,7282.58153 245.111335,7282.93357 C243.49964,7284.42947 244.004664,7292.45151 244.393145,7293.75096 C244.556505,7294.31342 244.767679,7294.71931 245.033639,7294.98558 C245.376298,7295.33761 245.845463,7295.57995 246.384355,7295.68865 C247.893451,7296.0008 255.668037,7296.17532 261.506198,7295.73552 C262.044094,7295.64178 262.520231,7295.39147 262.895762,7295.02447 C264.385932,7293.53455 264.28433,7285.06174 263.090998,7283.18289" id="youtube-[#9E9E9E168]"> </path> </g> </g> </g> </g></svg>';
-const SVG_TWITTER =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>';
-const SVG_LINK =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
-const SVG_SOUNDCLOUD =
-    '<svg fill="#9E9E9E" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve" stroke="#9E9E9E"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <g id="5151e0c8492e5103c096af88a50061c5"> <path display="inline" d="M25.173,355.106c1.076,0,1.946-0.849,2.117-2.067l5.717-44.884l-5.717-45.889 c-0.171-1.22-1.041-2.061-2.117-2.061c-1.091,0-1.982,0.862-2.125,2.061c0,0.007-5.026,45.889-5.026,45.889l5.026,44.876 C23.191,354.229,24.083,355.106,25.173,355.106z M8.328,336.058c0,0,0,0,0,0.007l0,0V336.058z M6.274,338.047 c1.041,0,1.875-0.813,2.053-1.982l4.42-27.909l-4.42-28.395c-0.171-1.169-1.012-1.981-2.053-1.981 c-1.062,0-1.896,0.819-2.046,1.996L0.5,308.155l3.729,27.896C4.378,337.227,5.212,338.047,6.274,338.047z M47.808,253.712 c-0.157-1.454-1.233-2.51-2.56-2.51c-1.354,0-2.424,1.063-2.566,2.51l-4.762,54.45l4.762,52.455 c0.143,1.461,1.212,2.509,2.566,2.509c1.326,0,2.402-1.048,2.552-2.495l5.425-52.469L47.808,253.712z M65.487,365.236 c1.568,0,2.852-1.269,3.001-2.944l0,0l5.119-54.123l-5.119-55.947c-0.149-1.675-1.433-2.944-3.001-2.944 c-1.583,0-2.873,1.27-3.001,2.951l-4.513,55.94l4.513,54.123C62.614,363.968,63.904,365.236,65.487,365.236z M85.89,366.127 c1.825,0,3.301-1.461,3.436-3.386l-0.007,0.007l4.827-54.571l-4.827-51.913c-0.128-1.918-1.604-3.372-3.429-3.372 c-1.839,0-3.315,1.454-3.429,3.387l-4.256,51.898l4.256,54.564C82.575,364.666,84.051,366.127,85.89,366.127z M114.848,308.198 l-4.527-84.436c-0.114-2.152-1.811-3.828-3.864-3.828s-3.764,1.676-3.864,3.828l-4,84.436l4,54.564 c0.1,2.124,1.811,3.813,3.864,3.813s3.75-1.689,3.864-3.828v0.015L114.848,308.198z M127.195,366.677 c2.303,0,4.185-1.868,4.299-4.264v0.036l4.228-54.244l-4.228-103.74c-0.114-2.395-1.996-4.27-4.299-4.27 c-2.317,0-4.213,1.875-4.313,4.27c0,0.008-3.735,103.74-3.735,103.74l3.743,54.229 C122.982,364.809,124.878,366.677,127.195,366.677z M148.09,191.112c-2.574,0-4.655,2.067-4.748,4.705 c0,0.008-3.472,112.402-3.472,112.402l3.479,53.666c0.085,2.616,2.167,4.677,4.741,4.677c2.552,0,4.641-2.061,4.741-4.698v0.036 l3.928-53.681l-3.928-112.409C152.73,193.173,150.642,191.112,148.09,191.112z M169.156,366.669c2.809,0,5.083-2.26,5.175-5.14 v0.035l3.622-53.338l-3.622-116.188c-0.093-2.887-2.366-5.146-5.175-5.146c-2.823,0-5.097,2.26-5.183,5.146l-3.223,116.188 l3.223,53.331C164.059,364.409,166.333,366.669,169.156,366.669z M190.378,366.619c3.065,0,5.532-2.452,5.611-5.589v0.043 l3.336-52.84l-3.336-113.229c-0.079-3.129-2.546-5.582-5.611-5.582c-3.072,0-5.546,2.46-5.617,5.582l-2.958,113.229l2.965,52.825 C184.832,364.167,187.306,366.619,190.378,366.619z M220.848,308.248l-3.03-109.108c-0.071-3.372-2.73-6.017-6.045-6.017 c-3.329,0-5.988,2.645-6.053,6.024l-2.702,109.093l2.702,52.49c0.064,3.344,2.724,5.988,6.053,5.988 c3.314,0,5.974-2.645,6.045-6.023v0.043L220.848,308.248z M233.33,366.826c3.515,0,6.423-2.901,6.48-6.466v0.043l2.737-52.148 l-2.737-129.824c-0.058-3.558-2.966-6.459-6.48-6.459c-3.521,0-6.431,2.901-6.487,6.459l-2.445,129.781 c0,0.079,2.445,52.184,2.445,52.184C226.899,363.925,229.809,366.826,233.33,366.826z M254.788,159.767 c-3.771,0-6.872,3.108-6.93,6.908l-2.83,141.595l2.83,51.385c0.058,3.75,3.158,6.851,6.93,6.851c3.764,0,6.865-3.101,6.922-6.9 v0.057l3.08-51.392l-3.08-141.602C261.653,162.875,258.552,159.767,254.788,159.767z M274.428,366.861 c0.157,0.015,173.098,0.101,174.224,0.101c34.718,0,62.849-28.146,62.849-62.863s-28.131-62.849-62.849-62.849 c-8.618,0-16.824,1.74-24.31,4.877c-4.997-56.646-52.512-101.089-110.448-101.089c-14.179,0-28.002,2.795-40.207,7.521 c-4.74,1.832-6.01,3.729-6.052,7.386c0,0.007,0,199.488,0,199.488C267.685,363.283,270.671,366.491,274.428,366.861z"> </path> </g> </g></svg>';
-const SVG_APPLE =
-    '<svg viewBox="-1.5 0 20 20" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#000000"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <title>apple [#9E9E9E173]</title> <desc>Created with Sketch.</desc> <defs> </defs> <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"> <g id="Dribbble-Light-Preview" transform="translate(-102.000000, -7439.000000)" fill="#9E9E9E"> <g id="icons" transform="translate(56.000000, 160.000000)"> <path d="M57.5708873,7282.19296 C58.2999598,7281.34797 58.7914012,7280.17098 58.6569121,7279 C57.6062792,7279.04 56.3352055,7279.67099 55.5818643,7280.51498 C54.905374,7281.26397 54.3148354,7282.46095 54.4735932,7283.60894 C55.6455696,7283.69593 56.8418148,7283.03894 57.5708873,7282.19296 M60.1989864,7289.62485 C60.2283111,7292.65181 62.9696641,7293.65879 63,7293.67179 C62.9777537,7293.74279 62.562152,7295.10677 61.5560117,7296.51675 C60.6853718,7297.73474 59.7823735,7298.94772 58.3596204,7298.97372 C56.9621472,7298.99872 56.5121648,7298.17973 54.9134635,7298.17973 C53.3157735,7298.17973 52.8162425,7298.94772 51.4935978,7298.99872 C50.1203933,7299.04772 49.0738052,7297.68074 48.197098,7296.46676 C46.4032359,7293.98379 45.0330649,7289.44985 46.8734421,7286.3899 C47.7875635,7284.87092 49.4206455,7283.90793 51.1942837,7283.88393 C52.5422083,7283.85893 53.8153044,7284.75292 54.6394294,7284.75292 C55.4635543,7284.75292 57.0106846,7283.67793 58.6366882,7283.83593 C59.3172232,7283.86293 61.2283842,7284.09893 62.4549652,7285.8199 C62.355868,7285.8789 60.1747177,7287.09489 60.1989864,7289.62485" id="apple-[#9E9E9E173]"> </path> </g> </g> </g> </g></svg>';
+import {
+    SVG_PLAY,
+    SVG_DOWNLOAD,
+    SVG_MENU,
+    SVG_HEART,
+    SVG_VOLUME,
+    SVG_MUTE,
+    SVG_HEART_FILLED,
+    SVG_CLOSE,
+    SVG_SORT,
+    SVG_BIN,
+    SVG_TRASH,
+    SVG_GLOBE,
+    SVG_INSTAGRAM,
+    SVG_FACEBOOK,
+    SVG_YOUTUBE,
+    SVG_TWITTER,
+    SVG_LINK,
+    SVG_SOUNDCLOUD,
+    SVG_APPLE,
+    SVG_REPEAT,
+    SVG_REPEAT_ONE,
+    SVG_PLAY_LARGE,
+    SVG_PAUSE_LARGE,
+    SVG_MINUS,
+    SVG_SQUARE_PEN,
+    SVG_SHARE,
+    SVG_SHUFFLE,
+    SVG_VIDEO,
+    SVG_LEFT_ARROW,
+    SVG_RIGHT_ARROW,
+    SVG_CLOCK,
+    SVG_MOVE_UP,
+    SVG_MOVE_DOWN,
+} from './icons.js';
 
 function sortTracks(tracks, sortType) {
     if (sortType === 'custom') return [...tracks];
@@ -134,9 +147,9 @@ export class UIRenderer {
     // Helper for Heart Icon
     createHeartIcon(filled = false) {
         if (filled) {
-            return SVG_HEART.replace('class="heart-icon"', 'class="heart-icon filled"');
+            return SVG_HEART_FILLED(20);
         }
-        return SVG_HEART;
+        return SVG_HEART(20);
     }
 
     async extractAndApplyColor(url) {
@@ -352,14 +365,14 @@ export class UIRenderer {
                 if (videoCoverUrl) {
                     trackImageHTML = `<img src="${videoCoverUrl}" alt="" class="track-item-cover" loading="lazy">`;
                 } else {
-                    trackImageHTML = `<div class="track-item-cover video-icon-placeholder" style="display: flex; align-items: center; justify-content: center; background: var(--secondary);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.7;"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg></div>`;
+                    trackImageHTML = `<div class="track-item-cover video-icon-placeholder" style="display: flex; align-items: center; justify-content: center; background: var(--secondary);">${SVG_VIDEO(20, { style: 'opacity: 0.7;' })}</div>`;
                 }
             } else if (isVideo && (this.currentPage === 'search' || this.currentPage === 'library')) {
                 const videoCoverUrl = this.api.getVideoCoverUrl(track.imageId);
                 if (videoCoverUrl) {
                     trackImageHTML = `<img src="${videoCoverUrl}" alt="" class="track-item-cover" loading="lazy">`;
                 } else {
-                    trackImageHTML = `<div class="track-item-cover video-icon-placeholder" style="display: flex; align-items: center; justify-content: center; background: var(--secondary);"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="opacity: 0.7;"><path d="M8 5v14l11-7z"/></svg></div>`;
+                    trackImageHTML = `<div class="track-item-cover video-icon-placeholder" style="display: flex; align-items: center; justify-content: center; background: var(--secondary);">${SVG_PLAY(16, { style: 'opacity: 0.7;' })}</div>`;
                 }
             } else {
                 trackImageHTML = this.getCoverHTML(
@@ -382,7 +395,7 @@ export class UIRenderer {
         }
 
         const videoIcon = isVideo
-            ? '<span class="video-item-icon" title="Music Video" style="display: inline-flex; align-items: center; margin-right: 4px; color: var(--muted-foreground);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg></span>'
+            ? `<span class="video-item-icon" title="Music Video" style="display: inline-flex; align-items: center; margin-right: 4px; color: var(--muted-foreground);">${SVG_VIDEO(14)}</span>`
             : '';
         const trackNumberHTML = `<div class="track-number">${showCover ? trackImageHTML : displayIndex}</div>`;
         const explicitBadge = hasExplicitContent(track) ? this.createExplicitBadge() : '';
@@ -400,7 +413,7 @@ export class UIRenderer {
             ? ''
             : `
             <button class="track-menu-btn" type="button" title="More options" ${track.isLocal ? 'style="display:none"' : ''}>
-                ${SVG_MENU}
+                ${SVG_MENU(20)}
             </button>
         `;
 
@@ -469,10 +482,10 @@ export class UIRenderer {
             type !== 'artist'
                 ? `
             <button class="play-btn card-play-btn" data-action="play-card" data-type="${type}" data-id="${id}" title="Play">
-                ${SVG_PLAY}
+                ${SVG_PLAY(20)}
             </button>
             <button class="card-menu-btn" data-action="card-menu" data-type="${type}" data-id="${id}" title="Menu">
-                ${SVG_MENU}
+                ${SVG_MENU(20)}
             </button>
         `
                 : '';
@@ -607,19 +620,10 @@ export class UIRenderer {
             imageHTML: imageHTML,
             actionButtonsHTML: `
                 <button class="edit-playlist-btn" data-action="edit-playlist" title="Edit Playlist">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                    </svg>
+                    ${SVG_SQUARE_PEN(20)}
                 </button>
                 <button class="delete-playlist-btn" data-action="delete-playlist" title="Delete Playlist">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 6h18"/>
-                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                        <line x1="10" y1="11" x2="10" y2="17"/>
-                        <line x1="14" y1="11" x2="14" y2="17"/>
-                    </svg>
+                    ${SVG_BIN(20)}
                 </button>
             `,
             isCompact,
@@ -689,7 +693,7 @@ export class UIRenderer {
         } else if (cover) {
             imageHTML = this.getCoverHTML(cover, escapeHtml(video.title));
         } else {
-            imageHTML = `<div class="card-image video-icon-placeholder" style="display: flex; align-items: center; justify-content: center; background: var(--secondary); aspect-ratio: 16/9; width: 100%;"><svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" style="opacity: 0.7;"><path d="M8 5v14l11-7z"/></svg></div>`;
+            imageHTML = `<div class="card-image video-icon-placeholder" style="display: flex; align-items: center; justify-content: center; background: var(--secondary); aspect-ratio: 16/9; width: 100%;">${SVG_PLAY(48, { style: 'opacity: 0.7;' })}</div>`;
         }
 
         return `
@@ -698,7 +702,7 @@ export class UIRenderer {
                     ${imageHTML}
                     <div class="card-overlay">
                         <button class="card-play-btn" title="Play video">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                            ${SVG_PLAY(24)}
                         </button>
                     </div>
                     <button class="like-btn card-like-btn" data-action="toggle-like" data-type="video" title="Add to Liked">
@@ -1327,11 +1331,9 @@ export class UIRenderer {
             lastPausedState = isPaused;
 
             if (isPaused) {
-                playBtn.innerHTML =
-                    '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
+                playBtn.innerHTML = SVG_PLAY_LARGE(32);
             } else {
-                playBtn.innerHTML =
-                    '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
+                playBtn.innerHTML = SVG_PAUSE_LARGE(32);
             }
         };
 
@@ -1354,11 +1356,9 @@ export class UIRenderer {
             const mode = this.player.toggleRepeat();
             repeatBtn.classList.toggle('active', mode !== 0);
             if (mode === 2) {
-                repeatBtn.innerHTML =
-                    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/><path d="M11 10h1v4"/></svg>';
+                repeatBtn.innerHTML = SVG_REPEAT_ONE(24);
             } else {
-                repeatBtn.innerHTML =
-                    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>';
+                repeatBtn.innerHTML = SVG_REPEAT(24);
             }
         };
 
@@ -1474,8 +1474,7 @@ export class UIRenderer {
         const mode = this.player.repeatMode;
         repeatBtn.classList.toggle('active', mode !== 0);
         if (mode === 2) {
-            repeatBtn.innerHTML =
-                '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/><path d="M11 10h1v4"/></svg>';
+            repeatBtn.innerHTML = SVG_REPEAT_ONE(24);
         }
 
         // Fullscreen volume controls
@@ -1488,7 +1487,7 @@ export class UIRenderer {
                 const activeEl = this.player.activeElement;
                 const { muted } = activeEl;
                 const volume = this.player.userVolume;
-                fsVolumeBtn.innerHTML = muted || volume === 0 ? SVG_MUTE : SVG_VOLUME;
+                fsVolumeBtn.innerHTML = muted || volume === 0 ? SVG_MUTE(20) : SVG_VOLUME(20);
                 fsVolumeBtn.classList.toggle('muted', muted || volume === 0);
                 const effectiveVolume = muted ? 0 : volume * 100;
                 fsVolumeFill.style.setProperty('--fs-volume-level', `${effectiveVolume}%`);
@@ -2115,7 +2114,7 @@ export class UIRenderer {
         container.innerHTML = `
             <div style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem;">
                 <button class="btn-secondary explore-back-btn" style="display: flex; align-items: center; gap: 0.5rem;">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                    ${SVG_LEFT_ARROW(20)}
                     Back
                 </button>
                 <h2 class="section-title" style="margin: 0;">${escapeHtml(genreName)}</h2>
@@ -2902,13 +2901,10 @@ export class UIRenderer {
                 .map(
                     (query) => `
             <div class="search-history-item" data-query="${escapeHtml(query)}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="history-icon">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
+                ${SVG_CLOCK(16)}
                 <span class="query-text">${escapeHtml(query)}</span>
                 <span class="delete-history-btn" title="Remove from history">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    ${SVG_CLOSE(14)}
                 </span>
             </div>
         `
@@ -2974,9 +2970,9 @@ export class UIRenderer {
         const prodEl = document.getElementById('album-detail-producer');
         const tracklistContainer = document.getElementById('album-detail-tracklist');
         const playBtn = document.getElementById('play-album-btn');
-        if (playBtn) playBtn.innerHTML = `${SVG_PLAY}<span>Play Album</span>`;
+        if (playBtn) playBtn.innerHTML = `${SVG_PLAY(20)}<span>Play Album</span>`;
         const dlBtn = document.getElementById('download-album-btn');
-        if (dlBtn) dlBtn.innerHTML = `${SVG_DOWNLOAD}<span>Download Album</span>`;
+        if (dlBtn) dlBtn.innerHTML = `${SVG_DOWNLOAD(20)}<span>Download Album</span>`;
         const mixBtn = document.getElementById('album-mix-btn');
         if (mixBtn) mixBtn.style.display = 'none';
 
@@ -3291,8 +3287,7 @@ export class UIRenderer {
                         const addToPlaylistBtn = document.createElement('button');
                         addToPlaylistBtn.className = 'track-action-btn add-to-playlist-btn';
                         addToPlaylistBtn.title = 'Add to this playlist';
-                        addToPlaylistBtn.innerHTML =
-                            '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>';
+                        addToPlaylistBtn.innerHTML = SVG_MINUS(20);
                         addToPlaylistBtn.onclick = async (e) => {
                             e.stopPropagation();
                             const trackData = trackDataStore.get(item);
@@ -3376,9 +3371,9 @@ export class UIRenderer {
         const descEl = document.getElementById('playlist-detail-description');
         const tracklistContainer = document.getElementById('playlist-detail-tracklist');
         const playBtn = document.getElementById('play-playlist-btn');
-        if (playBtn) playBtn.innerHTML = `${SVG_PLAY}<span>Play</span>`;
+        if (playBtn) playBtn.innerHTML = `${SVG_PLAY(20)}<span>Play</span>`;
         const dlBtn = document.getElementById('download-playlist-btn');
-        if (dlBtn) dlBtn.innerHTML = `${SVG_DOWNLOAD}<span>Download</span>`;
+        if (dlBtn) dlBtn.innerHTML = `${SVG_DOWNLOAD(20)}<span>Download</span>`;
         const addPlaylistBtn = document.getElementById('add-playlist-to-playlist-btn');
 
         imageEl.src = '';
@@ -3502,8 +3497,7 @@ export class UIRenderer {
                             const removeBtn = document.createElement('button');
                             removeBtn.className = 'track-action-btn remove-from-playlist-btn';
                             removeBtn.title = 'Remove from playlist';
-                            removeBtn.innerHTML =
-                                '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
+                            removeBtn.innerHTML = SVG_BIN(20);
                             removeBtn.dataset.trackId = currentTracks[index].id;
                             removeBtn.dataset.type = currentTracks[index].type || 'track';
 
@@ -3757,9 +3751,9 @@ export class UIRenderer {
         const descEl = document.getElementById('mix-detail-description');
         const tracklistContainer = document.getElementById('mix-detail-tracklist');
         const playBtn = document.getElementById('play-mix-btn');
-        if (playBtn) playBtn.innerHTML = `${SVG_PLAY}<span>Play</span>`;
+        if (playBtn) playBtn.innerHTML = `${SVG_PLAY(20)}<span>Play</span>`;
         const dlBtn = document.getElementById('download-mix-btn');
-        if (dlBtn) dlBtn.innerHTML = `${SVG_DOWNLOAD}<span>Download</span>`;
+        if (dlBtn) dlBtn.innerHTML = `${SVG_DOWNLOAD(20)}<span>Download</span>`;
 
         // Skeleton loading
         imageEl.src = '';
@@ -3936,7 +3930,7 @@ export class UIRenderer {
         const inLibraryContainer = document.getElementById('artist-detail-in-library');
         const inLibrarySection = document.getElementById('artist-section-in-library');
         const dlBtn = document.getElementById('download-discography-btn');
-        if (dlBtn) dlBtn.innerHTML = `${SVG_DOWNLOAD}<span>Download Discography</span>`;
+        if (dlBtn) dlBtn.innerHTML = `${SVG_DOWNLOAD(20)}<span>Download Discography</span>`;
 
         imageEl.src = '';
         imageEl.style.backgroundColor = 'var(--muted)';
@@ -4596,29 +4590,29 @@ export class UIRenderer {
         if (url.includes('tidal.com')) return '';
         if (url.includes('qobuz.com')) return '';
 
-        let icon = SVG_GLOBE;
+        let icon = SVG_GLOBE(24);
         let title = 'Website';
 
         if (url.includes('twitter.com') || url.includes('x.com')) {
-            icon = SVG_TWITTER;
+            icon = SVG_TWITTER(24);
             title = 'Twitter';
         } else if (url.includes('instagram.com')) {
-            icon = SVG_INSTAGRAM;
+            icon = SVG_INSTAGRAM(24);
             title = 'Instagram';
         } else if (url.includes('facebook.com')) {
-            icon = SVG_FACEBOOK;
+            icon = SVG_FACEBOOK(24);
             title = 'Facebook';
         } else if (url.includes('youtube.com')) {
-            icon = SVG_YOUTUBE;
+            icon = SVG_YOUTUBE(24);
             title = 'YouTube';
         } else if (url.includes('spotify.com') || url.includes('open.spotify.com')) {
-            icon = SVG_LINK;
+            icon = SVG_LINK(24);
             title = 'Spotify';
         } else if (url.includes('soundcloud.com')) {
-            icon = SVG_SOUNDCLOUD;
+            icon = SVG_SOUNDCLOUD(24);
             title = 'SoundCloud';
         } else if (url.includes('apple.com')) {
-            icon = SVG_APPLE;
+            icon = SVG_APPLE(24);
             title = 'Apple Music';
         }
 
@@ -4760,8 +4754,7 @@ export class UIRenderer {
         const shuffleBtn = document.createElement('button');
         shuffleBtn.id = 'shuffle-playlist-btn';
         shuffleBtn.className = 'btn-primary';
-        shuffleBtn.innerHTML =
-            '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 14 4 4-4 4"/><path d="m18 2 4 4-4 4"/><path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22"/><path d="M2 6h1.972a4 4 0 0 1 3.6 2.2"/><path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45"/></svg><span>Shuffle</span>';
+        shuffleBtn.innerHTML = `${SVG_SHUFFLE(20)}<span>Shuffle</span>`;
         shuffleBtn.onclick = () => {
             const shuffledTracks = [...tracks].sort(() => Math.random() - 0.5);
             this.player.setQueue(shuffledTracks, 0);
@@ -4774,8 +4767,7 @@ export class UIRenderer {
             sortBtn = document.createElement('button');
             sortBtn.id = 'sort-playlist-btn';
             sortBtn.className = 'btn-secondary';
-            sortBtn.innerHTML =
-                '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/></svg><span>Sort</span>';
+            sortBtn.innerHTML = `${SVG_SORT(20)}<span>Sort</span>`;
 
             sortBtn.onclick = (e) => {
                 e.stopPropagation();
@@ -4823,15 +4815,13 @@ export class UIRenderer {
             const editBtn = document.createElement('button');
             editBtn.id = 'edit-playlist-btn';
             editBtn.className = 'btn-secondary';
-            editBtn.innerHTML =
-                '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><span>Edit</span>';
+            editBtn.innerHTML = `${SVG_SQUARE_PEN(24)}<span>Edit</span>`;
             fragment.appendChild(editBtn);
 
             const deleteBtn = document.createElement('button');
             deleteBtn.id = 'delete-playlist-btn';
             deleteBtn.className = 'btn-secondary danger';
-            deleteBtn.innerHTML =
-                '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg><span>Delete</span>';
+            deleteBtn.innerHTML = `${SVG_BIN(24)}<span>Delete</span>`;
             fragment.appendChild(deleteBtn);
         }
 
@@ -4840,8 +4830,7 @@ export class UIRenderer {
             const shareBtn = document.createElement('button');
             shareBtn.id = 'share-playlist-btn';
             shareBtn.className = 'btn-secondary';
-            shareBtn.innerHTML =
-                '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg><span>Share</span>';
+            shareBtn.innerHTML = `${SVG_SHARE(20)}<span>Share</span>`;
 
             shareBtn.onclick = () => {
                 const url = getShareUrl(`/userplaylist/${playlist.id || playlist.uuid}`);
@@ -5062,21 +5051,15 @@ export class UIRenderer {
                                     isUser
                                         ? `
                                 <button class="delete-instance" title="Delete Instance">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                    </svg>
+                                    ${SVG_TRASH(16)}
                                 </button>`
                                         : ''
                                 }
                                 <button class="move-up" title="Move Up" ${index === 0 ? 'disabled' : ''}>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M12 19V5M5 12l7-7 7 7"/>
-                                    </svg>
+                                    ${SVG_MOVE_UP(16)}
                                 </button>
                                 <button class="move-down" title="Move Down" ${index === instances.length - 1 ? 'disabled' : ''}>
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M12 5v14M19 12l-7 7-7-7"/>
-                                    </svg>
+                                    ${SVG_MOVE_DOWN(16)}
                                 </button>
                             </div>
                         </li>
@@ -5112,8 +5095,7 @@ export class UIRenderer {
         document.body.classList.add('sidebar-collapsed');
         const toggleBtn = document.getElementById('sidebar-toggle');
         if (toggleBtn) {
-            toggleBtn.innerHTML =
-                '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+            toggleBtn.innerHTML = SVG_RIGHT_ARROW(20);
         }
 
         const imageEl = document.getElementById('track-detail-image');

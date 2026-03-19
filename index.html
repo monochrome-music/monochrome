@@ -140,38 +140,10 @@
                     "
                 ></div>
                 <button id="toggle-ui-btn" class="fullscreen-ui-toggle" title="Toggle UI">
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="9" y1="3" x2="9" y2="21"></line>
-                    </svg>
+                    <use svg="!lucide/x.svg" size="24" />
                 </button>
                 <button id="toggle-fullscreen-lyrics-btn" class="fullscreen-lyrics-toggle" title="Toggle Lyrics">
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                        <line x1="12" y1="19" x2="12" y2="22" />
-                        <line x1="8" y1="22" x2="16" y2="22" />
-                    </svg>
+                    <use svg="./images/mic.svg" size="24" />
                 </button>
                 <button id="close-fullscreen-cover-btn" title="Close">&times;</button>
                 <div class="fullscreen-main-view">
@@ -186,93 +158,19 @@
                         <h3 id="fullscreen-track-artist"></h3>
                         <div class="fullscreen-actions">
                             <button id="fs-like-btn" class="btn-icon like-btn" title="Like">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="24"
-                                    height="24"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    class="heart-icon"
-                                >
-                                    <path
-                                        d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-                                    ></path>
-                                </svg>
+                                <use svg="!lucide/heart.svg" class="heart-icon" size="24" />
                             </button>
                             <button id="fs-add-playlist-btn" class="btn-icon" title="Add to Playlist">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="24"
-                                    height="24"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                >
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                </svg>
+                                <use svg="!lucide/square-pen.svg" size="24" />
                             </button>
                             <button id="fs-download-btn" class="btn-icon" title="Download">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="24"
-                                    height="24"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                >
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                                </svg>
+                                <use svg="!lucide/download.svg" size="24" />
                             </button>
                             <button id="fs-cast-btn" class="btn-icon" title="Cast">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="24"
-                                    height="24"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                >
-                                    <path d="M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path>
-                                    <path d="M2 12a9 9 0 0 1 9 9"></path>
-                                    <path d="M2 17a5 5 0 0 1 5 5"></path>
-                                    <path d="M2 22h.01"></path>
-                                </svg>
+                                <use svg="!lucide/cast.svg" size="24" />
                             </button>
                             <button id="fs-queue-btn" class="btn-icon" title="Queue">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="24"
-                                    height="24"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                >
-                                    <path d="M3 5h.01" />
-                                    <path d="M3 12h.01" />
-                                    <path d="M3 19h.01" />
-                                    <path d="M8 5h13" />
-                                    <path d="M8 12h13" />
-                                    <path d="M8 19h13" />
-                                </svg>
+                                <use svg="!lucide/list.svg" size="24" />
                             </button>
                         </div>
                         <div id="fullscreen-next-track" style="display: none">
@@ -290,130 +188,29 @@
                         </div>
                         <div class="fullscreen-buttons">
                             <button id="fs-shuffle-btn" title="Shuffle">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="24"
-                                    height="24"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    class="lucide lucide-shuffle-icon lucide-shuffle"
-                                >
-                                    <path d="m18 14 4 4-4 4" />
-                                    <path d="m18 2 4 4-4 4" />
-                                    <path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22" />
-                                    <path d="M2 6h1.972a4 4 0 0 1 3.6 2.2" />
-                                    <path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45" />
-                                </svg>
+                                <use svg="!lucide/shuffle.svg" size="24" />
                             </button>
                             <button id="fs-prev-btn" title="Previous">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="24"
-                                    height="24"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    class="lucide lucide-arrow-left-to-line-icon lucide-arrow-left-to-line"
-                                >
-                                    <path d="M3 19V5" />
-                                    <path d="m13 6-6 6 6 6" />
-                                    <path d="M7 12h14" />
-                                </svg>
+                                <use svg="!lucide/arrow-left-to-line.svg" size="24" />
                             </button>
                             <button id="fs-play-pause-btn" class="play-pause-btn" title="Play">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="32"
-                                    height="32"
-                                    viewBox="0 0 24 24"
-                                    fill="currentColor"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                >
-                                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                                </svg>
+                                <use svg="./images/play-large.svg" size="32" />
                             </button>
                             <button id="fs-next-btn" title="Next">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="24"
-                                    height="24"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    class="lucide lucide-arrow-right-to-line-icon lucide-arrow-right-to-line"
-                                >
-                                    <path d="M17 12H3" />
-                                    <path d="m11 18 6-6-6-6" />
-                                    <path d="M21 5v14" />
-                                </svg>
+                                <use svg="!lucide/arrow-right-to-line.svg" size="24" />
                             </button>
                             <button id="fs-repeat-btn" title="Repeat">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="24"
-                                    height="24"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    class="lucide lucide-repeat-icon lucide-repeat"
-                                >
-                                    <path d="m17 2 4 4-4 4"></path>
-                                    <path d="M3 11v-1a4 4 0 0 1 4-4h14"></path>
-                                    <path d="m7 22-4-4 4-4"></path>
-                                    <path d="M21 13v1a4 4 0 0 1-4 4H3"></path>
-                                </svg>
+                                <use svg="!lucide/repeat.svg" size="24" />
                             </button>
                             <button id="fs-quality-btn" class="fs-quality-btn" title="Quality" style="display: none">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="20"
-                                    height="20"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                >
-                                    <path d="M12 20h9"></path>
-                                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
-                                </svg>
+                                <use svg="!lucide/pencil-line.svg" size="20" />
                                 <span class="fs-quality-label">Auto</span>
                             </button>
                             <div id="fs-quality-menu" class="fs-quality-menu" style="display: none"></div>
                         </div>
                         <div class="fullscreen-volume-container">
                             <button id="fs-volume-btn" class="fs-volume-btn" title="Mute">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="24"
-                                    height="24"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                >
-                                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                                </svg>
+                                <use svg="!lucide/volume-1.svg" size="24" />
                             </button>
                             <div id="fs-volume-bar" class="fs-volume-bar">
                                 <div id="fs-volume-fill" class="fs-volume-fill"></div>
@@ -461,18 +258,7 @@
                             gap: 0.5rem;
                         "
                     >
-                        <svg
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                        >
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                            <polyline points="17 8 12 3 7 8" />
-                            <line x1="12" y1="3" x2="12" y2="15" />
-                        </svg>
+                        <use svg="!lucide/upload.svg" size="16" />
                         <span id="playlist-cover-btn-text">Upload</span>
                     </button>
                     <button
@@ -837,18 +623,7 @@
                                 cursor: pointer;
                             "
                         >
-                            <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                            >
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                <polyline points="17 8 12 3 7 8" />
-                                <line x1="12" y1="3" x2="12" y2="15" />
-                            </svg>
+                            <use svg="!lucide/upload.svg" size="16" />
                             <span>Upload</span>
                         </button>
                         <button
@@ -905,18 +680,7 @@
                                 cursor: pointer;
                             "
                         >
-                            <svg
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                            >
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                <polyline points="17 8 12 3 7 8" />
-                                <line x1="12" y1="3" x2="12" y2="15" />
-                            </svg>
+                            <use svg="!lucide/upload.svg" size="16" />
                             <span>Upload</span>
                         </button>
                         <button
@@ -1390,19 +1154,7 @@
                             gap: 0.5rem;
                         "
                     >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        >
-                            <path d="m15 18-6-6 6-6" />
-                        </svg>
+                        <use svg="!lucide/chevron-left.svg" size="16" />
                         Back
                     </button>
                     <div style="flex: 1; overflow-y: auto; padding-right: 0.5rem">
@@ -1460,21 +1212,7 @@
                     style="flex: 1; overflow-y: auto; min-height: 0"
                 >
                     <div class="track-list-search-container" style="margin: 0 0 1rem 0">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            class="search-icon"
-                        >
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                        </svg>
+                        <use svg="!lucide/search.svg" class="search-icon" size="20" />
                         <input
                             type="search"
                             id="theme-store-search"
@@ -1486,19 +1224,7 @@
                     <div id="community-themes-grid" class="card-grid"></div>
                     <div id="theme-store-loading" style="text-align: center; padding: 2rem; display: none">
                         <div class="animate-spin" style="display: inline-block">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="24"
-                                height="24"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            >
-                                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                            </svg>
+                            <use svg="!lucide/loader-circle.svg" size="24" />
                         </div>
                     </div>
                 </div>
@@ -1693,21 +1419,7 @@
             <div class="modal-overlay"></div>
             <div class="modal-content">
                 <h3 style="color: #ef4444; display: flex; align-items: center; gap: 0.5rem">
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-                        <line x1="12" y1="9" x2="12" y2="13" />
-                        <line x1="12" y1="17" x2="12.01" y2="17" />
-                    </svg>
+                    <use svg="!lucide/triangle-alert.svg" size="24" />
                     Photosensitivity Warning
                 </h3>
                 <p style="margin: 1rem 0; line-height: 1.5">
@@ -1730,21 +1442,7 @@
             <div class="modal-overlay"></div>
             <div class="modal-content" style="text-align: center">
                 <h3 style="color: #ef4444; display: flex; align-items: center; gap: 0.5rem; justify-content: center">
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <path
-                            d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"
-                        />
-                    </svg>
+                    <use svg="!lucide/wrench.svg" size="24" />
                     Maintenance Notice
                 </h3>
                 <p style="margin: 1.5rem 0; line-height: 1.6; font-size: 1.1rem">
@@ -1875,19 +1573,7 @@
                 <div class="sidebar-content">
                     <div class="sidebar-logo">
                         <a href="https://monochrome.tf/" class="sidebar-logo-link">
-                            <svg
-                                class="app-logo"
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="200"
-                                height="200"
-                                viewBox="14.75 14.75 70.5 70.5"
-                            >
-                                <g fill="currentColor">
-                                    <path
-                                        d="M38.25 14.75H85.25V61.75H61.75V38.25H38.25ZM14.75 38.25H38.25V61.75H61.75V85.25H14.75Z"
-                                    />
-                                </g>
-                            </svg>
+                            <use svg="./images/monochrome-logo.svg" size="200" class="app-logo" />
                             <span>Monochrome</span>
                         </a>
                         <button
@@ -1896,150 +1582,44 @@
                             style="margin-left: auto"
                             title="Collapse Sidebar"
                         >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            >
-                                <path d="m15 18-6-6 6-6" />
-                            </svg>
+                            <use svg="!lucide/chevron-left.svg" size="20" />
                         </button>
                     </div>
                     <nav class="sidebar-nav main">
                         <ul>
                             <li class="nav-item" id="sidebar-nav-home">
                                 <a href="/">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="24"
-                                        height="24"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        class="lucide lucide-house-icon lucide-house"
-                                    >
-                                        <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
-                                        <path
-                                            d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
-                                        />
-                                    </svg>
+                                    <use svg="!lucide/house.svg" size="24" />
                                     <span>Home</span>
                                 </a>
                             </li>
                             <li class="nav-item" id="sidebar-nav-library">
                                 <a href="/library">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="24"
-                                        height="24"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <path d="m16 6 4 14" />
-                                        <path d="M12 6v14" />
-                                        <path d="M8 8v12" />
-                                        <path d="M4 4v16" />
-                                    </svg>
+                                    <use svg="!lucide/library.svg" size="24" />
                                     <span>Library</span>
                                 </a>
                             </li>
                             <li class="nav-item" id="sidebar-nav-recent">
                                 <a href="/recent">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="24"
-                                        height="24"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                                        <path d="M3 3v5h5" />
-                                        <path d="M12 7v5l4 2" />
-                                    </svg>
+                                    <use svg="./images/recent.svg" size="24" />
                                     <span>Recent</span>
                                 </a>
                             </li>
                             <li class="nav-item" id="sidebar-nav-unreleased">
                                 <a href="/unreleased">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="24"
-                                        height="24"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <rect x="3" y="3" width="7" height="7" />
-                                        <rect x="14" y="3" width="7" height="7" />
-                                        <rect x="14" y="14" width="7" height="7" />
-                                        <rect x="3" y="14" width="7" height="7" />
-                                    </svg>
+                                    <use svg="./images/squares.svg" size="24" />
                                     <span>Unreleased</span>
                                 </a>
                             </li>
                             <li class="nav-item" id="sidebar-nav-donate">
                                 <a id="sidebar-donate-link" style="cursor: pointer">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="24"
-                                        height="24"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <path d="M11 14h2a2 2 0 0 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 16" />
-                                        <path
-                                            d="m14.45 13.39 5.05-4.694C20.196 8 21 6.85 21 5.75a2.75 2.75 0 0 0-4.797-1.837.276.276 0 0 1-.406 0A2.75 2.75 0 0 0 11 5.75c0 1.2.802 2.248 1.5 2.946L16 11.95"
-                                        />
-                                        <path d="m2 15 6 6" />
-                                        <path
-                                            d="m7 20 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a1 1 0 0 0-2.75-2.91"
-                                        />
-                                    </svg>
+                                    <use svg="!lucide/hand-heart.svg" size="24" />
                                     <span>Donate</span>
                                 </a>
                             </li>
                             <li class="nav-item" id="sidebar-nav-settings">
                                 <a href="/settings">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="24"
-                                        height="24"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <path
-                                            d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"
-                                        />
-                                        <circle cx="12" cy="12" r="3" />
-                                    </svg>
+                                    <use svg="!lucide/settings.svg" size="24" />
                                     <span>Settings</span>
                                 </a>
                             </li>
@@ -2057,90 +1637,25 @@
                                 <ul>
                                     <li class="nav-item" id="sidebar-nav-about-bottom">
                                         <a href="/about">
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="24"
-                                                height="24"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                stroke-width="2"
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                class="lucide lucide-info-icon lucide-info"
-                                            >
-                                                <circle cx="12" cy="12" r="10" />
-                                                <path d="M12 16v-4" />
-                                                <path d="M12 8h.01" />
-                                            </svg>
+                                            <use svg="!lucide/info.svg" size="24" />
                                             <span>About</span>
                                         </a>
                                     </li>
                                     <li class="nav-item" id="sidebar-nav-discordbtn">
                                         <a href="discord.html" target="_blank">
-                                            <svg
-                                                width="64px"
-                                                height="64px"
-                                                viewBox="0 -28.5 256 256"
-                                                version="1.1"
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                xmlns:xlink="http://www.w3.org/1999/xlink"
-                                                preserveAspectRatio="xMidYMid"
-                                                fill="#000000"
-                                            >
-                                                <g stroke-width="0"></g>
-                                                <g stroke-linecap="round" stroke-linejoin="round"></g>
-                                                <g>
-                                                    <g>
-                                                        <path
-                                                            d="M216.856339,16.5966031 C200.285002,8.84328665 182.566144,3.2084988 164.041564,0 C161.766523,4.11318106 159.108624,9.64549908 157.276099,14.0464379 C137.583995,11.0849896 118.072967,11.0849896 98.7430163,14.0464379 C96.9108417,9.64549908 94.1925838,4.11318106 91.8971895,0 C73.3526068,3.2084988 55.6133949,8.86399117 39.0420583,16.6376612 C5.61752293,67.146514 -3.4433191,116.400813 1.08711069,164.955721 C23.2560196,181.510915 44.7403634,191.567697 65.8621325,198.148576 C71.0772151,190.971126 75.7283628,183.341335 79.7352139,175.300261 C72.104019,172.400575 64.7949724,168.822202 57.8887866,164.667963 C59.7209612,163.310589 61.5131304,161.891452 63.2445898,160.431257 C105.36741,180.133187 151.134928,180.133187 192.754523,160.431257 C194.506336,161.891452 196.298154,163.310589 198.110326,164.667963 C191.183787,168.842556 183.854737,172.420929 176.223542,175.320965 C180.230393,183.341335 184.861538,190.991831 190.096624,198.16893 C211.238746,191.588051 232.743023,181.531619 254.911949,164.955721 C260.227747,108.668201 245.831087,59.8662432 216.856339,16.5966031 Z M85.4738752,135.09489 C72.8290281,135.09489 62.4592217,123.290155 62.4592217,108.914901 C62.4592217,94.5396472 72.607595,82.7145587 85.4738752,82.7145587 C98.3405064,82.7145587 108.709962,94.5189427 108.488529,108.914901 C108.508531,123.290155 98.3405064,135.09489 85.4738752,135.09489 Z M170.525237,135.09489 C157.88039,135.09489 147.510584,123.290155 147.510584,108.914901 C147.510584,94.5396472 157.658606,82.7145587 170.525237,82.7145587 C183.391518,82.7145587 193.761324,94.5189427 193.539891,108.914901 C193.539891,123.290155 183.391518,135.09489 170.525237,135.09489 Z"
-                                                            fill="#8E8E96"
-                                                            fill-rule="nonzero"
-                                                        ></path>
-                                                    </g>
-                                                </g>
-                                            </svg>
+                                            <use svg="./images/discord.svg" size="64" />
                                             <span>Discord</span>
                                         </a>
                                     </li>
                                     <li class="nav-item" id="sidebar-nav-githubbtn" style="display: none">
                                         <a href="https://github.com/monochrome-music/monochrome" target="_blank">
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="24"
-                                                height="24"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                stroke-width="2"
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                            >
-                                                <path
-                                                    d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"
-                                                />
-                                                <path d="M9 18c-4.51 2-5-2-7-2" />
-                                            </svg>
+                                            <use svg="./images/github.svg" size="24" />
                                             <span>GitHub</span>
                                         </a>
                                     </li>
                                     <li class="nav-item" id="sidebar-nav-download-bottom">
                                         <a href="/download">
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="24"
-                                                height="24"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                stroke-width="2"
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                            >
-                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                                <polyline points="7 10 12 15 17 10" />
-                                                <line x1="12" x2="12" y1="15" y2="3" />
-                                            </svg>
+                                            <use svg="!lucide/download.svg" size="24" />
                                             <span>Download</span>
                                         </a>
                                     </li>
@@ -2156,52 +1671,14 @@
                 <header class="main-header">
                     <div class="navigation-controls desktop-only">
                         <button id="nav-back" class="nav-btn" title="Go Back">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="24"
-                                height="24"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            >
-                                <path d="m15 18-6-6 6-6" />
-                            </svg>
+                            <use svg="!lucide/chevron-left.svg" size="24" />
                         </button>
                         <button id="nav-forward" class="nav-btn" title="Go Forward">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="24"
-                                height="24"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            >
-                                <path d="m9 18 6-6-6-6" />
-                            </svg>
+                            <use svg="!lucide/chevron-right.svg" size="24" />
                         </button>
                     </div>
                     <button class="hamburger-menu" id="hamburger-btn" title="Open navigation">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        >
-                            <line x1="3" y1="12" x2="21" y2="12"></line>
-                            <line x1="3" y1="6" x2="21" y2="6"></line>
-                            <line x1="3" y1="18" x2="21" y2="18"></line>
-                        </svg>
+                        <use svg="!lucide/menu.svg" size="24" />
                     </button>
                     <div class="header-account-control" style="position: relative; margin-right: 1rem">
                         <button
@@ -2217,21 +1694,7 @@
                                 border: 1px solid var(--border);
                             "
                         >
-                            <svg
-                                id="header-account-icon"
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            >
-                                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
+                            <use svg="!lucide/user.svg" size="20" />
                             <img
                                 id="header-account-img"
                                 alt="Account avatar"
@@ -2241,21 +1704,7 @@
                         <div id="header-account-dropdown" class="dropdown-menu"></div>
                     </div>
                     <form class="search-bar" id="search-form">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="24"
-                            height="24"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            class="search-icon"
-                        >
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                        </svg>
+                        <use svg="!lucide/search.svg" class="search-icon" size="24" />
                         <input
                             type="search"
                             id="search-input"
@@ -2322,23 +1771,7 @@
                                                 font-size: 0.85rem;
                                             "
                                         >
-                                            <svg
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                width="16"
-                                                height="16"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                stroke-width="2.5"
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                            >
-                                                <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" />
-                                                <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4" />
-                                                <circle cx="12" cy="12" r="2" />
-                                                <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4" />
-                                                <path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1" />
-                                            </svg>
+                                            <use svg="!lucide/radio.svg" size="16" />
                                             Start Infinite Radio
                                         </button>
                                     </div>
@@ -2348,20 +1781,7 @@
                                         title="Refresh"
                                         style="padding: 4px 8px"
                                     >
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            width="16"
-                                            height="16"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="2"
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                        >
-                                            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path>
-                                            <path d="M21 3v5h-5"></path>
-                                        </svg>
+                                        <use svg="!lucide/rotate-cw.svg" size="16" />
                                     </button>
                                 </div>
                                 <div class="track-list" id="home-recommended-songs"></div>
@@ -2382,20 +1802,7 @@
                                         title="Refresh"
                                         style="padding: 4px 8px"
                                     >
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            width="16"
-                                            height="16"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="2"
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                        >
-                                            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-                                            <path d="M21 3v5h-5" />
-                                        </svg>
+                                        <use svg="!lucide/rotate-cw.svg" size="16" />
                                     </button>
                                 </div>
                                 <div class="card-grid" id="home-recommended-albums"></div>
@@ -2416,20 +1823,7 @@
                                         title="Refresh"
                                         style="padding: 4px 8px"
                                     >
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            width="16"
-                                            height="16"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="2"
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                        >
-                                            <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-                                            <path d="M21 3v5h-5" />
-                                        </svg>
+                                        <use svg="!lucide/rotate-cw.svg" size="16" />
                                     </button>
                                 </div>
                                 <div class="card-grid" id="home-recommended-artists"></div>
@@ -2450,21 +1844,7 @@
                                         title="Clear History"
                                         style="padding: 4px 8px"
                                     >
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            width="16"
-                                            height="16"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="2"
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                        >
-                                            <path d="M3 6h18" />
-                                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                                        </svg>
+                                        <use svg="!lucide/trash.svg" size="16" />
                                     </button>
                                 </div>
                                 <div class="card-grid" id="home-recent-mixed"></div>
@@ -2567,23 +1947,7 @@
                                     "
                                     title="Shuffle Liked Tracks"
                                 >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="16"
-                                        height="16"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <path d="m18 14 4 4-4 4" />
-                                        <path d="m18 2 4 4-4 4" />
-                                        <path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22" />
-                                        <path d="M2 6h1.972a4 4 0 0 1 3.6 2.2" />
-                                        <path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45" />
-                                    </svg>
+                                    <use svg="!lucide/shuffle.svg" size="16" />
                                 </button>
                                 <button
                                     id="download-liked-tracks-btn"
@@ -2599,21 +1963,7 @@
                                     "
                                     title="Download Liked Tracks"
                                 >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="16"
-                                        height="16"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                        <polyline points="7 10 12 15 17 10" />
-                                        <line x1="12" y1="15" x2="12" y2="3" />
-                                    </svg>
+                                    <use svg="!lucide/download.svg" size="16" />
                                 </button>
                             </div>
                             <div class="track-list" id="library-tracks-container"></div>
@@ -2634,19 +1984,7 @@
                             <div class="track-list" id="library-local-container">
                                 <div id="local-files-intro" style="padding: 20px; text-align: center">
                                     <button id="select-local-folder-btn" class="btn-secondary">
-                                        <svg
-                                            width="20"
-                                            height="20"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="2"
-                                            style="margin-right: 8px"
-                                        >
-                                            <path
-                                                d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
-                                            ></path>
-                                        </svg>
+                                        <use svg="!lucide/folder.svg" size="20" />
                                         <span id="select-local-folder-text">Select Music Folder</span>
                                     </button>
                                     <p
@@ -2690,23 +2028,7 @@
                     >
                         <h2 class="section-title" style="margin-bottom: 0">Recently played</h2>
                         <button class="btn-secondary" id="clear-history-btn" title="Clear History">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            >
-                                <path d="M3 6h18" />
-                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                                <line x1="10" y1="11" x2="10" y2="17" />
-                                <line x1="14" y1="11" x2="14" y2="17" />
-                            </svg>
+                            <use svg="!lucide/trash-2.svg" size="16" />
                             <span>Clear</span>
                         </button>
                     </div>
@@ -2731,33 +2053,11 @@
                             <div class="meta" id="tracker-artist-detail-meta"></div>
                             <div class="detail-header-actions">
                                 <button id="play-tracker-artist-btn" class="btn-primary" title="Shuffle Play">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="currentColor"
-                                    >
-                                        <polygon points="7 3 21 12 7 21 7 3"></polygon>
-                                    </svg>
+                                    <use svg="./images/play.svg" size="20" />
                                     <span>Shuffle Play</span>
                                 </button>
                                 <button id="download-tracker-artist-btn" class="btn-primary" title="Download">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                        <polyline points="7 10 12 15 17 10"></polyline>
-                                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                                    </svg>
+                                    <use svg="!lucide/download.svg" size="20" />
                                     <span>Download All</span>
                                 </button>
                             </div>
@@ -2780,84 +2080,23 @@
                             <div class="meta" id="album-detail-producer"></div>
                             <div class="detail-header-actions">
                                 <button id="play-album-btn" class="btn-primary" title="Play Album">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="currentColor"
-                                    >
-                                        <polygon points="7 3 21 12 7 21 7 3"></polygon>
-                                    </svg>
+                                    <use svg="./images/play.svg" size="20" />
                                     <span>Play Album</span>
                                 </button>
                                 <button id="shuffle-album-btn" class="btn-primary" title="Shuffle">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="18"
-                                        height="18"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <path d="m18 14 4 4-4 4" />
-                                        <path d="m18 2 4 4-4 4" />
-                                        <path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22" />
-                                        <path d="M2 6h1.972a4 4 0 0 1 3.6 2.2" />
-                                        <path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45" />
-                                    </svg>
+                                    <use svg="!lucide/shuffle.svg" size="18" />
                                     <span>Shuffle</span>
                                 </button>
                                 <button id="album-mix-btn" class="btn-primary" style="display: none" title="Mix">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="currentColor"
-                                    >
-                                        <path
-                                            d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
-                                        />
-                                    </svg>
+                                    <use svg="./images/mix.svg" size="20" />
                                     <span>Mix</span>
                                 </button>
                                 <button id="download-album-btn" class="btn-primary" title="Download">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                        <polyline points="7 10 12 15 17 10"></polyline>
-                                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                                    </svg>
+                                    <use svg="!lucide/download.svg" size="20" />
                                     <span>Download</span>
                                 </button>
                                 <button id="add-album-to-playlist-btn" class="btn-secondary" title="Add to Playlist">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                                    </svg>
+                                    <use svg="!lucide/plus.svg" size="20" />
                                     <span>Add to Playlist</span>
                                 </button>
                                 <button
@@ -2867,22 +2106,7 @@
                                     data-type="album"
                                     title="Save to Favorites"
                                 >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        class="heart-icon"
-                                    >
-                                        <path
-                                            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-                                        ></path>
-                                    </svg>
+                                    <use svg="!lucide/heart.svg" class="heart-icon" size="20" />
                                     <span>Save</span>
                                 </button>
                                 <button
@@ -2892,21 +2116,7 @@
                                     data-type="album"
                                     title="More options"
                                 >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="24"
-                                        height="24"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <circle cx="12" cy="12" r="1"></circle>
-                                        <circle cx="12" cy="5" r="1"></circle>
-                                        <circle cx="12" cy="19" r="1"></circle>
-                                    </svg>
+                                    <use svg="!lucide/ellipsis-vertical.svg" size="24" />
                                 </button>
                             </div>
                         </div>
@@ -2965,53 +2175,15 @@
                             <div class="meta" id="playlist-detail-description" class="detail-description"></div>
                             <div class="detail-header-actions">
                                 <button id="play-playlist-btn" class="btn-primary" title="Play">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="currentColor"
-                                    >
-                                        <polygon points="7 3 21 12 7 21 7 3"></polygon>
-                                    </svg>
+                                    <use svg="./images/play.svg" size="20" />
                                     <span>Play</span>
                                 </button>
                                 <button id="shuffle-playlist-btn" class="btn-primary" title="Shuffle">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="18"
-                                        height="18"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <path d="m18 14 4 4-4 4" />
-                                        <path d="m18 2 4 4-4 4" />
-                                        <path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22" />
-                                        <path d="M2 6h1.972a4 4 0 0 1 3.6 2.2" />
-                                        <path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45" />
-                                    </svg>
+                                    <use svg="!lucide/shuffle.svg" size="18" />
                                     <span>Shuffle</span>
                                 </button>
                                 <button id="download-playlist-btn" class="btn-primary" title="Download">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                        <polyline points="7 10 12 15 17 10"></polyline>
-                                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                                    </svg>
+                                    <use svg="!lucide/download.svg" size="20" />
                                     <span>Download</span>
                                 </button>
                                 <button
@@ -3021,43 +2193,14 @@
                                     data-type="playlist"
                                     title="Save to Favorites"
                                 >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        class="heart-icon"
-                                    >
-                                        <path
-                                            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-                                        ></path>
-                                    </svg>
+                                    <use svg="!lucide/heart.svg" class="heart-icon" size="20" />
                                     <span>Save</span>
                                 </button>
                             </div>
                         </div>
                     </header>
                     <form class="track-list-search-container" onsubmit="return false;">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            class="search-icon"
-                        >
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                        </svg>
+                        <use svg="!lucide/search.svg" class="search-icon" size="20" />
                         <input
                             type="search"
                             id="track-list-search-input"
@@ -3094,19 +2237,7 @@
                                 class="btn-secondary"
                                 title="Refresh Recommendations"
                             >
-                                <svg
-                                    width="18"
-                                    height="18"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                >
-                                    <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-                                    <path d="M21 3v5h-5" />
-                                </svg>
+                                <use svg="!lucide/rotate-cw.svg" size="18" />
                             </button>
                         </div>
                         <div class="track-list" id="playlist-detail-recommended"></div>
@@ -3146,33 +2277,11 @@
                             <div class="meta" id="mix-detail-description" class="detail-description"></div>
                             <div class="detail-header-actions">
                                 <button id="play-mix-btn" class="btn-primary" title="Play">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="currentColor"
-                                    >
-                                        <polygon points="7 3 21 12 7 21 7 3"></polygon>
-                                    </svg>
+                                    <use svg="./images/play.svg" size="20" />
                                     <span>Play</span>
                                 </button>
                                 <button id="download-mix-btn" class="btn-primary" title="Download">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                        <polyline points="7 10 12 15 17 10"></polyline>
-                                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                                    </svg>
+                                    <use svg="!lucide/download.svg" size="20" />
                                     <span>Download</span>
                                 </button>
                                 <button
@@ -3183,22 +2292,7 @@
                                     title="Save to Favorites"
                                     style="display: none"
                                 >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        class="heart-icon"
-                                    >
-                                        <path
-                                            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-                                        ></path>
-                                    </svg>
+                                    <use svg="!lucide/heart.svg" class="heart-icon" size="20" />
                                     <span>Save</span>
                                 </button>
                             </div>
@@ -3222,69 +2316,19 @@
                             <div id="artist-detail-bio" class="artist-bio"></div>
                             <div class="detail-header-actions">
                                 <button id="play-artist-radio-btn" class="btn-primary" title="Artist Radio">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="currentColor"
-                                    >
-                                        <path
-                                            d="M4.5 9v6h3l5 5V4l-5 5h-3zm16 3a6 6 0 0 0-3.26-5.3l-1.48 1.48C17.31 9.21 18 10.53 18 12c0 1.47-.69 2.79-1.74 3.82l1.48 1.48A6 6 0 0 0 20.5 12z"
-                                        />
-                                    </svg>
+                                    <use svg="!lucide/volume-1.svg" size="20" />
                                     <span>Radio</span>
                                 </button>
                                 <button id="shuffle-artist-btn" class="btn-primary" title="Shuffle">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="18"
-                                        height="18"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <path d="m18 14 4 4-4 4" />
-                                        <path d="m18 2 4 4-4 4" />
-                                        <path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22" />
-                                        <path d="M2 6h1.972a4 4 0 0 1 3.6 2.2" />
-                                        <path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45" />
-                                    </svg>
+                                    <use svg="!lucide/shuffle.svg" size="18" />
                                     <span>Shuffle</span>
                                 </button>
                                 <button id="artist-mix-btn" class="btn-primary" style="display: none" title="Mix">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="currentColor"
-                                    >
-                                        <path
-                                            d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
-                                        />
-                                    </svg>
+                                    <use svg="./images/mix.svg" size="20" />
                                     <span>Mix</span>
                                 </button>
                                 <button id="download-discography-btn" class="btn-primary" title="Download">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                        <polyline points="7 10 12 15 17 10"></polyline>
-                                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                                    </svg>
+                                    <use svg="!lucide/download.svg" size="20" />
                                     <span>Download</span>
                                 </button>
                                 <button
@@ -3294,22 +2338,7 @@
                                     data-type="artist"
                                     title="Save to Favorites"
                                 >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        class="heart-icon"
-                                    >
-                                        <path
-                                            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-                                        ></path>
-                                    </svg>
+                                    <use svg="!lucide/heart.svg" class="heart-icon" size="20" />
                                     <span>Save</span>
                                 </button>
                             </div>
@@ -3323,9 +2352,12 @@
                         <h2 class="section-title">
                             <button id="in-library-toggle" aria-expanded="false" aria-controls="artist-detail-in-library" style="background: none; border: none; color: inherit; font: inherit; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; padding: 0; user-select: none;">
                                 In Your Library
-                                <svg id="in-library-chevron" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.25s ease; flex-shrink: 0;">
-                                    <polyline points="9 18 15 12 9 6"></polyline>
-                                </svg>
+                                <use
+                                    svg="!lucide/chevron-right.svg"
+                                    size="22"
+                                    id="in-library-chevron"
+                                    style="transition: transform 0.25s ease; flex-shrink: 0"
+                                />
                             </button>
                         </h2>
                         <div class="track-list" id="artist-detail-in-library" hidden></div>
@@ -3376,52 +2408,15 @@
                             </div>
                             <div class="detail-header-actions">
                                 <button id="play-track-btn" class="btn-primary" title="Play">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="currentColor"
-                                    >
-                                        <polygon points="7 3 21 12 7 21 7 3"></polygon>
-                                    </svg>
+                                    <use svg="./images/play.svg" size="20" />
                                     <span>Play</span>
                                 </button>
                                 <button id="track-lyrics-btn" class="btn-secondary" title="Lyrics">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-                                        <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                                        <line x1="12" y1="19" x2="12" y2="22" />
-                                        <line x1="8" y1="22" x2="16" y2="22" />
-                                    </svg>
+                                    <use svg="./images/mic.svg" size="20" />
                                     <span>Lyrics</span>
                                 </button>
                                 <button id="share-track-btn" class="btn-secondary" title="Share">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                                        <polyline points="16 6 12 2 8 6" />
-                                        <line x1="12" y1="2" x2="12" y2="15" />
-                                    </svg>
+                                    <use svg="!lucide/share.svg" size="20" />
                                     <span>Share</span>
                                 </button>
                                 <button
@@ -3431,40 +2426,11 @@
                                     data-type="track"
                                     title="Save to Favorites"
                                 >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        class="heart-icon"
-                                    >
-                                        <path
-                                            d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
-                                        ></path>
-                                    </svg>
+                                    <use svg="!lucide/heart.svg" class="heart-icon" size="20" />
                                     <span>Save</span>
                                 </button>
                                 <button id="download-track-btn" class="btn-secondary" title="Download">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="20"
-                                        height="20"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                    >
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                        <polyline points="7 10 12 15 17 10"></polyline>
-                                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                                    </svg>
+                                    <use svg="!lucide/download.svg" size="20" />
                                     <span>Download</span>
                                 </button>
                             </div>
@@ -3554,21 +2520,7 @@
                         onsubmit="return false;"
                         style="margin: 1rem 0"
                     >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            class="search-icon"
-                        >
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                        </svg>
+                        <use svg="!lucide/search.svg" class="search-icon" size="20" />
                         <input
                             type="search"
                             id="settings-search-input"
@@ -4895,20 +3847,7 @@
                                                 class="btn-secondary"
                                                 title="Reset to Flat"
                                             >
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    width="16"
-                                                    height="16"
-                                                    viewBox="0 0 24 24"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    stroke-width="2"
-                                                    stroke-linecap="round"
-                                                    stroke-linejoin="round"
-                                                >
-                                                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                                                    <path d="M3 3v5h5" />
-                                                </svg>
+                                                <use svg="!lucide/rotate-ccw.svg" size="16" />
                                             </button>
                                             <button
                                                 id="eq-export-btn"
@@ -4956,22 +3895,7 @@
                                                 style="display: none"
                                                 title="Delete selected custom preset"
                                             >
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    width="16"
-                                                    height="16"
-                                                    viewBox="0 0 24 24"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    stroke-width="2"
-                                                    stroke-linecap="round"
-                                                    stroke-linejoin="round"
-                                                >
-                                                    <polyline points="3 6 5 6 21 6" />
-                                                    <path
-                                                        d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                                                    />
-                                                </svg>
+                                                <use svg="!lucide/trash.svg" size="16" />
                                                 Delete Preset
                                             </button>
                                         </div>
@@ -5642,37 +4566,7 @@
 
                         <div class="download-buttons-icons">
                             <div class="download-buttons-icons-windows" style="display: flex; justify-content: center">
-                                <svg
-                                    width="96px"
-                                    height="96px"
-                                    viewBox="0 0 20 20"
-                                    version="1.1"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    xmlns:xlink="http://www.w3.org/1999/xlink"
-                                    fill="#000000"
-                                >
-                                    <g stroke-width="0"></g>
-                                    <g stroke-linecap="round" stroke-linejoin="round"></g>
-                                    <g>
-                                        <title>windows [#FFF174]</title>
-                                        <desc>Created with Sketch.</desc>
-                                        <defs></defs>
-                                        <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                                            <g
-                                                id="Dribbble-Light-Preview"
-                                                transform="translate(-60.000000, -7439.000000)"
-                                                fill="var(--foreground)"
-                                            >
-                                                <g id="icons" transform="translate(56.000000, 160.000000)">
-                                                    <path
-                                                        d="M13.1458647,7289.43426 C13.1508772,7291.43316 13.1568922,7294.82929 13.1619048,7297.46884 C16.7759398,7297.95757 20.3899749,7298.4613 23.997995,7299 C23.997995,7295.84873 24.002005,7292.71146 23.997995,7289.71311 C20.3809524,7289.71311 16.7649123,7289.43426 13.1458647,7289.43426 M4,7289.43526 L4,7296.22153 C6.72581454,7296.58933 9.45162907,7296.94113 12.1724311,7297.34291 C12.1774436,7294.71736 12.1704261,7292.0908 12.1704261,7289.46524 C9.44661654,7289.47024 6.72380952,7289.42627 4,7289.43526 M4,7281.84344 L4,7288.61071 C6.72581454,7288.61771 9.45162907,7288.57673 12.1774436,7288.57973 C12.1754386,7285.96017 12.1754386,7283.34361 12.1724311,7280.72405 C9.44461153,7281.06486 6.71679198,7281.42567 4,7281.84344 M24,7288.47179 C20.3879699,7288.48578 16.7759398,7288.54075 13.1619048,7288.55175 C13.1598997,7285.88921 13.1598997,7283.22967 13.1619048,7280.56914 C16.7689223,7280.01844 20.3839599,7279.50072 23.997995,7279 C24,7282.15826 23.997995,7285.31353 24,7288.47179"
-                                                        id="windows-[#FFF174]"
-                                                    ></path>
-                                                </g>
-                                            </g>
-                                        </g>
-                                    </g>
-                                </svg>
+                                <use svg="./images/windows.svg" size="96" />
                             </div>
                             <br />
                             <div style="display: flex; justify-content: center">
@@ -5685,23 +4579,7 @@
                             </div>
                             <br />
                             <div class="download-buttons-icons-linux" style="display: flex; justify-content: center">
-                                <svg
-                                    width="96px"
-                                    height="96px"
-                                    viewBox="0 0 16 16"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    fill="none"
-                                    stroke=""
-                                >
-                                    <g stroke-width="0"></g>
-                                    <g stroke-linecap="round" stroke-linejoin="round"></g>
-                                    <g>
-                                        <path
-                                            fill="var(--foreground)"
-                                            d="M8.294 1c-.09 0-.184.005-.28.012-2.465.194-1.811 2.804-1.85 3.674-.043.637-.174 1.14-.612 1.762-.516.613-1.24 1.604-1.584 2.637-.162.485-.24.982-.167 1.452a.247.247 0 00-.064.079c-.152.156-.263.35-.387.49-.116.115-.283.155-.465.232-.183.08-.384.157-.504.397a.78.78 0 00-.077.351c0 .116.016.234.032.313.034.233.068.425.023.566-.145.396-.163.668-.062.865.102.195.313.275.549.351.472.117 1.114.079 1.618.35.54.272 1.088.39 1.526.274.307-.067.566-.27.705-.552.342-.001.717-.157 1.318-.194.408-.034.918.155 1.503.116.015.078.037.116.067.194l.001.002c.229.454.65.66 1.1.625.45-.035.928-.313 1.316-.762.368-.446.982-.632 1.387-.877.203-.116.367-.273.379-.497.013-.234-.117-.473-.417-.803v-.056l-.002-.002c-.099-.117-.145-.312-.197-.54-.05-.234-.106-.459-.287-.61h-.001c-.035-.032-.072-.04-.11-.08a.208.208 0 00-.11-.037c.25-.745.153-1.487-.102-2.154-.31-.823-.854-1.54-1.269-2.032-.464-.587-.919-1.142-.91-1.965.016-1.255.138-3.578-2.067-3.581zm.309 1.986h.007c.125 0 .231.036.34.116a.89.89 0 01.256.31c.062.152.093.268.097.423 0-.012.004-.023.004-.035v.061a.05.05 0 01-.003-.012l-.002-.014c-.001.142-.03.282-.087.412a.556.556 0 01-.125.195.415.415 0 00-.051-.024c-.06-.027-.115-.038-.166-.078a.765.765 0 00-.128-.038c.03-.035.085-.078.107-.116a.69.69 0 00.051-.234V3.94a.706.706 0 00-.035-.233c-.027-.079-.06-.117-.107-.195-.05-.038-.098-.077-.156-.077h-.01c-.054 0-.102.018-.152.077a.467.467 0 00-.12.195.688.688 0 00-.052.234v.01c0 .053.004.105.011.156-.112-.039-.255-.078-.354-.117a.954.954 0 01-.01-.117V3.86a1.034 1.034 0 01.087-.448.63.63 0 01.251-.31.575.575 0 01.347-.117zm-1.728.035h.02c.084 0 .158.028.234.078a.806.806 0 01.2.272c.053.116.082.233.09.389v.002a.856.856 0 01-.002.155v.047l-.048.014c-.089.032-.16.079-.23.117a.633.633 0 00.002-.156V3.93c-.007-.078-.023-.117-.047-.194a.358.358 0 00-.097-.156.145.145 0 00-.107-.037h-.012c-.042.003-.076.023-.109.077a.322.322 0 00-.07.157.55.55 0 00-.013.193v.008c.007.08.021.117.047.195a.363.363 0 00.096.157c.006.005.012.01.02.014-.04.033-.068.04-.102.079a.177.177 0 01-.077.04 1.53 1.53 0 01-.16-.235 1.034 1.034 0 01-.09-.389c-.01-.132.005-.264.046-.39a.834.834 0 01.165-.312c.075-.077.152-.116.244-.116zm.799.995c.194 0 .428.038.71.233.17.116.304.157.613.273h.002c.149.079.236.155.279.232v-.076a.333.333 0 01.009.274c-.072.18-.301.375-.62.491v.001c-.156.08-.292.195-.452.272-.161.078-.343.17-.59.155a.664.664 0 01-.262-.039 2.077 2.077 0 01-.188-.115c-.113-.079-.211-.194-.357-.271v-.003h-.003c-.233-.144-.359-.299-.4-.414-.04-.157-.003-.275.113-.35.13-.08.221-.159.282-.197.06-.043.083-.059.102-.076h.001v-.002c.099-.117.255-.274.49-.35.08-.021.171-.038.272-.038h-.001zm1.633 1.25c.21.826.698 2.026 1.012 2.609.167.311.5.967.643 1.764.091-.003.193.01.3.037.376-.975-.319-2.022-.636-2.314-.128-.116-.135-.195-.071-.195.344.312.796.917.96 1.608.075.312.093.644.012.974.039.017.079.035.12.04.601.311.824.547.717.896v-.025c-.035-.002-.07 0-.105 0h-.01c.089-.272-.106-.481-.62-.714-.534-.233-.96-.196-1.033.271-.005.025-.008.039-.01.079-.04.013-.082.03-.123.037-.25.157-.386.39-.462.693-.076.31-.1.674-.12 1.09v.002c-.011.195-.099.489-.186.787-.875.626-2.088.897-3.12.195a1.543 1.543 0 00-.234-.31.846.846 0 00-.16-.195.963.963 0 00.27-.04.359.359 0 00.184-.194c.063-.156 0-.407-.201-.678-.201-.273-.543-.58-1.043-.888-.368-.233-.575-.507-.671-.814-.096-.312-.083-.633-.009-.96.143-.624.51-1.23.743-1.611.063-.038.022.078-.238.568-.23.438-.665 1.456-.07 2.248.022-.578.15-1.146.377-1.678.329-.745 1.016-2.044 1.07-3.073.029.021.127.08.17.118.126.078.22.194.343.271a.694.694 0 00.511.196l.065.003c.24 0 .425-.078.581-.156.17-.078.304-.195.432-.233h.003c.272-.08.487-.235.609-.409zm1.275 5.225c.021.35.2.726.514.803.343.078.837-.194 1.045-.446l.123-.006c.184-.004.337.006.494.156l.002.002c.121.116.178.31.228.511.05.233.09.455.239.622.283.307.376.528.37.665l.003-.004v.01l-.002-.007c-.009.153-.108.231-.29.347-.368.234-1.02.416-1.434.916-.36.43-.8.665-1.188.695-.387.03-.721-.117-.918-.524l-.003-.002c-.122-.233-.07-.597.033-.985.103-.39.25-.784.27-1.107.022-.417.044-.779.114-1.058.07-.271.18-.465.374-.574l.026-.013v-.001zm-6.308.028h.006a.53.53 0 01.091.009c.22.032.412.194.597.438l.53.97.003.003c.141.31.44.62.693.955.253.348.45.66.425.915v.004c-.033.434-.28.67-.656.755-.376.079-.887 0-1.397-.27-.565-.314-1.235-.274-1.667-.352-.215-.039-.355-.117-.421-.233-.064-.117-.066-.352.071-.718v-.002l.002-.002c.068-.195.017-.439-.016-.652-.032-.234-.049-.414.025-.549.093-.194.23-.233.402-.31.172-.08.374-.118.534-.275h.001c.15-.157.26-.351.39-.49.11-.117.222-.196.387-.196zM8.45 5.226c-.254.117-.551.312-.868.312-.316 0-.566-.155-.747-.272-.09-.078-.163-.156-.217-.195-.096-.078-.084-.194-.044-.194.064.01.076.078.117.117.056.038.125.116.21.194.17.116.396.272.68.272.283 0 .615-.156.816-.272.114-.078.26-.194.378-.272.09-.08.087-.156.163-.156.074.01.02.078-.086.194-.13.098-.264.189-.403.273zm-.631-.923V4.29c-.004-.012.007-.024.017-.03.043-.024.105-.015.151.003.037 0 .094.04.088.079-.004.029-.05.038-.079.038-.032 0-.054-.025-.082-.04-.03-.01-.085-.004-.095-.037zm-.322 0c-.011.034-.066.028-.097.038-.027.015-.05.04-.081.04-.03 0-.076-.012-.08-.04-.005-.038.052-.077.088-.077.047-.018.107-.028.151-.003.011.005.021.017.018.029v.012h.001z"
-                                        ></path>
-                                    </g>
-                                </svg>
+                                <use svg="./images/linux.svg" size="96" />
                             </div>
                             <br />
                             <div style="display: flex; justify-content: center">
@@ -5757,80 +4635,17 @@
                     </div>
                     <div class="buttons">
                         <button id="shuffle-btn" title="Shuffle">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="24"
-                                height="24"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                class="lucide lucide-shuffle-icon lucide-shuffle"
-                            >
-                                <path d="m18 14 4 4-4 4" />
-                                <path d="m18 2 4 4-4 4" />
-                                <path d="M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22" />
-                                <path d="M2 6h1.972a4 4 0 0 1 3.6 2.2" />
-                                <path d="M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45" />
-                            </svg>
+                            <use svg="!lucide/shuffle.svg" size="24" />
                         </button>
                         <button id="prev-btn" title="Previous">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="24"
-                                height="24"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                class="lucide lucide-arrow-left-to-line-icon lucide-arrow-left-to-line"
-                            >
-                                <path d="M3 19V5" />
-                                <path d="m13 6-6 6 6 6" />
-                                <path d="M7 12h14" />
-                            </svg>
+                            <use svg="!lucide/arrow-left-to-line.svg" size="24" />
                         </button>
                         <button class="play-pause-btn" title="Play"></button>
                         <button id="next-btn" title="Next">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="24"
-                                height="24"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                class="lucide lucide-arrow-right-to-line-icon lucide-arrow-right-to-line"
-                            >
-                                <path d="M17 12H3" />
-                                <path d="m11 18 6-6-6-6" />
-                                <path d="M21 5v14" />
-                            </svg>
+                            <use svg="!lucide/arrow-right-to-line.svg" size="24" />
                         </button>
                         <button id="repeat-btn" title="Repeat">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="24"
-                                height="24"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                class="lucide lucide-repeat-icon lucide-repeat"
-                            >
-                                <path d="m17 2 4 4-4 4" />
-                                <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
-                                <path d="m7 22-4-4 4-4" />
-                                <path d="M21 13v1a4 4 0 0 1-4 4H3" />
-                            </svg>
+                            <use svg="!lucide/repeat.svg" size="24" />
                         </button>
                     </div>
                     <div class="progress-container">
@@ -5851,20 +4666,7 @@
                             style="display: none"
                         ></button>
                         <button id="now-playing-add-playlist-btn" title="Add to Playlist" class="desktop-only">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            >
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                            </svg>
+                            <use svg="!lucide/square-pen.svg" size="20" />
                         </button>
 
                         <button
@@ -5874,125 +4676,26 @@
                             title="Track Mix"
                             style="display: none"
                         >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                            >
-                                <path
-                                    d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
-                                />
-                            </svg>
+                            <use svg="./images/mix.svg" size="20" />
                         </button>
                         <button id="toggle-lyrics-btn" title="Lyrics" style="display: none">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                class="lucide lucide-mic"
-                            >
-                                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
-                                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                                <line x1="12" y1="19" x2="12" y2="22" />
-                                <line x1="8" y1="22" x2="16" y2="22" />
-                            </svg>
+                            <use svg="./images/mic.svg" size="20" />
                         </button>
                         <button id="download-current-btn" title="Download current track" class="desktop-only">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            >
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="7 10 12 15 17 10"></polyline>
-                                <line x1="12" y1="15" x2="12" y2="3"></line>
-                            </svg>
+                            <use svg="!lucide/download.svg" size="20" />
                         </button>
                         <button id="cast-btn" title="Cast">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            >
-                                <path d="M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"></path>
-                                <path d="M2 12a9 9 0 0 1 9 9"></path>
-                                <path d="M2 17a5 5 0 0 1 5 5"></path>
-                                <path d="M2 22h.01"></path>
-                            </svg>
+                            <use svg="!lucide/cast.svg" size="20" />
                         </button>
 
                         <button id="mobile-add-playlist-btn" class="mobile-only">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            >
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                            </svg>
+                            <use svg="!lucide/square-pen.svg" size="20" />
                         </button>
                         <button id="sleep-timer-btn" title="Sleep Timer" class="mobile-only">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            >
-                                <circle cx="12" cy="12" r="10" />
-                                <polyline points="12,6 12,12 16,14" />
-                            </svg>
+                            <use svg="!lucide/clock.svg" size="20" />
                         </button>
                         <button id="queue-btn" title="Queue">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="24"
-                                height="24"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                class="lucide lucide-list-icon lucide-list"
-                            >
-                                <path d="M3 5h.01" />
-                                <path d="M3 12h.01" />
-                                <path d="M3 19h.01" />
-                                <path d="M8 5h13" />
-                                <path d="M8 12h13" />
-                                <path d="M8 19h13" />
-                            </svg>
+                            <use svg="!lucide/list.svg" size="24" />
                         </button>
                     </div>
                     <div class="volume-slider-row desktop-only">
@@ -6001,20 +4704,7 @@
                             <div id="volume-fill" class="volume-fill"></div>
                         </div>
                         <button id="sleep-timer-btn-desktop" title="Sleep Timer">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            >
-                                <circle cx="12" cy="12" r="10" />
-                                <polyline points="12,6 12,12 16,14" />
-                            </svg>
+                            <use svg="!lucide/clock.svg" size="20" />
                         </button>
                     </div>
                 </div>
