@@ -12,7 +12,6 @@ import {
 } from './utils.js';
 import { trackDateSettings } from './storage.js';
 import { APICache } from './cache.js';
-import { addMetadataToAudio, prefetchMetadataObjects } from './metadata.js';
 import { DashDownloader } from './dash-downloader.ts';
 import { HlsDownloader } from './hls-downloader.js';
 import { MP3EncodingError } from './mp3-encoder.js';
@@ -1321,6 +1320,8 @@ export class LosslessAPI {
     async downloadTrack(id, quality = 'HI_RES_LOSSLESS', filename, options = {}) {
         // Load ffmpeg in the background.
         loadFfmpeg().catch(console.error);
+        const metadataModule = await import('./metadata.js');
+        const { prefetchMetadataObjects, addMetadataToAudio } = metadataModule;
 
         const { onProgress, track, calculateDashBytes = true } = options;
         const prefetchPromises = prefetchMetadataObjects(track, this);
@@ -1499,7 +1500,11 @@ export class LosslessAPI {
                     }
 
                     onProgress?.(new DownloadProgress('Adding metadata'));
-                    blob = await addMetadataToAudio(blob, enrichedTrack, this, quality, prefetchPromises);
+                    try {
+                        blob = await addMetadataToAudio(blob, enrichedTrack, this, quality, prefetchPromises);
+                    } catch (err) {
+                        console.error(err);
+                    }
                 }
             }
 
