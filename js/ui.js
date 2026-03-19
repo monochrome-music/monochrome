@@ -1997,7 +1997,7 @@ export class UIRenderer {
         const searchContainer = document.getElementById('offline-search-container');
         const trackSearchInput = document.getElementById('offline-track-search-input');
         const artistSearchInput = document.getElementById('offline-artist-search-input');
-        const artistFilter = document.getElementById('offline-artist-filter');
+        const artistRow = document.getElementById('offline-artist-row');
         const exportBtn = document.getElementById('offline-export-btn');
         const importBtn = document.getElementById('offline-import-btn');
         const importFile = document.getElementById('offline-import-file');
@@ -2013,22 +2013,6 @@ export class UIRenderer {
             return artistNames.length > 0 ? artistNames : ['Unknown Artist'];
         };
 
-        if (artistFilter && !artistFilter._offlineScrollBound) {
-            artistFilter.addEventListener(
-                'wheel',
-                (event) => {
-                    if (artistFilter.scrollWidth <= artistFilter.clientWidth) return;
-                    const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
-                    if (delta === 0) return;
-                    artistFilter.scrollLeft += delta;
-                    if (Math.abs(event.deltaY) > 0) {
-                        event.preventDefault();
-                    }
-                },
-                { passive: false }
-            );
-            artistFilter._offlineScrollBound = true;
-        }
 
         // Destroy previous Clusterize instance if exists
         if (this._offlineClusterize) {
@@ -2072,7 +2056,7 @@ export class UIRenderer {
                 if (radioBtn) radioBtn.style.display = 'none';
                 if (clearBtn) clearBtn.style.display = 'none';
                 if (searchContainer) searchContainer.style.display = 'none';
-                if (artistFilter) artistFilter.style.display = 'none';
+                if (artistRow) artistRow.style.display = 'none';
                 if (trackSearchInput) trackSearchInput.value = '';
                 if (artistSearchInput) artistSearchInput.value = '';
                 if (exportBtn) exportBtn.style.display = 'none';
@@ -2103,68 +2087,59 @@ export class UIRenderer {
             this._offlinePlayableTracks = playableTracks;
             this._offlineVisibleTracks = playableTracks;
 
-            // Populate artist filter pills
+            // Populate artist autocomplete
             this._offlineSelectedArtist = null;
-            let renderArtistPills = () => {};
-            if (artistFilter) {
+            this._offlineArtists = [];
+            this._offlineArtistCounts = {};
+            {
                 const artistCounts = {};
                 playableTracks.forEach(t => {
                     const name = getOfflineArtistNames(t)[0];
                     artistCounts[name] = (artistCounts[name] || 0) + 1;
                 });
                 const artists = Object.keys(artistCounts).sort((a, b) => a.localeCompare(b));
+                this._offlineArtists = artists;
+                this._offlineArtistCounts = artistCounts;
 
-                if (artists.length >= 1) {
-                    artistFilter.style.display = 'flex';
+                if (artists.length >= 1 && artistSearchInput) {
+                    if (artistRow) artistRow.style.display = '';
+                    this.setupSearchClearButton(artistSearchInput);
 
-                    const pillStyle = 'display:inline-block;flex:0 0 auto;padding:5px 14px;border-radius:9999px;font-size:0.8rem;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--foreground);transition:all 0.15s;white-space:nowrap;';
-                    const activePillStyle = 'display:inline-block;flex:0 0 auto;padding:5px 14px;border-radius:9999px;font-size:0.8rem;cursor:pointer;border:1px solid var(--foreground);background:var(--foreground);color:var(--background);transition:all 0.15s;white-space:nowrap;';
+                    // Create datalist for autocomplete suggestions
+                    let datalist = document.getElementById('offline-artist-datalist');
+                    if (!datalist) {
+                        datalist = document.createElement('datalist');
+                        datalist.id = 'offline-artist-datalist';
+                        artistSearchInput.parentElement.appendChild(datalist);
+                    }
+                    artistSearchInput.setAttribute('list', 'offline-artist-datalist');
 
-                    renderArtistPills = () => {
-                        const artistQuery = (artistSearchInput?.value || '').toLowerCase().trim();
-                        const visibleArtists = artists.filter((name) => {
-                            if (name === this._offlineSelectedArtist) return true;
-                            return !artistQuery || name.toLowerCase().includes(artistQuery);
-                        });
+                    // Populate datalist options
+                    datalist.innerHTML = '';
+                    artists.forEach(name => {
+                        const opt = document.createElement('option');
+                        opt.value = name;
+                        opt.label = `${name} (${artistCounts[name]})`;
+                        datalist.appendChild(opt);
+                    });
 
-                        artistFilter.innerHTML = '';
-
-                        const allPill = document.createElement('button');
-                        allPill.textContent = 'All';
-                        allPill.style.cssText = this._offlineSelectedArtist ? pillStyle : activePillStyle;
-                        allPill.dataset.artist = '';
-                        allPill.type = 'button';
-                        artistFilter.appendChild(allPill);
-
-                        visibleArtists.forEach(name => {
-                            const pill = document.createElement('button');
-                            pill.textContent = `${name} (${artistCounts[name]})`;
-                            pill.style.cssText = name === this._offlineSelectedArtist ? activePillStyle : pillStyle;
-                            pill.dataset.artist = name;
-                            pill.type = 'button';
-                            artistFilter.appendChild(pill);
-                        });
-
-                        if (visibleArtists.length === 0) {
-                            const emptyLabel = document.createElement('span');
-                            emptyLabel.textContent = 'No artists found';
-                            emptyLabel.style.cssText = 'padding:5px 4px;font-size:0.8rem;color:var(--muted-foreground);white-space:nowrap;';
-                            artistFilter.appendChild(emptyLabel);
+                    const onArtistSearch = () => {
+                        const val = artistSearchInput.value.trim();
+                        const exactMatch = artists.find(a => a.toLowerCase() === val.toLowerCase());
+                        if (exactMatch) {
+                            this._offlineSelectedArtist = exactMatch;
+                        } else if (val === '') {
+                            this._offlineSelectedArtist = null;
                         }
-                    };
-
-                    renderArtistPills();
-
-                    artistFilter.onclick = (e) => {
-                        const pill = e.target.closest('button');
-                        if (!pill) return;
-                        const selected = pill.dataset.artist || null;
-                        this._offlineSelectedArtist = selected;
-                        renderArtistPills();
                         applyFilters();
                     };
+                    if (artistSearchInput._offlineSearchHandler) {
+                        artistSearchInput.removeEventListener('input', artistSearchInput._offlineSearchHandler);
+                    }
+                    artistSearchInput.addEventListener('input', onArtistSearch);
+                    artistSearchInput._offlineSearchHandler = onArtistSearch;
                 } else {
-                    artistFilter.style.display = 'none';
+                    if (artistRow) artistRow.style.display = 'none';
                 }
             }
 
@@ -2300,17 +2275,6 @@ export class UIRenderer {
                 trackSearchInput._offlineSearchHandler = applyFilters;
             }
 
-            if (artistSearchInput) {
-                if (artistSearchInput._offlineSearchHandler) {
-                    artistSearchInput.removeEventListener('input', artistSearchInput._offlineSearchHandler);
-                }
-                this.setupSearchClearButton(artistSearchInput);
-                const artistPillSearchHandler = () => {
-                    renderArtistPills();
-                };
-                artistSearchInput.addEventListener('input', artistPillSearchHandler);
-                artistSearchInput._offlineSearchHandler = artistPillSearchHandler;
-            }
         };
 
         await render();
