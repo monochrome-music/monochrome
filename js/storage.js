@@ -1590,6 +1590,73 @@ export const queueManager = {
     },
 };
 
+export const playbackContinuationSettings = {
+    STORAGE_KEY: 'monochrome-playback-positions-v1',
+    MAX_ENTRIES: 500,
+
+    _getAll() {
+        try {
+            const raw = localStorage.getItem(this.STORAGE_KEY);
+            const parsed = raw ? JSON.parse(raw) : {};
+            return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch {
+            return {};
+        }
+    },
+
+    _saveAll(map) {
+        try {
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(map));
+        } catch (e) {
+            console.warn('Failed to save playback continuation:', e);
+        }
+    },
+
+    getPosition(trackId) {
+        if (!trackId) return 0;
+        const all = this._getAll();
+        const entry = all[trackId];
+        if (!entry || typeof entry.position !== 'number' || !isFinite(entry.position) || entry.position <= 0) {
+            return 0;
+        }
+        return entry.position;
+    },
+
+    setPosition(trackId, position) {
+        if (!trackId) return;
+        const safePosition = Number(position);
+        if (!isFinite(safePosition) || safePosition <= 0) return;
+
+        const all = this._getAll();
+        all[trackId] = {
+            position: safePosition,
+            updatedAt: Date.now(),
+        };
+
+        const keys = Object.keys(all);
+        if (keys.length > this.MAX_ENTRIES) {
+            keys
+                .sort((a, b) => (all[a]?.updatedAt || 0) - (all[b]?.updatedAt || 0))
+                .slice(0, keys.length - this.MAX_ENTRIES)
+                .forEach((key) => delete all[key]);
+        }
+
+        this._saveAll(all);
+    },
+
+    clearPosition(trackId) {
+        if (!trackId) return;
+        const all = this._getAll();
+        if (!(trackId in all)) return;
+        delete all[trackId];
+        this._saveAll(all);
+    },
+
+    clearAll() {
+        localStorage.removeItem(this.STORAGE_KEY);
+    },
+};
+
 export const sidebarSettings = {
     STORAGE_KEY: 'monochrome-sidebar-collapsed',
 
