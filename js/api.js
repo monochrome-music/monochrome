@@ -21,6 +21,7 @@ import { triggerDownload, applyAudioPostProcessing } from './download-utils.ts';
 import { isCustomFormat } from './ffmpegFormats.ts';
 import { DownloadProgress } from './progressEvents.js';
 import { resolveDownloadTotalBytes } from './downloadProgressUtils.js';
+import { readableStreamIterator } from './readableStreamIterator.js';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 export { resolveDownloadTotalBytes };
@@ -1431,19 +1432,13 @@ export class LosslessAPI {
                 let receivedBytes = 0;
 
                 if (response.body) {
-                    const reader = response.body.getReader();
                     const chunks = [];
 
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
+                    for await (const chunk of readableStreamIterator(response.body)) {
+                        chunks.push(chunk);
+                        receivedBytes += chunk.byteLength;
 
-                        if (value) {
-                            chunks.push(value);
-                            receivedBytes += value.byteLength;
-
-                            onProgress?.(new DownloadProgress(receivedBytes, totalBytes || undefined));
-                        }
+                        onProgress?.(new DownloadProgress(receivedBytes, totalBytes || undefined));
                     }
 
                     const defaultMime = isVideo ? 'video/mp4' : 'audio/flac';

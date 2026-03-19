@@ -4706,8 +4706,8 @@
                                         <span class="description">Quality for streaming playback</span>
                                     </div>
                                     <select id="streaming-quality-setting">
-                                        <option value="HI_RES_LOSSLESS">Hi-Res FLAC (24-bit)</option>
-                                        <option value="LOSSLESS">FLAC (Lossless)</option>
+                                        <option value="HI_RES_LOSSLESS">Hi-Res Lossless (24-bit)</option>
+                                        <option value="LOSSLESS">Lossless (16-bit)</option>
                                         <option value="HIGH">AAC 320kbps</option>
                                         <option value="LOW">AAC 96kbps</option>
                                     </select>
@@ -5150,17 +5150,27 @@
                                         <span class="slider"></span>
                                     </label>
                                 </div>
-                                <div class="setting-item">
-                                    <div class="info">
-                                        <span class="label">Download Quality</span>
-                                        <span class="description">Quality for track downloads</span>
+                                <div>
+                                    <div class="setting-item">
+                                        <div class="info">
+                                            <span class="label">Download Quality</span>
+                                            <span class="description">Quality for track downloads</span>
+                                        </div>
+                                        <select id="download-quality-setting">
+                                            <option value="HI_RES_LOSSLESS">Hi-Res Lossless (24-bit)</option>
+                                            <option value="LOSSLESS">Lossless (16-bit)</option>
+                                            <option value="HIGH">AAC 320kbps</option>
+                                            <option value="LOW">AAC 96kbps</option>
+                                        </select>
                                     </div>
-                                    <select id="download-quality-setting">
-                                        <option value="HI_RES_LOSSLESS">Hi-Res FLAC (24-bit)</option>
-                                        <option value="LOSSLESS">FLAC (Lossless)</option>
-                                        <option value="HIGH">AAC 320kbps</option>
-                                        <option value="LOW">AAC 96kbps</option>
-                                    </select>
+                                    <div class="setting-item" id="hi-res-download-warning" style="display: none">
+                                        <div class="info setting-details">
+                                            <span class="description">
+                                                24-bit downloads may crash the browser on some devices, or be missing
+                                                metadata.
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="setting-item">
                                     <div class="info">
