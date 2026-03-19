@@ -2230,43 +2230,7 @@
                             <line x1="3" y1="18" x2="21" y2="18"></line>
                         </svg>
                     </button>
-                    <div class="header-account-control" style="position: relative; margin-right: 1rem">
-                        <button
-                            id="header-account-btn"
-                            class="btn-icon"
-                            title="Account"
-                            style="
-                                width: 36px;
-                                height: 36px;
-                                border-radius: 50%;
-                                overflow: hidden;
-                                padding: 0;
-                                border: 1px solid var(--border);
-                            "
-                        >
-                            <svg
-                                id="header-account-icon"
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="20"
-                                height="20"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            >
-                                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
-                            <img
-                                id="header-account-img"
-                                alt="Account avatar"
-                                style="width: 100%; height: 100%; object-fit: cover; display: none"
-                            />
-                        </button>
-                        <div id="header-account-dropdown" class="dropdown-menu"></div>
-                    </div>
+                    <span id="header-version-badge" class="header-version-badge"></span>
                     <form class="search-bar" id="search-form">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -2859,6 +2823,16 @@
                     </div>
                     <div id="offline-artist-filter" style="display: none">
                     </div>
+                    <button id="offline-radio-btn" class="offline-radio-btn" title="Offline Radio 24h" style="display: none">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/>
+                            <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.4"/>
+                            <circle cx="12" cy="12" r="2"/>
+                            <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.4"/>
+                            <path d="M19.1 4.9C23 8.8 23 15.1 19.1 19"/>
+                        </svg>
+                        <span>Start Radio with selected tracks</span>
+                    </button>
                     <div id="offline-empty-state" style="display: none; text-align: center; padding: 3rem 1rem">
                         <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--muted-foreground)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 1rem; opacity: 0.4">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -3749,13 +3723,34 @@
                         </button>
                     </form>
                     <div class="settings-tabs">
-                        <button class="settings-tab active" data-tab="appearance">Appearance</button>
-                        <button class="settings-tab" data-tab="interface">Interface</button>
-                        <button class="settings-tab" data-tab="scrobbling">Scrobbling</button>
-                        <button class="settings-tab" data-tab="audio">Audio</button>
-                        <button class="settings-tab" data-tab="downloads">Downloads</button>
-                        <button class="settings-tab" data-tab="instances">Instances</button>
-                        <button class="settings-tab" data-tab="system">System</button>
+                        <button class="settings-tab active" data-tab="appearance">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                            <span>Appearance</span>
+                        </button>
+                        <button class="settings-tab" data-tab="interface">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+                            <span>Interface</span>
+                        </button>
+                        <button class="settings-tab" data-tab="scrobbling">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                            <span>Scrobbling</span>
+                        </button>
+                        <button class="settings-tab" data-tab="audio">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                            <span>Audio</span>
+                        </button>
+                        <button class="settings-tab" data-tab="downloads">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            <span>Downloads</span>
+                        </button>
+                        <button class="settings-tab" data-tab="instances">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                            <span>Instances</span>
+                        </button>
+                        <button class="settings-tab" data-tab="system">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+                            <span>System</span>
+                        </button>
                     </div>
                     <div class="settings-tab-content active" id="settings-tab-appearance">
                         <div class="settings-list">

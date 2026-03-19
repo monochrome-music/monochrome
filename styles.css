@@ -1272,6 +1272,21 @@ ul {
     z-index: 1000;
 }
 
+.header-version-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    background: var(--secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    padding: 0.2rem 0.6rem;
+    white-space: nowrap;
+    user-select: none;
+    letter-spacing: 0.03em;
+    margin-right: 0.75rem;
+    flex-shrink: 0;
+}
+
 .navigation-controls {
     display: flex;
     gap: 0.5rem;
@@ -1687,19 +1702,28 @@ input[type='search']::-webkit-search-cancel-button {
 /* Settings Tabs */
 .settings-tabs {
     display: flex;
-    gap: var(--spacing-xs);
+    gap: var(--spacing-sm);
     margin-bottom: var(--spacing-lg);
     border-bottom: 1px solid var(--border);
-    flex-wrap: wrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 2px;
+}
+
+.settings-tabs::-webkit-scrollbar {
+    display: none;
 }
 
 .settings-tab {
     background: transparent;
     border: none;
     color: var(--muted-foreground);
-    padding: var(--spacing-sm) var(--spacing-lg);
+    padding: var(--spacing-sm) var(--spacing-md);
     cursor: pointer;
-    font-size: 1rem;
+    font-size: 0.75rem;
     font-weight: 500;
     border-bottom: 2px solid transparent;
     border-radius: var(--radius-sm) var(--radius-sm) 0 0;
@@ -1708,11 +1732,28 @@ input[type='search']::-webkit-search-cancel-button {
         background-color var(--transition-fast),
         transform var(--transition-fast);
     position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: 64px;
+}
+
+.settings-tab svg {
+    flex-shrink: 0;
+    opacity: 0.7;
+    transition: opacity var(--transition-fast);
 }
 
 .settings-tab:hover {
     color: var(--foreground);
     background-color: rgb(var(--highlight-rgb), 0.05);
+}
+
+.settings-tab:hover svg {
+    opacity: 1;
 }
 
 .settings-tab:active {
@@ -1724,6 +1765,11 @@ input[type='search']::-webkit-search-cancel-button {
     border-bottom-color: var(--highlight);
 }
 
+.settings-tab.active svg {
+    opacity: 1;
+}
+
+/* Settings Tab Content */
 .settings-tab-content {
     display: none;
 }
@@ -6462,6 +6508,66 @@ img[src=''] {
         bottom: 10px;
     }
 
+    /* ── Offline page mobile fixes ── */
+    #page-offline > div:first-child {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    #page-offline > div:first-child > div:last-child {
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+    }
+
+    /* Icon-only buttons on mobile — hide text labels */
+    #offline-export-btn span,
+    #offline-import-btn span,
+    #offline-clear-btn span {
+        display: none;
+    }
+
+    /* Show progress text when buttons are disabled (actively exporting/importing) */
+    #offline-export-btn:disabled span,
+    #offline-import-btn:disabled span {
+        display: inline;
+        font-size: 0.75rem;
+    }
+
+    #offline-export-btn,
+    #offline-import-btn,
+    #offline-clear-btn {
+        padding: 0.4rem;
+        min-width: 36px;
+        min-height: 36px;
+        justify-content: center;
+    }
+
+    .offline-search-grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+        margin: 0.75rem 0;
+    }
+
+    /* Track scroll list — don't use fixed max-height on mobile,
+       let the document scroll naturally since .main-content is
+       overflow-y: visible on mobile */
+    #offline-tracks-scroll {
+        max-height: none !important;
+        overflow-y: visible !important;
+    }
+
+    #offline-artist-filter {
+        padding-bottom: 0.75rem;
+        gap: 0.4rem;
+        scroll-snap-type: x proximity;
+    }
+
+    #offline-artist-filter button {
+        scroll-snap-align: start;
+    }
+
     .side-panel {
         width: 100vw;
         max-width: 100vw;
@@ -6566,6 +6672,32 @@ img[src=''] {
 
     .offline-search-grid {
         grid-template-columns: 1fr;
+    }
+
+    /* Smaller section title for offline on very narrow screens */
+    #page-offline .section-title {
+        font-size: 1.15rem;
+    }
+
+    #offline-storage-info {
+        font-size: 0.75rem !important;
+    }
+
+    #offline-empty-state {
+        padding: 2rem 0.75rem !important;
+    }
+
+    #offline-empty-state svg {
+        width: 48px;
+        height: 48px;
+    }
+
+    #offline-empty-state h3 {
+        font-size: 1rem;
+    }
+
+    #offline-empty-state p {
+        font-size: 0.8rem !important;
     }
 
     .section-title {
@@ -8475,4 +8607,53 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 @keyframes float {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-8px); }
+}
+
+/* Offline Radio Button */
+.offline-radio-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.6rem 1rem;
+    margin: 0.75rem 0;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--muted-foreground);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.offline-radio-btn:hover {
+    color: var(--foreground);
+    border-color: var(--foreground);
+    background: rgba(var(--highlight-rgb), 0.05);
+}
+
+.offline-radio-btn.offline-radio-active {
+    border-style: solid;
+    border-color: var(--highlight);
+    background: var(--highlight);
+    color: var(--background);
+}
+
+.offline-radio-btn.offline-radio-active:hover {
+    opacity: 0.9;
+}
+
+.offline-radio-btn.offline-radio-active svg {
+    stroke: var(--background);
+}
+
+@keyframes radio-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.offline-radio-active svg {
+    animation: radio-pulse 1.5s ease-in-out infinite;
 }

@@ -388,6 +388,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         aboutVersion.textContent = `v${APP_VERSION}`;
     }
 
+    // Set version in header badge
+    const headerVersionBadge = document.getElementById('header-version-badge');
+    if (headerVersionBadge && typeof APP_VERSION !== 'undefined') {
+        headerVersionBadge.textContent = `v${APP_VERSION}`;
+    }
+
     new ThemeStore();
 
     const api = new MusicAPI(apiSettings);
@@ -623,7 +629,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (mode === 'cover') {
             const overlay = document.getElementById('fullscreen-cover-overlay');
             if (overlay && overlay.style.display === 'flex') {
-                if (window.location.hash === '#fullscreen') {
+                if (window.location.hash.startsWith('#fullscreen')) {
                     window.history.back();
                 } else {
                     ui.closeFullscreenCover();
@@ -648,7 +654,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('close-fullscreen-cover-btn')?.addEventListener('click', () => {
         trackCloseFullscreenCover();
-        if (window.location.hash === '#fullscreen') {
+        if (window.location.hash.startsWith('#fullscreen')) {
             window.history.back();
         } else {
             ui.closeFullscreenCover();
@@ -667,7 +673,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         switch (action) {
             case 'exit':
-                if (window.location.hash === '#fullscreen') {
+                if (window.location.hash.startsWith('#fullscreen')) {
                     window.history.back();
                 } else {
                     ui.closeFullscreenCover();
@@ -713,7 +719,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             case 'nothing':
                 break;
             default:
-                if (window.location.hash === '#fullscreen') {
+                if (window.location.hash.startsWith('#fullscreen')) {
                     window.history.back();
                 } else {
                     ui.closeFullscreenCover();
@@ -2558,7 +2564,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const overlay = document.getElementById('fullscreen-cover-overlay');
         const isFullscreenOpen = overlay && getComputedStyle(overlay).display === 'flex';
 
-        if (isFullscreenOpen && window.location.hash !== '#fullscreen') {
+        if (isFullscreenOpen && !window.location.hash.startsWith('#fullscreen')) {
             ui.closeFullscreenCover();
         }
 
@@ -2740,95 +2746,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         observer.observe(contextMenu, { attributes: true });
     }
 
-    const headerAccountBtn = document.getElementById('header-account-btn');
-    const headerAccountDropdown = document.getElementById('header-account-dropdown');
-    const headerAccountImg = document.getElementById('header-account-img');
-    const headerAccountIcon = document.getElementById('header-account-icon');
 
-    // Temporarily disable accounts - show popup
-    const isAccountsDisabled = false;
-
-    if (headerAccountBtn && headerAccountDropdown) {
-        if (isAccountsDisabled) {
-            headerAccountBtn.style.opacity = '0.5';
-            headerAccountBtn.style.cursor = 'not-allowed';
-            headerAccountBtn.title = 'Accounts temporarily unavailable';
-            headerAccountBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                alert(
-                    "We're moving authentication and data storing systems.\n\nAccounts, profiles, playlists, and community themes will not work during this period (approximately 2 days).\n\nYou will need to re-login after the migration is complete."
-                );
-            });
-        } else {
-            headerAccountBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                headerAccountDropdown.classList.toggle('active');
-                updateAccountDropdown();
-            });
-        }
-
-        document.addEventListener('click', (e) => {
-            if (!headerAccountBtn.contains(e.target) && !headerAccountDropdown.contains(e.target)) {
-                headerAccountDropdown.classList.remove('active');
-            }
-        });
-
-        async function updateAccountDropdown() {
-            const user = authManager?.user;
-            headerAccountDropdown.innerHTML = '';
-
-            if (!user) {
-                headerAccountDropdown.innerHTML = `
-                    <button class="btn-secondary" id="header-google-auth">Connect with Google</button>
-                    <button class="btn-secondary" id="header-email-auth">Connect with Email</button>
-                `;
-                document.getElementById('header-google-auth').onclick = () => authManager.signInWithGoogle();
-                document.getElementById('header-email-auth').onclick = () => {
-                    document.getElementById('email-auth-modal').classList.add('active');
-                    headerAccountDropdown.classList.remove('active');
-                };
-            } else {
-                const data = await syncManager.getUserData();
-                const hasProfile = data && data.profile && data.profile.username;
-
-                if (hasProfile) {
-                    headerAccountDropdown.innerHTML = `
-                        <button class="btn-secondary" id="header-view-profile">My Profile</button>
-                        <button class="btn-secondary danger" id="header-sign-out">Sign Out</button>
-                    `;
-                    document.getElementById('header-view-profile').onclick = () => {
-                        navigate(`/user/@${data.profile.username}`);
-                        headerAccountDropdown.classList.remove('active');
-                    };
-                } else {
-                    headerAccountDropdown.innerHTML = `
-                        <button class="btn-primary" id="header-create-profile">Create Profile</button>
-                        <button class="btn-secondary danger" id="header-sign-out">Sign Out</button>
-                    `;
-                    document.getElementById('header-create-profile').onclick = () => {
-                        openEditProfile();
-                        headerAccountDropdown.classList.remove('active');
-                    };
-                }
-
-                document.getElementById('header-sign-out').onclick = () => authManager.signOut();
-            }
-        }
-
-        authManager.onAuthStateChanged(async (user) => {
-            if (user) {
-                const data = await syncManager.getUserData();
-                if (data && data.profile && data.profile.avatar_url) {
-                    headerAccountImg.src = data.profile.avatar_url;
-                    headerAccountImg.style.display = 'block';
-                    headerAccountIcon.style.display = 'none';
-                    return;
-                }
-            }
-            headerAccountImg.style.display = 'none';
-            headerAccountIcon.style.display = 'block';
-        });
-    }
+    // Header account button removed — version badge shown instead
 });
 
 function showUpdateNotification(updateCallback) {

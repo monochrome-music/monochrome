@@ -1114,7 +1114,7 @@ export class UIRenderer {
 
     async showFullscreenCover(track, nextTrack, lyricsManager, activeElement) {
         if (!track) return;
-        if (window.location.hash !== '#fullscreen') {
+        if (!window.location.hash.startsWith('#fullscreen')) {
             window.history.pushState({ fullscreen: true }, '', '#fullscreen');
         }
         const overlay = document.getElementById('fullscreen-cover-overlay');
@@ -1206,6 +1206,28 @@ export class UIRenderer {
         const overlay = document.getElementById('fullscreen-cover-overlay');
         overlay.style.display = 'none';
         overlay.classList.remove('visualizer-active', 'ui-hidden');
+
+        // Turn off offline radio when fullscreen closes
+        if (this._offlineRadioActive) {
+            this._offlineRadioActive = false;
+            if (this.player) {
+                this.player.repeatMode = 0;
+                this.player.shuffleActive = false;
+                // Pause audio when radio stops
+                if (this.player.activeElement) {
+                    this.player.activeElement.pause();
+                }
+            }
+            window.dispatchEvent(new CustomEvent('repeat-mode-changed'));
+            // Update the radio button label if it exists
+            const radioBtn = document.getElementById('offline-radio-btn');
+            if (radioBtn) {
+                radioBtn.classList.remove('offline-radio-active');
+                const label = radioBtn.querySelector('span');
+                const selectedArtist = this._offlineSelectedArtist;
+                if (label) label.textContent = selectedArtist ? `Start Radio — ${selectedArtist} only` : 'Start Radio with all tracks';
+            }
+        }
 
         const playerBar = document.querySelector('.now-playing-bar');
         if (playerBar) playerBar.style.removeProperty('display');
@@ -1908,6 +1930,7 @@ export class UIRenderer {
         const emptyState = document.getElementById('offline-empty-state');
         const storageInfo = document.getElementById('offline-storage-info');
         const shuffleBtn = document.getElementById('offline-shuffle-btn');
+        const radioBtn = document.getElementById('offline-radio-btn');
         const clearBtn = document.getElementById('offline-clear-btn');
         const searchContainer = document.getElementById('offline-search-container');
         const trackSearchInput = document.getElementById('offline-track-search-input');
@@ -1984,6 +2007,7 @@ export class UIRenderer {
                 if (scrollEl) scrollEl.style.display = 'none';
                 if (emptyState) emptyState.style.display = 'block';
                 if (shuffleBtn) shuffleBtn.style.display = 'none';
+                if (radioBtn) radioBtn.style.display = 'none';
                 if (clearBtn) clearBtn.style.display = 'none';
                 if (searchContainer) searchContainer.style.display = 'none';
                 if (artistFilter) artistFilter.style.display = 'none';
@@ -2001,6 +2025,7 @@ export class UIRenderer {
             if (emptyState) emptyState.style.display = 'none';
             if (scrollEl) scrollEl.style.display = '';
             if (shuffleBtn) shuffleBtn.style.display = 'flex';
+            if (radioBtn) radioBtn.style.display = 'flex';
             if (clearBtn) clearBtn.style.display = 'flex';
             if (exportBtn) exportBtn.style.display = 'flex';
             if (searchContainer) searchContainer.style.display = '';
@@ -2239,6 +2264,74 @@ export class UIRenderer {
                 this.player.setQueue(shuffled, 0);
                 this.player.playAtIndex(0);
                 showNotification(`Shuffling ${shuffled.length} offline tracks`);
+            };
+        }
+
+        // Offline Radio 24h — endless shuffle with repeat all, uses current artist filter
+        if (radioBtn) {
+            // Update button visual state
+            const updateRadioBtnState = () => {
+                const isActive = this._offlineRadioActive === true;
+                radioBtn.classList.toggle('offline-radio-active', isActive);
+                const label = radioBtn.querySelector('span');
+                const selectedArtist = this._offlineSelectedArtist;
+                if (isActive) {
+                    const artistLabel = selectedArtist ? `${selectedArtist}` : 'all tracks';
+                    if (label) label.textContent = `📻 Radio ON — ${artistLabel}`;
+                    radioBtn.title = 'Stop Offline Radio';
+                } else {
+                    const filterLabel = selectedArtist ? `Start Radio — ${selectedArtist} only` : 'Start Radio with all tracks';
+                    if (label) label.textContent = filterLabel;
+                    radioBtn.title = 'Offline Radio 24h';
+                }
+            };
+            updateRadioBtnState();
+
+            // Update label when artist filter changes
+            if (artistFilter) {
+                const origClick = artistFilter.onclick;
+                artistFilter.addEventListener('click', () => {
+                    setTimeout(updateRadioBtnState, 10);
+                });
+            }
+
+            radioBtn.onclick = async () => {
+                if (this._offlineRadioActive) {
+                    // Close fullscreen → which turns off radio and restores everything
+                    this.closeFullscreenCover();
+                    showNotification('Offline Radio stopped');
+                    return;
+                }
+
+                // Use currently visible/filtered tracks
+                const visibleTracks = this._offlineVisibleTracks || this._offlinePlayableTracks || [];
+                if (visibleTracks.length === 0) {
+                    showNotification('No tracks available for radio');
+                    return;
+                }
+
+                // Fisher-Yates shuffle for better randomness
+                const shuffled = [...visibleTracks];
+                for (let i = shuffled.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                }
+
+                this._offlineRadioActive = true;
+                this.player.shuffleActive = true;
+                this.player.setQueue(shuffled, 0);
+                this.player.repeatMode = 2; // REPEAT_MODE.ALL
+                this.player.playAtIndex(0);
+                updateRadioBtnState();
+
+                const artistLabel = this._offlineSelectedArtist || 'All';
+                showNotification(`📻 Offline Radio — ${shuffled.length} tracks (${artistLabel})`);
+                window.dispatchEvent(new CustomEvent('repeat-mode-changed'));
+
+                // Auto-open fullscreen player with radio query
+                window.history.pushState({ fullscreen: true, radio: true }, '', '#fullscreen?radio=true');
+                const nextTrack = shuffled.length > 1 ? shuffled[1] : null;
+                this.showFullscreenCover(shuffled[0], nextTrack, null, this.player.activeElement);
             };
         }
 
