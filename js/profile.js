@@ -42,7 +42,14 @@ async function uploadImage(file) {
 
     try {
         const response = await fetch('/upload', { method: 'POST', body: formData });
-        if (!response.ok) throw new Error(`Upload failed: ${response.status}`);
+        if (!response.ok) {
+            let errorMessg = `Upload failed: ${response.status}`;
+            try {
+                const errData = await response.json();
+                if (errData.error) errorMessg = errData.error;
+            } catch (e) { }
+            throw new Error(errorMessg);
+        }
         const data = await response.json();
         if (!data.success) throw new Error(data.error || 'Upload failed');
         return data.url;
@@ -59,7 +66,7 @@ function setupImageUploadControl(idPrefix) {
     const toggleBtn = document.getElementById(idPrefix + '-toggle-btn');
     const statusEl = document.getElementById(idPrefix + '-upload-status');
 
-    if (!urlInput || !fileInput || !uploadBtn || !toggleBtn || !statusEl) return () => {};
+    if (!urlInput || !fileInput || !uploadBtn || !toggleBtn || !statusEl) return () => { };
 
     let useUrl = false;
 
@@ -104,8 +111,12 @@ function setupImageUploadControl(idPrefix) {
             setTimeout(() => {
                 statusEl.style.display = 'none';
             }, 2000);
-        } catch {
-            statusEl.textContent = 'Failed - try URL';
+        } catch (err) {
+            if (err.message == 'File too large') {
+                statusEl.textContent = 'File too large. - try URL';
+            } else {
+                statusEl.textContent = 'Failed - try URL';
+            }
             statusEl.style.color = '#ef4444';
         } finally {
             uploadBtn.disabled = false;

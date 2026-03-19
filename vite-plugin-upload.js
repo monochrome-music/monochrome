@@ -1,6 +1,6 @@
 import { formidable } from 'formidable';
 import fs from 'fs';
-import { Blob } from 'buffer';
+import path from 'path';
 import { loadEnv } from 'vite';
 
 export default function uploadPlugin() {
@@ -18,39 +18,24 @@ export default function uploadPlugin() {
                     res.statusCode = 400;
                     res.end(JSON.stringify({ success: false, error: 'No file provided' }));
                     return;
+                } else if (uploadedFile.size > 1024 * 1024 * 10) {
+                    res.statusCode = 400;
+                    res.end(JSON.stringify({ success: false, error: 'File too large' }));
+                    return;
                 }
 
-                const fileData = fs.readFileSync(uploadedFile.filepath);
-                const useR2 = env.R2_ENABLED === 'true';
-
-                let url;
-
-                if (useR2) {
-                    // We could implement R2 upload here too, but for simplicity in dev
-                    // we'll stick to catbox unless specifically requested to match R2 perfectly.
-                    // However, to be helpful, let's at least mention it.
-                    console.log('R2 upload detected in env, but dev plugin is using catbox fallback for now.');
+                const uploadFolder = path.join(process.cwd(), 'public', 'uploads');
+                if (!fs.existsSync(uploadFolder)) {
+                    fs.mkdirSync(uploadFolder, { recursive: true });
                 }
 
-                // Forward to catbox.moe (default production behavior when R2 is disabled)
-                const formData = new FormData();
-                formData.append('reqtype', 'fileupload');
-                formData.append(
-                    'fileToUpload',
-                    new Blob([fileData], { type: uploadedFile.mimetype }),
-                    uploadedFile.originalFilename
-                );
+                const ext = path.extname(uploadedFile.originalFilename || '');
+                const filename = Date.now() + '-' + Math.round(Math.random() * 1E9) + ext;
+                const destPath = path.join(uploadFolder, filename);
 
-                const response = await fetch('https://catbox.moe/user/api.php', {
-                    method: 'POST',
-                    body: formData,
-                });
+                fs.copyFileSync(uploadedFile.filepath, destPath);
 
-                url = await response.text();
-
-                if (!response.ok) {
-                    throw new Error(`Upload failed: ${url}`);
-                }
+                let url = `http://${req.headers.host}/uploads/${filename}`;
 
                 res.setHeader('Content-Type', 'application/json');
                 res.end(

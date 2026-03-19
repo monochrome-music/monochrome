@@ -858,7 +858,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 coverUploadStatus.style.display = 'none';
             }, 2000);
         } catch (error) {
-            coverUploadText.textContent = 'Failed - try URL';
+            if (error.message == 'File too large') {
+                coverUploadText.textContent = 'File too large. - try URL';
+            } else {
+                coverUploadText.textContent = 'Failed - try URL';
+            }
             coverUploadText.style.color = 'var(--error)';
             console.error('Upload failed:', error);
         } finally {
@@ -1597,10 +1601,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     summary.push(`${importResults.playlists.created} playlists`);
 
                                 alert(
-                                    `Imported to library:\n${summary.join(', ')}\n\n${
-                                        result.missingItems.length > 0
-                                            ? `${result.missingItems.length} items could not be found.`
-                                            : ''
+                                    `Imported to library:\n${summary.join(', ')}\n\n${result.missingItems.length > 0
+                                        ? `${result.missingItems.length} items could not be found.`
+                                        : ''
                                     }`
                                 );
                                 progressElement.style.display = 'none';
