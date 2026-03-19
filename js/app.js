@@ -357,21 +357,21 @@ async function disablePwaForAuthGate() {
 
 async function uploadCoverImage(file) {
     try {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const response = await fetch('/upload', {
-            method: 'POST',
-            body: formData,
+        const response = await fetch(`https://worker.uploads.monochrome.qzz.io/${file.name}`, {
+            method: 'PUT',
+            headers: {
+                'x-api-key': 'if_youre_reading_this_fuck_off',
+                'Content-Type': file.type || 'application/octet-stream',
+            },
+            body: file,
         });
 
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || `Upload failed: ${response.status}`);
+            if (response.status === 413) throw new Error('File exceeds 10MB');
+            throw new Error(`Upload failed: ${response.status}`);
         }
 
-        const data = await response.json();
-        return data.url;
+        return `https://images.monochrome.qzz.io/${await response.text()}`;
     } catch (error) {
         console.error('Cover upload error:', error);
         throw error;
