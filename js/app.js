@@ -19,7 +19,7 @@ import { LyricsManager, openLyricsPanel, clearLyricsPanelSync } from './lyrics.j
 import { createRouter, updateTabTitle, navigate } from './router.js';
 import { initializePlayerEvents, initializeTrackInteractions, handleTrackAction } from './events.js';
 import { initializeUIInteractions } from './ui-interactions.js';
-import { debounce, SVG_PLAY, getShareUrl } from './utils.js';
+import { debounce, getShareUrl } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 import { db } from './db.js';
 import { showNotification } from './downloads.js';
@@ -61,6 +61,15 @@ import {
     parseDynamicCSV,
     importToLibrary,
 } from './playlist-importer.js';
+import {
+    SVG_OFFLINE,
+    SVG_RIGHT_ARROW,
+    SVG_LEFT_ARROW,
+    SVG_ANIMATE_SPIN,
+    SVG_PLAY,
+    SVG_CLOSE,
+    SVG_RESET,
+} from './icons.js';
 
 // Capture real iOS state before spoofing (needed for background audio)
 if (typeof window !== 'undefined') {
@@ -310,11 +319,7 @@ function showOfflineNotification() {
     const notification = document.createElement('div');
     notification.className = 'offline-notification';
     notification.innerHTML = `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-            <line x1="12" y1="9" x2="12" y2="13"/>
-            <line x1="12" y1="17" x2="12.01" y2="17"/>
-        </svg>
+        ${SVG_OFFLINE(20)}
         <span>You are offline. Some features may not work.</span>
     `;
     document.body.appendChild(notification);
@@ -859,9 +864,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isCollapsed = document.body.classList.contains('sidebar-collapsed');
         const toggleBtn = document.getElementById('sidebar-toggle');
         if (toggleBtn) {
-            toggleBtn.innerHTML = isCollapsed
-                ? '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>'
-                : '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>';
+            toggleBtn.innerHTML = isCollapsed ? SVG_RIGHT_ARROW(20) : SVG_LEFT_ARROW(20);
         }
         // Save sidebar state to localStorage
         sidebarSettings.setCollapsed(isCollapsed);
@@ -1184,8 +1187,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             btn.disabled = true;
             const originalHTML = btn.innerHTML;
-            btn.innerHTML =
-                '<svg class="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Shuffling...</span>';
+            btn.innerHTML = `${SVG_ANIMATE_SPIN(18)}<span>Shuffling...</span>`;
 
             try {
                 const artist = await api.getArtist(artistId);
@@ -1257,8 +1259,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             btn.disabled = true;
             const originalHTML = btn.innerHTML;
-            btn.innerHTML =
-                '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Downloading...</span>';
+            btn.innerHTML = `${SVG_ANIMATE_SPIN(20)}<span>Downloading...</span>`;
 
             try {
                 const { mix, tracks } = await api.getMix(mixId);
@@ -1282,8 +1283,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             btn.disabled = true;
             const originalHTML = btn.innerHTML;
-            btn.innerHTML =
-                '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Downloading...</span>';
+            btn.innerHTML = `${SVG_ANIMATE_SPIN(20)}<span>Downloading...</span>`;
 
             try {
                 let playlist, tracks;
@@ -2200,8 +2200,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             btn.disabled = true;
             const originalHTML = btn.innerHTML;
-            btn.innerHTML =
-                '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Downloading...</span>';
+            btn.innerHTML = `${SVG_ANIMATE_SPIN(20)}<span>Downloading...</span>`;
 
             try {
                 const { album, tracks } = await api.getAlbum(albumId);
@@ -2324,8 +2323,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             btn.disabled = true;
             const originalHTML = btn.innerHTML;
-            btn.innerHTML =
-                '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Loading...</span>';
+            btn.innerHTML = `${SVG_ANIMATE_SPIN(20)}<span>Loading...</span>`;
 
             try {
                 const artist = await api.getArtist(artistId);
@@ -2413,8 +2411,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             btn.disabled = true;
             const originalHTML = btn.innerHTML;
-            btn.innerHTML =
-                '<svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg>';
+            btn.innerHTML = SVG_ANIMATE_SPIN(16);
 
             try {
                 const likedTracks = await db.getFavorites('track');
@@ -2600,7 +2597,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Gone offline');
     });
 
-    document.querySelector('.now-playing-bar .play-pause-btn').innerHTML = SVG_PLAY;
+    document.querySelector('.now-playing-bar .play-pause-btn').innerHTML = SVG_PLAY(20);
 
     const router = createRouter(ui);
 
@@ -2898,10 +2895,7 @@ function showUpdateNotification(updateCallback) {
         <div class="update-notification-actions">
             <button class="btn-primary" id="update-now-btn">Update Now</button>
             <button class="btn-icon" id="dismiss-update-btn" title="Dismiss">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
+                ${SVG_CLOSE(16)}
             </button>
         </div>
     `;
@@ -3075,8 +3069,7 @@ function showDiscographyDownloadModal(artist, api, quality, lyricsManager, trigg
 
         triggerBtn.disabled = true;
         const originalHTML = triggerBtn.innerHTML;
-        triggerBtn.innerHTML =
-            '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Downloading...</span>';
+        triggerBtn.innerHTML = `${SVG_ANIMATE_SPIN(20)}<span>Downloading...</span>`;
 
         try {
             const { downloadDiscography } = await loadDownloadsModule();
@@ -3174,10 +3167,7 @@ function showCustomizeShortcutsModal() {
                 <div class="shortcut-key">
                     <kbd class="${recordingAction === action ? 'recording' : ''}">${keyDisplay}</kbd>
                     <button class="shortcut-btn" title="Reset to default">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                            <path d="M3 3v5h5"/>
-                        </svg>
+                        ${SVG_RESET(16)}
                     </button>
                 </div>
             `;
