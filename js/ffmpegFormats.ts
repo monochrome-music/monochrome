@@ -130,6 +130,18 @@ export const customFormats: Record<string, CustomFormat> = {
     },
 };
 
+// Add wav to custom formats when vite is in dev mode
+if (import.meta.env.DEV) {
+    customFormats.FFMPEG_WAV = {
+        displayName: 'WAV (16-bit PCM)',
+        ffmpegArgs: ['-map_metadata', '-1'],
+        outputFilename: 'output.wav',
+        outputMime: 'audio/wav',
+        extension: 'wav',
+        category: 'WAV',
+    };
+}
+
 /**
  * Container format definitions for lossless re-muxing.  Each entry describes
  * the ffmpeg arguments needed to produce that container and provides a
