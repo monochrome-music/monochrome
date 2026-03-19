@@ -1,5 +1,4 @@
 //js/player.js
-import { MediaPlayer } from 'dashjs';
 import {
     REPEAT_MODE,
     formatTime,
@@ -20,7 +19,8 @@ import {
 } from './storage.js';
 import { audioContextManager } from './audio-context.js';
 import { db } from './db.js';
-import Hls from 'hls.js';
+
+import('./dash-media-player.js');
 import { SVG_CLOCK } from './icons.js';
 export class Player {
     constructor(audioElement, api, quality = 'HI_RES_LOSSLESS') {
@@ -52,7 +52,9 @@ export class Player {
         this.sleepTimer = null;
         this.sleepTimerEndTime = null;
         this.sleepTimerInterval = null;
+    }
 
+    async init() {
         // Apply audio effects when track is ready
         this.audio.addEventListener('canplay', () => {
             this.applyAudioEffects();
@@ -64,6 +66,7 @@ export class Player {
         }
 
         // Initialize dash.js player
+        const { MediaPlayer } = await import('./dash-media-player.js');
         this.dashPlayer = MediaPlayer().create();
         this.dashPlayer.updateSettings({
             streaming: {
@@ -452,8 +455,9 @@ export class Player {
         }
     }
 
-    setupHlsVideo(video, result, fallbackImg) {
+    async setupHlsVideo(video, result, fallbackImg) {
         const url = result.videoUrl || result.hlsUrl || result;
+        const Hls = (await import('hls.js')).default;
         if (!url) return;
 
         if (this.hls) {
@@ -471,9 +475,9 @@ export class Player {
                 this.hls = new Hls();
                 this.hls.loadSource(url);
                 this.hls.attachMedia(video);
-                this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                this.hls.on(Hls.Events.MANIFEST_PARSED, async () => {
                     video.play().catch(() => {});
-                    this.setupVideoQualitySelector();
+                    await this.setupVideoQualitySelector();
                 });
                 this.hls.on(Hls.Events.ERROR, (event, data) => {
                     if (data.fatal) {
@@ -490,9 +494,9 @@ export class Player {
             }
         } else {
             video.src = url;
-            video.onerror = () => {
+            video.onerror = async () => {
                 if (result && result.hlsUrl) {
-                    this.setupHlsVideo(video, { videoUrl: null, hlsUrl: result.hlsUrl }, fallbackImg);
+                    await this.setupHlsVideo(video, { videoUrl: null, hlsUrl: result.hlsUrl }, fallbackImg);
                 } else if (fallbackImg) {
                     video.replaceWith(fallbackImg);
                 }
@@ -500,8 +504,9 @@ export class Player {
         }
     }
 
-    setupVideoQualitySelector() {
+    async setupVideoQualitySelector() {
         if (!this.hls || !this.hls.levels || this.hls.levels.length === 0) return;
+        const Hls = (await import('hls.js')).default;
 
         const qualityBtn = document.getElementById('fs-quality-btn');
         const qualityMenu = document.getElementById('fs-quality-menu');
@@ -802,7 +807,7 @@ export class Player {
                 if (this.playbackSequence !== currentSequence) return;
 
                 if (streamUrl.includes('.m3u8') || streamUrl.includes('application/vnd.apple.mpegurl')) {
-                    this.setupHlsVideo(activeElement, streamUrl, null);
+                    await this.setupHlsVideo(activeElement, streamUrl, null);
                 } else if (streamUrl.startsWith('blob:') || streamUrl.includes('.mpd')) {
                     this.dashPlayer.initialize(activeElement, streamUrl, false);
                     this.dashInitialized = true;

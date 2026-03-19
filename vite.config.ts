@@ -5,7 +5,6 @@ import authGatePlugin from './vite-plugin-auth-gate.js';
 import path from 'path';
 import uploadPlugin from './vite-plugin-upload.js';
 import blobAssetPlugin from './vite-plugin-blob.js';
-import injectHTML from 'vite-plugin-html-inject';
 import svgUse from './vite-plugin-svg-use.js';
 
 export default defineConfig(({ mode }) => {
@@ -23,6 +22,7 @@ export default defineConfig(({ mode }) => {
                 '!': '/node_modules',
 
                 pocketbase: '/node_modules/pocketbase/dist/pocketbase.es.js',
+                stream: path.resolve(__dirname, 'stream-stub.js'), // Stub for stream module
             },
         },
         optimizeDeps: {
@@ -50,7 +50,6 @@ export default defineConfig(({ mode }) => {
             uploadPlugin(),
             blobAssetPlugin(),
             svgUse(),
-            injectHTML(),
             VitePWA({
                 registerType: 'prompt',
                 workbox: {

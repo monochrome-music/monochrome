@@ -10,7 +10,7 @@ import {
     SVG_GLOBE,
 } from './icons.js';
 import { sidePanelManager } from './side-panel.js';
-import '@uimaxbai/am-lyrics/am-lyrics.js';
+import('@uimaxbai/am-lyrics/am-lyrics.js');
 
 // Check if text contains Japanese, Chinese, or Korean characters
 function containsAsianText(text) {
