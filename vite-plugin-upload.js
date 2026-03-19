@@ -35,7 +35,8 @@ export default function uploadPlugin() {
 
                 fs.copyFileSync(uploadedFile.filepath, destPath);
 
-                let url = `http://${req.headers.host}/uploads/${filename}`;
+                const protocol = req.headers['x-forwarded-proto'] || (req.socket.encrypted ? 'https' : 'http');
+                let url = `${protocol}://${req.headers.host}/uploads/${filename}`;
 
                 res.setHeader('Content-Type', 'application/json');
                 res.end(
