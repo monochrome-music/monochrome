@@ -1121,6 +1121,38 @@ export class UIRenderer {
         const nextTrackEl = document.getElementById('fullscreen-next-track');
         const lyricsToggleBtn = document.getElementById('toggle-fullscreen-lyrics-btn');
 
+        // Detect radio mode from hash or offline radio state
+        const isRadioMode = window.location.hash.includes('radio=true') || this._offlineRadioActive;
+        if (isRadioMode) {
+            overlay.classList.add('radio-mode');
+
+            // Inject vinyl overlay for disc grooves + center hole
+            const mainView = overlay.querySelector('.fullscreen-main-view');
+            if (mainView && !mainView.querySelector('.vinyl-overlay')) {
+                const vinylEl = document.createElement('div');
+                vinylEl.className = 'vinyl-overlay';
+                mainView.appendChild(vinylEl);
+            }
+
+            // Track play/pause state for spin animation
+            const el = activeElement || this.player?.activeElement;
+            if (el) {
+                overlay.classList.toggle('radio-paused', el.paused);
+                // Clean up previous listeners
+                if (this._radioPlayHandler) el.removeEventListener('play', this._radioPlayHandler);
+                if (this._radioPauseHandler) el.removeEventListener('pause', this._radioPauseHandler);
+                this._radioPlayHandler = () => overlay.classList.remove('radio-paused');
+                this._radioPauseHandler = () => overlay.classList.add('radio-paused');
+                el.addEventListener('play', this._radioPlayHandler);
+                el.addEventListener('pause', this._radioPauseHandler);
+            }
+        } else {
+            overlay.classList.remove('radio-mode', 'radio-paused');
+            // Remove vinyl overlay if it exists
+            const vinylEl = overlay.querySelector('.vinyl-overlay');
+            if (vinylEl) vinylEl.remove();
+        }
+
         this.updateFullscreenMetadata(track, nextTrack);
 
         if (nextTrack) {
@@ -1205,7 +1237,20 @@ export class UIRenderer {
     closeFullscreenCover() {
         const overlay = document.getElementById('fullscreen-cover-overlay');
         overlay.style.display = 'none';
-        overlay.classList.remove('visualizer-active', 'ui-hidden');
+        overlay.classList.remove('visualizer-active', 'ui-hidden', 'radio-mode', 'radio-paused');
+
+        // Clean up vinyl overlay and radio event listeners
+        const vinylEl = overlay.querySelector('.vinyl-overlay');
+        if (vinylEl) vinylEl.remove();
+        if (this._radioPlayHandler || this._radioPauseHandler) {
+            const el = this.player?.activeElement;
+            if (el) {
+                if (this._radioPlayHandler) el.removeEventListener('play', this._radioPlayHandler);
+                if (this._radioPauseHandler) el.removeEventListener('pause', this._radioPauseHandler);
+            }
+            this._radioPlayHandler = null;
+            this._radioPauseHandler = null;
+        }
 
         // Turn off offline radio when fullscreen closes
         if (this._offlineRadioActive) {
@@ -1390,30 +1435,47 @@ export class UIRenderer {
 
         updatePlayBtn();
 
+        // Check if radio mode is active — only allow play/pause
+        const isRadioMode = document.getElementById('fullscreen-cover-overlay')?.classList.contains('radio-mode');
+
         playBtn.onclick = () => {
             this.player.handlePlayPause();
             updatePlayBtn();
-        };
-
-        prevBtn.onclick = () => this.player.playPrev();
-        nextBtn.onclick = () => this.player.playNext();
-
-        shuffleBtn.onclick = () => {
-            this.player.toggleShuffle();
-            shuffleBtn.classList.toggle('active', this.player.shuffleActive);
-        };
-
-        repeatBtn.onclick = () => {
-            const mode = this.player.toggleRepeat();
-            repeatBtn.classList.toggle('active', mode !== 0);
-            if (mode === 2) {
-                repeatBtn.innerHTML =
-                    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/><path d="M11 10h1v4"/></svg>';
-            } else {
-                repeatBtn.innerHTML =
-                    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>';
+            // Sync vinyl spin state immediately
+            const fsOverlay = document.getElementById('fullscreen-cover-overlay');
+            if (fsOverlay?.classList.contains('radio-mode')) {
+                const isPaused = this.player.activeElement.paused;
+                fsOverlay.classList.toggle('radio-paused', isPaused);
             }
         };
+
+        if (isRadioMode) {
+            // Radio mode: block all controls except play/pause
+            prevBtn.onclick = null;
+            nextBtn.onclick = null;
+            shuffleBtn.onclick = null;
+            repeatBtn.onclick = null;
+        } else {
+            prevBtn.onclick = () => this.player.playPrev();
+            nextBtn.onclick = () => this.player.playNext();
+
+            shuffleBtn.onclick = () => {
+                this.player.toggleShuffle();
+                shuffleBtn.classList.toggle('active', this.player.shuffleActive);
+            };
+
+            repeatBtn.onclick = () => {
+                const mode = this.player.toggleRepeat();
+                repeatBtn.classList.toggle('active', mode !== 0);
+                if (mode === 2) {
+                    repeatBtn.innerHTML =
+                        '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/><path d="M11 10h1v4"/></svg>';
+                } else {
+                    repeatBtn.innerHTML =
+                        '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>';
+                }
+            };
+        }
 
         // Progress bar with drag support
         let isFsSeeking = false;

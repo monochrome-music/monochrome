@@ -6519,6 +6519,7 @@ img[src=''] {
         width: 100%;
         flex-wrap: wrap;
         gap: 0.4rem;
+        overflow-x: hidden;
     }
 
     /* Icon-only buttons on mobile — hide text labels */
@@ -8084,6 +8085,11 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     scrollbar-width: none;
     overscroll-behavior-x: contain;
     touch-action: pan-x;
+    max-width: 100%;
+}
+
+#offline-artist-filter button {
+    flex: 0 0 auto;
 }
 
 #custom-tooltip.visible {
@@ -8626,6 +8632,15 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.offline-radio-btn span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
 }
 
 .offline-radio-btn:hover {
@@ -8656,4 +8671,178 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 
 .offline-radio-active svg {
     animation: radio-pulse 1.5s ease-in-out infinite;
+}
+
+/* === Radio Mode (24/7) — lock all controls except play/pause === */
+#fullscreen-cover-overlay.radio-mode #close-fullscreen-cover-btn,
+#fullscreen-cover-overlay.radio-mode .fullscreen-ui-toggle,
+#fullscreen-cover-overlay.radio-mode .fullscreen-lyrics-toggle {
+    display: none !important;
+}
+
+#fullscreen-cover-overlay.radio-mode .fullscreen-actions #fs-add-playlist-btn,
+#fullscreen-cover-overlay.radio-mode .fullscreen-actions #fs-download-btn,
+#fullscreen-cover-overlay.radio-mode .fullscreen-actions #fs-cast-btn,
+#fullscreen-cover-overlay.radio-mode .fullscreen-actions #fs-queue-btn {
+    display: none !important;
+}
+
+#fullscreen-cover-overlay.radio-mode .fullscreen-progress-container {
+    pointer-events: none;
+    opacity: 0.4;
+}
+
+#fullscreen-cover-overlay.radio-mode #fullscreen-next-track {
+    display: none !important;
+}
+
+#fullscreen-cover-overlay.radio-mode .fullscreen-buttons #fs-shuffle-btn,
+#fullscreen-cover-overlay.radio-mode .fullscreen-buttons #fs-prev-btn,
+#fullscreen-cover-overlay.radio-mode .fullscreen-buttons #fs-next-btn,
+#fullscreen-cover-overlay.radio-mode .fullscreen-buttons #fs-repeat-btn,
+#fullscreen-cover-overlay.radio-mode .fullscreen-buttons .fs-quality-btn {
+    display: none !important;
+}
+
+#fullscreen-cover-overlay.radio-mode .fullscreen-buttons {
+    gap: 0;
+}
+
+#fullscreen-cover-overlay.radio-mode .fullscreen-buttons #fs-play-pause-btn {
+    width: 80px;
+    height: 80px;
+    transition: transform 0.2s ease;
+}
+
+#fullscreen-cover-overlay.radio-mode .fullscreen-buttons #fs-play-pause-btn:hover {
+    transform: scale(1.1);
+}
+
+#fullscreen-cover-overlay.radio-mode #fullscreen-cover-image {
+    pointer-events: none;
+    border-radius: 50%;
+    width: min(55vw, 45vh);
+    height: min(55vw, 45vh);
+    max-width: min(55vw, 45vh);
+    max-height: min(55vw, 45vh);
+    object-fit: cover;
+    animation: vinyl-spin 8s linear infinite;
+    box-shadow:
+        0 0 0 8px rgba(30, 30, 30, 0.9),
+        0 0 0 10px rgba(60, 60, 60, 0.6),
+        0 0 40px rgba(0, 0, 0, 0.6),
+        0 0 80px rgba(var(--highlight-rgb) / 0.15);
+    transition: box-shadow 0.5s ease;
+}
+
+/* Pause the spin when audio is paused */
+#fullscreen-cover-overlay.radio-mode.radio-paused #fullscreen-cover-image {
+    animation-play-state: paused;
+}
+
+/* Vinyl grooves + center hole overlay */
+#fullscreen-cover-overlay.radio-mode .fullscreen-main-view {
+    position: relative;
+}
+
+#fullscreen-cover-overlay.radio-mode #fullscreen-cover-image + .vinyl-overlay,
+#fullscreen-cover-overlay.radio-mode .vinyl-overlay {
+    position: absolute;
+    width: min(55vw, 45vh);
+    height: min(55vw, 45vh);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 2;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: vinyl-spin 8s linear infinite;
+    /* Concentric groove rings */
+    background:
+        radial-gradient(circle, transparent 18%, rgba(0,0,0,0.08) 18.5%, transparent 19%),
+        radial-gradient(circle, transparent 28%, rgba(0,0,0,0.06) 28.5%, transparent 29%),
+        radial-gradient(circle, transparent 38%, rgba(0,0,0,0.05) 38.5%, transparent 39%),
+        radial-gradient(circle, transparent 48%, rgba(0,0,0,0.04) 48.5%, transparent 49%),
+        radial-gradient(circle, transparent 58%, rgba(0,0,0,0.03) 58.5%, transparent 59%),
+        radial-gradient(circle, transparent 68%, rgba(0,0,0,0.03) 68.5%, transparent 69%),
+        radial-gradient(circle, transparent 78%, rgba(0,0,0,0.02) 78.5%, transparent 79%),
+        radial-gradient(circle, transparent 88%, rgba(0,0,0,0.02) 88.5%, transparent 89%);
+}
+
+/* Center hole dot */
+#fullscreen-cover-overlay.radio-mode .vinyl-overlay::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--background);
+    border: 2px solid rgba(255,255,255,0.15);
+    box-shadow: 0 0 8px rgba(0,0,0,0.5);
+}
+
+#fullscreen-cover-overlay.radio-mode.radio-paused .vinyl-overlay {
+    animation-play-state: paused;
+}
+
+@keyframes vinyl-spin {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Override the vinyl-spin for the image itself (no translate needed) */
+#fullscreen-cover-overlay.radio-mode #fullscreen-cover-image {
+    animation: vinyl-spin-img 8s linear infinite;
+}
+
+#fullscreen-cover-overlay.radio-mode.radio-paused #fullscreen-cover-image {
+    animation-play-state: paused;
+}
+
+@keyframes vinyl-spin-img {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Pulsing glow on the disc while playing */
+#fullscreen-cover-overlay.radio-mode:not(.radio-paused) #fullscreen-cover-image {
+    box-shadow:
+        0 0 0 8px rgba(30, 30, 30, 0.9),
+        0 0 0 10px rgba(60, 60, 60, 0.6),
+        0 0 40px rgba(0, 0, 0, 0.6),
+        0 0 80px rgba(var(--highlight-rgb) / 0.25);
+}
+
+/* Radio mode badge label */
+#fullscreen-cover-overlay.radio-mode .fullscreen-track-info::after {
+    content: '📻 RADIO';
+    display: inline-block;
+    margin-top: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(8px);
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--foreground);
+    opacity: 0.7;
+    animation: radio-pulse 1.5s ease-in-out infinite;
+}
+
+@media (max-width: 768px) {
+    #fullscreen-cover-overlay.radio-mode #fullscreen-cover-image {
+        width: min(75vw, 40vh);
+        height: min(75vw, 40vh);
+        max-width: min(75vw, 40vh);
+        max-height: min(75vw, 40vh);
+    }
+
+    #fullscreen-cover-overlay.radio-mode .vinyl-overlay {
+        width: min(75vw, 40vh);
+        height: min(75vw, 40vh);
+    }
 }

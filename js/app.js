@@ -653,6 +653,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.getElementById('close-fullscreen-cover-btn')?.addEventListener('click', () => {
+        // Block closing in radio mode
+        const overlay = document.getElementById('fullscreen-cover-overlay');
+        if (overlay?.classList.contains('radio-mode')) return;
+
         trackCloseFullscreenCover();
         if (window.location.hash.startsWith('#fullscreen')) {
             window.history.back();
@@ -667,9 +671,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isOnCoverImage = e.target.closest('#fullscreen-cover-image') || e.target.id === 'fullscreen-cover-image';
         if (!isOnCoverImage) return;
 
-        const action = fullscreenCoverClickSettings.getAction();
         const overlay = document.getElementById('fullscreen-cover-overlay');
         const playerInstance = window.monochromePlayer;
+
+        // In radio mode, cover image click only toggles play/pause
+        if (overlay?.classList.contains('radio-mode')) {
+            if (playerInstance) {
+                playerInstance.handlePlayPause();
+                overlay.classList.toggle('radio-paused', playerInstance.activeElement.paused);
+            }
+            return;
+        }
+
+        const action = fullscreenCoverClickSettings.getAction();
 
         switch (action) {
             case 'exit':
@@ -2565,6 +2579,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isFullscreenOpen = overlay && getComputedStyle(overlay).display === 'flex';
 
         if (isFullscreenOpen && !window.location.hash.startsWith('#fullscreen')) {
+            // Block back-navigation when in radio mode — re-push the radio hash
+            if (overlay.classList.contains('radio-mode')) {
+                window.history.pushState({ fullscreen: true, radio: true }, '', '#fullscreen?radio=true');
+                return;
+            }
             ui.closeFullscreenCover();
         }
 
