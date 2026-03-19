@@ -21,6 +21,7 @@ import {
 import { audioContextManager } from './audio-context.js';
 import { db } from './db.js';
 import Hls from 'hls.js';
+import { isIos } from './platform-detection.js';
 
 export class Player {
     constructor(audioElement, api, quality = 'HI_RES_LOSSLESS') {
@@ -42,7 +43,7 @@ export class Player {
         this.isFallbackRetry = false;
         this.isFallbackInProgress = false;
         this.autoplayBlocked = false;
-        this.isIOS = typeof window !== 'undefined' && window.__IS_IOS__ === true;
+        this.isIOS = isIos;
         this.isPwa =
             typeof window !== 'undefined' &&
             (window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator?.standalone === true);

@@ -1,6 +1,6 @@
 import { getCoverBlob, getTrackTitle } from './utils.js';
 import { getFullArtistString } from './utils.js';
-import { METADATA_STRINGS } from './metadata.js';
+import { METADATA_STRINGS } from './METADATA_STRINGS.js';
 
 export const FLAC_MIME_TYPE = 'audio/flac';
 const FLAC_BLOCK_TYPES = {

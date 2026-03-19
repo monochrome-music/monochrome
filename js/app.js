@@ -1,4 +1,5 @@
 //js/app.js
+import { isIos, isSafari } from './platform-detection.js';
 import { MusicAPI } from './music-api.js';
 import {
     apiSettings,
@@ -28,7 +29,6 @@ import { registerSW } from 'virtual:pwa-register';
 import { openEditProfile } from './profile.js';
 import { ThemeStore } from './themeStore.js';
 import './commandPalette.js';
-
 import { initTracker } from './tracker.js';
 import {
     initAnalytics,
@@ -65,8 +65,6 @@ import {
 // Capture real iOS state before spoofing (needed for background audio)
 if (typeof window !== 'undefined') {
     const _ua = navigator.userAgent.toLowerCase();
-    window.__IS_IOS__ = /iphone|ipad|ipod/.test(_ua) || (_ua.includes('mac') && navigator.maxTouchPoints > 1);
-
     // Spoof User-Agent to bypass Google's embedded browser check
     Object.defineProperty(navigator, 'userAgent', {
         get: function () {
@@ -387,16 +385,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const api = new MusicAPI(apiSettings);
     const audioPlayer = document.getElementById('audio-player');
 
-    // i love ios and macos!!!! webkit fucking SUCKS BULLSHIT sorry ios/macos heads yall getting lossless only
-    // Use window.__IS_IOS__ (set before UA spoof in index.html) so detection works on real iOS.
-    const isIOS = typeof window !== 'undefined' && window.__IS_IOS__ === true;
-    const ua = navigator.userAgent.toLowerCase();
-    const isSafari =
-        ua.includes('safari') && !ua.includes('chrome') && !ua.includes('crios') && !ua.includes('android');
-
-    if (isIOS || isSafari) {
+    // i love ios and macos!!!! webkit fucking SUCKS BULLSHIT sorry ios/macos heads yall getting lossless only playback
+    // Use isIos from platform-detection (set before UA spoof in index.html) so detection works on real iOS.
+    if (isIos || isSafari) {
         const qualitySelect = document.getElementById('streaming-quality-setting');
-        const downloadSelect = document.getElementById('download-quality-setting');
+        const downloadQualitySelect = document.getElementById('download-quality-setting');
 
         const removeHiRes = (select) => {
             if (!select) return;
@@ -405,7 +398,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         removeHiRes(qualitySelect);
-        removeHiRes(downloadSelect);
+
+        if (isIos) {
+            document.querySelector('#hi-res-download-warning').style.display = '';
+        }
 
         const currentQualitySetting = localStorage.getItem('playback-quality');
         if (!currentQualitySetting || currentQualitySetting === 'HI_RES_LOSSLESS') {
