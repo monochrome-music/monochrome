@@ -492,6 +492,159 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const ui = new UIRenderer(api, player);
     window.monochromeUi = ui;
+
+    /**
+     * Scans the configured local media folder and refreshes `window.localFilesCache`.
+     * Called by the folder-select button handler and by downloads.js after a
+     * successful write to the local media folder.
+     *
+     * @param {boolean} [onlyIfAlreadyScanned=false] When true, skips the scan if
+     *   `window.localFilesCache` has never been populated (i.e. the user hasn't
+     *   visited the local tab yet).
+     */
+    async function scanLocalMediaFolder(onlyIfAlreadyScanned = false) {
+        // Skip the scan if the user has never visited the local tab – they'll
+        // get a fresh scan when they navigate there for the first time.
+        if (onlyIfAlreadyScanned && !window.localFilesCache) return;
+
+        // Prevent concurrent scans.
+        if (window.localFilesScanInProgress) return;
+        window.localFilesScanInProgress = true;
+
+        try {
+            const handle = await db.getSetting('local_folder_handle');
+            if (!handle) return;
+
+            const isNeutralino =
+                window.Neutralino && (window.NL_MODE || window.location.search.includes('mode=neutralino'));
+            const tracks = (window.localFilesCache = []);
+            let idCounter = 0;
+            const { readTrackMetadata } = await loadMetadataModule();
+
+            if (isNeutralino) {
+                async function scanNeu(dirPath) {
+                    const entries = await window.Neutralino.filesystem.readDirectory(dirPath);
+                    for (const entry of entries) {
+                        if (entry.entry === '.' || entry.entry === '..') continue;
+                        const fullPath = `${dirPath}/${entry.entry}`;
+                        if (entry.type === 'FILE') {
+                            const name = entry.entry.toLowerCase();
+                            if (
+                                name.endsWith('.flac') ||
+                                name.endsWith('.mp3') ||
+                                name.endsWith('.m4a') ||
+                                name.endsWith('.wav') ||
+                                name.endsWith('.ogg')
+                            ) {
+                                try {
+                                    const buffer = await window.Neutralino.filesystem.readBinaryFile(fullPath);
+                                    const stats = await window.Neutralino.filesystem.getStats(fullPath);
+                                    const file = new File([buffer], entry.entry, { lastModified: stats.mtime });
+                                    const metadata = await readTrackMetadata(file);
+                                    metadata.id = `local-${idCounter++}-${entry.entry}`;
+                                    tracks.push(metadata);
+                                    window.monochromeUi?.renderLocalFiles(
+                                        document.getElementById('library-local-container')
+                                    );
+                                } catch (e) {
+                                    console.error('Failed to read file:', fullPath, e);
+                                }
+                            }
+                        } else if (entry.type === 'DIRECTORY') {
+                            await scanNeu(fullPath);
+                        }
+                    }
+                }
+                await scanNeu(handle.path);
+            } else {
+                // Request read permission before iterating. When the browser has
+                // already granted it (e.g. within the same session or via a
+                // persistent grant) this succeeds without a user gesture.
+                if (typeof handle.requestPermission === 'function') {
+                    const permission = await handle.requestPermission({ mode: 'read' });
+                    if (permission !== 'granted') return;
+                }
+
+                async function scanBrowser(dirHandle) {
+                    for await (const entry of dirHandle.values()) {
+                        if (entry.kind === 'file') {
+                            const name = entry.name.toLowerCase();
+                            if (
+                                name.endsWith('.flac') ||
+                                name.endsWith('.mp3') ||
+                                name.endsWith('.m4a') ||
+                                name.endsWith('.wav') ||
+                                name.endsWith('.ogg')
+                            ) {
+                                const file = await entry.getFile();
+                                const metadata = await readTrackMetadata(file);
+                                metadata.id = `local-${idCounter++}-${file.name}`;
+                                tracks.push(metadata);
+                                window.monochromeUi?.renderLocalFiles(
+                                    document.getElementById('library-local-container')
+                                );
+                            }
+                        } else if (entry.kind === 'directory') {
+                            await scanBrowser(entry);
+                        }
+                    }
+                }
+                await scanBrowser(handle);
+            }
+
+            tracks.sort((a, b) => (a.artist.name || '').localeCompare(b.artist.name || ''));
+            // Update only the local-files section without navigating to the library page.
+            window.monochromeUi?.renderLocalFiles(document.getElementById('library-local-container'));
+        } finally {
+            window.localFilesScanInProgress = false;
+        }
+
+        return window.localFilesCache;
+    }
+
+    /**
+     * Called by downloads.js (via window) after a successful write to the local
+     * media folder so the track appears in Library > Local without the user
+     * having to manually re-scan.
+     *
+     * When called with a `blob` and `filename` (single-track download case) it
+     * performs a cheap partial update — reading metadata only from that one file
+     * and inserting it into the existing cache — so the full folder does not need
+     * to be re-walked.  When called with no arguments (bulk download case, or when
+     * `localFilesCache` has never been populated) it falls back to a full rescan.
+     */
+    window.refreshLocalMediaFolder = async (blob = null, filename = null) => {
+        if (blob && filename) {
+            try {
+                /** @type {import("./metadata.js")} */
+                const { readTrackMetadata } = await loadMetadataModule();
+                const baseName = filename.split('/').pop();
+                const metadata = await readTrackMetadata(new Uint8Array(await blob.arrayBuffer()), {
+                    filename: baseName,
+                });
+                const existing = window.localFilesCache || [];
+                metadata.id = `local-${existing.length}-${baseName}`;
+                window.localFilesCache = [...existing, metadata].sort((a, b) =>
+                    (a.artist.name || '').localeCompare(b.artist.name || '')
+                );
+                window.monochromeUi?.renderLocalFiles(document.getElementById('library-local-container'));
+            } catch {
+                // Fall back to a full rescan if metadata extraction fails.
+                await scanLocalMediaFolder(true);
+            }
+        } else {
+            await scanLocalMediaFolder(!!window.localFilesCache);
+        }
+    };
+
+    // Kick off a background scan of the saved local media folder on startup so
+    // that the Library > Local tab is populated without requiring the user to
+    // manually press "Load [folder]" every session.  The function internally
+    // checks for a saved handle and (in browser mode) requests read permission,
+    // so this is a silent no-op when no folder is configured or permission is not
+    // yet granted.
+    scanLocalMediaFolder();
+
     const scrobbler = new MultiScrobbler();
     window.monochromeScrobbler = scrobbler;
     const lyricsManager = new LyricsManager(api);
@@ -2330,77 +2483,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     btn.disabled = true;
                 }
 
-                const tracks = [];
-                let idCounter = 0;
-                const { readTrackMetadata } = await loadMetadataModule();
-
-                if (isNeutralino) {
-                    async function scanDirectoryNeu(dirPath) {
-                        const entries = await window.Neutralino.filesystem.readDirectory(dirPath);
-                        for (const entry of entries) {
-                            if (entry.entry === '.' || entry.entry === '..') continue;
-                            const fullPath = `${dirPath}/${entry.entry}`;
-                            if (entry.type === 'FILE') {
-                                const name = entry.entry.toLowerCase();
-                                if (
-                                    name.endsWith('.flac') ||
-                                    name.endsWith('.mp3') ||
-                                    name.endsWith('.m4a') ||
-                                    name.endsWith('.wav') ||
-                                    name.endsWith('.ogg')
-                                ) {
-                                    try {
-                                        const buffer = await window.Neutralino.filesystem.readBinaryFile(fullPath);
-                                        const stats = await window.Neutralino.filesystem.getStats(fullPath);
-                                        const file = new File([buffer], entry.entry, {
-                                            lastModified: stats.mtime,
-                                        });
-                                        const metadata = await readTrackMetadata(file);
-                                        metadata.id = `local-${idCounter++}-${entry.entry}`;
-                                        tracks.push(metadata);
-                                    } catch (e) {
-                                        console.error('Failed to read file:', fullPath, e);
-                                    }
-                                }
-                            } else if (entry.type === 'DIRECTORY') {
-                                await scanDirectoryNeu(fullPath);
-                            }
-                        }
-                    }
-                    await scanDirectoryNeu(path);
-                } else {
-                    async function scanDirectory(dirHandle) {
-                        for await (const entry of dirHandle.values()) {
-                            if (entry.kind === 'file') {
-                                const name = entry.name.toLowerCase();
-                                if (
-                                    name.endsWith('.flac') ||
-                                    name.endsWith('.mp3') ||
-                                    name.endsWith('.m4a') ||
-                                    name.endsWith('.wav') ||
-                                    name.endsWith('.ogg')
-                                ) {
-                                    const file = await entry.getFile();
-                                    const metadata = await readTrackMetadata(file);
-                                    metadata.id = `local-${idCounter++}-${file.name}`;
-                                    tracks.push(metadata);
-                                }
-                            } else if (entry.kind === 'directory') {
-                                await scanDirectory(entry);
-                            }
-                        }
-                    }
-                    await scanDirectory(handle);
-                }
-
-                tracks.sort((a, b) => {
-                    const artistA = a.artist.name || '';
-                    const artistB = b.artist.name || '';
-                    return artistA.localeCompare(artistB);
-                });
-
-                window.localFilesCache = tracks;
-                trackSelectLocalFolder(tracks.length);
+                const tracks = scanLocalMediaFolder(true);
+                trackSelectLocalFolder(tracks?.length ?? 0);
                 ui.renderLibraryPage();
             } catch (err) {
                 if (err.name !== 'AbortError') {
