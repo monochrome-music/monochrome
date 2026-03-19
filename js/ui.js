@@ -44,7 +44,6 @@ import {
     createTrackFromSong,
 } from './tracker.js';
 import { trackSearch, trackChangeSort } from './analytics.js';
-import Hls from 'hls.js';
 
 fontSettings.applyFont();
 fontSettings.applyFontSize();
@@ -2652,12 +2651,13 @@ export class UIRenderer {
         return items.filter((item) => !favoriteIds.has(item.id));
     }
 
-    setupHlsVideo(video, result, fallbackImg) {
+    async setupHlsVideo(video, result, fallbackImg) {
         if (!result) return;
         const url = typeof result === 'string' ? result : result.videoUrl || result.hlsUrl;
         if (!url) return;
 
         if (url.endsWith('.m3u8')) {
+            const Hls = (await import('hls.js')).default;
             if (Hls.isSupported()) {
                 const hls = new Hls();
                 video._hls = hls;
@@ -2692,17 +2692,17 @@ export class UIRenderer {
                 video.play().catch(() => {});
             });
         }
-        video.onerror = () => {
+        video.onerror = async () => {
             if (result.hlsUrl) {
                 // HLS fallback (for some reason alot of animated covers js dont work on MP4 lol)
-                this.setupHlsVideo(video, { videoUrl: null, hlsUrl: result.hlsUrl }, fallbackImg);
+                await this.setupHlsVideo(video, { videoUrl: null, hlsUrl: result.hlsUrl }, fallbackImg);
             } else {
                 video.replaceWith(fallbackImg);
             }
         };
     }
 
-    replaceVideoArtwork(container, type, id, result) {
+    async replaceVideoArtwork(container, type, id, result) {
         const url = result.videoUrl || result.hlsUrl;
         if (!url) return;
 
@@ -2722,9 +2722,9 @@ export class UIRenderer {
 
             video.poster = img.src;
 
-            video.onerror = () => {
+            video.onerror = async () => {
                 if (video.src === result.videoUrl && result.hlsUrl) {
-                    this.setupHlsVideo(video, { videoUrl: null, hlsUrl: result.hlsUrl }, img);
+                    await this.setupHlsVideo(video, { videoUrl: null, hlsUrl: result.hlsUrl }, img);
                     return;
                 }
                 video.replaceWith(img);
@@ -2732,9 +2732,9 @@ export class UIRenderer {
 
             video.addEventListener(
                 'error',
-                (e) => {
+                async (e) => {
                     if (video.src === result.videoUrl && result.hlsUrl) {
-                        this.setupHlsVideo(video, { videoUrl: null, hlsUrl: result.hlsUrl }, img);
+                        await this.setupHlsVideo(video, { videoUrl: null, hlsUrl: result.hlsUrl }, img);
                         return;
                     }
                     console.warn('Video decoding error:', e);
@@ -2745,7 +2745,7 @@ export class UIRenderer {
 
             img.replaceWith(video);
 
-            this.setupHlsVideo(video, result, img);
+            await this.setupHlsVideo(video, result, img);
         }
     }
 
@@ -2999,7 +2999,7 @@ export class UIRenderer {
 
             if (!videoCoverUrl && tracks.length > 0) {
                 const firstTrack = tracks[0];
-                this.api.getVideoArtwork(firstTrack.title, getTrackArtists(firstTrack)).then((result) => {
+                this.api.getVideoArtwork(firstTrack.title, getTrackArtists(firstTrack)).then(async (result) => {
                     if (result && this.currentPage === 'album' && this.currentAlbumId === albumId) {
                         const url = result.videoUrl || result.hlsUrl;
                         if (!url) return;
@@ -3017,7 +3017,7 @@ export class UIRenderer {
                             video.style.opacity = '1';
                             video.poster = currentImageEl.src;
 
-                            this.setupHlsVideo(video, result, currentImageEl);
+                            await this.setupHlsVideo(video, result, currentImageEl);
                             currentImageEl.replaceWith(video);
                         }
                     }
@@ -3036,10 +3036,10 @@ export class UIRenderer {
                     video.preload = 'auto';
                     video.className = imageEl.className;
                     video.id = imageEl.id;
-                    this.setupHlsVideo(video, videoCoverUrl, imageEl);
+                    await this.setupHlsVideo(video, videoCoverUrl, imageEl);
                     imageEl.replaceWith(video);
                 } else {
-                    this.setupHlsVideo(imageEl, videoCoverUrl, null);
+                    await this.setupHlsVideo(imageEl, videoCoverUrl, null);
                 }
             } else {
                 if (imageEl.tagName === 'VIDEO') {
@@ -3788,30 +3788,32 @@ export class UIRenderer {
 
                     if (!videoCoverUrl && (firstTrack.album || firstTrack.type === 'video')) {
                         const fetchArtwork = () => {
-                            this.api.getVideoArtwork(firstTrack.title, getTrackArtists(firstTrack)).then((result) => {
-                                if (result && this.currentPage === 'mix' && this.currentMixId === mixId) {
-                                    const url = result.videoUrl || result.hlsUrl;
-                                    if (!url) return;
-                                    firstTrack.album = firstTrack.album || {};
-                                    firstTrack.album.videoCoverUrl = url;
-                                    const currentImageEl = document.getElementById('mix-detail-image');
-                                    if (currentImageEl && currentImageEl.tagName !== 'VIDEO') {
-                                        const video = document.createElement('video');
-                                        video.autoplay = true;
-                                        video.loop = true;
-                                        video.muted = true;
-                                        video.playsInline = true;
-                                        video.preload = 'auto';
-                                        video.className = currentImageEl.className;
-                                        video.id = currentImageEl.id;
-                                        video.style.opacity = '1';
-                                        video.poster = currentImageEl.src;
+                            this.api
+                                .getVideoArtwork(firstTrack.title, getTrackArtists(firstTrack))
+                                .then(async (result) => {
+                                    if (result && this.currentPage === 'mix' && this.currentMixId === mixId) {
+                                        const url = result.videoUrl || result.hlsUrl;
+                                        if (!url) return;
+                                        firstTrack.album = firstTrack.album || {};
+                                        firstTrack.album.videoCoverUrl = url;
+                                        const currentImageEl = document.getElementById('mix-detail-image');
+                                        if (currentImageEl && currentImageEl.tagName !== 'VIDEO') {
+                                            const video = document.createElement('video');
+                                            video.autoplay = true;
+                                            video.loop = true;
+                                            video.muted = true;
+                                            video.playsInline = true;
+                                            video.preload = 'auto';
+                                            video.className = currentImageEl.className;
+                                            video.id = currentImageEl.id;
+                                            video.style.opacity = '1';
+                                            video.poster = currentImageEl.src;
 
-                                        this.setupHlsVideo(video, result, currentImageEl);
-                                        currentImageEl.replaceWith(video);
+                                            await this.setupHlsVideo(video, result, currentImageEl);
+                                            currentImageEl.replaceWith(video);
+                                        }
                                     }
-                                }
-                            });
+                                });
                         };
 
                         if (firstTrack.type === 'video') {
@@ -5141,7 +5143,7 @@ export class UIRenderer {
 
             if (!videoCoverUrl && (track.album || track.type === 'video')) {
                 const fetchArtwork = () => {
-                    this.api.getVideoArtwork(track.title, getTrackArtists(track)).then((result) => {
+                    this.api.getVideoArtwork(track.title, getTrackArtists(track)).then(async (result) => {
                         if (result && this.currentPage === 'track' && this.currentTrackPageId === track.id) {
                             const url = result.videoUrl || result.hlsUrl;
                             if (!url) return;
@@ -5160,7 +5162,7 @@ export class UIRenderer {
                                 video.style.opacity = '1';
                                 video.poster = currentImageEl.src;
 
-                                this.setupHlsVideo(video, result, currentImageEl);
+                                await this.setupHlsVideo(video, result, currentImageEl);
                                 currentImageEl.replaceWith(video);
                             }
                         }
@@ -5196,10 +5198,10 @@ export class UIRenderer {
                     video.preload = 'auto';
                     video.className = imageEl.className;
                     video.id = imageEl.id;
-                    this.setupHlsVideo(video, videoCoverUrl, imageEl);
+                    await this.setupHlsVideo(video, videoCoverUrl, imageEl);
                     imageEl.replaceWith(video);
                 } else {
-                    this.setupHlsVideo(imageEl, videoCoverUrl, null);
+                    await this.setupHlsVideo(imageEl, videoCoverUrl, null);
                 }
             } else {
                 if (imageEl.tagName === 'VIDEO') {

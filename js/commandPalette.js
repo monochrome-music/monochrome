@@ -66,15 +66,15 @@ class CommandPalette {
     }
 
     init() {
-        document.addEventListener('keydown', (e) => {
+        document.addEventListener('keydown', async (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
                 e.preventDefault();
-                this.toggle();
+                await this.toggle();
             }
         });
 
         this.input.addEventListener('input', () => this.handleInput());
-        this.input.addEventListener('keydown', (e) => this.handleKeydown(e));
+        this.input.addEventListener('keydown', async (e) => await this.handleKeydown(e));
 
         this.overlay.addEventListener('click', (e) => {
             if (e.target === this.overlay) this.close();
@@ -83,17 +83,17 @@ class CommandPalette {
         this.cacheAllSettings();
     }
 
-    toggle() {
+    async toggle() {
         if (this.isOpen) this.close();
-        else this.open();
+        else await this.open();
     }
 
-    open() {
+    async open() {
         this.isOpen = true;
         this.overlay.style.display = 'flex';
         this.input.value = '>';
         this.input.focus();
-        this.handleInput();
+        await this.handleInput();
     }
 
     close() {
@@ -101,18 +101,18 @@ class CommandPalette {
         this.overlay.style.display = 'none';
     }
 
-    handleInput() {
+    async handleInput() {
         const value = this.input.value;
         this.selectedIndex = 0;
 
         if (!value.startsWith('>')) {
-            this.renderResults([
+            await this.renderResults([
                 {
                     name: 'Type > to use commands',
                     description: 'e.g. >theme White, >play The Whole World Is Free',
-                    action: () => {
+                    action: async () => {
                         this.input.value = '>';
-                        this.handleInput();
+                        await this.handleInput();
                     },
                     type: 'hint',
                 },
@@ -124,7 +124,7 @@ class CommandPalette {
         const match = fullQuery.match(/^(\S+)(?:\s+(.*))?$/);
 
         if (!match) {
-            this.renderDefaultCommands();
+            await this.renderDefaultCommands();
             return;
         }
 
@@ -140,7 +140,7 @@ class CommandPalette {
                 return;
             }
 
-            this.renderResults([
+            await this.renderResults([
                 {
                     name: `Execute: ${command.name} ${args}`,
                     description: args ? `Run ${command.name} for "${args}"` : command.description,
@@ -153,11 +153,11 @@ class CommandPalette {
                 this.debouncedSearch(cmdName, args.trim());
             }
         } else {
-            this.renderDefaultCommands(cmdName);
+            await this.renderDefaultCommands(cmdName);
         }
     }
 
-    handleKeydown(e) {
+    async handleKeydown(e) {
         if (e.key === 'ArrowDown') {
             e.preventDefault();
             this.selectedIndex = Math.min(this.selectedIndex + 1, this.results.length - 1);
@@ -168,13 +168,13 @@ class CommandPalette {
             this.updateSelection();
         } else if (e.key === 'Enter') {
             e.preventDefault();
-            this.executeSelected();
+            await this.executeSelected();
         } else if (e.key === 'Escape') {
             this.close();
         }
     }
 
-    renderDefaultCommands(filter = '') {
+    async renderDefaultCommands(filter = '') {
         let cmds = this.commands;
         if (filter) {
             if (Fuse) {
@@ -185,20 +185,20 @@ class CommandPalette {
             }
         }
 
-        this.renderResults(
+        await this.renderResults(
             cmds.map((c) => ({
                 name: c.name,
                 description: c.description,
-                action: () => {
+                action: async () => {
                     this.input.value = `>${c.name} `;
-                    this.handleInput();
+                    await this.handleInput();
                 },
                 type: 'command',
             }))
         );
     }
 
-    renderResults(results) {
+    async renderResults(results) {
         this.results = results;
         this.resultsContainer.innerHTML = '';
 
@@ -222,9 +222,9 @@ class CommandPalette {
                     <div style="display: flex; flex-direction: column;"><span class="command-result-name" style="font-weight: 500;">${result.name}</span><span class="command-result-desc" style="font-size: 0.8rem; opacity: 0.7;">${result.description || ''}</span></div>
                 </div>
             `;
-            div.addEventListener('click', () => {
+            div.addEventListener('click', async () => {
                 this.selectedIndex = index;
-                this.executeSelected();
+                await this.executeSelected();
             });
             this.resultsContainer.appendChild(div);
         });
@@ -242,16 +242,16 @@ class CommandPalette {
         });
     }
 
-    executeSelected() {
+    async executeSelected() {
         const result = this.results[this.selectedIndex];
         if (result && result.action) {
-            result.action();
+            await result.action();
             if (result.type !== 'hint') {
                 this.close();
             }
         } else if (result && result.type === 'command') {
             this.input.value = `>${result.name} `;
-            this.handleInput();
+            await this.handleInput();
         }
     }
 
@@ -273,7 +273,7 @@ class CommandPalette {
         showNotification(message);
     }
 
-    handleQueue(args) {
+    async handleQueue(args) {
         const player = window.monochromePlayer;
         const ui = window.monochromeUi;
 
@@ -283,7 +283,7 @@ class CommandPalette {
         }
 
         if (!args || !args.trim()) {
-            this.renderResults(
+            await this.renderResults(
                 [
                     { name: '>queue wipe', description: 'Clear the queue and stop playback' },
                     { name: '>queue like all', description: 'Like all tracks in the current queue' },
@@ -291,9 +291,9 @@ class CommandPalette {
                 ].map((c) => ({
                     ...c,
                     type: 'command',
-                    action: () => {
+                    action: async () => {
                         this.input.value = c.name;
-                        this.handleInput();
+                        await this.handleInput();
                     },
                 }))
             );
@@ -358,11 +358,11 @@ class CommandPalette {
         this.close();
     }
 
-    handleNavigation(args) {
+    async handleNavigation(args) {
         const validPages = ['home', 'library', 'recent', 'settings', 'unreleased', 'about', 'download'];
 
         if (!args || !args.trim()) {
-            this.renderResults(
+            await this.renderResults(
                 validPages.map((p) => ({
                     name: `>go ${p}`,
                     description: `Navigate to ${p}`,
@@ -386,9 +386,9 @@ class CommandPalette {
         }
     }
 
-    handleSleepTimer(args) {
+    async handleSleepTimer(args) {
         if (!args || !args.trim()) {
-            this.renderResults(
+            await this.renderResults(
                 [15, 30, 45, 60, 120].map((m) => ({
                     name: `>sleep ${m}`,
                     description: `Set sleep timer for ${m} minutes`,
@@ -418,7 +418,7 @@ class CommandPalette {
         }
     }
 
-    handleQuality(args) {
+    async handleQuality(args) {
         const qualityMap = {
             low: 'LOW',
             high: 'HIGH',
@@ -452,7 +452,7 @@ class CommandPalette {
                 action: () => {},
                 type: 'hint',
             });
-            this.renderResults(results);
+            await this.renderResults(results);
             return;
         }
 
@@ -524,7 +524,7 @@ class CommandPalette {
 
     async handleVisualizer(args) {
         if (!args || !args.trim()) {
-            this.renderResults(
+            await this.renderResults(
                 [
                     { name: '>visualizer toggle', description: 'Toggle visualizer on/off', cmd: 'toggle' },
                     { name: '>visualizer butterchurn', description: 'Set preset to Butterchurn', cmd: 'butterchurn' },
@@ -630,7 +630,7 @@ class CommandPalette {
         const query = args.trim().toLowerCase();
 
         if (!query) {
-            this.renderResults(
+            await this.renderResults(
                 this.allSettings.map((setting) => ({
                     name: setting.label,
                     description: `[${setting.tab}] ${setting.description}`,
@@ -659,7 +659,7 @@ class CommandPalette {
             return;
         }
 
-        this.renderResults(
+        await this.renderResults(
             results.map((setting) => ({
                 name: setting.label,
                 description: `[${setting.tab}] ${setting.description}`,
@@ -713,9 +713,9 @@ class CommandPalette {
                     name: track.title,
                     description: `${track.artist?.name || 'Unknown'} • ${track.album?.title || 'Unknown'}`,
                     image: api.getCoverUrl(track.album?.cover, 80),
-                    action: () => {
+                    action: async () => {
                         window.monochromePlayer.setQueue([track], 0);
-                        window.monochromePlayer.playTrackFromQueue();
+                        await window.monochromePlayer.playTrackFromQueue();
                         this.close();
                     },
                     type: 'result',
@@ -769,7 +769,7 @@ class CommandPalette {
         }
 
         if (this.isOpen && results.length > 0) {
-            this.renderResults(results);
+            await this.renderResults(results);
         }
     }
 
@@ -782,7 +782,7 @@ class CommandPalette {
             if (results.items.length > 0) {
                 const track = results.items[0];
                 window.monochromePlayer.setQueue([track], 0);
-                window.monochromePlayer.playTrackFromQueue();
+                await window.monochromePlayer.playTrackFromQueue();
                 this.close();
             }
         }

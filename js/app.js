@@ -416,6 +416,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const currentQuality = localStorage.getItem('playback-quality') || 'HI_RES_LOSSLESS';
     const player = new Player(audioPlayer, api, currentQuality);
+    await player.init();
     window.monochromePlayer = player;
 
     // Initialize tracker
@@ -1136,7 +1137,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const shuffleBtn = document.getElementById('shuffle-btn');
                     if (shuffleBtn) shuffleBtn.classList.remove('active');
                     player.shuffleActive = false;
-                    player.playTrackFromQueue();
+                    await player.playTrackFromQueue();
                 }
             } catch (error) {
                 console.error('Failed to play album:', error);
@@ -1167,7 +1168,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const shuffleBtn = document.getElementById('shuffle-btn');
                     if (shuffleBtn) shuffleBtn.classList.remove('active');
                     player.shuffleActive = false;
-                    player.playTrackFromQueue();
+                    await player.playTrackFromQueue();
 
                     const { showNotification } = await loadDownloadsModule();
                     showNotification('Shuffling album');
@@ -1235,7 +1236,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const shuffleBtn = document.getElementById('shuffle-btn');
                 if (shuffleBtn) shuffleBtn.classList.remove('active');
                 player.shuffleActive = false;
-                player.playTrackFromQueue();
+                await player.playTrackFromQueue();
 
                 const { showNotification } = await loadDownloadsModule();
                 showNotification('Shuffling artist discography');
@@ -2183,7 +2184,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (tracks.length > 0) {
                     player.setQueue(tracks, 0);
                     document.getElementById('shuffle-btn').classList.remove('active');
-                    player.playTrackFromQueue();
+                    await player.playTrackFromQueue();
                 }
             } catch (error) {
                 console.error('Failed to play playlist:', error);
@@ -2369,7 +2370,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
 
                     player.setQueue(allTracks, 0);
-                    player.playTrackFromQueue();
+                    await player.playTrackFromQueue();
                 } else {
                     throw new Error('No tracks found across all albums');
                 }
@@ -2398,7 +2399,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                     player.setQueue(likedTracks, 0);
                     document.getElementById('shuffle-btn').classList.remove('active');
-                    player.playTrackFromQueue();
+                    await player.playTrackFromQueue();
                 }
             } catch (error) {
                 console.error('Failed to shuffle liked tracks:', error);
