@@ -140,6 +140,22 @@ export const detectAudioFormat = (view, mimeType = '') => {
         return 'mp3';
     }
 
+    // Detect RIFF/WAVE by "RIFF" at offset 0 and "WAVE" at offset 8 (only in dev mode)
+    if (
+        import.meta.env.DEV &&
+        view.byteLength >= 12 &&
+        view.getUint8(0) === 0x52 && // R
+        view.getUint8(1) === 0x49 && // I
+        view.getUint8(2) === 0x46 && // F
+        view.getUint8(3) === 0x46 && // F
+        view.getUint8(8) === 0x57 && // W
+        view.getUint8(9) === 0x41 && // A
+        view.getUint8(10) === 0x56 && // V
+        view.getUint8(11) === 0x45 // E
+    ) {
+        return 'wav';
+    }
+
     // Check for MPEG frame sync (0xFF 0xFB or 0xFF 0xFA)
     if (view.byteLength >= 2 && view.getUint8(0) === 0xff && (view.getUint8(1) & 0xe0) === 0xe0) {
         return 'mp3';
