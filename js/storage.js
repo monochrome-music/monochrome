@@ -98,7 +98,7 @@ export const apiSettings = {
                         { url: 'https://katze.qqdl.site', version: '2.2' },
                         { url: 'https://hund.qqdl.site', version: '2.2' },
                         { url: 'https://wolf.qqdl.site', version: '2.2' },
-                        { url: 'https://hifi.p1nkhamster.xyz/', version: '2.6'},
+                        { url: 'https://hifi.p1nkhamster.xyz/', version: '2.6' },
                     ],
                 };
                 this.instancesLoaded = true;
@@ -1592,6 +1592,7 @@ export const listenBrainzSettings = {
     ENABLED_KEY: 'listenbrainz-enabled',
     TOKEN_KEY: 'listenbrainz-token',
     CUSTOM_URL_KEY: 'listenbrainz-custom-url',
+    LOVE_ON_LIKE_KEY: 'listenbrainz-love-on-like',
 
     isEnabled() {
         try {
@@ -1627,6 +1628,18 @@ export const listenBrainzSettings = {
 
     setCustomUrl(url) {
         localStorage.setItem(this.CUSTOM_URL_KEY, url);
+    },
+
+    shouldLoveOnLike() {
+        try {
+            return localStorage.getItem(this.LOVE_ON_LIKE_KEY) === 'true';
+        } catch {
+            return false;
+        }
+    },
+
+    setLoveOnLike(enabled) {
+        localStorage.setItem(this.LOVE_ON_LIKE_KEY, enabled ? 'true' : 'false');
     },
 };
 
