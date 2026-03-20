@@ -1,5 +1,4 @@
 //js/player.js
-import { MediaPlayer } from 'dashjs';
 import {
     REPEAT_MODE,
     formatTime,
@@ -20,9 +19,11 @@ import {
     contentBlockingSettings,
 } from './storage.js';
 import { audioContextManager } from './audio-context.js';
+import { isIos } from './platform-detection.js';
 import { db } from './db.js';
-import Hls from 'hls.js';
 
+import('./dash-media-player.js');
+import { SVG_CLOCK } from './icons.js';
 export class Player {
     constructor(audioElement, api, quality = 'HI_RES_LOSSLESS') {
         this.audio = audioElement;
@@ -47,7 +48,7 @@ export class Player {
         this._iosPreloadedAudio = null;
         this._iosPreloadedTrackId = null;
         this._iosPreloadedStreamUrl = null;
-        this.isIOS = typeof window !== 'undefined' && window.__IS_IOS__ === true;
+        this.isIOS = isIos;
         this.isPwa =
             typeof window !== 'undefined' &&
             (window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator?.standalone === true);
@@ -57,7 +58,9 @@ export class Player {
         this.sleepTimer = null;
         this.sleepTimerEndTime = null;
         this.sleepTimerInterval = null;
+    }
 
+    async init() {
         // Apply audio effects when track is ready
         this.audio.addEventListener('canplay', () => {
             this.applyAudioEffects();
@@ -69,6 +72,7 @@ export class Player {
         }
 
         // Initialize dash.js player
+        const { MediaPlayer } = await import('./dash-media-player.js');
         this.dashPlayer = MediaPlayer().create();
         this.dashPlayer.updateSettings({
             streaming: {
@@ -620,8 +624,9 @@ export class Player {
         }
     }
 
-    setupHlsVideo(video, result, fallbackImg) {
+    async setupHlsVideo(video, result, fallbackImg) {
         const url = result.videoUrl || result.hlsUrl || result;
+        const Hls = (await import('hls.js')).default;
         if (!url) return;
 
         if (this.hls) {
@@ -639,9 +644,9 @@ export class Player {
                 this.hls = new Hls();
                 this.hls.loadSource(url);
                 this.hls.attachMedia(video);
-                this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                this.hls.on(Hls.Events.MANIFEST_PARSED, async () => {
                     video.play().catch(() => {});
-                    this.setupVideoQualitySelector();
+                    await this.setupVideoQualitySelector();
                 });
                 this.hls.on(Hls.Events.ERROR, (event, data) => {
                     if (data.fatal) {
@@ -658,9 +663,9 @@ export class Player {
             }
         } else {
             video.src = url;
-            video.onerror = () => {
+            video.onerror = async () => {
                 if (result && result.hlsUrl) {
-                    this.setupHlsVideo(video, { videoUrl: null, hlsUrl: result.hlsUrl }, fallbackImg);
+                    await this.setupHlsVideo(video, { videoUrl: null, hlsUrl: result.hlsUrl }, fallbackImg);
                 } else if (fallbackImg) {
                     video.replaceWith(fallbackImg);
                 }
@@ -668,8 +673,9 @@ export class Player {
         }
     }
 
-    setupVideoQualitySelector() {
+    async setupVideoQualitySelector() {
         if (!this.hls || !this.hls.levels || this.hls.levels.length === 0) return;
+        const Hls = (await import('hls.js')).default;
 
         const qualityBtn = document.getElementById('fs-quality-btn');
         const qualityMenu = document.getElementById('fs-quality-menu');
@@ -1016,7 +1022,7 @@ export class Player {
                 if (this.playbackSequence !== currentSequence) return;
 
                 if (streamUrl.includes('.m3u8') || streamUrl.includes('application/vnd.apple.mpegurl')) {
-                    this.setupHlsVideo(activeElement, streamUrl, null);
+                    await this.setupHlsVideo(activeElement, streamUrl, null);
                 } else if (streamUrl.startsWith('blob:') || streamUrl.includes('.mpd')) {
                     this.dashPlayer.initialize(activeElement, streamUrl, false);
                     this.dashInitialized = true;
@@ -1871,23 +1877,13 @@ export class Player {
                     btn.classList.add('active');
                     btn.style.color = 'var(--primary)';
                 } else {
-                    btn.innerHTML = `
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"/>
-                            <polyline points="12,6 12,12 16,14"/>
-                        </svg>
-                    `;
+                    btn.innerHTML = SVG_CLOCK(20);
                     btn.title = 'Sleep Timer';
                     btn.classList.remove('active');
                     btn.style.color = '';
                 }
             } else {
-                btn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"/>
-                        <polyline points="12,6 12,12 16,14"/>
-                    </svg>
-                `;
+                btn.innerHTML = SVG_CLOCK(20);
                 btn.title = 'Sleep Timer';
                 btn.classList.remove('active');
                 btn.style.color = '';

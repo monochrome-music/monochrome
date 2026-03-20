@@ -2790,6 +2790,15 @@ input[type='search']::-webkit-search-cancel-button {
     color: var(--muted-foreground);
 }
 
+.setting-item .info.setting-details {
+    width: 100%;
+    display: block;
+}
+
+.setting-item .info.setting-details .description {
+    font-size: 0.8rem;
+}
+
 .setting-item select,
 .setting-item input[type='number'] {
     background-color: var(--input);
@@ -4988,7 +4997,6 @@ input:checked + .slider::before {
     font-size: 0.85rem;
     margin-bottom: 1rem;
 }
-
 
 .customize-shortcut-item {
     display: flex;

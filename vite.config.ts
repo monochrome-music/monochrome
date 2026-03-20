@@ -5,6 +5,7 @@ import authGatePlugin from './vite-plugin-auth-gate.js';
 import path from 'path';
 import uploadPlugin from './vite-plugin-upload.js';
 import blobAssetPlugin from './vite-plugin-blob.js';
+import svgUse from './vite-plugin-svg-use.js';
 
 export default defineConfig(({ mode }) => {
     const IS_NEUTRALINO = mode === 'neutralino';
@@ -16,13 +17,16 @@ export default defineConfig(({ mode }) => {
         },
         resolve: {
             alias: {
+                '!lucide': '/node_modules/lucide-static/icons',
+                '!simpleicons': '/node_modules/simple-icons/icons',
                 '!': '/node_modules',
+
                 pocketbase: '/node_modules/pocketbase/dist/pocketbase.es.js',
+                stream: path.resolve(__dirname, 'stream-stub.js'), // Stub for stream module
             },
         },
         optimizeDeps: {
-            exclude: ['pocketbase', '@ffmpeg/ffmpeg', '@ffmpeg/util', 'taglib-wasm'],
-            external: ['taglib-wasm'],
+            exclude: ['pocketbase', '@ffmpeg/ffmpeg', '@ffmpeg/util'],
         },
         server: {
             fs: {
@@ -38,12 +42,14 @@ export default defineConfig(({ mode }) => {
         build: {
             outDir: 'dist',
             emptyOutDir: true,
+            sourcemap: true,
         },
         plugins: [
             IS_NEUTRALINO && neutralino(),
             authGatePlugin(),
             uploadPlugin(),
             blobAssetPlugin(),
+            svgUse(),
             VitePWA({
                 registerType: 'autoUpdate',
                 workbox: {

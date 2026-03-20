@@ -12,7 +12,6 @@ import {
 } from './utils.js';
 import { trackDateSettings } from './storage.js';
 import { APICache } from './cache.js';
-import { addMetadataToAudio, prefetchMetadataObjects } from './metadata.js';
 import { DashDownloader } from './dash-downloader.ts';
 import { HlsDownloader } from './hls-downloader.js';
 import { MP3EncodingError } from './mp3-encoder.js';
@@ -21,6 +20,7 @@ import { triggerDownload, applyAudioPostProcessing } from './download-utils.ts';
 import { isCustomFormat } from './ffmpegFormats.ts';
 import { DownloadProgress } from './progressEvents.js';
 import { resolveDownloadTotalBytes } from './downloadProgressUtils.js';
+import { readableStreamIterator } from './readableStreamIterator.js';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 export { resolveDownloadTotalBytes };
@@ -1320,6 +1320,8 @@ export class LosslessAPI {
     async downloadTrack(id, quality = 'HI_RES_LOSSLESS', filename, options = {}) {
         // Load ffmpeg in the background.
         loadFfmpeg().catch(console.error);
+        const metadataModule = await import('./metadata.js');
+        const { prefetchMetadataObjects, addMetadataToAudio } = metadataModule;
 
         const { onProgress, track, calculateDashBytes = true } = options;
         const prefetchPromises = prefetchMetadataObjects(track, this);
@@ -1431,19 +1433,13 @@ export class LosslessAPI {
                 let receivedBytes = 0;
 
                 if (response.body) {
-                    const reader = response.body.getReader();
                     const chunks = [];
 
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
+                    for await (const chunk of readableStreamIterator(response.body)) {
+                        chunks.push(chunk);
+                        receivedBytes += chunk.byteLength;
 
-                        if (value) {
-                            chunks.push(value);
-                            receivedBytes += value.byteLength;
-
-                            onProgress?.(new DownloadProgress(receivedBytes, totalBytes || undefined));
-                        }
+                        onProgress?.(new DownloadProgress(receivedBytes, totalBytes || undefined));
                     }
 
                     const defaultMime = isVideo ? 'video/mp4' : 'audio/flac';
@@ -1504,7 +1500,11 @@ export class LosslessAPI {
                     }
 
                     onProgress?.(new DownloadProgress('Adding metadata'));
-                    blob = await addMetadataToAudio(blob, enrichedTrack, this, quality, prefetchPromises);
+                    try {
+                        blob = await addMetadataToAudio(blob, enrichedTrack, this, quality, prefetchPromises);
+                    } catch (err) {
+                        console.error(err);
+                    }
                 }
             }
 
