@@ -63,6 +63,44 @@ const trackSelection = {
     isSelecting: false,
 };
 
+let longPressTimer = null;
+let isLongPress = false;
+let longPressTrackItem = null;
+const LONG_PRESS_DURATION = 500;
+
+function handleTrackTouchStart(e) {
+    if (!('ontouchstart' in window)) return;
+    const trackItem = e.target.closest('.track-item');
+    if (!trackItem || trackItem.classList.contains('unavailable') || trackItem.classList.contains('blocked')) return;
+
+    isLongPress = false;
+    longPressTrackItem = trackItem;
+
+    longPressTimer = setTimeout(() => {
+        isLongPress = true;
+        toggleTrackSelection(trackItem, true, false);
+        if (navigator.vibrate) navigator.vibrate(50);
+    }, LONG_PRESS_DURATION);
+}
+
+function handleTrackTouchMove(e) {
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+    }
+}
+
+function handleTrackTouchEnd(e) {
+    if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+    }
+    setTimeout(() => {
+        isLongPress = false;
+        longPressTrackItem = null;
+    }, 100);
+}
+
 function isMultiSelectToggle(e) {
     const shortcut = keyboardShortcuts.getShortcutForAction('multiSelectToggle');
     if (!shortcut) return e.ctrlKey || e.metaKey;
@@ -1950,6 +1988,10 @@ async function updateContextMenuLikeState(contextMenu, contextTrack) {
 export function initializeTrackInteractions(player, api, mainContent, contextMenu, lyricsManager, ui, scrobbler) {
     let contextTrack = null;
 
+    mainContent.addEventListener('touchstart', handleTrackTouchStart, { passive: true });
+    mainContent.addEventListener('touchmove', handleTrackTouchMove, { passive: true });
+    mainContent.addEventListener('touchend', handleTrackTouchEnd, { passive: true });
+
     mainContent.addEventListener('click', async (e) => {
         const actionBtn = e.target.closest('.track-action-btn, .like-btn, .play-btn');
         if (actionBtn && actionBtn.dataset.action) {
@@ -2087,6 +2129,9 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
 
         const trackItem = e.target.closest('.track-item');
         if (trackItem && (trackItem.classList.contains('unavailable') || trackItem.classList.contains('blocked'))) {
+            return;
+        }
+        if (isLongPress && longPressTrackItem === trackItem) {
             return;
         }
         if (
