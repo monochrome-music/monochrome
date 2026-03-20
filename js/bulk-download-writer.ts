@@ -16,10 +16,12 @@ interface NeutralinoBridge {
             title: string,
             options: { defaultPath: string; filters: Array<{ name: string; extensions: string[] }> }
         ): Promise<string | null>;
+        showFolderDialog(title: string, options?: Record<string, unknown>): Promise<string | null>;
     };
     filesystem: {
         writeBinaryFile(path: string, buffer: ArrayBuffer): Promise<void>;
         appendBinaryFile(path: string, buffer: ArrayBuffer): Promise<void>;
+        createDirectory(path: string): Promise<void>;
     };
 }
 
@@ -156,13 +158,41 @@ export class ZipNeutralinoWriter implements IBulkDownloadWriter {
 export class FolderPickerWriter implements IBulkDownloadWriter {
     private constructor(private readonly dirHandle: FileSystemDirectoryHandle) {}
 
+    /** Returns the underlying directory handle (e.g. to persist it for later re-use). */
+    getDirHandle(): FileSystemDirectoryHandle {
+        return this.dirHandle;
+    }
+
     /**
-     * Prompts the user to pick a writable directory.
+     * Creates a {@link FolderPickerWriter} from an already-obtained handle
+     * without showing a directory picker.  Useful when re-using a stored handle
+     * whose permission has already been verified by the caller.
+     */
+    static fromHandle(handle: FileSystemDirectoryHandle): FolderPickerWriter {
+        return new FolderPickerWriter(handle);
+    }
+
+    /**
+     * Prompts the user to pick a writable directory, or re-uses a previously
+     * saved handle when one is supplied and write permission can be obtained.
      * Returns a new {@link FolderPickerWriter} bound to the chosen directory.
      * If the user dismisses the picker, the promise rejects with a DOMException
      * whose name is "AbortError".
      */
-    static async create(): Promise<FolderPickerWriter> {
+    static async create(savedHandle?: FileSystemDirectoryHandle | null): Promise<FolderPickerWriter> {
+        // Try to re-use a saved handle first
+        if (savedHandle) {
+            try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const permission = await (savedHandle as any).requestPermission({ mode: 'readwrite' });
+                if (permission === 'granted') {
+                    return new FolderPickerWriter(savedHandle);
+                }
+            } catch {
+                // Fall through to show the picker
+            }
+        }
+
         // showDirectoryPicker is part of the File System Access API (not yet in all TS DOM libs)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         try {
@@ -211,6 +241,57 @@ export class FolderPickerWriter implements IBulkDownloadWriter {
                 await writable.abort();
                 throw error;
             }
+        }
+    }
+}
+
+/**
+ * Writes files directly into a folder on the local filesystem via the
+ * Neutralino desktop bridge.  Subdirectories are created automatically.
+ */
+export class NeutralinoFolderWriter implements IBulkDownloadWriter {
+    constructor(private readonly basePath: string) {}
+
+    async write(files: AsyncIterable<WriterEntry>): Promise<void> {
+        // Import once per write() call; the module system caches the result.
+        const bridge = (await import('./desktop/neutralino-bridge.js')) as unknown as NeutralinoBridge;
+        const createdDirs = new Set<string>();
+
+        for await (const file of files) {
+            const parts = file.name.split('/').filter(Boolean);
+            if (parts.length === 0) continue;
+
+            // Ensure all parent directories exist
+            for (let i = 1; i < parts.length; i++) {
+                const dirPath = this.basePath + '/' + parts.slice(0, i).join('/');
+                if (!createdDirs.has(dirPath)) {
+                    try {
+                        await bridge.filesystem.createDirectory(dirPath);
+                    } catch {
+                        // Directory may already exist; ignore
+                    }
+                    createdDirs.add(dirPath);
+                }
+            }
+
+            const filePath = this.basePath + '/' + file.name;
+            let buffer: ArrayBuffer;
+            const { input } = file;
+            if (input instanceof Blob) {
+                buffer = await input.arrayBuffer();
+            } else if (typeof input === 'string') {
+                const encoded = new TextEncoder().encode(input);
+                buffer = encoded.buffer.slice(
+                    encoded.byteOffset,
+                    encoded.byteOffset + encoded.byteLength
+                ) as ArrayBuffer;
+            } else if (input instanceof Uint8Array) {
+                buffer = input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength) as ArrayBuffer;
+            } else {
+                buffer = input;
+            }
+
+            await bridge.filesystem.writeBinaryFile(filePath, buffer);
         }
     }
 }

@@ -721,58 +721,6 @@ export const trackDateSettings = {
     },
 };
 
-export const bulkDownloadSettings = {
-    METHOD_KEY: 'bulk-download-method',
-    FORCE_ZIP_BLOB_KEY: 'bulk-download-force-zip-blob',
-    LEGACY_INDIVIDUAL_KEY: 'force-individual-downloads',
-    VALID_METHODS: ['zip', 'folder', 'individual'],
-
-    /** Returns the selected bulk download method: 'zip' | 'folder' | 'individual' */
-    getMethod() {
-        try {
-            const stored = localStorage.getItem(this.METHOD_KEY);
-            if (stored && this.VALID_METHODS.includes(stored)) {
-                return stored;
-            }
-            const legacy = localStorage.getItem(this.LEGACY_INDIVIDUAL_KEY);
-            if (legacy === 'true') {
-                localStorage.setItem(this.METHOD_KEY, 'individual');
-                localStorage.removeItem(this.LEGACY_INDIVIDUAL_KEY);
-                return 'individual';
-            }
-            return 'zip';
-        } catch {
-            return 'zip';
-        }
-    },
-
-    setMethod(method) {
-        localStorage.setItem(this.METHOD_KEY, method);
-    },
-
-    /** When using ZIP mode, force in-memory blob download instead of streaming to disk */
-    shouldForceZipBlob() {
-        try {
-            return localStorage.getItem(this.FORCE_ZIP_BLOB_KEY) === 'true';
-        } catch {
-            return false;
-        }
-    },
-
-    setForceZipBlob(enabled) {
-        localStorage.setItem(this.FORCE_ZIP_BLOB_KEY, enabled ? 'true' : 'false');
-    },
-
-    // Kept for backward compatibility
-    shouldForceIndividual() {
-        return this.getMethod() === 'individual';
-    },
-
-    setForceIndividual(enabled) {
-        this.setMethod(enabled ? 'individual' : 'zip');
-    },
-};
-
 export const playlistSettings = {
     M3U_KEY: 'playlist-generate-m3u',
     M3U8_KEY: 'playlist-generate-m3u8',
