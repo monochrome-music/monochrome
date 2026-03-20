@@ -2314,9 +2314,8 @@ export class UIRenderer {
             updateRadioBtnState();
 
             // Update label when artist filter changes
-            if (artistFilter) {
-                const origClick = artistFilter.onclick;
-                artistFilter.addEventListener('click', () => {
+            if (artistSearchInput) {
+                artistSearchInput.addEventListener('input', () => {
                     setTimeout(updateRadioBtnState, 10);
                 });
             }
