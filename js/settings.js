@@ -467,6 +467,8 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     const lbToggle = document.getElementById('listenbrainz-enabled-toggle');
     const lbTokenSetting = document.getElementById('listenbrainz-token-setting');
     const lbCustomUrlSetting = document.getElementById('listenbrainz-custom-url-setting');
+    const lbLoveSetting = document.getElementById('listenbrainz-love-setting');
+    const lbLoveToggle = document.getElementById('listenbrainz-love-toggle');
     const lbTokenInput = document.getElementById('listenbrainz-token-input');
     const lbCustomUrlInput = document.getElementById('listenbrainz-custom-url-input');
 
@@ -475,8 +477,10 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         if (lbToggle) lbToggle.checked = isEnabled;
         if (lbTokenSetting) lbTokenSetting.style.display = isEnabled ? 'flex' : 'none';
         if (lbCustomUrlSetting) lbCustomUrlSetting.style.display = isEnabled ? 'flex' : 'none';
+        if (lbLoveSetting) lbLoveSetting.style.display = isEnabled ? 'flex' : 'none';
         if (lbTokenInput) lbTokenInput.value = listenBrainzSettings.getToken();
         if (lbCustomUrlInput) lbCustomUrlInput.value = listenBrainzSettings.getCustomUrl();
+        if (lbLoveToggle) lbLoveToggle.checked = listenBrainzSettings.shouldLoveOnLike();
     };
 
     updateListenBrainzUI();
@@ -498,6 +502,12 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     if (lbCustomUrlInput) {
         lbCustomUrlInput.addEventListener('change', (e) => {
             listenBrainzSettings.setCustomUrl(e.target.value.trim());
+        });
+    }
+
+    if (lbLoveToggle) {
+        lbLoveToggle.addEventListener('change', (e) => {
+            listenBrainzSettings.setLoveOnLike(e.target.checked);
         });
     }
 

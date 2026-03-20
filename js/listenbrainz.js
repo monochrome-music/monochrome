@@ -2,7 +2,7 @@ import { listenBrainzSettings, lastFMStorage } from './storage.js';
 
 export class ListenBrainzScrobbler {
     constructor() {
-        this.DEFAULT_API_URL = 'https://api.listenbrainz.org/1';
+        this.DEFAULT_API_URL = 'https://api.listenbrainz.org';
         this.currentTrack = null;
         this.scrobbleTimer = null;
         this.scrobbleThreshold = 0;
@@ -12,7 +12,8 @@ export class ListenBrainzScrobbler {
 
     getApiUrl() {
         const customUrl = listenBrainzSettings.getCustomUrl();
-        return customUrl || this.DEFAULT_API_URL;
+        const base = customUrl || this.DEFAULT_API_URL;
+        return base.replace(/\/1\/?$/, '');
     }
 
     isEnabled() {
@@ -26,7 +27,6 @@ export class ListenBrainzScrobbler {
     _getMetadata(track) {
         if (!track) return null;
 
-        // Get the primary artist name
         let artistName = 'Unknown Artist';
 
         if (track.artist?.name) {
@@ -38,10 +38,9 @@ export class ListenBrainzScrobbler {
             artistName = typeof first === 'string' ? first : first.name || 'Unknown Artist';
         }
 
-        // Clean artist name
         if (typeof artistName === 'string') {
             artistName = artistName
-                .split(/\s*[&]\s*|\s+feat\.?\s+|\s+ft\.?\s+|\s+featuring\s+|\s+with\s+|\s+x\s+/i)[0]
+                .split(/\s*[&]\s*|\s+feat\.?\s*|\s+ft\.?\s*|\s+featuring\s+|\s+with\s+|\s+x\s+/i)[0]
                 .trim();
         }
 
@@ -73,6 +72,54 @@ export class ListenBrainzScrobbler {
         return payload;
     }
 
+    async _lookupRecordingMbid(track) {
+        let artistName = 'Unknown Artist';
+        if (track.artist?.name) {
+            artistName = track.artist.name;
+        } else if (typeof track.artist === 'string') {
+            artistName = track.artist;
+        } else if (track.artists && track.artists.length > 0) {
+            const first = track.artists[0];
+            artistName = typeof first === 'string' ? first : first.name || 'Unknown Artist';
+        }
+        artistName = artistName
+            .split(/\s*[&]\s*|\s+feat\.?\s*|\s+ft\.?\s*|\s+featuring\s+|\s+with\s+|\s+x\s+/i)[0]
+            .trim();
+
+        const trackName = track.cleanTitle || track.title;
+        if (!artistName || !trackName) return null;
+
+        try {
+            const apiUrl = this.getApiUrl();
+            const params = new URLSearchParams({
+                recording_name: trackName,
+                artist_name: artistName,
+            });
+
+            const response = await fetch(`${apiUrl}/1/metadata/lookup/?${params}`, {
+                method: 'GET',
+                headers: {
+                    Authorization: `Token ${this.getToken()}`,
+                },
+            });
+
+            if (!response.ok) {
+                console.warn(`[ListenBrainz] MBID lookup failed: ${response.status}`);
+                return null;
+            }
+
+            const data = await response.json();
+            if (data?.recording_mbid) {
+                console.log(`[ListenBrainz] Found MBID: ${data.recording_mbid}`);
+                return data.recording_mbid;
+            }
+            console.warn('[ListenBrainz] No recording_mbid found in lookup response');
+        } catch (error) {
+            console.error('[ListenBrainz] MBID lookup error:', error);
+        }
+        return null;
+    }
+
     async submitListen(listenType, track, timestamp = null) {
         if (!this.isEnabled()) return;
 
@@ -96,7 +143,7 @@ export class ListenBrainzScrobbler {
 
         try {
             const apiUrl = this.getApiUrl();
-            const response = await fetch(`${apiUrl}/submit-listens`, {
+            const response = await fetch(`${apiUrl}/1/submit-listens`, {
                 method: 'POST',
                 headers: {
                     Authorization: `Token ${this.getToken()}`,
@@ -106,7 +153,6 @@ export class ListenBrainzScrobbler {
             });
 
             if (!response.ok) {
-                // ListenBrainz doesn't always return JSON on error
                 const text = await response.text();
                 throw new Error(`ListenBrainz API Error ${response.status}: ${text}`);
             }
@@ -121,8 +167,6 @@ export class ListenBrainzScrobbler {
         if (!this.isEnabled()) return;
 
         this.currentTrack = track;
-        // Only reset hasScrobbled if we're not currently in the middle of scrobbling
-        // to prevent race conditions that could cause double scrobbles
         if (!this.isScrobbling) {
             this.hasScrobbled = false;
         }
@@ -174,5 +218,39 @@ export class ListenBrainzScrobbler {
     disconnect() {
         this.clearScrobbleTimer();
         this.currentTrack = null;
+    }
+
+    async loveTrack(track) {
+        if (!this.isEnabled()) return;
+
+        try {
+            const apiUrl = this.getApiUrl();
+            const mbid = await this._lookupRecordingMbid(track);
+
+            if (mbid) {
+                const response = await fetch(`${apiUrl}/1/feedback/recording-feedback`, {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Token ${this.getToken()}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        recording_mbid: mbid,
+                        score: 1,
+                    }),
+                });
+
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(`ListenBrainz Feedback Error ${response.status}: ${text}`);
+                }
+
+                console.log('[ListenBrainz] Loved track:', track.title);
+            } else {
+                console.warn('[ListenBrainz] Could not find recording MBID for love feedback');
+            }
+        } catch (error) {
+            console.error('[ListenBrainz] Failed to love track:', error);
+        }
     }
 }

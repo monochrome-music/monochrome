@@ -57,6 +57,7 @@ export class MultiScrobbler {
     async loveTrack(track) {
         await this.lastfm.loveTrack(track);
         await this.librefm.loveTrack(track);
-        // ListenBrainz and Maloja feedback could be added here when supported
+        await this.listenbrainz.loveTrack(track);
+        // Maloja feedback could be added here when supported
     }
 }

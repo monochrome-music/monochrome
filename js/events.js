@@ -8,7 +8,7 @@ import {
     getShareUrl,
     escapeHtml,
 } from './utils.js';
-import { lastFMStorage, libreFmSettings, waveformSettings } from './storage.js';
+import { lastFMStorage, libreFmSettings, listenBrainzSettings, waveformSettings } from './storage.js';
 import { showNotification, downloadTrackWithMetadata, downloadAlbumAsZip, downloadPlaylistAsZip } from './downloads.js';
 import { downloadQualitySettings } from './storage.js';
 import { updateTabTitle, navigate } from './router.js';
@@ -1048,6 +1048,9 @@ export async function handleTrackAction(
                 scrobbler.loveTrack(item);
             }
             if (libreFmSettings.isEnabled() && libreFmSettings.shouldLoveOnLike()) {
+                scrobbler.loveTrack(item);
+            }
+            if (listenBrainzSettings.isEnabled() && listenBrainzSettings.shouldLoveOnLike()) {
                 scrobbler.loveTrack(item);
             }
         }
