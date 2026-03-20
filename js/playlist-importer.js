@@ -137,6 +137,7 @@ export function generateXML(playlist, tracks) {
  * @returns {Promise<{tracks: Array, missingTracks: Array}>}
  */
 const HEADER_MAPPINGS = {
+    trackUri: ['track uri'],
     track: ['track name', 'title', 'song', 'name', 'track', 'track title'],
     artist: ['artist name(s)', 'artist name', 'artist', 'artists', 'creator', 'artist names'],
     album: ['album', 'album name'],
@@ -144,7 +145,7 @@ const HEADER_MAPPINGS = {
     isrc: ['isrc', 'isrc code'],
     spotifyId: ['spotify - id', 'spotify id', 'spotify_id', 'spotifyid'],
     playlistName: ['playlist name', 'playlist', 'playlist title'],
-    duration: ['duration', 'length', 'time'],
+    duration: ['duration (ms)', 'duration', 'length', 'time'],
 };
 
 function normalizeHeader(header) {
@@ -170,11 +171,27 @@ function mapHeaders(rawHeaders) {
     return mapped;
 }
 
-function detectCSVFormat(mappedHeaders) {
+function detectCSVFormat(mappedHeaders, rawHeaders) {
     const hasType = mappedHeaders.type !== undefined;
     const hasTrack = mappedHeaders.track !== undefined;
     const hasArtist = mappedHeaders.artist !== undefined;
     const hasAlbum = mappedHeaders.album !== undefined;
+    const hasTrackUri = mappedHeaders.trackUri !== undefined;
+
+    const isExportify = hasTrackUri || (rawHeaders && rawHeaders.some(h => {
+        const lower = String(h).toLowerCase().trim();
+        return lower === 'track uri' || lower === 'artist name(s)';
+    }));
+
+    if (isExportify) {
+        return {
+            format: 'exportify',
+            hasMultipleTypes: false,
+            supportsTracks: true,
+            supportsAlbums: hasAlbum,
+            supportsArtists: false,
+        };
+    }
 
     if (hasTrack && hasArtist) {
         return {
@@ -208,14 +225,7 @@ function detectCSVFormat(mappedHeaders) {
 export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
     const lines = csvText.trim().split('\n');
     if (lines.length < 2) {
-        return {
-            format: 'unknown',
-            tracks: [],
-            albums: [],
-            artists: [],
-            missingItems: [],
-            playlists: {},
-        };
+        throw new Error("Le fichier CSV est vide ou ne contient pas suffisamment de lignes.");
     }
 
     const parseLine = (text) => {
@@ -227,7 +237,12 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
             const char = text[i];
 
             if (char === '"') {
-                inQuote = !inQuote;
+                if (inQuote && text[i + 1] === '"') {
+                    current += '"';
+                    i++; // Handle escaped quotes inside quotes
+                } else {
+                    inQuote = !inQuote;
+                }
             } else if (char === ',' && !inQuote) {
                 values.push(current);
                 current = '';
@@ -237,12 +252,20 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
         }
         values.push(current);
 
-        return values.map((v) => v.trim().replace(/^"|"$/g, '').replace(/""/g, '"').trim());
+        return values.map((v) => v.trim().replace(/^"|"$/g, '').trim());
     };
+
+    // Test Exportify: Console log parsing with dummy data
+    console.log("Test Exportify format:", parseLine('"spotify:track:123","Song Name","Artist Name(s)","Album Name","","","180000","",""'));
 
     const rawHeaders = parseLine(lines[0]);
     const mappedHeaders = mapHeaders(rawHeaders);
-    const formatInfo = detectCSVFormat(mappedHeaders);
+    const formatInfo = detectCSVFormat(mappedHeaders, rawHeaders);
+
+    if (formatInfo.format === 'unknown' && mappedHeaders.track === undefined && mappedHeaders.artist === undefined && mappedHeaders.trackUri === undefined) {
+        throw new Error("Format CSV non reconnu. Les colonnes nécessaires (ex: Track Name, Artist Name(s), ou Track URI) sont manquantes.");
+    }
+
     const rows = lines.slice(1);
 
     const tracks = [];
@@ -295,7 +318,14 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
         const isrc = mappedHeaders.isrc !== undefined ? values[mappedHeaders.isrc] : '';
         const playlistName = mappedHeaders.playlistName !== undefined ? values[mappedHeaders.playlistName] : '';
         const typeValue = mappedHeaders.type !== undefined ? values[mappedHeaders.type]?.toLowerCase().trim() : '';
+        const durationValue = mappedHeaders.duration !== undefined ? values[mappedHeaders.duration] : '';
         const isFavorite = typeValue.includes('favorite');
+
+        let targetDurationMs = 0;
+        if (durationValue) {
+            targetDurationMs = parseInt(durationValue, 10);
+            if (isNaN(targetDurationMs)) targetDurationMs = 0;
+        }
 
         if (onProgress) {
             onProgress({
@@ -342,6 +372,7 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
                         title: trackName,
                         artist: artistName,
                         album: albumName,
+                        duration: targetDurationMs,
                         isrc: isrc,
                     });
                 }
