@@ -15,7 +15,7 @@ import { APICache } from './cache.js';
 import { DashDownloader } from './dash-downloader.ts';
 import { HlsDownloader } from './hls-downloader.js';
 import { MP3EncodingError } from './mp3-encoder.js';
-import { loadFfmpeg, FfmpegError } from './ffmpeg.js';
+import { loadFfmpeg, FfmpegError, ffmpeg } from './ffmpeg.js';
 import { triggerDownload, applyAudioPostProcessing } from './download-utils.ts';
 import { isCustomFormat } from './ffmpegFormats.ts';
 import { DownloadProgress } from './progressEvents.js';
@@ -1504,58 +1504,62 @@ export class LosslessAPI {
 
             if (!isVideo) {
                 blob = await applyAudioPostProcessing(blob, quality, onProgress, options.signal);
+            }
 
-                // Add metadata if track information is provided
-                if (track) {
-                    onProgress?.({
-                        stage: 'processing',
-                        message: 'Adding metadata...',
-                    });
+            // Add metadata if track information is provided
+            if (track) {
+                onProgress?.({
+                    stage: 'processing',
+                    message: 'Adding metadata...',
+                });
 
-                    const enrichedTrack = { ...track };
-                    if (lookup.info) {
-                        enrichedTrack.replayGain = {
-                            trackReplayGain: lookup.info.trackReplayGain,
-                            trackPeakAmplitude: lookup.info.trackPeakAmplitude,
-                            albumReplayGain: lookup.info.albumReplayGain,
-                            albumPeakAmplitude: lookup.info.albumPeakAmplitude,
-                        };
-                    }
+                const enrichedTrack = { ...track };
+                if (lookup.info) {
+                    enrichedTrack.replayGain = {
+                        trackReplayGain: lookup.info.trackReplayGain,
+                        trackPeakAmplitude: lookup.info.trackPeakAmplitude,
+                        albumReplayGain: lookup.info.albumReplayGain,
+                        albumPeakAmplitude: lookup.info.albumPeakAmplitude,
+                    };
+                }
 
-                    if (
-                        track.album?.id &&
-                        (track.album?.totalDiscs == null || track.album?.numberOfTracksOnDisc == null)
-                    ) {
-                        try {
-                            const albumData = await this.getAlbum(track.album.id);
-                            if (albumData.tracks?.length > 0) {
-                                const discTrackCounts = new Map();
-                                let maxDiscNumber = 0;
-                                for (const t of albumData.tracks) {
-                                    const dn = getTrackDiscNumber(t);
-                                    discTrackCounts.set(dn, (discTrackCounts.get(dn) || 0) + 1);
-                                    if (dn > maxDiscNumber) maxDiscNumber = dn;
-                                }
-                                const totalDiscs = maxDiscNumber || 1;
-                                const discNumber = getTrackDiscNumber(track);
-                                enrichedTrack.album = {
-                                    ...(enrichedTrack.album || {}),
-                                    totalDiscs: track.album?.totalDiscs ?? totalDiscs,
-                                    numberOfTracksOnDisc:
-                                        track.album?.numberOfTracksOnDisc ?? discTrackCounts.get(discNumber),
-                                };
-                            }
-                        } catch (e) {
-                            console.warn('Failed to fetch album for disc info:', e);
-                        }
-                    }
-
-                    onProgress?.(new DownloadProgress('Adding metadata'));
+                if (track.album?.id && (track.album?.totalDiscs == null || track.album?.numberOfTracksOnDisc == null)) {
                     try {
-                        blob = await addMetadataToAudio(blob, enrichedTrack, this, quality, prefetchPromises);
-                    } catch (err) {
-                        console.error(err);
+                        const albumData = await this.getAlbum(track.album.id);
+                        if (albumData.tracks?.length > 0) {
+                            const discTrackCounts = new Map();
+                            let maxDiscNumber = 0;
+                            for (const t of albumData.tracks) {
+                                const dn = getTrackDiscNumber(t);
+                                discTrackCounts.set(dn, (discTrackCounts.get(dn) || 0) + 1);
+                                if (dn > maxDiscNumber) maxDiscNumber = dn;
+                            }
+                            const totalDiscs = maxDiscNumber || 1;
+                            const discNumber = getTrackDiscNumber(track);
+                            enrichedTrack.album = {
+                                ...(enrichedTrack.album || {}),
+                                totalDiscs: track.album?.totalDiscs ?? totalDiscs,
+                                numberOfTracksOnDisc:
+                                    track.album?.numberOfTracksOnDisc ?? discTrackCounts.get(discNumber),
+                            };
+                        }
+                    } catch (e) {
+                        console.warn('Failed to fetch album for disc info:', e);
                     }
+                }
+
+                onProgress?.(new DownloadProgress('Adding metadata'));
+                try {
+                    if (isVideo) {
+                        blob = new File(
+                            [await ffmpeg(blob, ['-c', 'copy'], 'output.mp4', 'video/mp4', onProgress, options.signal)],
+                            'output.mp4',
+                            { type: 'video/mp4' }
+                        );
+                    }
+                    blob = await addMetadataToAudio(blob, enrichedTrack, this, quality, prefetchPromises);
+                } catch (err) {
+                    console.error(err);
                 }
             }
 
