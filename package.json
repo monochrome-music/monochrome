@@ -51,25 +51,31 @@
         "serialize-javascript": "^7.0.3"
     },
     "dependencies": {
+        "@dantheman827/taglib-ts": "https://github.com/DanTheMan827/taglib-ts/archive/b4238b2627aceb97f58813258046f1259f68cab7.tar.gz",
         "@ffmpeg/core": "^0.12.10",
         "@ffmpeg/ffmpeg": "^0.12.15",
         "@ffmpeg/util": "^0.12.2",
         "@kawarp/core": "^1.1.1",
         "@neutralinojs/lib": "^6.5.0",
+        "@svta/common-media-library": "^0.18.1",
         "@uimaxbai/am-lyrics": "^1.1.4",
         "appwrite": "^23.0.0",
         "butterchurn": "^2.6.7",
         "butterchurn-presets": "^2.4.7",
         "client-zip": "^2.5.0",
         "cookie-session": "^2.1.1",
-        "dashjs": "^5.1.1",
+        "dashjs": "https://github.com/Dash-Industry-Forum/dash.js/archive/refs/tags/v5.1.1.tar.gz",
+        "eventemitter3": "^5.0.4",
         "fuse.js": "^7.1.0",
         "hls.js": "^1.6.15",
         "jose": "^6.2.0",
+        "lucide-static": "^0.577.0",
         "mime": "^4.1.0",
         "npm": "^11.11.1",
         "pocketbase": "^0.26.8",
-        "taglib-wasm": "^1.0.5",
+        "simple-icons": "^16.12.0",
+        "svgo": "^4.0.1",
+        "url-toolkit": "^2.2.5",
         "uuid": "^13.0.0"
     }
 }

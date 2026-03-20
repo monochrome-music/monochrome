@@ -36,38 +36,23 @@ const usernameError = document.getElementById('username-error');
 let currentFavoriteAlbums = [];
 const api = new MusicAPI(apiSettings);
 
-function normalizeImageUrl(url) {
-    const raw = (url || '').trim();
-    if (!raw) return '';
-
-    if (raw.startsWith('blob:') || /^data:image\//i.test(raw)) return raw;
-
-    const withProtocol = raw.startsWith('//') ? `https:${raw}` : raw;
-
-    try {
-        const parsed = new URL(withProtocol);
-        if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return parsed.href;
-        return '';
-    } catch {
-        try {
-            const parsed = new URL(`https://${raw}`);
-            return parsed.href;
-        } catch {
-            return '';
-        }
-    }
-}
-
 async function uploadImage(file) {
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
-        const response = await fetch('/upload', { method: 'POST', body: formData });
-        if (!response.ok) throw new Error(`Upload failed: ${response.status}`);
-        const data = await response.json();
-        if (!data.success) throw new Error(data.error || 'Upload failed');
-        return normalizeImageUrl(data.url);
+        const response = await fetch(`https://worker.uploads.monochrome.qzz.io/${file.name}`, {
+            method: 'PUT',
+            headers: {
+                'x-api-key': 'if_youre_reading_this_fuck_off',
+                'Content-Type': file.type || 'application/octet-stream',
+            },
+            body: file,
+        });
+
+        if (!response.ok) {
+            if (response.status === 413) throw new Error('File exceeds 10MB');
+            throw new Error(`Upload failed: ${response.status}`);
+        }
+
+        return `https://images.monochrome.qzz.io/${await response.text()}`;
     } catch (error) {
         console.error('Upload error:', error);
         throw error;
@@ -194,10 +179,8 @@ export async function loadProfile(username) {
     }
 
     document.getElementById('profile-display-name').textContent = profile.display_name || username;
-    const bannerUrl = normalizeImageUrl(profile.banner);
-    const avatarUrl = normalizeImageUrl(profile.avatar_url);
-    if (bannerUrl) document.getElementById('profile-banner').style.backgroundImage = `url("${bannerUrl}")`;
-    if (avatarUrl) document.getElementById('profile-avatar').src = avatarUrl;
+    if (profile.banner) document.getElementById('profile-banner').style.backgroundImage = `url('${profile.banner}')`;
+    if (profile.avatar_url) document.getElementById('profile-avatar').src = profile.avatar_url;
 
     if (profile.status) {
         const statusEl = document.getElementById('profile-status');
@@ -562,28 +545,11 @@ async function saveProfile() {
     saveProfileBtn.disabled = true;
     saveProfileBtn.textContent = 'Saving...';
 
-    const avatarUrl = normalizeImageUrl(editAvatar.value);
-    const bannerUrl = normalizeImageUrl(editBanner.value);
-
-    if (editAvatar.value.trim() && !avatarUrl) {
-        alert('Avatar URL is invalid. Please enter a valid image URL starting with http:// or https://');
-        saveProfileBtn.disabled = false;
-        saveProfileBtn.textContent = 'Save Profile';
-        return;
-    }
-
-    if (editBanner.value.trim() && !bannerUrl) {
-        alert('Banner URL is invalid. Please enter a valid image URL starting with http:// or https://');
-        saveProfileBtn.disabled = false;
-        saveProfileBtn.textContent = 'Save Profile';
-        return;
-    }
-
     const data = {
         username: newUsername,
         display_name: editDisplayName.value.trim(),
-        avatar_url: avatarUrl,
-        banner: bannerUrl,
+        avatar_url: editAvatar.value.trim(),
+        banner: editBanner.value.trim(),
         status: editStatusJson.value.trim() || (editStatusSearch.value.trim() ? editStatusSearch.value.trim() : ''),
         about: editAbout.value.trim(),
         website: editWebsite.value.trim(),

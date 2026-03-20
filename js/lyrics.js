@@ -1,9 +1,16 @@
 //js/lyrics.js
-import { getTrackTitle, getTrackArtists, buildTrackFilename, SVG_CLOSE } from './utils.js';
+import { getTrackTitle, getTrackArtists, buildTrackFilename } from './utils.js';
+import {
+    SVG_CLOSE,
+    SVG_GENIUS_ACTIVE,
+    SVG_GENIUS_INACTIVE,
+    SVG_MINUS,
+    SVG_PLUS,
+    SVG_RESET,
+    SVG_GLOBE,
+} from './icons.js';
 import { sidePanelManager } from './side-panel.js';
-import '@uimaxbai/am-lyrics/am-lyrics.js';
-
-const SVG_GENIUS_ACTIVE = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 24c6.627 0 12-5.373 12-12S18.627 0 12 0 0 5.373 0 12s5.373 12 12 12z" fill="#ffff64"/><path d="M6.3 6.3h11.4v11.4H6.3z" fill="#000"/></svg>`;
+import('@uimaxbai/am-lyrics/am-lyrics.js');
 
 // Check if text contains Japanese, Chinese, or Korean characters
 function containsAsianText(text) {
@@ -36,8 +43,6 @@ function cleanTrackerSearch(text) {
     
     return cleaned.trim();
 }
-
-const SVG_GENIUS_INACTIVE = `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="opacity: 0.7;"><path d="M12 24c6.627 0 12-5.373 12-12S18.627 0 12 0 0 5.373 0 12s5.373 12 12 12z" /><path d="M6.3 6.3h11.4v11.4H6.3z" fill="var(--card)"/></svg>`;
 
 class GeniusManager {
     constructor() {
@@ -774,34 +779,24 @@ export function openLyricsPanel(track, audioPlayer, lyricsManager, forceOpen = f
         container.innerHTML = `
             <div class="lyrics-timing-controls">
                 <button id="lyrics-timing-minus-btn" class="btn-icon" title="Decrease delay (lyrics earlier) -0.5s">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M5 12h14"/>
-                    </svg>
+                    ${SVG_MINUS(18)}
                 </button>
                 <span id="lyrics-timing-display" class="lyrics-timing-display" title="Current timing offset">${offsetDisplay}</span>
                 <button id="lyrics-timing-plus-btn" class="btn-icon" title="Increase delay (lyrics later) +0.5s">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M5 12h14M12 5v14"/>
-                    </svg>
+                    ${SVG_PLUS(18)}
                 </button>
                 <button id="lyrics-timing-reset-btn" class="btn-icon" title="Reset timing offset">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                        <path d="M3 3v5h5"/>
-                    </svg>
+                    ${SVG_RESET(16)}
                 </button>
             </div>
             <button id="romaji-toggle-btn" class="btn-icon" title="Toggle Romaji (Japanese to Latin)" data-enabled="${isRomajiMode}" style="color: ${isRomajiMode ? 'var(--primary)' : ''}">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                </svg>
+                ${SVG_GLOBE(20)}
             </button>
             <button id="genius-toggle-btn" class="btn-icon ${isGeniusMode ? 'active-genius' : ''}" title="Genius Mode" style="${isGeniusMode ? 'color: #ffff64;' : ''}">
-                ${isGeniusMode ? SVG_GENIUS_ACTIVE : SVG_GENIUS_INACTIVE}
+                ${isGeniusMode ? SVG_GENIUS_ACTIVE(20) : SVG_GENIUS_INACTIVE(20)}
             </button>
             <button id="close-side-panel-btn" class="btn-icon" title="Close">
-                ${SVG_CLOSE}
+                ${SVG_CLOSE(20)}
             </button>
         `;
 
@@ -864,7 +859,7 @@ export function openLyricsPanel(track, audioPlayer, lyricsManager, forceOpen = f
 
                 geniusBtn.classList.toggle('active-genius', enabled);
                 geniusBtn.style.color = enabled ? '#ffff64' : '';
-                geniusBtn.innerHTML = enabled ? SVG_GENIUS_ACTIVE : SVG_GENIUS_INACTIVE;
+                geniusBtn.innerHTML = enabled ? SVG_GENIUS_ACTIVE(20) : SVG_GENIUS_INACTIVE(20);
 
                 if (enabled) {
                     try {

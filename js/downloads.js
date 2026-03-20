@@ -5,17 +5,15 @@ import {
     RATE_LIMIT_ERROR_MESSAGE,
     getTrackArtists,
     getTrackTitle,
-    formatTemplate,
-    SVG_CLOSE,
     getCoverBlob,
     getExtensionFromBlob,
+    formatTemplate,
     escapeHtml,
     getTrackDiscNumber,
 } from './utils.js';
 import { AbortError } from './errorTypes.ts';
 import { lyricsSettings, bulkDownloadSettings, playlistSettings } from './storage.js';
 import { generateM3U, generateM3U8, generateCUE, generateNFO, generateJSON } from './playlist-generator.js';
-import { triggerDownload } from './download-utils.ts';
 import {
     ZipStreamWriter,
     ZipBlobWriter,
@@ -25,6 +23,7 @@ import {
 } from './bulk-download-writer.ts';
 import { FfmpegProgress } from './ffmpeg.types.js';
 import { DownloadProgress, ProgressMessage, SegmentedDownloadProgress } from './progressEvents.js';
+import { SVG_CLOSE } from './icons.ts';
 
 const downloadTasks = new Map();
 const bulkDownloadTasks = new Map();
@@ -187,7 +186,7 @@ export function addDownloadTask(trackId, track, filename, api, abortController) 
                 <div class="download-status" style="font-size: 0.75rem; color: var(--muted-foreground); margin-top: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Starting...</div>
             </div>
             <button class="download-cancel" style="background: transparent; border: none; color: var(--muted-foreground); cursor: pointer; padding: 4px; border-radius: 4px; transition: all 0.2s;">
-                ${SVG_CLOSE}
+                ${SVG_CLOSE(20)}
             </button>
         </div>
     `;
@@ -266,7 +265,7 @@ export function completeDownloadTask(trackId, success = true, message = null) {
         statusEl.textContent = message || '✗ Download failed';
         statusEl.style.color = '#ef4444';
         cancelBtn.innerHTML = `
-            ${SVG_CLOSE}
+            ${SVG_CLOSE(20)}
         `;
         cancelBtn.onclick = () => removeDownloadTask(trackId);
 
@@ -812,7 +811,7 @@ function createBulkDownloadNotification(type, name, _totalItems) {
                 <div class="download-status" style="font-size: 0.75rem; color: var(--muted-foreground); margin-top: 0.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Starting...</div>
             </div>
             <button class="download-cancel" style="background: transparent; border: none; color: var(--muted-foreground); cursor: pointer; padding: 4px; border-radius: 4px; transition: all 0.2s;">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                ${SVG_CLOSE(20)}
             </button>
         </div>
     `;
@@ -838,7 +837,7 @@ function updateBulkDownloadProgress(notifEl, current, total, currentItem, progre
         const percent = progress.progress || 0;
         progressFill.style.width = `${percent}%`;
         progressFill.style.background = '#3b82f6'; // Blue for encoding
-        statusEl.textContent = `Converting ${Math.ceil(current)}/${total}: ${Math.round(percent)}%`;
+        statusEl.textContent = `Converting ${Math.floor(current + 1)}/${total}: ${Math.round(percent)}%`;
         return;
     }
 
@@ -849,7 +848,7 @@ function updateBulkDownloadProgress(notifEl, current, total, currentItem, progre
     const percent = total > 0 ? Math.round((current / total) * 100) : 0;
     progressFill.style.width = `${percent}%`;
     progressFill.style.background = 'var(--highlight)';
-    statusEl.textContent = `${Math.floor(current)}/${total} - ${currentItem}`;
+    statusEl.textContent = `${Math.floor(current + 1)}/${total} - ${currentItem}`;
 }
 
 function completeBulkDownload(notifEl, success = true, message = null) {

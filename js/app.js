@@ -1,4 +1,5 @@
 //js/app.js
+import { isIos, isSafari } from './platform-detection.js';
 import { MusicAPI } from './music-api.js';
 import {
     apiSettings,
@@ -18,7 +19,7 @@ import { LyricsManager, openLyricsPanel, clearLyricsPanelSync } from './lyrics.j
 import { createRouter, updateTabTitle, navigate } from './router.js';
 import { initializePlayerEvents, initializeTrackInteractions, handleTrackAction } from './events.js';
 import { initializeUIInteractions } from './ui-interactions.js';
-import { debounce, SVG_PLAY, getShareUrl } from './utils.js';
+import { debounce, getShareUrl } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
 import { db } from './db.js';
 import { showNotification } from './downloads.js';
@@ -28,7 +29,6 @@ import { registerSW } from 'virtual:pwa-register';
 import { openEditProfile } from './profile.js';
 import { ThemeStore } from './themeStore.js';
 import './commandPalette.js';
-
 import { initTracker } from './tracker.js';
 import {
     initAnalytics,
@@ -61,13 +61,19 @@ import {
     parseDynamicCSV,
     importToLibrary,
 } from './playlist-importer.js';
-import { initI18n } from './i18n.js';
+import {
+    SVG_OFFLINE,
+    SVG_RIGHT_ARROW,
+    SVG_LEFT_ARROW,
+    SVG_ANIMATE_SPIN,
+    SVG_PLAY,
+    SVG_CLOSE,
+    SVG_RESET,
+} from './icons.js';
 
 // Capture real iOS state before spoofing (needed for background audio)
 if (typeof window !== 'undefined') {
     const _ua = navigator.userAgent.toLowerCase();
-    window.__IS_IOS__ = /iphone|ipad|ipod/.test(_ua) || (_ua.includes('mac') && navigator.maxTouchPoints > 1);
-
     // Spoof User-Agent to bypass Google's embedded browser check
     Object.defineProperty(navigator, 'userAgent', {
         get: function () {
@@ -313,11 +319,7 @@ function showOfflineNotification() {
     const notification = document.createElement('div');
     notification.className = 'offline-notification';
     notification.innerHTML = `
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-            <line x1="12" y1="9" x2="12" y2="13"/>
-            <line x1="12" y1="17" x2="12.01" y2="17"/>
-        </svg>
+        ${SVG_OFFLINE(20)}
         <span>You are offline. Some features may not work.</span>
     `;
     document.body.appendChild(notification);
@@ -358,21 +360,21 @@ async function disablePwaForAuthGate() {
 
 async function uploadCoverImage(file) {
     try {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const response = await fetch('/upload', {
-            method: 'POST',
-            body: formData,
+        const response = await fetch(`https://worker.uploads.monochrome.qzz.io/${file.name}`, {
+            method: 'PUT',
+            headers: {
+                'x-api-key': 'if_youre_reading_this_fuck_off',
+                'Content-Type': file.type || 'application/octet-stream',
+            },
+            body: file,
         });
 
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || `Upload failed: ${response.status}`);
+            if (response.status === 413) throw new Error('File exceeds 10MB');
+            throw new Error(`Upload failed: ${response.status}`);
         }
 
-        const data = await response.json();
-        return data.url;
+        return `https://images.monochrome.qzz.io/${await response.text()}`;
     } catch (error) {
         console.error('Cover upload error:', error);
         throw error;
@@ -383,24 +385,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize analytics
     initAnalytics();
 
-    // Initialize i18n (language support)
-    initI18n().catch((err) => console.warn('[i18n] Initialization failed:', err));
-
     new ThemeStore();
 
     const api = new MusicAPI(apiSettings);
     const audioPlayer = document.getElementById('audio-player');
 
-    // i love ios and macos!!!! webkit fucking SUCKS BULLSHIT sorry ios/macos heads yall getting lossless only
-    // Use window.__IS_IOS__ (set before UA spoof in index.html) so detection works on real iOS.
-    const isIOS = typeof window !== 'undefined' && window.__IS_IOS__ === true;
-    const ua = navigator.userAgent.toLowerCase();
-    const isSafari =
-        ua.includes('safari') && !ua.includes('chrome') && !ua.includes('crios') && !ua.includes('android');
-
-    if (isIOS || isSafari) {
+    // i love ios and macos!!!! webkit fucking SUCKS BULLSHIT sorry ios/macos heads yall getting lossless only playback
+    // Use isIos from platform-detection (set before UA spoof in index.html) so detection works on real iOS.
+    if (isIos || isSafari) {
         const qualitySelect = document.getElementById('streaming-quality-setting');
-        const downloadSelect = document.getElementById('download-quality-setting');
+        const downloadQualitySelect = document.getElementById('download-quality-setting');
 
         const removeHiRes = (select) => {
             if (!select) return;
@@ -409,7 +403,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         removeHiRes(qualitySelect);
-        removeHiRes(downloadSelect);
+
+        if (isIos) {
+            document.querySelector('#hi-res-download-warning').style.display = '';
+        }
 
         const currentQualitySetting = localStorage.getItem('playback-quality');
         if (!currentQualitySetting || currentQualitySetting === 'HI_RES_LOSSLESS') {
@@ -419,6 +416,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const currentQuality = localStorage.getItem('playback-quality') || 'HI_RES_LOSSLESS';
     const player = new Player(audioPlayer, api, currentQuality);
+    await player.init();
     window.monochromePlayer = player;
 
     // Initialize tracker
@@ -500,6 +498,159 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const ui = new UIRenderer(api, player);
     window.monochromeUi = ui;
+
+    /**
+     * Scans the configured local media folder and refreshes `window.localFilesCache`.
+     * Called by the folder-select button handler and by downloads.js after a
+     * successful write to the local media folder.
+     *
+     * @param {boolean} [onlyIfAlreadyScanned=false] When true, skips the scan if
+     *   `window.localFilesCache` has never been populated (i.e. the user hasn't
+     *   visited the local tab yet).
+     */
+    async function scanLocalMediaFolder(onlyIfAlreadyScanned = false) {
+        // Skip the scan if the user has never visited the local tab – they'll
+        // get a fresh scan when they navigate there for the first time.
+        if (onlyIfAlreadyScanned && !window.localFilesCache) return;
+
+        // Prevent concurrent scans.
+        if (window.localFilesScanInProgress) return;
+        window.localFilesScanInProgress = true;
+
+        try {
+            const handle = await db.getSetting('local_folder_handle');
+            if (!handle) return;
+
+            const isNeutralino =
+                window.Neutralino && (window.NL_MODE || window.location.search.includes('mode=neutralino'));
+            const tracks = (window.localFilesCache = []);
+            let idCounter = 0;
+            const { readTrackMetadata } = await loadMetadataModule();
+
+            if (isNeutralino) {
+                async function scanNeu(dirPath) {
+                    const entries = await window.Neutralino.filesystem.readDirectory(dirPath);
+                    for (const entry of entries) {
+                        if (entry.entry === '.' || entry.entry === '..') continue;
+                        const fullPath = `${dirPath}/${entry.entry}`;
+                        if (entry.type === 'FILE') {
+                            const name = entry.entry.toLowerCase();
+                            if (
+                                name.endsWith('.flac') ||
+                                name.endsWith('.mp3') ||
+                                name.endsWith('.m4a') ||
+                                name.endsWith('.wav') ||
+                                name.endsWith('.ogg')
+                            ) {
+                                try {
+                                    const buffer = await window.Neutralino.filesystem.readBinaryFile(fullPath);
+                                    const stats = await window.Neutralino.filesystem.getStats(fullPath);
+                                    const file = new File([buffer], entry.entry, { lastModified: stats.mtime });
+                                    const metadata = await readTrackMetadata(file);
+                                    metadata.id = `local-${idCounter++}-${entry.entry}`;
+                                    tracks.push(metadata);
+                                    window.monochromeUi?.renderLocalFiles(
+                                        document.getElementById('library-local-container')
+                                    );
+                                } catch (e) {
+                                    console.error('Failed to read file:', fullPath, e);
+                                }
+                            }
+                        } else if (entry.type === 'DIRECTORY') {
+                            await scanNeu(fullPath);
+                        }
+                    }
+                }
+                await scanNeu(handle.path);
+            } else {
+                // Request read permission before iterating. When the browser has
+                // already granted it (e.g. within the same session or via a
+                // persistent grant) this succeeds without a user gesture.
+                if (typeof handle.requestPermission === 'function') {
+                    const permission = await handle.requestPermission({ mode: 'read' });
+                    if (permission !== 'granted') return;
+                }
+
+                async function scanBrowser(dirHandle) {
+                    for await (const entry of dirHandle.values()) {
+                        if (entry.kind === 'file') {
+                            const name = entry.name.toLowerCase();
+                            if (
+                                name.endsWith('.flac') ||
+                                name.endsWith('.mp3') ||
+                                name.endsWith('.m4a') ||
+                                name.endsWith('.wav') ||
+                                name.endsWith('.ogg')
+                            ) {
+                                const file = await entry.getFile();
+                                const metadata = await readTrackMetadata(file);
+                                metadata.id = `local-${idCounter++}-${file.name}`;
+                                tracks.push(metadata);
+                                window.monochromeUi?.renderLocalFiles(
+                                    document.getElementById('library-local-container')
+                                );
+                            }
+                        } else if (entry.kind === 'directory') {
+                            await scanBrowser(entry);
+                        }
+                    }
+                }
+                await scanBrowser(handle);
+            }
+
+            tracks.sort((a, b) => (a.artist.name || '').localeCompare(b.artist.name || ''));
+            // Update only the local-files section without navigating to the library page.
+            window.monochromeUi?.renderLocalFiles(document.getElementById('library-local-container'));
+        } finally {
+            window.localFilesScanInProgress = false;
+        }
+
+        return window.localFilesCache;
+    }
+
+    /**
+     * Called by downloads.js (via window) after a successful write to the local
+     * media folder so the track appears in Library > Local without the user
+     * having to manually re-scan.
+     *
+     * When called with a `blob` and `filename` (single-track download case) it
+     * performs a cheap partial update — reading metadata only from that one file
+     * and inserting it into the existing cache — so the full folder does not need
+     * to be re-walked.  When called with no arguments (bulk download case, or when
+     * `localFilesCache` has never been populated) it falls back to a full rescan.
+     */
+    window.refreshLocalMediaFolder = async (blob = null, filename = null) => {
+        if (blob && filename) {
+            try {
+                /** @type {import("./metadata.js")} */
+                const { readTrackMetadata } = await loadMetadataModule();
+                const baseName = filename.split('/').pop();
+                const metadata = await readTrackMetadata(new Uint8Array(await blob.arrayBuffer()), {
+                    filename: baseName,
+                });
+                const existing = window.localFilesCache || [];
+                metadata.id = `local-${existing.length}-${baseName}`;
+                window.localFilesCache = [...existing, metadata].sort((a, b) =>
+                    (a.artist.name || '').localeCompare(b.artist.name || '')
+                );
+                window.monochromeUi?.renderLocalFiles(document.getElementById('library-local-container'));
+            } catch {
+                // Fall back to a full rescan if metadata extraction fails.
+                await scanLocalMediaFolder(true);
+            }
+        } else {
+            await scanLocalMediaFolder(!!window.localFilesCache);
+        }
+    };
+
+    // Kick off a background scan of the saved local media folder on startup so
+    // that the Library > Local tab is populated without requiring the user to
+    // manually press "Load [folder]" every session.  The function internally
+    // checks for a saved handle and (in browser mode) requests read permission,
+    // so this is a silent no-op when no folder is configured or permission is not
+    // yet granted.
+    scanLocalMediaFolder();
+
     const scrobbler = new MultiScrobbler();
     window.monochromeScrobbler = scrobbler;
     const lyricsManager = new LyricsManager(api);
@@ -541,7 +692,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Load settings module and initialize
     const { initializeSettings } = await loadSettingsModule();
-    initializeSettings(scrobbler, player, api, ui);
+    await initializeSettings(scrobbler, player, api, ui);
 
     // Track sidebar navigation clicks
     document.querySelectorAll('.sidebar-nav a').forEach((link) => {
@@ -714,9 +865,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isCollapsed = document.body.classList.contains('sidebar-collapsed');
         const toggleBtn = document.getElementById('sidebar-toggle');
         if (toggleBtn) {
-            toggleBtn.innerHTML = isCollapsed
-                ? '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>'
-                : '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>';
+            toggleBtn.innerHTML = isCollapsed ? SVG_RIGHT_ARROW(20) : SVG_LEFT_ARROW(20);
         }
         // Save sidebar state to localStorage
         sidebarSettings.setCollapsed(isCollapsed);
@@ -988,7 +1137,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const shuffleBtn = document.getElementById('shuffle-btn');
                     if (shuffleBtn) shuffleBtn.classList.remove('active');
                     player.shuffleActive = false;
-                    player.playTrackFromQueue();
+                    await player.playTrackFromQueue();
                 }
             } catch (error) {
                 console.error('Failed to play album:', error);
@@ -1019,7 +1168,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const shuffleBtn = document.getElementById('shuffle-btn');
                     if (shuffleBtn) shuffleBtn.classList.remove('active');
                     player.shuffleActive = false;
-                    player.playTrackFromQueue();
+                    await player.playTrackFromQueue();
 
                     const { showNotification } = await loadDownloadsModule();
                     showNotification('Shuffling album');
@@ -1039,8 +1188,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             btn.disabled = true;
             const originalHTML = btn.innerHTML;
-            btn.innerHTML =
-                '<svg class="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Shuffling...</span>';
+            btn.innerHTML = `${SVG_ANIMATE_SPIN(18)}<span>Shuffling...</span>`;
 
             try {
                 const artist = await api.getArtist(artistId);
@@ -1088,7 +1236,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const shuffleBtn = document.getElementById('shuffle-btn');
                 if (shuffleBtn) shuffleBtn.classList.remove('active');
                 player.shuffleActive = false;
-                player.playTrackFromQueue();
+                await player.playTrackFromQueue();
 
                 const { showNotification } = await loadDownloadsModule();
                 showNotification('Shuffling artist discography');
@@ -1112,8 +1260,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             btn.disabled = true;
             const originalHTML = btn.innerHTML;
-            btn.innerHTML =
-                '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Downloading...</span>';
+            btn.innerHTML = `${SVG_ANIMATE_SPIN(20)}<span>Downloading...</span>`;
 
             try {
                 const { mix, tracks } = await api.getMix(mixId);
@@ -1137,8 +1284,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             btn.disabled = true;
             const originalHTML = btn.innerHTML;
-            btn.innerHTML =
-                '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Downloading...</span>';
+            btn.innerHTML = `${SVG_ANIMATE_SPIN(20)}<span>Downloading...</span>`;
 
             try {
                 let playlist, tracks;
@@ -2038,7 +2184,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (tracks.length > 0) {
                     player.setQueue(tracks, 0);
                     document.getElementById('shuffle-btn').classList.remove('active');
-                    player.playTrackFromQueue();
+                    await player.playTrackFromQueue();
                 }
             } catch (error) {
                 console.error('Failed to play playlist:', error);
@@ -2055,8 +2201,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             btn.disabled = true;
             const originalHTML = btn.innerHTML;
-            btn.innerHTML =
-                '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Downloading...</span>';
+            btn.innerHTML = `${SVG_ANIMATE_SPIN(20)}<span>Downloading...</span>`;
 
             try {
                 const { album, tracks } = await api.getAlbum(albumId);
@@ -2179,8 +2324,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             btn.disabled = true;
             const originalHTML = btn.innerHTML;
-            btn.innerHTML =
-                '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Loading...</span>';
+            btn.innerHTML = `${SVG_ANIMATE_SPIN(20)}<span>Loading...</span>`;
 
             try {
                 const artist = await api.getArtist(artistId);
@@ -2226,7 +2370,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
 
                     player.setQueue(allTracks, 0);
-                    player.playTrackFromQueue();
+                    await player.playTrackFromQueue();
                 } else {
                     throw new Error('No tracks found across all albums');
                 }
@@ -2255,7 +2399,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                     player.setQueue(likedTracks, 0);
                     document.getElementById('shuffle-btn').classList.remove('active');
-                    player.playTrackFromQueue();
+                    await player.playTrackFromQueue();
                 }
             } catch (error) {
                 console.error('Failed to shuffle liked tracks:', error);
@@ -2268,8 +2412,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             btn.disabled = true;
             const originalHTML = btn.innerHTML;
-            btn.innerHTML =
-                '<svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg>';
+            btn.innerHTML = SVG_ANIMATE_SPIN(16);
 
             try {
                 const likedTracks = await db.getFavorites('track');
@@ -2338,77 +2481,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     btn.disabled = true;
                 }
 
-                const tracks = [];
-                let idCounter = 0;
-                const { readTrackMetadata } = await loadMetadataModule();
-
-                if (isNeutralino) {
-                    async function scanDirectoryNeu(dirPath) {
-                        const entries = await window.Neutralino.filesystem.readDirectory(dirPath);
-                        for (const entry of entries) {
-                            if (entry.entry === '.' || entry.entry === '..') continue;
-                            const fullPath = `${dirPath}/${entry.entry}`;
-                            if (entry.type === 'FILE') {
-                                const name = entry.entry.toLowerCase();
-                                if (
-                                    name.endsWith('.flac') ||
-                                    name.endsWith('.mp3') ||
-                                    name.endsWith('.m4a') ||
-                                    name.endsWith('.wav') ||
-                                    name.endsWith('.ogg')
-                                ) {
-                                    try {
-                                        const buffer = await window.Neutralino.filesystem.readBinaryFile(fullPath);
-                                        const stats = await window.Neutralino.filesystem.getStats(fullPath);
-                                        const file = new File([buffer], entry.entry, {
-                                            lastModified: stats.mtime,
-                                        });
-                                        const metadata = await readTrackMetadata(file);
-                                        metadata.id = `local-${idCounter++}-${entry.entry}`;
-                                        tracks.push(metadata);
-                                    } catch (e) {
-                                        console.error('Failed to read file:', fullPath, e);
-                                    }
-                                }
-                            } else if (entry.type === 'DIRECTORY') {
-                                await scanDirectoryNeu(fullPath);
-                            }
-                        }
-                    }
-                    await scanDirectoryNeu(path);
-                } else {
-                    async function scanDirectory(dirHandle) {
-                        for await (const entry of dirHandle.values()) {
-                            if (entry.kind === 'file') {
-                                const name = entry.name.toLowerCase();
-                                if (
-                                    name.endsWith('.flac') ||
-                                    name.endsWith('.mp3') ||
-                                    name.endsWith('.m4a') ||
-                                    name.endsWith('.wav') ||
-                                    name.endsWith('.ogg')
-                                ) {
-                                    const file = await entry.getFile();
-                                    const metadata = await readTrackMetadata(file);
-                                    metadata.id = `local-${idCounter++}-${file.name}`;
-                                    tracks.push(metadata);
-                                }
-                            } else if (entry.kind === 'directory') {
-                                await scanDirectory(entry);
-                            }
-                        }
-                    }
-                    await scanDirectory(handle);
-                }
-
-                tracks.sort((a, b) => {
-                    const artistA = a.artist.name || '';
-                    const artistB = b.artist.name || '';
-                    return artistA.localeCompare(artistB);
-                });
-
-                window.localFilesCache = tracks;
-                trackSelectLocalFolder(tracks.length);
+                const tracks = scanLocalMediaFolder(true);
+                trackSelectLocalFolder(tracks?.length ?? 0);
                 ui.renderLibraryPage();
             } catch (err) {
                 if (err.name !== 'AbortError') {
@@ -2445,7 +2519,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const handleExternalLink = (query) => {
         const isExternalLink =
-            query.includes('monochrome-music-player.vercel.app/') ||
             query.includes('monochrome.tf/') ||
             query.includes('monochrome.samidy.com/') ||
             query.includes('tidal.com/');
@@ -2525,7 +2598,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('Gone offline');
     });
 
-    document.querySelector('.now-playing-bar .play-pause-btn').innerHTML = SVG_PLAY;
+    document.querySelector('.now-playing-bar .play-pause-btn').innerHTML = SVG_PLAY(20);
 
     const router = createRouter(ui);
 
@@ -2823,10 +2896,7 @@ function showUpdateNotification(updateCallback) {
         <div class="update-notification-actions">
             <button class="btn-primary" id="update-now-btn">Update Now</button>
             <button class="btn-icon" id="dismiss-update-btn" title="Dismiss">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
+                ${SVG_CLOSE(16)}
             </button>
         </div>
     `;
@@ -3000,8 +3070,7 @@ function showDiscographyDownloadModal(artist, api, quality, lyricsManager, trigg
 
         triggerBtn.disabled = true;
         const originalHTML = triggerBtn.innerHTML;
-        triggerBtn.innerHTML =
-            '<svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle></svg><span>Downloading...</span>';
+        triggerBtn.innerHTML = `${SVG_ANIMATE_SPIN(20)}<span>Downloading...</span>`;
 
         try {
             const { downloadDiscography } = await loadDownloadsModule();
@@ -3099,10 +3168,7 @@ function showCustomizeShortcutsModal() {
                 <div class="shortcut-key">
                     <kbd class="${recordingAction === action ? 'recording' : ''}">${keyDisplay}</kbd>
                     <button class="shortcut-btn" title="Reset to default">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                            <path d="M3 3v5h5"/>
-                        </svg>
+                        ${SVG_RESET(16)}
                     </button>
                 </div>
             `;

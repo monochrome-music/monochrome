@@ -1,5 +1,4 @@
 //js/player.js
-import { MediaPlayer } from 'dashjs';
 import {
     REPEAT_MODE,
     formatTime,
@@ -9,7 +8,6 @@ import {
     getTrackYearDisplay,
     createQualityBadgeHTML,
     escapeHtml,
-    delay,
 } from './utils.js';
 import {
     queueManager,
@@ -18,19 +16,13 @@ import {
     exponentialVolumeSettings,
     audioEffectsSettings,
     radioSettings,
-    crossfadeSettings,
-    playbackContinuationSettings,
 } from './storage.js';
 import { audioContextManager } from './audio-context.js';
+import { isIos } from './platform-detection.js';
 import { db } from './db.js';
-import Hls from 'hls.js';
 
-const MIN_PLAYBACK_CONTINUATION_SECONDS = 5;
-const PLAYBACK_CONTINUATION_SAVE_INTERVAL_MS = 5000;
-const MS_PER_DAY = 1000 * 60 * 60 * 24;
-const SMART_SHUFFLE_NON_EXPLICIT_BONUS = 0.25;
-const SMART_SHUFFLE_DURATION_THRESHOLD_SECONDS = 1200;
-
+import('./dash-media-player.js');
+import { SVG_CLOCK } from './icons.js';
 export class Player {
     constructor(audioElement, api, quality = 'HI_RES_LOSSLESS') {
         this.audio = audioElement;
@@ -51,7 +43,7 @@ export class Player {
         this.isFallbackRetry = false;
         this.isFallbackInProgress = false;
         this.autoplayBlocked = false;
-        this.isIOS = typeof window !== 'undefined' && window.__IS_IOS__ === true;
+        this.isIOS = isIos;
         this.isPwa =
             typeof window !== 'undefined' &&
             (window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator?.standalone === true);
@@ -61,7 +53,9 @@ export class Player {
         this.sleepTimer = null;
         this.sleepTimerEndTime = null;
         this.sleepTimerInterval = null;
+    }
 
+    async init() {
         // Apply audio effects when track is ready
         this.audio.addEventListener('canplay', () => {
             this.applyAudioEffects();
@@ -73,6 +67,7 @@ export class Player {
         }
 
         // Initialize dash.js player
+        const { MediaPlayer } = await import('./dash-media-player.js');
         this.dashPlayer = MediaPlayer().create();
         this.dashPlayer.updateSettings({
             streaming: {
@@ -92,7 +87,6 @@ export class Player {
         this.radioFetchPromise = null;
 
         this.playbackSequence = 0;
-        this.lastContinuationSaveAt = 0;
 
         window.addEventListener('beforeunload', () => {
             this.saveQueueState();
@@ -462,8 +456,9 @@ export class Player {
         }
     }
 
-    setupHlsVideo(video, result, fallbackImg) {
+    async setupHlsVideo(video, result, fallbackImg) {
         const url = result.videoUrl || result.hlsUrl || result;
+        const Hls = (await import('hls.js')).default;
         if (!url) return;
 
         if (this.hls) {
@@ -481,9 +476,9 @@ export class Player {
                 this.hls = new Hls();
                 this.hls.loadSource(url);
                 this.hls.attachMedia(video);
-                this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                this.hls.on(Hls.Events.MANIFEST_PARSED, async () => {
                     video.play().catch(() => {});
-                    this.setupVideoQualitySelector();
+                    await this.setupVideoQualitySelector();
                 });
                 this.hls.on(Hls.Events.ERROR, (event, data) => {
                     if (data.fatal) {
@@ -500,9 +495,9 @@ export class Player {
             }
         } else {
             video.src = url;
-            video.onerror = () => {
+            video.onerror = async () => {
                 if (result && result.hlsUrl) {
-                    this.setupHlsVideo(video, { videoUrl: null, hlsUrl: result.hlsUrl }, fallbackImg);
+                    await this.setupHlsVideo(video, { videoUrl: null, hlsUrl: result.hlsUrl }, fallbackImg);
                 } else if (fallbackImg) {
                     video.replaceWith(fallbackImg);
                 }
@@ -510,8 +505,9 @@ export class Player {
         }
     }
 
-    setupVideoQualitySelector() {
+    async setupVideoQualitySelector() {
         if (!this.hls || !this.hls.levels || this.hls.levels.length === 0) return;
+        const Hls = (await import('hls.js')).default;
 
         const qualityBtn = document.getElementById('fs-quality-btn');
         const qualityMenu = document.getElementById('fs-quality-menu');
@@ -603,7 +599,6 @@ export class Player {
         }
 
         const track = currentQueue[this.currentQueueIndex];
-        const resolvedStartTime = startTime > 0 ? startTime : playbackContinuationSettings.getPosition(track?.id);
         if (track.isUnavailable) {
             console.warn(`Attempted to play unavailable track: ${track.title}. Skipping...`);
             this.playNext();
@@ -770,8 +765,8 @@ export class Player {
                 const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
                 if (!canPlay || this.playbackSequence !== currentSequence) return;
 
-                if (resolvedStartTime > 0) {
-                    activeElement.currentTime = resolvedStartTime;
+                if (startTime > 0) {
+                    activeElement.currentTime = startTime;
                 }
                 const played = await this.safePlay(activeElement);
                 if (!played) return;
@@ -789,8 +784,8 @@ export class Player {
                 const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
                 if (!canPlay || this.playbackSequence !== currentSequence) return;
 
-                if (resolvedStartTime > 0) {
-                    activeElement.currentTime = resolvedStartTime;
+                if (startTime > 0) {
+                    activeElement.currentTime = startTime;
                 }
                 const played = await this.safePlay(activeElement);
                 if (!played) return;
@@ -813,7 +808,7 @@ export class Player {
                 if (this.playbackSequence !== currentSequence) return;
 
                 if (streamUrl.includes('.m3u8') || streamUrl.includes('application/vnd.apple.mpegurl')) {
-                    this.setupHlsVideo(activeElement, streamUrl, null);
+                    await this.setupHlsVideo(activeElement, streamUrl, null);
                 } else if (streamUrl.startsWith('blob:') || streamUrl.includes('.mpd')) {
                     this.dashPlayer.initialize(activeElement, streamUrl, false);
                     this.dashInitialized = true;
@@ -826,8 +821,8 @@ export class Player {
                 const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
                 if (!canPlay || this.playbackSequence !== currentSequence) return;
 
-                if (resolvedStartTime > 0) {
-                    activeElement.currentTime = resolvedStartTime;
+                if (startTime > 0) {
+                    activeElement.currentTime = startTime;
                 }
 
                 await this.safePlay(activeElement);
@@ -881,8 +876,8 @@ export class Player {
                     this.dashInitialized = true;
                     this.applyAudioEffects();
 
-                    if (resolvedStartTime > 0) {
-                        this.dashPlayer.seek(resolvedStartTime);
+                    if (startTime > 0) {
+                        this.dashPlayer.seek(startTime);
                     }
 
                     const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
@@ -896,8 +891,8 @@ export class Player {
                     const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
                     if (!canPlay || this.playbackSequence !== currentSequence) return;
 
-                    if (resolvedStartTime > 0) {
-                        activeElement.currentTime = resolvedStartTime;
+                    if (startTime > 0) {
+                        activeElement.currentTime = startTime;
                     }
                     const played = await this.safePlay(activeElement);
                     if (!played) return;
@@ -1007,40 +1002,6 @@ export class Player {
 
             this.playTrackFromQueue(0, recursiveCount);
         });
-    }
-
-    async playNextWithCrossfade() {
-        if (!crossfadeSettings.isEnabled()) {
-            this.playNext();
-            return;
-        }
-
-        const el = this.activeElement;
-        const fadeDurationMs = Math.round(crossfadeSettings.getDuration() * 1000);
-        if (!el || fadeDurationMs <= 0 || el.paused) {
-            this.playNext();
-            return;
-        }
-
-        const steps = Math.max(8, Math.min(48, Math.round(fadeDurationMs / 80)));
-        const stepDelay = Math.max(20, Math.floor(fadeDurationMs / steps));
-        const originalVolume = Math.max(0, Math.min(1, this.userVolume));
-
-        for (let step = steps; step >= 0; step--) {
-            const ratio = step / steps;
-            if (audioContextManager.isReady()) {
-                audioContextManager.setVolume(originalVolume * ratio);
-            } else {
-                el.volume = originalVolume * ratio;
-            }
-            await delay(stepDelay);
-        }
-
-        const REPLAY_GAIN_APPLY_DELAY_MS = 120;
-        this.playNext();
-        setTimeout(() => {
-            this.applyReplayGain();
-        }, REPLAY_GAIN_APPLY_DELAY_MS);
     }
 
     async enableRadio(seeds = []) {
@@ -1275,8 +1236,10 @@ export class Player {
                 tracksToShuffle.splice(this.currentQueueIndex, 1);
             }
 
-            const scoreByTrackId = new Map(tracksToShuffle.map((track) => [track.id, this.getSmartShuffleScore(track)]));
-            tracksToShuffle.sort((a, b) => (scoreByTrackId.get(b.id) || 0) - (scoreByTrackId.get(a.id) || 0));
+            for (let i = tracksToShuffle.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [tracksToShuffle[i], tracksToShuffle[j]] = [tracksToShuffle[j], tracksToShuffle[i]];
+            }
 
             if (currentTrack) {
                 this.shuffledQueue = [currentTrack, ...tracksToShuffle];
@@ -1294,25 +1257,6 @@ export class Player {
         this.preloadCache.clear();
         this.preloadNextTracks();
         this.saveQueueState();
-    }
-
-    getSmartShuffleScore(track) {
-        if (!track || !track.id) return 0;
-
-        let score = 0;
-
-        if (track.addedAt) {
-            const ageDays = Math.max(1, (Date.now() - track.addedAt) / MS_PER_DAY);
-            score += 1 / ageDays;
-        }
-
-        if (track.explicit !== true) score += SMART_SHUFFLE_NON_EXPLICIT_BONUS;
-        if (typeof track.duration === 'number' && isFinite(track.duration) && track.duration > 0) {
-            const shorterTrackBonus = Math.max(0, 1 - track.duration / SMART_SHUFFLE_DURATION_THRESHOLD_SECONDS);
-            score += shorterTrackBonus;
-        }
-
-        return score;
     }
 
     toggleRepeat() {
@@ -1555,24 +1499,6 @@ export class Player {
         }
     }
 
-    savePlaybackContinuation() {
-        const trackId = this.currentTrack?.id;
-        if (!trackId) return;
-        const el = this.activeElement;
-        const position = Number(el?.currentTime || 0);
-        if (!isFinite(position) || position < MIN_PLAYBACK_CONTINUATION_SECONDS) return;
-        const now = Date.now();
-        if (now - this.lastContinuationSaveAt < PLAYBACK_CONTINUATION_SAVE_INTERVAL_MS) return;
-        this.lastContinuationSaveAt = now;
-        playbackContinuationSettings.setPosition(trackId, position);
-    }
-
-    clearPlaybackContinuationForCurrentTrack() {
-        const trackId = this.currentTrack?.id;
-        if (!trackId) return;
-        playbackContinuationSettings.clearPosition(trackId);
-    }
-
     async safePlay(element = this.activeElement) {
         try {
             await element.play();
@@ -1682,23 +1608,13 @@ export class Player {
                     btn.classList.add('active');
                     btn.style.color = 'var(--primary)';
                 } else {
-                    btn.innerHTML = `
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"/>
-                            <polyline points="12,6 12,12 16,14"/>
-                        </svg>
-                    `;
+                    btn.innerHTML = SVG_CLOCK(20);
                     btn.title = 'Sleep Timer';
                     btn.classList.remove('active');
                     btn.style.color = '';
                 }
             } else {
-                btn.innerHTML = `
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"/>
-                        <polyline points="12,6 12,12 16,14"/>
-                    </svg>
-                `;
+                btn.innerHTML = SVG_CLOCK(20);
                 btn.title = 'Sleep Timer';
                 btn.classList.remove('active');
                 btn.style.color = '';
