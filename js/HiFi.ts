@@ -18,8 +18,6 @@ export class TidalResponse extends Response {
     }
 }
 
-/** A container for the mock localStorage */
-
 export class HiFiClient {
     private static tokenPromise: Promise<string> | null = null;
     private static albumTracksMax = 20;
@@ -31,8 +29,7 @@ export class HiFiClient {
     private static _localStorage: Record<string, string> = {};
     private static get localStorage() {
         return (
-            globalThis?.localStorage ??
-            window?.localStorage ?? {
+            globalThis?.localStorage ?? {
                 getItem: (key) => HiFiClient._localStorage[key],
                 setItem: (key, value) => {
                     HiFiClient._localStorage[key] = String(value);
@@ -94,12 +91,17 @@ export class HiFiClient {
     }
 
     private static encodeBasic(id: string, secret: string) {
-        if (typeof window !== 'undefined' && typeof window.btoa === 'function') {
-            return window.btoa(`${id}:${secret}`);
+        if (typeof globalThis.btoa === 'function') {
+            return btoa(`${id}:${secret}`);
         }
         // Node fallback
         return Buffer.from(`${id}:${secret}`).toString('base64');
     }
+
+	static setToken(token: string, expiry: number = Date.now() + 60000) {
+		HiFiClient.token = token;
+		HiFiClient.appTokenExpiry = expiry
+	}
 
     private static async fetchAppToken(
         signal: AbortSignal = new AbortController().signal,
@@ -747,10 +749,6 @@ export class HiFiClient {
                         offset: qp.offset ? Number(qp.offset) : undefined,
                     });
                 default:
-                    // unknown local route => treat as raw upstream path (forward)
-                    if (pathOrUrl.startsWith('http')) {
-                        return await this.fetchJson(pathOrUrl);
-                    }
                     throw new Error(`Unknown route: ${pathname}`);
             }
         } catch (err) {
