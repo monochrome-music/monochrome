@@ -1,6 +1,6 @@
 const API_VERSION = '2.6';
-const CLIENT_ID = 'txNoH4kkV41MfH25';
-const CLIENT_SECRET = 'dQjy0MinCEvxi1O4UmxvxWnDjt4cgHBPw8ll6nYBk98=';
+const BROWSER_CLIENT_ID = 'txNoH4kkV41MfH25';
+const BROWSER_CLIENT_SECRET = 'dQjy0MinCEvxi1O4UmxvxWnDjt4cgHBPw8ll6nYBk98=';
 
 type Params = Record<string, string | number | undefined | null>;
 
@@ -18,14 +18,71 @@ export class TidalResponse extends Response {
     }
 }
 
+/** A container for the mock localStorage */
+
 export class HiFiClient {
-    private static token: string | null;
-    private static appTokenExpiry = 0;
     private static tokenPromise: Promise<string> | null = null;
-    private countryCode: string;
     private static albumTracksMax = 20;
     private static albumTracksActive = 0;
     private static albumTracksQueue: Array<() => void> = [];
+    private countryCode: string;
+    private clientId: string;
+    private clientSecret: string;
+    private static _localStorage: Record<string, string> = {};
+    private static get localStorage() {
+        return (
+            globalThis?.localStorage ??
+            window?.localStorage ?? {
+                getItem: (key) => HiFiClient._localStorage[key],
+                setItem: (key, value) => {
+                    HiFiClient._localStorage[key] = String(value);
+                },
+                removeItem: (key) => {
+                    delete HiFiClient._localStorage[key];
+                },
+                get length() {
+                    return Object.keys(HiFiClient._localStorage).length;
+                },
+                clear() {
+                    for (const key in HiFiClient._localStorage) {
+                        delete HiFiClient._localStorage[key];
+                    }
+                },
+                key(index) {
+                    const keys = Object.keys(HiFiClient._localStorage);
+                    return keys[index] || null;
+                },
+            }
+        );
+    }
+
+    private static get token(): string | null {
+        return HiFiClient.localStorage.getItem('hifi_token') || null;
+    }
+
+    private static set token(value: string | null) {
+        if (value) {
+            HiFiClient.localStorage.setItem('hifi_token', value);
+        } else {
+            HiFiClient.localStorage.removeItem('hifi_token');
+        }
+    }
+
+    private static get appTokenExpiry() {
+        return Number(HiFiClient.localStorage.getItem('hifi_token_expiry') || '0');
+    }
+
+    private static set appTokenExpiry(value: number) {
+        if (value) {
+            HiFiClient.localStorage.setItem('hifi_token_expiry', value.toString());
+        } else {
+            HiFiClient.localStorage.removeItem('hifi_token_expiry');
+        }
+
+        if (value < Date.now()) {
+            HiFiClient.localStorage.removeItem('hifi_token');
+        }
+    }
 
     private static buildUrl(base: string, params?: Params) {
         if (!params) return base;
@@ -44,12 +101,12 @@ export class HiFiClient {
         return Buffer.from(`${id}:${secret}`).toString('base64');
     }
 
-    private static async fetchAppToken(signal: AbortSignal = new AbortController().signal) {
-        const now = Date.now();
-        HiFiClient.token ??= localStorage.getItem('hifi_token') || null;
-        HiFiClient.appTokenExpiry = Number(localStorage.getItem('hifi_token_expiry') || '0');
-
-        if (HiFiClient.token && now < HiFiClient.appTokenExpiry) return HiFiClient.token;
+    private static async fetchAppToken(
+        signal: AbortSignal = new AbortController().signal,
+        clientId: string,
+        clientSecret: string
+    ) {
+        if (HiFiClient.token && Date.now() < HiFiClient.appTokenExpiry) return HiFiClient.token;
 
         return await (HiFiClient.tokenPromise ??= (async () => {
             try {
@@ -57,12 +114,12 @@ export class HiFiClient {
                     method: 'POST',
                     headers: {
                         'content-type': 'application/x-www-form-urlencoded',
-                        authorization: `Basic ${this.encodeBasic(CLIENT_ID, CLIENT_SECRET)}`,
+                        authorization: `Basic ${this.encodeBasic(clientId, clientSecret)}`,
                     },
                     body: new URLSearchParams({
                         grant_type: 'client_credentials',
-                        client_id: CLIENT_ID,
-                        client_secret: CLIENT_SECRET,
+                        client_id: clientId,
+                        client_secret: clientSecret,
                     }),
                     signal,
                 });
@@ -77,8 +134,6 @@ export class HiFiClient {
                 const expires_in = json.expires_in ?? 3600;
                 HiFiClient.token = token;
                 HiFiClient.appTokenExpiry = Date.now() + expires_in * 1000 - 60_000;
-                localStorage.setItem('hifi_token', token);
-                localStorage.setItem('hifi_token_expiry', HiFiClient.appTokenExpiry.toString());
 
                 return token;
             } finally {
@@ -87,14 +142,18 @@ export class HiFiClient {
         })());
     }
 
-    constructor(countryCode = 'US') {
+    constructor(clientId = BROWSER_CLIENT_ID, clientSecret = BROWSER_CLIENT_SECRET, countryCode = 'US') {
         this.countryCode = countryCode;
+        this.clientId = clientId;
+        this.clientSecret = clientSecret;
     }
 
     private async fetchJson(url: string, params?: Params, signal: AbortSignal = new AbortController().signal) {
         const final = HiFiClient.buildUrl(url, params);
         const res = await fetch(final, {
-            headers: { authorization: `Bearer ${await HiFiClient.fetchAppToken(signal)}` },
+            headers: {
+                authorization: `Bearer ${await HiFiClient.fetchAppToken(signal, this.clientId, this.clientSecret)}`,
+            },
             signal,
         });
 
