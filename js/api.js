@@ -526,7 +526,6 @@ export class LosslessAPI {
         try {
             const response = await this.fetchWithRetry(`/search/?v=${encodeURIComponent(query)}`, {
                 ...options,
-                allowedDomains: ['api.monochrome.tf', 'arran.monochrome.tf'],
             });
             const data = await response.json();
             const normalized = this.normalizeSearchResponse(data, 'videos');
