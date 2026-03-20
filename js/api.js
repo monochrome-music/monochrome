@@ -56,11 +56,14 @@ export class LosslessAPI {
 
     async fetchWithRetry(relativePath, options = {}) {
         const type = options.type || 'api';
-        const instanceRoutes = ['/track', '/album/similar', '/artist/similar', '/video'];
+        const instanceRoutes = ['/track', '/album/similar', '/artist/similar', '/video', '/recommendations'];
 
         if (window.allTidal == true || !instanceRoutes.some((route) => relativePath.startsWith(route))) {
             try {
-                console.log(relativePath);
+                if (import.meta.env.DEV) {
+                    console.log(relativePath);
+                }
+
                 return await client.queryResponse(relativePath);
             } catch (err) {
                 console.warn(
