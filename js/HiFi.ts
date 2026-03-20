@@ -46,6 +46,9 @@ export class HiFiClient {
 
     private static async fetchAppToken(signal: AbortSignal = new AbortController().signal) {
         const now = Date.now();
+        HiFiClient.token ??= localStorage.getItem('hifi_token') || null;
+        HiFiClient.appTokenExpiry = Number(localStorage.getItem('hifi_token_expiry') || '0');
+
         if (HiFiClient.token && now < HiFiClient.appTokenExpiry) return HiFiClient.token;
 
         return await (HiFiClient.tokenPromise ??= (async () => {
@@ -74,6 +77,9 @@ export class HiFiClient {
                 const expires_in = json.expires_in ?? 3600;
                 HiFiClient.token = token;
                 HiFiClient.appTokenExpiry = Date.now() + expires_in * 1000 - 60_000;
+                localStorage.setItem('hifi_token', token);
+                localStorage.setItem('hifi_token_expiry', HiFiClient.appTokenExpiry.toString());
+
                 return token;
             } finally {
                 HiFiClient.tokenPromise = null;
