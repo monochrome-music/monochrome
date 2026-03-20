@@ -1310,7 +1310,7 @@ export async function handleTrackAction(
         // Use stored href from card if available, otherwise construct URL
         const contextMenu = document.getElementById('context-menu');
         const storedHref = contextMenu?._contextHref;
-        const url = getShareUrl(storedHref ? storedHref : `/track/${item.id || item.uuid}`);
+        const url = getShareUrl(storedHref ? storedHref : `/${type}/${item.id || item.uuid}`);
 
         trackCopyLink(type, item.id || item.uuid);
         navigator.clipboard.writeText(url).then(() => {
@@ -1322,7 +1322,7 @@ export async function handleTrackAction(
         const storedHref = contextMenu?._contextHref;
         const url = storedHref
             ? `${window.location.origin}${storedHref}`
-            : `${window.location.origin}/track/${item.id || item.uuid}`;
+            : `${window.location.origin}/${type}/${item.id || item.uuid}`;
 
         trackOpenInNewTab(type, item.id || item.uuid);
         window.open(url, '_blank');
@@ -1350,7 +1350,7 @@ export async function handleTrackAction(
                         <div style="margin-bottom: 1rem; padding: 0.75rem; background: var(--accent); border-radius: 8px;">
                             <p style="color: var(--primary); font-weight: 500;">Unreleased Track</p>
                         </div>
-                        
+
                         <div style="display: grid; gap: 0.5rem;">
                             ${item.artists ? `<p><strong style="color: var(--foreground);">Artist:</strong> ${escapeHtml(Array.isArray(item.artists) ? item.artists.map((a) => a.name || a).join(', ') : item.artists)}</p>` : ''}
                             ${item.trackerInfo.artist ? `<p><strong style="color: var(--foreground);">Tracked Artist:</strong> ${escapeHtml(item.trackerInfo.artist)}</p>` : ''}
@@ -1365,7 +1365,7 @@ export async function handleTrackAction(
                             ${item.trackerInfo.leakedDate ? `<p><strong style="color: var(--foreground);">Leak Date:</strong> ${escapeHtml(new Date(item.trackerInfo.leakedDate).toLocaleDateString())}</p>` : ''}
                             ${item.trackerInfo.recordingDate ? `<p><strong style="color: var(--foreground);">Recording Date:</strong> ${escapeHtml(new Date(item.trackerInfo.recordingDate).toLocaleDateString())}</p>` : ''}
                         </div>
-                        
+
                         ${
                             item.trackerInfo.description
                                 ? `
@@ -1376,7 +1376,7 @@ export async function handleTrackAction(
                         `
                                 : ''
                         }
-                        
+
                         ${
                             item.trackerInfo.notes
                                 ? `
@@ -1387,7 +1387,7 @@ export async function handleTrackAction(
                         `
                                 : ''
                         }
-                        
+
                         ${
                             item.trackerInfo.sourceUrl
                                 ? `
@@ -1400,7 +1400,7 @@ export async function handleTrackAction(
                         `
                                 : ''
                         }
-                        
+
                         ${item.id ? `<p style="margin-top: 1rem; font-size: 0.8rem; color: var(--muted);"><strong>Track ID:</strong> ${escapeHtml(item.id)}</p>` : ''}
                     </div>
                     <button class="btn-primary track-info-close-btn" style="margin-top: 1.5rem; width: 100%;">Close</button>
@@ -1429,7 +1429,7 @@ export async function handleTrackAction(
                             ${item.explicit ? `<p><strong style="color: var(--foreground);">Explicit:</strong> Yes</p>` : ''}
                             <p><strong style="color: var(--foreground);">Quality:</strong> ${escapeHtml(quality)} ${bitrate ? `(${escapeHtml(bitrate)})` : ''}</p>
                         </div>
-                        
+
                         ${
                             item.credits && item.credits.length > 0
                                 ? `
@@ -1442,7 +1442,7 @@ export async function handleTrackAction(
                         `
                                 : ''
                         }
-                        
+
                         ${
                             item.composers && item.composers.length > 0
                                 ? `
@@ -1450,7 +1450,7 @@ export async function handleTrackAction(
                         `
                                 : ''
                         }
-                        
+
                         ${
                             item.lyrics?.text
                                 ? `
@@ -1460,7 +1460,7 @@ export async function handleTrackAction(
                         `
                                 : ''
                         }
-                        
+
                         ${item.id ? `<p style="margin-top: 1rem; font-size: 0.8rem; color: var(--muted);"><strong>Track ID:</strong> ${escapeHtml(item.id)}</p>` : ''}
                         ${item.album?.id ? `<p style="font-size: 0.8rem; color: var(--muted);"><strong>Album ID:</strong> ${escapeHtml(item.album.id)}</p>` : ''}
                     </div>
