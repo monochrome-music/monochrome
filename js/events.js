@@ -1317,12 +1317,14 @@ export async function handleTrackAction(
             showNotification('Link copied to clipboard!');
         });
     } else if (action === 'open-in-new-tab') {
-        // Use stored href from card if available, otherwise construct URL
+        // Use stored href from card if available and not a track, otherwise construct URL
         const contextMenu = document.getElementById('context-menu');
         const storedHref = contextMenu?._contextHref;
-        const url = storedHref
-            ? `${window.location.origin}${storedHref}`
-            : `${window.location.origin}/track/${item.id || item.uuid}`;
+        const contextType = contextMenu?._contextType;
+        const url =
+            storedHref && contextType !== 'track'
+                ? `${window.location.origin}${storedHref}`
+                : `${window.location.origin}/track/${item.id || item.uuid}`;
 
         trackOpenInNewTab(type, item.id || item.uuid);
         window.open(url, '_blank');
