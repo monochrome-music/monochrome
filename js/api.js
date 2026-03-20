@@ -21,10 +21,12 @@ import { isCustomFormat } from './ffmpegFormats.ts';
 import { DownloadProgress } from './progressEvents.js';
 import { resolveDownloadTotalBytes } from './downloadProgressUtils.js';
 import { readableStreamIterator } from './readableStreamIterator.js';
+import { HiFiClient } from './HiFi.ts';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 export { resolveDownloadTotalBytes };
 const TIDAL_V2_TOKEN = 'txNoH4kkV41MfH25';
+const client = new HiFiClient();
 
 export class LosslessAPI {
     constructor(settings) {
@@ -54,6 +56,20 @@ export class LosslessAPI {
 
     async fetchWithRetry(relativePath, options = {}) {
         const type = options.type || 'api';
+        const instanceRoutes = ['/track', '/album/similar', '/artist/similar', '/video'];
+
+        if (!instanceRoutes.some((route) => relativePath.startsWith(route))) {
+            try {
+                console.log(relativePath);
+                return await client.queryResponse(relativePath);
+            } catch (err) {
+                console.warn(
+                    `Direct fetch failed for ${relativePath}. Falling back to configured API instances...`,
+                    err
+                );
+            }
+        }
+
         let instances = await this.settings.getInstances(type);
         if (instances.length === 0) {
             throw new Error(`No API instances configured for type: ${type}`);
