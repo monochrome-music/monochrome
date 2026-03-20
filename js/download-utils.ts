@@ -13,8 +13,28 @@ import { ffmpegNewContainer } from './ffmpeg';
 
 /**
  * Triggers a browser file download for the given blob.
+ * Uses showSaveFilePicker for single downloads if available, falling back to <a download>.
+ * For batch downloads, uses programmatic click with <a download>.
  */
-export function triggerDownload(blob: Blob, filename: string): void {
+export async function triggerDownload(blob: Blob, filename: string, isBatch: boolean = false): Promise<void> {
+    if (!isBatch && typeof window !== 'undefined' && 'showSaveFilePicker' in window) {
+        try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const fileHandle = await (window as any).showSaveFilePicker({
+                suggestedName: filename,
+            });
+            const writable = await fileHandle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            return;
+        } catch (error) {
+            if (error instanceof DOMException && error.name === 'AbortError') {
+                return; // User cancelled the picker
+            }
+            console.error('showSaveFilePicker failed, falling back to <a download>:', error);
+        }
+    }
+
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

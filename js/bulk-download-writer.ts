@@ -62,10 +62,13 @@ export class SequentialFileWriter implements IBulkDownloadWriter {
             }
 
             if (file.input instanceof Blob) {
-                triggerDownload(file.input, name);
+                await triggerDownload(file.input, name, true);
             } else {
-                triggerDownload(new Blob([file.input as BlobPart]), name);
+                await triggerDownload(new Blob([file.input as BlobPart]), name, true);
             }
+
+            // Wait ~200ms before downloading the next file to avoid browser rate limiting
+            await new Promise((resolve) => setTimeout(resolve, 200));
         }
     }
 }
@@ -103,7 +106,7 @@ export class ZipBlobWriter implements IBulkDownloadWriter {
         const { downloadZip } = await loadClientZip();
         const response = downloadZip(files);
         const blob = await response.blob();
-        triggerDownload(blob, this.filename);
+        await triggerDownload(blob, this.filename, false);
     }
 }
 
@@ -135,7 +138,9 @@ export class ZipNeutralinoWriter implements IBulkDownloadWriter {
         const reader = response.body.getReader();
         let receivedLength = 0;
 
-        for await (const value of readableStreamIterator(response.body)) {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
             const chunk = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength);
             await bridge.filesystem.appendBinaryFile(savePath, chunk);
             receivedLength += value.length;
