@@ -35,10 +35,10 @@ export default defineConfig(({ mode }) => {
                 // allowedHosts: ['<your_tailscale_hostname>'], // e.g. pi5.tailf5f622.ts.net
             },
         },
-        // preview: {
-        //     host: true,
-        //     allowedHosts: ['<your_tailscale_hostname>'], // e.g. pi5.tailf5f622.ts.net
-        // },
+        preview: {
+            host: true,
+            allowedHosts: ['100.121.228.100'],
+        },
         build: {
             outDir: 'dist',
             emptyOutDir: true,
