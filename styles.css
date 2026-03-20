@@ -2156,6 +2156,7 @@ input[type='search']::-webkit-search-cancel-button {
         transform var(--transition-fast);
     cursor: pointer;
     border: 1px solid transparent;
+    position: relative;
 }
 
 .track-item:hover {
@@ -2198,6 +2199,93 @@ input[type='search']::-webkit-search-cancel-button {
     opacity: 0.5;
     z-index: 2000;
     pointer-events: auto;
+}
+
+.track-checkbox {
+    display: none;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    color: var(--muted-foreground);
+    flex-shrink: 0;
+    transition: color var(--transition-fast);
+    position: absolute;
+    left: 8px;
+    z-index: 1;
+}
+
+.multi-select-mode .track-checkbox,
+body.multi-select-mode .track-checkbox {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+}
+
+.track-checkbox:hover {
+    color: var(--foreground);
+}
+
+.track-checkbox.checked {
+    color: var(--primary);
+}
+
+.track-item.selected {
+    background-color: rgb(var(--highlight-rgb), 0.1);
+}
+
+body.multi-select-mode .track-item {
+    cursor: default;
+    padding-left: 36px;
+}
+
+body.multi-select-mode .track-item:hover {
+    transform: none;
+}
+
+.selection-bar {
+    display: none;
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--primary);
+    color: var(--primary-foreground);
+    padding: 12px 20px;
+    border-radius: 24px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    z-index: 1000;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    gap: 12px;
+    align-items: center;
+}
+
+.selection-bar.visible {
+    display: flex;
+}
+
+.selection-bar .selection-count {
+    color: var(--primary-foreground);
+}
+
+.selection-bar .selection-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.selection-bar button {
+    background: transparent;
+    border: 1px solid var(--primary-foreground);
+    color: var(--primary-foreground);
+    padding: 6px 12px;
+    border-radius: 16px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background var(--transition-fast);
+}
+
+.selection-bar button:hover {
+    background: rgba(255, 255, 255, 0.2);
 }
 
 .track-number {

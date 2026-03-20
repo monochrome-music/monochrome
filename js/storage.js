@@ -2747,6 +2747,14 @@ export const keyboardShortcuts = {
             alt: false,
             description: 'Toggle visualizer auto-cycle',
         },
+        multiSelectToggle: {
+            key: 'control',
+            shift: false,
+            ctrl: true,
+            alt: false,
+            description: 'Toggle track selection (individual)',
+        },
+        multiSelectRange: { key: 'shift', shift: true, ctrl: false, alt: false, description: 'Select track range' },
     },
 
     getShortcuts() {

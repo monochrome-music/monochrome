@@ -82,6 +82,7 @@ import {
     SVG_CLOCK,
     SVG_MOVE_UP,
     SVG_MOVE_DOWN,
+    SVG_CHECKBOX,
 } from './icons.js';
 
 function sortTracks(tracks, sortType) {
@@ -397,6 +398,7 @@ export class UIRenderer {
             ? `<span class="video-item-icon" title="Music Video" style="display: inline-flex; align-items: center; margin-right: 4px; color: var(--muted-foreground);">${SVG_VIDEO(14)}</span>`
             : '';
         const trackNumberHTML = `<div class="track-number">${showCover ? trackImageHTML : displayIndex}</div>`;
+        const checkboxHTML = `<div class="track-checkbox" data-action="toggle-select">${SVG_CHECKBOX(18)}</div>`;
         const explicitBadge = hasExplicitContent(track) ? this.createExplicitBadge() : '';
         const qualityBadge = createQualityBadgeHTML(track);
         const trackTitle = getTrackTitle(track);
@@ -437,6 +439,7 @@ export class UIRenderer {
                  ${track.isLocal ? 'data-is-local="true"' : ''}
                  ${isUnavailable ? 'title="This track is currently unavailable"' : ''}
                  ${blockedTitle}>
+                ${checkboxHTML}
                 ${trackNumberHTML}
                 <div class="track-item-info">
                     <div class="track-item-details">
