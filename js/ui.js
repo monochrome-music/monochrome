@@ -2342,9 +2342,9 @@ export class UIRenderer {
                 }
 
                 this._offlineRadioActive = true;
-                this.player.shuffleActive = true;
                 this.player.setQueue(shuffled, 0);
-                this.player.repeatMode = 2; // REPEAT_MODE.ALL
+                this.player.shuffleActive = true; // must be AFTER setQueue (which resets it to false)
+                this.player.repeatMode = 1; // REPEAT_MODE.ALL (0=OFF, 1=ALL, 2=ONE)
                 this.player.playAtIndex(0);
                 updateRadioBtnState();
 
