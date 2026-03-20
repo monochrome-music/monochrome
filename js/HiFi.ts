@@ -98,10 +98,10 @@ export class HiFiClient {
         return Buffer.from(`${id}:${secret}`).toString('base64');
     }
 
-	static setToken(token: string, expiry: number = Date.now() + 60000) {
-		HiFiClient.token = token;
-		HiFiClient.appTokenExpiry = expiry
-	}
+    static setToken(token: string, expiry: number = Date.now() + 60000) {
+        HiFiClient.token = token;
+        HiFiClient.appTokenExpiry = expiry;
+    }
 
     private static async fetchAppToken(
         signal: AbortSignal = new AbortController().signal,

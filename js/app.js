@@ -61,6 +61,7 @@ import {
     parseDynamicCSV,
     importToLibrary,
 } from './playlist-importer.js';
+import { modernSettings } from './ModernSettings.js';
 import {
     SVG_OFFLINE,
     SVG_RIGHT_ARROW,
@@ -382,6 +383,8 @@ async function uploadCoverImage(file) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    await modernSettings.waitPending();
+
     // Initialize analytics
     initAnalytics();
 
