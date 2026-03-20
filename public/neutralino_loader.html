@@ -347,6 +347,26 @@
                             }
                         }
                         break;
+
+                    case 'NL_FS_CREATE_DIR':
+                        try {
+                            await Neutralino.filesystem.createDirectory(event.data.path);
+                            if (iframe && iframe.contentWindow) {
+                                iframe.contentWindow.postMessage(
+                                    { type: 'NL_RESPONSE', id: event.data.id, result: 'success' },
+                                    '*'
+                                );
+                            }
+                        } catch (e) {
+                            console.error('[Shell] Create Directory failed:', e);
+                            if (iframe && iframe.contentWindow) {
+                                iframe.contentWindow.postMessage(
+                                    { type: 'NL_RESPONSE', id: event.data.id, error: e },
+                                    '*'
+                                );
+                            }
+                        }
+                        break;
                 }
             });
         </script>

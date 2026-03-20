@@ -26,21 +26,68 @@ export function triggerDownload(blob: Blob, filename: string): void {
 }
 
 /**
- * Applies audio post-processing to a blob:
- * 1. Transcodes to a custom ffmpeg format if `quality` identifies one.
- * 2. Re-muxes to the user-selected lossless container when the quality is
- *    a lossless tier (quality ends with "LOSSLESS").
+ * Apply post-processing to an audio Blob according to the requested quality.
  *
- * Returns the (possibly transformed) blob.
+ * This function:
+ * - Detects the source container/extension via getExtensionFromBlob.
+ * - Determines whether the source is lossless:
+ *   - FLAC is always lossless.
+ *   - M4A is treated as lossless only when trackAudioQuality is "LOSSLESS" or "HI_RES_LOSSLESS".
+ * - If a custom lossy format is requested (isCustomFormat(quality)):
+ *   - If the source is already lossy, returns the original Blob to avoid quality degradation.
+ *   - Otherwise, obtains the custom format via getCustomFormat and transcodes using
+ *     transcodeWithCustomFormat(...). Progress events are reported via onProgress.
+ *   - If encoding fails, onProgress is notified with an error stage and the original error is rethrown.
+ * - If a lossless output is requested (quality ends with "LOSSLESS"):
+ *   - Retrieves the configured lossless container and its format handler.
+ *   - If the source is not lossless, logs a warning and returns the original Blob.
+ *   - Otherwise:
+ *     - If containerFmt.needsTranscode(blob) is true, transcodes via transcodeWithContainerFormat(...).
+ *     - Else if the source is FLAC, calls rebuildFlacWithoutMetadata to strip/rebuild metadata safely.
+ *     - Else remuxes into the desired container via ffmpegNewContainer (maps m4a -> mp4 where appropriate).
+ *   - Any non-abort errors during lossless container conversion are caught and logged (conversion is best-effort).
+ *
+ * Progress and cancellation:
+ * - onProgress, if provided, will be called with progress/update/error events from the underlying encoding/transcode helpers.
+ * - An AbortSignal may be provided to cancel long-running transcode operations; abort-related errors (AbortError)
+ *   are propagated.
+ *
+ * @param blob - The source audio Blob to process.
+ * @param quality - Requested output quality identifier (may indicate custom lossy format or lossless output).
+ * @param onProgress - Optional callback invoked with progress/update events (or error notifications).
+ * @param signal - Optional AbortSignal used to cancel asynchronous transcode operations.
+ * @param trackAudioQuality - Optional track audio quality information from the API (e.g. "LOSSLESS", "HI_RES_LOSSLESS")
+ *                            used to determine whether an m4a source should be treated as lossless.
+ * @returns A Promise that resolves to the resulting audio Blob (may be the original blob if no processing was needed
+ *          or if processing was skipped due to source/quality constraints).
+ * @throws Throws underlying encoding/transcoding errors (including AbortError when aborted). Encoding errors during
+ *         custom-format transcode are rethrown after reporting via onProgress. Non-abort errors during lossless
+ *         container conversion are logged and do not necessarily propagate.
  */
 export async function applyAudioPostProcessing(
     blob: Blob,
     quality: string,
     onProgress: ((progress: ProgressEvent) => void) | null = null,
-    signal: AbortSignal | null = null
+    signal: AbortSignal | null = null,
+    trackAudioQuality: string | null = null
 ): Promise<Blob> {
-    // Transcode to custom format if requested
+    const extension = await getExtensionFromBlob(blob);
+
+    // Determine whether the downloaded source is lossless.
+    // FLAC is always lossless. m4a is lossless only when the track's
+    // audio quality from the API is LOSSLESS or HI_RES_LOSSLESS; otherwise
+    // it is AAC (lossy).
+    const sourceIsLossless =
+        extension === 'flac' ||
+        (extension === 'm4a' && (trackAudioQuality === 'LOSSLESS' || trackAudioQuality === 'HI_RES_LOSSLESS'));
+
+    // Transcode to custom lossy format if requested
     if (isCustomFormat(quality)) {
+        // If the source is already lossy, transcoding would degrade quality
+        // further (lossy → lossy).  Return the blob as-is instead.
+        if (!sourceIsLossless) {
+            return blob;
+        }
         const format = getCustomFormat(quality);
         if (format) {
             try {
@@ -59,8 +106,15 @@ export async function applyAudioPostProcessing(
 
     if (quality.endsWith('LOSSLESS')) {
         try {
-            const containerFmt = getContainerFormat(losslessContainerSettings.getContainer());
-            const extension = await getExtensionFromBlob(blob);
+            const containerName = losslessContainerSettings.getContainer();
+            const containerFmt = getContainerFormat(containerName);
+
+            if (!sourceIsLossless) {
+                console.warn(
+                    `Requested lossless output but source is not lossless (quality: ${quality}, trackAudioQuality: ${trackAudioQuality}, extension: ${extension}).`
+                );
+                return blob;
+            }
 
             if (await containerFmt?.needsTranscode(blob)) {
                 blob = await transcodeWithContainerFormat(blob, containerFmt, onProgress, signal);

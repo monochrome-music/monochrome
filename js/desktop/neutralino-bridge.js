@@ -177,6 +177,21 @@ export const filesystem = {
             window.parent.postMessage({ type: 'NL_FS_APPEND_BINARY', id, path, buffer }, '*', [buffer]);
         });
     },
+    createDirectory: async (path) => {
+        if (!isNeutralino) return;
+        return new Promise((resolve, reject) => {
+            const id = Math.random().toString(36).substring(7);
+            const handler = (event) => {
+                if (event.data?.type === 'NL_RESPONSE' && event.data.id === id) {
+                    window.removeEventListener('message', handler);
+                    if (event.data.error) reject(event.data.error);
+                    else resolve(event.data.result);
+                }
+            };
+            window.addEventListener('message', handler);
+            window.parent.postMessage({ type: 'NL_FS_CREATE_DIR', id, path }, '*');
+        });
+    },
 };
 
 export const updater = {
