@@ -2255,7 +2255,7 @@ body.multi-select-mode .track-item:hover {
     font-size: 0.9rem;
     font-weight: 500;
     z-index: 1000;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 20px rgb(0, 0, 0, 0.3);
     gap: 12px;
     align-items: center;
 }
@@ -2285,7 +2285,7 @@ body.multi-select-mode .track-item:hover {
 }
 
 .selection-bar button:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgb(255, 255, 255, 0.2);
 }
 
 .track-number {
