@@ -20,8 +20,9 @@ export class TidalResponse extends Response {
 
 export class HiFiClient {
     private static token: string | null;
-    private countryCode: string;
     private static appTokenExpiry = 0;
+    private static tokenPromise: Promise<string> | null = null;
+    private countryCode: string;
     private static albumTracksMax = 20;
     private static albumTracksActive = 0;
     private static albumTracksQueue: Array<() => void> = [];
@@ -35,7 +36,7 @@ export class HiFiClient {
         return u.toString();
     }
 
-    private encodeBasic(id: string, secret: string) {
+    private static encodeBasic(id: string, secret: string) {
         if (typeof window !== 'undefined' && typeof window.btoa === 'function') {
             return window.btoa(`${id}:${secret}`);
         }
@@ -43,35 +44,47 @@ export class HiFiClient {
         return Buffer.from(`${id}:${secret}`).toString('base64');
     }
 
-    private async fetchAppToken(signal: AbortSignal = new AbortController().signal): Promise<string> {
+    private static async fetchAppToken(signal: AbortSignal = new AbortController().signal) {
         const now = Date.now();
+        HiFiClient.token ??= localStorage.getItem('hifi_token') || null;
+        HiFiClient.appTokenExpiry = Number(localStorage.getItem('hifi_token_expiry') || '0');
+
         if (HiFiClient.token && now < HiFiClient.appTokenExpiry) return HiFiClient.token;
 
-        const res = await fetch('https://auth.tidal.com/v1/oauth2/token', {
-            method: 'POST',
-            headers: {
-                'content-type': 'application/x-www-form-urlencoded',
-                authorization: `Basic ${this.encodeBasic(CLIENT_ID, CLIENT_SECRET)}`,
-            },
-            body: new URLSearchParams({
-                grant_type: 'client_credentials',
-                client_id: CLIENT_ID,
-                client_secret: CLIENT_SECRET,
-            }),
-            signal,
-        });
+        return await (HiFiClient.tokenPromise ??= (async () => {
+            try {
+                const res = await fetch('https://auth.tidal.com/v1/oauth2/token', {
+                    method: 'POST',
+                    headers: {
+                        'content-type': 'application/x-www-form-urlencoded',
+                        authorization: `Basic ${this.encodeBasic(CLIENT_ID, CLIENT_SECRET)}`,
+                    },
+                    body: new URLSearchParams({
+                        grant_type: 'client_credentials',
+                        client_id: CLIENT_ID,
+                        client_secret: CLIENT_SECRET,
+                    }),
+                    signal,
+                });
 
-        if (!res.ok) {
-            const txt = await res.text().catch(() => '');
-            throw new Error(`Failed to obtain app token: ${res.status} ${txt}`);
-        }
+                if (!res.ok) {
+                    const txt = await res.text().catch(() => '');
+                    throw new Error(`Failed to obtain app token: ${res.status} ${txt}`);
+                }
 
-        const json = await res.json();
-        const token = json.access_token;
-        const expires_in = json.expires_in ?? 3600;
-        HiFiClient.token = token;
-        HiFiClient.appTokenExpiry = Date.now() + expires_in * 1000 - 60_000;
-        return token;
+                const json = await res.json();
+                const token = json.access_token;
+                const expires_in = json.expires_in ?? 3600;
+                HiFiClient.token = token;
+                HiFiClient.appTokenExpiry = Date.now() + expires_in * 1000 - 60_000;
+                localStorage.setItem('hifi_token', token);
+                localStorage.setItem('hifi_token_expiry', HiFiClient.appTokenExpiry.toString());
+
+                return token;
+            } finally {
+                HiFiClient.tokenPromise = null;
+            }
+        })());
     }
 
     constructor(countryCode = 'US') {
@@ -81,7 +94,7 @@ export class HiFiClient {
     private async fetchJson(url: string, params?: Params, signal: AbortSignal = new AbortController().signal) {
         const final = HiFiClient.buildUrl(url, params);
         const res = await fetch(final, {
-            headers: { authorization: `Bearer ${await this.fetchAppToken(signal)}` },
+            headers: { authorization: `Bearer ${await HiFiClient.fetchAppToken(signal)}` },
             signal,
         });
 
