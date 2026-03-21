@@ -434,15 +434,6 @@ export class LyricsManager {
                 user-select: none;
             }
 
-            .monochrome-primary-line {
-                font-size: 1em;
-                font-weight: 700;
-                line-height: 1.2;
-                color: var(--lyplus-text-secondary);
-                opacity: 0.88;
-                transition: color 0.25s ease, opacity 0.25s ease, text-shadow 0.3s ease;
-            }
-
             .monochrome-secondary-line,
             .monochrome-tertiary-line {
                 font-size: var(--lyplus-font-size-subtext);
@@ -459,19 +450,8 @@ export class LyricsManager {
                 text-shadow: 0 0 0.8em color-mix(in srgb, var(--lyplus-text-primary), transparent 55%);
             }
 
-            .lyrics-line.active .monochrome-primary-line {
-                color: var(--lyplus-text-primary);
-                opacity: 1;
-                text-shadow: 0 0 1em color-mix(in srgb, var(--lyplus-text-primary), transparent 50%);
-            }
-
             .lyrics-line.active .monochrome-secondary-line {
                 opacity: 0.9;
-            }
-
-            .monochrome-translate-primary .main-vocal-container,
-            .monochrome-translate-primary .lyrics-translation-container {
-                display: none !important;
             }
         `;
         root.appendChild(style);
@@ -576,7 +556,6 @@ export class LyricsManager {
             let auxContainer = lineContainer.querySelector('.monochrome-lyrics-aux');
 
             if (!hasAuxiliaryLayer) {
-                lineElement.classList.remove('monochrome-translate-primary');
                 if (auxContainer) auxContainer.remove();
                 continue;
             }
@@ -604,17 +583,6 @@ export class LyricsManager {
                 if (refreshToken !== this._lyricsRefreshToken) return;
             }
 
-            if (this.isTranslateMode) {
-                lineElement.classList.add('monochrome-translate-primary');
-
-                const primaryText = document.createElement('div');
-                primaryText.className = 'monochrome-primary-line';
-                primaryText.textContent = translatedText || sourceText;
-                auxContainer.appendChild(primaryText);
-            } else {
-                lineElement.classList.remove('monochrome-translate-primary');
-            }
-
             if (this.isRomajiMode && romajiText) {
                 const romajiLine = document.createElement('div');
                 romajiLine.className = 'monochrome-secondary-line';
@@ -625,7 +593,7 @@ export class LyricsManager {
             if (this.isTranslateMode) {
                 const translationLine = document.createElement('div');
                 translationLine.className = 'monochrome-tertiary-line';
-                translationLine.textContent = sourceText;
+                translationLine.textContent = translatedText || sourceText;
                 auxContainer.appendChild(translationLine);
             }
         }
@@ -641,9 +609,6 @@ export class LyricsManager {
         const root = this.getLyricsRoot(amLyricsElement);
         if (!root) return;
         root.querySelectorAll('.monochrome-lyrics-aux').forEach((node) => node.remove());
-        root.querySelectorAll('.monochrome-translate-primary').forEach((node) => {
-            node.classList.remove('monochrome-translate-primary');
-        });
     }
 
     setTranslateLanguage(lang) {
