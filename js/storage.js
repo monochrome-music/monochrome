@@ -2842,3 +2842,73 @@ export const keyboardShortcuts = {
         return shortcuts[action] || this.DEFAULT_SHORTCUTS[action];
     },
 };
+
+
+// ========================================
+// Super Data Saver Settings
+// ========================================
+export const dataSaverSettings = {
+    KEY: 'monochrome-data-saver',
+
+    isEnabled() {
+        return localStorage.getItem(this.KEY) === 'true';
+    },
+    setEnabled(enabled) {
+        localStorage.setItem(this.KEY, enabled ? 'true' : 'false');
+    },
+
+    getMode() {
+        return localStorage.getItem(this.KEY + '-mode') || 'moderate';
+    },
+    setMode(mode) {
+        localStorage.setItem(this.KEY + '-mode', mode);
+    },
+
+    shouldDisableCovers() {
+        return this.isEnabled() && this.getMode() === 'extreme';
+    },
+
+    shouldDisableBackground() {
+        return this.isEnabled();
+    },
+
+    shouldDisableWaveform() {
+        return this.isEnabled();
+    },
+
+    shouldDisableVisualizer() {
+        return this.isEnabled();
+    },
+
+    getCoverArtMaxSize() {
+        if (!this.isEnabled()) return null;
+        return this.getMode() === 'extreme' ? 80 : 160;
+    },
+
+    shouldForceLowQuality() {
+        return this.isEnabled();
+    },
+
+    shouldDisablePrefetch() {
+        return this.isEnabled();
+    },
+
+    shouldDisableLyrics() {
+        return this.isEnabled() && this.getMode() === 'extreme';
+    },
+
+    shouldDisableAnalytics() {
+        return this.isEnabled();
+    },
+
+    shouldDisableDynamicColor() {
+        return this.isEnabled();
+    },
+
+    getSavingsDescription() {
+        if (!this.isEnabled()) return 'Off';
+        return this.getMode() === 'extreme'
+            ? 'Extreme - Hemat hingga ~90% data'
+            : 'Moderate - Hemat hingga ~60% data';
+    }
+};
