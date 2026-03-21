@@ -126,6 +126,7 @@ export class UIRenderer {
         this.visualizer = null;
         this.renderLock = false;
         this.lastRecommendedTracks = [];
+        this.currentArtistId = null;
 
         // Listen for dynamic color reset events
         window.addEventListener('reset-dynamic-color', () => {
@@ -1628,6 +1629,12 @@ export class UIRenderer {
         });
 
         document.querySelector('.main-content').scrollTop = 0;
+
+        // Clear artist context when navigating away from artist page
+        if (pageId !== 'artist') {
+            this.currentArtistId = null;
+            this.player.clearArtistPopularTracksContext();
+        }
 
         // Clear background and color if not on album, artist, playlist, or mix page
         if (!['album', 'artist', 'playlist', 'mix'].includes(pageId)) {
@@ -3934,6 +3941,7 @@ export class UIRenderer {
 
     async renderArtistPage(artistId, provider = null) {
         this.showPage('artist');
+        this.currentArtistId = artistId;
 
         const imageEl = document.getElementById('artist-detail-image');
         const nameEl = document.getElementById('artist-detail-name');
