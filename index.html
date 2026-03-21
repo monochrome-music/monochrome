@@ -139,8 +139,8 @@
                         z-index: 0;
                     "
                 ></div>
-                <button id="toggle-ui-btn" class="fullscreen-ui-toggle" title="Toggle UI">
-                    <use svg="!lucide/x.svg" size="24" />
+                <button id="toggle-ui-btn" class="fullscreen-ui-toggle" title="Split View">
+                    <use svg="!lucide/panel-right.svg" size="24" />
                 </button>
                 <button id="toggle-fullscreen-lyrics-btn" class="fullscreen-lyrics-toggle" title="Toggle Lyrics">
                     <use svg="./images/mic.svg" size="24" />
@@ -202,6 +202,33 @@
                             <button id="fs-repeat-btn" title="Repeat">
                                 <use svg="!lucide/repeat.svg" size="24" />
                             </button>
+                            <button id="fs-playback-speed-btn" class="fs-playback-speed-btn" title="Playback Speed">
+                                <use svg="!lucide/gauge.svg" size="20" />
+                                <span class="fs-speed-value">1.00x</span>
+                            </button>
+                            <div id="fs-playback-speed-popup" class="fs-playback-speed-popup" style="display: none">
+                                <div class="speed-popup-header">
+                                    <h4>Playback Speed</h4>
+                                    <button class="fs-speed-popup-close">&times;</button>
+                                </div>
+                                <div class="speed-slider-container">
+                                    <input
+                                        type="range"
+                                        id="fs-playback-speed-slider"
+                                        min="0.25"
+                                        max="4"
+                                        step="0.01"
+                                        value="1"
+                                    />
+                                    <div class="speed-presets">
+                                        <button class="fs-speed-preset-btn" data-speed="0.75">0.75x</button>
+                                        <button class="fs-speed-preset-btn active" data-speed="1">1x</button>
+                                        <button class="fs-speed-preset-btn" data-speed="1.25">1.25x</button>
+                                        <button class="fs-speed-preset-btn" data-speed="1.5">1.5x</button>
+                                        <button class="fs-speed-preset-btn" data-speed="2">2x</button>
+                                    </div>
+                                </div>
+                            </div>
                             <button id="fs-quality-btn" class="fs-quality-btn" title="Quality" style="display: none">
                                 <use svg="!lucide/pencil-line.svg" size="20" />
                                 <span class="fs-quality-label">Auto</span>
@@ -4674,6 +4701,9 @@
                         <button id="toggle-lyrics-btn" title="Lyrics" style="display: none">
                             <use svg="./images/mic.svg" size="20" />
                         </button>
+                        <button id="now-playing-mic-btn" title="Microphone">
+                            <use svg="!lucide/mic.svg" size="20" />
+                        </button>
                         <button id="download-current-btn" title="Download current track" class="desktop-only">
                             <use svg="!lucide/download.svg" size="20" />
                         </button>
@@ -4699,6 +4729,33 @@
                         <button id="sleep-timer-btn-desktop" title="Sleep Timer">
                             <use svg="!lucide/clock.svg" size="20" />
                         </button>
+                        <button id="playback-speed-btn" class="playback-speed-btn" title="Playback Speed">
+                            <use svg="!lucide/gauge.svg" size="18" />
+                            <span class="speed-value">1.00x</span>
+                        </button>
+                        <div id="playback-speed-popup" class="playback-speed-popup" style="display: none">
+                            <div class="speed-popup-header">
+                                <h4>Playback Speed</h4>
+                                <button class="speed-popup-close">&times;</button>
+                            </div>
+                            <div class="speed-slider-container">
+                                <input
+                                    type="range"
+                                    id="mini-playback-speed-slider"
+                                    min="0.25"
+                                    max="4"
+                                    step="0.01"
+                                    value="1"
+                                />
+                                <div class="speed-presets">
+                                    <button class="speed-preset-btn" data-speed="0.75">0.75x</button>
+                                    <button class="speed-preset-btn active" data-speed="1">1x</button>
+                                    <button class="speed-preset-btn" data-speed="1.25">1.25x</button>
+                                    <button class="speed-preset-btn" data-speed="1.5">1.5x</button>
+                                    <button class="speed-preset-btn" data-speed="2">2x</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </footer>

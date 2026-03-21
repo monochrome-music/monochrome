@@ -21,7 +21,6 @@ import {
     backgroundSettings,
     dynamicColorSettings,
     cardSettings,
-    visualizerSettings,
     homePageSettings,
     fontSettings,
     contentBlockingSettings,
@@ -30,7 +29,6 @@ import {
 import { db } from './db.js';
 import { getVibrantColorFromImage } from './vibrant-color.js';
 import { syncManager } from './accounts/pocketbase.js';
-import { Visualizer } from './visualizer.js';
 import { navigate } from './router.js';
 import { sidePanelManager } from './side-panel.js';
 import {
@@ -259,6 +257,7 @@ export class UIRenderer {
         const addPlaylistBtn = document.getElementById('now-playing-add-playlist-btn');
         const mobileAddPlaylistBtn = document.getElementById('mobile-add-playlist-btn');
         const lyricsBtn = document.getElementById('toggle-lyrics-btn');
+        const micBtn = document.getElementById('now-playing-mic-btn');
         const fsLikeBtn = document.getElementById('fs-like-btn');
         const fsAddPlaylistBtn = document.getElementById('fs-add-playlist-btn');
 
@@ -296,6 +295,10 @@ export class UIRenderer {
                 if (isLocal) lyricsBtn.style.display = 'none';
                 else lyricsBtn.style.removeProperty('display');
             }
+            if (micBtn) {
+                if (isLocal) micBtn.style.display = 'none';
+                else micBtn.style.removeProperty('display');
+            }
 
             if (fsLikeBtn) {
                 if (shouldHideLikes) {
@@ -314,6 +317,7 @@ export class UIRenderer {
             if (addPlaylistBtn) addPlaylistBtn.style.setProperty('display', 'none', 'important');
             if (mobileAddPlaylistBtn) mobileAddPlaylistBtn.style.setProperty('display', 'none', 'important');
             if (lyricsBtn) lyricsBtn.style.display = 'none';
+            if (micBtn) micBtn.style.display = 'none';
             if (fsLikeBtn) fsLikeBtn.style.display = 'none';
             if (fsAddPlaylistBtn) fsAddPlaylistBtn.style.display = 'none';
         }
@@ -1125,52 +1129,14 @@ export class UIRenderer {
         overlay.style.display = 'flex';
 
         const startVisualizer = async () => {
-            if (!visualizerSettings.isEnabled()) {
-                if (this.visualizer) this.visualizer.stop();
-                return;
-            }
-
-            if (!this.visualizer && activeElement) {
-                const canvas = document.getElementById('visualizer-canvas');
-                if (canvas) {
-                    this.visualizer = new Visualizer(canvas, activeElement);
-                    await this.visualizer.initPresets();
-                }
-            }
-            if (this.visualizer) {
-                this.visualizer.start();
-            }
-
-            // Add visualizer-active class for enhanced drop shadow
-            overlay.classList.add('visualizer-active');
+            if (this.visualizer) this.visualizer.stop();
+            overlay.classList.remove('visualizer-active');
         };
 
         // Setup UI toggle button
         this.setupUIToggleButton(overlay);
 
-        if (localStorage.getItem('epilepsy-warning-dismissed') === 'true') {
-            await startVisualizer();
-        } else {
-            const modal = document.getElementById('epilepsy-warning-modal');
-            if (modal) {
-                modal.classList.add('active');
-
-                const acceptBtn = document.getElementById('epilepsy-accept-btn');
-                const cancelBtn = document.getElementById('epilepsy-cancel-btn');
-
-                acceptBtn.onclick = async () => {
-                    modal.classList.remove('active');
-                    localStorage.setItem('epilepsy-warning-dismissed', 'true');
-                    await startVisualizer();
-                };
-                cancelBtn.onclick = () => {
-                    modal.classList.remove('active');
-                    this.closeFullscreenCover();
-                };
-            } else {
-                await startVisualizer();
-            }
-        }
+        await startVisualizer();
     }
 
     closeFullscreenCover() {
@@ -1225,7 +1191,7 @@ export class UIRenderer {
 
         let isUIHidden = overlay.classList.contains('ui-hidden');
         toggleBtn.classList.toggle('active', isUIHidden);
-        toggleBtn.title = isUIHidden ? 'Show UI' : 'Hide UI';
+        toggleBtn.title = isUIHidden ? 'Show Split View' : 'Hide Split View';
 
         // Show button
         const showButton = () => {
@@ -1249,7 +1215,7 @@ export class UIRenderer {
             isUIHidden = !isUIHidden;
             overlay.classList.toggle('ui-hidden', isUIHidden);
             toggleBtn.classList.toggle('active', isUIHidden);
-            toggleBtn.title = isUIHidden ? 'Show UI' : 'Hide UI';
+            toggleBtn.title = isUIHidden ? 'Show Split View' : 'Hide Split View';
 
             if (isUIHidden) {
                 hideButton();

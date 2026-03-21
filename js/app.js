@@ -1044,8 +1044,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.history.forward();
     });
 
-    document.getElementById('toggle-lyrics-btn')?.addEventListener('click', async (e) => {
-        e.stopPropagation();
+    const toggleLyricsPanel = () => {
         if (!player.currentTrack) {
             alert('No track is currently playing');
             return;
@@ -1059,6 +1058,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             openLyricsPanel(player.currentTrack, player.activeElement, lyricsManager);
         }
+    };
+
+    document.getElementById('toggle-lyrics-btn')?.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        toggleLyricsPanel();
+    });
+
+    document.getElementById('now-playing-mic-btn')?.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        toggleLyricsPanel();
     });
 
     document.getElementById('download-current-btn')?.addEventListener('click', () => {
