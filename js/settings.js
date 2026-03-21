@@ -3359,34 +3359,38 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         if (dataSaverStatusText) dataSaverStatusText.textContent = dataSaverSettings.getSavingsDescription();
     }
 
-    function applyDataSaver() {
+function applyDataSaver() {
         const enabled = dataSaverSettings.isEnabled();
         const mode = dataSaverSettings.getMode();
+
+        // Helper to set a toggle + its setting
+        const setFeature = (settingObj, method, value, toggleId, eventName, eventDetail) => {
+            settingObj[method](value);
+            const toggle = document.getElementById(toggleId);
+            if (toggle) toggle.checked = value;
+            if (eventName) window.dispatchEvent(new CustomEvent(eventName, { detail: eventDetail || {} }));
+        };
+
         if (enabled) {
+            // Both modes: low quality streaming
             player.setQuality('LOW');
             localStorage.setItem('playback-quality', 'LOW');
             const sqSetting = document.getElementById('streaming-quality-setting');
             if (sqSetting) sqSetting.value = 'LOW';
-            backgroundSettings.setEnabled(false);
-            const bgToggle = document.getElementById('album-background-toggle');
-            if (bgToggle) bgToggle.checked = false;
-            waveformSettings.setEnabled(false);
-            const wfToggle = document.getElementById('waveform-toggle');
-            if (wfToggle) wfToggle.checked = false;
-            window.dispatchEvent(new CustomEvent('waveform-toggle', { detail: { enabled: false } }));
-            visualizerSettings.setEnabled(false);
-            const visToggle = document.getElementById('visualizer-enabled-toggle');
-            if (visToggle) visToggle.checked = false;
-            dynamicColorSettings.setEnabled(false);
-            const dcToggle = document.getElementById('dynamic-color-toggle');
-            if (dcToggle) dcToggle.checked = false;
+
+            // Both modes: disable heavy features
+            setFeature(backgroundSettings, 'setEnabled', false, 'album-background-toggle');
+            setFeature(waveformSettings, 'setEnabled', false, 'waveform-toggle', 'waveform-toggle', { enabled: false });
+            setFeature(visualizerSettings, 'setEnabled', false, 'visualizer-enabled-toggle');
+            setFeature(dynamicColorSettings, 'setEnabled', false, 'dynamic-color-toggle');
             window.dispatchEvent(new CustomEvent('reset-dynamic-color'));
-            analyticsSettings.setEnabled(false);
-            const anToggle = document.getElementById('analytics-toggle');
-            if (anToggle) anToggle.checked = false;
+            setFeature(analyticsSettings, 'setEnabled', false, 'analytics-toggle');
+
+            // Cover art size depends on mode
             coverArtSizeSettings.setSize(mode === 'extreme' ? '80' : '160');
             const coverSelect = document.getElementById('cover-art-size-setting');
             if (coverSelect) coverSelect.value = mode === 'extreme' ? '80' : '160';
+
             document.body.classList.add('data-saver-active');
             if (mode === 'extreme') {
                 document.body.classList.add('data-saver-extreme');
@@ -3394,6 +3398,22 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 document.body.classList.remove('data-saver-extreme');
             }
         } else {
+            // OFF: restore all features back to enabled
+            player.setQuality('HI_RES_LOSSLESS');
+            localStorage.setItem('playback-quality', 'HI_RES_LOSSLESS');
+            const sqSetting = document.getElementById('streaming-quality-setting');
+            if (sqSetting) sqSetting.value = 'HI_RES_LOSSLESS';
+
+            setFeature(backgroundSettings, 'setEnabled', true, 'album-background-toggle');
+            setFeature(waveformSettings, 'setEnabled', true, 'waveform-toggle', 'waveform-toggle', { enabled: true });
+            setFeature(visualizerSettings, 'setEnabled', true, 'visualizer-enabled-toggle');
+            setFeature(dynamicColorSettings, 'setEnabled', true, 'dynamic-color-toggle');
+            setFeature(analyticsSettings, 'setEnabled', true, 'analytics-toggle');
+
+            coverArtSizeSettings.setSize('300');
+            const coverSelect = document.getElementById('cover-art-size-setting');
+            if (coverSelect) coverSelect.value = '300';
+
             document.body.classList.remove('data-saver-active', 'data-saver-extreme');
         }
     }
