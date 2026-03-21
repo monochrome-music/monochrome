@@ -2187,11 +2187,18 @@ export class UIRenderer {
         // Take random samples from each to form seeds
         const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
-        const seeds = [
+        const combined = [
             ...shuffle(playlistTracks).slice(0, 20),
             ...shuffle(favorites).slice(0, 20),
             ...shuffle(history).slice(0, 10),
         ];
+
+        const seenIds = new Set();
+        const seeds = combined.filter((t) => {
+            if (seenIds.has(t.id)) return false;
+            seenIds.add(t.id);
+            return true;
+        });
 
         return shuffle(seeds);
     }
