@@ -1457,52 +1457,6 @@
             </div>
         </div>
 
-        <div id="donate-modal" class="modal">
-            <div class="modal-overlay"></div>
-            <div class="modal-content">
-                <h3 style="text-align: center; margin-bottom: 1rem">Support Monochrome</h3>
-                <p style="text-align: center; margin-bottom: 1.5rem; line-height: 1.6; color: var(--muted-foreground)">
-                    If Monochrome has been useful to you and you're able to, consider making a donation. It helps pay
-                    for the server and domain, and you get to support us :)
-                </p>
-                <div style="display: flex; justify-content: center; margin-bottom: 2rem">
-                    <a
-                        href="https://ko-fi.com/monochromemusic"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="btn-primary"
-                        style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem"
-                    >
-                        Donate on Ko-fi
-                    </a>
-                </div>
-                <div style="text-align: center; padding-top: 1rem; border-top: 1px solid var(--border)">
-                    <p style="font-size: 0.9rem; color: var(--muted-foreground); margin-bottom: 0.5rem">
-                        If you cannot financially support us, please consider starring the project on GitHub and sharing
-                        with friends!
-                    </p>
-                    <a
-                        href="https://github.com/monochrome-music/monochrome"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="btn-secondary"
-                        style="
-                            text-decoration: none;
-                            display: inline-flex;
-                            align-items: center;
-                            gap: 0.5rem;
-                            margin-top: 0.5rem;
-                        "
-                    >
-                        Star on GitHub
-                    </a>
-                </div>
-                <div class="modal-actions" style="justify-content: center; margin-top: 1.5rem">
-                    <button id="close-donate-modal-btn" class="btn-secondary">Close</button>
-                </div>
-            </div>
-        </div>
-
         <div id="desktop-update-modal" class="modal">
             <div class="modal-overlay"></div>
             <div class="modal-content">
@@ -1609,7 +1563,7 @@
                                 </a>
                             </li>
                             <li class="nav-item" id="sidebar-nav-donate">
-                                <a id="sidebar-donate-link" style="cursor: pointer">
+                                <a id="sidebar-donate-link" href="/donate">
                                     <use svg="!lucide/hand-heart.svg" size="24" />
                                     <span>Donate</span>
                                 </a>
@@ -4507,9 +4461,7 @@
                                 "
                             >
                                 <a
-                                    href="https://ko-fi.com/monochromemusic"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                    href="/donate"
                                     class="btn-secondary"
                                     style="
                                         text-decoration: none;
@@ -4658,21 +4610,42 @@
                     </div>
                 </div>
                 <div id="page-donate" class="page">
-                    <h2 class="section-title" style="text-align: center">Donate to Monochrome</h2>
-                    <div class="donate-content">
-                        <p style="text-align: center" class="donate-description">
-                            If Monochrome has been useful to you and you're able to, consider making a donation. <br />
-                            It helps pay for the domain, and you get to support us :)
+                    <div style="text-align: center; padding: 2rem; max-width: 500px; margin: 0 auto">
+                        <h2 class="section-title" style="margin-bottom: 1.5rem">Support Monochrome</h2>
+                        <p style="margin-bottom: 1.5rem; line-height: 1.6; color: var(--muted-foreground)">
+                            If Monochrome has been useful to you and you're able to, consider making a donation. It
+                            helps pay for the server and domain, and you get to support us :)
                         </p>
                         <a
                             href="https://ko-fi.com/monochromemusic"
                             target="_blank"
                             rel="noopener noreferrer"
-                            class="btn-secondary"
-                            style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem"
+                            class="btn-primary"
+                            style="
+                                text-decoration: none;
+                                display: inline-flex;
+                                align-items: center;
+                                gap: 0.5rem;
+                                margin-bottom: 2rem;
+                            "
                         >
-                            Donate to Monochrome
+                            Donate on Ko-fi
                         </a>
+                        <div style="padding-top: 1.5rem; border-top: 1px solid var(--border)">
+                            <p style="font-size: 0.9rem; color: var(--muted-foreground); margin-bottom: 1rem">
+                                If you cannot financially support us, please consider starring the project on GitHub and
+                                sharing with friends!
+                            </p>
+                            <a
+                                href="https://github.com/monochrome-music/monochrome"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="btn-secondary"
+                                style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem"
+                            >
+                                Star on GitHub
+                            </a>
+                        </div>
                     </div>
                 </div>
             </main>
