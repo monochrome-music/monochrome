@@ -234,6 +234,10 @@ export class MusicAPI {
         return api.getSimilarArtists(cleanId);
     }
 
+    async getArtistTopTracks(artistId, options = {}) {
+        return this.tidalAPI.getArtistTopTracks(artistId, options);
+    }
+
     async getSimilarAlbums(albumId) {
         const provider = this.getProviderFromId(albumId) || this.getCurrentProvider();
         const api = this.getAPI(provider);

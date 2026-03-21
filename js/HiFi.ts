@@ -315,7 +315,13 @@ export class HiFiClient {
         return { version: API_VERSION, albums: (payload?.data || []).map(resolveAlbum) };
     }
 
-    async getArtist(id?: number | null, f?: number | null, skip_tracks = false, signal?: AbortSignal) {
+    async getArtist(
+        id?: number | null,
+        f?: number | null,
+        skip_tracks = false,
+        signal?: AbortSignal,
+        options?: { offset?: number; limit?: number }
+    ) {
         if (!id && !f) throw new ResponseError(400, 'Provide id or f query param');
 
         if (id) {
@@ -352,13 +358,13 @@ export class HiFiClient {
         ];
 
         if (skip_tracks) {
-            tasks.push(
-                this.fetchJson(
-                    `https://api.tidal.com/v1/artists/${f}/toptracks`,
-                    { countryCode: this.countryCode, limit: 15 },
-                    signal
-                )
-            );
+            const offset = options?.offset;
+            const limit = options?.limit;
+            const toptracks_params: Params = { countryCode: this.countryCode, limit: limit || 15 };
+            if (offset !== undefined) {
+                toptracks_params.offset = offset;
+            }
+            tasks.push(this.fetchJson(`https://api.tidal.com/v1/artists/${f}/toptracks`, toptracks_params, signal));
         }
 
         const results = await Promise.all(tasks.map((p) => p.catch((e) => e)));
@@ -702,7 +708,11 @@ export class HiFiClient {
                         qp.id ? Number(qp.id) : undefined,
                         qp.f ? Number(qp.f) : undefined,
                         qp.skip_tracks === 'true' || qp.skip_tracks === '1' || qp.skip_tracks === 'True',
-                        signal
+                        signal,
+                        {
+                            offset: qp.offset !== undefined ? Number(qp.offset) : undefined,
+                            limit: qp.limit !== undefined ? Number(qp.limit) : undefined,
+                        }
                     );
                 case '/cover':
                     return await this.getCover(qp.id ? Number(qp.id) : undefined, qp.q ?? undefined, signal);

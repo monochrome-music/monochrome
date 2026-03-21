@@ -1010,6 +1010,89 @@ export class LosslessAPI {
         return result;
     }
 
+    async getArtistTopTracks(artistId, options = {}) {
+        const offset = options.offset || 0;
+        const limit = options.limit || 15;
+        console.log('[getArtistTopTracks] Called:', { artistId, offset, limit, options });
+
+        const cacheKey = `artist_tracks_${artistId}_${offset}_${limit}`;
+        if (!options.skipCache) {
+            const cached = await this.cache.get('artist', cacheKey);
+            if (cached) return cached;
+        }
+
+        try {
+            // Use f parameter with skip_tracks=true to get toptracks from the dedicated endpoint
+            const response = await this.fetchWithRetry(
+                `/artist/?f=${artistId}&skip_tracks=true&offset=${offset}&limit=${limit}`
+            );
+            const jsonData = await response.json();
+
+            let data = jsonData.data || jsonData;
+            console.log(
+                '[getArtistTopTracks] Raw response data keys:',
+                Object.keys(data),
+                'tracks:',
+                data.tracks?.length
+            );
+
+            // Extract tracks from the response
+            let tracks = [];
+
+            // Check for tracks array directly (from toptracks endpoint)
+            if (Array.isArray(data.tracks)) {
+                tracks = data.tracks;
+            }
+
+            // Also scan for tracks in the data structure
+            if (tracks.length === 0) {
+                const trackMap = new Map();
+                const isTrack = (v) => v?.id && v.duration;
+
+                const scan = (value, visited) => {
+                    if (!value || typeof value !== 'object' || visited.has(value)) return;
+                    visited.add(value);
+
+                    if (Array.isArray(value)) {
+                        value.forEach((item) => scan(item, visited));
+                        return;
+                    }
+
+                    const item = value.item || value;
+                    if (isTrack(item)) {
+                        trackMap.set(item.id, this.prepareTrack(item));
+                    }
+
+                    Object.values(value).forEach((nested) => scan(nested, visited));
+                };
+
+                const visited = new Set();
+                scan(data, visited);
+                tracks = Array.from(trackMap.values());
+            }
+
+            tracks = tracks.map((t) => this.prepareTrack(t)).sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+            tracks = await this.enrichTracksWithAlbumDates(tracks);
+
+            // Safeguard: If API ignores offset, it returns the same first tracks
+            const hasMore = tracks.length === limit && (offset === 0 || tracks[0]?.id !== options.firstTrackId);
+            const result = {
+                tracks,
+                offset,
+                limit,
+                hasMore,
+            };
+
+            if (!(response instanceof TidalResponse)) {
+                await this.cache.set('artist', cacheKey, result);
+            }
+            return result;
+        } catch (e) {
+            console.warn('Failed to fetch artist top tracks:', e);
+            return { tracks: [], offset, limit, hasMore: false };
+        }
+    }
+
     async getSimilarArtists(artistId) {
         const cached = await this.cache.get('similar_artists', artistId);
         if (cached) return cached;
