@@ -4367,6 +4367,56 @@
                             <div class="settings-group">
                                 <div class="setting-item">
                                     <div class="info">
+                                                            <!-- Super Data Saver -->
+                    <div class="settings-group">
+                        <h3 data-i18n="settings.dataSaver">Super Penghemat Data</h3>
+
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <span class="label" data-i18n="settings.dataSaverToggle">Super Data Saver</span>
+                                <span class="description" data-i18n="settings.dataSaverDesc">Hemat kuota internet secara drastis. Menurunkan kualitas streaming, menonaktifkan fitur boros data, dan memperkecil ukuran gambar.</span>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="data-saver-toggle">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-item" id="data-saver-mode-setting" style="display: none;">
+                            <div class="setting-info">
+                                <span class="label">Mode Hemat</span>
+                                <span class="description">Moderate: tetap nyaman. Extreme: hemat maksimal, cover art dinonaktifkan.</span>
+                            </div>
+                            <select id="data-saver-mode" class="setting-select">
+                                <option value="moderate">Moderate (~60% hemat)</option>
+                                <option value="extreme">Extreme (~90% hemat)</option>
+                            </select>
+                        </div>
+
+                        <div class="setting-item" id="data-saver-status" style="display: none;">
+                            <div class="setting-info">
+                                <span class="label">Status</span>
+                                <span class="description" id="data-saver-status-text">-</span>
+                            </div>
+                        </div>
+
+                        <div class="setting-item" id="data-saver-details" style="display: none;">
+                            <div class="setting-info">
+                                <span class="label">Yang dioptimasi:</span>
+                                <span class="description">
+                                    Streaming: kualitas terendah (AAC 96kbps) &bull;
+                                    Cover art: resolusi kecil / dinonaktifkan &bull;
+                                    Background blur: off &bull;
+                                    Waveform: off &bull;
+                                    Visualizer: off &bull;
+                                    Dynamic color: off &bull;
+                                    Prefetch: off &bull;
+                                    Analytics: off
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
                                         <span class="label">Keyboard Shortcuts</span>
                                         <span class="description">View and customize keyboard shortcuts</span>
                                     </div>
