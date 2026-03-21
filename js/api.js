@@ -1182,9 +1182,11 @@ export class LosslessAPI {
 
         const results = await Promise.all(artistPromises);
         results.forEach((tracks) => {
-            if (tracks.length > 0) {
-                recommendedTracks.push(...tracks);
-                tracks.forEach((t) => seenTrackIds.add(t.id));
+            for (const t of tracks) {
+                if (!seenTrackIds.has(t.id)) {
+                    seenTrackIds.add(t.id);
+                    recommendedTracks.push(t);
+                }
             }
         });
 
