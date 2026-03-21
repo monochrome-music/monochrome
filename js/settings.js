@@ -35,6 +35,7 @@ import {
     crossfadeSettings,
     analyticsSettings,
     modalSettings,
+        dataSaverSettings,
 } from './storage.js';
 import { switchLanguage, getCurrentLanguage, getSupportedLanguages, applyTranslations } from './i18n.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
@@ -3339,6 +3340,83 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     // Blocked Content Management
     initializeBlockedContentManager();
 }
+
+    // ========================================
+    // Super Data Saver
+    // ========================================
+    const dataSaverToggle = document.getElementById('data-saver-toggle');
+    const dataSaverModeSetting = document.getElementById('data-saver-mode-setting');
+    const dataSaverModeSelect = document.getElementById('data-saver-mode');
+    const dataSaverStatus = document.getElementById('data-saver-status');
+    const dataSaverStatusText = document.getElementById('data-saver-status-text');
+    const dataSaverDetails = document.getElementById('data-saver-details');
+
+    function updateDataSaverUI() {
+        const enabled = dataSaverSettings.isEnabled();
+        if (dataSaverToggle) dataSaverToggle.checked = enabled;
+        if (dataSaverModeSetting) dataSaverModeSetting.style.display = enabled ? 'flex' : 'none';
+        if (dataSaverStatus) dataSaverStatus.style.display = enabled ? 'flex' : 'none';
+        if (dataSaverDetails) dataSaverDetails.style.display = enabled ? 'flex' : 'none';
+        if (dataSaverModeSelect) dataSaverModeSelect.value = dataSaverSettings.getMode();
+        if (dataSaverStatusText) dataSaverStatusText.textContent = dataSaverSettings.getSavingsDescription();
+    }
+
+    function applyDataSaver() {
+        const enabled = dataSaverSettings.isEnabled();
+        const mode = dataSaverSettings.getMode();
+        if (enabled) {
+            player.setQuality('LOW');
+            localStorage.setItem('playback-quality', 'LOW');
+            const sqSetting = document.getElementById('streaming-quality-setting');
+            if (sqSetting) sqSetting.value = 'LOW';
+            backgroundSettings.setEnabled(false);
+            const bgToggle = document.getElementById('album-background-toggle');
+            if (bgToggle) bgToggle.checked = false;
+            waveformSettings.setEnabled(false);
+            const wfToggle = document.getElementById('waveform-toggle');
+            if (wfToggle) wfToggle.checked = false;
+            window.dispatchEvent(new CustomEvent('waveform-toggle', { detail: { enabled: false } }));
+            visualizerSettings.setEnabled(false);
+            const visToggle = document.getElementById('visualizer-enabled-toggle');
+            if (visToggle) visToggle.checked = false;
+            dynamicColorSettings.setEnabled(false);
+            const dcToggle = document.getElementById('dynamic-color-toggle');
+            if (dcToggle) dcToggle.checked = false;
+            window.dispatchEvent(new CustomEvent('reset-dynamic-color'));
+            analyticsSettings.setEnabled(false);
+            const anToggle = document.getElementById('analytics-toggle');
+            if (anToggle) anToggle.checked = false;
+            coverArtSizeSettings.setSize(mode === 'extreme' ? '80' : '160');
+            const coverSelect = document.getElementById('cover-art-size-setting');
+            if (coverSelect) coverSelect.value = mode === 'extreme' ? '80' : '160';
+            document.body.classList.add('data-saver-active');
+            if (mode === 'extreme') {
+                document.body.classList.add('data-saver-extreme');
+            } else {
+                document.body.classList.remove('data-saver-extreme');
+            }
+        } else {
+            document.body.classList.remove('data-saver-active', 'data-saver-extreme');
+        }
+    }
+
+    updateDataSaverUI();
+    if (dataSaverSettings.isEnabled()) applyDataSaver();
+
+    if (dataSaverToggle) {
+        dataSaverToggle.addEventListener('change', (e) => {
+            dataSaverSettings.setEnabled(e.target.checked);
+            updateDataSaverUI();
+            applyDataSaver();
+        });
+    }
+    if (dataSaverModeSelect) {
+        dataSaverModeSelect.addEventListener('change', (e) => {
+            dataSaverSettings.setMode(e.target.value);
+            updateDataSaverUI();
+            applyDataSaver();
+        });
+    }
 
 function initializeFontSettings() {
     const fontTypeSelect = document.getElementById('font-type-select');
