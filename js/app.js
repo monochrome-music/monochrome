@@ -71,6 +71,7 @@ import {
     SVG_CLOSE,
     SVG_RESET,
 } from './icons.js';
+import { HiFiClient } from './HiFi.js';
 
 // Capture real iOS state before spoofing (needed for background audio)
 if (typeof window !== 'undefined') {
@@ -388,6 +389,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             MusicAPI,
             LyricsManager,
             Player,
+            HiFiClient,
         };
     }
 
@@ -395,6 +397,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initAnalytics();
 
     new ThemeStore();
+    await HiFiClient.initialize();
     await MusicAPI.initialize(apiSettings);
 
     const audioPlayer = document.getElementById('audio-player');
