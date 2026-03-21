@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
 import android.webkit.WebChromeClient
@@ -12,21 +13,10 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.appcompat.app.AppCompatActivity
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 
-/**
- * Hosts the full-screen WebView that loads the Monochrome PWA.
- *
- * On startup it:
- *  1. Configures the WebView (JS, DOM storage, autoplay, etc.)
- *  2. Adds [JavaScriptBridge] as `window.AndroidBridge` so the PWA can send
- *     playback state updates to the native [MediaSession].
- *  3. Injects [android_bridge.js] via [WebViewCompat.addDocumentStartJavaScript]
- *     so the interceptors are in place before player.js runs.
- *  4. Starts + binds to [MusicService] and hands it the [WebView] so the
- *     service can call JS action handlers on Android Auto commands.
- */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var webView: WebView
@@ -58,28 +48,45 @@ class MainActivity : AppCompatActivity() {
         val serviceIntent = Intent(this, MusicService::class.java)
         startService(serviceIntent)
         bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
+
+        // Handle OAuth redirect if app was launched via deep link
+        handleOAuthIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleOAuthIntent(intent)
+    }
+
+    private fun handleOAuthIntent(intent: Intent?) {
+        val data = intent?.data ?: return
+        if (data.scheme == "monochrome" && data.host == "oauth") {
+            val userId = data.getQueryParameter("userId")
+            val secret = data.getQueryParameter("secret")
+            if (!userId.isNullOrEmpty() && !secret.isNullOrEmpty()) {
+                // Redirect back into the PWA with the OAuth credentials
+                val redirectUrl = "$PWA_URL/index.html?userId=$userId&secret=$secret"
+                webView.loadUrl(redirectUrl)
+            }
+        }
     }
 
     private fun setupWebView() {
-        WebView.setWebContentsDebuggingEnabled(true) // remove for production
+        WebView.setWebContentsDebuggingEnabled(true)
 
         with(webView.settings) {
             javaScriptEnabled = true
             domStorageEnabled = true
             mediaPlaybackRequiresUserGesture = false
             cacheMode = WebSettings.LOAD_DEFAULT
-            allowFileAccess = false        // no local file access needed
+            allowFileAccess = false
             allowContentAccess = false
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
         }
 
-        // Register the Java bridge object BEFORE loading any URL.
-        // android_bridge.js references `window.AndroidBridge` — this is it.
         val jsBridge = JavaScriptBridge(createBridgeListener())
         webView.addJavascriptInterface(jsBridge, "AndroidBridge")
 
-        // Inject android_bridge.js before any page scripts so our
-        // setActionHandler wrapper is in place before player.js runs.
         injectBridgeScript()
 
         webView.webViewClient = object : WebViewClient() {
@@ -87,28 +94,38 @@ class MainActivity : AppCompatActivity() {
                 view: WebView,
                 request: WebResourceRequest,
             ): Boolean {
-                // Keep navigation within the WebView for same-origin URLs.
-                val pwaHost = android.net.Uri.parse(PWA_URL).host
-                return request.url.host != pwaHost
+                val url = request.url
+                val host = url.host ?: return false
+
+                // Intercept Appwrite OAuth initiation — open in Chrome Custom Tab
+                // Google blocks OAuth in WebViews, so we hand off to Chrome
+                if (host.contains("auth.samidy.com") &&
+                    url.path?.contains("/v1/account/sessions/oauth2/") == true
+                ) {
+                    CustomTabsIntent.Builder()
+                        .setShowTitle(false)
+                        .build()
+                        .launchUrl(this@MainActivity, url)
+                    return true
+                }
+
+                // Keep same-origin navigation inside WebView
+                val pwaHost = Uri.parse(PWA_URL).host
+                return host != pwaHost
             }
         }
 
         webView.webChromeClient = WebChromeClient()
-
         webView.loadUrl(PWA_URL)
     }
 
     private fun injectBridgeScript() {
         val script = assets.open("android_bridge.js").bufferedReader().use { it.readText() }
-        val pwaOrigin = android.net.Uri.parse(PWA_URL).run { "$scheme://$host" }
+        val pwaOrigin = Uri.parse(PWA_URL).run { "$scheme://$host" }
 
         if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
-            // Guaranteed to run before any page script — the preferred path.
             WebViewCompat.addDocumentStartJavaScript(webView, script, setOf(pwaOrigin))
         } else {
-            // Fallback: inject after page start. By this point player.js may
-            // have already registered handlers; the bridge will still capture
-            // future setActionHandler calls and metadata updates.
             webView.webViewClient = object : WebViewClient() {
                 override fun onPageStarted(view: WebView, url: String, favicon: android.graphics.Bitmap?) {
                     view.evaluateJavascript(script, null)
@@ -148,10 +165,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
-        /**
-         * Replace with the URL of your self-hosted Monochrome instance.
-         * Also update the matching string in res/values/strings.xml.
-         */
         const val PWA_URL = "https://monochrome.tf"
     }
 }
