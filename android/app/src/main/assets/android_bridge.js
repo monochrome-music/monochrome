@@ -141,36 +141,65 @@
         }
     };
 
-    // ── 6. Intercept window.location to catch OAuth redirects ────────────────
-    //
-    // Appwrite's createOAuth2Session sets window.location to the OAuth URL.
-    // Google blocks OAuth in WebViews, so we intercept it and hand off to
-    // Kotlin which opens Chrome Custom Tabs instead.
-    const locationDescriptor = Object.getOwnPropertyDescriptor(window, 'location')
-        || Object.getOwnPropertyDescriptor(Object.getPrototypeOf(window), 'location');
+    // ── 6. Intercept window.open to catch OAuth popups ──────────────────────
+    const origOpen = window.open.bind(window);
+    window.open = function (url, target, features) {
+        if (url && window.AndroidBridge &&
+            (String(url).includes('accounts.google.com') ||
+             String(url).includes('/v1/account/sessions/oauth2'))) {
+            try {
+                AndroidBridge.openOAuthUrl(String(url));
+                return null;
+            } catch (e) {
+                console.error('[AndroidBridge] openOAuthUrl (open) failed:', e);
+            }
+        }
+        return origOpen(url, target, features);
+    };
 
-    if (locationDescriptor && locationDescriptor.set) {
-        Object.defineProperty(window, 'location', {
-            set(url) {
-                const urlStr = String(url);
-                if (window.AndroidBridge &&
-                    (urlStr.includes('accounts.google.com') ||
-                     urlStr.includes('/v1/account/sessions/oauth2'))) {
-                    try {
-                        AndroidBridge.openOAuthUrl(urlStr);
-                        return;
-                    } catch (e) {
-                        console.error('[AndroidBridge] openOAuthUrl failed:', e);
-                    }
-                }
-                locationDescriptor.set.call(this, url);
-            },
-            get() {
-                if (locationDescriptor.get) return locationDescriptor.get.call(this);
-                return locationDescriptor.value;
-            },
-            configurable: true,
-        });
+    // ── 7. Intercept location.href setter to catch OAuth redirects ───────────
+    const origAssign = window.location.assign.bind(window.location);
+    const origReplace = window.location.replace.bind(window.location);
+
+    const isOAuthUrl = (url) =>
+        url && (String(url).includes('accounts.google.com') ||
+                String(url).includes('/v1/account/sessions/oauth2'));
+
+    const tryOpenOAuth = (url) => {
+        if (isOAuthUrl(url) && window.AndroidBridge) {
+            try {
+                AndroidBridge.openOAuthUrl(String(url));
+                return true;
+            } catch (e) {
+                console.error('[AndroidBridge] openOAuthUrl failed:', e);
+            }
+        }
+        return false;
+    };
+
+    window.location.assign = function(url) {
+        if (!tryOpenOAuth(url)) origAssign(url);
+    };
+
+    window.location.replace = function(url) {
+        if (!tryOpenOAuth(url)) origReplace(url);
+    };
+
+    // Intercept direct href assignment via defineProperty on location
+    try {
+        const locProto = Object.getPrototypeOf(window.location);
+        const hrefDesc = Object.getOwnPropertyDescriptor(locProto, 'href');
+        if (hrefDesc && hrefDesc.set) {
+            Object.defineProperty(locProto, 'href', {
+                set(val) {
+                    if (!tryOpenOAuth(val)) hrefDesc.set.call(this, val);
+                },
+                get() { return hrefDesc.get.call(this); },
+                configurable: true,
+            });
+        }
+    } catch (e) {
+        console.warn('[AndroidBridge] Could not intercept location.href:', e);
     }
 
     // Notify Kotlin the bridge is wired up (useful for debugging)
