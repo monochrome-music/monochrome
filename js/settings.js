@@ -3420,8 +3420,22 @@ function applyDataSaver() {
                 document.body.classList.add('data-saver-active');
                 document.body.classList.remove('data-saver-extreme');
             } else {
-                document.body.classList.remove('data-saver-active', 'data-saver-extreme');
+                document.body.classList.remove('data-saver-active', 'data-saver-extreme');             // Remove badge             const existingBadge = document.querySelector('.data-saver-badge');             if (existingBadge) existingBadge.remove();
             }
+        }
+
+            // Update badge indicator
+        const existingBadge = document.querySelector('.data-saver-badge');
+        if (enabled) {
+            if (!existingBadge) {
+                const badge = document.createElement('div');
+                badge.className = 'data-saver-badge';
+                document.body.appendChild(badge);
+            }
+            const badge = document.querySelector('.data-saver-badge');
+            if (badge) badge.textContent = mode === 'extreme' ? 'DATA SAVER: MAX' : 'DATA SAVER: ON';
+        } else {
+            if (existingBadge) existingBadge.remove();
         }
     }
 
