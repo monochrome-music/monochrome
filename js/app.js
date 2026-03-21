@@ -3253,20 +3253,25 @@ function showCustomizeShortcutsModal() {
 
 // ========== SUPER DATA SAVER STARTUP ==========
 function applyDataSaverOnStartup() {
-    const settings = dataSaverSettings.getSettings();
-    if (settings.enabled) {
-        document.body.classList.add('data-saver-active');
-        if (settings.mode === 'extreme') {
-            document.body.classList.add('data-saver-extreme');
+    try {
+        const enabled = dataSaverSettings.isEnabled();
+        const mode = dataSaverSettings.getMode();
+        if (enabled) {
+            document.body.classList.add('data-saver-active');
+            if (mode === 'extreme') {
+                document.body.classList.add('data-saver-extreme');
+            }
+            // Add badge indicator
+            if (!document.querySelector('.data-saver-badge')) {
+                const badge = document.createElement('div');
+                badge.className = 'data-saver-badge';
+                badge.textContent = mode === 'extreme' ? 'DATA SAVER: MAX' : 'DATA SAVER: ON';
+                document.body.appendChild(badge);
+            }
+            console.log('[Monochrome] Super Data Saver active - mode:', mode);
         }
-        // Add badge indicator
-        if (!document.querySelector('.data-saver-badge')) {
-            const badge = document.createElement('div');
-            badge.className = 'data-saver-badge';
-            badge.textContent = settings.mode === 'extreme' ? 'DATA SAVER: MAX' : 'DATA SAVER: ON';
-            document.body.appendChild(badge);
-        }
-        console.log('[Monochrome] Super Data Saver active - mode:', settings.mode);
+    } catch (e) {
+        console.warn('[Monochrome] Data Saver startup error:', e);
     }
 }
 applyDataSaverOnStartup();
