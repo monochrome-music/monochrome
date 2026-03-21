@@ -3339,8 +3339,6 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
     // Blocked Content Management
     initializeBlockedContentManager();
-}
-
     // ========================================
     // Super Data Saver
     // ========================================
@@ -3416,6 +3414,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             updateDataSaverUI();
             applyDataSaver();
         });
+    }
     }
 
 function initializeFontSettings() {
