@@ -3440,7 +3440,7 @@ function applyDataSaver() {
     }
 
     updateDataSaverUI();
-    if (dataSaverSettings.isEnabled()) applyDataSaver();
+    if (dataSaverSettings.isEnabled()) { applyDataSaver(); } else { const badge = document.querySelector('.data-saver-badge'); if (badge) badge.remove(); document.body.classList.remove('data-saver-active', 'data-saver-extreme'); }
 
     if (dataSaverToggle) {
         dataSaverToggle.addEventListener('change', (e) => {
