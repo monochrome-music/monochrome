@@ -6,11 +6,29 @@ import { QobuzAPI } from './qobuz-api.js';
 import { musicProviderSettings } from './storage.js';
 
 export class MusicAPI {
+    static #instance = null;
+    static get instance() {
+        if (!MusicAPI.#instance) {
+            throw new Error('MusicAPI not initialized. Call MusicAPI.initialize(settings) first.');
+        }
+        return MusicAPI.#instance;
+    }
+
+    /** @private */
     constructor(settings) {
         this.tidalAPI = new LosslessAPI(settings);
         this.qobuzAPI = new QobuzAPI();
         this._settings = settings;
         this.videoArtworkCache = new Map();
+    }
+
+    static async initialize(settings) {
+        if (MusicAPI.#instance) {
+            throw new Error('MusicAPI is already initialized');
+        }
+
+        const api = new MusicAPI(settings);
+        return (MusicAPI.#instance = api);
     }
 
     getCurrentProvider() {

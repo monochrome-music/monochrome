@@ -389,8 +389,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     initAnalytics();
 
     new ThemeStore();
+    await MusicAPI.initialize(apiSettings);
 
-    const api = new MusicAPI(apiSettings);
     const audioPlayer = document.getElementById('audio-player');
 
     // i love ios and macos!!!! webkit fucking SUCKS BULLSHIT sorry ios/macos heads yall getting lossless only playback
@@ -418,7 +418,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const currentQuality = localStorage.getItem('playback-quality') || 'HI_RES_LOSSLESS';
-    await Player.initialize(audioPlayer, api, currentQuality);
+    await Player.initialize(audioPlayer, MusicAPI.instance, currentQuality);
 
     // Initialize tracker
     initTracker();
@@ -497,7 +497,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const castBtn = document.getElementById('cast-btn');
     initializeCasting(audioPlayer, castBtn);
 
-    const ui = new UIRenderer(api, Player.instance);
+    const ui = new UIRenderer(MusicAPI.instance, Player.instance);
     window.monochromeUi = ui;
 
     /**
@@ -654,7 +654,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const scrobbler = new MultiScrobbler();
     window.monochromeScrobbler = scrobbler;
-    const lyricsManager = new LyricsManager(api);
+    const lyricsManager = new LyricsManager(MusicAPI.instance);
     ui.lyricsManager = lyricsManager;
     managers.lyricsManager = lyricsManager;
 
@@ -693,7 +693,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Load settings module and initialize
     const { initializeSettings } = await loadSettingsModule();
-    await initializeSettings(scrobbler, Player.instance, api, ui);
+    await initializeSettings(scrobbler, Player.instance, MusicAPI.instance, ui);
 
     // Track sidebar navigation clicks
     document.querySelectorAll('.sidebar-nav a').forEach((link) => {
@@ -709,14 +709,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializePlayerEvents(Player.instance, audioPlayer, scrobbler, ui);
     initializeTrackInteractions(
         Player.instance,
-        api,
+        MusicAPI.instance,
         document.querySelector('.main-content'),
         document.getElementById('context-menu'),
         lyricsManager,
         ui,
         scrobbler
     );
-    initializeUIInteractions(Player.instance, api, ui);
+    initializeUIInteractions(Player.instance, MusicAPI.instance, ui);
     initializeKeyboardShortcuts(Player.instance, audioPlayer);
 
     // Restore UI state for the current track (like button, theme)
@@ -1073,7 +1073,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 'download',
                 Player.instance.currentTrack,
                 Player.instance,
-                api,
+                MusicAPI.instance,
                 lyricsManager,
                 'track',
                 ui
@@ -1147,7 +1147,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!albumId) return;
 
             try {
-                const { tracks } = await api.getAlbum(albumId);
+                const { tracks } = await MusicAPI.instance.getAlbum(albumId);
                 if (tracks && tracks.length > 0) {
                     // Sort tracks by disc and track number for consistent playback
                     const sortedTracks = [...tracks].sort((a, b) => {
@@ -1185,7 +1185,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!albumId) return;
 
             try {
-                const { tracks } = await api.getAlbum(albumId);
+                const { tracks } = await MusicAPI.instance.getAlbum(albumId);
                 if (tracks && tracks.length > 0) {
                     const shuffledTracks = [...tracks].sort(() => Math.random() - 0.5);
                     Player.instance.setQueue(shuffledTracks, 0);
@@ -1215,7 +1215,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             btn.innerHTML = `${SVG_ANIMATE_SPIN(18)}<span>Shuffling...</span>`;
 
             try {
-                const artist = await api.getArtist(artistId);
+                const artist = await MusicAPI.instance.getArtist(artistId);
                 const allReleases = [...(artist.albums || []), ...(artist.eps || [])];
                 const trackSet = new Set();
                 const allTracks = [];
@@ -1227,7 +1227,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     await Promise.all(
                         chunk.map(async (album) => {
                             try {
-                                const { tracks } = await api.getAlbum(album.id);
+                                const { tracks } = await MusicAPI.instance.getAlbum(album.id);
                                 tracks.forEach((track) => {
                                     if (!trackSet.has(track.id)) {
                                         trackSet.add(track.id);
@@ -1287,9 +1287,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             btn.innerHTML = `${SVG_ANIMATE_SPIN(20)}<span>Downloading...</span>`;
 
             try {
-                const { mix, tracks } = await api.getMix(mixId);
+                const { mix, tracks } = await MusicAPI.instance.getMix(mixId);
                 const { downloadPlaylistAsZip } = await loadDownloadsModule();
-                await downloadPlaylistAsZip(mix, tracks, api, downloadQualitySettings.getQuality(), lyricsManager);
+                await downloadPlaylistAsZip(
+                    mix,
+                    tracks,
+                    MusicAPI.instance,
+                    downloadQualitySettings.getQuality(),
+                    lyricsManager
+                );
             } catch (error) {
                 console.error('Mix download failed:', error);
                 alert('Failed to download mix: ' + error.message);
@@ -1326,13 +1332,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                     playlist = { ...userPlaylist, title: userPlaylist.name || userPlaylist.title };
                     tracks = userPlaylist.tracks || [];
                 } else {
-                    const data = await api.getPlaylist(playlistId);
+                    const data = await MusicAPI.instance.getPlaylist(playlistId);
                     playlist = data.playlist;
                     tracks = data.tracks;
                 }
 
                 const { downloadPlaylistAsZip } = await loadDownloadsModule();
-                await downloadPlaylistAsZip(playlist, tracks, api, downloadQualitySettings.getQuality(), lyricsManager);
+                await downloadPlaylistAsZip(
+                    playlist,
+                    tracks,
+                    MusicAPI.instance,
+                    downloadQualitySettings.getQuality(),
+                    lyricsManager
+                );
             } catch (error) {
                 console.error('Playlist download failed:', error);
                 alert('Failed to download playlist: ' + error.message);
@@ -1569,7 +1581,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             const result = await parseCSV(
                                 csvText,
-                                api,
+                                MusicAPI.instance,
                                 (progress) => {
                                     const percentage = totalTracks > 0 ? (progress.current / totalTracks) * 100 : 0;
                                     progressFill.style.width = `${Math.min(percentage, 100)}%`;
@@ -1630,7 +1642,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             const jspfText = await file.text();
 
-                            const result = await parseJSPF(jspfText, api, (progress) => {
+                            const result = await parseJSPF(jspfText, MusicAPI.instance, (progress) => {
                                 const percentage = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
                                 progressFill.style.width = `${Math.min(percentage, 100)}%`;
                                 progressCurrent.textContent = progress.current.toString();
@@ -1718,7 +1730,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             const result = await parseDynamicCSV(
                                 csvText,
-                                api,
+                                MusicAPI.instance,
                                 (progress) => {
                                     const percentage = totalItems > 0 ? (progress.current / totalItems) * 100 : 0;
                                     progressFill.style.width = `${Math.min(percentage, 100)}%`;
@@ -1829,7 +1841,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             const xspfText = await file.text();
 
-                            const result = await parseXSPF(xspfText, api, (progress) => {
+                            const result = await parseXSPF(xspfText, MusicAPI.instance, (progress) => {
                                 const percentage = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
                                 progressFill.style.width = `${Math.min(percentage, 100)}%`;
                                 progressCurrent.textContent = progress.current.toString();
@@ -1888,7 +1900,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             const xmlText = await file.text();
 
-                            const result = await parseXML(xmlText, api, (progress) => {
+                            const result = await parseXML(xmlText, MusicAPI.instance, (progress) => {
                                 const percentage = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
                                 progressFill.style.width = `${Math.min(percentage, 100)}%`;
                                 progressCurrent.textContent = progress.current.toString();
@@ -1947,7 +1959,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             const m3uText = await file.text();
 
-                            const result = await parseM3U(m3uText, api, (progress) => {
+                            const result = await parseM3U(m3uText, MusicAPI.instance, (progress) => {
                                 const percentage = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
                                 progressFill.style.width = `${Math.min(percentage, 100)}%`;
                                 progressCurrent.textContent = progress.current.toString();
@@ -2194,7 +2206,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } else {
                     // Try API, if fail, try Public Pocketbase
                     try {
-                        const { tracks: apiTracks } = await api.getPlaylist(playlistId);
+                        const { tracks: apiTracks } = await MusicAPI.instance.getPlaylist(playlistId);
                         tracks = apiTracks;
                     } catch (e) {
                         const publicPlaylist = await syncManager.getPublicPlaylist(playlistId);
@@ -2228,9 +2240,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             btn.innerHTML = `${SVG_ANIMATE_SPIN(20)}<span>Downloading...</span>`;
 
             try {
-                const { album, tracks } = await api.getAlbum(albumId);
+                const { album, tracks } = await MusicAPI.instance.getAlbum(albumId);
                 const { downloadAlbumAsZip } = await loadDownloadsModule();
-                await downloadAlbumAsZip(album, tracks, api, downloadQualitySettings.getQuality(), lyricsManager);
+                await downloadAlbumAsZip(
+                    album,
+                    tracks,
+                    MusicAPI.instance,
+                    downloadQualitySettings.getQuality(),
+                    lyricsManager
+                );
             } catch (error) {
                 console.error('Album download failed:', error);
                 alert('Failed to download album: ' + error.message);
@@ -2248,7 +2266,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!albumId) return;
 
             try {
-                const { tracks } = await api.getAlbum(albumId);
+                const { tracks } = await MusicAPI.instance.getAlbum(albumId);
 
                 if (!tracks || tracks.length === 0) {
                     const { showNotification } = await loadDownloadsModule();
@@ -2351,7 +2369,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             btn.innerHTML = `${SVG_ANIMATE_SPIN(20)}<span>Loading...</span>`;
 
             try {
-                const artist = await api.getArtist(artistId);
+                const artist = await MusicAPI.instance.getArtist(artistId);
 
                 const allReleases = [...(artist.albums || []), ...(artist.eps || [])];
                 if (allReleases.length === 0) {
@@ -2373,7 +2391,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     await Promise.all(
                         chunk.map(async (album) => {
                             try {
-                                const { tracks } = await api.getAlbum(album.id);
+                                const { tracks } = await MusicAPI.instance.getAlbum(album.id);
                                 tracks.forEach((track) => {
                                     if (!trackSet.has(track.id)) {
                                         trackSet.add(track.id);
@@ -2445,7 +2463,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return;
                 }
                 const { downloadLikedTracks } = await loadDownloadsModule();
-                await downloadLikedTracks(likedTracks, api, downloadQualitySettings.getQuality(), lyricsManager);
+                await downloadLikedTracks(
+                    likedTracks,
+                    MusicAPI.instance,
+                    downloadQualitySettings.getQuality(),
+                    lyricsManager
+                );
             } catch (error) {
                 console.error('Liked tracks download failed:', error);
                 alert('Failed to download liked tracks: ' + error.message);
@@ -2463,8 +2486,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!artistId) return;
 
             try {
-                const artist = await api.getArtist(artistId);
-                showDiscographyDownloadModal(artist, api, downloadQualitySettings.getQuality(), lyricsManager, btn);
+                const artist = await MusicAPI.instance.getArtist(artistId);
+                showDiscographyDownloadModal(
+                    artist,
+                    MusicAPI.instance,
+                    downloadQualitySettings.getQuality(),
+                    lyricsManager,
+                    btn
+                );
             } catch (error) {
                 console.error('Failed to load artist for discography download:', error);
                 alert('Failed to load artist: ' + error.message);
