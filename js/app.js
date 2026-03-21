@@ -418,21 +418,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const currentQuality = localStorage.getItem('playback-quality') || 'HI_RES_LOSSLESS';
-    const player = new Player(audioPlayer, api, currentQuality);
-    await player.init();
-    window.monochromePlayer = player;
+    await Player.initialize(audioPlayer, api, currentQuality);
 
     // Initialize tracker
-    initTracker(player);
+    initTracker();
 
     // Linux Media Keys Fix
     if (window.NL_MODE) {
         import('./desktop/neutralino-bridge.js').then(({ events }) => {
-            events.on('mediaNext', () => player.playNext());
-            events.on('mediaPrevious', () => player.playPrev());
-            events.on('mediaPlayPause', () => player.handlePlayPause());
+            events.on('mediaNext', () => Player.instance.playNext());
+            events.on('mediaPrevious', () => Player.instance.playPrev());
+            events.on('mediaPlayPause', () => Player.instance.handlePlayPause());
             events.on('mediaStop', () => {
-                const el = player.activeElement;
+                const el = Player.instance.activeElement;
                 el.pause();
                 el.currentTime = 0;
             });
@@ -450,7 +448,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.NL_MODE = true;
         try {
             const desktopModule = await import('./desktop/desktop.js');
-            await desktopModule.initDesktop(player);
+            await desktopModule.initDesktop(Player.instance);
 
             import('./desktop/neutralino-bridge.js').then(({ updater }) => {
                 setTimeout(async () => {
@@ -499,7 +497,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const castBtn = document.getElementById('cast-btn');
     initializeCasting(audioPlayer, castBtn);
 
-    const ui = new UIRenderer(api, player);
+    const ui = new UIRenderer(api, Player.instance);
     window.monochromeUi = ui;
 
     /**
@@ -695,7 +693,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Load settings module and initialize
     const { initializeSettings } = await loadSettingsModule();
-    await initializeSettings(scrobbler, player, api, ui);
+    await initializeSettings(scrobbler, Player.instance, api, ui);
 
     // Track sidebar navigation clicks
     document.querySelectorAll('.sidebar-nav a').forEach((link) => {
@@ -708,9 +706,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    initializePlayerEvents(player, audioPlayer, scrobbler, ui);
+    initializePlayerEvents(Player.instance, audioPlayer, scrobbler, ui);
     initializeTrackInteractions(
-        player,
+        Player.instance,
         api,
         document.querySelector('.main-content'),
         document.getElementById('context-menu'),
@@ -718,18 +716,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         ui,
         scrobbler
     );
-    initializeUIInteractions(player, api, ui);
-    initializeKeyboardShortcuts(player, audioPlayer);
+    initializeUIInteractions(Player.instance, api, ui);
+    initializeKeyboardShortcuts(Player.instance, audioPlayer);
 
     // Restore UI state for the current track (like button, theme)
-    if (player.currentTrack) {
-        ui.setCurrentTrack(player.currentTrack);
+    if (Player.instance.currentTrack) {
+        ui.setCurrentTrack(Player.instance.currentTrack);
     }
 
     document.querySelector('.now-playing-bar').addEventListener('click', async (e) => {
         if (!e.target.closest('.cover')) return;
 
-        if (!player.currentTrack) {
+        if (!Player.instance.currentTrack) {
             alert('No track is currently playing');
             return;
         }
@@ -740,16 +738,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             const isActive = sidePanelManager.isActive('lyrics');
 
             if (isActive) {
-                trackCloseLyrics(player.currentTrack);
+                trackCloseLyrics(Player.instance.currentTrack);
             } else {
-                trackOpenLyrics(player.currentTrack);
+                trackOpenLyrics(Player.instance.currentTrack);
             }
         } else if (mode === 'cover') {
             const overlay = document.getElementById('fullscreen-cover-overlay');
             if (overlay && overlay.style.display === 'flex') {
                 trackCloseFullscreenCover();
             } else {
-                trackOpenFullscreenCover(player.currentTrack);
+                trackOpenFullscreenCover(Player.instance.currentTrack);
             }
         }
 
@@ -758,9 +756,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (isActive) {
                 sidePanelManager.close();
-                clearLyricsPanelSync(player.activeElement, sidePanelManager.panel);
+                clearLyricsPanelSync(Player.instance.activeElement, sidePanelManager.panel);
             } else {
-                openLyricsPanel(player.currentTrack, player.activeElement, lyricsManager);
+                openLyricsPanel(Player.instance.currentTrack, Player.instance.activeElement, lyricsManager);
             }
         } else if (mode === 'cover') {
             const overlay = document.getElementById('fullscreen-cover-overlay');
@@ -771,13 +769,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                     ui.closeFullscreenCover();
                 }
             } else {
-                const nextTrack = player.getNextTrack();
-                ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, player.activeElement);
+                const nextTrack = Player.instance.getNextTrack();
+                ui.showFullscreenCover(
+                    Player.instance.currentTrack,
+                    nextTrack,
+                    lyricsManager,
+                    Player.instance.activeElement
+                );
             }
         } else {
             // Default to 'album' mode - navigate to album
-            if (player.currentTrack.album?.id) {
-                navigate(`/album/${player.currentTrack.album.id}`);
+            if (Player.instance.currentTrack.album?.id) {
+                navigate(`/album/${Player.instance.currentTrack.album.id}`);
             }
         }
     });
@@ -805,7 +808,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const action = fullscreenCoverClickSettings.getAction();
         const overlay = document.getElementById('fullscreen-cover-overlay');
-        const playerInstance = window.monochromePlayer;
+        const playerInstance = Player.instance;
 
         switch (action) {
             case 'exit':
@@ -1049,7 +1052,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('toggle-lyrics-btn')?.addEventListener('click', async (e) => {
         e.stopPropagation();
-        if (!player.currentTrack) {
+        if (!Player.instance.currentTrack) {
             alert('No track is currently playing');
             return;
         }
@@ -1058,44 +1061,57 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (isActive) {
             sidePanelManager.close();
-            clearLyricsPanelSync(player.activeElement, sidePanelManager.panel);
+            clearLyricsPanelSync(Player.instance.activeElement, sidePanelManager.panel);
         } else {
-            openLyricsPanel(player.currentTrack, player.activeElement, lyricsManager);
+            openLyricsPanel(Player.instance.currentTrack, Player.instance.activeElement, lyricsManager);
         }
     });
 
     document.getElementById('download-current-btn')?.addEventListener('click', () => {
-        if (player.currentTrack) {
-            handleTrackAction('download', player.currentTrack, player, api, lyricsManager, 'track', ui);
+        if (Player.instance.currentTrack) {
+            handleTrackAction(
+                'download',
+                Player.instance.currentTrack,
+                Player.instance,
+                api,
+                lyricsManager,
+                'track',
+                ui
+            );
         }
     });
 
     // Auto-update lyrics when track changes
     let previousTrackId = null;
     audioPlayer.addEventListener('play', async () => {
-        if (!player.currentTrack) return;
+        if (!Player.instance.currentTrack) return;
 
         // Update UI with current track info for theme
-        ui.setCurrentTrack(player.currentTrack);
+        ui.setCurrentTrack(Player.instance.currentTrack);
 
         // Update Media Session with new track
-        player.updateMediaSession(player.currentTrack);
+        Player.instance.updateMediaSession(Player.instance.currentTrack);
 
-        const currentTrackId = player.currentTrack.id;
+        const currentTrackId = Player.instance.currentTrack.id;
         if (currentTrackId === previousTrackId) return;
         previousTrackId = currentTrackId;
 
         // Update lyrics panel if it's open
         if (sidePanelManager.isActive('lyrics')) {
             // Re-open forces update/refresh of content and sync
-            openLyricsPanel(player.currentTrack, player.activeElement, lyricsManager, true);
+            openLyricsPanel(Player.instance.currentTrack, Player.instance.activeElement, lyricsManager, true);
         }
 
         // Update Fullscreen if it's open
         const fullscreenOverlay = document.getElementById('fullscreen-cover-overlay');
         if (fullscreenOverlay && getComputedStyle(fullscreenOverlay).display !== 'none') {
-            const nextTrack = player.getNextTrack();
-            ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, player.activeElement);
+            const nextTrack = Player.instance.getNextTrack();
+            ui.showFullscreenCover(
+                Player.instance.currentTrack,
+                nextTrack,
+                lyricsManager,
+                Player.instance.activeElement
+            );
         }
 
         // DEV: Auto-open fullscreen mode if ?fullscreen=1 in URL
@@ -1105,8 +1121,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             fullscreenOverlay &&
             getComputedStyle(fullscreenOverlay).display === 'none'
         ) {
-            const nextTrack = player.getNextTrack();
-            ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, player.activeElement);
+            const nextTrack = Player.instance.getNextTrack();
+            ui.showFullscreenCover(
+                Player.instance.currentTrack,
+                nextTrack,
+                lyricsManager,
+                Player.instance.activeElement
+            );
         }
     });
 
@@ -1136,11 +1157,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                         return a.trackNumber - b.trackNumber;
                     });
 
-                    player.setQueue(sortedTracks, 0);
+                    Player.instance.setQueue(sortedTracks, 0);
                     const shuffleBtn = document.getElementById('shuffle-btn');
                     if (shuffleBtn) shuffleBtn.classList.remove('active');
-                    player.shuffleActive = false;
-                    await player.playTrackFromQueue();
+                    Player.instance.shuffleActive = false;
+                    await Player.instance.playTrackFromQueue();
                 }
             } catch (error) {
                 console.error('Failed to play album:', error);
@@ -1167,11 +1188,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const { tracks } = await api.getAlbum(albumId);
                 if (tracks && tracks.length > 0) {
                     const shuffledTracks = [...tracks].sort(() => Math.random() - 0.5);
-                    player.setQueue(shuffledTracks, 0);
+                    Player.instance.setQueue(shuffledTracks, 0);
                     const shuffleBtn = document.getElementById('shuffle-btn');
                     if (shuffleBtn) shuffleBtn.classList.remove('active');
-                    player.shuffleActive = false;
-                    await player.playTrackFromQueue();
+                    Player.instance.shuffleActive = false;
+                    await Player.instance.playTrackFromQueue();
 
                     const { showNotification } = await loadDownloadsModule();
                     showNotification('Shuffling album');
@@ -1235,11 +1256,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 const shuffledTracks = [...allTracks].sort(() => Math.random() - 0.5);
-                player.setQueue(shuffledTracks, 0);
+                Player.instance.setQueue(shuffledTracks, 0);
                 const shuffleBtn = document.getElementById('shuffle-btn');
                 if (shuffleBtn) shuffleBtn.classList.remove('active');
-                player.shuffleActive = false;
-                await player.playTrackFromQueue();
+                Player.instance.shuffleActive = false;
+                await Player.instance.playTrackFromQueue();
 
                 const { showNotification } = await loadDownloadsModule();
                 showNotification('Shuffling artist discography');
@@ -2185,9 +2206,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 }
                 if (tracks.length > 0) {
-                    player.setQueue(tracks, 0);
+                    Player.instance.setQueue(tracks, 0);
                     document.getElementById('shuffle-btn').classList.remove('active');
-                    await player.playTrackFromQueue();
+                    await Player.instance.playTrackFromQueue();
                 }
             } catch (error) {
                 console.error('Failed to play playlist:', error);
@@ -2372,8 +2393,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         [allTracks[i], allTracks[j]] = [allTracks[j], allTracks[i]];
                     }
 
-                    player.setQueue(allTracks, 0);
-                    await player.playTrackFromQueue();
+                    Player.instance.setQueue(allTracks, 0);
+                    await Player.instance.playTrackFromQueue();
                 } else {
                     throw new Error('No tracks found across all albums');
                 }
@@ -2400,9 +2421,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const j = Math.floor(Math.random() * (i + 1));
                         [likedTracks[i], likedTracks[j]] = [likedTracks[j], likedTracks[i]];
                     }
-                    player.setQueue(likedTracks, 0);
+                    Player.instance.setQueue(likedTracks, 0);
                     document.getElementById('shuffle-btn').classList.remove('active');
-                    await player.playTrackFromQueue();
+                    await Player.instance.playTrackFromQueue();
                 }
             } catch (error) {
                 console.error('Failed to shuffle liked tracks:', error);
@@ -2639,7 +2660,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         await router();
-        updateTabTitle(player);
+        updateTabTitle(Player.instance);
     };
 
     await handleRouteChange();
@@ -2661,7 +2682,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     audioPlayer.addEventListener('play', () => {
-        updateTabTitle(player);
+        updateTabTitle(Player.instance);
     });
 
     // PWA Update Logic

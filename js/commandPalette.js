@@ -44,6 +44,7 @@ import {
     SVG_MIC,
     SVG_RADIO,
 } from './icons.js';
+import { Player } from './player.js';
 
 const ICON_SIZE = 16;
 
@@ -214,7 +215,7 @@ class CommandPalette {
                 keywords: ['play', 'pause', 'toggle', 'resume', 'stop'],
                 shortcut: 'Space',
                 action: () => {
-                    window.monochromePlayer?.handlePlayPause();
+                    Player.instance.handlePlayPause();
                 },
             },
             {
@@ -225,7 +226,7 @@ class CommandPalette {
                 keywords: ['next', 'skip', 'forward'],
                 shortcut: 'Shift+\u2192',
                 action: () => {
-                    window.monochromePlayer?.playNext();
+                    Player.instance.playNext();
                 },
             },
             {
@@ -236,7 +237,7 @@ class CommandPalette {
                 keywords: ['previous', 'back', 'rewind'],
                 shortcut: 'Shift+\u2190',
                 action: () => {
-                    window.monochromePlayer?.playPrev();
+                    Player.instance.playPrev();
                 },
             },
             {
@@ -269,7 +270,7 @@ class CommandPalette {
                 keywords: ['mute', 'unmute', 'sound', 'volume', 'silent'],
                 shortcut: 'M',
                 action: () => {
-                    const el = window.monochromePlayer?.activeElement;
+                    const el = Player.instance.activeElement;
                     if (el) el.muted = !el.muted;
                 },
             },
@@ -281,7 +282,7 @@ class CommandPalette {
                 keywords: ['volume', 'louder'],
                 shortcut: '\u2191',
                 action: () => {
-                    const p = window.monochromePlayer;
+                    const p = Player.instance;
                     if (p) p.setVolume(p.userVolume + 0.1);
                 },
             },
@@ -293,7 +294,7 @@ class CommandPalette {
                 keywords: ['volume', 'quieter', 'softer'],
                 shortcut: '\u2193',
                 action: () => {
-                    const p = window.monochromePlayer;
+                    const p = Player.instance;
                     if (p) p.setVolume(p.userVolume - 0.1);
                 },
             },
@@ -337,7 +338,7 @@ class CommandPalette {
                 label: 'Clear Queue',
                 keywords: ['wipe', 'clear', 'empty', 'queue'],
                 action: () => {
-                    window.monochromePlayer?.wipeQueue();
+                    Player.instance.wipeQueue();
                     this.notify('Queue cleared');
                 },
             },
@@ -856,8 +857,8 @@ class CommandPalette {
                     label: track.title,
                     description: `${track.artist?.name || 'Unknown'} \u2022 ${track.album?.title || ''}`,
                     action: async () => {
-                        window.monochromePlayer.setQueue([track], 0);
-                        await window.monochromePlayer.playTrackFromQueue();
+                        Player.instance.setQueue([track], 0);
+                        await Player.instance.playTrackFromQueue();
                     },
                 }));
             }
@@ -1189,8 +1190,8 @@ class CommandPalette {
     async setQuality(quality) {
         const qualityNames = { LOW: 'Low', HIGH: 'High', LOSSLESS: 'Lossless', HI_RES_LOSSLESS: 'Hi-Res' };
 
-        if (window.monochromePlayer) {
-            window.monochromePlayer.setQuality(quality);
+        if (Player.instance) {
+            Player.instance.setQuality(quality);
             localStorage.setItem('playback-quality', quality);
             const streamingSelect = document.getElementById('streaming-quality-setting');
             if (streamingSelect) streamingSelect.value = quality;
@@ -1205,14 +1206,14 @@ class CommandPalette {
     }
 
     setSleepTimer(minutes) {
-        if (window.monochromePlayer) {
-            window.monochromePlayer.setSleepTimer(minutes);
+        if (Player.instance) {
+            Player.instance.setSleepTimer(minutes);
             this.notify(`Sleep timer: ${minutes} minutes`);
         }
     }
 
     async likeAllInQueue() {
-        const player = window.monochromePlayer;
+        const player = Player.instance;
         const ui = window.monochromeUi;
         if (!player || !ui) return;
 
@@ -1238,7 +1239,7 @@ class CommandPalette {
     }
 
     async downloadQueue() {
-        const player = window.monochromePlayer;
+        const player = Player.instance;
         const ui = window.monochromeUi;
         if (!player || !ui) return;
 
