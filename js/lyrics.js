@@ -151,6 +151,16 @@ class GeniusManager {
 }
 
 export class LyricsManager {
+    static #instance = null;
+
+    static get instance() {
+        if (!LyricsManager.#instance) {
+            throw new Error('LyricsManager is not initialized. Call LyricsManager.initialize() first.');
+        }
+        return LyricsManager.#instance;
+    }
+
+    /** @private */
     constructor(api) {
         this.api = api;
         this.currentLyrics = null;
@@ -172,6 +182,13 @@ export class LyricsManager {
         this.isGeniusMode = false;
         this.currentGeniusData = null;
         this.timingOffset = 0; // Offset in milliseconds (positive = delay lyrics, negative = advance lyrics)
+    }
+
+    static async initialize(api) {
+        if (LyricsManager.#instance) {
+            throw new Error('LyricsManager is already initialized');
+        }
+        return (LyricsManager.#instance = new LyricsManager(api));
     }
 
     // Get timing offset for current track
