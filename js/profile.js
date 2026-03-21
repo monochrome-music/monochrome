@@ -595,10 +595,6 @@ async function saveProfile() {
         editProfileModal.classList.remove('active');
         await loadProfile(newUsername);
         navigate(`/user/@${newUsername}`);
-
-        if (window.location.pathname.includes('/user/@')) {
-            window.history.replaceState(null, '', `/user/@${newUsername}`);
-        }
     } catch (e) {
         alert('Failed to save profile. See console.');
         console.error(e);
