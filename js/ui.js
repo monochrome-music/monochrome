@@ -26,6 +26,7 @@ import {
     fontSettings,
     contentBlockingSettings,
     settingsUiState,
+    lyricsSettings,
 } from './storage.js';
 import { db } from './db.js';
 import { getVibrantColorFromImage } from './vibrant-color.js';
@@ -1127,6 +1128,7 @@ export class UIRenderer {
 
         this.setupFullscreenControls();
 
+        overlay.classList.toggle('inline-lyrics', lyricsSettings.isFullscreenLyricsEnabled());
         overlay.style.display = 'flex';
 
         const startVisualizer = async () => {
@@ -1182,7 +1184,7 @@ export class UIRenderer {
     closeFullscreenCover() {
         const overlay = document.getElementById('fullscreen-cover-overlay');
         overlay.style.display = 'none';
-        overlay.classList.remove('visualizer-active', 'ui-hidden', 'controls-idle');
+        overlay.classList.remove('visualizer-active', 'ui-hidden', 'controls-idle', 'inline-lyrics');
 
         const playerBar = document.querySelector('.now-playing-bar');
         if (playerBar) playerBar.style.removeProperty('display');
