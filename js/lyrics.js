@@ -33,14 +33,17 @@ function trackHasAsianText(track) {
 function cleanTrackerSearch(text) {
     if (!text) return '';
     // chud emojis will NOT be tolerated in my precious genius lyrics worker
-    let cleaned = text.replace(/[\p{Extended_Pictographic}\p{Emoji_Component}\p{Emoji_Presentation}\p{Emoji_Modifier}\p{Emoji_Modifier_Base}\p{Symbol}]/gu, '');
-    
+    let cleaned = text.replace(
+        /[\p{Extended_Pictographic}\p{Emoji_Component}\p{Emoji_Presentation}\p{Emoji_Modifier}\p{Emoji_Modifier_Base}\p{Symbol}]/gu,
+        ''
+    );
+
     cleaned = cleaned.replace(/[\u2600-\u27BF\u2B50\u2B06\u2194\u21AA\u2934\u203C\u2049\u3030\u303D\u3297\u3299]/g, '');
 
     cleaned = cleaned.replace(/\[v\s*\d+\s*\]/gi, '');
 
     cleaned = cleaned.replace(/\s+/g, ' ');
-    
+
     return cleaned.trim();
 }
 
