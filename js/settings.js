@@ -37,7 +37,7 @@ import {
     analyticsSettings,
     modalSettings,
 } from './storage.js';
-import { switchLanguage, getCurrentLanguage, applyTranslations } from './i18n.js';
+import { switchLanguage, getCurrentLanguage, getSupportedLanguages, applyTranslations } from './i18n.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
 import { db } from './db.js';
 import { authManager } from './accounts/auth.js';
@@ -3656,6 +3656,15 @@ function initializeBlockedContentManager() {
 function initializeLanguageSettings() {
     const languageSelect = document.getElementById('language-select');
     if (!languageSelect) return;
+
+    const supported = getSupportedLanguages();
+    languageSelect.innerHTML = '';
+    Object.entries(supported).forEach(([code, name]) => {
+        const option = document.createElement('option');
+        option.value = code;
+        option.textContent = name;
+        languageSelect.appendChild(option);
+    });
 
     // Set the select to the current language
     languageSelect.value = getCurrentLanguage();

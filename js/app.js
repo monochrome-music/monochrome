@@ -28,6 +28,7 @@ import { authManager } from './accounts/auth.js';
 import { registerSW } from 'virtual:pwa-register';
 import { openEditProfile } from './profile.js';
 import { ThemeStore } from './themeStore.js';
+import { initI18n, applyTranslations } from './i18n.js';
 import './commandPalette.js';
 import { initTracker } from './tracker.js';
 import {
@@ -382,6 +383,8 @@ async function uploadCoverImage(file) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    await initI18n();
+
     // Initialize analytics
     initAnalytics();
 
@@ -2844,6 +2847,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     document.getElementById('email-auth-modal').classList.add('active');
                     headerAccountDropdown.classList.remove('active');
                 };
+                applyTranslations(headerAccountDropdown);
             } else {
                 const data = await syncManager.getUserData();
                 const hasProfile = data && data.profile && data.profile.username;
@@ -2869,6 +2873,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 document.getElementById('header-sign-out').onclick = () => authManager.signOut();
+                applyTranslations(headerAccountDropdown);
             }
         }
 
