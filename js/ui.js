@@ -5449,4 +5449,3 @@ export class UIRenderer {
             artistEl.innerHTML = '';
         }
     }
-}
