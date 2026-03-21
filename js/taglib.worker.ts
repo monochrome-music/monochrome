@@ -122,6 +122,10 @@ export async function addMetadataToAudio(message: _AddMetadataMessage): Promise<
 
         if (copyright) props.replace('COPYRIGHT', [copyright]);
         if (isrc) props.replace('ISRC', [isrc]);
+        if (isrc && isMp4) {
+            const mp4Tag = (underlying as Mp4File).tag() as Mp4Tag;
+            mp4Tag.setItem('xid ', Mp4Item.fromStringList([`:isrc:${isrc}`]));
+        }
         if (lyrics) props.replace('LYRICS', [lyrics.replace(/\r/g, '').replace(/\n/g, '\r\n')]);
 
         if (explicit !== undefined) {
