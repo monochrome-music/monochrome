@@ -1,0 +1,18 @@
+name: Sync Fork with Upstream
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # daily at 6am UTC
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync fork
+        uses: repo-sync/github-sync@v2
+        with:
+          source_repo: https://github.com/monochrome-music/monochrome.git
+          source_branch: main
+          destination_branch: main
+          github_token: ${{ secrets.GITHUB_TOKEN }}
