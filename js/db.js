@@ -112,13 +112,12 @@ export class MusicDatabase {
             cursorReq.onsuccess = (e) => {
                 const cursor = e.target.result;
                 if (cursor) {
-                    if (cursor.value.id === track.id) {
+                    const lastTrack = cursor.value;
+                    if (lastTrack.id === track.id) {
                         store.delete(cursor.primaryKey);
                     }
-                    cursor.continue();
-                } else {
-                    store.put(entry);
                 }
+                store.put(entry);
             };
 
             cursorReq.onerror = (_e) => {
