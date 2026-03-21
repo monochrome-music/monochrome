@@ -488,10 +488,28 @@ export async function loadProfile(username) {
     }
 }
 
-export function openEditProfile() {
-    syncManager.getUserData().then((data) => {
-        if (!data || !data.profile) return;
-        const p = data.profile;
+export async function openEditProfile() {
+    if (!authManager.user) {
+        alert('Please sign in to create or edit your profile.');
+        return;
+    }
+
+    const emptyProfile = {
+        username: '',
+        display_name: '',
+        avatar_url: '',
+        banner: '',
+        status: '',
+        favorite_albums: [],
+        about: '',
+        website: '',
+        lastfm_username: '',
+        privacy: { playlists: 'public', lastfm: 'public' },
+    };
+
+    try {
+        const data = await syncManager.getUserData();
+        const p = data?.profile || emptyProfile;
 
         editUsername.value = p.username || '';
         editDisplayName.value = p.display_name || '';
@@ -527,7 +545,10 @@ export function openEditProfile() {
         privacyLastfm.checked = p.privacy?.lastfm !== 'private';
 
         editProfileModal.classList.add('active');
-    });
+    } catch (error) {
+        console.error('Failed to open profile editor:', error);
+        alert('Failed to load your profile data.');
+    }
 }
 
 async function saveProfile() {
@@ -539,7 +560,8 @@ async function saveProfile() {
     }
 
     const currentUser = await syncManager.getUserData();
-    if (currentUser.profile.username !== newUsername) {
+    const currentUsername = currentUser?.profile?.username || '';
+    if (currentUsername !== newUsername) {
         const taken = await syncManager.isUsernameTaken(newUsername);
         if (taken) {
             usernameError.textContent = 'Username is already taken';
@@ -571,11 +593,8 @@ async function saveProfile() {
     try {
         await syncManager.updateProfile(data);
         editProfileModal.classList.remove('active');
-        loadProfile(newUsername);
-
-        if (window.location.pathname.includes('/user/@')) {
-            window.history.replaceState(null, '', `/user/@${newUsername}`);
-        }
+        await loadProfile(newUsername);
+        navigate(`/user/@${newUsername}`);
     } catch (e) {
         alert('Failed to save profile. See console.');
         console.error(e);

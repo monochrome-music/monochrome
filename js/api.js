@@ -37,6 +37,14 @@ const SMART_MIX_DEFINITIONS = [
     { id: 'smart-release-radar', title: 'Release Radar', mixType: 'RELEASE_RADAR' },
 ];
 
+const QUALITY_ALIASES = {
+    HI_RES: 'HI_RES_LOSSLESS',
+    HI_RES_LOSSLESS: 'HI_RES_LOSSLESS',
+    LOSSLESS: 'LOSSLESS',
+    HIGH: 'HIGH',
+    LOW: 'LOW',
+};
+
 export class LosslessAPI {
     constructor(settings) {
         this.settings = settings;
@@ -1506,11 +1514,12 @@ export class LosslessAPI {
     }
 
     async getTrack(id, quality = 'HI_RES_LOSSLESS') {
-        const cacheKey = `${id}_${quality}`;
+        const normalizedQuality = QUALITY_ALIASES[quality] || 'HI_RES_LOSSLESS';
+        const cacheKey = `${id}_${normalizedQuality}`;
         const cached = await this.cache.get('track', cacheKey);
         if (cached) return cached;
 
-        const response = await this.fetchWithRetry(`/track/?id=${id}&quality=${quality}`, { type: 'streaming' });
+        const response = await this.fetchWithRetry(`/track/?id=${id}&quality=${normalizedQuality}`, { type: 'streaming' });
         const jsonResponse = await response.json();
         const result = this.parseTrackLookup(this.normalizeTrackResponse(jsonResponse));
 
@@ -1519,13 +1528,14 @@ export class LosslessAPI {
     }
 
     async getStreamUrl(id, quality = 'HI_RES_LOSSLESS') {
-        const cacheKey = `stream_${id}_${quality}`;
+        const normalizedQuality = QUALITY_ALIASES[quality] || 'HI_RES_LOSSLESS';
+        const cacheKey = `stream_${id}_${normalizedQuality}`;
 
         if (this.streamCache.has(cacheKey)) {
             return this.streamCache.get(cacheKey);
         }
 
-        const lookup = await this.getTrack(id, quality);
+        const lookup = await this.getTrack(id, normalizedQuality);
 
         let streamUrl;
         if (lookup.originalTrackUrl) {
