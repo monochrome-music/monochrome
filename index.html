@@ -503,15 +503,12 @@
                     <div id="jspf-import-panel" class="import-panel" style="display: none">
                         <p style="margin-bottom: 0.5rem; font-size: 0.9rem">Import from JSPF</p>
                         <p style="font-size: 0.8rem; margin: 0">
-                            JSPF (JSON Shareable Playlist Format) is supported by     const replayGainPreamp = document.getElementById('replay-gain-preamp');
-    if (replayGainPreamp) {
-        replayGainPreamp.value = replayGainSettings.getPreamp();
-        replayGainPreamp.addEventListener('change', (e) => {
-            const val = parseFloat(e.target.value);
-            replayGainSettings.setPreamp(isNaN(val) ? 3 : val);
-            player.applyReplayGain();
-        });
-    }                Import playlists with rich metadata including MusicBrainz identifiers.
+                            JSPF (JSON Shareable Playlist Format) is supported by const replayGainPreamp =
+                            document.getElementById('replay-gain-preamp'); if (replayGainPreamp) {
+                            replayGainPreamp.value = replayGainSettings.getPreamp();
+                            replayGainPreamp.addEventListener('change', (e) => { const val = parseFloat(e.target.value);
+                            replayGainSettings.setPreamp(isNaN(val) ? 3 : val); player.applyReplayGain(); }); } Import
+                            playlists with rich metadata including MusicBrainz identifiers.
                         </p>
                         <br />
                         <input
@@ -1639,7 +1636,7 @@
                                 </a>
                             </li>
                             <li class="nav-item" id="sidebar-nav-donate">
-                                <a id="sidebar-donate-link" style="cursor: pointer">
+                                <a id="sidebar-donate-link" href="/donate">
                                     <use svg="!lucide/hand-heart.svg" size="24" />
                                     <span>Donate</span>
                                 </a>
@@ -2369,7 +2366,23 @@
                     </section>
                     <section class="content-section" id="artist-section-in-library" style="display: none">
                         <h2 class="section-title">
-                            <button id="in-library-toggle" aria-expanded="false" aria-controls="artist-detail-in-library" style="background: none; border: none; color: inherit; font: inherit; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; padding: 0; user-select: none;">
+                            <button
+                                id="in-library-toggle"
+                                aria-expanded="false"
+                                aria-controls="artist-detail-in-library"
+                                style="
+                                    background: none;
+                                    border: none;
+                                    color: inherit;
+                                    font: inherit;
+                                    cursor: pointer;
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 0.5rem;
+                                    padding: 0;
+                                    user-select: none;
+                                "
+                            >
                                 In Your Library
                                 <use
                                     svg="!lucide/chevron-right.svg"
@@ -3619,10 +3632,22 @@
                                     <input
                                         type="url"
                                         id="listenbrainz-custom-url-input"
-                                        placeholder="https://api.listenbrainz.org/1"
+                                        placeholder="https://api.listenbrainz.org"
                                         class="template-input"
                                         style="width: 250px"
                                     />
+                                </div>
+                                <div class="setting-item" id="listenbrainz-love-setting" style="display: none">
+                                    <div class="info">
+                                        <span class="label">Love on Like</span>
+                                        <span class="description"
+                                            >Automatically 'love' tracks on ListenBrainz when you like them</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="listenbrainz-love-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
                                 </div>
                             </div>
 
@@ -4061,8 +4086,41 @@
                                     <select id="bulk-download-method">
                                         <option value="zip">ZIP Archive</option>
                                         <option value="folder">Folder Picker</option>
+                                        <option value="local">Local Media Folder</option>
                                         <option value="individual">Individual Files</option>
                                     </select>
+                                </div>
+                                <div class="setting-item" id="remember-folder-setting">
+                                    <div class="info">
+                                        <span class="label">Remember Last Folder</span>
+                                        <span class="description"
+                                            >Re-use the last chosen directory for Folder Picker downloads</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="remember-folder-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item" id="reset-saved-folder-setting">
+                                    <div class="info">
+                                        <span class="label">Reset Saved Folder</span>
+                                        <span class="description">Clear the remembered Folder Picker directory</span>
+                                    </div>
+                                    <button id="reset-saved-folder-btn" class="btn-secondary">Reset</button>
+                                </div>
+                                <div class="setting-item" id="single-to-folder-setting">
+                                    <div class="info">
+                                        <span class="label">Single Downloads to Folder</span>
+                                        <span class="description"
+                                            >Save individual track downloads directly to the configured folder instead
+                                            of triggering a browser download</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="single-to-folder-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
                                 </div>
                                 <div class="setting-item">
                                     <div class="info">
@@ -4162,10 +4220,10 @@
                                 </div>
                                 <div class="setting-item">
                                     <div class="info">
-                                        <span class="label">ZIP Folder Template</span>
+                                        <span class="label">Folder Template</span>
                                         <span class="description"
-                                            >Customize album folder names. Available: {albumTitle}, {albumArtist},
-                                            {year}</span
+                                            >Customize album folder names. Use <code>/</code> for nested folders.
+                                            Available: {albumTitle}, {albumArtist}, {year}</span
                                         >
                                     </div>
                                     <input
@@ -4628,21 +4686,42 @@
                     </div>
                 </div>
                 <div id="page-donate" class="page">
-                    <h2 class="section-title" style="text-align: center">Donate to Monochrome</h2>
-                    <div class="donate-content">
-                        <p style="text-align: center" class="donate-description">
-                            If Monochrome has been useful to you and you're able to, consider making a donation. <br />
-                            It helps pay for the domain, and you get to support us :)
+                    <div style="text-align: center; padding: 2rem; max-width: 500px; margin: 0 auto">
+                        <h2 class="section-title" style="margin-bottom: 1.5rem">Support Monochrome</h2>
+                        <p style="margin-bottom: 1.5rem; line-height: 1.6; color: var(--muted-foreground)">
+                            If Monochrome has been useful to you and you're able to, consider making a donation. It
+                            helps pay for the server and domain, and you get to support us :)
                         </p>
                         <a
                             href="https://ko-fi.com/boysgmnglegends"
                             target="_blank"
                             rel="noopener noreferrer"
-                            class="btn-secondary"
-                            style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem"
+                            class="btn-primary"
+                            style="
+                                text-decoration: none;
+                                display: inline-flex;
+                                align-items: center;
+                                gap: 0.5rem;
+                                margin-bottom: 2rem;
+                            "
                         >
-                            Donate to Monochrome
+                            Donate on Ko-fi
                         </a>
+                        <div style="padding-top: 1.5rem; border-top: 1px solid var(--border)">
+                            <p style="font-size: 0.9rem; color: var(--muted-foreground); margin-bottom: 1rem">
+                                If you cannot financially support us, please consider starring the project on GitHub and
+                                sharing with friends!
+                            </p>
+                            <a
+                                href="https://github.com/monochrome-music/monochrome"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="btn-secondary"
+                                style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem"
+                            >
+                                Star on GitHub
+                            </a>
+                        </div>
                     </div>
                 </div>
             </main>

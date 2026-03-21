@@ -1,6 +1,9 @@
 export { default as SVG_ANIMATE_SPIN } from '../images/animate-spin.svg?svg&icon';
 export { default as SVG_APPLE } from '../images/apple.svg?svg&icon';
 export { default as SVG_BIN } from '!lucide/trash-2.svg?svg&icon';
+export { default as SVG_CHECK } from '!lucide/check.svg?svg&icon';
+export { default as SVG_CHECKBOX } from '!lucide/square.svg?svg&icon';
+export { default as SVG_CHECKBOX_CHECKED } from '!lucide/check-square.svg?svg&icon';
 export { default as SVG_CLOCK } from '!lucide/clock.svg?svg&icon';
 export { default as SVG_CLOSE } from '!lucide/x.svg?svg&icon';
 export { default as SVG_DOWNLOAD } from '!lucide/download.svg?svg&icon';

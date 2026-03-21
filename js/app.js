@@ -62,6 +62,7 @@ import {
     parseDynamicCSV,
     importToLibrary,
 } from './playlist-importer.js';
+import { modernSettings } from './ModernSettings.js';
 import {
     SVG_OFFLINE,
     SVG_RIGHT_ARROW,
@@ -2717,33 +2718,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.documentElement.style.setProperty('--font-family', font);
             localStorage.setItem('monochrome-font', font);
         });
-    }
-
-    // Donate Modal Logic
-    const donateModal = document.getElementById('donate-modal');
-    const closeDonateModalBtn = document.getElementById('close-donate-modal-btn');
-    const sidebarDonateLink = document.getElementById('sidebar-donate-link');
-    const donateBtnAbout = document.getElementById('donate-btn');
-    const donateBtnPage = document.getElementById('donate-btn-page');
-
-    const openDonateModal = (e) => {
-        if (e) e.preventDefault();
-        trackOpenModal('Donate');
-        donateModal.classList.add('active');
-    };
-
-    const closeDonateModal = () => {
-        donateModal.classList.remove('active');
-        trackCloseModal('Donate');
-    };
-
-    if (donateModal) {
-        if (closeDonateModalBtn) closeDonateModalBtn.addEventListener('click', closeDonateModal);
-        donateModal.querySelector('.modal-overlay')?.addEventListener('click', closeDonateModal);
-
-        if (sidebarDonateLink) sidebarDonateLink.addEventListener('click', openDonateModal);
-        if (donateBtnAbout) donateBtnAbout.addEventListener('click', openDonateModal);
-        if (donateBtnPage) donateBtnPage.addEventListener('click', openDonateModal);
     }
 
     // Listener for Pocketbase Sync updates

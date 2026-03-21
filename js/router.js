@@ -104,6 +104,9 @@ export function createRouter(ui) {
             case 'home':
                 await ui.renderHomePage();
                 break;
+            case 'donate':
+                ui.showPage('donate');
+                break;
             case 'user':
                 if (param && param.startsWith('@') && !param.includes('/')) {
                     await loadProfile(decodeURIComponent(param.slice(1)));

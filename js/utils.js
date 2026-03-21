@@ -1,4 +1,5 @@
 //js/utils.js
+import { modernSettings } from './ModernSettings.js';
 import { qualityBadgeSettings, coverArtSizeSettings, trackDateSettings } from './storage.js';
 
 export const QUALITY = 'HI_RES_LOSSLESS';
@@ -67,6 +68,45 @@ export const sanitizeForFilename = (value) => {
         .replace(/[\\/:*?"<>|]/g, '_')
         .replace(/\s+/g, ' ')
         .trim();
+};
+
+/**
+ * Sanitizes a single path component (no slashes allowed in the output).
+ * Invalid filesystem characters are replaced with underscores.
+ */
+export const sanitizeForPathComponent = (value) => {
+    if (!value) return 'Unknown';
+    return value
+        .replace(/[\\/:*?"<>|]/g, '_')
+        .replace(/\s+/g, ' ')
+        .trim();
+};
+
+/**
+ * Like {@link formatTemplate} but allows `/` in the template for nested
+ * directory structures.  Each path component has invalid characters replaced,
+ * the path is normalised to forward-slash separators, and empty components,
+ * `.`, and `..` segments are stripped.
+ */
+export const formatPathTemplate = (template, data) => {
+    let result = replaceTokens(template, {
+        discNumber: String(Number(data.discNumber || 1)),
+        trackNumber: data.trackNumber ? String(data.trackNumber).padStart(2, '0') : '00',
+        artist: sanitizeForPathComponent(data.artist || 'Unknown Artist'),
+        title: sanitizeForPathComponent(data.title || 'Unknown Title'),
+        album: sanitizeForPathComponent(data.album || 'Unknown Album'),
+        albumArtist: sanitizeForPathComponent(data.albumArtist || 'Unknown Artist'),
+        albumTitle: sanitizeForPathComponent(data.albumTitle || 'Unknown Album'),
+        year: sanitizeForPathComponent(String(data.year || 'Unknown')),
+    });
+
+    // Normalise separators, collapse duplicates, strip . and ..
+    return result
+        .replace(/\\/g, '/')
+        .split('/')
+        .map((p) => p.trim())
+        .filter((p) => p !== '' && p !== '.' && p !== '..')
+        .join('/');
 };
 
 /**
@@ -203,7 +243,7 @@ export const getExtensionForQuality = (quality) => {
 };
 
 export const buildTrackFilename = (track, quality, extension = null) => {
-    const template = localStorage.getItem('filename-template') || '{trackNumber} - {artist} - {title}';
+    const template = modernSettings.filenameTemplate;
     const ext = extension || getExtensionForQuality(quality);
 
     const artistName = track.artist?.name || track.artists?.[0]?.name || 'Unknown Artist';
@@ -366,18 +406,17 @@ export const getTrackArtistsHTML = (track = {}, { fallback = 'Unknown Artist' } 
     return fallback;
 };
 
-export const formatTemplate = (template, data) => {
-    let result = template;
-    result = result.replace(/\{discNumber\}/g, String(Number(data.discNumber || 1)));
-    result = result.replace(/\{trackNumber\}/g, data.trackNumber ? String(data.trackNumber).padStart(2, '0') : '00');
-    result = result.replace(/\{artist\}/g, sanitizeForFilename(data.artist || 'Unknown Artist'));
-    result = result.replace(/\{title\}/g, sanitizeForFilename(data.title || 'Unknown Title'));
-    result = result.replace(/\{album\}/g, sanitizeForFilename(data.album || 'Unknown Album'));
-    result = result.replace(/\{albumArtist\}/g, sanitizeForFilename(data.albumArtist || 'Unknown Artist'));
-    result = result.replace(/\{albumTitle\}/g, sanitizeForFilename(data.albumTitle || 'Unknown Album'));
-    result = result.replace(/\{year\}/g, data.year || 'Unknown');
-    return result;
-};
+export const formatTemplate = (template, data) =>
+    replaceTokens(template, {
+        discNumber: String(Number(data.discNumber || 1)),
+        trackNumber: data.trackNumber ? String(data.trackNumber).padStart(2, '0') : '00',
+        artist: sanitizeForFilename(data.artist || 'Unknown Artist'),
+        title: sanitizeForFilename(data.title || 'Unknown Title'),
+        album: sanitizeForFilename(data.album || 'Unknown Album'),
+        albumArtist: sanitizeForFilename(data.albumArtist || 'Unknown Artist'),
+        albumTitle: sanitizeForFilename(data.albumTitle || 'Unknown Album'),
+        year: data.year || 'Unknown',
+    });
 
 export const calculateTotalDuration = (tracks) => {
     if (!Array.isArray(tracks) || tracks.length === 0) return 0;
@@ -677,4 +716,45 @@ export function getTrackDiscNumber(track) {
         if (parsed) return parsed;
     }
     return null;
+}
+
+/**
+ * Executes a function with a fallback error handler.
+ * Works with both synchronous and asynchronous callbacks.
+ *
+ * If the callback returns a Promise, the result will also be a Promise.
+ *
+ * @template T
+ * @param {() => T | Promise<T>} fn Function to execute
+ * @param {(error: unknown) => T | Promise<T>} onError Error handler
+ * @returns {T | Promise<T>}
+ */
+export function tryCatch(fn, onError) {
+    try {
+        const result = fn();
+
+        if (result instanceof Promise) {
+            return result.catch(onError);
+        }
+
+        return result;
+    } catch (err) {
+        return onError(err);
+    }
+}
+
+/**
+ * Replace `{token}` placeholders in a template string.
+ *
+ * Replacement values are inserted verbatim and are NOT reprocessed,
+ * preventing cascading replacements if values contain token patterns.
+ *
+ * @param {string} template The input string containing tokens like `{tokenName}`
+ * @param {Record<string, string>} tokens An object of tokens to replace and the replacement values.
+ * @returns {string} The string with valid tokens replaced
+ */
+export function replaceTokens(template, tokens) {
+    return template.replace(/{([^{}]+)}/g, (match, key) => {
+        return key in tokens ? tokens[key] : match;
+    });
 }
