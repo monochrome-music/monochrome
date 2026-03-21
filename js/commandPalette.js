@@ -1082,13 +1082,7 @@ class CommandPalette {
 
         let results = this.allSettings;
         if (query) {
-            const fuse = new Fuse(this.allSettings, {
-                keys: ['label', 'description'],
-                includeScore: true,
-                threshold: 0.4,
-                ignoreLocation: true,
-            });
-            results = fuse.search(query).map((r) => r.item);
+            results = this.settingsFuse.search(query).map((r) => r.item);
         }
 
         const items = results.map((setting) => ({
@@ -1126,6 +1120,13 @@ class CommandPalette {
                 return { id: item.id, label, description, tab };
             })
             .filter((s) => s.label);
+
+        this.settingsFuse = new Fuse(this.allSettings, {
+            keys: ['label', 'description'],
+            includeScore: true,
+            threshold: 0.4,
+            ignoreLocation: true,
+        });
     }
 
     async navigateToSetting(setting) {
