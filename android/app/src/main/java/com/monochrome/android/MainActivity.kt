@@ -152,6 +152,6 @@ class MainActivity : AppCompatActivity() {
          * Replace with the URL of your self-hosted Monochrome instance.
          * Also update the matching string in res/values/strings.xml.
          */
-        const val PWA_URL = "https://your-monochrome-instance.example.com"
+        const val PWA_URL = "https://monochrome.tf"
     }
 }
