@@ -1505,10 +1505,15 @@
                         placeholder="Search commands, music, settings..."
                         autocomplete="off"
                         spellcheck="false"
+                        aria-label="Command palette search"
+                        role="combobox"
+                        aria-expanded="true"
+                        aria-controls="command-palette-results"
+                        aria-autocomplete="list"
                     />
                     <kbd class="command-palette-kbd">ESC</kbd>
                 </div>
-                <div id="command-palette-results" class="command-palette-results"></div>
+                <div id="command-palette-results" class="command-palette-results" role="listbox"></div>
                 <div class="command-palette-footer">
                     <span class="command-palette-hint"><kbd>&uarr;&darr;</kbd> navigate</span>
                     <span class="command-palette-hint"><kbd>&crarr;</kbd> select</span>

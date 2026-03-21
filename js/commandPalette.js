@@ -642,6 +642,7 @@ class CommandPalette {
                 icon: 'search',
                 label: 'Search Settings...',
                 keywords: ['setting', 'find', 'search', 'preference', 'option', 'configure'],
+                keepOpen: true,
                 action: () => this.enterSettingsMode(),
             },
 
@@ -923,6 +924,7 @@ class CommandPalette {
 
     appendMusicGroups(musicGroups) {
         this.removeMusicLoading();
+        this.resultsContainer.querySelector('.cmdk-empty')?.remove();
         this.resultsContainer.querySelectorAll('[data-music-group]').forEach((el) => el.remove());
 
         let index = this.flatItems.length;
@@ -1000,7 +1002,10 @@ class CommandPalette {
     createItemElement(item, index) {
         const el = document.createElement('div');
         el.className = 'cmdk-item';
+        el.id = `cmdk-item-${index}`;
+        el.setAttribute('role', 'option');
         el.setAttribute('data-index', index);
+        el.setAttribute('aria-selected', index === this.selectedIndex ? 'true' : 'false');
         if (index === this.selectedIndex) el.setAttribute('data-selected', 'true');
 
         let iconHtml = '';
@@ -1041,18 +1046,34 @@ class CommandPalette {
             const idx = parseInt(item.getAttribute('data-index'));
             if (idx === this.selectedIndex) {
                 item.setAttribute('data-selected', 'true');
+                item.setAttribute('aria-selected', 'true');
                 item.scrollIntoView({ block: 'nearest' });
             } else {
                 item.removeAttribute('data-selected');
+                item.setAttribute('aria-selected', 'false');
             }
         });
+        this.input.setAttribute('aria-activedescendant', `cmdk-item-${this.selectedIndex}`);
     }
 
-    executeSelected() {
+    async executeSelected() {
         const item = this.flatItems[this.selectedIndex];
         if (!item || !item.action) return;
 
-        item.action();
+        if (item.keepOpen) {
+            try {
+                await item.action();
+            } catch (e) {
+                console.error('Command palette action error:', e);
+            }
+            return;
+        }
+
+        try {
+            await item.action();
+        } catch (e) {
+            console.error('Command palette action error:', e);
+        }
         this.close();
     }
 
@@ -1132,9 +1153,9 @@ class CommandPalette {
         }
     }
 
-    setTheme(theme) {
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('theme', theme);
+    async setTheme(theme) {
+        const { themeManager } = await import('./storage.js');
+        themeManager.setTheme(theme);
         const themeOptions = document.querySelectorAll('.theme-option');
         themeOptions.forEach((opt) => {
             if (opt.dataset.theme === theme) opt.classList.add('active');
