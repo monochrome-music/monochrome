@@ -139,6 +139,7 @@ export async function loadProfile(username) {
     document.getElementById('profile-avatar').src = '/assets/appicon.png';
     document.getElementById('profile-display-name').textContent = 'Loading...';
     document.getElementById('profile-username').textContent = '@' + username;
+    document.getElementById('profile-stats').textContent = '';
     document.getElementById('profile-status').style.display = 'none';
     document.getElementById('profile-about').textContent = '';
     document.getElementById('profile-website').style.display = 'none';
@@ -181,6 +182,12 @@ export async function loadProfile(username) {
     document.getElementById('profile-display-name').textContent = profile.display_name || username;
     if (profile.banner) document.getElementById('profile-banner').style.backgroundImage = `url('${profile.banner}')`;
     if (profile.avatar_url) document.getElementById('profile-avatar').src = profile.avatar_url;
+    const profileStatsEl = document.getElementById('profile-stats');
+    const playlistCount = Object.values(profile.user_playlists || {}).filter((playlist) => playlist && playlist.isPublic).length;
+    const favoriteAlbumsCount = Array.isArray(profile.favorite_albums) ? profile.favorite_albums.length : 0;
+    const playlistLabel = playlistCount === 1 ? 'public playlist' : 'public playlists';
+    const albumLabel = favoriteAlbumsCount === 1 ? 'favorite album' : 'favorite albums';
+    profileStatsEl.textContent = `${playlistCount} ${playlistLabel} • ${favoriteAlbumsCount} ${albumLabel}`;
 
     if (profile.status) {
         const statusEl = document.getElementById('profile-status');

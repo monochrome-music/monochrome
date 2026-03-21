@@ -3716,7 +3716,7 @@ input:checked + .slider::before {
     align-items: center;
     justify-content: center;
     animation: fade-in 0.3s ease;
-    overflow: visible;
+    overflow: hidden;
     background-color: var(--background);
 
     /* Use a CSS variable for the image so we can set it in JS */
@@ -3733,19 +3733,10 @@ input:checked + .slider::before {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    filter: blur(32px) brightness(0.42) saturate(0.8);
+    filter: var(--cover-filter);
     z-index: -1;
     background-image: var(--bg-image);
     transition: background-image var(--transition);
-}
-
-#fullscreen-cover-overlay::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.45) 35%, rgba(0, 0, 0, 0.65));
-    z-index: 0;
-    pointer-events: none;
 }
 
 #fullscreen-cover-overlay > * {
@@ -3761,7 +3752,6 @@ input:checked + .slider::before {
     z-index: 0;
     pointer-events: none;
     transition: opacity 0.3s ease;
-    display: none !important;
 }
 
 #visualizer-canvas {
@@ -8254,6 +8244,15 @@ body:has(#side-panel.active) #toggle-ui-btn {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.profile-stats {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    color: var(--muted-foreground);
+    font-size: 0.95rem;
 }
 
 .profile-about {

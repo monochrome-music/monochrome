@@ -1721,7 +1721,7 @@
                                 border: 1px solid var(--border);
                             "
                         >
-                            <use svg="!lucide/user.svg" size="20" />
+                            <use id="header-account-icon" svg="!lucide/user.svg" size="20" />
                             <img
                                 id="header-account-img"
                                 alt="Account avatar"
@@ -2473,6 +2473,7 @@
                             <div class="profile-details">
                                 <h1 id="profile-display-name">User</h1>
                                 <div id="profile-username" class="profile-username">@username</div>
+                                <div id="profile-stats" class="profile-stats"></div>
                                 <div id="profile-status" class="profile-status" style="display: none"></div>
                                 <div id="profile-about" class="profile-about"></div>
                                 <div class="profile-links">
@@ -3677,8 +3678,8 @@
                                         <span class="description">Quality for streaming playback</span>
                                     </div>
                                     <select id="streaming-quality-setting">
-                                        <option value="HI_RES_LOSSLESS">Hi-Res Lossless (24-bit)</option>
-                                        <option value="LOSSLESS">Lossless (16-bit)</option>
+                                        <option value="HI_RES_LOSSLESS">Hi-Res FLAC (24-bit)</option>
+                                        <option value="LOSSLESS">FLAC (Lossless)</option>
                                         <option value="HIGH">AAC 320kbps</option>
                                         <option value="LOW">AAC 96kbps</option>
                                     </select>

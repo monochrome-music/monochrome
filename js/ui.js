@@ -21,6 +21,7 @@ import {
     backgroundSettings,
     dynamicColorSettings,
     cardSettings,
+    visualizerSettings,
     homePageSettings,
     fontSettings,
     contentBlockingSettings,
@@ -29,6 +30,7 @@ import {
 import { db } from './db.js';
 import { getVibrantColorFromImage } from './vibrant-color.js';
 import { syncManager } from './accounts/pocketbase.js';
+import { Visualizer } from './visualizer.js';
 import { navigate } from './router.js';
 import { sidePanelManager } from './side-panel.js';
 import {
@@ -1129,14 +1131,52 @@ export class UIRenderer {
         overlay.style.display = 'flex';
 
         const startVisualizer = async () => {
-            if (this.visualizer) this.visualizer.stop();
-            overlay.classList.remove('visualizer-active');
+            if (!visualizerSettings.isEnabled()) {
+                if (this.visualizer) this.visualizer.stop();
+                overlay.classList.remove('visualizer-active');
+                return;
+            }
+
+            if (!this.visualizer && activeElement) {
+                const canvas = document.getElementById('visualizer-canvas');
+                if (canvas) {
+                    this.visualizer = new Visualizer(canvas, activeElement);
+                    await this.visualizer.initPresets();
+                }
+            }
+            if (this.visualizer) {
+                this.visualizer.start();
+            }
+
+            overlay.classList.add('visualizer-active');
         };
 
         // Setup UI toggle button
         this.setupUIToggleButton(overlay);
 
-        await startVisualizer();
+        if (localStorage.getItem('epilepsy-warning-dismissed') === 'true') {
+            await startVisualizer();
+        } else {
+            const modal = document.getElementById('epilepsy-warning-modal');
+            if (modal) {
+                modal.classList.add('active');
+
+                const acceptBtn = document.getElementById('epilepsy-accept-btn');
+                const cancelBtn = document.getElementById('epilepsy-cancel-btn');
+
+                acceptBtn.onclick = async () => {
+                    modal.classList.remove('active');
+                    localStorage.setItem('epilepsy-warning-dismissed', 'true');
+                    await startVisualizer();
+                };
+                cancelBtn.onclick = () => {
+                    modal.classList.remove('active');
+                    this.closeFullscreenCover();
+                };
+            } else {
+                await startVisualizer();
+            }
+        }
     }
 
     closeFullscreenCover() {
