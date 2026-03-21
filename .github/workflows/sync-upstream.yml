@@ -1,0 +1,48 @@
+name: Sync Upstream
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/monochrome-music/monochrome.git
+          git fetch upstream main
+
+      - name: Merge upstream (keep our changes on conflict)
+        run: |
+          echo "=== Current HEAD ==="
+          git log -1 --oneline
+          echo ""
+          echo "=== Upstream HEAD ==="
+          git log -1 --oneline upstream/main
+          echo ""
+
+          # Try merge with recursive strategy, prefer ours on conflict
+          if git merge upstream/main --no-edit -X ours; then
+            echo "Merge successful!"
+          else
+            echo "Merge failed even with -X ours, this should not happen"
+            exit 1
+          fi
+
+          git push origin main
+          echo ""
+          echo "Sync complete! All upstream commits merged."
+          echo "Your commits are preserved. Vercel will auto-deploy."
