@@ -3654,7 +3654,7 @@ export class UIRenderer {
                             };
                             this.enableTrackReordering(container, currentTracks, saveTrackOrder);
                         }
-                    } else {
+                 else {
                         container.classList.remove('is-editable');
                     }
                 };
