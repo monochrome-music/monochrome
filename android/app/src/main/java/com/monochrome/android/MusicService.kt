@@ -171,6 +171,10 @@ class MusicService : MediaBrowserServiceCompat(), JavaScriptBridge.Listener {
         // Bridge installed successfully; nothing special needed yet.
     }
 
+    override fun onOpenOAuthUrl(url: String) {
+        // OAuth is handled by MainActivity — nothing to do in the service.
+    }
+
     override fun onPlaybackStateChanged(isPlaying: Boolean) {
         this.isPlaying = isPlaying
         val state = PlaybackStateCompat.Builder()
