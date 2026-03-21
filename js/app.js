@@ -264,23 +264,20 @@ function initializeKeyboardShortcuts(player, _audioPlayer) {
         },
         visualizerNext: () => {
             trackKeyboardShortcut('VisualizerNext');
-            const ui = window.monochromeUi;
-            if (ui?.visualizer?.presets?.['butterchurn']) {
-                ui.visualizer.presets['butterchurn'].nextPreset();
+            if (UIRenderer.instance.visualizer?.presets?.['butterchurn']) {
+                UIRenderer.instance.visualizer.presets['butterchurn'].nextPreset();
             }
         },
         visualizerPrev: () => {
             trackKeyboardShortcut('VisualizerPrev');
-            const ui = window.monochromeUi;
-            if (ui?.visualizer?.presets?.['butterchurn']) {
-                ui.visualizer.presets['butterchurn'].prevPreset();
+            if (UIRenderer.instance.visualizer?.presets?.['butterchurn']) {
+                UIRenderer.instance.visualizer.presets['butterchurn'].prevPreset();
             }
         },
         visualizerCycle: () => {
             trackKeyboardShortcut('VisualizerCycle');
-            const ui = window.monochromeUi;
-            if (ui?.visualizer?.presets?.['butterchurn']) {
-                ui.visualizer.presets['butterchurn'].toggleCycle();
+            if (UIRenderer.instance.visualizer?.presets?.['butterchurn']) {
+                UIRenderer.instance.visualizer.presets['butterchurn'].toggleCycle();
             }
         },
     };
@@ -386,10 +383,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (import.meta.env.DEV) {
         window.monochrome = {
-            MusicAPI,
-            LyricsManager,
-            Player,
             HiFiClient,
+            LyricsManager,
+            MusicAPI,
+            Player,
+            UIRenderer,
         };
     }
 
@@ -506,8 +504,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const castBtn = document.getElementById('cast-btn');
     initializeCasting(audioPlayer, castBtn);
 
-    const ui = new UIRenderer(MusicAPI.instance, Player.instance);
-    window.monochromeUi = ui;
+    await UIRenderer.initialize(MusicAPI.instance, Player.instance);
 
     /**
      * Scans the configured local media folder and refreshes `window.localFilesCache`.
@@ -559,7 +556,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     const metadata = await readTrackMetadata(file);
                                     metadata.id = `local-${idCounter++}-${entry.entry}`;
                                     tracks.push(metadata);
-                                    window.monochromeUi?.renderLocalFiles(
+                                    UIRenderer.instance.renderLocalFiles(
                                         document.getElementById('library-local-container')
                                     );
                                 } catch (e) {
@@ -596,7 +593,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 const metadata = await readTrackMetadata(file);
                                 metadata.id = `local-${idCounter++}-${file.name}`;
                                 tracks.push(metadata);
-                                window.monochromeUi?.renderLocalFiles(
+                                UIRenderer.instance.renderLocalFiles(
                                     document.getElementById('library-local-container')
                                 );
                             }
@@ -610,7 +607,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             tracks.sort((a, b) => (a.artist.name || '').localeCompare(b.artist.name || ''));
             // Update only the local-files section without navigating to the library page.
-            window.monochromeUi?.renderLocalFiles(document.getElementById('library-local-container'));
+            UIRenderer.instance.renderLocalFiles(document.getElementById('library-local-container'));
         } finally {
             window.localFilesScanInProgress = false;
         }
@@ -643,7 +640,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 window.localFilesCache = [...existing, metadata].sort((a, b) =>
                     (a.artist.name || '').localeCompare(b.artist.name || '')
                 );
-                window.monochromeUi?.renderLocalFiles(document.getElementById('library-local-container'));
+                UIRenderer.instance.renderLocalFiles(document.getElementById('library-local-container'));
             } catch {
                 // Fall back to a full rescan if metadata extraction fails.
                 await scanLocalMediaFolder(true);
@@ -665,7 +662,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.monochromeScrobbler = scrobbler;
 
     const lyricsManager = await LyricsManager.initialize(MusicAPI.instance);
-    ui.lyricsManager = lyricsManager;
+    UIRenderer.instance.lyricsManager = lyricsManager;
 
     // Check browser support for local files
     const selectLocalBtn = document.getElementById('select-local-folder-btn');
@@ -698,11 +695,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     sidebarSettings.restoreState();
 
     // Render pinned items
-    await ui.renderPinnedItems();
+    await UIRenderer.instance.renderPinnedItems();
 
     // Load settings module and initialize
     const { initializeSettings } = await loadSettingsModule();
-    await initializeSettings(scrobbler, Player.instance, MusicAPI.instance, ui);
+    await initializeSettings(scrobbler, Player.instance, MusicAPI.instance, UIRenderer.instance);
 
     // Track sidebar navigation clicks
     document.querySelectorAll('.sidebar-nav a').forEach((link) => {
@@ -715,22 +712,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    initializePlayerEvents(Player.instance, audioPlayer, scrobbler, ui);
+    initializePlayerEvents(Player.instance, audioPlayer, scrobbler, UIRenderer.instance);
     initializeTrackInteractions(
         Player.instance,
         MusicAPI.instance,
         document.querySelector('.main-content'),
         document.getElementById('context-menu'),
         lyricsManager,
-        ui,
+        UIRenderer.instance,
         scrobbler
     );
-    initializeUIInteractions(Player.instance, MusicAPI.instance, ui);
+    initializeUIInteractions(Player.instance, MusicAPI.instance, UIRenderer.instance);
     initializeKeyboardShortcuts(Player.instance, audioPlayer);
 
     // Restore UI state for the current track (like button, theme)
     if (Player.instance.currentTrack) {
-        ui.setCurrentTrack(Player.instance.currentTrack);
+        UIRenderer.instance.setCurrentTrack(Player.instance.currentTrack);
     }
 
     document.querySelector('.now-playing-bar').addEventListener('click', async (e) => {
@@ -775,11 +772,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (window.location.hash === '#fullscreen') {
                     window.history.back();
                 } else {
-                    ui.closeFullscreenCover();
+                    UIRenderer.instance.closeFullscreenCover();
                 }
             } else {
                 const nextTrack = Player.instance.getNextTrack();
-                ui.showFullscreenCover(
+                UIRenderer.instance.showFullscreenCover(
                     Player.instance.currentTrack,
                     nextTrack,
                     lyricsManager,
@@ -805,7 +802,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (window.location.hash === '#fullscreen') {
             window.history.back();
         } else {
-            ui.closeFullscreenCover();
+            UIRenderer.instance.closeFullscreenCover();
         }
     });
 
@@ -824,7 +821,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (window.location.hash === '#fullscreen') {
                     window.history.back();
                 } else {
-                    ui.closeFullscreenCover();
+                    UIRenderer.instance.closeFullscreenCover();
                 }
                 break;
             case 'hide-ui':
@@ -847,11 +844,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                             toggleBtn.title = 'Show UI';
                         }
                     }
-                    if (ui && typeof ui.setupUIToggleButton === 'function') {
-                        if (ui.uiToggleCleanup) {
-                            ui.uiToggleCleanup();
+                    if (UIRenderer.instance && typeof UIRenderer.instance.setupUIToggleButton === 'function') {
+                        if (UIRenderer.instance.uiToggleCleanup) {
+                            UIRenderer.instance.uiToggleCleanup();
                         }
-                        ui.setupUIToggleButton(overlay);
+                        UIRenderer.instance.setupUIToggleButton(overlay);
                     }
                 }
                 break;
@@ -870,7 +867,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (window.location.hash === '#fullscreen') {
                     window.history.back();
                 } else {
-                    ui.closeFullscreenCover();
+                    UIRenderer.instance.closeFullscreenCover();
                 }
         }
     });
@@ -1085,7 +1082,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 MusicAPI.instance,
                 lyricsManager,
                 'track',
-                ui
+                UIRenderer.instance
             );
         }
     });
@@ -1096,7 +1093,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!Player.instance.currentTrack) return;
 
         // Update UI with current track info for theme
-        ui.setCurrentTrack(Player.instance.currentTrack);
+        UIRenderer.instance.setCurrentTrack(Player.instance.currentTrack);
 
         // Update Media Session with new track
         Player.instance.updateMediaSession(Player.instance.currentTrack);
@@ -1115,7 +1112,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const fullscreenOverlay = document.getElementById('fullscreen-cover-overlay');
         if (fullscreenOverlay && getComputedStyle(fullscreenOverlay).display !== 'none') {
             const nextTrack = Player.instance.getNextTrack();
-            ui.showFullscreenCover(
+            UIRenderer.instance.showFullscreenCover(
                 Player.instance.currentTrack,
                 nextTrack,
                 lyricsManager,
@@ -1131,7 +1128,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             getComputedStyle(fullscreenOverlay).display === 'none'
         ) {
             const nextTrack = Player.instance.getNextTrack();
-            ui.showFullscreenCover(
+            UIRenderer.instance.showFullscreenCover(
                 Player.instance.currentTrack,
                 nextTrack,
                 lyricsManager,
@@ -1434,7 +1431,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const folder = await db.createFolder(name, cover);
                 trackCreateFolder(folder);
                 await syncManager.syncUserFolder(folder, 'create');
-                ui.renderLibraryPage();
+                UIRenderer.instance.renderLibraryPage();
                 document.getElementById('folder-modal').classList.remove('active');
                 trackCloseModal('Create Folder');
             } else {
@@ -1496,10 +1493,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                             await handlePublicStatus(playlist);
                             await db.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
                             syncManager.syncUserPlaylist(playlist, 'update');
-                            ui.renderLibraryPage();
+                            UIRenderer.instance.renderLibraryPage();
                             // Also update current page if we are on it
                             if (window.location.pathname === `/userplaylist/${editingId}`) {
-                                ui.renderPlaylistPage(editingId, 'user');
+                                UIRenderer.instance.renderPlaylistPage(editingId, 'user');
                             }
                             modal.classList.remove('active');
                             delete modal.dataset.editingId;
@@ -2022,7 +2019,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         await db.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
                         await syncManager.syncUserPlaylist(playlist, 'create');
                         trackCreatePlaylist(playlist, importSource);
-                        ui.renderLibraryPage();
+                        UIRenderer.instance.renderLibraryPage();
                         modal.classList.remove('active');
                         trackCloseModal('Create Playlist');
                     });
@@ -2100,7 +2097,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (confirm('Are you sure you want to delete this playlist?')) {
                 db.deletePlaylist(playlistId).then(() => {
                     syncManager.syncUserPlaylist({ id: playlistId }, 'delete');
-                    ui.renderLibraryPage();
+                    UIRenderer.instance.renderLibraryPage();
                 });
             }
         }
@@ -2194,7 +2191,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const updatedPlaylist = await db.removeTrackFromPlaylist(playlistId, trackId, trackType);
                     syncManager.syncUserPlaylist(updatedPlaylist, 'update');
                     const scrollTop = document.querySelector('.main-content').scrollTop;
-                    await ui.renderPlaylistPage(playlistId, 'user');
+                    await UIRenderer.instance.renderPlaylistPage(playlistId, 'user');
                     document.querySelector('.main-content').scrollTop = scrollTop;
                 }
             });
@@ -2545,7 +2542,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 const tracks = scanLocalMediaFolder(true);
                 trackSelectLocalFolder(tracks?.length ?? 0);
-                ui.renderLibraryPage();
+                UIRenderer.instance.renderLibraryPage();
             } catch (err) {
                 if (err.name !== 'AbortError') {
                     console.error('Error selecting folder:', err);
@@ -2565,7 +2562,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const searchForm = document.getElementById('search-form');
     const searchInput = document.getElementById('search-input');
 
-    ui.setupSearchClearButton(searchInput);
+    UIRenderer.instance.setupSearchClearButton(searchInput);
 
     const performSearch = (query) => {
         if (query) {
@@ -2618,16 +2615,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     searchInput.addEventListener('change', (e) => {
         const query = e.target.value.trim();
         if (query) {
-            ui.addToSearchHistory(query);
+            UIRenderer.instance.addToSearchHistory(query);
         }
     });
 
     searchInput.addEventListener('focus', () => {
-        ui.renderSearchHistory();
+        UIRenderer.instance.renderSearchHistory();
     });
 
     searchInput.addEventListener('click', () => {
-        ui.renderSearchHistory();
+        UIRenderer.instance.renderSearchHistory();
     });
 
     document.addEventListener('click', (e) => {
@@ -2643,7 +2640,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!query) return;
 
         if (!handleExternalLink(query)) {
-            ui.addToSearchHistory(query);
+            UIRenderer.instance.addToSearchHistory(query);
             performSearch(query);
             const historyEl = document.getElementById('search-history');
             if (historyEl) historyEl.style.display = 'none';
@@ -2662,14 +2659,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.querySelector('.now-playing-bar .play-pause-btn').innerHTML = SVG_PLAY(20);
 
-    const router = createRouter(ui);
+    const router = createRouter(UIRenderer.instance);
 
     const handleRouteChange = async (event) => {
         const overlay = document.getElementById('fullscreen-cover-overlay');
         const isFullscreenOpen = overlay && getComputedStyle(overlay).display === 'flex';
 
         if (isFullscreenOpen && window.location.hash !== '#fullscreen') {
-            ui.closeFullscreenCover();
+            UIRenderer.instance.closeFullscreenCover();
         }
 
         if (event && event.state && event.state.exitTrap) {
@@ -2773,14 +2770,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.addEventListener('library-changed', () => {
         const path = window.location.pathname;
         if (path === '/library') {
-            ui.renderLibraryPage();
+            UIRenderer.instance.renderLibraryPage();
         } else if (path === '/' || path === '/home') {
-            ui.renderHomePage();
+            UIRenderer.instance.renderHomePage();
         } else if (path.startsWith('/userplaylist/')) {
             const playlistId = path.split('/')[2];
             const content = document.querySelector('.main-content');
             const scroll = content ? content.scrollTop : 0;
-            ui.renderPlaylistPage(playlistId, 'user').then(() => {
+            UIRenderer.instance.renderPlaylistPage(playlistId, 'user').then(() => {
                 if (content) content.scrollTop = scroll;
             });
         }
@@ -2788,7 +2785,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.addEventListener('history-changed', () => {
         const path = window.location.pathname;
         if (path === '/recent') {
-            ui.renderRecentPage();
+            UIRenderer.instance.renderRecentPage();
         }
     });
 
