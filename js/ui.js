@@ -44,10 +44,6 @@ import {
     createTrackFromSong,
 } from './tracker.js';
 import { trackSearch, trackChangeSort } from './analytics.js';
-
-fontSettings.applyFont();
-fontSettings.applyFontSize();
-
 import {
     SVG_PLAY,
     SVG_DOWNLOAD,
@@ -83,6 +79,8 @@ import {
     SVG_MOVE_UP,
     SVG_MOVE_DOWN,
 } from './icons.js';
+fontSettings.applyFont();
+fontSettings.applyFontSize();
 
 function sortTracks(tracks, sortType) {
     if (sortType === 'custom') return [...tracks];
