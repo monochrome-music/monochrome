@@ -45,6 +45,7 @@ import {
     SVG_RADIO,
 } from './icons.js';
 import { Player } from './player.js';
+import { UIRenderer } from './ui.js';
 
 const ICON_SIZE = 16;
 
@@ -828,7 +829,7 @@ class CommandPalette {
     async searchMusic(query) {
         if (!query || query.length < 2) return;
 
-        const api = window.monochromeUi?.api;
+        const api = UIRenderer.instance.api;
         if (!api) return;
 
         this.cancelMusicSearch();
@@ -1174,15 +1175,15 @@ class CommandPalette {
 
         const overlay = document.getElementById('fullscreen-cover-overlay');
         if (overlay && getComputedStyle(overlay).display !== 'none') {
-            window.monochromeUi?.closeFullscreenCover();
+            UIRenderer.instance.closeFullscreenCover();
         }
     }
 
     async setVisualizerPreset(preset) {
         const { visualizerSettings } = await import('./storage.js');
         visualizerSettings.setPreset(preset);
-        if (window.monochromeUi?.visualizer) {
-            window.monochromeUi.visualizer.setPreset(preset);
+        if (UIRenderer.instance.visualizer) {
+            UIRenderer.instance.visualizer.setPreset(preset);
         }
         this.notify(`Visualizer preset: ${preset}`);
     }
@@ -1214,7 +1215,7 @@ class CommandPalette {
 
     async likeAllInQueue() {
         const player = Player.instance;
-        const ui = window.monochromeUi;
+        const ui = UIRenderer.instance;
         if (!player || !ui) return;
 
         const queue = player.getCurrentQueue();
@@ -1240,7 +1241,7 @@ class CommandPalette {
 
     async downloadQueue() {
         const player = Player.instance;
-        const ui = window.monochromeUi;
+        const ui = UIRenderer.instance;
         if (!player || !ui) return;
 
         const queue = player.getCurrentQueue();
@@ -1269,7 +1270,7 @@ class CommandPalette {
     }
 
     async clearCache() {
-        const api = window.monochromeUi?.api;
+        const api = UIRenderer.instance.api;
         if (api) {
             await api.clearCache();
             this.notify('Cache cleared');
