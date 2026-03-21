@@ -141,6 +141,38 @@
         }
     };
 
+    // ── 6. Intercept window.location to catch OAuth redirects ────────────────
+    //
+    // Appwrite's createOAuth2Session sets window.location to the OAuth URL.
+    // Google blocks OAuth in WebViews, so we intercept it and hand off to
+    // Kotlin which opens Chrome Custom Tabs instead.
+    const locationDescriptor = Object.getOwnPropertyDescriptor(window, 'location')
+        || Object.getOwnPropertyDescriptor(Object.getPrototypeOf(window), 'location');
+
+    if (locationDescriptor && locationDescriptor.set) {
+        Object.defineProperty(window, 'location', {
+            set(url) {
+                const urlStr = String(url);
+                if (window.AndroidBridge &&
+                    (urlStr.includes('accounts.google.com') ||
+                     urlStr.includes('/v1/account/sessions/oauth2'))) {
+                    try {
+                        AndroidBridge.openOAuthUrl(urlStr);
+                        return;
+                    } catch (e) {
+                        console.error('[AndroidBridge] openOAuthUrl failed:', e);
+                    }
+                }
+                locationDescriptor.set.call(this, url);
+            },
+            get() {
+                if (locationDescriptor.get) return locationDescriptor.get.call(this);
+                return locationDescriptor.value;
+            },
+            configurable: true,
+        });
+    }
+
     // Notify Kotlin the bridge is wired up (useful for debugging)
     document.addEventListener('DOMContentLoaded', function () {
         if (window.AndroidBridge) {

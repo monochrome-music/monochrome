@@ -147,6 +147,12 @@ class MainActivity : AppCompatActivity() {
         override fun onBridgeReady() {
             musicService?.onBridgeReady()
         }
+        override fun onOpenOAuthUrl(url: String) {
+            CustomTabsIntent.Builder()
+                .setShowTitle(false)
+                .build()
+                .launchUrl(this@MainActivity, Uri.parse(url))
+        }
     }
 
     override fun onDestroy() {

@@ -36,6 +36,7 @@ class JavaScriptBridge(private val listener: Listener) {
         fun onPlaybackStateChanged(isPlaying: Boolean)
         fun onPositionStateChanged(state: PositionState)
         fun onBridgeReady()
+        fun onOpenOAuthUrl(url: String)
     }
 
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -83,5 +84,10 @@ class JavaScriptBridge(private val listener: Listener) {
     @JavascriptInterface
     fun onBridgeReady() {
         mainHandler.post { listener.onBridgeReady() }
+    }
+
+    @JavascriptInterface
+    fun openOAuthUrl(url: String) {
+        mainHandler.post { listener.onOpenOAuthUrl(url) }
     }
 }
