@@ -957,7 +957,7 @@ export function openLyricsPanel(track, audioPlayer, lyricsManager, forceOpen = f
                 </button>
             </div>
             <button id="romaji-toggle-btn" class="btn-icon" title="Toggle Romaji (Japanese to Latin)" data-enabled="${isRomajiMode}" style="color: ${isRomajiMode ? 'var(--primary)' : ''}">
-                あ
+                あA
             </button>
             <button id="translate-toggle-btn" class="btn-icon" title="Translate Lyrics" data-enabled="${isTranslateMode}" style="color: ${isTranslateMode ? 'var(--primary)' : ''}">
                 ${SVG_GLOBE(20)}
