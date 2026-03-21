@@ -3371,7 +3371,7 @@ function applyDataSaver() {
             if (eventName) window.dispatchEvent(new CustomEvent(eventName, { detail: eventDetail || {} }));
         };
 
-        if (enabled) {
+        if (enabled && mode === 'extreme') {
             // Both modes: low quality streaming
             player.setQuality('LOW');
             localStorage.setItem('playback-quality', 'LOW');
@@ -3381,8 +3381,7 @@ function applyDataSaver() {
             // Both modes: disable heavy features
             setFeature(backgroundSettings, 'setEnabled', false, 'album-background-toggle');
             setFeature(waveformSettings, 'setEnabled', false, 'waveform-toggle', 'waveform-toggle', { enabled: false });
-            setFeature(visualizerSettings, 'setEnabled', false, 'visualizer-enabled-toggle');
-            setFeature(dynamicColorSettings, 'setEnabled', false, 'dynamic-color-toggle');
+data-saver-active', 'data-saver-extreme'            setFeature(dynamicColorSettings, 'setEnabled', false, 'dynamic-color-toggle');
             window.dispatchEvent(new CustomEvent('reset-dynamic-color'));
             setFeature(analyticsSettings, 'setEnabled', false, 'analytics-toggle');
 
@@ -3398,11 +3397,13 @@ function applyDataSaver() {
                 document.body.classList.remove('data-saver-extreme');
             }
         } else {
-            // OFF: restore all features back to enabled
-            player.setQuality('HI_RES_LOSSLESS');
-            localStorage.setItem('playback-quality', 'HI_RES_LOSSLESS');
+                        // Moderate or OFF: restore all features back to enabled
+            // Moderate: still use LOW quality; OFF: restore HI_RES
+            const restoreQuality = (enabled && mode === 'moderate') ? 'LOW' : 'HI_RES_LOSSLESS';
+            player.setQuality(restoreQuality);
+            localStorage.setItem('playback-quality', restoreQuality);
             const sqSetting = document.getElementById('streaming-quality-setting');
-            if (sqSetting) sqSetting.value = 'HI_RES_LOSSLESS';
+            if (sqSetting) sqSetting.value = restoreQuality;
 
             setFeature(backgroundSettings, 'setEnabled', true, 'album-background-toggle');
             setFeature(waveformSettings, 'setEnabled', true, 'waveform-toggle', 'waveform-toggle', { enabled: true });
@@ -3410,11 +3411,16 @@ function applyDataSaver() {
             setFeature(dynamicColorSettings, 'setEnabled', true, 'dynamic-color-toggle');
             setFeature(analyticsSettings, 'setEnabled', true, 'analytics-toggle');
 
-            coverArtSizeSettings.setSize('300');
+            const restoreCoverSize = (enabled && mode === 'moderate') ? '160' : '300';
+            coverArtSizeSettings.setSize(restoreCoverSize);
             const coverSelect = document.getElementById('cover-art-size-setting');
-            if (coverSelect) coverSelect.value = '300';
-
-            document.body.classList.remove('data-saver-active', 'data-saver-extreme');
+            if (coverSelect) coverSelect.value = restoreCoverSize;
+                        if (enabled && mode === 'moderate') {
+                document.body.classList.add('data-saver-active');
+                document.body.classList.remove('data-saver-extreme');
+            } else {
+                document.body.classList.remove('data-saver-active', 'data-saver-extreme');
+            }
         }
     }
 
