@@ -1152,6 +1152,7 @@ export class UIRenderer {
 
         // Setup UI toggle button
         this.setupUIToggleButton(overlay);
+        this.setupControlsAutoHide(overlay);
 
         if (localStorage.getItem('epilepsy-warning-dismissed') === 'true') {
             await startVisualizer();
@@ -1181,7 +1182,7 @@ export class UIRenderer {
     closeFullscreenCover() {
         const overlay = document.getElementById('fullscreen-cover-overlay');
         overlay.style.display = 'none';
-        overlay.classList.remove('visualizer-active', 'ui-hidden');
+        overlay.classList.remove('visualizer-active', 'ui-hidden', 'controls-idle');
 
         const playerBar = document.querySelector('.now-playing-bar');
         if (playerBar) playerBar.style.removeProperty('display');
@@ -1221,6 +1222,11 @@ export class UIRenderer {
         if (this.uiToggleMouseTimer) {
             clearTimeout(this.uiToggleMouseTimer);
             this.uiToggleMouseTimer = null;
+        }
+
+        if (this.controlsIdleCleanup) {
+            this.controlsIdleCleanup();
+            this.controlsIdleCleanup = null;
         }
     }
 
@@ -1263,23 +1269,14 @@ export class UIRenderer {
             }
         };
 
-        // Mouse move handler
         const handleMouseMove = (e) => {
-            const rect = overlay.getBoundingClientRect();
-            const isNearTopRight = e.clientY < 100 && e.clientX > rect.width - 150;
-
-            if (isUIHidden) {
-                if (overlay.classList.contains('is-video-mode')) {
-                    if (isNearTopRight) {
-                        showButton();
-                    } else {
-                        hideButton();
-                    }
-                } else if (isNearTopRight) {
-                    showButton();
-                } else {
-                    hideButton();
-                }
+            if (!isUIHidden) return;
+            const btnRect = toggleBtn.getBoundingClientRect();
+            const nearBtn = e.clientY < 100 && Math.abs(e.clientX - (btnRect.left + btnRect.width / 2)) < 150;
+            if (nearBtn) {
+                showButton();
+            } else {
+                hideButton();
             }
         };
 
@@ -1296,6 +1293,46 @@ export class UIRenderer {
         this.uiToggleCleanup = () => {
             toggleBtn.removeEventListener('click', toggleUI);
             overlay.removeEventListener('mousemove', handleMouseMove);
+        };
+    }
+
+    setupControlsAutoHide(overlay) {
+        if (this.controlsIdleCleanup) this.controlsIdleCleanup();
+
+        const IDLE_DELAY = 3000;
+        let idleTimer = null;
+
+        const hideControls = () => {
+            if (!overlay.classList.contains('ui-hidden')) {
+                overlay.classList.add('controls-idle');
+            }
+        };
+
+        const showControls = () => {
+            overlay.classList.remove('controls-idle');
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(hideControls, IDLE_DELAY);
+        };
+
+        const onMouseMove = () => showControls();
+        const onMouseLeave = () => {
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(hideControls, IDLE_DELAY);
+        };
+        const onClick = () => showControls();
+
+        overlay.addEventListener('mousemove', onMouseMove);
+        overlay.addEventListener('mouseleave', onMouseLeave);
+        overlay.addEventListener('click', onClick);
+
+        idleTimer = setTimeout(hideControls, IDLE_DELAY);
+
+        this.controlsIdleCleanup = () => {
+            clearTimeout(idleTimer);
+            overlay.removeEventListener('mousemove', onMouseMove);
+            overlay.removeEventListener('mouseleave', onMouseLeave);
+            overlay.removeEventListener('click', onClick);
+            overlay.classList.remove('controls-idle');
         };
     }
 
