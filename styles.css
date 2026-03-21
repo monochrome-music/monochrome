@@ -8733,3 +8733,80 @@ body:has(#side-panel.active) #toggle-ui-btn {
     align-items: center;
     gap: 0.5rem;
 }
+
+/* ========== SUPER DATA SAVER ========== */
+
+/* Hide images and heavy visuals in data saver mode */
+body.data-saver-active .album-art,
+body.data-saver-active .cover-art,
+body.data-saver-active .background-image,
+body.data-saver-active .fullscreen-cover,
+body.data-saver-active .artist-image,
+body.data-saver-active .playlist-cover,
+body.data-saver-active .hero-image {
+    display: none !important;
+}
+
+/* Disable animations and transitions */
+body.data-saver-active *,
+body.data-saver-active *::before,
+body.data-saver-active *::after {
+    animation: none !important;
+    transition: none !important;
+}
+
+/* Hide visualizer */
+body.data-saver-active .visualizer-container,
+body.data-saver-active canvas.visualizer {
+    display: none !important;
+}
+
+/* Hide video content */
+body.data-saver-active video,
+body.data-saver-active iframe {
+    display: none !important;
+}
+
+/* Reduce background effects */
+body.data-saver-active .dynamic-background,
+body.data-saver-active .gradient-overlay,
+body.data-saver-active .blur-background {
+    display: none !important;
+}
+
+/* Extreme mode - hide all images */
+body.data-saver-extreme img {
+    display: none !important;
+}
+
+body.data-saver-extreme .card-image,
+body.data-saver-extreme .thumbnail {
+    display: none !important;
+}
+
+/* Placeholder for hidden images */
+body.data-saver-active .album-art-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-secondary, #1a1a1a);
+    color: var(--text-secondary, #888);
+    font-size: var(--text-sm);
+    border-radius: 8px;
+    aspect-ratio: 1;
+}
+
+/* Data saver indicator badge */
+.data-saver-badge {
+    position: fixed;
+    top: 8px;
+    right: 8px;
+    background: var(--accent-color, #1db954);
+    color: #fff;
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    z-index: 9999;
+    opacity: 0.7;
+    pointer-events: none;
+}
