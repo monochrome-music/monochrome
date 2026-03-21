@@ -94,13 +94,23 @@ class MainActivity : AppCompatActivity() {
                 view: WebView,
                 request: WebResourceRequest,
             ): Boolean {
-                val url = request.url
+                return handleUrl(request.url)
+            }
+
+            override fun onPageStarted(view: WebView, url: String, favicon: android.graphics.Bitmap?) {
+                val uri = Uri.parse(url)
+                if (handleUrl(uri)) {
+                    view.stopLoading()
+                    view.loadUrl(PWA_URL)
+                }
+            }
+
+            private fun handleUrl(url: Uri): Boolean {
                 val host = url.host ?: return false
 
-                // Intercept Appwrite OAuth initiation — open in Chrome Custom Tab
-                // Google blocks OAuth in WebViews, so we hand off to Chrome
-                if (host.contains("auth.samidy.com") &&
-                    url.path?.contains("/v1/account/sessions/oauth2/") == true
+                // Intercept OAuth — open in Chrome Custom Tab
+                if (host.contains("accounts.google.com") ||
+                    (host.contains("auth.samidy.com") && url.path?.contains("oauth2") == true)
                 ) {
                     CustomTabsIntent.Builder()
                         .setShowTitle(false)
