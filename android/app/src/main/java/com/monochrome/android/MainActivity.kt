@@ -82,6 +82,8 @@ class MainActivity : AppCompatActivity() {
             allowFileAccess = false
             allowContentAccess = false
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+            // Override user agent so Google allows OAuth (blocks standard WebView UA)
+            userAgentString = "Mozilla/5.0 (Linux; Android 14; OnePlus 12) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
         }
 
         val jsBridge = JavaScriptBridge(createBridgeListener())
