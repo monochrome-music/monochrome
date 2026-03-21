@@ -3381,7 +3381,8 @@ function applyDataSaver() {
             // Both modes: disable heavy features
             setFeature(backgroundSettings, 'setEnabled', false, 'album-background-toggle');
             setFeature(waveformSettings, 'setEnabled', false, 'waveform-toggle', 'waveform-toggle', { enabled: false });
-data-saver-active', 'data-saver-extreme'            setFeature(dynamicColorSettings, 'setEnabled', false, 'dynamic-color-toggle');
+            setFeature(visualizerSettings, 'setEnabled', false, 'visualizer-enabled-toggle');
+            setFeature(dynamicColorSettings, 'setEnabled', false, 'dynamic-color-toggle');
             window.dispatchEvent(new CustomEvent('reset-dynamic-color'));
             setFeature(analyticsSettings, 'setEnabled', false, 'analytics-toggle');
 
