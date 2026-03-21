@@ -8527,6 +8527,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     color: var(--muted-foreground);
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .cmdk-item-icon img {
     width: 28px;
     height: 28px;
