@@ -1067,7 +1067,7 @@ ul {
     grid-area: player;
     padding: var(--spacing-sm) var(--spacing-md);
     display: grid;
-    grid-template-columns: 1fr 0.9fr 1fr;
+    grid-template-columns: minmax(220px, 1.15fr) minmax(260px, 1fr) minmax(260px, 1.25fr);
     align-items: center;
     gap: var(--spacing-sm);
     z-index: 2100;
@@ -3733,10 +3733,24 @@ input:checked + .slider::before {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    filter: var(--cover-filter);
+    filter: blur(32px) brightness(0.42) saturate(0.8);
     z-index: -1;
     background-image: var(--bg-image);
     transition: background-image var(--transition);
+}
+
+#fullscreen-cover-overlay::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.45) 35%, rgba(0, 0, 0, 0.65));
+    z-index: 0;
+    pointer-events: none;
+}
+
+#fullscreen-cover-overlay > * {
+    position: relative;
+    z-index: 1;
 }
 
 #visualizer-container {
@@ -3747,6 +3761,7 @@ input:checked + .slider::before {
     z-index: 0;
     pointer-events: none;
     transition: opacity 0.3s ease;
+    display: none !important;
 }
 
 #visualizer-canvas {
@@ -3759,7 +3774,7 @@ input:checked + .slider::before {
 .fullscreen-cover-content {
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: stretch;
     justify-content: center;
     width: 100%;
     height: 100%;
@@ -3767,11 +3782,11 @@ input:checked + .slider::before {
     padding: 1rem;
 }
 
-/* UI Toggle Button for Visualizer Mode - Rightmost position */
+/* Split-view button */
 #toggle-ui-btn {
     position: absolute;
     top: 1rem;
-    right: 1rem;
+    right: 8rem;
     background-color: var(--background);
     border: none;
     color: var(--foreground);
@@ -3813,7 +3828,7 @@ input:checked + .slider::before {
     pointer-events: auto;
 }
 
-/* Lyrics Toggle - Middle position */
+/* Microphone / lyrics toggle */
 .fullscreen-lyrics-toggle {
     position: absolute;
     top: 1rem;
@@ -3842,11 +3857,11 @@ input:checked + .slider::before {
     background: var(--primary);
 }
 
-/* Close Button - Leftmost position */
+/* Close button */
 #close-fullscreen-cover-btn {
     position: absolute;
     top: 1rem;
-    right: 8rem;
+    right: 1rem;
     background-color: var(--background);
     border: none;
     color: var(--foreground);
@@ -3895,8 +3910,9 @@ input:checked + .slider::before {
 }
 
 #fullscreen-cover-image {
-    max-width: 55vw;
-    max-height: 45vh;
+    max-width: min(72vw, 420px);
+    width: min(72vw, 420px);
+    max-height: min(46vh, 420px);
     border-radius: var(--radius);
     box-shadow: 0 20px 50px rgb(0, 0, 0, 0.5);
     object-fit: contain;
@@ -3915,7 +3931,7 @@ input:checked + .slider::before {
 .fullscreen-track-info {
     text-align: center;
     z-index: 1;
-    max-width: 90%;
+    max-width: min(92vw, 780px);
     background-color: color-mix(in srgb, var(--card) 40%, transparent);
     backdrop-filter: blur(20px);
     padding: 0.75rem 1.5rem;
@@ -4180,6 +4196,7 @@ input:checked + .slider::before {
     gap: 1rem;
     justify-content: center;
     margin-top: 0.75rem;
+    flex-wrap: wrap;
 }
 
 #queue-modal {
@@ -5134,6 +5151,9 @@ input:checked + .slider::before {
 .panel-controls {
     display: flex;
     gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    min-width: 0;
 }
 
 /* Lyrics timing adjustment controls */
@@ -5165,6 +5185,17 @@ input:checked + .slider::before {
 .lyrics-timing-controls .btn-icon:hover {
     background: var(--secondary);
     color: var(--primary);
+}
+
+#translate-language-select {
+    display: none;
+    max-width: 160px;
+    min-width: 120px;
+    height: 32px;
+}
+
+#translate-language-select.is-visible {
+    display: inline-flex;
 }
 
 .panel-content {
@@ -5373,12 +5404,16 @@ input:checked + .slider::before {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
 .volume-slider-row {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
 }
 
 /* Ensure buttons in rows behave correctly */
@@ -5644,10 +5679,11 @@ img[src=''] {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 6rem 2rem 2rem;
+    justify-content: flex-start;
+    padding: 5.25rem 2rem 1.2rem;
     overflow-y: auto;
     transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    max-width: min(96vw, 880px);
 }
 
 #fullscreen-cover-overlay.is-video-mode .fullscreen-main-view {
@@ -6205,7 +6241,7 @@ img[src=''] {
 
 @media (min-width: 769px) and (max-width: 1024px) {
     .now-playing-bar {
-        grid-template-columns: minmax(150px, 1fr) 1fr auto;
+        grid-template-columns: minmax(150px, 1fr) minmax(220px, 1fr) minmax(220px, auto);
         gap: var(--spacing-md);
         padding: var(--spacing-md);
     }
@@ -6462,6 +6498,8 @@ img[src=''] {
         display: flex;
         gap: 0.25rem;
         justify-content: flex-end;
+        flex-direction: column;
+        align-items: flex-end;
     }
 
     .now-playing-bar .player-controls {
@@ -6636,6 +6674,33 @@ img[src=''] {
         width: 100vw;
         max-width: 100vw;
         bottom: 0;
+    }
+
+    .panel-header {
+        align-items: flex-start;
+        gap: 0.6rem;
+    }
+
+    .panel-controls {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .lyrics-timing-controls {
+        margin-right: 0;
+        border-right: none;
+        padding-right: 0;
+    }
+
+    #translate-language-select {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+        flex: 1 1 160px;
+    }
+
+    #close-side-panel-btn {
+        margin-left: auto;
     }
 
     .panel-content {
@@ -7345,6 +7410,10 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     right: calc(600px + 1rem);
 }
 
+body:has(#side-panel.active) #toggle-ui-btn {
+    right: calc(600px + 8rem);
+}
+
 @media (max-width: 1200px) {
     body:has(#side-panel.active) .fullscreen-main-view {
         padding-right: 50vw;
@@ -7357,6 +7426,10 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     body:has(#side-panel.active) #close-fullscreen-cover-btn {
         right: calc(50vw + 1rem);
     }
+
+    body:has(#side-panel.active) #toggle-ui-btn {
+        right: calc(50vw + 8rem);
+    }
 }
 
 @media (max-width: 768px) {
@@ -7366,7 +7439,8 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 
     /* Hide fullscreen specific buttons on mobile when panel is open */
     body:has(#side-panel.active) .fullscreen-lyrics-toggle,
-    body:has(#side-panel.active) #close-fullscreen-cover-btn {
+    body:has(#side-panel.active) #close-fullscreen-cover-btn,
+    body:has(#side-panel.active) #toggle-ui-btn {
         display: none;
     }
 }
