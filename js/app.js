@@ -383,6 +383,14 @@ async function uploadCoverImage(file) {
 document.addEventListener('DOMContentLoaded', async () => {
     await modernSettings.waitPending();
 
+    if (import.meta.env.DEV) {
+        window.monochrome = {
+            MusicAPI,
+            LyricsManager,
+            Player,
+        };
+    }
+
     // Initialize analytics
     initAnalytics();
 
