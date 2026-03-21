@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find d:projectsmonochrome -type f -name package.json -o -name pocketbase*)",
+      "Bash(grep -r \"firebase_id\\\\|monochrome-pocketbase\\\\|monochrome-appwrite\" d:projectsmonochrome/js --include=*.js)",
+      "Bash(find d:projectsmonochrome -type f \\\\\\(-name *.js -o -name *.ts \\\\\\) -path */server* -o -name *auth* -o -name *login*)",
+      "Bash(grep -r \"firebase_id\\\\|user_playlists\\\\|userPlaylists\" d:/projects/monochrome/js --include=*.js)",
+      "Bash(find d:/projects/monochrome/functions -type f -name *.js)",
+      "Bash(head -50 d:/projects/monochrome/functions/track/[id].js)",
+      "Bash(grep -r window.__ d:/projects/monochrome/js --include=*.js)",
+      "Bash(grep -r \"AUTH_ENABLED\\\\|APPWRITE\\\\|POCKETBASE\" d:/projects/monochrome --include=*.js --include=*.ts)",
+      "Bash(grep -r \"sync-playlist-change\\\\|library-changed\" d:/projects/monochrome/js --include=*.js)",
+      "Bash(grep -r \"importData\\\\|exportData\" d:/projects/monochrome/js --include=*.js)",
+      "Bash(grep -r \"onAuthStateChanged\\\\|authManager.user\" d:/projects/monochrome/js --include=*.js)",
+      "Bash(gh api:*)"
+    ]
+  }
+}
