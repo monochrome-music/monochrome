@@ -166,16 +166,34 @@ export class LyricsManager {
         this.romajiTextCache = new Map(); // Cache: originalText -> convertedRomaji
         this.convertedTracksCache = new Set(); // Track IDs that have been fully converted
         this.geniusManager = new GeniusManager();
-        this.isGeniusMode = false;
+        this.isGeniusMode = this.getGeniusMode();
         this.currentGeniusData = null;
         this.timingOffset = 0; // Offset in milliseconds (positive = delay lyrics, negative = advance lyrics)
-        this.isTranslateMode = false;
-        this.translateLanguage = localStorage.getItem('lyricsTranslateLang') || 'en';
+        this.isRomajiMode = this.getRomajiMode();
+        this.isTranslateMode = this.getTranslateMode();
+        this.translateLanguage = this.getTranslateLanguage();
         this.translateCache = new Map();
         this.originalTextsMap = new WeakMap();
         this.onModeStateChange = null;
         this._lyricsRefreshToken = 0;
         this._monochromeLyricsStylesId = 'monochrome-lyrics-layer-style';
+    }
+
+    setGeniusMode(enabled) {
+        this.isGeniusMode = enabled;
+        try {
+            localStorage.setItem('lyricsGeniusMode', enabled ? 'true' : 'false');
+        } catch (e) {
+            console.warn('Failed to save Genius mode preference:', e);
+        }
+    }
+
+    getGeniusMode() {
+        try {
+            return localStorage.getItem('lyricsGeniusMode') === 'true';
+        } catch {
+            return false;
+        }
     }
 
     // Get timing offset for current track
@@ -1016,26 +1034,25 @@ export function openLyricsPanel(track, audioPlayer, lyricsManager, forceOpen = f
         const isTranslateMode = manager.getTranslateMode();
         manager.isTranslateMode = isTranslateMode;
         manager.translateLanguage = manager.getTranslateLanguage();
-        const isGeniusMode = manager.isGeniusMode;
+        const isGeniusMode = manager.getGeniusMode();
+        manager.isGeniusMode = isGeniusMode;
         const offsetDisplay = manager.getOffsetDisplayString(manager.timingOffset);
         const languageOptions = [
-            ['en', 'English'],
-            ['id', 'Indonesian'],
-            ['ja', 'Japanese'],
-            ['ko', 'Korean'],
-            ['zh-CN', 'Chinese'],
-            ['es', 'Spanish'],
-            ['fr', 'French'],
-            ['de', 'German'],
-            ['pt', 'Portuguese'],
-            ['ru', 'Russian'],
-            ['ar', 'Arabic'],
-            ['hi', 'Hindi'],
-            ['th', 'Thai'],
-            ['vi', 'Vietnamese'],
-            ['ms', 'Malay'],
-            ['tr', 'Turkish'],
-            ['it', 'Italian'],
+            ['en', 'English (en)'],
+            ['id', 'Indonesian (id)'],
+            ['ja', 'Japanese (ja)'],
+            ['ko', 'Korean (ko)'],
+            ['zh-CN', 'Chinese Simplified (zh-CN)'],
+            ['zh-TW', 'Chinese Traditional (zh-TW)'],
+            ['es', 'Spanish (es)'],
+            ['fr', 'French (fr)'],
+            ['de', 'German (de)'],
+            ['pt', 'Portuguese (pt)'],
+            ['ru', 'Russian (ru)'],
+            ['ar', 'Arabic (ar)'],
+            ['hi', 'Hindi (hi)'],
+            ['th', 'Thai (th)'],
+            ['vi', 'Vietnamese (vi)'],
         ];
 
         container.innerHTML = `
@@ -1170,8 +1187,8 @@ export function openLyricsPanel(track, audioPlayer, lyricsManager, forceOpen = f
         const geniusBtn = container.querySelector('#genius-toggle-btn');
         if (geniusBtn) {
             geniusBtn.addEventListener('click', async () => {
-                manager.isGeniusMode = !manager.isGeniusMode;
-                const enabled = manager.isGeniusMode;
+                const enabled = !manager.isGeniusMode;
+                manager.setGeniusMode(enabled);
 
                 geniusBtn.classList.toggle('active-genius', enabled);
                 geniusBtn.style.color = enabled ? '#ffff64' : '';
@@ -1190,7 +1207,7 @@ export function openLyricsPanel(track, audioPlayer, lyricsManager, forceOpen = f
                             );
                     } catch (e) {
                         alert(e.message);
-                        manager.isGeniusMode = false;
+                        manager.setGeniusMode(false);
                         geniusBtn.classList.remove('active-genius');
                         geniusBtn.style.color = '';
                     } finally {
