@@ -1059,7 +1059,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     const toggleLyricsPanel = () => {
-        if (!player.currentTrack) {
+        if (!Player.instance.currentTrack) {
             alert('No track is currently playing');
             return;
         }
@@ -1077,8 +1077,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('toggle-lyrics-btn')?.addEventListener('click', async (e) => {
         e.stopPropagation();
                 // Open fullscreen and toggle lyrics instead of side panel
-        const fullscreen = document.getElementById('fullscreen-cover');
-        if (fullscreen && !fullscreen.classList.contains('active')) {
+        const fullscreen = document.getElementById('fullscreen-cover-overlay');
+        if (fullscreen && fullscreen.style.display !== 'flex') {
             // Open fullscreen first
             const coverEl = document.querySelector('.now-playing-bar .cover');
             if (coverEl) coverEl.click();
@@ -1087,7 +1087,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const fsLyricsBtn = document.getElementById('toggle-fullscreen-lyrics-btn');
                 if (fsLyricsBtn) fsLyricsBtn.click();
             }, 300);
-        } else if (fullscreen && fullscreen.classList.contains('active')) {
+        } else if (fullscreen && fullscreen.style.display === 'flex') {
             // Already in fullscreen, just toggle lyrics side panel
             toggleLyricsPanel();
         } else {
@@ -1098,8 +1098,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('now-playing-mic-btn')?.addEventListener('click', async (e) => {
         e.stopPropagation();
         // Open fullscreen and toggle lyrics instead of side panel
-        const fullscreen2 = document.getElementById('fullscreen-cover');
-        if (fullscreen2 && !fullscreen2.classList.contains('active')) {
+        const fullscreen2 = document.getElementById('fullscreen-cover-overlay');
+        if (fullscreen2 && fullscreen2.style.display !== 'flex') {
             const coverEl2 = document.querySelector('.now-playing-bar .cover');
             if (coverEl2) coverEl2.click();
             setTimeout(() => {
