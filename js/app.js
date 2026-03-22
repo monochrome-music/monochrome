@@ -3358,3 +3358,55 @@ function applyDataSaverOnStartup() {
     }
 }
 applyDataSaverOnStartup();
+
+
+// ========== REPEAT BUTTON SYNC BETWEEN FULLSCREEN AND MINI PLAYER ==========
+(function syncRepeatButtons() {
+    const fsOverlay = document.getElementById('fullscreen-cover-overlay');
+    if (!fsOverlay) return;
+
+    // Sync fullscreen repeat button when fullscreen opens
+    const observer = new MutationObserver(() => {
+        if (fsOverlay.style.display !== 'none') {
+            const miniRepeatBtn = document.getElementById('repeat-btn');
+            const fsRepeatBtn = document.getElementById('fs-repeat-btn');
+            if (miniRepeatBtn && fsRepeatBtn) {
+                // Copy mini player repeat state to fullscreen
+                fsRepeatBtn.className = miniRepeatBtn.className;
+                fsRepeatBtn.innerHTML = miniRepeatBtn.innerHTML;
+                fsRepeatBtn.title = miniRepeatBtn.title;
+            }
+        }
+    });
+    observer.observe(fsOverlay, { attributes: true, attributeFilter: ['style'] });
+
+    // Sync mini player when fullscreen repeat is clicked
+    document.addEventListener('click', (e) => {
+        const fsRepeatBtn = e.target.closest('#fs-repeat-btn');
+        if (fsRepeatBtn) {
+            setTimeout(() => {
+                const miniRepeatBtn = document.getElementById('repeat-btn');
+                if (miniRepeatBtn) {
+                    miniRepeatBtn.className = fsRepeatBtn.className;
+                    miniRepeatBtn.innerHTML = fsRepeatBtn.innerHTML;
+                    miniRepeatBtn.title = fsRepeatBtn.title;
+                }
+            }, 50);
+        }
+    });
+
+    // Sync fullscreen when mini player repeat is clicked
+    document.addEventListener('click', (e) => {
+        const miniRepeatBtn = e.target.closest('#repeat-btn');
+        if (miniRepeatBtn) {
+            setTimeout(() => {
+                const fsRepeatBtn = document.getElementById('fs-repeat-btn');
+                if (fsRepeatBtn) {
+                    fsRepeatBtn.className = miniRepeatBtn.className;
+                    fsRepeatBtn.innerHTML = miniRepeatBtn.innerHTML;
+                    fsRepeatBtn.title = miniRepeatBtn.title;
+                }
+            }, 50);
+        }
+    });
+})();
