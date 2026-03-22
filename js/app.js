@@ -3365,17 +3365,18 @@ applyDataSaverOnStartup();
     const fsOverlay = document.getElementById('fullscreen-cover-overlay');
     if (!fsOverlay) return;
 
-    // Sync fullscreen repeat button when fullscreen opens
+    // Sync fullscreen repeat button when fullscreen opens (with delay to wait for setupFullscreenControls)
     const observer = new MutationObserver(() => {
         if (fsOverlay.style.display !== 'none') {
-            const miniRepeatBtn = document.getElementById('repeat-btn');
-            const fsRepeatBtn = document.getElementById('fs-repeat-btn');
-            if (miniRepeatBtn && fsRepeatBtn) {
-                // Copy mini player repeat state to fullscreen
-                fsRepeatBtn.className = miniRepeatBtn.className;
-                fsRepeatBtn.innerHTML = miniRepeatBtn.innerHTML;
-                fsRepeatBtn.title = miniRepeatBtn.title;
-            }
+            setTimeout(() => {
+                const miniRepeatBtn = document.getElementById('repeat-btn');
+                const fsRepeatBtn = document.getElementById('fs-repeat-btn');
+                if (miniRepeatBtn && fsRepeatBtn) {
+                    fsRepeatBtn.className = miniRepeatBtn.className;
+                    fsRepeatBtn.innerHTML = miniRepeatBtn.innerHTML;
+                    fsRepeatBtn.title = miniRepeatBtn.title;
+                }
+            }, 200);
         }
     });
     observer.observe(fsOverlay, { attributes: true, attributeFilter: ['style'] });
@@ -3391,7 +3392,7 @@ applyDataSaverOnStartup();
                     miniRepeatBtn.innerHTML = fsRepeatBtn.innerHTML;
                     miniRepeatBtn.title = fsRepeatBtn.title;
                 }
-            }, 50);
+            }, 100);
         }
     });
 
@@ -3406,7 +3407,7 @@ applyDataSaverOnStartup();
                     fsRepeatBtn.innerHTML = miniRepeatBtn.innerHTML;
                     fsRepeatBtn.title = miniRepeatBtn.title;
                 }
-            }, 50);
+            }, 100);
         }
     });
 })();
