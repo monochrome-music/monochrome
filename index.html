@@ -2659,9 +2659,7 @@
                                         <span class="description">Choose your preferred color scheme</span>
                                     </div>
                                 </div>
-                                <div class="theme-picker" id="theme-picker">
-                                    <div class="theme-option" data-theme="system">System</div>
-                                    <div class="theme-option" data-theme="monochrome">Black</div>
+// Aether Beyond Particle System                                    <div class="theme-option" data-theme="monochrome">Black</div>
                                     <div class="theme-option" data-theme="white">White</div>
                                     <div class="theme-option" data-theme="dark">Dark</div>
                                     <div class="theme-option" data-theme="ocean">Ocean</div>
@@ -2673,6 +2671,7 @@
                                     <div class="theme-option" data-theme="latte">Latte</div>
                                                                 <div class="theme-option" data-theme="aether">Aether</div>
                             <div class="theme-option" data-theme="aether-beyond">Aether Beyond</div>
+                                                        <div class="theme-option" data-theme="aether-quantum">Aether Quantum</div>
                                     <div class="theme-option" data-theme="custom">Custom</div>
                                 </div>
                                 <div id="applied-community-theme-container" style="display: none; margin-top: 1rem">
@@ -5074,14 +5073,196 @@
     
     <!-- Changelog Modal -->
     <div class="modal" id="changelog-modal">
+                <script>
+        // Aether Quantum - Hyper-Futuristic Particle System
+        (function() {
+            let aqAnimId = null;
+            let aqParticles = [];
+            let aqShootingStars = [];
+            let aqMouseX = -1000, aqMouseY = -1000;
+            const aqCanvas = document.createElement('canvas');
+            aqCanvas.id = 'aether-quantum-canvas';
+            aqCanvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0.8;';
+            document.body.appendChild(aqCanvas);
+            aqCanvas.style.display = 'none';
+            const aqCtx = aqCanvas.getContext('2d');
+
+            document.addEventListener('mousemove', e => { aqMouseX = e.clientX; aqMouseY = e.clientY; });
+
+            function aqResize() { aqCanvas.width = window.innerWidth; aqCanvas.height = window.innerHeight; }
+
+            function aqCreateParticle(type) {
+                const t = type || ['tiny','medium','nebula'][Math.floor(Math.random()*10) < 6 ? 0 : Math.floor(Math.random()*10) < 9 ? 1 : 2];
+                const colors = ['#a855f7','#6366f1','#ec4899','#00ffaa','#00d4ff','#ff6b6b','#ffd93d'];
+                return {
+                    x: Math.random() * aqCanvas.width,
+                    y: Math.random() * aqCanvas.height,
+                    vx: (Math.random() - 0.5) * (t === 'tiny' ? 0.8 : 0.4),
+                    vy: (Math.random() - 0.5) * (t === 'tiny' ? 0.8 : 0.4),
+                    r: t === 'tiny' ? Math.random()*1.5+0.3 : t === 'medium' ? Math.random()*3+1.5 : Math.random()*15+8,
+                    o: t === 'nebula' ? Math.random()*0.08+0.02 : Math.random()*0.6+0.2,
+                    c: colors[Math.floor(Math.random()*colors.length)],
+                    type: t,
+                    pulse: Math.random()*Math.PI*2,
+                    pulseSpeed: Math.random()*0.03+0.01,
+                    angle: Math.random()*Math.PI*2,
+                    angleSpeed: (Math.random()-0.5)*0.005
+                };
+            }
+
+            function aqCreateShootingStar() {
+                const side = Math.floor(Math.random()*2);
+                return {
+                    x: side === 0 ? Math.random()*aqCanvas.width : -50,
+                    y: side === 0 ? -50 : Math.random()*aqCanvas.height*0.5,
+                    vx: Math.random()*8+4,
+                    vy: Math.random()*4+2,
+                    length: Math.random()*80+40,
+                    life: 1,
+                    decay: Math.random()*0.015+0.008,
+                    c: ['#a855f7','#00d4ff','#ec4899','#00ffaa'][Math.floor(Math.random()*4)],
+                    width: Math.random()*2+0.5
+                };
+            }
+
+            function aqInit() {
+                aqParticles = [];
+                const count = Math.min(120, Math.floor(aqCanvas.width*aqCanvas.height/10000));
+                for (let i = 0; i < count; i++) aqParticles.push(aqCreateParticle());
+            }
+
+            function aqDraw() {
+                aqCtx.clearRect(0, 0, aqCanvas.width, aqCanvas.height);
+
+                // Shooting stars
+                if (Math.random() < 0.008) aqShootingStars.push(aqCreateShootingStar());
+                aqShootingStars = aqShootingStars.filter(s => {
+                    s.x += s.vx; s.y += s.vy; s.life -= s.decay;
+                    if (s.life <= 0) return false;
+                    const grad = aqCtx.createLinearGradient(s.x, s.y, s.x - s.vx*s.length/8, s.y - s.vy*s.length/8);
+                    grad.addColorStop(0, s.c);
+                    grad.addColorStop(1, 'transparent');
+                    aqCtx.beginPath();
+                    aqCtx.moveTo(s.x, s.y);
+                    aqCtx.lineTo(s.x - s.vx*s.length/8, s.y - s.vy*s.length/8);
+                    aqCtx.strokeStyle = grad;
+                    aqCtx.globalAlpha = s.life;
+                    aqCtx.lineWidth = s.width;
+                    aqCtx.stroke();
+                    // Head glow
+                    aqCtx.beginPath();
+                    aqCtx.arc(s.x, s.y, s.width*2, 0, Math.PI*2);
+                    aqCtx.fillStyle = s.c;
+                    aqCtx.globalAlpha = s.life*0.8;
+                    aqCtx.fill();
+                    return true;
+                });
+
+                // Particles
+                aqParticles.forEach(p => {
+                    // Mouse repulsion
+                    const mdx = p.x - aqMouseX, mdy = p.y - aqMouseY;
+                    const mDist = Math.sqrt(mdx*mdx + mdy*mdy);
+                    if (mDist < 150 && p.type !== 'nebula') {
+                        const force = (150 - mDist) / 150 * 0.8;
+                        p.vx += (mdx/mDist) * force;
+                        p.vy += (mdy/mDist) * force;
+                    }
+                    // Damping
+                    p.vx *= 0.99; p.vy *= 0.99;
+                    p.x += p.vx; p.y += p.vy;
+                    p.pulse += p.pulseSpeed;
+                    p.angle += p.angleSpeed;
+                    // Wrap
+                    if (p.x < -20) p.x = aqCanvas.width+20;
+                    if (p.x > aqCanvas.width+20) p.x = -20;
+                    if (p.y < -20) p.y = aqCanvas.height+20;
+                    if (p.y > aqCanvas.height+20) p.y = -20;
+
+                    const opacity = p.o * (0.5 + 0.5*Math.sin(p.pulse));
+
+                    if (p.type === 'nebula') {
+                        const ng = aqCtx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r);
+                        ng.addColorStop(0, p.c);
+                        ng.addColorStop(1, 'transparent');
+                        aqCtx.beginPath();
+                        aqCtx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+                        aqCtx.fillStyle = ng;
+                        aqCtx.globalAlpha = opacity;
+                        aqCtx.fill();
+                    } else {
+                        // Core
+                        aqCtx.beginPath();
+                        aqCtx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+                        aqCtx.fillStyle = p.c;
+                        aqCtx.globalAlpha = opacity;
+                        aqCtx.fill();
+                        // Glow
+                        const glowSize = p.type === 'medium' ? 5 : 3;
+                        const gg = aqCtx.createRadialGradient(p.x,p.y,p.r*0.5,p.x,p.y,p.r*glowSize);
+                        gg.addColorStop(0, p.c);
+                        gg.addColorStop(1, 'transparent');
+                        aqCtx.beginPath();
+                        aqCtx.arc(p.x, p.y, p.r*glowSize, 0, Math.PI*2);
+                        aqCtx.fillStyle = gg;
+                        aqCtx.globalAlpha = opacity*0.4;
+                        aqCtx.fill();
+                    }
+                });
+
+                // Connections (only non-nebula)
+                const connectable = aqParticles.filter(p => p.type !== 'nebula');
+                for (let i = 0; i < connectable.length; i++) {
+                    for (let j = i+1; j < connectable.length; j++) {
+                        const dx = connectable[i].x - connectable[j].x;
+                        const dy = connectable[i].y - connectable[j].y;
+                        const dist = Math.sqrt(dx*dx+dy*dy);
+                        if (dist < 140) {
+                            const lineGrad = aqCtx.createLinearGradient(connectable[i].x,connectable[i].y,connectable[j].x,connectable[j].y);
+                            lineGrad.addColorStop(0, connectable[i].c);
+                            lineGrad.addColorStop(1, connectable[j].c);
+                            aqCtx.beginPath();
+                            aqCtx.moveTo(connectable[i].x, connectable[i].y);
+                            aqCtx.lineTo(connectable[j].x, connectable[j].y);
+                            aqCtx.strokeStyle = lineGrad;
+                            aqCtx.globalAlpha = (1-dist/140)*0.2;
+                            aqCtx.lineWidth = 0.6;
+                            aqCtx.stroke();
+                        }
+                    }
+                }
+                aqCtx.globalAlpha = 1;
+                aqAnimId = requestAnimationFrame(aqDraw);
+            }
+
+            function aqStart() {
+                if (aqAnimId) return;
+                aqResize(); aqInit();
+                aqCanvas.style.display = 'block';
+                aqDraw();
+            }
+            function aqStop() {
+                if (aqAnimId) { cancelAnimationFrame(aqAnimId); aqAnimId = null; }
+                aqCanvas.style.display = 'none';
+                aqParticles = []; aqShootingStars = [];
+            }
+            function aqCheck() {
+                const t = document.documentElement.getAttribute('data-theme');
+                if (t === 'aether-quantum') aqStart(); else aqStop();
+            }
+            window.addEventListener('resize', () => { if (aqAnimId) { aqResize(); aqInit(); } });
+            window.addEventListener('theme-changed', aqCheck);
+            new MutationObserver(aqCheck).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+            aqCheck();
+        })();
+        </script>
         <div class="modal-overlay"></div>
         <div class="modal-container" style="max-width: 700px;">
             <div class="modal-header">
                 <h2>📝 Changelog Update</h2>
                 <button class="close-modal-btn" id="close-changelog-btn" aria-label="Close changelog">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M18 6L6 18M6 6l12 12"/>
-                    </svg>
+</body>                    </svg>
                 </button>
             </div>
             <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
