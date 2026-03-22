@@ -1076,12 +1076,39 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('toggle-lyrics-btn')?.addEventListener('click', async (e) => {
         e.stopPropagation();
-        toggleLyricsPanel();
+                // Open fullscreen and toggle lyrics instead of side panel
+        const fullscreen = document.getElementById('fullscreen-cover');
+        if (fullscreen && !fullscreen.classList.contains('active')) {
+            // Open fullscreen first
+            const coverEl = document.querySelector('.now-playing-bar .cover');
+            if (coverEl) coverEl.click();
+            // Wait for fullscreen to open, then toggle lyrics
+            setTimeout(() => {
+                const fsLyricsBtn = document.getElementById('toggle-fullscreen-lyrics-btn');
+                if (fsLyricsBtn) fsLyricsBtn.click();
+            }, 300);
+        } else if (fullscreen && fullscreen.classList.contains('active')) {
+            // Already in fullscreen, just toggle lyrics side panel
+            toggleLyricsPanel();
+        } else {
+            toggleLyricsPanel();
+        }
     });
 
     document.getElementById('now-playing-mic-btn')?.addEventListener('click', async (e) => {
         e.stopPropagation();
-        toggleLyricsPanel();
+        // Open fullscreen and toggle lyrics instead of side panel
+        const fullscreen2 = document.getElementById('fullscreen-cover');
+        if (fullscreen2 && !fullscreen2.classList.contains('active')) {
+            const coverEl2 = document.querySelector('.now-playing-bar .cover');
+            if (coverEl2) coverEl2.click();
+            setTimeout(() => {
+                const fsLyricsBtn2 = document.getElementById('toggle-fullscreen-lyrics-btn');
+                if (fsLyricsBtn2) fsLyricsBtn2.click();
+            }, 300);
+        } else {
+            toggleLyricsPanel();
+        }
     });
 
     document.getElementById('download-current-btn')?.addEventListener('click', () => {
