@@ -3077,7 +3077,7 @@ export class UIRenderer {
                 }
             });
 
-            await this.renderPodcastSearchResults(query);
+            
         } catch (error) {
             if (error.name === 'AbortError') return;
             console.error('Search failed:', error);
