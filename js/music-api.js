@@ -44,6 +44,31 @@ export class MusicAPI {
     }
 
     // Search methods
+    async search(query, options = {}) {
+        const provider = options.provider || this.getCurrentProvider();
+        const api = this.getAPI(provider);
+        if (typeof api.search === 'function') {
+            return api.search(query, options);
+        }
+
+        // Fallback for providers that don't implement unified search
+        const [tracksResult, videosResult, artistsResult, albumsResult, playlistsResult] = await Promise.all([
+            api.searchTracks(query, options),
+            api.searchVideos ? api.searchVideos(query, options) : Promise.resolve({ items: [] }),
+            api.searchArtists(query, options),
+            api.searchAlbums(query, options),
+            api.searchPlaylists ? api.searchPlaylists(query, options) : Promise.resolve({ items: [] }),
+        ]);
+
+        return {
+            tracks: tracksResult,
+            videos: videosResult,
+            artists: artistsResult,
+            albums: albumsResult,
+            playlists: playlistsResult,
+        };
+    }
+
     async searchTracks(query, options = {}) {
         const provider = options.provider || this.getCurrentProvider();
         return this.getAPI(provider).searchTracks(query, options);

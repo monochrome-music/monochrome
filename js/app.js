@@ -419,6 +419,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         removeHiRes(qualitySelect);
+        removeHiRes(downloadQualitySelect);
 
         if (isIos) {
             document.querySelector('#hi-res-download-warning').style.display = '';

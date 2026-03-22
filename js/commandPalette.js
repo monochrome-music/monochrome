@@ -531,6 +531,14 @@ class CommandPalette {
             },
 
             {
+                id: 'quality-auto',
+                group: 'Audio',
+                icon: 'sliders',
+                label: 'Quality: Auto (Adaptive)',
+                keywords: ['quality', 'auto', 'adaptive', 'streaming', 'bitrate'],
+                action: () => this.setQuality('auto'),
+            },
+            {
                 id: 'quality-low',
                 group: 'Audio',
                 icon: 'sliders',
@@ -839,11 +847,10 @@ class CommandPalette {
         this.showMusicLoading();
 
         try {
-            const [tracks, albums, artists] = await Promise.all([
-                api.searchTracks(query, { limit: 4 }),
-                api.searchAlbums(query, { limit: 3 }),
-                api.searchArtists(query, { limit: 3 }),
-            ]);
+            const results = await api.search(query, { limit: 4 });
+            const tracks = results.tracks || { items: [] };
+            const albums = results.albums || { items: [] };
+            const artists = results.artists || { items: [] };
 
             if (controller.signal.aborted || !this.isOpen) return;
 
@@ -1189,19 +1196,34 @@ class CommandPalette {
     }
 
     async setQuality(quality) {
-        const qualityNames = { LOW: 'Low', HIGH: 'High', LOSSLESS: 'Lossless', HI_RES_LOSSLESS: 'Hi-Res' };
+        const qualityNames = {
+            auto: 'Auto',
+            LOW: 'Low',
+            HIGH: 'High',
+            LOSSLESS: 'Lossless',
+            HI_RES_LOSSLESS: 'Hi-Res',
+        };
 
         if (Player.instance) {
-            Player.instance.setQuality(quality);
-            localStorage.setItem('playback-quality', quality);
+            // Set fallback API quality (Auto maps back to Hi-Res)
+            const apiQuality = quality === 'auto' ? 'HI_RES_LOSSLESS' : quality;
+            Player.instance.setQuality(apiQuality);
+            localStorage.setItem('playback-quality', apiQuality);
+
+            // Set adaptive streaming quality
+            localStorage.setItem('adaptive-playback-quality', quality);
+            if (Player.instance.forceQuality) Player.instance.forceQuality(quality);
+
             const streamingSelect = document.getElementById('streaming-quality-setting');
             if (streamingSelect) streamingSelect.value = quality;
         }
 
         const { downloadQualitySettings } = await import('./storage.js');
-        downloadQualitySettings.setQuality(quality);
+        // Do not pass auto to download quality, resolve it to original fallback
+        const dlQuality = quality === 'auto' ? 'HI_RES_LOSSLESS' : quality;
+        downloadQualitySettings.setQuality(dlQuality);
         const downloadSelect = document.getElementById('download-quality-setting');
-        if (downloadSelect) downloadSelect.value = quality;
+        if (downloadSelect) downloadSelect.value = dlQuality;
 
         this.notify(`Quality set to ${qualityNames[quality] || quality}`);
     }

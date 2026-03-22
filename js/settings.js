@@ -803,14 +803,32 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     // Streaming Quality setting
     const streamingQualitySetting = document.getElementById('streaming-quality-setting');
     if (streamingQualitySetting) {
-        const savedQuality = localStorage.getItem('playback-quality') || 'HI_RES_LOSSLESS';
-        streamingQualitySetting.value = savedQuality;
-        player.setQuality(savedQuality);
+        const savedAdaptiveQuality = localStorage.getItem('adaptive-playback-quality') || 'auto';
+
+        // Map the stored auto state to the dropdown, or if it doesn't match an option, use the playback-quality value
+        const optionExists = Array.from(streamingQualitySetting.options).some(
+            (opt) => opt.value === savedAdaptiveQuality
+        );
+        streamingQualitySetting.value = optionExists
+            ? savedAdaptiveQuality
+            : localStorage.getItem('playback-quality') || 'auto';
+
+        // Apply initially
+        if (player.forceQuality) player.forceQuality(streamingQualitySetting.value);
+        const apiQuality = streamingQualitySetting.value === 'auto' ? 'HI_RES_LOSSLESS' : streamingQualitySetting.value;
+        player.setQuality(localStorage.getItem('playback-quality') || apiQuality);
 
         streamingQualitySetting.addEventListener('change', (e) => {
-            const newQuality = e.target.value;
-            player.setQuality(newQuality);
-            localStorage.setItem('playback-quality', newQuality);
+            const val = e.target.value;
+
+            // Set adaptive DASH quality
+            localStorage.setItem('adaptive-playback-quality', val);
+            if (player.forceQuality) player.forceQuality(val);
+
+            // Set fallback API quality
+            const newApiQuality = val === 'auto' ? 'HI_RES_LOSSLESS' : val;
+            player.setQuality(newApiQuality);
+            localStorage.setItem('playback-quality', newApiQuality);
         });
     }
 
@@ -819,6 +837,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     if (downloadQualitySetting) {
         // Assign categories to the static (native) options already in the HTML
         const staticCategories = {
+            DOLBY_ATMOS: 'Spatial',
             HI_RES_LOSSLESS: 'Lossless',
             LOSSLESS: 'Lossless',
             HIGH: 'AAC',
@@ -845,7 +864,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             const m = text.match(/(\d+)\s*kbps/i);
             return m ? parseInt(m[1], 10) : Infinity;
         };
-        const categoryOrder = ['Lossless', 'AAC', 'MP3', 'OGG'];
+        const categoryOrder = ['Spatial', 'Lossless', 'AAC', 'MP3', 'OGG'];
         allOptions.sort((a, b) => {
             if (a.category == b.category && a.category === 'Lossless') return 0; // Preserve original order for lossless options
             const ai = categoryOrder.indexOf(a.category);

@@ -1,5 +1,6 @@
 //js/utils.js
 import { modernSettings } from './ModernSettings.js';
+import { SVG_ATMOS } from './icons.js';
 import { qualityBadgeSettings, coverArtSizeSettings, trackDateSettings } from './storage.js';
 
 export const QUALITY = 'HI_RES_LOSSLESS';
@@ -11,15 +12,17 @@ export const REPEAT_MODE = {
 };
 
 export const AUDIO_QUALITIES = {
+    DOLBY_ATMOS: 'DOLBY_ATMOS',
     HI_RES_LOSSLESS: 'HI_RES_LOSSLESS',
     LOSSLESS: 'LOSSLESS',
     HIGH: 'HIGH',
     LOW: 'LOW',
 };
 
-export const QUALITY_PRIORITY = ['HI_RES_LOSSLESS', 'LOSSLESS', 'HIGH', 'LOW'];
+export const QUALITY_PRIORITY = ['DOLBY_ATMOS', 'HI_RES_LOSSLESS', 'LOSSLESS', 'HIGH', 'LOW'];
 
 export const QUALITY_TOKENS = {
+    DOLBY_ATMOS: ['DOLBY_ATMOS', 'ATMOS'],
     HI_RES_LOSSLESS: [
         'HI_RES_LOSSLESS',
         'HIRES_LOSSLESS',
@@ -240,6 +243,7 @@ export const getExtensionForQuality = (quality) => {
     switch (quality) {
         case 'LOW':
         case 'HIGH':
+        case 'DOLBY_ATMOS':
             return 'm4a';
         default:
             return 'flac';
@@ -288,7 +292,9 @@ export const createQualityBadgeHTML = (track) => {
     if (!qualityBadgeSettings.isEnabled()) return '';
 
     const quality = deriveTrackQuality(track);
-    if (quality === 'HI_RES_LOSSLESS') {
+    if (quality === 'DOLBY_ATMOS') {
+        return `<span class="quality-badge quality-atmos" title="Dolby Atmos">${SVG_ATMOS(20)}</span>`;
+    } else if (quality === 'HI_RES_LOSSLESS') {
         return '<span class="quality-badge quality-hires" title="Hi-Res Lossless">HD</span>';
     }
     return '';

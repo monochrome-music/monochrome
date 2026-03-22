@@ -2970,19 +2970,13 @@ export class UIRenderer {
 
         try {
             const provider = this.api.getCurrentProvider();
-            const [tracksResult, videosResult, artistsResult, albumsResult, playlistsResult] = await Promise.all([
-                this.api.searchTracks(query, { signal, provider }),
-                this.api.searchVideos(query, { signal, provider }),
-                this.api.searchArtists(query, { signal, provider }),
-                this.api.searchAlbums(query, { signal, provider }),
-                this.api.searchPlaylists(query, { signal, provider }),
-            ]);
+            const results = await this.api.search(query, { signal, provider });
 
-            let finalTracks = tracksResult.items;
-            let finalVideos = videosResult.items || [];
-            let finalArtists = artistsResult.items;
-            let finalAlbums = albumsResult.items;
-            let finalPlaylists = playlistsResult.items;
+            let finalTracks = (results.tracks && results.tracks.items) || [];
+            let finalVideos = (results.videos && results.videos.items) || [];
+            let finalArtists = (results.artists && results.artists.items) || [];
+            let finalAlbums = (results.albums && results.albums.items) || [];
+            let finalPlaylists = (results.playlists && results.playlists.items) || [];
 
             if (finalArtists.length === 0 && finalTracks.length > 0) {
                 const artistMap = new Map();
@@ -5318,12 +5312,6 @@ export class UIRenderer {
                                 </button>`
                                         : ''
                                 }
-                                <button class="move-up" title="Move Up" ${index === 0 ? 'disabled' : ''}>
-                                    ${SVG_MOVE_UP(16)}
-                                </button>
-                                <button class="move-down" title="Move Down" ${index === instances.length - 1 ? 'disabled' : ''}>
-                                    ${SVG_MOVE_DOWN(16)}
-                                </button>
                             </div>
                         </li>
                     `;
