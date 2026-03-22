@@ -2001,7 +2001,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             const clicked = parseInt(ratingStar.dataset.rating);
             const current = await db.getRating(track.id);
             await db.setRating(track.id, current === clicked ? 0 : clicked);
-            ui.updateRatingState(trackItem, track.id);
+            window.dispatchEvent(new CustomEvent('rating-changed', { detail: { trackId: track.id } }));
             return;
         }
 
@@ -2013,7 +2013,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             const track = trackItem ? trackDataStore.get(trackItem) : null;
             if (!track) return;
             await db.setRating(track.id, 0);
-            ui.updateRatingState(trackItem, track.id);
+            window.dispatchEvent(new CustomEvent('rating-changed', { detail: { trackId: track.id } }));
             return;
         }
 
@@ -2527,6 +2527,26 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                     scrobbler
                 );
             }
+        });
+    }
+
+    const nowPlayingRating = document.getElementById('now-playing-rating');
+    if (nowPlayingRating) {
+        nowPlayingRating.addEventListener('click', async (e) => {
+            const ratingStar = e.target.closest('.rating-star');
+            const ratingClear = e.target.closest('.rating-clear');
+            if (!ratingStar && !ratingClear) return;
+            e.stopPropagation();
+            if (!player.currentTrack) return;
+            const trackId = player.currentTrack.id;
+            if (ratingStar) {
+                const clicked = parseInt(ratingStar.dataset.rating);
+                const current = await db.getRating(trackId);
+                await db.setRating(trackId, current === clicked ? 0 : clicked);
+            } else {
+                await db.setRating(trackId, 0);
+            }
+            window.dispatchEvent(new CustomEvent('rating-changed', { detail: { trackId } }));
         });
     }
 

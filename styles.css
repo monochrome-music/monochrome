@@ -2418,6 +2418,18 @@ body.multi-select-mode .track-item:hover {
     fill: currentColor;
 }
 
+.now-playing-bar .track-rating {
+    gap: 0;
+    opacity: 1;
+}
+
+.now-playing-bar .rating-star,
+.now-playing-bar .rating-clear {
+    width: auto;
+    height: auto;
+    padding: 2px;
+}
+
 .track-menu-btn {
     background: transparent;
     border: none;
