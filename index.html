@@ -2673,6 +2673,7 @@
                                     <div class="theme-option" data-theme="latte">Latte</div>
                                                                 <div class="theme-option" data-theme="aether">Aether</div>
                             <div class="theme-option" data-theme="aether-beyond">Aether Beyond</div>
+                                                                <div class="theme-option" data-theme="aether-quantum">Aether Quantum</div>
                                     <div class="theme-option" data-theme="custom">Custom</div>
                                 </div>
                                 <div id="applied-community-theme-container" style="display: none; margin-top: 1rem">
@@ -5060,7 +5061,7 @@
 
             function checkTheme() {
                 const theme = document.documentElement.getAttribute('data-theme');
-                if (theme === 'aether-beyond') startParticles();
+                if (theme === 'aether-beyond' || theme === 'aether-quantum') startParticles();
                 else stopParticles();
             }
 
