@@ -1858,6 +1858,7 @@
                         <button class="search-tab" data-tab="albums">Albums</button>
                         <button class="search-tab" data-tab="artists">Artists</button>
                         <button class="search-tab" data-tab="playlists">Playlists</button>
+                        <button class="search-tab" data-tab="podcasts">Podcasts</button>
                     </div>
                     <div class="search-tab-content active" id="search-tab-tracks">
                         <div class="track-list" id="search-tracks-container"></div>
@@ -1873,6 +1874,9 @@
                     </div>
                     <div class="search-tab-content" id="search-tab-playlists">
                         <div class="card-grid" id="search-playlists-container"></div>
+                    </div>
+                    <div class="search-tab-content" id="search-tab-podcasts">
+                        <div class="card-grid" id="search-podcasts-container"></div>
                     </div>
                 </div>
 
@@ -2015,6 +2019,46 @@
 
                 <div id="page-unreleased" class="page">
                     <div id="unreleased-content" style="padding: 1rem 0"></div>
+                </div>
+
+                <div id="page-podcasts" class="page">
+                    <header class="detail-header">
+                        <img
+                            id="podcasts-detail-image"
+                            src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                            alt=""
+                            class="detail-header-image artist"
+                        />
+                        <div class="detail-header-info">
+                            <div class="type">Podcast</div>
+                            <h1 class="title" id="podcasts-detail-name"></h1>
+                            <div class="meta" id="podcasts-detail-meta"></div>
+                            <div class="detail-header-actions">
+                                <button id="play-podcasts-btn" class="btn-primary" title="Play Latest Episode">
+                                    <use svg="./images/play.svg" size="20" />
+                                    <span>Play Latest</span>
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+                    <div class="content-section">
+                        <h2 class="section-title">Episodes</h2>
+                        <div class="track-list" id="podcasts-episodes-container"></div>
+                    </div>
+                </div>
+
+                <div id="page-podcasts-browse" class="page">
+                    <h2 class="section-title">Browse Podcasts</h2>
+                    <div class="search-tabs">
+                        <button class="search-tab active" data-tab="trending">Trending</button>
+                        <button class="search-tab" data-tab="recent">Recent</button>
+                    </div>
+                    <div class="search-tab-content active" id="podcasts-tab-trending">
+                        <div class="card-grid" id="podcasts-trending-container"></div>
+                    </div>
+                    <div class="search-tab-content" id="podcasts-tab-recent">
+                        <div class="card-grid" id="podcasts-recent-container"></div>
+                    </div>
                 </div>
 
                 <div id="page-tracker-artist" class="page">

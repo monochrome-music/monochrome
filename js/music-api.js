@@ -3,6 +3,7 @@
 
 import { LosslessAPI } from './api.js';
 import { QobuzAPI } from './qobuz-api.js';
+import { PodcastsAPI } from './podcasts-api.js';
 import { musicProviderSettings } from './storage.js';
 
 export class MusicAPI {
@@ -18,6 +19,7 @@ export class MusicAPI {
     constructor(settings) {
         this.tidalAPI = new LosslessAPI(settings);
         this.qobuzAPI = new QobuzAPI();
+        this.podcastsAPI = new PodcastsAPI();
         this._settings = settings;
         this.videoArtworkCache = new Map();
     }
@@ -69,6 +71,22 @@ export class MusicAPI {
     async searchVideos(query, options = {}) {
         const provider = options.provider || this.getCurrentProvider();
         return this.tidalAPI.searchVideos(query, options);
+    }
+
+    async searchPodcasts(query, options = {}) {
+        return this.podcastsAPI.searchPodcasts(query, options);
+    }
+
+    async getPodcast(id, options = {}) {
+        return this.podcastsAPI.getPodcastById(id, options);
+    }
+
+    async getPodcastEpisodes(id, options = {}) {
+        return this.podcastsAPI.getPodcastEpisodes(id, options);
+    }
+
+    async getTrendingPodcasts(options = {}) {
+        return this.podcastsAPI.getTrendingPodcasts(options);
     }
 
     // Get methods
