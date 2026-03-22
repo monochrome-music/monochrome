@@ -2712,9 +2712,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const isFullscreenOpen = overlay && getComputedStyle(overlay).display === 'flex';
 
         if (isFullscreenOpen && !window.location.hash.startsWith('#fullscreen')) {
-            ui.closeFullscreenCover();
-
-        if (isFullscreenOpen && window.location.hash !== '#fullscreen') {
             UIRenderer.instance.closeFullscreenCover();
         }
 

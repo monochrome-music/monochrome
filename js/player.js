@@ -1330,46 +1330,17 @@ export class Player {
                 const updatedQueue = this.getCurrentQueue();
                 if (this.currentQueueIndex < updatedQueue.length - 1) {
                     this.playNext(0);
-        import('./storage.js').then(({ contentBlockingSettings }) => {
-            if (
-                this.repeatMode === REPEAT_MODE.ONE &&
-                !currentQueue[this.currentQueueIndex]?.isUnavailable &&
-                !contentBlockingSettings.shouldHideTrack(currentQueue[this.currentQueueIndex])
-            ) {
-                this.playTrackFromQueue(0, recursiveCount);
-                return;
-            }
-
-            if (!isLastTrack) {
+                }
+            });
+            return;
+        } else if (this.artistPopularTracksState.artistId && this.artistPopularTracksState.hasMore) {
+            this.fetchMoreArtistPopularTracks().then((newTracks) => {
+                if (newTracks && newTracks.length > 0) {
+                    this.addToQueue(newTracks);
+                }
+                // Now play the next track (which is now at currentQueueIndex + 1 if tracks were added)
                 this.currentQueueIndex++;
-                const track = currentQueue[this.currentQueueIndex];
-                if (track?.isUnavailable || contentBlockingSettings.shouldHideTrack(track)) {
-                    return this.playNext(recursiveCount + 1);
-                }
-            } else if (this.radioEnabled) {
-                this.fetchRadioRecommendations().then(() => {
-                    const updatedQueue = this.getCurrentQueue();
-                    if (this.currentQueueIndex < updatedQueue.length - 1) {
-                        this.playNext(0);
-                    }
-                });
-                return;
-            } else if (this.artistPopularTracksState.artistId && this.artistPopularTracksState.hasMore) {
-                this.fetchMoreArtistPopularTracks().then((newTracks) => {
-                    if (newTracks && newTracks.length > 0) {
-                        this.addToQueue(newTracks);
-                    }
-                    // Now play the next track (which is now at currentQueueIndex + 1 if tracks were added)
-                    this.currentQueueIndex++;
-                    this.playTrackFromQueue(0, recursiveCount);
-                });
-                return;
-            } else if (this.repeatMode === REPEAT_MODE.ALL) {
-                this.currentQueueIndex = 0;
-                const track = currentQueue[this.currentQueueIndex];
-                if (track?.isUnavailable || contentBlockingSettings.shouldHideTrack(track)) {
-                    return this.playNext(recursiveCount + 1);
-                }
+                this.playTrackFromQueue(0, recursiveCount);
             });
             return;
         } else if (this.repeatMode === REPEAT_MODE.ALL) {
