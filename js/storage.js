@@ -312,11 +312,9 @@ export const themeManager = {
         latte: {},
                 aether: {},
         'aether-beyond': {},
-                'aether-quantum': {},
     },
 
     getTheme() {
-        try {
             return localStorage.getItem(this.STORAGE_KEY) || 'system';
         } catch {
             return 'system';
