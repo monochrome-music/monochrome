@@ -1,7 +1,7 @@
 export class MusicDatabase {
     constructor() {
         this.dbName = 'MonochromeDB';
-        this.version = 9;
+        this.version = 10;
         this.db = null;
     }
 
@@ -67,6 +67,10 @@ export class MusicDatabase {
                 if (!db.objectStoreNames.contains('pinned_items')) {
                     const store = db.createObjectStore('pinned_items', { keyPath: 'id' });
                     store.createIndex('pinnedAt', 'pinnedAt', { unique: false });
+                }
+                if (!db.objectStoreNames.contains('track_ratings')) {
+                    const store = db.createObjectStore('track_ratings', { keyPath: 'id' });
+                    store.createIndex('rating', 'rating', { unique: false });
                 }
             };
         });
@@ -212,6 +216,29 @@ export class MusicDatabase {
             };
             request.onerror = () => reject(request.error);
         });
+    }
+
+    // Ratings API
+    async setRating(id, rating) {
+        if (rating === 0) {
+            await this.performTransaction('track_ratings', 'readwrite', (store) => store.delete(id));
+        } else {
+            await this.performTransaction('track_ratings', 'readwrite', (store) => store.put({ id, rating }));
+        }
+        window.dispatchEvent(new CustomEvent('rating-changed', { detail: { id, rating } }));
+    }
+
+    async getRating(id) {
+        try {
+            const result = await this.performTransaction('track_ratings', 'readonly', (store) => store.get(id));
+            return result?.rating ?? 0;
+        } catch {
+            return 0;
+        }
+    }
+
+    async getRatedTracks() {
+        return this.getAll('track_ratings');
     }
 
     _minifyItem(type, item) {

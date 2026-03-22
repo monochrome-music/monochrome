@@ -253,7 +253,7 @@ function renderTrackerTracks(container, tracks) {
             <span style="width: 40px; text-align: center;">#</span>
             <span>Title</span>
             <span class="duration-header">Duration</span>
-            <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
+            <span class="rating-header">Rating</span><span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
         </div>
     `;
 

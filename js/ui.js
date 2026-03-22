@@ -83,6 +83,7 @@ import {
     SVG_MOVE_UP,
     SVG_MOVE_DOWN,
     SVG_CHECKBOX,
+    SVG_STAR,
 } from './icons.js';
 
 function sortTracks(tracks, sortType) {
@@ -217,6 +218,16 @@ export class UIRenderer {
             this.vibrantColorCache.set(url, null);
             this.resetVibrantColor();
         };
+    }
+
+    async updateRatingState(element, trackId) {
+        const rating = await db.getRating(trackId);
+        const widget = element.querySelector('.track-rating');
+        if (!widget) return;
+        widget.querySelectorAll('.rating-star').forEach((star) => {
+            star.classList.toggle('active', parseInt(star.dataset.rating) <= rating);
+        });
+        element.classList.toggle('rated', rating > 0);
     }
 
     async updateLikeState(element, type, id) {
@@ -428,6 +439,18 @@ export class UIRenderer {
 
         const yearDisplay = getTrackYearDisplay(track);
 
+        const starSvg = SVG_STAR(14);
+        const ratingHTML = isUnavailable
+            ? ''
+            : `<div class="track-rating">
+                <button class="rating-star" data-rating="5" type="button" title="5 stars">${starSvg}</button>
+                <button class="rating-star" data-rating="4" type="button" title="4 stars">${starSvg}</button>
+                <button class="rating-star" data-rating="3" type="button" title="3 stars">${starSvg}</button>
+                <button class="rating-star" data-rating="2" type="button" title="2 stars">${starSvg}</button>
+                <button class="rating-star" data-rating="1" type="button" title="1 star">${starSvg}</button>
+                <button class="rating-clear" type="button" title="Clear rating"></button>
+            </div>`;
+
         const actionsHTML = isUnavailable
             ? ''
             : `
@@ -471,6 +494,7 @@ export class UIRenderer {
                     </div>
                 </div>
                 <div class="track-item-duration">${isUnavailable || isBlocked ? '--:--' : track.duration ? formatTime(track.duration) : '--:--'}</div>
+                ${ratingHTML}
                 <div class="track-item-actions">
                     ${actionsHTML}
                 </div>
@@ -886,8 +910,9 @@ export class UIRenderer {
             const track = tracks[index];
             if (element && track) {
                 trackDataStore.set(element, track);
-                // Async update for like button
+                // Async update for like button and star rating
                 this.updateLikeState(element, track.type || 'track', track.id);
+                this.updateRatingState(element, track.id);
             }
         });
 
@@ -3032,7 +3057,7 @@ export class UIRenderer {
                 <span style="width: 40px; text-align: center;">#</span>
                 <span>Title</span>
                 <span class="duration-header">Duration</span>
-                <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
+                <span class="rating-header">Rating</span><span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
             </div>
             ${this.createSkeletonTracks(10, false)}
         `;
@@ -3142,7 +3167,7 @@ export class UIRenderer {
                     <span style="width: 40px; text-align: center;">#</span>
                     <span>Title</span>
                     <span class="duration-header">Duration</span>
-                    <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
+                    <span class="rating-header">Rating</span><span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
                 </div>
             `;
 
@@ -3354,7 +3379,7 @@ export class UIRenderer {
                                                                                                                                                     <span style="width: 40px; text-align: center;">#</span>
                                                                                                                                                     <span>Title</span>
                                                                                                                                                     <span class="duration-header">Duration</span>
-                                                                                                                                                    <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
+                                                                                                                                                    <span class="rating-header">Rating</span><span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
                                                                                                                                                 </div>                                            `;
                                             this.renderListWithTracks(tracklistContainer, updatedPlaylist.tracks, true);
 
@@ -3432,7 +3457,7 @@ export class UIRenderer {
                 <span style="width: 40px; text-align: center;">#</span>
                 <span>Title</span>
                 <span class="duration-header">Duration</span>
-                <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
+                <span class="rating-header">Rating</span><span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
             </div>
             ${this.createSkeletonTracks(10, true)}
         `;
@@ -3530,7 +3555,7 @@ export class UIRenderer {
                             <span style="width: 40px; text-align: center;">#</span>
                             <span>Title</span>
                             <span class="duration-header">Duration</span>
-                            <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
+                            <span class="rating-header">Rating</span><span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
                         </div>
                     `;
                     this.renderListWithTracks(container, currentTracks, true, true);
@@ -3681,7 +3706,7 @@ export class UIRenderer {
                             <span style="width: 40px; text-align: center;">#</span>
                             <span>Title</span>
                             <span class="duration-header">Duration</span>
-                            <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
+                            <span class="rating-header">Rating</span><span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
                         </div>
                     `;
                     this.renderListWithTracks(tracklistContainer, currentTracks, true, true);
@@ -3812,7 +3837,7 @@ export class UIRenderer {
                 <span style="width: 40px; text-align: center;">#</span>
                 <span>Title</span>
                 <span class="duration-header">Duration</span>
-                <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
+                <span class="rating-header">Rating</span><span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
             </div>
             ${this.createSkeletonTracks(10, true)}
         `;
@@ -3931,7 +3956,7 @@ export class UIRenderer {
                     <span style="width: 40px; text-align: center;">#</span>
                     <span>Title</span>
                     <span class="duration-header">Duration</span>
-                    <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
+                    <span class="rating-header">Rating</span><span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
                 </div>
             `;
 

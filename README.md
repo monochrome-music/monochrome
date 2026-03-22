@@ -73,6 +73,7 @@
 
 - Recently Played tracking for easy history access
 - Comprehensive Personal Library for favorites
+- 5-star track rating system with per-track persistence
 - Queue management with shuffle and repeat modes
 - Playlist import from other platforms
 - Public playlists for social sharing

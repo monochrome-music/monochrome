@@ -1991,6 +1991,32 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
     mainContent.addEventListener('touchend', handleTrackTouchEnd, { passive: true });
 
     mainContent.addEventListener('click', async (e) => {
+        const ratingStar = e.target.closest('.rating-star');
+        if (ratingStar) {
+            e.preventDefault();
+            e.stopPropagation();
+            const trackItem = ratingStar.closest('.track-item');
+            const track = trackItem ? trackDataStore.get(trackItem) : null;
+            if (!track) return;
+            const clicked = parseInt(ratingStar.dataset.rating);
+            const current = await db.getRating(track.id);
+            await db.setRating(track.id, current === clicked ? 0 : clicked);
+            ui.updateRatingState(trackItem, track.id);
+            return;
+        }
+
+        const ratingClear = e.target.closest('.rating-clear');
+        if (ratingClear) {
+            e.preventDefault();
+            e.stopPropagation();
+            const trackItem = ratingClear.closest('.track-item');
+            const track = trackItem ? trackDataStore.get(trackItem) : null;
+            if (!track) return;
+            await db.setRating(track.id, 0);
+            ui.updateRatingState(trackItem, track.id);
+            return;
+        }
+
         const actionBtn = e.target.closest('.track-action-btn, .like-btn, .play-btn');
         if (actionBtn && actionBtn.dataset.action) {
             e.preventDefault(); // Prevent card navigation
