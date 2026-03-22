@@ -1,0 +1,112 @@
+name: Sync Upstream v2
+
+on:
+  schedule:
+    # Cek setiap 30 menit
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+    inputs:
+      force_sync:
+        description: 'Force sync even if up to date'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  sync:
+    name: Sync from upstream
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/monochrome-music/monochrome.git
+          git fetch upstream main --no-tags
+
+      - name: Check if sync needed
+        id: check
+        run: |
+          BEHIND=$(git rev-list --count HEAD..upstream/main)
+          echo "behind=$BEHIND" >> $GITHUB_OUTPUT
+          echo "Commits behind upstream: $BEHIND"
+          if [ "$BEHIND" -eq 0 ] && [ "${{ github.event.inputs.force_sync }}" != "true" ]; then
+            echo "Already up to date with upstream. Skipping sync."
+          fi
+
+      - name: Backup local workflow files
+        if: steps.check.outputs.behind != '0' || github.event.inputs.force_sync == 'true'
+        run: |
+          mkdir -p /tmp/my-workflows
+          cp -r .github/workflows/. /tmp/my-workflows/
+          echo "Workflows backed up:"
+          ls /tmp/my-workflows/
+
+      - name: Set remote URL with token
+        if: steps.check.outputs.behind != '0' || github.event.inputs.force_sync == 'true'
+        run: |
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+
+      - name: Merge upstream (keep our files on conflict)
+        if: steps.check.outputs.behind != '0' || github.event.inputs.force_sync == 'true'
+        run: |
+          set -e
+
+          echo "=== Our HEAD ==="
+          git log -1 --oneline
+          echo "=== Upstream HEAD ==="
+          git log -1 --oneline upstream/main
+
+          # Merge upstream, prefer our version on ANY conflict
+          git merge upstream/main \
+            --no-edit \
+            --allow-unrelated-histories \
+            -X ours \
+            -m "chore: sync upstream $(date +'%Y-%m-%d %H:%M')" \
+            || {
+              echo "Merge had issues, resolving all conflicts with ours strategy..."
+              # Resolve any remaining conflicts
+              git diff --name-only --diff-filter=U | while read f; do
+                git checkout --ours "$f"
+                git add "$f"
+              done
+              git commit --no-edit -m "chore: sync upstream (conflict resolved) $(date +'%Y-%m-%d %H:%M')"
+            }
+
+      - name: Restore our workflow files
+        if: steps.check.outputs.behind != '0' || github.event.inputs.force_sync == 'true'
+        run: |
+          # Always restore OUR workflow files - upstream should not overwrite them
+          cp -r /tmp/my-workflows/. .github/workflows/
+          echo "Workflow files restored."
+
+          # Commit if workflows were changed by upstream during merge
+          if ! git diff --quiet .github/workflows/; then
+            git add .github/workflows/
+            git commit -m "chore: restore local workflow files after upstream sync"
+            echo "Workflow files had to be restored from backup."
+          else
+            echo "Workflow files unchanged, no extra commit needed."
+          fi
+
+      - name: Push to origin
+        if: steps.check.outputs.behind != '0' || github.event.inputs.force_sync == 'true'
+        run: |
+          git push origin main
+          echo ""
+          echo "=== Sync Complete! ==="
+          echo "Upstream commits merged successfully."
+          echo "Your workflow files are preserved."
+          echo "Vercel will auto-deploy the new changes."
