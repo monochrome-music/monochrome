@@ -50,22 +50,22 @@ export class MusicAPI {
         if (typeof api.search === 'function') {
             return api.search(query, options);
         }
-        
+
         // Fallback for providers that don't implement unified search
         const [tracksResult, videosResult, artistsResult, albumsResult, playlistsResult] = await Promise.all([
             api.searchTracks(query, options),
             api.searchVideos ? api.searchVideos(query, options) : Promise.resolve({ items: [] }),
             api.searchArtists(query, options),
             api.searchAlbums(query, options),
-            api.searchPlaylists ? api.searchPlaylists(query, options) : Promise.resolve({ items: [] })
+            api.searchPlaylists ? api.searchPlaylists(query, options) : Promise.resolve({ items: [] }),
         ]);
-        
+
         return {
             tracks: tracksResult,
             videos: videosResult,
             artists: artistsResult,
             albums: albumsResult,
-            playlists: playlistsResult
+            playlists: playlistsResult,
         };
     }
 

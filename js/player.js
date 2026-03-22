@@ -106,7 +106,7 @@ export class Player {
                     bufferingGoal: 30,
                     rebufferingGoal: 2,
                     bufferBehind: 30,
-                    jumpLargeGaps: true
+                    jumpLargeGaps: true,
                 },
                 abr: {
                     enabled: true,
@@ -115,11 +115,11 @@ export class Player {
                     defaultBandwidthEstimate: 100000,
                     switchInterval: 1, // Check more frequently
                     bandwidthDowngradeTarget: 0.8, // Downgrade more aggressively if bandwidth drops
-                    restrictToElementSize: false
+                    restrictToElementSize: false,
                 },
                 mediaSource: {
-                    codecSwitchingStrategy: 'smooth'
-                }
+                    codecSwitchingStrategy: 'smooth',
+                },
             });
             this.shakaPlayer.addEventListener('adaptation', this.updateAdaptiveQualityBadge.bind(this));
             this.shakaPlayer.addEventListener('variantchanged', this.updateAdaptiveQualityBadge.bind(this));
@@ -501,7 +501,9 @@ export class Player {
                 // Warm connection/cache
                 // For Blob URLs (DASH), this head request is not needed and can cause errors.
                 if (!streamInfo.url.startsWith('blob:')) {
-                    fetch(streamInfo.url, { method: 'HEAD', signal: this.preloadAbortController.signal }).catch(() => {});
+                    fetch(streamInfo.url, { method: 'HEAD', signal: this.preloadAbortController.signal }).catch(
+                        () => {}
+                    );
                 }
             } catch (error) {
                 if (error.name !== 'AbortError') {
@@ -921,10 +923,10 @@ export class Player {
                     await this.shakaPlayer.attach(activeElement);
                     await this.shakaPlayer.load(streamUrl);
                     this.shakaInitialized = true;
-                    
+
                     const savedAdaptiveQuality = localStorage.getItem('adaptive-playback-quality') || 'auto';
                     this.forceQuality(savedAdaptiveQuality);
-                    
+
                     this.updateAdaptiveQualityBadge();
                 } else {
                     activeElement.src = streamUrl;
@@ -963,7 +965,7 @@ export class Player {
                     // We only need the legacy track info if we missed getting ReplayGain from the manifest endpoint
                     const resolvedStreamInfo = await streamInfoPromise;
                     if (this.playbackSequence !== currentSequence) return;
-                    
+
                     streamUrl = resolvedStreamInfo.url;
 
                     if (resolvedStreamInfo.rgInfo) {
@@ -1001,10 +1003,10 @@ export class Player {
                     }
                     this.shakaInitialized = true;
                     this.applyAudioEffects();
-                    
+
                     const savedAdaptiveQuality = localStorage.getItem('adaptive-playback-quality') || 'auto';
                     this.forceQuality(savedAdaptiveQuality);
-                    
+
                     this.updateAdaptiveQualityBadge();
 
                     const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
@@ -1330,7 +1332,7 @@ export class Player {
     handlePlayPause() {
         const el = this.activeElement;
         const hasSource = el.src || el.currentSrc || el.srcObject || this.shakaInitialized;
-        
+
         if (!hasSource || el.error) {
             if (this.currentTrack) {
                 this.playTrackFromQueue(0, 0);
@@ -1653,7 +1655,7 @@ export class Player {
 
     updateAdaptiveQualityBadge() {
         if (!this.currentTrack) return;
-        
+
         try {
             const titleEl = document.querySelector('.now-playing-bar .title');
             if (!titleEl) return;
@@ -1662,11 +1664,12 @@ export class Player {
 
             // Determine if the track is inherently an Atmos track based on metadata
             const trackBaseQuality = deriveTrackQuality(this.currentTrack);
-            const isTrackAtmos = trackBaseQuality === 'DOLBY_ATMOS' || this.currentTrack?.audioQuality === 'DOLBY_ATMOS';
+            const isTrackAtmos =
+                trackBaseQuality === 'DOLBY_ATMOS' || this.currentTrack?.audioQuality === 'DOLBY_ATMOS';
 
             if (this.shakaInitialized) {
                 const variants = this.shakaPlayer.getVariantTracks();
-                const activeVariant = variants.find(t => t.active);
+                const activeVariant = variants.find((t) => t.active);
                 if (activeVariant) {
                     if (!badgeEl) {
                         badgeEl = document.createElement('span');
@@ -1676,16 +1679,18 @@ export class Player {
                         const staticBadge = titleEl.querySelector('.quality-badge:not(.shaka-quality-badge)');
                         if (staticBadge) staticBadge.style.display = 'none';
                     }
-                    
+
                     let text = '';
                     let isAtmosPlaying = false;
-                    
+
                     if (activeVariant.videoBandwidth && activeVariant.height) {
                         text = `${activeVariant.height}p`;
                     } else if (activeVariant.audioCodec) {
                         const codec = activeVariant.audioCodec.toLowerCase();
                         if (codec.includes('flac')) {
-                            const sampleRate = activeVariant.audioSamplingRate ? activeVariant.audioSamplingRate / 1000 : 44.1;
+                            const sampleRate = activeVariant.audioSamplingRate
+                                ? activeVariant.audioSamplingRate / 1000
+                                : 44.1;
                             if (sampleRate > 48 || activeVariant.audioBandwidth > 1200000) {
                                 text = `HD 24/${sampleRate}`;
                             } else {
@@ -1702,13 +1707,18 @@ export class Player {
                         } else {
                             text = activeVariant.audioCodec;
                         }
-                        if (activeVariant.audioBandwidth && !text.includes('FLAC') && !text.includes('HD') && !isAtmosPlaying) {
+                        if (
+                            activeVariant.audioBandwidth &&
+                            !text.includes('FLAC') &&
+                            !text.includes('HD') &&
+                            !isAtmosPlaying
+                        ) {
                             text += ` ${Math.round(activeVariant.audioBandwidth / 1000)}k`;
                         }
                     } else {
                         text = 'Auto';
                     }
-                    
+
                     if (isAtmosPlaying) {
                         badgeEl.className = 'quality-badge quality-atmos shaka-quality-badge';
                         badgeEl.innerHTML = SVG_ATMOS(20);
@@ -1716,9 +1726,14 @@ export class Player {
                         badgeEl.className = 'quality-badge quality-hires shaka-quality-badge';
                         badgeEl.textContent = text;
                     }
-                    badgeEl.style.display = (text || isAtmosPlaying) ? 'inline-flex' : 'none';
+                    badgeEl.style.display = text || isAtmosPlaying ? 'inline-flex' : 'none';
                 }
-            } else if ((isIos || isSafari) && this.activeElement && this.activeElement.src && (this.activeElement.src.includes('.m3u8') || this.currentTrack)) {
+            } else if (
+                (isIos || isSafari) &&
+                this.activeElement &&
+                this.activeElement.src &&
+                (this.activeElement.src.includes('.m3u8') || this.currentTrack)
+            ) {
                 if (!badgeEl) {
                     badgeEl = document.createElement('span');
                     badgeEl.className = 'quality-badge quality-hires shaka-quality-badge';
@@ -1727,24 +1742,28 @@ export class Player {
                     const staticBadge = titleEl.querySelector('.quality-badge:not(.shaka-quality-badge)');
                     if (staticBadge) staticBadge.style.display = 'none';
                 }
-                
+
                 let text = '';
-                
+
                 // Ensure device can actually decode Atmos before rendering logo for HLS
                 let deviceSupportsAtmos = false;
                 try {
                     if (window.MediaSource && typeof window.MediaSource.isTypeSupported === 'function') {
-                        deviceSupportsAtmos = MediaSource.isTypeSupported('audio/mp4; codecs="ec-3"') || MediaSource.isTypeSupported('audio/mp4; codecs="eac3"');
+                        deviceSupportsAtmos =
+                            MediaSource.isTypeSupported('audio/mp4; codecs="ec-3"') ||
+                            MediaSource.isTypeSupported('audio/mp4; codecs="eac3"');
                     }
                     if (!deviceSupportsAtmos && typeof document !== 'undefined') {
                         const a = document.createElement('audio');
-                        deviceSupportsAtmos = !!(a.canPlayType('audio/mp4; codecs="ec-3"') || a.canPlayType('audio/mp4; codecs="eac3"'));
+                        deviceSupportsAtmos = !!(
+                            a.canPlayType('audio/mp4; codecs="ec-3"') || a.canPlayType('audio/mp4; codecs="eac3"')
+                        );
                     }
                 } catch (e) {}
 
                 let isAtmosPlaying = isTrackAtmos && deviceSupportsAtmos;
                 const q = this.quality || localStorage.getItem('adaptive-playback-quality') || 'auto';
-                
+
                 if (!isAtmosPlaying) {
                     if (q === 'HI_RES_LOSSLESS') text = 'HD FLAC';
                     else if (q === 'LOSSLESS') text = 'FLAC';
@@ -1753,7 +1772,7 @@ export class Player {
                     else if (q === 'auto') text = 'HLS Auto';
                     else text = 'HLS';
                 }
-                
+
                 if (isAtmosPlaying) {
                     badgeEl.innerHTML = SVG_ATMOS(20);
                     badgeEl.className = 'quality-badge quality-atmos shaka-quality-badge';
@@ -1771,7 +1790,8 @@ export class Player {
     }
 
     evaluateCrossCodecAbr() {
-        if (!this.shakaInitialized || !this.shakaPlayer || this.shakaPlayer.isBuffering() || this.activeElement.paused) return;
+        if (!this.shakaInitialized || !this.shakaPlayer || this.shakaPlayer.isBuffering() || this.activeElement.paused)
+            return;
 
         try {
             const stats = this.shakaPlayer.getStats();
@@ -1781,13 +1801,13 @@ export class Player {
             const variants = this.shakaPlayer.getVariantTracks();
             if (variants.length < 2) return;
 
-            const activeVariant = variants.find(v => v.active);
+            const activeVariant = variants.find((v) => v.active);
             if (!activeVariant) return;
 
             // Sort variants by bandwidth descending
             const sortedVariants = [...variants].sort((a, b) => b.bandwidth - a.bandwidth);
             const safeUpBandwidth = estimatedBandwidth * 0.85;
-            
+
             let bestVariant = sortedVariants[0];
             for (const variant of sortedVariants) {
                 if (variant.bandwidth <= safeUpBandwidth) {
@@ -1795,7 +1815,7 @@ export class Player {
                     break;
                 }
             }
-            
+
             if (sortedVariants[sortedVariants.length - 1].bandwidth > safeUpBandwidth) {
                 bestVariant = sortedVariants[sortedVariants.length - 1];
             }
@@ -1817,9 +1837,9 @@ export class Player {
 
         try {
             if (quality === 'auto') {
-                this.shakaPlayer.configure({ 
+                this.shakaPlayer.configure({
                     abr: { enabled: true },
-                    preferredAudioCodecs: []
+                    preferredAudioCodecs: [],
                 });
                 return;
             }
@@ -1828,12 +1848,12 @@ export class Player {
             if (variants.length === 0) return;
 
             let bestVariant = variants[0];
-            
+
             if (quality === 'LOW' || quality === 'HIGH') {
                 const targetBandwidth = quality === 'LOW' ? 96000 : 320000;
-                const aacVariants = variants.filter(v => v.audioCodec && v.audioCodec.toLowerCase().includes('mp4a'));
+                const aacVariants = variants.filter((v) => v.audioCodec && v.audioCodec.toLowerCase().includes('mp4a'));
                 const searchVariants = aacVariants.length > 0 ? aacVariants : variants;
-                
+
                 let minDiff = Infinity;
                 for (const variant of searchVariants) {
                     const bw = variant.audioBandwidth || variant.bandwidth;
@@ -1844,22 +1864,24 @@ export class Player {
                     }
                 }
             } else if (quality === 'LOSSLESS' || quality === 'HI_RES_LOSSLESS') {
-                const flacVariants = variants.filter(v => v.audioCodec && v.audioCodec.toLowerCase().includes('flac'));
-                
+                const flacVariants = variants.filter(
+                    (v) => v.audioCodec && v.audioCodec.toLowerCase().includes('flac')
+                );
+
                 if (flacVariants.length > 0) {
                     if (quality === 'HI_RES_LOSSLESS') {
                         // Find highest quality FLAC
                         bestVariant = flacVariants.reduce((prev, current) => {
                             const prevBw = prev.audioBandwidth || prev.bandwidth || 0;
                             const currBw = current.audioBandwidth || current.bandwidth || 0;
-                            return (currBw > prevBw) ? current : prev;
+                            return currBw > prevBw ? current : prev;
                         }, flacVariants[0]);
                     } else {
                         // Find standard lossless (lowest bandwidth FLAC, usually 16-bit 44.1kHz)
                         bestVariant = flacVariants.reduce((prev, current) => {
                             const prevBw = prev.audioBandwidth || prev.bandwidth || 0;
                             const currBw = current.audioBandwidth || current.bandwidth || 0;
-                            return (currBw < prevBw) ? current : prev;
+                            return currBw < prevBw ? current : prev;
                         }, flacVariants[0]);
                     }
                 } else {
@@ -1867,13 +1889,13 @@ export class Player {
                     bestVariant = variants.reduce((prev, current) => {
                         const prevBw = prev.audioBandwidth || prev.bandwidth || 0;
                         const currBw = current.audioBandwidth || current.bandwidth || 0;
-                        return (currBw > prevBw) ? current : prev;
+                        return currBw > prevBw ? current : prev;
                     }, variants[0]);
                 }
             }
 
             this.shakaPlayer.configure({ abr: { enabled: false } });
-            
+
             if (bestVariant.audioCodec) {
                 this.shakaPlayer.configure({ preferredAudioCodecs: [bestVariant.audioCodec] });
             }

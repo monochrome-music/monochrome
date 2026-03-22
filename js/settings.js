@@ -801,10 +801,14 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     const streamingQualitySetting = document.getElementById('streaming-quality-setting');
     if (streamingQualitySetting) {
         const savedAdaptiveQuality = localStorage.getItem('adaptive-playback-quality') || 'auto';
-        
+
         // Map the stored auto state to the dropdown, or if it doesn't match an option, use the playback-quality value
-        const optionExists = Array.from(streamingQualitySetting.options).some(opt => opt.value === savedAdaptiveQuality);
-        streamingQualitySetting.value = optionExists ? savedAdaptiveQuality : (localStorage.getItem('playback-quality') || 'auto');
+        const optionExists = Array.from(streamingQualitySetting.options).some(
+            (opt) => opt.value === savedAdaptiveQuality
+        );
+        streamingQualitySetting.value = optionExists
+            ? savedAdaptiveQuality
+            : localStorage.getItem('playback-quality') || 'auto';
 
         // Apply initially
         if (player.forceQuality) player.forceQuality(streamingQualitySetting.value);
@@ -813,7 +817,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
         streamingQualitySetting.addEventListener('change', (e) => {
             const val = e.target.value;
-            
+
             // Set adaptive DASH quality
             localStorage.setItem('adaptive-playback-quality', val);
             if (player.forceQuality) player.forceQuality(val);
