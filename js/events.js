@@ -579,6 +579,12 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
         repeatBtn.classList.toggle('repeat-one', mode === REPEAT_MODE.ONE);
         repeatBtn.title =
             mode === REPEAT_MODE.OFF ? 'Repeat' : mode === REPEAT_MODE.ALL ? 'Repeat Queue' : 'Repeat One';
+                // Sync fullscreen repeat button
+        const fsRepeatBtn = document.getElementById('fs-repeat-btn');
+        if (fsRepeatBtn) {
+            fsRepeatBtn.classList.toggle('active', mode !== REPEAT_MODE.OFF);
+            fsRepeatBtn.classList.toggle('repeat-one', mode === REPEAT_MODE.ONE);
+        }
     });
 
     window.addEventListener('radio-state-changed', (e) => {
