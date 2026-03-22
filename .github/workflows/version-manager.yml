@@ -54,11 +54,9 @@ jobs:
           SHORT_SHA="${COMMIT_SHA:0:7}"
           TIMESTAMP=$(date -u +"%Y%m%d-%H%M%S")
           TAG_NAME="backup/${TIMESTAMP}-${SHORT_SHA}"
-
           echo "Membuat tag backup: $TAG_NAME"
           git tag "$TAG_NAME" "$COMMIT_SHA" -m "Auto-backup: $TIMESTAMP | SHA: $COMMIT_SHA | Pesan: ${{ github.event.head_commit.message }}"
           git push origin "$TAG_NAME"
-
           echo "✅ Tag backup berhasil dibuat: $TAG_NAME"
           echo "BACKUP_TAG=$TAG_NAME" >> $GITHUB_ENV
 
@@ -99,7 +97,6 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| # | Tag Backup | Commit SHA | Tanggal (UTC) | Pesan Commit |" >> $GITHUB_STEP_SUMMARY
           echo "|---|------------|------------|---------------|--------------|" >> $GITHUB_STEP_SUMMARY
-
           COUNT=0
           while IFS= read -r TAG; do
             COUNT=$((COUNT + 1))
@@ -110,11 +107,9 @@ jobs:
             MSG="${MSG:0:60}"
             echo "| $COUNT | \`$TAG\` | \`$SHORT_SHA\` | $TAG_DATE | $MSG |" >> $GITHUB_STEP_SUMMARY
           done < <(git tag --list "backup/*" --sort=-version:refname)
-
           if [ "$COUNT" -eq 0 ]; then
             echo "| - | Belum ada backup | - | - | - |" >> $GITHUB_STEP_SUMMARY
           fi
-
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Total backup:** $COUNT versi" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -124,7 +119,7 @@ jobs:
           echo "3. Ketik **YES** di field confirm" >> $GITHUB_STEP_SUMMARY
 
   # ─────────────────────────────────────────────
-  # JOB 3: Restore ke versi tertentu (UNDO)
+  # JOB 3: Restore ke versi tertentu (UNDO) - metode reset --hard
   # ─────────────────────────────────────────────
   restore-version:
     name: Restore ke Versi Tertentu
@@ -176,14 +171,12 @@ jobs:
           TIMESTAMP=$(date -u +"%Y%m%d-%H%M%S")
           SAFETY_TAG="backup/${TIMESTAMP}-${SHORT_CURRENT}"
           CURRENT_MSG=$(git log -1 --format="%s" HEAD)
-
           git tag "$SAFETY_TAG" HEAD -m "Safety backup sebelum restore | SHA: $CURRENT_SHA | $CURRENT_MSG"
           git push origin "$SAFETY_TAG"
-
           echo "SAFETY_BACKUP_TAG=$SAFETY_TAG" >> $GITHUB_ENV
           echo "✅ Safety backup dibuat: $SAFETY_TAG"
 
-      - name: Jalankan proses Restore (metode revert)
+      - name: Jalankan proses Restore (metode reset hard + force push)
         run: |
           TARGET_SHA="${{ env.TARGET_FULL_SHA }}"
           CURRENT_SHA=$(git rev-parse HEAD)
@@ -191,47 +184,21 @@ jobs:
           echo "HEAD saat ini: $CURRENT_SHA"
           echo "Restore ke: $TARGET_SHA"
 
-          COMMITS_TO_REVERT=$(git log --reverse --pretty=format:"%H" ${TARGET_SHA}..HEAD)
-
-          if [ -z "$COMMITS_TO_REVERT" ]; then
-            echo "⚠️ Tidak ada commit untuk di-revert. Mungkin sudah di versi yang benar."
+          if [ "$TARGET_SHA" = "$CURRENT_SHA" ]; then
+            echo "⚠️ Sudah berada di versi yang diminta."
             echo "ALREADY_AT_TARGET=true" >> $GITHUB_ENV
             exit 0
           fi
 
           echo "ALREADY_AT_TARGET=false" >> $GITHUB_ENV
 
-          for COMMIT in $COMMITS_TO_REVERT; do
-            echo "Reverting commit: $COMMIT"
-            git revert --no-edit --no-commit "$COMMIT" || {
-              echo "⚠️ Konflik terdeteksi di $COMMIT, menggunakan strategi 'theirs'..."
-              git checkout --theirs . 2>/dev/null || true
-              git add -A
-            }
-          done
+          # Reset hard ke target SHA - mengembalikan semua file persis seperti di target
+          git reset --hard "$TARGET_SHA"
 
-          if git diff --cached --quiet; then
-            echo "⚠️ Tidak ada perubahan setelah revert."
-          else
-            TARGET_MSG=$(git log -1 --format="%s" "$TARGET_SHA")
-            git commit -m "revert: Restore ke versi ${TARGET_SHA:0:7} | '${TARGET_MSG}' | via workflow"
-            git push origin main
-            echo "✅ Restore berhasil dipush!"
-          fi
+          # Force push ke main (menimpa history yang ada setelah target)
+          git push origin main --force
 
-      - name: Buat tag backup pasca-restore
-        if: env.ALREADY_AT_TARGET != 'true'
-        run: |
-          NEW_SHA=$(git rev-parse HEAD)
-          SHORT_NEW="${NEW_SHA:0:7}"
-          TIMESTAMP=$(date -u +"%Y%m%d-%H%M%S")
-          RESTORE_TAG="backup/${TIMESTAMP}-${SHORT_NEW}"
-
-          git tag "$RESTORE_TAG" HEAD -m "Backup pasca-restore | Restore ke: ${{ env.TARGET_SHORT_SHA }}"
-          git push origin "$RESTORE_TAG"
-
-          echo "RESTORE_TAG=$RESTORE_TAG" >> $GITHUB_ENV
-          echo "✅ Backup pasca-restore dibuat: $RESTORE_TAG"
+          echo "✅ Restore berhasil! main sekarang di: $(git rev-parse HEAD)"
 
       - name: Ringkasan (Summary)
         run: |
@@ -241,10 +208,9 @@ jobs:
           echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| Target Restore SHA | \`${{ env.TARGET_FULL_SHA }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Safety Backup (sebelumnya) | \`${{ env.SAFETY_BACKUP_TAG }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Backup Pasca-Restore | \`${{ env.RESTORE_TAG }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Branch | \`main\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "> **Catatan:** History tetap aman. Restore dilakukan dengan metode **revert**." >> $GITHUB_STEP_SUMMARY
+          echo "> **Catatan:** Restore dilakukan dengan metode **reset --hard + force push**. Main branch sekarang persis sama dengan commit target." >> $GITHUB_STEP_SUMMARY
 
   # ─────────────────────────────────────────────
   # JOB 4: Hapus tag cadangan tertentu
@@ -278,19 +244,15 @@ jobs:
         run: |
           TARGET_SHA="${{ github.event.inputs.commit_sha }}"
           FULL_SHA=$(git rev-parse "$TARGET_SHA" 2>/dev/null || echo "")
-
           if [ -z "$FULL_SHA" ]; then
             echo "❌ ERROR: Commit SHA '$TARGET_SHA' tidak ditemukan!"
             exit 1
           fi
-
           SHORT_SHA="${FULL_SHA:0:7}"
           echo "TARGET_SHA=$FULL_SHA" >> $GITHUB_ENV
           echo "TARGET_SHORT_SHA=$SHORT_SHA" >> $GITHUB_ENV
-
           DELETED_TAGS=""
           FOUND=false
-
           while IFS= read -r TAG; do
             TAG_SHA=$(git rev-list -n 1 "$TAG" 2>/dev/null || echo "")
             if [ "$TAG_SHA" = "$FULL_SHA" ]; then
@@ -301,7 +263,6 @@ jobs:
               FOUND=true
             fi
           done < <(git tag --list "backup/*")
-
           if [ "$FOUND" = false ]; then
             echo "DELETED_TAGS=Tidak ditemukan tag untuk SHA \`$SHORT_SHA\`" >> $GITHUB_ENV
           else
