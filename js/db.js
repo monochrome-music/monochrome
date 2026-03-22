@@ -225,7 +225,7 @@ export class MusicDatabase {
         } else {
             await this.performTransaction('track_ratings', 'readwrite', (store) => store.put({ id, rating }));
         }
-        window.dispatchEvent(new CustomEvent('rating-changed', { detail: { id, rating } }));
+        window.dispatchEvent(new CustomEvent('rating-changed', { detail: { trackId: id } }));
     }
 
     async getRating(id) {

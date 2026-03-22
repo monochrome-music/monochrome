@@ -313,19 +313,23 @@ export class UIRenderer {
             const shouldHideLikes = isLocal || isTracker;
 
             if (playerRating) {
-                if (!playerRating.children.length) {
-                    const starSvg = SVG_STAR(14);
-                    playerRating.innerHTML = `
-                        <button class="rating-star" data-rating="5" type="button" title="5 stars">${starSvg}</button>
-                        <button class="rating-star" data-rating="4" type="button" title="4 stars">${starSvg}</button>
-                        <button class="rating-star" data-rating="3" type="button" title="3 stars">${starSvg}</button>
-                        <button class="rating-star" data-rating="2" type="button" title="2 stars">${starSvg}</button>
-                        <button class="rating-star" data-rating="1" type="button" title="1 star">${starSvg}</button>
-                        <button class="rating-clear" type="button" title="Clear rating"></button>
-                    `;
+                if (shouldHideLikes) {
+                    playerRating.style.display = 'none';
+                } else {
+                    if (!playerRating.children.length) {
+                        const starSvg = SVG_STAR(14);
+                        playerRating.innerHTML = `
+                            <button class="rating-star" data-rating="5" type="button" title="5 stars">${starSvg}</button>
+                            <button class="rating-star" data-rating="4" type="button" title="4 stars">${starSvg}</button>
+                            <button class="rating-star" data-rating="3" type="button" title="3 stars">${starSvg}</button>
+                            <button class="rating-star" data-rating="2" type="button" title="2 stars">${starSvg}</button>
+                            <button class="rating-star" data-rating="1" type="button" title="1 star">${starSvg}</button>
+                            <button class="rating-clear" type="button" title="Clear rating"></button>
+                        `;
+                    }
+                    playerRating.style.display = 'flex';
+                    this.updateRatingState(playerRating, track.id);
                 }
-                playerRating.style.display = 'flex';
-                this.updateRatingState(playerRating, track.id);
             }
 
             if (likeBtn) {

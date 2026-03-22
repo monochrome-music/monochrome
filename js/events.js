@@ -2001,7 +2001,6 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             const clicked = parseInt(ratingStar.dataset.rating);
             const current = await db.getRating(track.id);
             await db.setRating(track.id, current === clicked ? 0 : clicked);
-            window.dispatchEvent(new CustomEvent('rating-changed', { detail: { trackId: track.id } }));
             return;
         }
 
@@ -2013,7 +2012,6 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             const track = trackItem ? trackDataStore.get(trackItem) : null;
             if (!track) return;
             await db.setRating(track.id, 0);
-            window.dispatchEvent(new CustomEvent('rating-changed', { detail: { trackId: track.id } }));
             return;
         }
 
@@ -2546,7 +2544,6 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             } else {
                 await db.setRating(trackId, 0);
             }
-            window.dispatchEvent(new CustomEvent('rating-changed', { detail: { trackId } }));
         });
     }
 
