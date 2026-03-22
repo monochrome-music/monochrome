@@ -2954,11 +2954,13 @@ export class UIRenderer {
         const artistsContainer = document.getElementById('search-artists-container');
         const albumsContainer = document.getElementById('search-albums-container');
         const playlistsContainer = document.getElementById('search-playlists-container');
+        const podcastsContainer = document.getElementById('search-podcasts-container');
 
         tracksContainer.innerHTML = this.createSkeletonTracks(8, true);
         artistsContainer.innerHTML = this.createSkeletonCards(6, true);
         albumsContainer.innerHTML = this.createSkeletonCards(6, false);
         playlistsContainer.innerHTML = this.createSkeletonCards(6, false);
+        podcastsContainer.innerHTML = this.createSkeletonCards(6, true);
 
         if (this.searchAbortController) {
             this.searchAbortController.abort();
@@ -3074,6 +3076,8 @@ export class UIRenderer {
                     this.updateLikeState(el, 'playlist', playlist.uuid);
                 }
             });
+
+            await this.renderPodcastSearchResults(query);
         } catch (error) {
             if (error.name === 'AbortError') return;
             console.error('Search failed:', error);
@@ -3082,6 +3086,7 @@ export class UIRenderer {
             artistsContainer.innerHTML = errorMsg;
             albumsContainer.innerHTML = errorMsg;
             playlistsContainer.innerHTML = errorMsg;
+            podcastsContainer.innerHTML = errorMsg;
         }
     }
 
