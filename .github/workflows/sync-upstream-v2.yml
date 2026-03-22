@@ -37,6 +37,10 @@ env:
     .github/workflows/
     .github/FUNDING.yml
     .github/agents/
+                index.html
+            styles.css
+            images/monochrome-logo.svg
+            public/manifest.json
 
 jobs:
   toggle:
