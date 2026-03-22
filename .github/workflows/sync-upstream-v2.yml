@@ -19,27 +19,76 @@ on:
         options:
           - safe
           - accept
+      toggle_auto_sync:
+        description: 'Toggle auto sync ON/OFF (updates AUTO_SYNC variable)'
+        required: false
+        default: 'no_change'
+        type: choice
+        options:
+          - no_change
+          - enable
+          - disable
 
 env:
   UPSTREAM_REPO: monochrome-music/monochrome
   UPSTREAM_BRANCH: main
   FORK_BRANCH: main
-  # Files/folders yang TIDAK BOLEH ditimpa upstream
   PROTECTED_PATHS: |
     .github/workflows/
     .github/FUNDING.yml
     .github/agents/
 
 jobs:
+  toggle:
+    name: Toggle Auto Sync
+    runs-on: ubuntu-latest
+    if: github.event.inputs.toggle_auto_sync != 'no_change' && github.event.inputs.toggle_auto_sync != ''
+    steps:
+      - name: Update AUTO_SYNC variable
+        env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          NEW_VALUE="${{ github.event.inputs.toggle_auto_sync == 'enable' && 'true' || 'false' }}"
+          echo "Setting AUTO_SYNC to: $NEW_VALUE"
+          # Try update, if fails then create
+          gh variable set AUTO_SYNC --body "$NEW_VALUE" --repo "${{ github.repository }}" 2>/dev/null || \
+          gh variable set AUTO_SYNC --body "$NEW_VALUE" --repo "${{ github.repository }}"
+          echo "Auto sync is now: ${{ github.event.inputs.toggle_auto_sync }}d"
+
   sync:
     name: Smart Sync from Upstream
     runs-on: ubuntu-latest
+    needs: [toggle]
+    if: always() && !cancelled()
     permissions:
       contents: write
       actions: write
 
     steps:
+      - name: Check if auto sync is enabled (for scheduled runs)
+        if: github.event_name == 'schedule'
+        run: |
+          AUTO_SYNC="${{ vars.AUTO_SYNC }}"
+          echo "AUTO_SYNC variable = '$AUTO_SYNC'"
+          if [ "$AUTO_SYNC" = "false" ]; then
+            echo "Auto sync is DISABLED. Skipping scheduled run."
+            echo "To re-enable: Run workflow manually > toggle_auto_sync > enable"
+            echo "skip=true" >> $GITHUB_ENV
+          else
+            echo "Auto sync is ENABLED. Proceeding."
+            echo "skip=false" >> $GITHUB_ENV
+          fi
+
+      - name: Skip if auto sync disabled
+        if: env.skip == 'true'
+        run: |
+          echo "::notice::Scheduled sync skipped because AUTO_SYNC is disabled."
+          echo "## Auto Sync Disabled" >> $GITHUB_STEP_SUMMARY
+          echo "Scheduled run was skipped. Auto sync is currently **disabled**." >> $GITHUB_STEP_SUMMARY
+          echo "To re-enable, run the workflow manually and set toggle_auto_sync to **enable**." >> $GITHUB_STEP_SUMMARY
+
       - name: Checkout fork (full history)
+        if: env.skip != 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -47,17 +96,20 @@ jobs:
           ref: ${{ env.FORK_BRANCH }}
 
       - name: Configure Git identity
+        if: env.skip != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Fetch upstream
+        if: env.skip != 'true'
         run: |
           git remote add upstream "https://github.com/${{ env.UPSTREAM_REPO }}.git"
           git fetch upstream ${{ env.UPSTREAM_BRANCH }} --no-tags
           echo "Upstream fetched successfully."
 
       - name: Check sync status
+        if: env.skip != 'true'
         id: check
         run: |
           BEHIND=$(git rev-list --count HEAD..upstream/${{ env.UPSTREAM_BRANCH }})
@@ -77,11 +129,11 @@ jobs:
           fi
 
       - name: Backup protected files
-        if: steps.check.outputs.needs_sync == 'true'
+        if: env.skip != 'true' && steps.check.outputs.needs_sync == 'true'
         run: |
           mkdir -p /tmp/protected-backup
           echo "$PROTECTED_PATHS" | while IFS= read -r path; do
-            path=$(echo "$path" | xargs)  # trim whitespace
+            path=$(echo "$path" | xargs)
             [ -z "$path" ] && continue
             if [ -e "$path" ]; then
               mkdir -p "/tmp/protected-backup/$(dirname "$path")"
@@ -93,21 +145,21 @@ jobs:
           find /tmp/protected-backup -type f 2>/dev/null || echo "(empty)"
 
       - name: Create pre-sync snapshot tag
-        if: steps.check.outputs.needs_sync == 'true'
+        if: env.skip != 'true' && steps.check.outputs.needs_sync == 'true'
+        id: snapshot
         run: |
           TAG="pre-sync-$(date +'%Y%m%d-%H%M%S')"
           git tag "$TAG"
-          echo "Created safety tag: $TAG (use 'git reset --hard $TAG' to rollback)"
+          echo "Created safety tag: $TAG"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
-        id: snapshot
 
       - name: Set push URL with token
-        if: steps.check.outputs.needs_sync == 'true'
+        if: env.skip != 'true' && steps.check.outputs.needs_sync == 'true'
         run: |
           git remote set-url origin "https://x-access-token:${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
 
       - name: Merge upstream changes
-        if: steps.check.outputs.needs_sync == 'true'
+        if: env.skip != 'true' && steps.check.outputs.needs_sync == 'true'
         id: merge
         run: |
           set -e
@@ -120,7 +172,6 @@ jobs:
             MERGE_OPT="-X ours"
           fi
 
-          # Attempt merge
           if git merge upstream/${{ env.UPSTREAM_BRANCH }} \
             --no-edit \
             --allow-unrelated-histories \
@@ -130,7 +181,6 @@ jobs:
             echo "Merge completed cleanly."
           else
             echo "Merge had conflicts, resolving..."
-            # Get conflicted files
             CONFLICTS=$(git diff --name-only --diff-filter=U || true)
             if [ -n "$CONFLICTS" ]; then
               echo "Conflicted files:"
@@ -154,9 +204,8 @@ jobs:
           fi
 
       - name: Restore protected files
-        if: steps.check.outputs.needs_sync == 'true'
+        if: env.skip != 'true' && steps.check.outputs.needs_sync == 'true'
         run: |
-          CHANGED=false
           echo "$PROTECTED_PATHS" | while IFS= read -r path; do
             path=$(echo "$path" | xargs)
             [ -z "$path" ] && continue
@@ -175,24 +224,19 @@ jobs:
           fi
 
       - name: Validate build (basic syntax check)
-        if: steps.check.outputs.needs_sync == 'true'
+        if: env.skip != 'true' && steps.check.outputs.needs_sync == 'true'
         run: |
           echo "=== Post-merge validation ==="
-          # Check JSON files are valid
           for f in $(find . -name '*.json' -not -path './node_modules/*' -not -path './.git/*' | head -20); do
             if ! python3 -c "import json; json.load(open('$f'))" 2>/dev/null; then
               echo "::warning::Invalid JSON: $f"
             fi
           done
-
-          # Check HTML files exist and aren't empty
           for f in index.html legacy.html; do
             if [ -f "$f" ] && [ ! -s "$f" ]; then
               echo "::warning::Empty HTML file: $f"
             fi
           done
-
-          # Check package.json is valid
           if [ -f package.json ]; then
             if python3 -c "import json; json.load(open('package.json'))" 2>/dev/null; then
               echo "package.json: OK"
@@ -204,9 +248,8 @@ jobs:
           echo "Validation passed."
 
       - name: Push changes
-        if: steps.check.outputs.needs_sync == 'true'
+        if: env.skip != 'true' && steps.check.outputs.needs_sync == 'true'
         run: |
-          # Push with safety - never force push
           if git push origin ${{ env.FORK_BRANCH }}; then
             echo ""
             echo "========================================"
@@ -220,22 +263,21 @@ jobs:
             echo "Rollback tag: ${{ steps.snapshot.outputs.tag }}"
             echo "========================================"
           else
-            echo "::error::Push failed! This usually means workflow files were modified."
-            echo "::error::You need a PAT_TOKEN secret with 'workflow' scope."
-            echo "See: Settings > Secrets > Actions > New secret > PAT_TOKEN"
+            echo "::error::Push failed! Check PAT_TOKEN permissions."
             exit 1
           fi
 
       - name: Summary
-        if: always()
+        if: always() && env.skip != 'true'
         run: |
           echo "## Sync Upstream Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Behind upstream | ${{ steps.check.outputs.behind }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Ahead of upstream | ${{ steps.check.outputs.ahead }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Sync needed | ${{ steps.check.outputs.needs_sync }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Auto sync | \`${{ vars.AUTO_SYNC || 'true (default)' }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Behind upstream | ${{ steps.check.outputs.behind || 'n/a' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Ahead of upstream | ${{ steps.check.outputs.ahead || 'n/a' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Sync needed | ${{ steps.check.outputs.needs_sync || 'n/a' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Merge status | ${{ steps.merge.outputs.merge_status || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Strategy | ${{ github.event.inputs.strategy || 'safe' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Rollback tag | \`${{ steps.snapshot.outputs.tag || 'n/a' }}\` |" >> $GITHUB_STEP_SUMMARY
