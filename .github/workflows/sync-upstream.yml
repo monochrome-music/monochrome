@@ -8,7 +8,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      workflows: write
     steps:
       - name: Checkout fork
         uses: actions/checkout@v4
@@ -45,6 +44,10 @@ jobs:
             exit 0
           fi
 
+          # Save current workflow files before merge
+          mkdir -p /tmp/workflows-backup
+          cp -r .github/workflows/* /tmp/workflows-backup/ 2>/dev/null || true
+
           # Set remote URL with token for push
           git remote set-url origin https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
 
@@ -70,6 +73,14 @@ jobs:
                 exit 1
               }
             fi
+          fi
+
+          # Restore our workflow files (GITHUB_TOKEN cannot push workflow changes)
+          echo "Restoring workflow files to prevent push rejection..."
+          cp -r /tmp/workflows-backup/* .github/workflows/ 2>/dev/null || true
+          if ! git diff --quiet .github/workflows/; then
+            git add .github/workflows/
+            git commit -m "chore: preserve local workflow files after upstream sync" --no-verify
           fi
 
           echo "Pushing to origin main..."
