@@ -23,7 +23,19 @@ import { db } from './db.js';
 
 import('./dash-media-player.js');
 import { SVG_CLOCK } from './icons.js';
+import { UIRenderer } from './ui.js';
+
 export class Player {
+    static #instance = null;
+
+    static get instance() {
+        if (!Player.#instance) {
+            throw new Error('Player is not initialized. Call Player.initialize(audioElement, api) first.');
+        }
+        return Player.#instance;
+    }
+
+    /** @private */
     constructor(audioElement, api, quality = 'HI_RES_LOSSLESS') {
         this.audio = audioElement;
         this.video = document.getElementById('video-player');
@@ -61,6 +73,17 @@ export class Player {
             isFetching: false,
             hasMore: true,
         };
+    }
+
+    static async initialize(audioElement, api, quality) {
+        if (Player.#instance) {
+            throw new Error('Player is already initialized');
+        }
+
+        const player = new Player(audioElement, api, quality);
+        await player.init();
+        Player.#instance = player;
+        return player;
     }
 
     async init() {
@@ -825,12 +848,12 @@ export class Player {
                 const played = await this.safePlay(activeElement);
                 if (!played) return;
             } else if (track.type === 'video') {
-                if (window.monochromeUi) {
+                if (UIRenderer.instance) {
                     const isInFullscreen =
                         document.getElementById('fullscreen-cover-overlay')?.style.display === 'flex';
                     if (!isInFullscreen) {
-                        const lyricsManager = window.monochromeUi.lyricsManager;
-                        window.monochromeUi.showFullscreenCover(
+                        const lyricsManager = UIRenderer.instance.lyricsManager;
+                        UIRenderer.instance.showFullscreenCover(
                             track,
                             this.getNextTrack(),
                             lyricsManager,
@@ -1483,8 +1506,8 @@ export class Player {
         this.originalQueueBeforeShuffle = [];
         this.currentQueueIndex = -1;
         this.saveQueueState();
-        if (window.monochromeUi) {
-            window.monochromeUi.setCurrentTrack(null);
+        if (UIRenderer.instance) {
+            UIRenderer.instance.setCurrentTrack(null);
         }
         if (window.renderQueueFunction) {
             window.renderQueueFunction();

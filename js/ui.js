@@ -117,6 +117,16 @@ function sortTracks(tracks, sortType) {
 }
 
 export class UIRenderer {
+    static #instance = null;
+
+    static get instance() {
+        if (!UIRenderer.#instance) {
+            throw new Error('UIRenderer is not initialized. Call UIRenderer.initialize(api, player) first.');
+        }
+        return UIRenderer.#instance;
+    }
+
+    /** @private */
     constructor(api, player) {
         this.api = api;
         this.player = player;
@@ -143,6 +153,13 @@ export class UIRenderer {
                 this.visualizer.updateDimming();
             }
         });
+    }
+
+    static async initialize(api, player) {
+        if (UIRenderer.#instance) {
+            throw new Error('UIRenderer is already initialized');
+        }
+        return (UIRenderer.#instance = new UIRenderer(api, player));
     }
 
     // Helper for Heart Icon
