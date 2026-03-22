@@ -3705,10 +3705,11 @@
                                 <div class="setting-item">
                                     <div class="info">
                                         <span class="label">Streaming Quality</span>
-                                        <span class="description">Quality for streaming playback</span>
+                                        <span class="description">Default playback quality for streams</span>
                                     </div>
                                     <select id="streaming-quality-setting">
-                                        <option value="HI_RES_LOSSLESS">Hi-Res Lossless (24-bit)</option>
+                                        <option value="auto">Auto (Adaptive)</option>
+                                        <option value="HI_RES_LOSSLESS">Hi-Res Lossless (up to 24-bit/192kHz)</option>
                                         <option value="LOSSLESS">Lossless (16-bit)</option>
                                         <option value="HIGH">AAC 320kbps</option>
                                         <option value="LOW">AAC 96kbps</option>
@@ -4164,6 +4165,7 @@
                                             <span class="description">Quality for track downloads</span>
                                         </div>
                                         <select id="download-quality-setting">
+                                            <option value="DOLBY_ATMOS">Dolby Atmos (MP4)</option>
                                             <option value="HI_RES_LOSSLESS">Hi-Res Lossless (24-bit)</option>
                                             <option value="LOSSLESS">Lossless (16-bit)</option>
                                             <option value="HIGH">AAC 320kbps</option>

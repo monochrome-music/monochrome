@@ -514,6 +514,7 @@ export class HiFiClient {
 
     async search(
         options: {
+            q?: string;
             s?: string;
             a?: string;
             al?: string;
@@ -525,7 +526,7 @@ export class HiFiClient {
         },
         signal?: AbortSignal
     ) {
-        const { s, a, al, v, p, i, offset = 0, limit = 25 } = options;
+        const { q, s, a, al, v, p, i, offset = 0, limit = 25 } = options;
 
         if (i) {
             // try filtered track search first
@@ -559,6 +560,11 @@ export class HiFiClient {
         }
 
         const mapping: Array<[string | undefined, string, Params]> = [
+            [
+                q,
+                'https://api.tidal.com/v1/search',
+                { query: q, limit, offset, types: 'ARTISTS,ALBUMS,TRACKS,VIDEOS,PLAYLISTS', countryCode: this.countryCode },
+            ],
             [s, 'https://api.tidal.com/v1/search/tracks', { query: s, limit, offset, countryCode: this.countryCode }],
             [
                 a,
@@ -754,6 +760,7 @@ export class HiFiClient {
                     return await this.getCover(qp.id ? Number(qp.id) : undefined, qp.q ?? undefined, signal);
                 case '/search':
                     return await this.search({
+                        q: qp.q,
                         s: qp.s,
                         a: qp.a,
                         al: qp.al,

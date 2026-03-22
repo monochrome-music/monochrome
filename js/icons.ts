@@ -1,6 +1,7 @@
 export { default as SVG_ALIGN_LEFT } from '!lucide/align-left.svg?svg&icon';
 export { default as SVG_ANIMATE_SPIN } from '../images/animate-spin.svg?svg&icon';
 export { default as SVG_APPLE } from '../images/apple.svg?svg&icon';
+export { default as SVG_ATMOS } from '../images/atmos.svg?svg&icon';
 export { default as SVG_BIN } from '!lucide/trash-2.svg?svg&icon';
 export { default as SVG_CALENDAR } from '!lucide/calendar.svg?svg&icon';
 export { default as SVG_CHECK } from '!lucide/check.svg?svg&icon';
