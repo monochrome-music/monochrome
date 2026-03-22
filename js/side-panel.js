@@ -6,7 +6,64 @@ export class SidePanelManager {
         this.titleElement = document.getElementById('side-panel-title');
         this.controlsElement = document.getElementById('side-panel-controls');
         this.contentElement = document.getElementById('side-panel-content');
+        this.resizerElement = document.getElementById('side-panel-resizer');
         this.currentView = null; // 'queue' or 'lyrics'
+        this.isResizing = false;
+
+        if (this.resizerElement) {
+            this.initResizer();
+        }
+    }
+
+    initResizer() {
+        this.resizerElement.addEventListener('mousedown', this.startResize.bind(this));
+        
+        // Restore saved width if available
+        const savedWidth = localStorage.getItem('side-panel-width');
+        if (savedWidth) {
+            this.panel.style.setProperty('--side-panel-width', savedWidth + 'px');
+        }
+    }
+
+    startResize(e) {
+        e.preventDefault();
+        this.isResizing = true;
+        this.panel.style.transition = 'none'; // Disable transition for smooth resizing
+        document.body.style.cursor = 'ew-resize';
+        
+        this.resizeBind = this.resize.bind(this);
+        this.stopResizeBind = this.stopResize.bind(this);
+        
+        document.addEventListener('mousemove', this.resizeBind);
+        document.addEventListener('mouseup', this.stopResizeBind);
+    }
+
+    resize(e) {
+        if (!this.isResizing) return;
+        // The panel is on the right side. Screen width - mouse X = desired width.
+        const minWidth = 300;
+        const maxWidth = window.innerWidth * 0.9;
+        let newWidth = window.innerWidth - e.clientX;
+        
+        if (newWidth < minWidth) newWidth = minWidth;
+        if (newWidth > maxWidth) newWidth = maxWidth;
+        
+        this.panel.style.setProperty('--side-panel-width', `${newWidth}px`);
+    }
+
+    stopResize() {
+        this.isResizing = false;
+        this.panel.style.transition = ''; // Restore transitions
+        document.body.style.cursor = '';
+        
+        document.removeEventListener('mousemove', this.resizeBind);
+        document.removeEventListener('mouseup', this.stopResizeBind);
+        
+        // Save the width
+        const currentWidth = this.panel.style.getPropertyValue('--side-panel-width').replace('px', '');
+        if (currentWidth) {
+            localStorage.setItem('side-panel-width', currentWidth);
+        }
     }
 
     open(view, title, renderControlsCallback, renderContentCallback, forceOpen = false) {
