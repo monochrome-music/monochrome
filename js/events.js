@@ -22,6 +22,7 @@ import { db } from './db.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { waveformGenerator } from './waveform.js';
 import { audioContextManager } from './audio-context.js';
+import { hapticLongPress, hapticMedium, hapticLight } from './haptics.js';
 import {
     trackPlayTrack,
     trackPauseTrack,
@@ -79,7 +80,7 @@ function handleTrackTouchStart(e) {
     longPressTimer = setTimeout(() => {
         isLongPress = true;
         toggleTrackSelection(trackItem, true, false);
-        if (navigator.vibrate) navigator.vibrate(50);
+        hapticLongPress();
     }, LONG_PRESS_DURATION);
 }
 
@@ -555,17 +556,20 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
         setupMediaListeners(player.video);
     }
 
-    playPauseBtn.addEventListener('click', () => player.handlePlayPause());
+    playPauseBtn.addEventListener('click', () => { hapticMedium(); player.handlePlayPause(); });
     nextBtn.addEventListener('click', () => {
+        hapticMedium();
         trackSkipTrack(player.currentTrack, 'next');
         player.playNext();
     });
     prevBtn.addEventListener('click', () => {
+        hapticMedium();
         trackSkipTrack(player.currentTrack, 'previous');
         player.playPrev();
     });
 
     shuffleBtn.addEventListener('click', () => {
+        hapticLight();
         player.toggleShuffle();
         trackToggleShuffle(player.shuffleActive);
         shuffleBtn.classList.toggle('active', player.shuffleActive);
@@ -573,6 +577,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
     });
 
     repeatBtn.addEventListener('click', () => {
+        hapticLight();
         const mode = player.toggleRepeat();
         trackToggleRepeat(mode === REPEAT_MODE.OFF ? 'off' : mode === REPEAT_MODE.ALL ? 'all' : 'one');
         repeatBtn.classList.toggle('active', mode !== REPEAT_MODE.OFF);

@@ -28,6 +28,8 @@
     },
     "homepage": "https://github.com/DaffaAgradhyasto/monochrome#readme",
     "devDependencies": {
+        "@capacitor/assets": "^3.0.5",
+        "@capacitor/cli": "^8.2.0",
         "@neutralinojs/neu": "^11.7.0",
         "@types/node": "^25.3.5",
         "eslint": "^9.39.3",
@@ -51,6 +53,11 @@
         "serialize-javascript": "^7.0.3"
     },
     "dependencies": {
+        "@capacitor/android": "^8.2.0",
+        "@capacitor/app": "^8.0.1",
+        "@capacitor/core": "^8.2.0",
+        "@capacitor/haptics": "^8.0.1",
+        "@capacitor/ios": "^8.2.0",
         "@dantheman827/taglib-ts": "https://github.com/DanTheMan827/taglib-ts/archive/b4238b2627aceb97f58813258046f1259f68cab7.tar.gz",
         "@ffmpeg/core": "^0.12.10",
         "@ffmpeg/ffmpeg": "^0.12.15",
