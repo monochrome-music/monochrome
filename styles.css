@@ -1982,6 +1982,24 @@ input[type='search']::-webkit-search-cancel-button {
     line-height: 1;
 }
 
+.quality-atmos {
+    border: 1px solid var(--secondary);
+    color: var(--muted-foreground);
+    padding: 0.15rem 0.3rem;
+    border-radius: var(--radius-xs);
+    margin-left: 0.5rem;
+    vertical-align: middle;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.quality-atmos svg {
+    height: 0.6rem;
+    width: auto;
+}
+
 .track-list {
     display: flex;
     flex-direction: column;
