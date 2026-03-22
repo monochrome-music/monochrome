@@ -556,7 +556,10 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
         setupMediaListeners(player.video);
     }
 
-    playPauseBtn.addEventListener('click', () => { hapticMedium(); player.handlePlayPause(); });
+    playPauseBtn.addEventListener('click', () => {
+        hapticMedium();
+        player.handlePlayPause();
+    });
     nextBtn.addEventListener('click', () => {
         hapticMedium();
         trackSkipTrack(player.currentTrack, 'next');

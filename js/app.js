@@ -2953,7 +2953,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             headerAccountIcon.style.display = 'block';
         });
     }
-
 });
 
 function showUpdateNotification(updateCallback) {
