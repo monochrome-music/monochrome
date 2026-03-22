@@ -26,7 +26,6 @@ import { HiFiClient, TidalResponse } from './HiFi.ts';
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 export { resolveDownloadTotalBytes };
 const TIDAL_V2_TOKEN = 'txNoH4kkV41MfH25';
-const client = new HiFiClient();
 
 export class LosslessAPI {
     constructor(settings) {
@@ -64,7 +63,7 @@ export class LosslessAPI {
                     console.log(relativePath);
                 }
 
-                return await client.queryResponse(relativePath);
+                return await HiFiClient.instance.queryResponse(relativePath);
             } catch (err) {
                 console.warn(
                     `Direct fetch failed for ${relativePath}. Falling back to configured API instances...`,
