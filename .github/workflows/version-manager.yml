@@ -78,32 +78,25 @@ jobs:
     name: Restore ke Versi Tertentu
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'restore-version'
     runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Validasi
         run: |
           [ -n "${{ github.event.inputs.commit_sha }}" ] || { echo "SHA kosong"; exit 1; }
           [ "${{ github.event.inputs.confirm }}" = "YES" ] || { echo "Konfirmasi diperlukan"; exit 1; }
-
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-
       - run: git fetch --tags --force
-
       - name: Setup Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
       - name: Verifikasi SHA
         run: |
           FULL=$(git rev-parse "${{ github.event.inputs.commit_sha }}" 2>/dev/null) || { echo "SHA tidak ditemukan"; exit 1; }
           echo "TARGET=$FULL" >> $GITHUB_ENV
           echo "SHA ditemukan: $FULL"
-
       - name: Safety Backup
         run: |
           CUR=$(git rev-parse HEAD)
@@ -111,15 +104,12 @@ jobs:
           git tag "$TAG" HEAD -m "Safety backup sebelum restore"
           git push origin "$TAG"
           echo "SAFETY=$TAG" >> $GITHUB_ENV
-
-      - name: Force Reset via gh api
+      - name: Force Reset ke target SHA
         run: |
-          gh api repos/${{ github.repository }}/git/refs/heads/main \
-            --method PATCH \
-            -f sha="${{ env.TARGET }}" \
-            -F force=true
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          git reset --hard ${{ env.TARGET }}
+          git push --force origin main
           echo "Restore berhasil ke: ${{ env.TARGET }}"
-
       - name: Summary
         run: |
           echo "## Restore Selesai" >> $GITHUB_STEP_SUMMARY
@@ -135,17 +125,13 @@ jobs:
         run: |
           [ -n "${{ github.event.inputs.commit_sha }}" ] || { echo "SHA kosong"; exit 1; }
           [ "${{ github.event.inputs.confirm }}" = "YES" ] || { echo "Konfirmasi diperlukan"; exit 1; }
-
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
-
       - run: git fetch --tags --force
-
       - run: |
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-
       - name: Hapus tag
         run: |
           FULL=$(git rev-parse "${{ github.event.inputs.commit_sha }}" 2>/dev/null) || { echo "SHA tidak ditemukan"; exit 1; }
@@ -159,6 +145,5 @@ jobs:
             fi
           done < <(git tag --list "backup/*")
           [ "$FOUND" = true ] || echo "Tidak ada tag untuk SHA $SHORT"
-
       - name: Summary
         run: echo "## Hapus Tag Selesai" >> $GITHUB_STEP_SUMMARY
