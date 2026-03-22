@@ -10,7 +10,7 @@ export function prefetchMetadataObjects(track, api, coverBlob = null) {
         : coverId
           ? getCoverBlob(api, coverId).catch(console.error)
           : Promise.resolve(null);
-    const lyricsFetch = LyricsManager.initialize.fetchLyrics?.(track.id, track)?.catch(console.error);
+    const lyricsFetch = LyricsManager.instance.fetchLyrics?.(track.id, track)?.catch(console.error);
 
     return { coverFetch, lyricsFetch };
 }
