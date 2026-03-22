@@ -1377,6 +1377,15 @@ export class UIRenderer {
             shuffleBtn.classList.toggle('active', this.player.shuffleActive);
         };
 
+            // Sync fullscreen repeat button with current player state on open
+            const currentRepeatMode = this.player.repeatMode;
+            repeatBtn.classList.toggle('active', currentRepeatMode !== 0);
+            if (currentRepeatMode === 2) {
+                repeatBtn.innerHTML = SVG_REPEAT_ONE(24);
+            } else {
+                repeatBtn.innerHTML = SVG_REPEAT(24);
+            }
+
         repeatBtn.onclick = () => {
             const mode = this.player.toggleRepeat();
             repeatBtn.classList.toggle('active', mode !== 0);
@@ -1385,6 +1394,13 @@ export class UIRenderer {
             } else {
                 repeatBtn.innerHTML = SVG_REPEAT(24);
             }
+                            // Sync mini player repeat button
+                const miniRepeatBtn = document.getElementById('repeat-btn');
+                if (miniRepeatBtn) {
+                    miniRepeatBtn.classList.toggle('active', mode !== 0);
+                    miniRepeatBtn.classList.toggle('repeat-one', mode === 2);
+                    miniRepeatBtn.title = mode === 0 ? 'Repeat' : mode === 1 ? 'Repeat Queue' : 'Repeat One';
+                }
         };
 
         // Progress bar with drag support
