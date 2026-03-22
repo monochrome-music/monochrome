@@ -236,7 +236,6 @@ export class UIRenderer {
         widget.dataset.ratingTrackId = String(trackId);
         const rating = await db.getRating(trackId);
         if (widget.dataset.ratingTrackId !== String(trackId)) return;
-        widget.setAttribute('aria-valuenow', rating);
         widget.querySelectorAll('.rating-star').forEach((star) => {
             const starRating = parseInt(star.dataset.rating);
             star.classList.toggle('active', starRating <= rating);
@@ -326,7 +325,6 @@ export class UIRenderer {
                         playerRating.setAttribute('role', 'radiogroup');
                         playerRating.setAttribute('tabindex', '0');
                         playerRating.setAttribute('aria-label', 'Track rating');
-                        playerRating.setAttribute('aria-valuenow', '0');
                         playerRating.innerHTML = `
                             <button class="rating-star" data-rating="5" type="button" title="5 stars" role="radio" tabindex="-1" aria-checked="false">${starSvg}</button>
                             <button class="rating-star" data-rating="4" type="button" title="4 stars" role="radio" tabindex="-1" aria-checked="false">${starSvg}</button>
@@ -485,7 +483,7 @@ export class UIRenderer {
         const starSvg = SVG_STAR(14);
         const ratingHTML = isUnavailable
             ? ''
-            : `<div class="track-rating" role="radiogroup" tabindex="0" aria-label="Track rating" aria-valuenow="0">
+            : `<div class="track-rating" role="radiogroup" tabindex="0" aria-label="Track rating">
                 <button class="rating-star" data-rating="5" type="button" title="5 stars" role="radio" tabindex="-1" aria-checked="false">${starSvg}</button>
                 <button class="rating-star" data-rating="4" type="button" title="4 stars" role="radio" tabindex="-1" aria-checked="false">${starSvg}</button>
                 <button class="rating-star" data-rating="3" type="button" title="3 stars" role="radio" tabindex="-1" aria-checked="false">${starSvg}</button>

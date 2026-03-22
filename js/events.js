@@ -1986,6 +1986,15 @@ async function updateContextMenuLikeState(contextMenu, contextTrack) {
 export function initializeTrackInteractions(player, api, mainContent, contextMenu, lyricsManager, ui, scrobbler) {
     let contextTrack = null;
 
+    // Serialize per-track rating writes so rapid inputs never commit a stale read
+    const ratingWriteQueue = new Map();
+    const queueRatingWrite = (trackId, fn) => {
+        const prev = ratingWriteQueue.get(trackId) ?? Promise.resolve();
+        const next = prev.then(fn);
+        ratingWriteQueue.set(trackId, next.catch(() => {}));
+        return next;
+    };
+
     mainContent.addEventListener('touchstart', handleTrackTouchStart, { passive: true });
     mainContent.addEventListener('touchmove', handleTrackTouchMove, { passive: true });
     mainContent.addEventListener('touchend', handleTrackTouchEnd, { passive: true });
@@ -1997,13 +2006,16 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
         e.preventDefault();
         const trackItem = widget.closest('.track-item');
         const track = trackItem ? trackDataStore.get(trackItem) : null;
-        if (!track) return;
-        const current = await db.getRating(track.id);
-        if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
-            if (current < 5) await db.setRating(track.id, current + 1);
-        } else {
-            if (current > 0) await db.setRating(track.id, current - 1);
-        }
+        if (!track?.id) return;
+        const key = e.key;
+        await queueRatingWrite(track.id, async () => {
+            const current = await db.getRating(track.id);
+            if (key === 'ArrowRight' || key === 'ArrowUp') {
+                if (current < 5) await db.setRating(track.id, current + 1);
+            } else {
+                if (current > 0) await db.setRating(track.id, current - 1);
+            }
+        });
     });
 
     mainContent.addEventListener('click', async (e) => {
@@ -2013,10 +2025,12 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             e.stopPropagation();
             const trackItem = ratingStar.closest('.track-item');
             const track = trackItem ? trackDataStore.get(trackItem) : null;
-            if (!track) return;
+            if (!track?.id) return;
             const clicked = parseInt(ratingStar.dataset.rating);
-            const current = await db.getRating(track.id);
-            await db.setRating(track.id, current === clicked ? 0 : clicked);
+            await queueRatingWrite(track.id, async () => {
+                const current = await db.getRating(track.id);
+                await db.setRating(track.id, current === clicked ? 0 : clicked);
+            });
             return;
         }
 
@@ -2026,8 +2040,8 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             e.stopPropagation();
             const trackItem = ratingClear.closest('.track-item');
             const track = trackItem ? trackDataStore.get(trackItem) : null;
-            if (!track) return;
-            await db.setRating(track.id, 0);
+            if (!track?.id) return;
+            await queueRatingWrite(track.id, () => db.setRating(track.id, 0));
             return;
         }
 
@@ -2549,14 +2563,17 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
         nowPlayingRating.addEventListener('keydown', async (e) => {
             if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
             e.preventDefault();
-            if (!player.currentTrack) return;
+            if (!player.currentTrack?.id) return;
             const trackId = player.currentTrack.id;
-            const current = await db.getRating(trackId);
-            if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
-                if (current < 5) await db.setRating(trackId, current + 1);
-            } else {
-                if (current > 0) await db.setRating(trackId, current - 1);
-            }
+            const key = e.key;
+            await queueRatingWrite(trackId, async () => {
+                const current = await db.getRating(trackId);
+                if (key === 'ArrowRight' || key === 'ArrowUp') {
+                    if (current < 5) await db.setRating(trackId, current + 1);
+                } else {
+                    if (current > 0) await db.setRating(trackId, current - 1);
+                }
+            });
         });
 
         nowPlayingRating.addEventListener('click', async (e) => {
@@ -2564,14 +2581,16 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             const ratingClear = e.target.closest('.rating-clear');
             if (!ratingStar && !ratingClear) return;
             e.stopPropagation();
-            if (!player.currentTrack) return;
+            if (!player.currentTrack?.id) return;
             const trackId = player.currentTrack.id;
             if (ratingStar) {
                 const clicked = parseInt(ratingStar.dataset.rating);
-                const current = await db.getRating(trackId);
-                await db.setRating(trackId, current === clicked ? 0 : clicked);
+                await queueRatingWrite(trackId, async () => {
+                    const current = await db.getRating(trackId);
+                    await db.setRating(trackId, current === clicked ? 0 : clicked);
+                });
             } else {
-                await db.setRating(trackId, 0);
+                await queueRatingWrite(trackId, () => db.setRating(trackId, 0));
             }
         });
     }
