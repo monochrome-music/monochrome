@@ -1999,6 +1999,30 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
     mainContent.addEventListener('touchend', handleTrackTouchEnd, { passive: true });
 
     mainContent.addEventListener('click', async (e) => {
+        const ratingStar = e.target.closest('.rating-star');
+        if (ratingStar) {
+            e.preventDefault();
+            e.stopPropagation();
+            const trackItem = ratingStar.closest('.track-item');
+            const track = trackItem ? trackDataStore.get(trackItem) : null;
+            if (!track) return;
+            const clicked = parseInt(ratingStar.dataset.rating);
+            const current = await db.getRating(track.id);
+            await db.setRating(track.id, current === clicked ? 0 : clicked);
+            return;
+        }
+
+        const ratingClear = e.target.closest('.rating-clear');
+        if (ratingClear) {
+            e.preventDefault();
+            e.stopPropagation();
+            const trackItem = ratingClear.closest('.track-item');
+            const track = trackItem ? trackDataStore.get(trackItem) : null;
+            if (!track) return;
+            await db.setRating(track.id, 0);
+            return;
+        }
+
         const actionBtn = e.target.closest('.track-action-btn, .like-btn, .play-btn');
         if (actionBtn && actionBtn.dataset.action) {
             e.preventDefault(); // Prevent card navigation
@@ -2508,6 +2532,25 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                     ui,
                     scrobbler
                 );
+            }
+        });
+    }
+
+    const nowPlayingRating = document.getElementById('now-playing-rating');
+    if (nowPlayingRating) {
+        nowPlayingRating.addEventListener('click', async (e) => {
+            const ratingStar = e.target.closest('.rating-star');
+            const ratingClear = e.target.closest('.rating-clear');
+            if (!ratingStar && !ratingClear) return;
+            e.stopPropagation();
+            if (!player.currentTrack) return;
+            const trackId = player.currentTrack.id;
+            if (ratingStar) {
+                const clicked = parseInt(ratingStar.dataset.rating);
+                const current = await db.getRating(trackId);
+                await db.setRating(trackId, current === clicked ? 0 : clicked);
+            } else {
+                await db.setRating(trackId, 0);
             }
         });
     }
