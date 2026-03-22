@@ -1,5 +1,6 @@
 //js/app.js
 import { isIos, isSafari } from './platform-detection.js';
+import { hapticLight } from './haptics.js';
 import { MusicAPI } from './music-api.js';
 import {
     apiSettings,
@@ -390,6 +391,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             UIRenderer,
         };
     }
+
+    // Haptic feedback on every click
+    document.addEventListener('click', () => hapticLight(), { capture: true });
 
     // Initialize analytics
     initAnalytics();
