@@ -2,8 +2,8 @@ name: Sync Upstream (Smart Merge)
 
 on:
   schedule:
-    # Cek setiap 6 jam
-    - cron: '0 */6 * * *'
+    # Cek setiap 10 menit
+    - cron: '*/10 * * * *'
   workflow_dispatch:
     inputs:
       force_sync:
@@ -69,7 +69,6 @@ jobs:
     permissions:
       contents: write
       actions: write
-
     steps:
       - name: Check if auto sync is enabled
         id: auto
@@ -118,7 +117,6 @@ jobs:
           echo "=== Fork Status ==="
           echo "Commits behind upstream: $BEHIND"
           echo "Commits ahead of upstream: $AHEAD"
-
           if [ "$BEHIND" -eq 0 ] && [ "${{ github.event.inputs.force_sync }}" != "true" ]; then
             echo "needs_sync=false" >> $GITHUB_OUTPUT
             echo "Already up to date!"
@@ -164,13 +162,11 @@ jobs:
           set -e
           STRATEGY="${{ github.event.inputs.strategy || 'safe' }}"
           echo "Using strategy: $STRATEGY"
-
           if [ "$STRATEGY" = "accept" ]; then
             MERGE_OPT="-X theirs"
           else
             MERGE_OPT="-X ours"
           fi
-
           if git merge upstream/${{ env.UPSTREAM_BRANCH }} \
             --no-edit \
             --allow-unrelated-histories \
@@ -213,7 +209,6 @@ jobs:
               echo "Restored: $path"
             fi
           done
-
           if ! git diff --quiet; then
             git add -A
             git commit -m "chore: restore protected files after upstream sync"
@@ -246,7 +241,7 @@ jobs:
         run: |
           if git push origin ${{ env.FORK_BRANCH }}; then
             echo "========================================"
-            echo "  SYNC COMPLETE"
+            echo " SYNC COMPLETE"
             echo "========================================"
             echo "Merged: ${{ steps.check.outputs.behind }} commits from upstream"
             echo "Strategy: ${{ github.event.inputs.strategy || 'safe' }}"
