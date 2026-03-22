@@ -1,4 +1,5 @@
 //js/ui.js
+import { podcastsAPI } from './podcasts-api.js';
 import { showNotification } from './downloads.js';
 import {
     formatTime,
@@ -3087,6 +3088,40 @@ export class UIRenderer {
             albumsContainer.innerHTML = errorMsg;
             playlistsContainer.innerHTML = errorMsg;
             podcastsContainer.innerHTML = errorMsg;
+        }
+    }
+
+    async renderPodcastSearchResults(query) {
+        const podcastsContainer = document.getElementById('search-podcasts-container');
+        if (!podcastsContainer) return;
+        podcastsContainer.innerHTML = this.createSkeletonCards(4, true);
+        try {
+            const result = await podcastsAPI.searchPodcasts(query);
+            const podcasts = result.items || [];
+            if (podcasts.length === 0) {
+                podcastsContainer.innerHTML = createPlaceholder('No podcasts found.');
+                return;
+            }
+            podcastsContainer.innerHTML = podcasts.map((podcast) => {
+                const imageUrl = podcast.image || '/assets/appicon.png';
+                const title = escapeHtml(podcast.title || 'Unknown Podcast');
+                const author = escapeHtml(podcast.author || '');
+                const episodeCount = podcast.episodeCount ? `${podcast.episodeCount} episodes` : '';
+                return `<div class="card" data-podcast-id="${podcast.id}" style="cursor:pointer" onclick="window.open('${escapeHtml(podcast.link || '')}', '_blank')">
+                    <div class="card-image-container">
+                        <img src="${imageUrl}" alt="${title}" class="card-image" loading="lazy" onerror="this.src='/assets/appicon.png'">
+                    </div>
+                    <div class="card-info">
+                        <h4 class="card-title">${title}</h4>
+                        ${author ? `<p class="card-subtitle">${author}</p>` : ''}
+                        ${episodeCount ? `<p class="card-subtitle">${episodeCount}</p>` : ''}
+                    </div>
+                </div>`;
+            }).join('');
+        } catch (error) {
+            if (error.name === 'AbortError') return;
+            console.error('Podcast search failed:', error);
+            podcastsContainer.innerHTML = createPlaceholder('Failed to load podcasts.');
         }
     }
 
