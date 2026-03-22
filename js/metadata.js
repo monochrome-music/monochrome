@@ -1,7 +1,7 @@
 import { getCoverBlob, getTrackTitle, getFullArtistString, getMimeType, getTrackCoverId } from './utils.js';
 import { addMetadataWithTagLib, getMetadataWithTagLib } from './taglib.ts';
 import { doTimed, doTimedAsync } from './doTimed.ts';
-import { managers } from './app.js';
+import { LyricsManager } from './lyrics.js';
 
 export function prefetchMetadataObjects(track, api, coverBlob = null) {
     const coverId = getTrackCoverId(track);
@@ -10,7 +10,7 @@ export function prefetchMetadataObjects(track, api, coverBlob = null) {
         : coverId
           ? getCoverBlob(api, coverId).catch(console.error)
           : Promise.resolve(null);
-    const lyricsFetch = managers?.lyricsManager?.fetchLyrics?.(track.id, track)?.catch(console.error);
+    const lyricsFetch = LyricsManager.initialize.fetchLyrics?.(track.id, track)?.catch(console.error);
 
     return { coverFetch, lyricsFetch };
 }
@@ -34,12 +34,12 @@ export async function addMetadataToAudio(audioBlob, track, api, _quality, prefet
     try {
         data.title = getTrackTitle(track);
         data.artist = getFullArtistString(track);
-        data.albumTitle = track.album.title;
+        data.albumTitle = track.album?.title;
         data.albumArtist = track.album?.artist?.name || track.artist?.name;
         data.trackNumber = track.trackNumber;
         data.discNumber = track.volumeNumber ?? track.discNumber;
-        data.totalTracks = track.album.numberOfTracksOnDisc ?? track.album.numberOfTracks;
-        data.totalDiscs = track.album.totalDiscs;
+        data.totalTracks = track.album?.numberOfTracksOnDisc ?? track.album?.numberOfTracks;
+        data.totalDiscs = track.album?.totalDiscs;
         data.copyright = track.copyright;
         data.isrc = track.isrc;
         data.explicit = Boolean(track.explicit);

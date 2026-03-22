@@ -98,7 +98,7 @@ export const apiSettings = {
                         { url: 'https://katze.qqdl.site', version: '2.2' },
                         { url: 'https://hund.qqdl.site', version: '2.2' },
                         { url: 'https://wolf.qqdl.site', version: '2.2' },
-                        { url: 'https://hifi.p1nkhamster.xyz/', version: '2.6'},
+                        { url: 'https://hifi.p1nkhamster.xyz/', version: '2.6' },
                     ],
                 };
                 this.instancesLoaded = true;
@@ -718,58 +718,6 @@ export const trackDateSettings = {
 
     setUseAlbumYear(enabled) {
         localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
-    },
-};
-
-export const bulkDownloadSettings = {
-    METHOD_KEY: 'bulk-download-method',
-    FORCE_ZIP_BLOB_KEY: 'bulk-download-force-zip-blob',
-    LEGACY_INDIVIDUAL_KEY: 'force-individual-downloads',
-    VALID_METHODS: ['zip', 'folder', 'individual'],
-
-    /** Returns the selected bulk download method: 'zip' | 'folder' | 'individual' */
-    getMethod() {
-        try {
-            const stored = localStorage.getItem(this.METHOD_KEY);
-            if (stored && this.VALID_METHODS.includes(stored)) {
-                return stored;
-            }
-            const legacy = localStorage.getItem(this.LEGACY_INDIVIDUAL_KEY);
-            if (legacy === 'true') {
-                localStorage.setItem(this.METHOD_KEY, 'individual');
-                localStorage.removeItem(this.LEGACY_INDIVIDUAL_KEY);
-                return 'individual';
-            }
-            return 'zip';
-        } catch {
-            return 'zip';
-        }
-    },
-
-    setMethod(method) {
-        localStorage.setItem(this.METHOD_KEY, method);
-    },
-
-    /** When using ZIP mode, force in-memory blob download instead of streaming to disk */
-    shouldForceZipBlob() {
-        try {
-            return localStorage.getItem(this.FORCE_ZIP_BLOB_KEY) === 'true';
-        } catch {
-            return false;
-        }
-    },
-
-    setForceZipBlob(enabled) {
-        localStorage.setItem(this.FORCE_ZIP_BLOB_KEY, enabled ? 'true' : 'false');
-    },
-
-    // Kept for backward compatibility
-    shouldForceIndividual() {
-        return this.getMethod() === 'individual';
-    },
-
-    setForceIndividual(enabled) {
-        this.setMethod(enabled ? 'individual' : 'zip');
     },
 };
 
@@ -1592,6 +1540,7 @@ export const listenBrainzSettings = {
     ENABLED_KEY: 'listenbrainz-enabled',
     TOKEN_KEY: 'listenbrainz-token',
     CUSTOM_URL_KEY: 'listenbrainz-custom-url',
+    LOVE_ON_LIKE_KEY: 'listenbrainz-love-on-like',
 
     isEnabled() {
         try {
@@ -1627,6 +1576,18 @@ export const listenBrainzSettings = {
 
     setCustomUrl(url) {
         localStorage.setItem(this.CUSTOM_URL_KEY, url);
+    },
+
+    shouldLoveOnLike() {
+        try {
+            return localStorage.getItem(this.LOVE_ON_LIKE_KEY) === 'true';
+        } catch {
+            return false;
+        }
+    },
+
+    setLoveOnLike(enabled) {
+        localStorage.setItem(this.LOVE_ON_LIKE_KEY, enabled ? 'true' : 'false');
     },
 };
 
@@ -2734,6 +2695,14 @@ export const keyboardShortcuts = {
             alt: false,
             description: 'Toggle visualizer auto-cycle',
         },
+        multiSelectToggle: {
+            key: 'control',
+            shift: false,
+            ctrl: true,
+            alt: false,
+            description: 'Toggle track selection (individual)',
+        },
+        multiSelectRange: { key: 'shift', shift: true, ctrl: false, alt: false, description: 'Select track range' },
     },
 
     getShortcuts() {

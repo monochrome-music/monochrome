@@ -16,7 +16,6 @@ import {
     qualityBadgeSettings,
     trackDateSettings,
     visualizerSettings,
-    bulkDownloadSettings,
     playlistSettings,
     equalizerSettings,
     listenBrainzSettings,
@@ -41,6 +40,7 @@ import { db } from './db.js';
 import { authManager } from './accounts/auth.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { containerFormats, customFormats } from './ffmpegFormats.ts';
+import { modernSettings } from './ModernSettings.js';
 
 async function getButterchurnPresets(...args) {
     const butterchurnModule = await import('./visualizers/butterchurn.js');
@@ -467,6 +467,8 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     const lbToggle = document.getElementById('listenbrainz-enabled-toggle');
     const lbTokenSetting = document.getElementById('listenbrainz-token-setting');
     const lbCustomUrlSetting = document.getElementById('listenbrainz-custom-url-setting');
+    const lbLoveSetting = document.getElementById('listenbrainz-love-setting');
+    const lbLoveToggle = document.getElementById('listenbrainz-love-toggle');
     const lbTokenInput = document.getElementById('listenbrainz-token-input');
     const lbCustomUrlInput = document.getElementById('listenbrainz-custom-url-input');
 
@@ -475,8 +477,10 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         if (lbToggle) lbToggle.checked = isEnabled;
         if (lbTokenSetting) lbTokenSetting.style.display = isEnabled ? 'flex' : 'none';
         if (lbCustomUrlSetting) lbCustomUrlSetting.style.display = isEnabled ? 'flex' : 'none';
+        if (lbLoveSetting) lbLoveSetting.style.display = isEnabled ? 'flex' : 'none';
         if (lbTokenInput) lbTokenInput.value = listenBrainzSettings.getToken();
         if (lbCustomUrlInput) lbCustomUrlInput.value = listenBrainzSettings.getCustomUrl();
+        if (lbLoveToggle) lbLoveToggle.checked = listenBrainzSettings.shouldLoveOnLike();
     };
 
     updateListenBrainzUI();
@@ -498,6 +502,12 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     if (lbCustomUrlInput) {
         lbCustomUrlInput.addEventListener('change', (e) => {
             listenBrainzSettings.setCustomUrl(e.target.value.trim());
+        });
+    }
+
+    if (lbLoveToggle) {
+        lbLoveToggle.addEventListener('change', (e) => {
+            listenBrainzSettings.setLoveOnLike(e.target.checked);
         });
     }
 
@@ -939,44 +949,157 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         'showSaveFilePicker' in window &&
         typeof FileSystemFileHandle !== 'undefined' &&
         'createWritable' in FileSystemFileHandle.prototype;
+    const hasFolderPicker = 'showDirectoryPicker' in window;
+
+    const rememberFolderSetting = document.getElementById('remember-folder-setting');
+    const rememberFolderToggle = document.getElementById('remember-folder-toggle');
+    const resetSavedFolderSetting = document.getElementById('reset-saved-folder-setting');
+    const resetSavedFolderBtn = document.getElementById('reset-saved-folder-btn');
+    const singleToFolderSetting = document.getElementById('single-to-folder-setting');
+    const singleToFolderToggle = document.getElementById('single-to-folder-toggle');
 
     /** Shows/hides the Force ZIP as Blob setting based on method and browser support */
     function updateForceZipBlobVisibility() {
         if (!forceZipBlobSettingItem) return;
-        const method = bulkDownloadSettings.getMethod();
+        const method = modernSettings.bulkDownloadMethod;
         // Only relevant when zip method is selected and the browser supports streaming
         const visible = method === 'zip' && hasFileSystemAccess;
         forceZipBlobSettingItem.style.display = visible ? '' : 'none';
     }
 
+    /** Shows/hides folder-picker-specific and folder-method settings */
+    async function updateFolderMethodVisibility() {
+        const method = modernSettings.bulkDownloadMethod;
+        const isFolderMethod = method === 'folder';
+        const isFolderOrLocal = isFolderMethod || method === 'local';
+
+        if (rememberFolderSetting) {
+            rememberFolderSetting.style.display = isFolderMethod && hasFolderPicker ? '' : 'none';
+        }
+
+        // Reset button: only visible when folder method + remember enabled + valid saved handle exists
+        if (resetSavedFolderSetting) {
+            let showReset = false;
+            if (isFolderMethod && hasFolderPicker && modernSettings.rememberBulkDownloadFolder) {
+                const savedHandle = await db.getSetting('bulk_download_folder_handle');
+                showReset = !!savedHandle;
+            }
+            resetSavedFolderSetting.style.display = showReset ? '' : 'none';
+        }
+
+        if (singleToFolderSetting) {
+            singleToFolderSetting.style.display = isFolderOrLocal ? '' : 'none';
+        }
+    }
+
     const bulkDownloadMethod = document.getElementById('bulk-download-method');
     if (bulkDownloadMethod) {
         // Remove the folder picker option if the browser doesn't support it
-        if (!('showDirectoryPicker' in window)) {
+        if (!hasFolderPicker) {
             const folderOption = bulkDownloadMethod.querySelector('option[value="folder"]');
             if (folderOption) {
                 folderOption.remove();
             }
-            // If the stored method is 'folder', fall back to 'zip'
-            if (bulkDownloadSettings.getMethod() === 'folder') {
-                bulkDownloadSettings.setMethod('zip');
+            const localOption = bulkDownloadMethod.querySelector('option[value="local"]');
+            if (localOption) {
+                localOption.remove();
+            }
+            // If the stored method is 'folder' or 'local' without native support, fall back to 'zip'
+            const currentMethod = modernSettings.bulkDownloadMethod;
+            if (currentMethod === 'folder' || currentMethod === 'local') {
+                modernSettings.bulkDownloadMethod = 'zip';
             }
         }
-        bulkDownloadMethod.value = bulkDownloadSettings.getMethod();
-        bulkDownloadMethod.addEventListener('change', (e) => {
-            bulkDownloadSettings.setMethod(e.target.value);
+        bulkDownloadMethod.value = modernSettings.bulkDownloadMethod;
+        bulkDownloadMethod.addEventListener('change', async (e) => {
+            const previousMethod = modernSettings.bulkDownloadMethod;
+            const newMethod = e.target.value;
+            modernSettings.bulkDownloadMethod = newMethod;
+
+            // When switching to 'local', prompt to select the local media folder if not yet configured
+            if (newMethod === 'local') {
+                const existingHandle = await db.getSetting('local_folder_handle');
+                if (!existingHandle) {
+                    let picked = false;
+                    try {
+                        const isNeutralino =
+                            window.Neutralino && (window.NL_MODE || window.location.search.includes('mode=neutralino'));
+                        if (isNeutralino) {
+                            const path = await window.Neutralino.os.showFolderDialog('Select Local Media Folder');
+                            if (path) {
+                                picked = true;
+                                const handle = {
+                                    name: path.split(/[/\\]/).pop() || path,
+                                    isNeutralino: true,
+                                    path,
+                                };
+                                await db.saveSetting('local_folder_handle', handle);
+                            }
+                        } else if (hasFolderPicker) {
+                            const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                            if (handle) {
+                                picked = true;
+                                await db.saveSetting('local_folder_handle', handle);
+                            }
+                        }
+                    } catch {
+                        // User cancelled the picker
+                    }
+
+                    if (!picked) {
+                        // Revert to the previous method since no folder was selected.
+                        // Guard against the edge case where the previousMethod option
+                        // no longer exists in the dropdown (e.g. removed due to no API support).
+                        if (bulkDownloadMethod.querySelector(`option[value="${previousMethod}"]`)) {
+                            modernSettings.bulkDownloadMethod = previousMethod;
+                            bulkDownloadMethod.value = previousMethod;
+                        } else {
+                            // Fall back to zip which is always present
+                            modernSettings.bulkDownloadMethod = 'zip';
+                            bulkDownloadMethod.value = 'zip';
+                        }
+                    }
+                }
+            }
+            await modernSettings.waitPending();
+
             updateForceZipBlobVisibility();
+            await updateFolderMethodVisibility();
+        });
+    }
+
+    if (rememberFolderToggle) {
+        rememberFolderToggle.checked = modernSettings.rememberBulkDownloadFolder;
+        rememberFolderToggle.addEventListener('change', async (e) => {
+            modernSettings.rememberBulkDownloadFolder = !!e.target.checked;
+            await modernSettings.waitPending();
+            await updateFolderMethodVisibility();
+        });
+    }
+
+    if (resetSavedFolderBtn) {
+        resetSavedFolderBtn.addEventListener('click', async () => {
+            await db.saveSetting('bulk_download_folder_handle', null);
+            await updateFolderMethodVisibility();
+        });
+    }
+
+    if (singleToFolderToggle) {
+        singleToFolderToggle.checked = modernSettings.downloadSinglesToFolder;
+        singleToFolderToggle.addEventListener('change', (e) => {
+            modernSettings.downloadSinglesToFolder = !!e.target.checked;
         });
     }
 
     if (forceZipBlobToggle) {
-        forceZipBlobToggle.checked = bulkDownloadSettings.shouldForceZipBlob();
+        forceZipBlobToggle.checked = modernSettings.forceZipBlob;
         forceZipBlobToggle.addEventListener('change', (e) => {
-            bulkDownloadSettings.setForceZipBlob(e.target.checked);
+            modernSettings.forceZipBlob = !!e.target.checked;
         });
     }
 
     updateForceZipBlobVisibility();
+    updateFolderMethodVisibility();
 
     const includeCoverToggle = document.getElementById('include-cover-toggle');
     if (includeCoverToggle) {
@@ -2735,18 +2858,18 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     // Filename template setting
     const filenameTemplate = document.getElementById('filename-template');
     if (filenameTemplate) {
-        filenameTemplate.value = localStorage.getItem('filename-template') || '{trackNumber} - {artist} - {title}';
+        filenameTemplate.value = modernSettings.filenameTemplate;
         filenameTemplate.addEventListener('change', (e) => {
-            localStorage.setItem('filename-template', e.target.value);
+            modernSettings.filenameTemplate = String(e.target.value);
         });
     }
 
     // ZIP folder template
     const zipFolderTemplate = document.getElementById('zip-folder-template');
     if (zipFolderTemplate) {
-        zipFolderTemplate.value = localStorage.getItem('zip-folder-template') || '{albumTitle} - {albumArtist}';
+        zipFolderTemplate.value = modernSettings.folderTemplate;
         zipFolderTemplate.addEventListener('change', (e) => {
-            localStorage.setItem('zip-folder-template', e.target.value);
+            modernSettings.folderTemplate = String(e.target.value);
         });
     }
 

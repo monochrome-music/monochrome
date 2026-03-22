@@ -3,14 +3,34 @@
 
 import { LosslessAPI } from './api.js';
 import { QobuzAPI } from './qobuz-api.js';
+import { PodcastsAPI } from './podcasts-api.js';
 import { musicProviderSettings } from './storage.js';
 
 export class MusicAPI {
+    static #instance = null;
+    static get instance() {
+        if (!MusicAPI.#instance) {
+            throw new Error('MusicAPI not initialized. Call MusicAPI.initialize(settings) first.');
+        }
+        return MusicAPI.#instance;
+    }
+
+    /** @private */
     constructor(settings) {
         this.tidalAPI = new LosslessAPI(settings);
         this.qobuzAPI = new QobuzAPI();
+        this.podcastsAPI = new PodcastsAPI();
         this._settings = settings;
         this.videoArtworkCache = new Map();
+    }
+
+    static async initialize(settings) {
+        if (MusicAPI.#instance) {
+            throw new Error('MusicAPI is already initialized');
+        }
+
+        const api = new MusicAPI(settings);
+        return (MusicAPI.#instance = api);
     }
 
     getCurrentProvider() {
@@ -51,6 +71,22 @@ export class MusicAPI {
     async searchVideos(query, options = {}) {
         const provider = options.provider || this.getCurrentProvider();
         return this.tidalAPI.searchVideos(query, options);
+    }
+
+    async searchPodcasts(query, options = {}) {
+        return this.podcastsAPI.searchPodcasts(query, options);
+    }
+
+    async getPodcast(id, options = {}) {
+        return this.podcastsAPI.getPodcastById(id, options);
+    }
+
+    async getPodcastEpisodes(id, options = {}) {
+        return this.podcastsAPI.getPodcastEpisodes(id, options);
+    }
+
+    async getTrendingPodcasts(options = {}) {
+        return this.podcastsAPI.getTrendingPodcasts(options);
     }
 
     // Get methods
@@ -232,6 +268,10 @@ export class MusicAPI {
         const api = this.getAPI(provider);
         const cleanId = this.stripProviderPrefix(artistId);
         return api.getSimilarArtists(cleanId);
+    }
+
+    async getArtistTopTracks(artistId, options = {}) {
+        return this.tidalAPI.getArtistTopTracks(artistId, options);
     }
 
     async getSimilarAlbums(albumId) {
