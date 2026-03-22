@@ -151,6 +151,160 @@
     --explicit-badge: #f5f5f5;
 }
 
+:root[data-theme='aether'] {
+    color-scheme: dark;
+
+    --background: #0a0a1a;
+    --foreground: #e0e8ff;
+    --card: #0f1029;
+    --card-foreground: #e0e8ff;
+    --primary: #6366f1;
+    --primary-foreground: #ffffff;
+    --secondary: #1a1a3e;
+    --secondary-foreground: #c4c8ff;
+    --muted: #151530;
+    --muted-foreground: #7a7eb0;
+    --border: #1e1e4a;
+    --input: #151530;
+    --ring: #6366f1;
+    --highlight: #6366f1;
+    --highlight-rgb: 99, 102, 241;
+    --active-highlight: var(--highlight);
+    --explicit-badge: #f5f5f5;
+}
+
+:root[data-theme='aether-beyond'] {
+    color-scheme: dark;
+
+    --background: #030014;
+    --foreground: #e8d5ff;
+    --card: #0a0025;
+    --card-foreground: #e8d5ff;
+    --primary: #a855f7;
+    --primary-foreground: #ffffff;
+    --secondary: #120035;
+    --secondary-foreground: #d4a5ff;
+    --muted: #0d0020;
+    --muted-foreground: #8b6aae;
+    --border: #1a0040;
+    --input: #0d0020;
+    --ring: #a855f7;
+    --highlight: #a855f7;
+    --highlight-rgb: 168, 85, 247;
+    --active-highlight: var(--highlight);
+    --explicit-badge: #f5f5f5;
+
+    --aether-glow-1: #a855f7;
+    --aether-glow-2: #6366f1;
+    --aether-glow-3: #ec4899;
+    --aether-neon: #00ffaa;
+    --aether-cyber: #00d4ff;
+}
+
+/* Aether Beyond - Ultra Futuristic Animations */
+@keyframes aether-pulse {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.05); }
+}
+
+@keyframes aether-float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    25% { transform: translateY(-20px) rotate(2deg); }
+    50% { transform: translateY(-10px) rotate(-1deg); }
+    75% { transform: translateY(-25px) rotate(1deg); }
+}
+
+@keyframes aether-glow-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes aether-border-flow {
+    0% { border-color: var(--aether-glow-1, #a855f7); }
+    33% { border-color: var(--aether-glow-2, #6366f1); }
+    66% { border-color: var(--aether-glow-3, #ec4899); }
+    100% { border-color: var(--aether-glow-1, #a855f7); }
+}
+
+@keyframes aether-neon-flicker {
+    0%, 100% { text-shadow: 0 0 5px var(--aether-glow-1, #a855f7), 0 0 20px var(--aether-glow-1, #a855f7); }
+    50% { text-shadow: 0 0 2px var(--aether-glow-1, #a855f7), 0 0 10px var(--aether-glow-1, #a855f7); }
+}
+
+#aether-particles-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.6;
+}
+
+:root[data-theme='aether-beyond'] .card,
+:root[data-theme='aether-beyond'] .track-item,
+:root[data-theme='aether-beyond'] .album-card,
+:root[data-theme='aether-beyond'] .artist-card {
+    border: 1px solid transparent;
+    animation: aether-border-flow 4s ease infinite;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
+    background: rgba(10, 0, 37, 0.7) !important;
+}
+
+:root[data-theme='aether-beyond'] .card:hover,
+:root[data-theme='aether-beyond'] .track-item:hover,
+:root[data-theme='aether-beyond'] .album-card:hover,
+:root[data-theme='aether-beyond'] .artist-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 0 30px rgba(168, 85, 247, 0.3), 0 0 60px rgba(99, 102, 241, 0.15);
+}
+
+:root[data-theme='aether-beyond'] .sidebar {
+    background: linear-gradient(180deg, rgba(3, 0, 20, 0.95) 0%, rgba(10, 0, 37, 0.9) 100%) !important;
+    border-right: 1px solid rgba(168, 85, 247, 0.2);
+}
+
+:root[data-theme='aether-beyond'] .sidebar-logo span {
+    animation: aether-neon-flicker 3s ease-in-out infinite;
+}
+
+:root[data-theme='aether-beyond'] .player-bar {
+    background: linear-gradient(180deg, rgba(3, 0, 20, 0.9) 0%, rgba(10, 0, 37, 0.95) 100%) !important;
+    border-top: 1px solid rgba(168, 85, 247, 0.2);
+    backdrop-filter: blur(20px);
+}
+
+:root[data-theme='aether-beyond'] .btn-primary,
+:root[data-theme='aether-beyond'] button.primary {
+    background: linear-gradient(135deg, var(--aether-glow-1, #a855f7), var(--aether-glow-2, #6366f1)) !important;
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+    transition: all 0.3s ease;
+}
+
+:root[data-theme='aether-beyond'] .btn-primary:hover,
+:root[data-theme='aether-beyond'] button.primary:hover {
+    box-shadow: 0 0 35px rgba(168, 85, 247, 0.6), 0 0 60px rgba(99, 102, 241, 0.3);
+    transform: translateY(-2px);
+}
+
+:root[data-theme='aether-beyond'] .progress-bar {
+    background: linear-gradient(90deg, var(--aether-glow-1, #a855f7), var(--aether-glow-3, #ec4899), var(--aether-cyber, #00d4ff));
+    background-size: 200% 100%;
+    animation: aether-glow-shift 3s ease infinite;
+}
+
+:root[data-theme='aether-beyond'] ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--aether-glow-1, #a855f7), var(--aether-glow-2, #6366f1));
+    border-radius: 10px;
+}
+
+:root[data-theme='aether-beyond'] .main-content {
+    position: relative;
+}
+
 :root[data-theme='dark'] {
     color-scheme: dark;
 
