@@ -5340,13 +5340,6 @@ export class UIRenderer {
     }
 
     cleanupPodcastState() {
-        if (this.podcastScrollHandler) {
-            const mainContent = document.querySelector('.main-content');
-            if (mainContent) {
-                mainContent.removeEventListener('scroll', this.podcastScrollHandler);
-            }
-            this.podcastScrollHandler = null;
-        }
         this.podcastState = null;
     }
 
@@ -5392,7 +5385,7 @@ export class UIRenderer {
             document.title = `${podcastResult?.title || 'Podcast'} - Monochrome Music`;
 
             episodesContainer.innerHTML = '';
-            await this.loadMorePodcastEpisodes();
+            await this.loadAllPodcastEpisodes();
         } catch (error) {
             console.error('Failed to load podcast:', error);
             nameEl.textContent = 'Podcast not found';
@@ -5400,129 +5393,42 @@ export class UIRenderer {
         }
     }
 
-    async loadMorePodcastEpisodes() {
-        if (this.podcastState.isLoading || !this.podcastState.hasMore) return;
-
+    async loadAllPodcastEpisodes() {
         this.podcastState.isLoading = true;
         const episodesContainer = document.getElementById('podcasts-episodes-container');
-
-        if (this.podcastState.offset === 0) {
-            episodesContainer.innerHTML = this.createSkeletonTracks(8, true);
-        } else {
-            const loader = document.createElement('div');
-            loader.id = 'podcast-load-more';
-            loader.className = 'loading-more';
-            loader.innerHTML = '<div class="skeleton-track"></div>'.repeat(4);
-            episodesContainer.appendChild(loader);
-        }
+        episodesContainer.innerHTML = this.createSkeletonTracks(8, true);
 
         try {
             const { podcastsAPI } = await import('./podcasts-api.js');
             const result = await podcastsAPI.getPodcastEpisodes(this.podcastState.id, {
-                max: 50,
-                offset: this.podcastState.offset,
+                max: 10000,
             });
 
-            console.log(
-                'Podcast episodes loaded:',
-                result.items.length,
-                'hasMore:',
-                result.hasMore,
-                'offset:',
-                this.podcastState.offset
-            );
+            this.podcastState.episodes = result.items;
+            this.podcastState.hasMore = false;
 
-            const isFirstLoad = this.podcastState.offset === 0;
+            const podcastTitle = this.podcastState.podcastTitle || 'Unknown Podcast';
+            const tracks = result.items.map((ep) => this.transformPodcastEpisodeToTrack(ep, podcastTitle));
+            this.renderListWithTracks(episodesContainer, tracks, true);
 
-            this.podcastState.episodes.push(...result.items);
-            this.podcastState.offset += result.items.length;
-            this.podcastState.hasMore = result.hasMore;
-
-            if (isFirstLoad) {
-                const podcastTitle = this.podcastState.podcastTitle || 'Unknown Podcast';
-                const tracks = result.items.map((ep) => this.transformPodcastEpisodeToTrack(ep, podcastTitle));
-                this.renderListWithTracks(episodesContainer, tracks, true);
-
-                const sentinel = document.createElement('div');
-                sentinel.id = 'podcast-scroll-sentinel';
-                sentinel.style.height = '1px';
-                episodesContainer.appendChild(sentinel);
-
-                const playBtn = document.getElementById('play-podcasts-btn');
-                if (playBtn && result.items.length > 0) {
-                    playBtn.onclick = () => {
-                        const tracksToPlay = this.podcastState.episodes.map((ep) =>
-                            this.transformPodcastEpisodeToTrack(ep, podcastTitle)
-                        );
-                        if (this.player) {
-                            this.player.setQueue(tracksToPlay, 0);
-                            this.player.playTrackFromQueue();
-                        }
-                    };
-                }
-
-                this.setupPodcastInfiniteScroll();
-            } else {
-                const loader = document.getElementById('podcast-load-more');
-                if (loader) loader.remove();
-                const podcastTitle = this.podcastState.podcastTitle || 'Unknown Podcast';
-                const tracks = result.items.map((ep) => this.transformPodcastEpisodeToTrack(ep, podcastTitle));
-                this.appendListWithTracks(tracks);
-            }
-
-            if (!this.podcastState.hasMore) {
-                const loader = document.getElementById('podcast-load-more');
-                if (loader) loader.remove();
+            const playBtn = document.getElementById('play-podcasts-btn');
+            if (playBtn && result.items.length > 0) {
+                playBtn.onclick = () => {
+                    const tracksToPlay = this.podcastState.episodes.map((ep) =>
+                        this.transformPodcastEpisodeToTrack(ep, podcastTitle)
+                    );
+                    if (this.player) {
+                        this.player.setQueue(tracksToPlay, 0);
+                        this.player.playTrackFromQueue();
+                    }
+                };
             }
         } catch (error) {
-            console.error('Failed to load more episodes:', error);
-            const loader = document.getElementById('podcast-load-more');
-            if (loader) loader.remove();
+            console.error('Failed to load podcast episodes:', error);
+            episodesContainer.innerHTML = createPlaceholder('Failed to load episodes.');
         }
 
         this.podcastState.isLoading = false;
-    }
-
-    setupPodcastInfiniteScroll() {
-        const mainContent = document.querySelector('.main-content');
-        if (!mainContent) return;
-
-        const scrollHandler = () => {
-            const scrollTop = mainContent.scrollTop;
-            const scrollHeight = mainContent.scrollHeight;
-            const clientHeight = mainContent.clientHeight;
-
-            if (scrollTop + clientHeight >= scrollHeight - 200) {
-                if (this.podcastState?.hasMore && !this.podcastState?.isLoading) {
-                    console.log('Loading more podcast episodes...');
-                    this.loadMorePodcastEpisodes();
-                }
-            }
-        };
-
-        mainContent.addEventListener('scroll', scrollHandler);
-        this.podcastScrollHandler = scrollHandler;
-    }
-
-    appendListWithTracks(tracks) {
-        const listContainer = document.getElementById('podcasts-episodes-container');
-        const sentinel = document.getElementById('podcast-scroll-sentinel');
-        const existingTracks = listContainer.querySelectorAll('.track-row, .track-item').length;
-
-        tracks.forEach((track, index) => {
-            const trackHtml = this.createTrackItemHTML(track, existingTracks + index, true);
-            const trackEl = document.createElement('div');
-            trackEl.innerHTML = trackHtml;
-            const row = trackEl.firstElementChild;
-
-            if (sentinel) {
-                listContainer.insertBefore(row, sentinel);
-            } else {
-                listContainer.appendChild(row);
-            }
-
-            trackDataStore.set(row, track);
-        });
     }
 
     async renderPodcastSearchResults(query) {
