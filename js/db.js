@@ -447,6 +447,7 @@ export class MusicDatabase {
 
         const userPlaylists = await this.getPlaylists(true);
         const userFolders = await this.getFolders();
+        const ratings = await this.getRatedTracks();
         const data = {
             favorites_tracks: tracks.map((t) => this._minifyItem('track', t)),
             favorites_albums: albums.map((a) => this._minifyItem('album', a)),
@@ -456,6 +457,7 @@ export class MusicDatabase {
             history_tracks: history.map((t) => this._minifyItem('track', t)),
             user_playlists: userPlaylists,
             user_folders: userFolders,
+            track_ratings: ratings,
         };
         return data;
     }
@@ -549,6 +551,7 @@ export class MusicDatabase {
             history: data.history_tracks?.length || 0,
             userPlaylists: data.user_playlists?.length || 0,
             user_folders: data.user_folders?.length || 0,
+            track_ratings: data.track_ratings?.length || 0,
         });
 
         const results = await Promise.all([
@@ -560,6 +563,7 @@ export class MusicDatabase {
             importStore('history_tracks', data.history_tracks),
             data.user_playlists ? importStore('user_playlists', data.user_playlists) : Promise.resolve(false),
             data.user_folders ? importStore('user_folders', data.user_folders) : Promise.resolve(false),
+            data.track_ratings ? importStore('track_ratings', data.track_ratings) : Promise.resolve(false),
         ]);
 
         console.log('Import results:', results);

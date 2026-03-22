@@ -1990,6 +1990,22 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
     mainContent.addEventListener('touchmove', handleTrackTouchMove, { passive: true });
     mainContent.addEventListener('touchend', handleTrackTouchEnd, { passive: true });
 
+    mainContent.addEventListener('keydown', async (e) => {
+        const widget = e.target.closest('.track-rating');
+        if (!widget) return;
+        if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
+        e.preventDefault();
+        const trackItem = widget.closest('.track-item');
+        const track = trackItem ? trackDataStore.get(trackItem) : null;
+        if (!track) return;
+        const current = await db.getRating(track.id);
+        if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+            if (current < 5) await db.setRating(track.id, current + 1);
+        } else {
+            if (current > 0) await db.setRating(track.id, current - 1);
+        }
+    });
+
     mainContent.addEventListener('click', async (e) => {
         const ratingStar = e.target.closest('.rating-star');
         if (ratingStar) {
@@ -2530,6 +2546,19 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
 
     const nowPlayingRating = document.getElementById('now-playing-rating');
     if (nowPlayingRating) {
+        nowPlayingRating.addEventListener('keydown', async (e) => {
+            if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
+            e.preventDefault();
+            if (!player.currentTrack) return;
+            const trackId = player.currentTrack.id;
+            const current = await db.getRating(trackId);
+            if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+                if (current < 5) await db.setRating(trackId, current + 1);
+            } else {
+                if (current > 0) await db.setRating(trackId, current - 1);
+            }
+        });
+
         nowPlayingRating.addEventListener('click', async (e) => {
             const ratingStar = e.target.closest('.rating-star');
             const ratingClear = e.target.closest('.rating-clear');

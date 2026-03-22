@@ -2393,7 +2393,7 @@ body.multi-select-mode .track-item:hover {
 }
 
 .rating-star.active .star-icon {
-    fill: currentColor;
+    fill: currentcolor;
 }
 
 /* Hover: reset active state across all stars, then fill up to hovered star.
@@ -2415,7 +2415,7 @@ body.multi-select-mode .track-item:hover {
 
 .track-rating .rating-star:hover .star-icon,
 .track-rating .rating-star:hover ~ .rating-star .star-icon {
-    fill: currentColor;
+    fill: currentcolor;
 }
 
 .now-playing-bar .track-rating {

@@ -231,11 +231,16 @@ export class UIRenderer {
     }
 
     async updateRatingState(element, trackId) {
-        const rating = await db.getRating(trackId);
         const widget = element.classList.contains('track-rating') ? element : element.querySelector('.track-rating');
         if (!widget) return;
+        widget.dataset.ratingTrackId = String(trackId);
+        const rating = await db.getRating(trackId);
+        if (widget.dataset.ratingTrackId !== String(trackId)) return;
+        widget.setAttribute('aria-valuenow', rating);
         widget.querySelectorAll('.rating-star').forEach((star) => {
-            star.classList.toggle('active', parseInt(star.dataset.rating) <= rating);
+            const starRating = parseInt(star.dataset.rating);
+            star.classList.toggle('active', starRating <= rating);
+            star.setAttribute('aria-checked', starRating === rating ? 'true' : 'false');
         });
         if (!element.classList.contains('track-rating')) {
             element.classList.toggle('rated', rating > 0);
@@ -318,13 +323,17 @@ export class UIRenderer {
                 } else {
                     if (!playerRating.children.length) {
                         const starSvg = SVG_STAR(14);
+                        playerRating.setAttribute('role', 'radiogroup');
+                        playerRating.setAttribute('tabindex', '0');
+                        playerRating.setAttribute('aria-label', 'Track rating');
+                        playerRating.setAttribute('aria-valuenow', '0');
                         playerRating.innerHTML = `
-                            <button class="rating-star" data-rating="5" type="button" title="5 stars">${starSvg}</button>
-                            <button class="rating-star" data-rating="4" type="button" title="4 stars">${starSvg}</button>
-                            <button class="rating-star" data-rating="3" type="button" title="3 stars">${starSvg}</button>
-                            <button class="rating-star" data-rating="2" type="button" title="2 stars">${starSvg}</button>
-                            <button class="rating-star" data-rating="1" type="button" title="1 star">${starSvg}</button>
-                            <button class="rating-clear" type="button" title="Clear rating"></button>
+                            <button class="rating-star" data-rating="5" type="button" title="5 stars" role="radio" tabindex="-1" aria-checked="false">${starSvg}</button>
+                            <button class="rating-star" data-rating="4" type="button" title="4 stars" role="radio" tabindex="-1" aria-checked="false">${starSvg}</button>
+                            <button class="rating-star" data-rating="3" type="button" title="3 stars" role="radio" tabindex="-1" aria-checked="false">${starSvg}</button>
+                            <button class="rating-star" data-rating="2" type="button" title="2 stars" role="radio" tabindex="-1" aria-checked="false">${starSvg}</button>
+                            <button class="rating-star" data-rating="1" type="button" title="1 star" role="radio" tabindex="-1" aria-checked="false">${starSvg}</button>
+                            <button class="rating-clear" type="button" title="Clear rating" tabindex="-1"></button>
                         `;
                     }
                     playerRating.style.display = 'flex';
@@ -476,13 +485,13 @@ export class UIRenderer {
         const starSvg = SVG_STAR(14);
         const ratingHTML = isUnavailable
             ? ''
-            : `<div class="track-rating">
-                <button class="rating-star" data-rating="5" type="button" title="5 stars">${starSvg}</button>
-                <button class="rating-star" data-rating="4" type="button" title="4 stars">${starSvg}</button>
-                <button class="rating-star" data-rating="3" type="button" title="3 stars">${starSvg}</button>
-                <button class="rating-star" data-rating="2" type="button" title="2 stars">${starSvg}</button>
-                <button class="rating-star" data-rating="1" type="button" title="1 star">${starSvg}</button>
-                <button class="rating-clear" type="button" title="Clear rating"></button>
+            : `<div class="track-rating" role="radiogroup" tabindex="0" aria-label="Track rating" aria-valuenow="0">
+                <button class="rating-star" data-rating="5" type="button" title="5 stars" role="radio" tabindex="-1" aria-checked="false">${starSvg}</button>
+                <button class="rating-star" data-rating="4" type="button" title="4 stars" role="radio" tabindex="-1" aria-checked="false">${starSvg}</button>
+                <button class="rating-star" data-rating="3" type="button" title="3 stars" role="radio" tabindex="-1" aria-checked="false">${starSvg}</button>
+                <button class="rating-star" data-rating="2" type="button" title="2 stars" role="radio" tabindex="-1" aria-checked="false">${starSvg}</button>
+                <button class="rating-star" data-rating="1" type="button" title="1 star" role="radio" tabindex="-1" aria-checked="false">${starSvg}</button>
+                <button class="rating-clear" type="button" title="Clear rating" tabindex="-1"></button>
             </div>`;
 
         const actionsHTML = isUnavailable
