@@ -3,11 +3,20 @@
     xmlns="http://www.w3.org/2000/svg"
     width="200"
     height="200"
-    viewBox="14.75 14.75 70.5 70.5"
+    viewBox="0 0 200 200"
 >
-    <g fill="currentColor">
-        <path
-            d="M38.25 14.75H85.25V61.75H61.75V38.25H38.25ZM14.75 38.25H38.25V61.75H61.75V85.25H14.75Z"
-        />
+    <defs>
+        <linearGradient id="aether-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+            <stop offset="50%" style="stop-color:#818cf8;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#a78bfa;stop-opacity:1" />
+        </linearGradient>
+    </defs>
+    <circle cx="100" cy="100" r="90" fill="url(#aether-grad)" opacity="0.15" />
+    <circle cx="100" cy="100" r="70" fill="url(#aether-grad)" opacity="0.25" />
+    <circle cx="100" cy="100" r="50" fill="url(#aether-grad)" opacity="0.35" />
+    <g fill="url(#aether-grad)">
+        <path d="M100 25 L145 155 H130 L120 125 H80 L70 155 H55 Z M90 110 H110 L100 75 Z" />
     </g>
+    <circle cx="100" cy="100" r="95" fill="none" stroke="url(#aether-grad)" stroke-width="1.5" opacity="0.4" />
 </svg>
