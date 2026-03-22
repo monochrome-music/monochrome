@@ -1196,18 +1196,24 @@ class CommandPalette {
     }
 
     async setQuality(quality) {
-        const qualityNames = { auto: 'Auto', LOW: 'Low', HIGH: 'High', LOSSLESS: 'Lossless', HI_RES_LOSSLESS: 'Hi-Res' };
+        const qualityNames = {
+            auto: 'Auto',
+            LOW: 'Low',
+            HIGH: 'High',
+            LOSSLESS: 'Lossless',
+            HI_RES_LOSSLESS: 'Hi-Res',
+        };
 
         if (Player.instance) {
             // Set fallback API quality (Auto maps back to Hi-Res)
             const apiQuality = quality === 'auto' ? 'HI_RES_LOSSLESS' : quality;
             Player.instance.setQuality(apiQuality);
             localStorage.setItem('playback-quality', apiQuality);
-            
+
             // Set adaptive streaming quality
             localStorage.setItem('adaptive-playback-quality', quality);
             if (Player.instance.forceQuality) Player.instance.forceQuality(quality);
-            
+
             const streamingSelect = document.getElementById('streaming-quality-setting');
             if (streamingSelect) streamingSelect.value = quality;
         }

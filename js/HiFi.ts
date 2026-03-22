@@ -563,7 +563,13 @@ export class HiFiClient {
             [
                 q,
                 'https://api.tidal.com/v1/search',
-                { query: q, limit, offset, types: 'ARTISTS,ALBUMS,TRACKS,VIDEOS,PLAYLISTS', countryCode: this.countryCode },
+                {
+                    query: q,
+                    limit,
+                    offset,
+                    types: 'ARTISTS,ALBUMS,TRACKS,VIDEOS,PLAYLISTS',
+                    countryCode: this.countryCode,
+                },
             ],
             [s, 'https://api.tidal.com/v1/search/tracks', { query: s, limit, offset, countryCode: this.countryCode }],
             [
