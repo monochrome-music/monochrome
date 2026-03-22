@@ -310,6 +310,8 @@ export const themeManager = {
         macchiato: {},
         frappe: {},
         latte: {},
+                aether: {},
+        'aether-beyond': {},
     },
 
     getTheme() {
