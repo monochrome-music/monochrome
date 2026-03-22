@@ -277,7 +277,5 @@ export function initChangelog() {
   // autoShowChangelogIfNew();
 }
 
-// Tambahkan ke window untuk debugging
-if (import.meta.env.DEV) {
-  window.showChangelog = showChangelogModal;
-}
+// Expose showChangelog globally for sidebar button
+window.showChangelog = showChangelogModal;
