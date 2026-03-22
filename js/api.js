@@ -1439,6 +1439,7 @@ export class LosslessAPI {
 
         try {
             const manifestType = isIos || isSafari ? 'HLS' : 'MPEG_DASH';
+            const isApple = isIos || isSafari;
 
             let canPlayAtmos = false;
             try {
@@ -1460,12 +1461,16 @@ export class LosslessAPI {
             if (quality === 'LOW') {
                 paramsArray.push(['formats', 'HEAACV1']);
             } else if (quality === 'HIGH') {
+                if (!isApple) paramsArray.push(['formats', 'HEAACV1']);
                 paramsArray.push(['formats', 'AACLC']);
             } else if (quality === 'LOSSLESS') {
-                // For Safari to not auto-downgrade to AAC, we only request FLAC
+                // For Safari to not auto-downgrade to AAC, only request FLAC
+                paramsArray.push(['formats', 'HEAACV1']);
+                paramsArray.push(['formats', 'AACLC']);
                 paramsArray.push(['formats', 'FLAC']);
             } else if (quality === 'HI_RES_LOSSLESS') {
-                // FLAC_HIRES might fallback to FLAC by Tidal if unavailable, but we specify only HIRES and standard FLAC to avoid AAC downgrading
+                paramsArray.push(['formats', 'HEAACV1']);
+                paramsArray.push(['formats', 'AACLC']);
                 paramsArray.push(['formats', 'FLAC_HIRES']);
                 paramsArray.push(['formats', 'FLAC']);
             } else if (quality === 'DOLBY_ATMOS' && canPlayAtmos) {
