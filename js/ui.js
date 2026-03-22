@@ -1408,6 +1408,7 @@ export class UIRenderer {
                     miniRepeatBtn.classList.toggle('active', mode !== 0);
                     miniRepeatBtn.classList.toggle('repeat-one', mode === 2);
                     miniRepeatBtn.title = mode === 0 ? 'Repeat' : mode === 1 ? 'Repeat Queue' : 'Repeat One';
+                miniRepeatBtn.innerHTML = repeatBtn.innerHTML;
                 }
         };
 
