@@ -1771,4 +1771,32 @@ export class Player {
             console.error('Failed to set window title:', e);
         }
     }
+    
+    savePlaybackContinuation() {
+        // Save current playback position for continuation after app restart
+        if (!this.currentTrack || !this.activeElement) return;
+        const el = this.activeElement;
+        if (!isNaN(el.currentTime) && el.currentTime > 0) {
+            try {
+                localStorage.setItem('playback_continuation', JSON.stringify({
+                    trackId: this.currentTrack.id,
+                    currentTime: el.currentTime,
+                    timestamp: Date.now(),
+                }));
+            } catch (e) {}
+        }
+    }
+
+    clearPlaybackContinuationForCurrentTrack() {
+        // Clear saved playback continuation for the current track
+        try {
+            const saved = localStorage.getItem('playback_continuation');
+            if (saved) {
+                const data = JSON.parse(saved);
+                if (data && this.currentTrack && data.trackId === this.currentTrack.id) {
+                    localStorage.removeItem('playback_continuation');
+                }
+            }
+        } catch (e) {}
+    }
 }
