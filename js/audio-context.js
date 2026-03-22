@@ -300,7 +300,6 @@ class AudioContextManager {
 
         this.audio = audioElement;
 
-        // Detect iOS - skip Web Audio initialization on iOS to avoid lock screen audio issues
         if (isIos) {
             console.log('[AudioContext] Skipping Web Audio initialization on iOS for lock screen compatibility');
             return;
@@ -697,6 +696,8 @@ class AudioContextManager {
         return this.preamp || 0;
     }
 
+    /**
+     * Called when the app enters the background (screen lock, app switch).
     /**
      * Export equalizer settings to text format
      * @returns {string} Exported settings in text format
