@@ -23,7 +23,19 @@ import { db } from './db.js';
 
 import('./dash-media-player.js');
 import { SVG_CLOCK } from './icons.js';
+import { UIRenderer } from './ui.js';
+
 export class Player {
+    static #instance = null;
+
+    static get instance() {
+        if (!Player.#instance) {
+            throw new Error('Player is not initialized. Call Player.initialize(audioElement, api) first.');
+        }
+        return Player.#instance;
+    }
+
+    /** @private */
     constructor(audioElement, api, quality = 'HI_RES_LOSSLESS') {
         this.audio = audioElement;
         this.video = document.getElementById('video-player');
@@ -53,6 +65,25 @@ export class Player {
         this.sleepTimer = null;
         this.sleepTimerEndTime = null;
         this.sleepTimerInterval = null;
+        // Artist popular tracks state
+        this.artistPopularTracksState = {
+            artistId: null,
+            offset: 0,
+            initialTracks: [],
+            isFetching: false,
+            hasMore: true,
+        };
+    }
+
+    static async initialize(audioElement, api, quality) {
+        if (Player.#instance) {
+            throw new Error('Player is already initialized');
+        }
+
+        const player = new Player(audioElement, api, quality);
+        await player.init();
+        Player.#instance = player;
+        return player;
     }
 
     async init() {
@@ -613,6 +644,33 @@ export class Player {
             return;
         }
 
+        // Proactively fetch more artist tracks when the last track starts playing
+        console.log('[playTrackFromQueue] Check for fetch:', {
+            radioEnabled: this.radioEnabled,
+            artistId: this.artistPopularTracksState.artistId,
+            hasMore: this.artistPopularTracksState.hasMore,
+            isFetching: this.artistPopularTracksState.isFetching,
+            currentIndex: this.currentQueueIndex,
+            queueLength: currentQueue.length,
+            isLastTrack: this.currentQueueIndex >= currentQueue.length - 1,
+        });
+
+        if (
+            !this.radioEnabled &&
+            this.artistPopularTracksState.artistId &&
+            this.artistPopularTracksState.hasMore &&
+            !this.artistPopularTracksState.isFetching &&
+            this.currentQueueIndex >= currentQueue.length - 1
+        ) {
+            console.log('[playTrackFromQueue] Fetching more tracks!');
+            this.fetchMoreArtistPopularTracks().then((newTracks) => {
+                console.log('[playTrackFromQueue] Got tracks:', newTracks?.length);
+                if (newTracks && newTracks.length > 0) {
+                    this.addToQueue(newTracks);
+                }
+            });
+        }
+
         this.saveQueueState();
 
         this.currentTrack = track;
@@ -790,12 +848,12 @@ export class Player {
                 const played = await this.safePlay(activeElement);
                 if (!played) return;
             } else if (track.type === 'video') {
-                if (window.monochromeUi) {
+                if (UIRenderer.instance) {
                     const isInFullscreen =
                         document.getElementById('fullscreen-cover-overlay')?.style.display === 'flex';
                     if (!isInFullscreen) {
-                        const lyricsManager = window.monochromeUi.lyricsManager;
-                        window.monochromeUi.showFullscreenCover(
+                        const lyricsManager = UIRenderer.instance.lyricsManager;
+                        UIRenderer.instance.showFullscreenCover(
                             track,
                             this.getNextTrack(),
                             lyricsManager,
@@ -944,10 +1002,6 @@ export class Player {
         const currentQueue = this.getCurrentQueue();
         const isLastTrack = this.currentQueueIndex >= currentQueue.length - 1;
 
-        if (this.radioEnabled && this.currentQueueIndex >= currentQueue.length - 3) {
-            this.fetchRadioRecommendations();
-        }
-
         if (recursiveCount > currentQueue.length) {
             if (this.radioEnabled && isLastTrack) {
                 this.fetchRadioRecommendations().then(() => {
@@ -958,12 +1012,21 @@ export class Player {
                 });
                 return;
             }
-            console.error('All tracks in queue are unavailable or blocked.');
+            if (this.artistPopularTracksState.artistId && this.artistPopularTracksState.hasMore) {
+                this.fetchMoreArtistPopularTracks().then((newTracks) => {
+                    if (newTracks && newTracks.length > 0) {
+                        this.addToQueue(newTracks);
+                        this.playNext(0);
+                    } else {
+                        this.activeElement.pause();
+                    }
+                });
+                return;
+            }
             this.activeElement.pause();
             return;
         }
 
-        // Import blocking settings dynamically
         import('./storage.js').then(({ contentBlockingSettings }) => {
             if (
                 this.repeatMode === REPEAT_MODE.ONE &&
@@ -977,7 +1040,6 @@ export class Player {
             if (!isLastTrack) {
                 this.currentQueueIndex++;
                 const track = currentQueue[this.currentQueueIndex];
-                // Skip unavailable and blocked tracks
                 if (track?.isUnavailable || contentBlockingSettings.shouldHideTrack(track)) {
                     return this.playNext(recursiveCount + 1);
                 }
@@ -989,10 +1051,19 @@ export class Player {
                     }
                 });
                 return;
+            } else if (this.artistPopularTracksState.artistId && this.artistPopularTracksState.hasMore) {
+                this.fetchMoreArtistPopularTracks().then((newTracks) => {
+                    if (newTracks && newTracks.length > 0) {
+                        this.addToQueue(newTracks);
+                    }
+                    // Now play the next track (which is now at currentQueueIndex + 1 if tracks were added)
+                    this.currentQueueIndex++;
+                    this.playTrackFromQueue(0, recursiveCount);
+                });
+                return;
             } else if (this.repeatMode === REPEAT_MODE.ALL) {
                 this.currentQueueIndex = 0;
                 const track = currentQueue[this.currentQueueIndex];
-                // Skip unavailable and blocked tracks
                 if (track?.isUnavailable || contentBlockingSettings.shouldHideTrack(track)) {
                     return this.playNext(recursiveCount + 1);
                 }
@@ -1276,6 +1347,70 @@ export class Player {
         this.saveQueueState();
     }
 
+    setArtistPopularTracksContext(artistId, initialTracks, offset = 15, hasMore = true) {
+        this.artistPopularTracksState = {
+            artistId,
+            offset,
+            initialTracks,
+            isFetching: false,
+            hasMore,
+        };
+    }
+
+    clearArtistPopularTracksContext() {
+        this.artistPopularTracksState = {
+            artistId: null,
+            offset: 0,
+            initialTracks: [],
+            isFetching: false,
+            hasMore: false,
+        };
+    }
+
+    async fetchMoreArtistPopularTracks() {
+        const state = this.artistPopularTracksState;
+        console.log('[fetchMoreArtistPopularTracks] Called:', {
+            artistId: state.artistId,
+            offset: state.offset,
+            isFetching: state.isFetching,
+            hasMore: state.hasMore,
+        });
+
+        if (!state.artistId || state.isFetching || !state.hasMore) {
+            console.log('[fetchMoreArtistPopularTracks] Early return');
+            return [];
+        }
+
+        state.isFetching = true;
+
+        try {
+            console.log('[fetchMoreArtistPopularTracks] Fetching with offset:', state.offset);
+            const result = await this.api.getArtistTopTracks(state.artistId, {
+                offset: state.offset,
+                limit: 15,
+                firstTrackId: state.initialTracks[0]?.id,
+            });
+
+            console.log('[fetchMoreArtistPopularTracks] Result:', result);
+
+            if (result.tracks && result.tracks.length > 0) {
+                state.offset += result.tracks.length;
+                state.hasMore = result.hasMore;
+
+                return result.tracks;
+            } else {
+                state.hasMore = false;
+                return [];
+            }
+        } catch (error) {
+            console.warn('Failed to fetch more artist popular tracks:', error);
+            state.hasMore = false;
+            return [];
+        } finally {
+            state.isFetching = false;
+        }
+    }
+
     addToQueue(trackOrTracks) {
         const tracks = Array.isArray(trackOrTracks) ? trackOrTracks : [trackOrTracks];
         this.queue.push(...tracks);
@@ -1371,8 +1506,8 @@ export class Player {
         this.originalQueueBeforeShuffle = [];
         this.currentQueueIndex = -1;
         this.saveQueueState();
-        if (window.monochromeUi) {
-            window.monochromeUi.setCurrentTrack(null);
+        if (UIRenderer.instance) {
+            UIRenderer.instance.setCurrentTrack(null);
         }
         if (window.renderQueueFunction) {
             window.renderQueueFunction();

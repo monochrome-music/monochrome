@@ -107,7 +107,6 @@ export class MusicDatabase {
             const store = transaction.objectStore(storeName);
             const index = store.index('timestamp');
 
-            // Check the most recent entry
             const cursorReq = index.openCursor(null, 'prev');
 
             cursorReq.onsuccess = (e) => {
@@ -115,11 +114,9 @@ export class MusicDatabase {
                 if (cursor) {
                     const lastTrack = cursor.value;
                     if (lastTrack.id === track.id) {
-                        // If same track, delete the old entry so we just update the timestamp
                         store.delete(cursor.primaryKey);
                     }
                 }
-                // Add the new entry
                 store.put(entry);
             };
 

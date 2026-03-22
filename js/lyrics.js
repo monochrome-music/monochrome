@@ -33,14 +33,17 @@ function trackHasAsianText(track) {
 function cleanTrackerSearch(text) {
     if (!text) return '';
     // chud emojis will NOT be tolerated in my precious genius lyrics worker
-    let cleaned = text.replace(/[\p{Extended_Pictographic}\p{Emoji_Component}\p{Emoji_Presentation}\p{Emoji_Modifier}\p{Emoji_Modifier_Base}\p{Symbol}]/gu, '');
-    
+    let cleaned = text.replace(
+        /[\p{Extended_Pictographic}\p{Emoji_Component}\p{Emoji_Presentation}\p{Emoji_Modifier}\p{Emoji_Modifier_Base}\p{Symbol}]/gu,
+        ''
+    );
+
     cleaned = cleaned.replace(/[\u2600-\u27BF\u2B50\u2B06\u2194\u21AA\u2934\u203C\u2049\u3030\u303D\u3297\u3299]/g, '');
 
     cleaned = cleaned.replace(/\[v\s*\d+\s*\]/gi, '');
 
     cleaned = cleaned.replace(/\s+/g, ' ');
-    
+
     return cleaned.trim();
 }
 
@@ -148,6 +151,16 @@ class GeniusManager {
 }
 
 export class LyricsManager {
+    static #instance = null;
+
+    static get instance() {
+        if (!LyricsManager.#instance) {
+            throw new Error('LyricsManager is not initialized. Call LyricsManager.initialize() first.');
+        }
+        return LyricsManager.#instance;
+    }
+
+    /** @private */
     constructor(api) {
         this.api = api;
         this.currentLyrics = null;
@@ -194,6 +207,13 @@ export class LyricsManager {
         } catch {
             return false;
         }
+    }
+
+    static async initialize(api) {
+        if (LyricsManager.#instance) {
+            throw new Error('LyricsManager is already initialized');
+        }
+        return (LyricsManager.#instance = new LyricsManager(api));
     }
 
     // Get timing offset for current track

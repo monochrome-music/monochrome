@@ -18,7 +18,23 @@ export class TidalResponse extends Response {
     }
 }
 
+interface HiFiConstructorOptions {
+    clientId?: string;
+    clientSecret?: string;
+    countryCode?: string;
+    token?: string;
+    tokenExpiry?: number;
+}
+
 export class HiFiClient {
+    static #instance: HiFiClient | null = null;
+    static get instance() {
+        if (!HiFiClient.#instance) {
+            throw new Error('HiFiClient is not initialized. Call HiFiClient.initialize(options) first.');
+        }
+        return HiFiClient.#instance;
+    }
+
     private static tokenPromise: Promise<string> | null = null;
     private static albumTracksMax = 20;
     private static albumTracksActive = 0;
@@ -90,15 +106,7 @@ export class HiFiClient {
         return u.toString();
     }
 
-    private static encodeBasic(id: string, secret: string) {
-        if (typeof globalThis.btoa === 'function') {
-            return btoa(`${id}:${secret}`);
-        }
-        // Node fallback
-        return Buffer.from(`${id}:${secret}`).toString('base64');
-    }
-
-    static setToken(token: string, expiry: number = Date.now() + 60000) {
+    static setToken(token: string, expiry: number = -1) {
         HiFiClient.token = token;
         HiFiClient.appTokenExpiry = expiry;
     }
@@ -108,7 +116,8 @@ export class HiFiClient {
         clientId: string,
         clientSecret: string
     ) {
-        if (HiFiClient.token && Date.now() < HiFiClient.appTokenExpiry) return HiFiClient.token;
+        if (HiFiClient.token && (HiFiClient.appTokenExpiry < 0 || Date.now() < HiFiClient.appTokenExpiry))
+            return HiFiClient.token;
 
         return await (HiFiClient.tokenPromise ??= (async () => {
             try {
@@ -116,7 +125,6 @@ export class HiFiClient {
                     method: 'POST',
                     headers: {
                         'content-type': 'application/x-www-form-urlencoded',
-                        authorization: `Basic ${this.encodeBasic(clientId, clientSecret)}`,
                     },
                     body: new URLSearchParams({
                         grant_type: 'client_credentials',
@@ -144,10 +152,38 @@ export class HiFiClient {
         })());
     }
 
-    constructor(clientId = BROWSER_CLIENT_ID, clientSecret = BROWSER_CLIENT_SECRET, countryCode = 'US') {
+    private static getOptions({
+        clientId = BROWSER_CLIENT_ID,
+        clientSecret = BROWSER_CLIENT_SECRET,
+        countryCode = 'US',
+        token,
+        tokenExpiry,
+    }: HiFiConstructorOptions = {}) {
+        return { clientId, clientSecret, countryCode, token, tokenExpiry };
+    }
+
+    private constructor(options: HiFiConstructorOptions = {}) {
+        const { clientId, clientSecret, countryCode, token, tokenExpiry } = HiFiClient.getOptions(options);
         this.countryCode = countryCode;
         this.clientId = clientId;
         this.clientSecret = clientSecret;
+        if (token) {
+            HiFiClient.setToken(token, tokenExpiry ?? -1);
+        }
+    }
+
+    static async initialize(options: HiFiConstructorOptions = {}) {
+        if (HiFiClient.#instance) {
+            throw new Error('HiFiClient is already initialized');
+        }
+
+        const instance = (HiFiClient.#instance = new HiFiClient(options));
+
+        if (!options.token && !options.clientId && !options.clientSecret) {
+            await HiFiClient.fetchAppToken(new AbortController().signal, instance.clientId, instance.clientSecret);
+        }
+
+        return (HiFiClient.#instance = instance);
     }
 
     private async fetchJson(url: string, params?: Params, signal: AbortSignal = new AbortController().signal) {
@@ -315,7 +351,13 @@ export class HiFiClient {
         return { version: API_VERSION, albums: (payload?.data || []).map(resolveAlbum) };
     }
 
-    async getArtist(id?: number | null, f?: number | null, skip_tracks = false, signal?: AbortSignal) {
+    async getArtist(
+        id?: number | null,
+        f?: number | null,
+        skip_tracks = false,
+        signal?: AbortSignal,
+        options?: { offset?: number; limit?: number }
+    ) {
         if (!id && !f) throw new ResponseError(400, 'Provide id or f query param');
 
         if (id) {
@@ -352,13 +394,13 @@ export class HiFiClient {
         ];
 
         if (skip_tracks) {
-            tasks.push(
-                this.fetchJson(
-                    `https://api.tidal.com/v1/artists/${f}/toptracks`,
-                    { countryCode: this.countryCode, limit: 15 },
-                    signal
-                )
-            );
+            const offset = options?.offset;
+            const limit = options?.limit;
+            const toptracks_params: Params = { countryCode: this.countryCode, limit: limit || 15 };
+            if (offset !== undefined) {
+                toptracks_params.offset = offset;
+            }
+            tasks.push(this.fetchJson(`https://api.tidal.com/v1/artists/${f}/toptracks`, toptracks_params, signal));
         }
 
         const results = await Promise.all(tasks.map((p) => p.catch((e) => e)));
@@ -702,7 +744,11 @@ export class HiFiClient {
                         qp.id ? Number(qp.id) : undefined,
                         qp.f ? Number(qp.f) : undefined,
                         qp.skip_tracks === 'true' || qp.skip_tracks === '1' || qp.skip_tracks === 'True',
-                        signal
+                        signal,
+                        {
+                            offset: qp.offset !== undefined ? Number(qp.offset) : undefined,
+                            limit: qp.limit !== undefined ? Number(qp.limit) : undefined,
+                        }
                     );
                 case '/cover':
                     return await this.getCover(qp.id ? Number(qp.id) : undefined, qp.q ?? undefined, signal);

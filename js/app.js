@@ -73,6 +73,7 @@ import {
     SVG_CLOSE,
     SVG_RESET,
 } from './icons.js';
+import { HiFiClient } from './HiFi.js';
 
 // Capture real iOS state before spoofing (needed for background audio)
 if (typeof window !== 'undefined') {
@@ -107,8 +108,6 @@ if (typeof window !== 'undefined') {
 let settingsModule = null;
 let downloadsModule = null;
 let metadataModule = null;
-
-export const managers = {};
 
 async function loadSettingsModule() {
     if (!settingsModule) {
@@ -267,23 +266,20 @@ function initializeKeyboardShortcuts(player, _audioPlayer) {
         },
         visualizerNext: () => {
             trackKeyboardShortcut('VisualizerNext');
-            const ui = window.monochromeUi;
-            if (ui?.visualizer?.presets?.['butterchurn']) {
-                ui.visualizer.presets['butterchurn'].nextPreset();
+            if (UIRenderer.instance.visualizer?.presets?.['butterchurn']) {
+                UIRenderer.instance.visualizer.presets['butterchurn'].nextPreset();
             }
         },
         visualizerPrev: () => {
             trackKeyboardShortcut('VisualizerPrev');
-            const ui = window.monochromeUi;
-            if (ui?.visualizer?.presets?.['butterchurn']) {
-                ui.visualizer.presets['butterchurn'].prevPreset();
+            if (UIRenderer.instance.visualizer?.presets?.['butterchurn']) {
+                UIRenderer.instance.visualizer.presets['butterchurn'].prevPreset();
             }
         },
         visualizerCycle: () => {
             trackKeyboardShortcut('VisualizerCycle');
-            const ui = window.monochromeUi;
-            if (ui?.visualizer?.presets?.['butterchurn']) {
-                ui.visualizer.presets['butterchurn'].toggleCycle();
+            if (UIRenderer.instance.visualizer?.presets?.['butterchurn']) {
+                UIRenderer.instance.visualizer.presets['butterchurn'].toggleCycle();
             }
         },
     };
@@ -387,12 +383,23 @@ async function uploadCoverImage(file) {
 document.addEventListener('DOMContentLoaded', async () => {
     await initI18n();
 
+    if (import.meta.env.DEV) {
+        window.monochrome = {
+            HiFiClient,
+            LyricsManager,
+            MusicAPI,
+            Player,
+            UIRenderer,
+        };
+    }
+
     // Initialize analytics
     initAnalytics();
 
     new ThemeStore();
+    await HiFiClient.initialize();
+    await MusicAPI.initialize(apiSettings);
 
-    const api = new MusicAPI(apiSettings);
     const audioPlayer = document.getElementById('audio-player');
 
     // i love ios and macos!!!! webkit fucking SUCKS BULLSHIT sorry ios/macos heads yall getting lossless only playback
@@ -420,21 +427,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const currentQuality = localStorage.getItem('playback-quality') || 'HI_RES_LOSSLESS';
-    const player = new Player(audioPlayer, api, currentQuality);
-    await player.init();
-    window.monochromePlayer = player;
+    await Player.initialize(audioPlayer, MusicAPI.instance, currentQuality);
 
     // Initialize tracker
-    initTracker(player);
+    initTracker();
 
     // Linux Media Keys Fix
     if (window.NL_MODE) {
         import('./desktop/neutralino-bridge.js').then(({ events }) => {
-            events.on('mediaNext', () => player.playNext());
-            events.on('mediaPrevious', () => player.playPrev());
-            events.on('mediaPlayPause', () => player.handlePlayPause());
+            events.on('mediaNext', () => Player.instance.playNext());
+            events.on('mediaPrevious', () => Player.instance.playPrev());
+            events.on('mediaPlayPause', () => Player.instance.handlePlayPause());
             events.on('mediaStop', () => {
-                const el = player.activeElement;
+                const el = Player.instance.activeElement;
                 el.pause();
                 el.currentTime = 0;
             });
@@ -452,7 +457,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.NL_MODE = true;
         try {
             const desktopModule = await import('./desktop/desktop.js');
-            await desktopModule.initDesktop(player);
+            await desktopModule.initDesktop(Player.instance);
 
             import('./desktop/neutralino-bridge.js').then(({ updater }) => {
                 setTimeout(async () => {
@@ -501,8 +506,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const castBtn = document.getElementById('cast-btn');
     initializeCasting(audioPlayer, castBtn);
 
-    const ui = new UIRenderer(api, player);
-    window.monochromeUi = ui;
+    await UIRenderer.initialize(MusicAPI.instance, Player.instance);
 
     /**
      * Scans the configured local media folder and refreshes `window.localFilesCache`.
@@ -554,7 +558,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     const metadata = await readTrackMetadata(file);
                                     metadata.id = `local-${idCounter++}-${entry.entry}`;
                                     tracks.push(metadata);
-                                    window.monochromeUi?.renderLocalFiles(
+                                    UIRenderer.instance.renderLocalFiles(
                                         document.getElementById('library-local-container')
                                     );
                                 } catch (e) {
@@ -591,7 +595,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 const metadata = await readTrackMetadata(file);
                                 metadata.id = `local-${idCounter++}-${file.name}`;
                                 tracks.push(metadata);
-                                window.monochromeUi?.renderLocalFiles(
+                                UIRenderer.instance.renderLocalFiles(
                                     document.getElementById('library-local-container')
                                 );
                             }
@@ -605,7 +609,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             tracks.sort((a, b) => (a.artist.name || '').localeCompare(b.artist.name || ''));
             // Update only the local-files section without navigating to the library page.
-            window.monochromeUi?.renderLocalFiles(document.getElementById('library-local-container'));
+            UIRenderer.instance.renderLocalFiles(document.getElementById('library-local-container'));
         } finally {
             window.localFilesScanInProgress = false;
         }
@@ -638,7 +642,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 window.localFilesCache = [...existing, metadata].sort((a, b) =>
                     (a.artist.name || '').localeCompare(b.artist.name || '')
                 );
-                window.monochromeUi?.renderLocalFiles(document.getElementById('library-local-container'));
+                UIRenderer.instance.renderLocalFiles(document.getElementById('library-local-container'));
             } catch {
                 // Fall back to a full rescan if metadata extraction fails.
                 await scanLocalMediaFolder(true);
@@ -658,9 +662,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const scrobbler = new MultiScrobbler();
     window.monochromeScrobbler = scrobbler;
-    const lyricsManager = new LyricsManager(api);
-    ui.lyricsManager = lyricsManager;
-    managers.lyricsManager = lyricsManager;
+
+    const lyricsManager = await LyricsManager.initialize(MusicAPI.instance);
+    UIRenderer.instance.lyricsManager = lyricsManager;
 
     // Check browser support for local files
     const selectLocalBtn = document.getElementById('select-local-folder-btn');
@@ -693,11 +697,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     sidebarSettings.restoreState();
 
     // Render pinned items
-    await ui.renderPinnedItems();
+    await UIRenderer.instance.renderPinnedItems();
 
     // Load settings module and initialize
     const { initializeSettings } = await loadSettingsModule();
-    await initializeSettings(scrobbler, player, api, ui);
+    await initializeSettings(scrobbler, Player.instance, MusicAPI.instance, UIRenderer.instance);
 
     // Track sidebar navigation clicks
     document.querySelectorAll('.sidebar-nav a').forEach((link) => {
@@ -710,28 +714,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    initializePlayerEvents(player, audioPlayer, scrobbler, ui);
+    initializePlayerEvents(Player.instance, audioPlayer, scrobbler, UIRenderer.instance);
     initializeTrackInteractions(
-        player,
-        api,
+        Player.instance,
+        MusicAPI.instance,
         document.querySelector('.main-content'),
         document.getElementById('context-menu'),
         lyricsManager,
-        ui,
+        UIRenderer.instance,
         scrobbler
     );
-    initializeUIInteractions(player, api, ui);
-    initializeKeyboardShortcuts(player, audioPlayer);
+    initializeUIInteractions(Player.instance, MusicAPI.instance, UIRenderer.instance);
+    initializeKeyboardShortcuts(Player.instance, audioPlayer);
 
     // Restore UI state for the current track (like button, theme)
-    if (player.currentTrack) {
-        ui.setCurrentTrack(player.currentTrack);
+    if (Player.instance.currentTrack) {
+        UIRenderer.instance.setCurrentTrack(Player.instance.currentTrack);
     }
 
     document.querySelector('.now-playing-bar').addEventListener('click', async (e) => {
         if (!e.target.closest('.cover')) return;
 
-        if (!player.currentTrack) {
+        if (!Player.instance.currentTrack) {
             alert('No track is currently playing');
             return;
         }
@@ -742,16 +746,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             const isActive = sidePanelManager.isActive('lyrics');
 
             if (isActive) {
-                trackCloseLyrics(player.currentTrack);
+                trackCloseLyrics(Player.instance.currentTrack);
             } else {
-                trackOpenLyrics(player.currentTrack);
+                trackOpenLyrics(Player.instance.currentTrack);
             }
         } else if (mode === 'cover') {
             const overlay = document.getElementById('fullscreen-cover-overlay');
             if (overlay && overlay.style.display === 'flex') {
                 trackCloseFullscreenCover();
             } else {
-                trackOpenFullscreenCover(player.currentTrack);
+                trackOpenFullscreenCover(Player.instance.currentTrack);
             }
         }
 
@@ -760,9 +764,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (isActive) {
                 sidePanelManager.close();
-                clearLyricsPanelSync(player.activeElement, sidePanelManager.panel);
+                clearLyricsPanelSync(Player.instance.activeElement, sidePanelManager.panel);
             } else {
-                openLyricsPanel(player.currentTrack, player.activeElement, lyricsManager);
+                openLyricsPanel(Player.instance.currentTrack, Player.instance.activeElement, lyricsManager);
             }
         } else if (mode === 'cover') {
             const overlay = document.getElementById('fullscreen-cover-overlay');
@@ -770,16 +774,21 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (window.location.hash === '#fullscreen') {
                     window.history.back();
                 } else {
-                    ui.closeFullscreenCover();
+                    UIRenderer.instance.closeFullscreenCover();
                 }
             } else {
-                const nextTrack = player.getNextTrack();
-                ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, player.activeElement);
+                const nextTrack = Player.instance.getNextTrack();
+                UIRenderer.instance.showFullscreenCover(
+                    Player.instance.currentTrack,
+                    nextTrack,
+                    lyricsManager,
+                    Player.instance.activeElement
+                );
             }
         } else {
             // Default to 'album' mode - navigate to album
-            if (player.currentTrack.album?.id) {
-                navigate(`/album/${player.currentTrack.album.id}`);
+            if (Player.instance.currentTrack.album?.id) {
+                navigate(`/album/${Player.instance.currentTrack.album.id}`);
             }
         }
     });
@@ -795,7 +804,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (window.location.hash === '#fullscreen') {
             window.history.back();
         } else {
-            ui.closeFullscreenCover();
+            UIRenderer.instance.closeFullscreenCover();
         }
     });
 
@@ -807,14 +816,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const action = fullscreenCoverClickSettings.getAction();
         const overlay = document.getElementById('fullscreen-cover-overlay');
-        const playerInstance = window.monochromePlayer;
+        const playerInstance = Player.instance;
 
         switch (action) {
             case 'exit':
                 if (window.location.hash === '#fullscreen') {
                     window.history.back();
                 } else {
-                    ui.closeFullscreenCover();
+                    UIRenderer.instance.closeFullscreenCover();
                 }
                 break;
             case 'hide-ui':
@@ -837,11 +846,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                             toggleBtn.title = 'Show UI';
                         }
                     }
-                    if (ui && typeof ui.setupUIToggleButton === 'function') {
-                        if (ui.uiToggleCleanup) {
-                            ui.uiToggleCleanup();
+                    if (UIRenderer.instance && typeof UIRenderer.instance.setupUIToggleButton === 'function') {
+                        if (UIRenderer.instance.uiToggleCleanup) {
+                            UIRenderer.instance.uiToggleCleanup();
                         }
-                        ui.setupUIToggleButton(overlay);
+                        UIRenderer.instance.setupUIToggleButton(overlay);
                     }
                 }
                 break;
@@ -860,7 +869,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (window.location.hash === '#fullscreen') {
                     window.history.back();
                 } else {
-                    ui.closeFullscreenCover();
+                    UIRenderer.instance.closeFullscreenCover();
                 }
         }
     });
@@ -1059,9 +1068,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (isActive) {
             sidePanelManager.close();
-            clearLyricsPanelSync(player.activeElement, sidePanelManager.panel);
+            clearLyricsPanelSync(Player.instance.activeElement, sidePanelManager.panel);
         } else {
-            openLyricsPanel(player.currentTrack, player.activeElement, lyricsManager);
+            openLyricsPanel(Player.instance.currentTrack, Player.instance.activeElement, lyricsManager);
         }
     };
 
@@ -1076,37 +1085,50 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     document.getElementById('download-current-btn')?.addEventListener('click', () => {
-        if (player.currentTrack) {
-            handleTrackAction('download', player.currentTrack, player, api, lyricsManager, 'track', ui);
+        if (Player.instance.currentTrack) {
+            handleTrackAction(
+                'download',
+                Player.instance.currentTrack,
+                Player.instance,
+                MusicAPI.instance,
+                lyricsManager,
+                'track',
+                UIRenderer.instance
+            );
         }
     });
 
     // Auto-update lyrics when track changes
     let previousTrackId = null;
     audioPlayer.addEventListener('play', async () => {
-        if (!player.currentTrack) return;
+        if (!Player.instance.currentTrack) return;
 
         // Update UI with current track info for theme
-        ui.setCurrentTrack(player.currentTrack);
+        UIRenderer.instance.setCurrentTrack(Player.instance.currentTrack);
 
         // Update Media Session with new track
-        player.updateMediaSession(player.currentTrack);
+        Player.instance.updateMediaSession(Player.instance.currentTrack);
 
-        const currentTrackId = player.currentTrack.id;
+        const currentTrackId = Player.instance.currentTrack.id;
         if (currentTrackId === previousTrackId) return;
         previousTrackId = currentTrackId;
 
         // Update lyrics panel if it's open
         if (sidePanelManager.isActive('lyrics')) {
             // Re-open forces update/refresh of content and sync
-            openLyricsPanel(player.currentTrack, player.activeElement, lyricsManager, true);
+            openLyricsPanel(Player.instance.currentTrack, Player.instance.activeElement, lyricsManager, true);
         }
 
         // Update Fullscreen if it's open
         const fullscreenOverlay = document.getElementById('fullscreen-cover-overlay');
         if (fullscreenOverlay && getComputedStyle(fullscreenOverlay).display !== 'none') {
-            const nextTrack = player.getNextTrack();
-            ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, player.activeElement);
+            const nextTrack = Player.instance.getNextTrack();
+            UIRenderer.instance.showFullscreenCover(
+                Player.instance.currentTrack,
+                nextTrack,
+                lyricsManager,
+                Player.instance.activeElement
+            );
         }
 
         // DEV: Auto-open fullscreen mode if ?fullscreen=1 in URL
@@ -1116,8 +1138,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             fullscreenOverlay &&
             getComputedStyle(fullscreenOverlay).display === 'none'
         ) {
-            const nextTrack = player.getNextTrack();
-            ui.showFullscreenCover(player.currentTrack, nextTrack, lyricsManager, player.activeElement);
+            const nextTrack = Player.instance.getNextTrack();
+            UIRenderer.instance.showFullscreenCover(
+                Player.instance.currentTrack,
+                nextTrack,
+                lyricsManager,
+                Player.instance.activeElement
+            );
         }
     });
 
@@ -1137,7 +1164,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!albumId) return;
 
             try {
-                const { tracks } = await api.getAlbum(albumId);
+                const { tracks } = await MusicAPI.instance.getAlbum(albumId);
                 if (tracks && tracks.length > 0) {
                     // Sort tracks by disc and track number for consistent playback
                     const sortedTracks = [...tracks].sort((a, b) => {
@@ -1147,11 +1174,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                         return a.trackNumber - b.trackNumber;
                     });
 
-                    player.setQueue(sortedTracks, 0);
+                    Player.instance.setQueue(sortedTracks, 0);
                     const shuffleBtn = document.getElementById('shuffle-btn');
                     if (shuffleBtn) shuffleBtn.classList.remove('active');
-                    player.shuffleActive = false;
-                    await player.playTrackFromQueue();
+                    Player.instance.shuffleActive = false;
+                    await Player.instance.playTrackFromQueue();
                 }
             } catch (error) {
                 console.error('Failed to play album:', error);
@@ -1175,14 +1202,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!albumId) return;
 
             try {
-                const { tracks } = await api.getAlbum(albumId);
+                const { tracks } = await MusicAPI.instance.getAlbum(albumId);
                 if (tracks && tracks.length > 0) {
                     const shuffledTracks = [...tracks].sort(() => Math.random() - 0.5);
-                    player.setQueue(shuffledTracks, 0);
+                    Player.instance.setQueue(shuffledTracks, 0);
                     const shuffleBtn = document.getElementById('shuffle-btn');
                     if (shuffleBtn) shuffleBtn.classList.remove('active');
-                    player.shuffleActive = false;
-                    await player.playTrackFromQueue();
+                    Player.instance.shuffleActive = false;
+                    await Player.instance.playTrackFromQueue();
 
                     const { showNotification } = await loadDownloadsModule();
                     showNotification('Shuffling album');
@@ -1205,7 +1232,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             btn.innerHTML = `${SVG_ANIMATE_SPIN(18)}<span>Shuffling...</span>`;
 
             try {
-                const artist = await api.getArtist(artistId);
+                const artist = await MusicAPI.instance.getArtist(artistId);
                 const allReleases = [...(artist.albums || []), ...(artist.eps || [])];
                 const trackSet = new Set();
                 const allTracks = [];
@@ -1217,7 +1244,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     await Promise.all(
                         chunk.map(async (album) => {
                             try {
-                                const { tracks } = await api.getAlbum(album.id);
+                                const { tracks } = await MusicAPI.instance.getAlbum(album.id);
                                 tracks.forEach((track) => {
                                     if (!trackSet.has(track.id)) {
                                         trackSet.add(track.id);
@@ -1246,11 +1273,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
 
                 const shuffledTracks = [...allTracks].sort(() => Math.random() - 0.5);
-                player.setQueue(shuffledTracks, 0);
+                Player.instance.setQueue(shuffledTracks, 0);
                 const shuffleBtn = document.getElementById('shuffle-btn');
                 if (shuffleBtn) shuffleBtn.classList.remove('active');
-                player.shuffleActive = false;
-                await player.playTrackFromQueue();
+                Player.instance.shuffleActive = false;
+                await Player.instance.playTrackFromQueue();
 
                 const { showNotification } = await loadDownloadsModule();
                 showNotification('Shuffling artist discography');
@@ -1277,9 +1304,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             btn.innerHTML = `${SVG_ANIMATE_SPIN(20)}<span>Downloading...</span>`;
 
             try {
-                const { mix, tracks } = await api.getMix(mixId);
+                const { mix, tracks } = await MusicAPI.instance.getMix(mixId);
                 const { downloadPlaylistAsZip } = await loadDownloadsModule();
-                await downloadPlaylistAsZip(mix, tracks, api, downloadQualitySettings.getQuality(), lyricsManager);
+                await downloadPlaylistAsZip(
+                    mix,
+                    tracks,
+                    MusicAPI.instance,
+                    downloadQualitySettings.getQuality(),
+                    lyricsManager
+                );
             } catch (error) {
                 console.error('Mix download failed:', error);
                 alert('Failed to download mix: ' + error.message);
@@ -1316,13 +1349,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                     playlist = { ...userPlaylist, title: userPlaylist.name || userPlaylist.title };
                     tracks = userPlaylist.tracks || [];
                 } else {
-                    const data = await api.getPlaylist(playlistId);
+                    const data = await MusicAPI.instance.getPlaylist(playlistId);
                     playlist = data.playlist;
                     tracks = data.tracks;
                 }
 
                 const { downloadPlaylistAsZip } = await loadDownloadsModule();
-                await downloadPlaylistAsZip(playlist, tracks, api, downloadQualitySettings.getQuality(), lyricsManager);
+                await downloadPlaylistAsZip(
+                    playlist,
+                    tracks,
+                    MusicAPI.instance,
+                    downloadQualitySettings.getQuality(),
+                    lyricsManager
+                );
             } catch (error) {
                 console.error('Playlist download failed:', error);
                 alert('Failed to download playlist: ' + error.message);
@@ -1403,7 +1442,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const folder = await db.createFolder(name, cover);
                 trackCreateFolder(folder);
                 await syncManager.syncUserFolder(folder, 'create');
-                ui.renderLibraryPage();
+                UIRenderer.instance.renderLibraryPage();
                 document.getElementById('folder-modal').classList.remove('active');
                 trackCloseModal('Create Folder');
             } else {
@@ -1465,10 +1504,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                             await handlePublicStatus(playlist);
                             await db.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
                             syncManager.syncUserPlaylist(playlist, 'update');
-                            ui.renderLibraryPage();
+                            UIRenderer.instance.renderLibraryPage();
                             // Also update current page if we are on it
                             if (window.location.pathname === `/userplaylist/${editingId}`) {
-                                ui.renderPlaylistPage(editingId, 'user');
+                                UIRenderer.instance.renderPlaylistPage(editingId, 'user');
                             }
                             modal.classList.remove('active');
                             delete modal.dataset.editingId;
@@ -1559,7 +1598,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             const result = await parseCSV(
                                 csvText,
-                                api,
+                                MusicAPI.instance,
                                 (progress) => {
                                     const percentage = totalTracks > 0 ? (progress.current / totalTracks) * 100 : 0;
                                     progressFill.style.width = `${Math.min(percentage, 100)}%`;
@@ -1620,7 +1659,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             const jspfText = await file.text();
 
-                            const result = await parseJSPF(jspfText, api, (progress) => {
+                            const result = await parseJSPF(jspfText, MusicAPI.instance, (progress) => {
                                 const percentage = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
                                 progressFill.style.width = `${Math.min(percentage, 100)}%`;
                                 progressCurrent.textContent = progress.current.toString();
@@ -1708,7 +1747,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             const result = await parseDynamicCSV(
                                 csvText,
-                                api,
+                                MusicAPI.instance,
                                 (progress) => {
                                     const percentage = totalItems > 0 ? (progress.current / totalItems) * 100 : 0;
                                     progressFill.style.width = `${Math.min(percentage, 100)}%`;
@@ -1819,7 +1858,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             const xspfText = await file.text();
 
-                            const result = await parseXSPF(xspfText, api, (progress) => {
+                            const result = await parseXSPF(xspfText, MusicAPI.instance, (progress) => {
                                 const percentage = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
                                 progressFill.style.width = `${Math.min(percentage, 100)}%`;
                                 progressCurrent.textContent = progress.current.toString();
@@ -1878,7 +1917,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             const xmlText = await file.text();
 
-                            const result = await parseXML(xmlText, api, (progress) => {
+                            const result = await parseXML(xmlText, MusicAPI.instance, (progress) => {
                                 const percentage = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
                                 progressFill.style.width = `${Math.min(percentage, 100)}%`;
                                 progressCurrent.textContent = progress.current.toString();
@@ -1937,7 +1976,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                             const m3uText = await file.text();
 
-                            const result = await parseM3U(m3uText, api, (progress) => {
+                            const result = await parseM3U(m3uText, MusicAPI.instance, (progress) => {
                                 const percentage = progress.total > 0 ? (progress.current / progress.total) * 100 : 0;
                                 progressFill.style.width = `${Math.min(percentage, 100)}%`;
                                 progressCurrent.textContent = progress.current.toString();
@@ -1991,7 +2030,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         await db.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
                         await syncManager.syncUserPlaylist(playlist, 'create');
                         trackCreatePlaylist(playlist, importSource);
-                        ui.renderLibraryPage();
+                        UIRenderer.instance.renderLibraryPage();
                         modal.classList.remove('active');
                         trackCloseModal('Create Playlist');
                     });
@@ -2069,7 +2108,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (confirm('Are you sure you want to delete this playlist?')) {
                 db.deletePlaylist(playlistId).then(() => {
                     syncManager.syncUserPlaylist({ id: playlistId }, 'delete');
-                    ui.renderLibraryPage();
+                    UIRenderer.instance.renderLibraryPage();
                 });
             }
         }
@@ -2163,7 +2202,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const updatedPlaylist = await db.removeTrackFromPlaylist(playlistId, trackId, trackType);
                     syncManager.syncUserPlaylist(updatedPlaylist, 'update');
                     const scrollTop = document.querySelector('.main-content').scrollTop;
-                    await ui.renderPlaylistPage(playlistId, 'user');
+                    await UIRenderer.instance.renderPlaylistPage(playlistId, 'user');
                     document.querySelector('.main-content').scrollTop = scrollTop;
                 }
             });
@@ -2184,7 +2223,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 } else {
                     // Try API, if fail, try Public Pocketbase
                     try {
-                        const { tracks: apiTracks } = await api.getPlaylist(playlistId);
+                        const { tracks: apiTracks } = await MusicAPI.instance.getPlaylist(playlistId);
                         tracks = apiTracks;
                     } catch (e) {
                         const publicPlaylist = await syncManager.getPublicPlaylist(playlistId);
@@ -2196,9 +2235,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 }
                 if (tracks.length > 0) {
-                    player.setQueue(tracks, 0);
+                    Player.instance.setQueue(tracks, 0);
                     document.getElementById('shuffle-btn').classList.remove('active');
-                    await player.playTrackFromQueue();
+                    await Player.instance.playTrackFromQueue();
                 }
             } catch (error) {
                 console.error('Failed to play playlist:', error);
@@ -2218,9 +2257,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             btn.innerHTML = `${SVG_ANIMATE_SPIN(20)}<span>Downloading...</span>`;
 
             try {
-                const { album, tracks } = await api.getAlbum(albumId);
+                const { album, tracks } = await MusicAPI.instance.getAlbum(albumId);
                 const { downloadAlbumAsZip } = await loadDownloadsModule();
-                await downloadAlbumAsZip(album, tracks, api, downloadQualitySettings.getQuality(), lyricsManager);
+                await downloadAlbumAsZip(
+                    album,
+                    tracks,
+                    MusicAPI.instance,
+                    downloadQualitySettings.getQuality(),
+                    lyricsManager
+                );
             } catch (error) {
                 console.error('Album download failed:', error);
                 alert('Failed to download album: ' + error.message);
@@ -2238,7 +2283,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!albumId) return;
 
             try {
-                const { tracks } = await api.getAlbum(albumId);
+                const { tracks } = await MusicAPI.instance.getAlbum(albumId);
 
                 if (!tracks || tracks.length === 0) {
                     const { showNotification } = await loadDownloadsModule();
@@ -2341,7 +2386,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             btn.innerHTML = `${SVG_ANIMATE_SPIN(20)}<span>Loading...</span>`;
 
             try {
-                const artist = await api.getArtist(artistId);
+                const artist = await MusicAPI.instance.getArtist(artistId);
 
                 const allReleases = [...(artist.albums || []), ...(artist.eps || [])];
                 if (allReleases.length === 0) {
@@ -2363,7 +2408,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     await Promise.all(
                         chunk.map(async (album) => {
                             try {
-                                const { tracks } = await api.getAlbum(album.id);
+                                const { tracks } = await MusicAPI.instance.getAlbum(album.id);
                                 tracks.forEach((track) => {
                                     if (!trackSet.has(track.id)) {
                                         trackSet.add(track.id);
@@ -2383,8 +2428,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         [allTracks[i], allTracks[j]] = [allTracks[j], allTracks[i]];
                     }
 
-                    player.setQueue(allTracks, 0);
-                    await player.playTrackFromQueue();
+                    Player.instance.setQueue(allTracks, 0);
+                    await Player.instance.playTrackFromQueue();
                 } else {
                     throw new Error('No tracks found across all albums');
                 }
@@ -2411,9 +2456,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const j = Math.floor(Math.random() * (i + 1));
                         [likedTracks[i], likedTracks[j]] = [likedTracks[j], likedTracks[i]];
                     }
-                    player.setQueue(likedTracks, 0);
+                    Player.instance.setQueue(likedTracks, 0);
                     document.getElementById('shuffle-btn').classList.remove('active');
-                    await player.playTrackFromQueue();
+                    await Player.instance.playTrackFromQueue();
                 }
             } catch (error) {
                 console.error('Failed to shuffle liked tracks:', error);
@@ -2435,7 +2480,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return;
                 }
                 const { downloadLikedTracks } = await loadDownloadsModule();
-                await downloadLikedTracks(likedTracks, api, downloadQualitySettings.getQuality(), lyricsManager);
+                await downloadLikedTracks(
+                    likedTracks,
+                    MusicAPI.instance,
+                    downloadQualitySettings.getQuality(),
+                    lyricsManager
+                );
             } catch (error) {
                 console.error('Liked tracks download failed:', error);
                 alert('Failed to download liked tracks: ' + error.message);
@@ -2453,8 +2503,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!artistId) return;
 
             try {
-                const artist = await api.getArtist(artistId);
-                showDiscographyDownloadModal(artist, api, downloadQualitySettings.getQuality(), lyricsManager, btn);
+                const artist = await MusicAPI.instance.getArtist(artistId);
+                showDiscographyDownloadModal(
+                    artist,
+                    MusicAPI.instance,
+                    downloadQualitySettings.getQuality(),
+                    lyricsManager,
+                    btn
+                );
             } catch (error) {
                 console.error('Failed to load artist for discography download:', error);
                 alert('Failed to load artist: ' + error.message);
@@ -2497,7 +2553,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 const tracks = scanLocalMediaFolder(true);
                 trackSelectLocalFolder(tracks?.length ?? 0);
-                ui.renderLibraryPage();
+                UIRenderer.instance.renderLibraryPage();
             } catch (err) {
                 if (err.name !== 'AbortError') {
                     console.error('Error selecting folder:', err);
@@ -2517,7 +2573,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const searchForm = document.getElementById('search-form');
     const searchInput = document.getElementById('search-input');
 
-    ui.setupSearchClearButton(searchInput);
+    UIRenderer.instance.setupSearchClearButton(searchInput);
 
     const performSearch = (query) => {
         if (query) {
@@ -2570,16 +2626,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     searchInput.addEventListener('change', (e) => {
         const query = e.target.value.trim();
         if (query) {
-            ui.addToSearchHistory(query);
+            UIRenderer.instance.addToSearchHistory(query);
         }
     });
 
     searchInput.addEventListener('focus', () => {
-        ui.renderSearchHistory();
+        UIRenderer.instance.renderSearchHistory();
     });
 
     searchInput.addEventListener('click', () => {
-        ui.renderSearchHistory();
+        UIRenderer.instance.renderSearchHistory();
     });
 
     document.addEventListener('click', (e) => {
@@ -2595,7 +2651,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!query) return;
 
         if (!handleExternalLink(query)) {
-            ui.addToSearchHistory(query);
+            UIRenderer.instance.addToSearchHistory(query);
             performSearch(query);
             const historyEl = document.getElementById('search-history');
             if (historyEl) historyEl.style.display = 'none';
@@ -2614,14 +2670,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.querySelector('.now-playing-bar .play-pause-btn').innerHTML = SVG_PLAY(20);
 
-    const router = createRouter(ui);
+    const router = createRouter(UIRenderer.instance);
 
     const handleRouteChange = async (event) => {
         const overlay = document.getElementById('fullscreen-cover-overlay');
         const isFullscreenOpen = overlay && getComputedStyle(overlay).display === 'flex';
 
         if (isFullscreenOpen && window.location.hash !== '#fullscreen') {
-            ui.closeFullscreenCover();
+            UIRenderer.instance.closeFullscreenCover();
         }
 
         if (event && event.state && event.state.exitTrap) {
@@ -2650,7 +2706,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         await router();
-        updateTabTitle(player);
+        updateTabTitle(Player.instance);
     };
 
     await handleRouteChange();
@@ -2672,7 +2728,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     audioPlayer.addEventListener('play', () => {
-        updateTabTitle(player);
+        updateTabTitle(Player.instance);
     });
 
     // PWA Update Logic
@@ -2725,14 +2781,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.addEventListener('library-changed', () => {
         const path = window.location.pathname;
         if (path === '/library') {
-            ui.renderLibraryPage();
+            UIRenderer.instance.renderLibraryPage();
         } else if (path === '/' || path === '/home') {
-            ui.renderHomePage();
+            UIRenderer.instance.renderHomePage();
         } else if (path.startsWith('/userplaylist/')) {
             const playlistId = path.split('/')[2];
             const content = document.querySelector('.main-content');
             const scroll = content ? content.scrollTop : 0;
-            ui.renderPlaylistPage(playlistId, 'user').then(() => {
+            UIRenderer.instance.renderPlaylistPage(playlistId, 'user').then(() => {
                 if (content) content.scrollTop = scroll;
             });
         }
@@ -2740,7 +2796,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.addEventListener('history-changed', () => {
         const path = window.location.pathname;
         if (path === '/recent') {
-            ui.renderRecentPage();
+            UIRenderer.instance.renderRecentPage();
         }
     });
 

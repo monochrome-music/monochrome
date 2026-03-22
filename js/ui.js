@@ -115,6 +115,16 @@ function sortTracks(tracks, sortType) {
 }
 
 export class UIRenderer {
+    static #instance = null;
+
+    static get instance() {
+        if (!UIRenderer.#instance) {
+            throw new Error('UIRenderer is not initialized. Call UIRenderer.initialize(api, player) first.');
+        }
+        return UIRenderer.#instance;
+    }
+
+    /** @private */
     constructor(api, player) {
         this.api = api;
         this.player = player;
@@ -124,6 +134,7 @@ export class UIRenderer {
         this.visualizer = null;
         this.renderLock = false;
         this.lastRecommendedTracks = [];
+        this.currentArtistId = null;
 
         // Listen for dynamic color reset events
         window.addEventListener('reset-dynamic-color', () => {
@@ -140,6 +151,13 @@ export class UIRenderer {
                 this.visualizer.updateDimming();
             }
         });
+    }
+
+    static async initialize(api, player) {
+        if (UIRenderer.#instance) {
+            throw new Error('UIRenderer is already initialized');
+        }
+        return (UIRenderer.#instance = new UIRenderer(api, player));
     }
 
     // Helper for Heart Icon
@@ -1727,6 +1745,12 @@ export class UIRenderer {
 
         document.querySelector('.main-content').scrollTop = 0;
 
+        // Clear artist context when navigating away from artist page
+        if (pageId !== 'artist') {
+            this.currentArtistId = null;
+            this.player.clearArtistPopularTracksContext();
+        }
+
         // Clear background and color if not on album, artist, playlist, or mix page
         if (!['album', 'artist', 'playlist', 'mix'].includes(pageId)) {
             this.setPageBackground(null);
@@ -2288,11 +2312,18 @@ export class UIRenderer {
         // Take random samples from each to form seeds
         const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
 
-        const seeds = [
+        const combined = [
             ...shuffle(playlistTracks).slice(0, 20),
             ...shuffle(favorites).slice(0, 20),
             ...shuffle(history).slice(0, 10),
         ];
+
+        const seenIds = new Set();
+        const seeds = combined.filter((t) => {
+            if (seenIds.has(t.id)) return false;
+            seenIds.add(t.id);
+            return true;
+        });
 
         return shuffle(seeds);
     }
@@ -4073,6 +4104,7 @@ export class UIRenderer {
 
     async renderArtistPage(artistId, provider = null) {
         this.showPage('artist');
+        this.currentArtistId = artistId;
 
         const imageEl = document.getElementById('artist-detail-image');
         const nameEl = document.getElementById('artist-detail-name');

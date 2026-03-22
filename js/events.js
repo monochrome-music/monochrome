@@ -2259,6 +2259,17 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                     const startIndex = trackList.findIndex((t) => t.id == clickedTrackId);
 
                     player.setQueue(trackList, startIndex);
+
+                    // Set artist popular tracks context if on artist page
+                    console.log('[Events] Setting context:', {
+                        page: ui.currentPage,
+                        artistId: ui.currentArtistId,
+                        trackCount: trackList.length,
+                    });
+                    if (ui.currentPage === 'artist' && ui.currentArtistId) {
+                        player.setArtistPopularTracksContext(ui.currentArtistId, trackList, trackList.length, true);
+                    }
+
                     document.getElementById('shuffle-btn').classList.remove('active');
                     player.playTrackFromQueue();
                 }

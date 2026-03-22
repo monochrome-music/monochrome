@@ -110,7 +110,6 @@ Our Recommended way to use monochrome is through our official instance:
 
 **[monochrome-music-player.vercel.app](https://monochrome-music-player.vercel.app)** / **[monochrome.samidy.com](https://monochrome.samidy.com)**
 
-
 For alternative instances, check [INSTANCES.md](INSTANCES.md).
 
 ---
@@ -282,4 +281,3 @@ We welcome contributions from the community! Please see our [Contributing Guide]
    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=DaffaAgradhyasto/monochrome&type=date&logscale&legend=top-left" />
  </picture>
 </a>
-
