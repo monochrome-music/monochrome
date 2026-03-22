@@ -2027,6 +2027,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             const track = trackItem ? trackDataStore.get(trackItem) : null;
             if (!track?.id) return;
             const clicked = parseInt(ratingStar.dataset.rating);
+            if (!clicked || clicked < 1 || clicked > 5) return;
             await queueRatingWrite(track.id, async () => {
                 const current = await db.getRating(track.id);
                 await db.setRating(track.id, current === clicked ? 0 : clicked);
@@ -2585,6 +2586,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             const trackId = player.currentTrack.id;
             if (ratingStar) {
                 const clicked = parseInt(ratingStar.dataset.rating);
+                if (!clicked || clicked < 1 || clicked > 5) return;
                 await queueRatingWrite(trackId, async () => {
                     const current = await db.getRating(trackId);
                     await db.setRating(trackId, current === clicked ? 0 : clicked);
