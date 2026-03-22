@@ -1,4 +1,4 @@
-name: Sync Upstream (Smart Merge)
+name: Sinkronisasi Upstream (Penggabungan Cerdas)
 
 on:
   schedule:
@@ -7,12 +7,12 @@ on:
   workflow_dispatch:
     inputs:
       force_sync:
-        description: 'Force sync even if up to date'
+        description: 'Paksa sinkronisasi meskipun sudah terbaru'
         required: false
         default: 'false'
         type: boolean
       strategy:
-        description: 'Merge strategy: safe (ours on conflict) or accept (theirs)'
+        description: 'Strategi penggabungan: aman (milik kita saat konflik) atau terima (milik mereka)'
         required: false
         default: 'safe'
         type: choice
@@ -20,7 +20,7 @@ on:
           - safe
           - accept
       auto_sync:
-        description: 'Enable/disable auto sync schedule'
+        description: 'Aktifkan/nonaktifkan jadwal sinkronisasi otomatis'
         required: false
         default: 'no_change'
         type: choice
@@ -40,11 +40,11 @@ env:
 
 jobs:
   toggle:
-    name: Toggle Auto Sync
+    name: Atur Sinkronisasi Otomatis
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.auto_sync != 'no_change'
     steps:
-      - name: Update AUTO_SYNC variable
+      - name: Perbarui variabel AUTO_SYNC
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
@@ -53,14 +53,14 @@ jobs:
           else
             VALUE="false"
           fi
-          echo "Setting AUTO_SYNC to: $VALUE"
+          echo "Mengatur AUTO_SYNC ke: $VALUE"
           gh variable set AUTO_SYNC --body "$VALUE" --repo "${{ github.repository }}"
-          echo "Auto sync is now: ${{ github.event.inputs.auto_sync }}d"
-          echo "## Auto Sync Toggled" >> $GITHUB_STEP_SUMMARY
-          echo "AUTO_SYNC set to **$VALUE**" >> $GITHUB_STEP_SUMMARY
+          echo "Sinkronisasi otomatis sekarang: ${{ github.event.inputs.auto_sync }}d"
+          echo "## Sinkronisasi Otomatis Diubah" >> $GITHUB_STEP_SUMMARY
+          echo "AUTO_SYNC diatur ke **$VALUE**" >> $GITHUB_STEP_SUMMARY
 
   sync:
-    name: Smart Sync from Upstream
+    name: Sinkronisasi Cerdas dari Upstream
     runs-on: ubuntu-latest
     if: |
       always() &&
@@ -70,14 +70,14 @@ jobs:
       contents: write
       actions: write
     steps:
-      - name: Check if auto sync is enabled
+      - name: Cek apakah sinkronisasi otomatis aktif
         id: auto
         run: |
           if [ "${{ github.event_name }}" = "schedule" ]; then
             AUTO="${{ vars.AUTO_SYNC }}"
             if [ "$AUTO" = "false" ]; then
               echo "skip=true" >> $GITHUB_OUTPUT
-              echo "::notice::Auto sync is DISABLED. Skipping scheduled run."
+              echo "::notice::Sinkronisasi otomatis NONAKTIF. Melewati jadwal berjalan."
             else
               echo "skip=false" >> $GITHUB_OUTPUT
             fi
@@ -85,7 +85,7 @@ jobs:
             echo "skip=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Checkout fork (full history)
+      - name: Checkout fork (riwayat lengkap)
         if: steps.auto.outputs.skip != 'true'
         uses: actions/checkout@v4
         with:
@@ -93,20 +93,20 @@ jobs:
           token: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
           ref: ${{ env.FORK_BRANCH }}
 
-      - name: Configure Git identity
+      - name: Konfigurasi identitas Git
         if: steps.auto.outputs.skip != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Fetch upstream
+      - name: Ambil data upstream
         if: steps.auto.outputs.skip != 'true'
         run: |
           git remote add upstream "https://github.com/${{ env.UPSTREAM_REPO }}.git"
           git fetch upstream ${{ env.UPSTREAM_BRANCH }} --no-tags
-          echo "Upstream fetched successfully."
+          echo "Upstream berhasil diambil."
 
-      - name: Check sync status
+      - name: Cek status sinkronisasi
         if: steps.auto.outputs.skip != 'true'
         id: check
         run: |
@@ -114,18 +114,18 @@ jobs:
           AHEAD=$(git rev-list --count upstream/${{ env.UPSTREAM_BRANCH }}..HEAD)
           echo "behind=$BEHIND" >> $GITHUB_OUTPUT
           echo "ahead=$AHEAD" >> $GITHUB_OUTPUT
-          echo "=== Fork Status ==="
-          echo "Commits behind upstream: $BEHIND"
-          echo "Commits ahead of upstream: $AHEAD"
+          echo "=== Status Fork ==="
+          echo "Commit tertinggal dari upstream: $BEHIND"
+          echo "Commit di depan upstream: $AHEAD"
           if [ "$BEHIND" -eq 0 ] && [ "${{ github.event.inputs.force_sync }}" != "true" ]; then
             echo "needs_sync=false" >> $GITHUB_OUTPUT
-            echo "Already up to date!"
+            echo "Sudah terbaru!"
           else
             echo "needs_sync=true" >> $GITHUB_OUTPUT
-            echo "Sync needed."
+            echo "Perlu sinkronisasi."
           fi
 
-      - name: Backup protected files
+      - name: Cadangkan file yang dilindungi
         if: steps.auto.outputs.skip != 'true' && steps.check.outputs.needs_sync == 'true'
         run: |
           mkdir -p /tmp/protected-backup
@@ -135,33 +135,33 @@ jobs:
             if [ -e "$path" ]; then
               mkdir -p "/tmp/protected-backup/$(dirname "$path")"
               cp -r "$path" "/tmp/protected-backup/$path"
-              echo "Backed up: $path"
+              echo "Dicadangkan: $path"
             fi
           done
-          echo "--- Backup contents ---"
-          find /tmp/protected-backup -type f 2>/dev/null || echo "(empty)"
+          echo "--- Isi cadangan ---"
+          find /tmp/protected-backup -type f 2>/dev/null || echo "(kosong)"
 
-      - name: Create pre-sync snapshot tag
+      - name: Buat tag snapshot sebelum sinkronisasi
         if: steps.auto.outputs.skip != 'true' && steps.check.outputs.needs_sync == 'true'
         id: snapshot
         run: |
           TAG="pre-sync-$(date +'%Y%m%d-%H%M%S')"
           git tag "$TAG"
-          echo "Created safety tag: $TAG"
+          echo "Tag keamanan dibuat: $TAG"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
-      - name: Set push URL with token
+      - name: Atur URL push dengan token
         if: steps.auto.outputs.skip != 'true' && steps.check.outputs.needs_sync == 'true'
         run: |
           git remote set-url origin "https://x-access-token:${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
 
-      - name: Merge upstream changes
+      - name: Gabungkan perubahan upstream
         if: steps.auto.outputs.skip != 'true' && steps.check.outputs.needs_sync == 'true'
         id: merge
         run: |
           set -e
           STRATEGY="${{ github.event.inputs.strategy || 'safe' }}"
-          echo "Using strategy: $STRATEGY"
+          echo "Menggunakan strategi: $STRATEGY"
           if [ "$STRATEGY" = "accept" ]; then
             MERGE_OPT="-X theirs"
           else
@@ -171,14 +171,14 @@ jobs:
             --no-edit \
             --allow-unrelated-histories \
             $MERGE_OPT \
-            -m "chore: sync upstream $(date +'%Y-%m-%d %H:%M') [auto]"; then
-            echo "merge_status=clean" >> $GITHUB_OUTPUT
-            echo "Merge completed cleanly."
+            -m "sinkronisasi: gabung upstream $(date +'%Y-%m-%d %H:%M') [otomatis]"; then
+            echo "merge_status=bersih" >> $GITHUB_OUTPUT
+            echo "Penggabungan selesai tanpa konflik."
           else
-            echo "Merge had conflicts, resolving..."
+            echo "Penggabungan ada konflik, menyelesaikan..."
             CONFLICTS=$(git diff --name-only --diff-filter=U || true)
             if [ -n "$CONFLICTS" ]; then
-              echo "Conflicted files:"
+              echo "File berkonflik:"
               echo "$CONFLICTS"
               echo "$CONFLICTS" | while IFS= read -r f; do
                 [ -z "$f" ] && continue
@@ -189,16 +189,16 @@ jobs:
                 fi
                 git add "$f"
               done
-              git commit --no-edit -m "chore: sync upstream (conflicts resolved with $STRATEGY strategy) $(date +'%Y-%m-%d %H:%M')"
-              echo "merge_status=resolved" >> $GITHUB_OUTPUT
+              git commit --no-edit -m "sinkronisasi: gabung upstream (konflik diselesaikan dengan strategi $STRATEGY) $(date +'%Y-%m-%d %H:%M')"
+              echo "merge_status=diselesaikan" >> $GITHUB_OUTPUT
             else
-              echo "merge_status=failed" >> $GITHUB_OUTPUT
-              echo "::error::Merge failed with no identifiable conflicts"
+              echo "merge_status=gagal" >> $GITHUB_OUTPUT
+              echo "::error::Penggabungan gagal tanpa konflik yang bisa diidentifikasi"
               exit 1
             fi
           fi
 
-      - name: Restore protected files
+      - name: Pulihkan file yang dilindungi
         if: steps.auto.outputs.skip != 'true' && steps.check.outputs.needs_sync == 'true'
         run: |
           echo "$PROTECTED_PATHS" | while IFS= read -r path; do
@@ -206,66 +206,66 @@ jobs:
             [ -z "$path" ] && continue
             if [ -e "/tmp/protected-backup/$path" ]; then
               cp -r "/tmp/protected-backup/$path" "$path"
-              echo "Restored: $path"
+              echo "Dipulihkan: $path"
             fi
           done
           if ! git diff --quiet; then
             git add -A
-            git commit -m "chore: restore protected files after upstream sync"
-            echo "Protected files restored."
+            git commit -m "sinkronisasi: pulihkan file yang dilindungi setelah sinkronisasi upstream"
+            echo "File yang dilindungi dipulihkan."
           else
-            echo "No protected files were changed."
+            echo "Tidak ada file yang dilindungi berubah."
           fi
 
-      - name: Validate build
+      - name: Validasi setelah penggabungan
         if: steps.auto.outputs.skip != 'true' && steps.check.outputs.needs_sync == 'true'
         run: |
-          echo "=== Post-merge validation ==="
+          echo "=== Validasi pasca-penggabungan ==="
           for f in $(find . -name '*.json' -not -path './node_modules/*' -not -path './.git/*' | head -20); do
             if ! python3 -c "import json; json.load(open('$f'))" 2>/dev/null; then
-              echo "::warning::Invalid JSON: $f"
+              echo "::warning::JSON tidak valid: $f"
             fi
           done
           if [ -f package.json ]; then
             if python3 -c "import json; json.load(open('package.json'))" 2>/dev/null; then
               echo "package.json: OK"
             else
-              echo "::error::package.json is invalid!"
+              echo "::error::package.json tidak valid!"
               exit 1
             fi
           fi
-          echo "Validation passed."
+          echo "Validasi berhasil."
 
-      - name: Push changes
+      - name: Push perubahan
         if: steps.auto.outputs.skip != 'true' && steps.check.outputs.needs_sync == 'true'
         run: |
           if git push origin ${{ env.FORK_BRANCH }}; then
             echo "========================================"
-            echo " SYNC COMPLETE"
+            echo " SINKRONISASI SELESAI"
             echo "========================================"
-            echo "Merged: ${{ steps.check.outputs.behind }} commits from upstream"
-            echo "Strategy: ${{ github.event.inputs.strategy || 'safe' }}"
-            echo "Merge: ${{ steps.merge.outputs.merge_status }}"
-            echo "Your ${{ steps.check.outputs.ahead }} local commits: PRESERVED"
-            echo "Rollback tag: ${{ steps.snapshot.outputs.tag }}"
+            echo "Digabung: ${{ steps.check.outputs.behind }} commit dari upstream"
+            echo "Strategi: ${{ github.event.inputs.strategy || 'safe' }}"
+            echo "Penggabungan: ${{ steps.merge.outputs.merge_status }}"
+            echo "${{ steps.check.outputs.ahead }} commit lokal kamu: TERJAGA"
+            echo "Tag rollback: ${{ steps.snapshot.outputs.tag }}"
             echo "========================================"
           else
-            echo "::error::Push failed! Check PAT_TOKEN permissions."
+            echo "::error::Push gagal! Periksa izin PAT_TOKEN."
             exit 1
           fi
 
-      - name: Summary
+      - name: Ringkasan
         if: always()
         run: |
-          echo "## Sync Upstream Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## Ringkasan Sinkronisasi Upstream" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Nilai |" >> $GITHUB_STEP_SUMMARY
           echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Auto sync | \`${{ vars.AUTO_SYNC || 'true (default)' }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Skipped | ${{ steps.auto.outputs.skip || 'false' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Behind upstream | ${{ steps.check.outputs.behind || 'n/a' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Ahead of upstream | ${{ steps.check.outputs.ahead || 'n/a' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Sync needed | ${{ steps.check.outputs.needs_sync || 'n/a' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Merge status | ${{ steps.merge.outputs.merge_status || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Strategy | ${{ github.event.inputs.strategy || 'safe' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Rollback tag | \`${{ steps.snapshot.outputs.tag || 'n/a' }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Sinkronisasi otomatis | \`${{ vars.AUTO_SYNC || 'true (default)' }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dilewati | ${{ steps.auto.outputs.skip || 'false' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tertinggal dari upstream | ${{ steps.check.outputs.behind || 'n/a' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Di depan upstream | ${{ steps.check.outputs.ahead || 'n/a' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Perlu sinkronisasi | ${{ steps.check.outputs.needs_sync || 'n/a' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Status penggabungan | ${{ steps.merge.outputs.merge_status || 'dilewati' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Strategi | ${{ github.event.inputs.strategy || 'safe' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tag rollback | \`${{ steps.snapshot.outputs.tag || 'n/a' }}\` |" >> $GITHUB_STEP_SUMMARY
