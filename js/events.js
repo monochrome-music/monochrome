@@ -1999,7 +1999,10 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
     const queueRatingWrite = (trackId, fn) => {
         const prev = ratingWriteQueue.get(trackId) ?? Promise.resolve();
         const next = prev.then(fn);
-        ratingWriteQueue.set(trackId, next.catch(() => {}));
+        ratingWriteQueue.set(
+            trackId,
+            next.catch(() => {})
+        );
         return next;
     };
 
