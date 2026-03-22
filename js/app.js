@@ -32,11 +32,11 @@ import { ThemeStore } from './themeStore.js';
 import { initI18n, applyTranslations } from './i18n.js';
 import './commandPalette.js';
 import { initTracker } from './tracker.js';
+import { initChangelog, showChangelogModal } from './changelog.js';
 import {
     initAnalytics,
     trackSidebarNavigation,
     trackCreatePlaylist,
-    import { initChangelog, showChangelogModal } from './changelog.js';
     trackCreateFolder,
     trackImportJSPF,
     trackImportCSV,
