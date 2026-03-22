@@ -5571,8 +5571,8 @@ input:checked + .slider::before {
     right: 0;
     top: 0;
     bottom: 0;
-    width: var(--side-panel-width, 600px);
-    max-width: 90vw;
+    width: 600px;
+    max-width: 50vw;
     background: var(--card);
     border-left: 1px solid var(--border);
     z-index: 2050;
@@ -5583,51 +5583,6 @@ input:checked + .slider::before {
         transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
         box-shadow 0.3s ease;
     box-shadow: none;
-    container-type: inline-size;
-    container-name: sidepanel;
-}
-
-@container sidepanel (min-width: 500px) {
-    .panel-content am-lyrics {
-        --lyplus-font-size-base: 36px;
-    }
-}
-
-@container sidepanel (min-width: 700px) {
-    .panel-content am-lyrics {
-        --lyplus-font-size-base: 42px;
-    }
-}
-
-@container sidepanel (min-width: 900px) {
-    .panel-content am-lyrics {
-        --lyplus-font-size-base: 52px;
-        --lyplus-padding-line: 16px;
-    }
-}
-
-@container sidepanel (min-width: 1100px) {
-    .panel-content am-lyrics {
-        --lyplus-font-size-base: 64px;
-        --lyplus-padding-line: 24px;
-    }
-}
-
-.side-panel-resizer {
-    position: absolute;
-    left: -3px;
-    top: 0;
-    bottom: 0;
-    width: 6px;
-    cursor: ew-resize;
-    z-index: 10;
-    background: transparent;
-    transition: background-color 0.2s ease;
-}
-
-.side-panel-resizer:hover,
-.side-panel-resizer:active {
-    background-color: var(--brand);
 }
 
 .side-panel.active {
@@ -5654,7 +5609,6 @@ input:checked + .slider::before {
     margin: 0;
     font-size: 1.25rem;
     font-weight: 600;
-    padding-left: 0.5rem;
 }
 
 .panel-controls {
