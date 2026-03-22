@@ -53,7 +53,7 @@ import {
     trackStartMix,
     trackEvent,
 } from './analytics.js';
-import { SVG_BIN, SVG_MUTE, SVG_PAUSE, SVG_PLAY, SVG_VOLUME, SVG_CHECKBOX, SVG_CHECKBOX_CHECKED } from './icons.js';
+import { SVG_BIN, SVG_MUTE, SVG_PAUSE, SVG_PLAY, SVG_VOLUME, SVG_CHECKBOX,  SVG_CHECKBOX_CHECKED, SVG_REPEAT, SVG_REPEAT_ONE } from './icons.js';
 
 let currentTrackIdForWaveform = null;
 
@@ -585,7 +585,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
             fsRepeatBtn.classList.toggle('active', mode !== REPEAT_MODE.OFF);
             fsRepeatBtn.classList.toggle('repeat-one', mode === REPEAT_MODE.ONE);
             fsRepeatBtn.title = mode === REPEAT_MODE.OFF ? 'Repeat' : mode === REPEAT_MODE.ALL ? 'Repeat Queue' : 'Repeat One';
-            fsRepeatBtn.innerHTML = repeatBtn.innerHTML;
+                        fsRepeatBtn.innerHTML = mode === REPEAT_MODE.ONE ? SVG_REPEAT_ONE(24) : SVG_REPEAT(24);
         }
     });
 
