@@ -3090,7 +3090,7 @@ export class UIRenderer {
         }
     }
 
-
+    renderSearchHistory() {
         const historyEl = document.getElementById('search-history');
         if (!historyEl) return;
         const history = JSON.parse(localStorage.getItem('search-history') || '[]');
