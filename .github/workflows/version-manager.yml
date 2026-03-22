@@ -29,9 +29,6 @@ permissions:
   actions: write
 
 jobs:
-  # ─────────────────────────────────────────────
-  # JOB 1: Auto-backup setiap kali ada push ke main
-  # ─────────────────────────────────────────────
   auto-backup:
     name: Auto Backup saat Push
     if: github.event_name == 'push'
@@ -54,29 +51,16 @@ jobs:
           SHORT_SHA="${COMMIT_SHA:0:7}"
           TIMESTAMP=$(date -u +"%Y%m%d-%H%M%S")
           TAG_NAME="backup/${TIMESTAMP}-${SHORT_SHA}"
-          echo "Membuat tag backup: $TAG_NAME"
-          git tag "$TAG_NAME" "$COMMIT_SHA" -m "Auto-backup: $TIMESTAMP | SHA: $COMMIT_SHA | Pesan: ${{ github.event.head_commit.message }}"
+          git tag "$TAG_NAME" "$COMMIT_SHA" -m "Auto-backup: $TIMESTAMP | SHA: $COMMIT_SHA"
           git push origin "$TAG_NAME"
-          echo "✅ Tag backup berhasil dibuat: $TAG_NAME"
           echo "BACKUP_TAG=$TAG_NAME" >> $GITHUB_ENV
 
       - name: Ringkasan (Summary)
         run: |
-          echo "## ✅ Auto Backup Berhasil" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Field | Nilai |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Tag Backup | \`${{ env.BACKUP_TAG }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Commit SHA | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Pesan Commit | ${{ github.event.head_commit.message }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Branch | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Waktu (UTC) | $(date -u) |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Untuk melihat semua versi backup, jalankan workflow ini secara manual dengan aksi **list-versions**." >> $GITHUB_STEP_SUMMARY
+          echo "## Auto Backup Berhasil" >> $GITHUB_STEP_SUMMARY
+          echo "| Tag | ${{ env.BACKUP_TAG }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| SHA | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
 
-  # ─────────────────────────────────────────────
-  # JOB 2: List semua versi backup yang tersedia
-  # ─────────────────────────────────────────────
   list-versions:
     name: Daftar Semua Versi Backup
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'list-versions'
@@ -93,34 +77,19 @@ jobs:
 
       - name: Tampilkan daftar versi backup
         run: |
-          echo "## 📋 Daftar Semua Versi Backup" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| # | Tag Backup | Commit SHA | Tanggal (UTC) | Pesan Commit |" >> $GITHUB_STEP_SUMMARY
-          echo "|---|------------|------------|---------------|--------------|" >> $GITHUB_STEP_SUMMARY
+          echo "## Daftar Semua Versi Backup" >> $GITHUB_STEP_SUMMARY
+          echo "| # | Tag | SHA | Tanggal | Pesan |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|-----|-----|---------|-------|" >> $GITHUB_STEP_SUMMARY
           COUNT=0
           while IFS= read -r TAG; do
             COUNT=$((COUNT + 1))
             SHA=$(git rev-list -n 1 "$TAG" 2>/dev/null || echo "unknown")
-            SHORT_SHA="${SHA:0:7}"
             TAG_DATE=$(git log -1 --format="%ai" "$SHA" 2>/dev/null || echo "unknown")
             MSG=$(git log -1 --format="%s" "$SHA" 2>/dev/null || echo "unknown")
-            MSG="${MSG:0:60}"
-            echo "| $COUNT | \`$TAG\` | \`$SHORT_SHA\` | $TAG_DATE | $MSG |" >> $GITHUB_STEP_SUMMARY
+            echo "| $COUNT | $TAG | ${SHA:0:7} | $TAG_DATE | ${MSG:0:60} |" >> $GITHUB_STEP_SUMMARY
           done < <(git tag --list "backup/*" --sort=-version:refname)
-          if [ "$COUNT" -eq 0 ]; then
-            echo "| - | Belum ada backup | - | - | - |" >> $GITHUB_STEP_SUMMARY
-          fi
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Total backup:** $COUNT versi" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Cara Restore atau Hapus:" >> $GITHUB_STEP_SUMMARY
-          echo "1. Jalankan workflow ini lagi dengan aksi **restore-version** atau **delete-version**" >> $GITHUB_STEP_SUMMARY
-          echo "2. Masukkan **Commit SHA** (7 atau 40 karakter) dari tabel di atas" >> $GITHUB_STEP_SUMMARY
-          echo "3. Ketik **YES** di field confirm" >> $GITHUB_STEP_SUMMARY
+          echo "Total: $COUNT versi" >> $GITHUB_STEP_SUMMARY
 
-  # ─────────────────────────────────────────────
-  # JOB 3: Restore ke versi tertentu (UNDO) - metode reset --hard
-  # ─────────────────────────────────────────────
   restore-version:
     name: Restore ke Versi Tertentu
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'restore-version'
@@ -129,14 +98,13 @@ jobs:
       - name: Validasi input
         run: |
           if [ -z "${{ github.event.inputs.commit_sha }}" ]; then
-            echo "❌ ERROR: commit_sha harus diisi untuk aksi restore-version!"
+            echo "ERROR: commit_sha harus diisi!"
             exit 1
           fi
           if [ "${{ github.event.inputs.confirm }}" != "YES" ]; then
-            echo "❌ ERROR: Ketik YES di field confirm untuk melanjutkan restore!"
+            echo "ERROR: Ketik YES di field confirm!"
             exit 1
           fi
-          echo "✅ Input valid, melanjutkan restore..."
 
       - name: Checkout repository (full history)
         uses: actions/checkout@v4
@@ -147,22 +115,23 @@ jobs:
       - name: Ambil semua tag
         run: git fetch --tags --force
 
-      - name: Atur identitas Git
+      - name: Atur identitas Git dan remote URL
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
 
       - name: Verifikasi commit target
         run: |
           TARGET_SHA="${{ github.event.inputs.commit_sha }}"
           FULL_SHA=$(git rev-parse "$TARGET_SHA" 2>/dev/null || echo "")
           if [ -z "$FULL_SHA" ]; then
-            echo "❌ ERROR: Commit SHA '$TARGET_SHA' tidak ditemukan!"
+            echo "ERROR: Commit SHA '$TARGET_SHA' tidak ditemukan!"
             exit 1
           fi
           echo "TARGET_FULL_SHA=$FULL_SHA" >> $GITHUB_ENV
           echo "TARGET_SHORT_SHA=${FULL_SHA:0:7}" >> $GITHUB_ENV
-          echo "✅ Commit ditemukan: $FULL_SHA"
+          echo "Commit ditemukan: $FULL_SHA"
 
       - name: Buat backup keselamatan (sebelum restore)
         run: |
@@ -170,51 +139,39 @@ jobs:
           SHORT_CURRENT="${CURRENT_SHA:0:7}"
           TIMESTAMP=$(date -u +"%Y%m%d-%H%M%S")
           SAFETY_TAG="backup/${TIMESTAMP}-${SHORT_CURRENT}"
-          CURRENT_MSG=$(git log -1 --format="%s" HEAD)
-          git tag "$SAFETY_TAG" HEAD -m "Safety backup sebelum restore | SHA: $CURRENT_SHA | $CURRENT_MSG"
+          git tag "$SAFETY_TAG" HEAD -m "Safety backup sebelum restore ke ${{ env.TARGET_SHORT_SHA }}"
           git push origin "$SAFETY_TAG"
           echo "SAFETY_BACKUP_TAG=$SAFETY_TAG" >> $GITHUB_ENV
-          echo "✅ Safety backup dibuat: $SAFETY_TAG"
+          echo "Safety backup dibuat: $SAFETY_TAG"
 
-      - name: Jalankan proses Restore (metode reset hard + force push)
+      - name: Jalankan Restore via GitHub API (update ref)
         run: |
           TARGET_SHA="${{ env.TARGET_FULL_SHA }}"
-          CURRENT_SHA=$(git rev-parse HEAD)
-
-          echo "HEAD saat ini: $CURRENT_SHA"
-          echo "Restore ke: $TARGET_SHA"
-
-          if [ "$TARGET_SHA" = "$CURRENT_SHA" ]; then
-            echo "⚠️ Sudah berada di versi yang diminta."
-            echo "ALREADY_AT_TARGET=true" >> $GITHUB_ENV
-            exit 0
+          echo "Restore main ke SHA: $TARGET_SHA"
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X PATCH \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/git/refs/heads/main" \
+            -d "{\"sha\":\"$TARGET_SHA\",\"force\":true}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -1)
+          echo "HTTP Response: $HTTP_CODE"
+          echo "Body: $BODY"
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "ERROR: Gagal update ref! HTTP $HTTP_CODE"
+            echo "$BODY"
+            exit 1
           fi
-
-          echo "ALREADY_AT_TARGET=false" >> $GITHUB_ENV
-
-          # Reset hard ke target SHA - mengembalikan semua file persis seperti di target
-          git reset --hard "$TARGET_SHA"
-
-          # Force push ke main (menimpa history yang ada setelah target)
-          git push origin main --force
-
-          echo "✅ Restore berhasil! main sekarang di: $(git rev-parse HEAD)"
+          echo "Restore berhasil! main sekarang di: $TARGET_SHA"
 
       - name: Ringkasan (Summary)
         run: |
-          echo "## ✅ Restore Selesai" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Field | Nilai |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Target Restore SHA | \`${{ env.TARGET_FULL_SHA }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Safety Backup (sebelumnya) | \`${{ env.SAFETY_BACKUP_TAG }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Branch | \`main\` |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "> **Catatan:** Restore dilakukan dengan metode **reset --hard + force push**. Main branch sekarang persis sama dengan commit target." >> $GITHUB_STEP_SUMMARY
+          echo "## Restore Selesai" >> $GITHUB_STEP_SUMMARY
+          echo "| Target SHA | ${{ env.TARGET_FULL_SHA }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Safety Backup | ${{ env.SAFETY_BACKUP_TAG }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | main |" >> $GITHUB_STEP_SUMMARY
+          echo "Restore menggunakan GitHub API force update ref." >> $GITHUB_STEP_SUMMARY
 
-  # ─────────────────────────────────────────────
-  # JOB 4: Hapus tag cadangan tertentu
-  # ─────────────────────────────────────────────
   delete-version:
     name: Hapus Tag Backup
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'delete-version'
@@ -223,11 +180,11 @@ jobs:
       - name: Validasi input
         run: |
           if [ -z "${{ github.event.inputs.commit_sha }}" ]; then
-            echo "❌ ERROR: commit_sha harus diisi!"
+            echo "ERROR: commit_sha harus diisi!"
             exit 1
           fi
           if [ "${{ github.event.inputs.confirm }}" != "YES" ]; then
-            echo "❌ ERROR: Ketik YES untuk konfirmasi!"
+            echo "ERROR: Ketik YES untuk konfirmasi!"
             exit 1
           fi
 
@@ -240,44 +197,34 @@ jobs:
       - name: Ambil semua tag
         run: git fetch --tags --force
 
+      - name: Set remote URL
+        run: git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+
       - name: Cari dan hapus tag backup untuk SHA tersebut
         run: |
           TARGET_SHA="${{ github.event.inputs.commit_sha }}"
           FULL_SHA=$(git rev-parse "$TARGET_SHA" 2>/dev/null || echo "")
           if [ -z "$FULL_SHA" ]; then
-            echo "❌ ERROR: Commit SHA '$TARGET_SHA' tidak ditemukan!"
+            echo "ERROR: SHA '$TARGET_SHA' tidak ditemukan!"
             exit 1
           fi
           SHORT_SHA="${FULL_SHA:0:7}"
-          echo "TARGET_SHA=$FULL_SHA" >> $GITHUB_ENV
           echo "TARGET_SHORT_SHA=$SHORT_SHA" >> $GITHUB_ENV
-          DELETED_TAGS=""
           FOUND=false
           while IFS= read -r TAG; do
             TAG_SHA=$(git rev-list -n 1 "$TAG" 2>/dev/null || echo "")
             if [ "$TAG_SHA" = "$FULL_SHA" ]; then
               echo "Menghapus tag: $TAG"
-              git push origin --delete "$TAG" || echo "⚠️ Gagal hapus remote tag"
+              git push origin --delete "$TAG" || echo "Gagal hapus remote tag"
               git tag -d "$TAG" 2>/dev/null || true
-              DELETED_TAGS="${DELETED_TAGS}\n- \`$TAG\`"
               FOUND=true
             fi
           done < <(git tag --list "backup/*")
           if [ "$FOUND" = false ]; then
-            echo "DELETED_TAGS=Tidak ditemukan tag untuk SHA \`$SHORT_SHA\`" >> $GITHUB_ENV
-          else
-            echo "DELETED_TAGS=${DELETED_TAGS}" >> $GITHUB_ENV
+            echo "Tidak ditemukan tag untuk SHA $SHORT_SHA"
           fi
 
       - name: Ringkasan (Summary)
         run: |
-          echo "## 🗑️ Penghapusan Tag Backup Selesai" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Field | Nilai |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Target SHA | \`${{ env.TARGET_SHORT_SHA }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Tag yang dihapus:**" >> $GITHUB_STEP_SUMMARY
-          printf "${{ env.DELETED_TAGS }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "> **Catatan:** Hanya tag backup yang dihapus. History commit tetap ada." >> $GITHUB_STEP_SUMMARY
+          echo "## Penghapusan Tag Backup Selesai" >> $GITHUB_STEP_SUMMARY
+          echo "| Target SHA | ${{ env.TARGET_SHORT_SHA }} |" >> $GITHUB_STEP_SUMMARY
