@@ -526,6 +526,7 @@ export const fullscreenCoverClickSettings = {
 
 export const lyricsSettings = {
     DOWNLOAD_WITH_TRACKS: 'lyrics-download-with-tracks',
+    FULLSCREEN_LYRICS: 'fullscreen-lyrics-enabled',
 
     shouldDownloadLyrics() {
         try {
@@ -537,6 +538,14 @@ export const lyricsSettings = {
 
     setDownloadLyrics(enabled) {
         localStorage.setItem(this.DOWNLOAD_WITH_TRACKS, enabled ? 'true' : 'false');
+    },
+
+    isFullscreenLyricsEnabled() {
+        return localStorage.getItem(this.FULLSCREEN_LYRICS) === 'true';
+    },
+
+    setFullscreenLyrics(enabled) {
+        localStorage.setItem(this.FULLSCREEN_LYRICS, enabled ? 'true' : 'false');
     },
 };
 

@@ -2318,6 +2318,15 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
+    // Fullscreen Lyrics Toggle
+    const fullscreenLyricsToggle = document.getElementById('fullscreen-lyrics-toggle');
+    if (fullscreenLyricsToggle) {
+        fullscreenLyricsToggle.checked = lyricsSettings.isFullscreenLyricsEnabled();
+        fullscreenLyricsToggle.addEventListener('change', (e) => {
+            lyricsSettings.setFullscreenLyrics(e.target.checked);
+        });
+    }
+
     // Download Lyrics Toggle
     const downloadLyricsToggle = document.getElementById('download-lyrics-toggle');
     if (downloadLyricsToggle) {
