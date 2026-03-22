@@ -17,7 +17,7 @@ export class SidePanelManager {
 
     initResizer() {
         this.resizerElement.addEventListener('mousedown', this.startResize.bind(this));
-        
+
         // Restore saved width if available
         const savedWidth = localStorage.getItem('side-panel-width');
         if (savedWidth) {
@@ -30,10 +30,10 @@ export class SidePanelManager {
         this.isResizing = true;
         this.panel.style.transition = 'none'; // Disable transition for smooth resizing
         document.body.style.cursor = 'ew-resize';
-        
+
         this.resizeBind = this.resize.bind(this);
         this.stopResizeBind = this.stopResize.bind(this);
-        
+
         document.addEventListener('mousemove', this.resizeBind);
         document.addEventListener('mouseup', this.stopResizeBind);
     }
@@ -44,10 +44,10 @@ export class SidePanelManager {
         const minWidth = 300;
         const maxWidth = window.innerWidth * 0.9;
         let newWidth = window.innerWidth - e.clientX;
-        
+
         if (newWidth < minWidth) newWidth = minWidth;
         if (newWidth > maxWidth) newWidth = maxWidth;
-        
+
         this.panel.style.setProperty('--side-panel-width', `${newWidth}px`);
     }
 
@@ -55,10 +55,10 @@ export class SidePanelManager {
         this.isResizing = false;
         this.panel.style.transition = ''; // Restore transitions
         document.body.style.cursor = '';
-        
+
         document.removeEventListener('mousemove', this.resizeBind);
         document.removeEventListener('mouseup', this.stopResizeBind);
-        
+
         // Save the width
         const currentWidth = this.panel.style.getPropertyValue('--side-panel-width').replace('px', '');
         if (currentWidth) {
