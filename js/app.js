@@ -36,6 +36,7 @@ import {
     initAnalytics,
     trackSidebarNavigation,
     trackCreatePlaylist,
+    import { initChangelog, showChangelogModal } from './changelog.js';
     trackCreateFolder,
     trackImportJSPF,
     trackImportCSV,
@@ -435,6 +436,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Linux Media Keys Fix
     if (window.NL_MODE) {
         import('./desktop/neutralino-bridge.js').then(({ events }) => {
+
+                // Initialize changelog modal
+    initChangelog();
             events.on('mediaNext', () => Player.instance.playNext());
             events.on('mediaPrevious', () => Player.instance.playPrev());
             events.on('mediaPlayPause', () => Player.instance.handlePlayPause());
