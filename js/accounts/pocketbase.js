@@ -225,6 +225,10 @@ const syncManager = {
                 streamStartDate: item.streamStartDate || null,
                 version: item.version || null,
                 mixes: item.mixes || null,
+                isPodcast: item.isPodcast || (item.id && String(item.id).startsWith('podcast_')) || null,
+                enclosureUrl: item.enclosureUrl || null,
+                enclosureType: item.enclosureType || null,
+                enclosureLength: item.enclosureLength || null,
             };
         }
 

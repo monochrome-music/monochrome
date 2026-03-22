@@ -101,6 +101,13 @@ export function createRouter(ui) {
                     await ui.renderUnreleasedPage();
                 }
                 break;
+            case 'podcasts':
+                if (param) {
+                    await ui.renderPodcastPage(param);
+                } else {
+                    await ui.renderPodcastsBrowsePage();
+                }
+                break;
             case 'home':
                 await ui.renderHomePage();
                 break;

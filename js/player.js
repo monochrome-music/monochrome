@@ -467,7 +467,8 @@ export class Player {
         for (const { track } of tracksToPreload) {
             if (this.preloadCache.has(track.id)) continue;
             const isTracker = track.isTracker || (track.id && String(track.id).startsWith('tracker-'));
-            if (track.isLocal || isTracker || (track.audioUrl && !track.isLocal)) continue;
+            const isPodcast = track.isPodcast || (track.id && String(track.id).startsWith('podcast_'));
+            if (track.isLocal || isTracker || isPodcast || (track.audioUrl && !track.isLocal)) continue;
             try {
                 const streamUrl = await this.api.getStreamUrl(track.id, this.quality);
 
@@ -781,8 +782,34 @@ export class Player {
             let streamUrl;
 
             const isTracker = track.isTracker || (track.id && String(track.id).startsWith('tracker-'));
+            const isPodcast = track.isPodcast || (track.id && String(track.id).startsWith('podcast_'));
 
-            if (isTracker || (track.audioUrl && !track.isLocal)) {
+            if (isPodcast) {
+                streamUrl = track.enclosureUrl;
+                if (!streamUrl) {
+                    console.warn(`Podcast episode ${trackTitle} audio URL is missing. Skipping.`);
+                    track.isUnavailable = true;
+                    this.playNext();
+                    return;
+                }
+
+                if (this.playbackSequence !== currentSequence) return;
+
+                this.currentRgValues = null;
+                this.applyReplayGain();
+
+                activeElement.src = streamUrl;
+                this.applyAudioEffects();
+
+                const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
+                if (!canPlay || this.playbackSequence !== currentSequence) return;
+
+                if (startTime > 0) {
+                    activeElement.currentTime = startTime;
+                }
+                const played = await this.safePlay(activeElement);
+                if (!played) return;
+            } else if (isTracker || (track.audioUrl && !track.isLocal)) {
                 streamUrl = track.audioUrl;
 
                 if (
