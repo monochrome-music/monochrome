@@ -25,8 +25,9 @@ jobs:
           git remote add upstream https://github.com/monochrome-music/monochrome.git
           git fetch upstream main
 
-      - name: Merge upstream (keep our changes on conflict)
+      - name: Merge upstream and push
         run: |
+          set -e
           echo "=== Current HEAD ==="
           git log -1 --oneline
           echo ""
@@ -43,12 +44,14 @@ jobs:
             exit 0
           fi
 
+          # Set remote URL with token for push
+          git remote set-url origin https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+
           # Try merge with recursive strategy, prefer ours on conflict
           if git merge upstream/main --no-edit -X ours --allow-unrelated-histories; then
             echo "Merge successful!"
           else
             echo "Standard merge failed, trying manual conflict resolution..."
-            # Get list of conflicted files
             CONFLICTS=$(git diff --name-only --diff-filter=U)
             if [ -n "$CONFLICTS" ]; then
               echo "Resolving conflicts by keeping our version:"
@@ -59,9 +62,8 @@ jobs:
               done
               git commit --no-edit || true
             else
-              echo "No file conflicts found, checking for other issues..."
+              echo "No file conflicts, aborting and retrying..."
               git merge --abort 2>/dev/null || true
-              # Try with theirs strategy as fallback (accept upstream, our commits stay)
               git merge upstream/main --no-edit -X theirs --allow-unrelated-histories || {
                 echo "All merge strategies failed"
                 exit 1
@@ -69,8 +71,7 @@ jobs:
             fi
           fi
 
-      - name: Push changes
-        run: |
+          echo "Pushing to origin main..."
           git push origin main
           echo ""
           echo "Sync complete! All upstream commits merged."
