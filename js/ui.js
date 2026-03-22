@@ -1377,18 +1377,26 @@ export class UIRenderer {
             shuffleBtn.classList.toggle('active', this.player.shuffleActive);
         };
 
-            // Sync fullscreen repeat button with current player state on open
+            // Sync fullscreen repeat button from mini player DOM
+        const miniRepeatBtn = document.getElementById('repeat-btn');
+        if (miniRepeatBtn) {
+            repeatBtn.className = miniRepeatBtn.className;
+            repeatBtn.innerHTML = miniRepeatBtn.innerHTML;
+            repeatBtn.title = miniRepeatBtn.title;
+        } else {
             const currentRepeatMode = this.player.repeatMode;
             repeatBtn.classList.toggle('active', currentRepeatMode !== 0);
+            repeatBtn.classList.toggle('repeat-one', currentRepeatMode === 2);
             if (currentRepeatMode === 2) {
                 repeatBtn.innerHTML = SVG_REPEAT_ONE(24);
             } else {
                 repeatBtn.innerHTML = SVG_REPEAT(24);
             }
-
+        }
         repeatBtn.onclick = () => {
             const mode = this.player.toggleRepeat();
             repeatBtn.classList.toggle('active', mode !== 0);
+                        repeatBtn.classList.toggle('repeat-one', mode === 2);
             if (mode === 2) {
                 repeatBtn.innerHTML = SVG_REPEAT_ONE(24);
             } else {
