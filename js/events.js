@@ -584,6 +584,8 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
         if (fsRepeatBtn) {
             fsRepeatBtn.classList.toggle('active', mode !== REPEAT_MODE.OFF);
             fsRepeatBtn.classList.toggle('repeat-one', mode === REPEAT_MODE.ONE);
+            fsRepeatBtn.title = mode === REPEAT_MODE.OFF ? 'Repeat' : mode === REPEAT_MODE.ALL ? 'Repeat Queue' : 'Repeat One';
+            fsRepeatBtn.innerHTML = repeatBtn.innerHTML;
         }
     });
 
