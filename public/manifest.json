@@ -10,9 +10,22 @@
     "orientation": "portrait-primary",
     "icons": [
         {
-          "src": "assets/96.png",
-          "sizes": "96x96",
-          "type": "image/png"
+            "src": "assets/appicon.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "assets/appicon.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "assets/appicon.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
         }
     ]
 }
