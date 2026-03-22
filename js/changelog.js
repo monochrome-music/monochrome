@@ -1,5 +1,4 @@
 // Changelog Manager - Auto-generate changelog dari GitHub commits
-import { SVG_CLOSE } from './icons.js';
 
 const STORAGE_KEY = 'monochrome-last-seen-changelog';
 const REPO = 'DaffaAgradhyasto/monochrome';
