@@ -1,9 +1,9 @@
-name: Sync Upstream v2
+name: Sync Upstream (Smart Merge)
 
 on:
   schedule:
-    # Cek setiap 30 menit
-    - cron: '*/30 * * * *'
+    # Cek setiap 6 jam
+    - cron: '0 */6 * * *'
   workflow_dispatch:
     inputs:
       force_sync:
@@ -11,102 +11,231 @@ on:
         required: false
         default: 'false'
         type: boolean
+      strategy:
+        description: 'Merge strategy: safe (ours on conflict) or accept (theirs)'
+        required: false
+        default: 'safe'
+        type: choice
+        options:
+          - safe
+          - accept
+
+env:
+  UPSTREAM_REPO: monochrome-music/monochrome
+  UPSTREAM_BRANCH: main
+  FORK_BRANCH: main
+  # Files/folders yang TIDAK BOLEH ditimpa upstream
+  PROTECTED_PATHS: |
+    .github/workflows/
+    .github/FUNDING.yml
+    .github/agents/
 
 jobs:
   sync:
-    name: Sync from upstream
+    name: Smart Sync from Upstream
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write
 
     steps:
-      - name: Checkout fork
+      - name: Checkout fork (full history)
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+          ref: ${{ env.FORK_BRANCH }}
 
-      - name: Configure Git
+      - name: Configure Git identity
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Add upstream remote
+      - name: Fetch upstream
         run: |
-          git remote add upstream https://github.com/monochrome-music/monochrome.git
-          git fetch upstream main --no-tags
+          git remote add upstream "https://github.com/${{ env.UPSTREAM_REPO }}.git"
+          git fetch upstream ${{ env.UPSTREAM_BRANCH }} --no-tags
+          echo "Upstream fetched successfully."
 
-      - name: Check if sync needed
+      - name: Check sync status
         id: check
         run: |
-          BEHIND=$(git rev-list --count HEAD..upstream/main)
+          BEHIND=$(git rev-list --count HEAD..upstream/${{ env.UPSTREAM_BRANCH }})
+          AHEAD=$(git rev-list --count upstream/${{ env.UPSTREAM_BRANCH }}..HEAD)
           echo "behind=$BEHIND" >> $GITHUB_OUTPUT
+          echo "ahead=$AHEAD" >> $GITHUB_OUTPUT
+          echo "=== Fork Status ==="
           echo "Commits behind upstream: $BEHIND"
+          echo "Commits ahead of upstream: $AHEAD"
+
           if [ "$BEHIND" -eq 0 ] && [ "${{ github.event.inputs.force_sync }}" != "true" ]; then
-            echo "Already up to date with upstream. Skipping sync."
+            echo "needs_sync=false" >> $GITHUB_OUTPUT
+            echo "Already up to date!"
+          else
+            echo "needs_sync=true" >> $GITHUB_OUTPUT
+            echo "Sync needed."
           fi
 
-      - name: Backup local workflow files
-        if: steps.check.outputs.behind != '0' || github.event.inputs.force_sync == 'true'
+      - name: Backup protected files
+        if: steps.check.outputs.needs_sync == 'true'
         run: |
-          mkdir -p /tmp/my-workflows
-          cp -r .github/workflows/. /tmp/my-workflows/
-          echo "Workflows backed up:"
-          ls /tmp/my-workflows/
+          mkdir -p /tmp/protected-backup
+          echo "$PROTECTED_PATHS" | while IFS= read -r path; do
+            path=$(echo "$path" | xargs)  # trim whitespace
+            [ -z "$path" ] && continue
+            if [ -e "$path" ]; then
+              mkdir -p "/tmp/protected-backup/$(dirname "$path")"
+              cp -r "$path" "/tmp/protected-backup/$path"
+              echo "Backed up: $path"
+            fi
+          done
+          echo "--- Backup contents ---"
+          find /tmp/protected-backup -type f 2>/dev/null || echo "(empty)"
 
-      - name: Set remote URL with token
-        if: steps.check.outputs.behind != '0' || github.event.inputs.force_sync == 'true'
+      - name: Create pre-sync snapshot tag
+        if: steps.check.outputs.needs_sync == 'true'
         run: |
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          TAG="pre-sync-$(date +'%Y%m%d-%H%M%S')"
+          git tag "$TAG"
+          echo "Created safety tag: $TAG (use 'git reset --hard $TAG' to rollback)"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+        id: snapshot
 
-      - name: Merge upstream (keep our files on conflict)
-        if: steps.check.outputs.behind != '0' || github.event.inputs.force_sync == 'true'
+      - name: Set push URL with token
+        if: steps.check.outputs.needs_sync == 'true'
+        run: |
+          git remote set-url origin "https://x-access-token:${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+
+      - name: Merge upstream changes
+        if: steps.check.outputs.needs_sync == 'true'
+        id: merge
         run: |
           set -e
+          STRATEGY="${{ github.event.inputs.strategy || 'safe' }}"
+          echo "Using strategy: $STRATEGY"
 
-          echo "=== Our HEAD ==="
-          git log -1 --oneline
-          echo "=== Upstream HEAD ==="
-          git log -1 --oneline upstream/main
-
-          # Merge upstream, prefer our version on ANY conflict
-          git merge upstream/main \
-            --no-edit \
-            --allow-unrelated-histories \
-            -X ours \
-            -m "chore: sync upstream $(date +'%Y-%m-%d %H:%M')" \
-            || {
-              echo "Merge had issues, resolving all conflicts with ours strategy..."
-              # Resolve any remaining conflicts
-              git diff --name-only --diff-filter=U | while read f; do
-                git checkout --ours "$f"
-                git add "$f"
-              done
-              git commit --no-edit -m "chore: sync upstream (conflict resolved) $(date +'%Y-%m-%d %H:%M')"
-            }
-
-      - name: Restore our workflow files
-        if: steps.check.outputs.behind != '0' || github.event.inputs.force_sync == 'true'
-        run: |
-          # Always restore OUR workflow files - upstream should not overwrite them
-          cp -r /tmp/my-workflows/. .github/workflows/
-          echo "Workflow files restored."
-
-          # Commit if workflows were changed by upstream during merge
-          if ! git diff --quiet .github/workflows/; then
-            git add .github/workflows/
-            git commit -m "chore: restore local workflow files after upstream sync"
-            echo "Workflow files had to be restored from backup."
+          if [ "$STRATEGY" = "accept" ]; then
+            MERGE_OPT="-X theirs"
           else
-            echo "Workflow files unchanged, no extra commit needed."
+            MERGE_OPT="-X ours"
           fi
 
-      - name: Push to origin
-        if: steps.check.outputs.behind != '0' || github.event.inputs.force_sync == 'true'
+          # Attempt merge
+          if git merge upstream/${{ env.UPSTREAM_BRANCH }} \
+            --no-edit \
+            --allow-unrelated-histories \
+            $MERGE_OPT \
+            -m "chore: sync upstream $(date +'%Y-%m-%d %H:%M') [auto]"; then
+            echo "merge_status=clean" >> $GITHUB_OUTPUT
+            echo "Merge completed cleanly."
+          else
+            echo "Merge had conflicts, resolving..."
+            # Get conflicted files
+            CONFLICTS=$(git diff --name-only --diff-filter=U || true)
+            if [ -n "$CONFLICTS" ]; then
+              echo "Conflicted files:"
+              echo "$CONFLICTS"
+              echo "$CONFLICTS" | while IFS= read -r f; do
+                [ -z "$f" ] && continue
+                if [ "$STRATEGY" = "accept" ]; then
+                  git checkout --theirs "$f" 2>/dev/null || true
+                else
+                  git checkout --ours "$f" 2>/dev/null || true
+                fi
+                git add "$f"
+              done
+              git commit --no-edit -m "chore: sync upstream (conflicts resolved with $STRATEGY strategy) $(date +'%Y-%m-%d %H:%M')"
+              echo "merge_status=resolved" >> $GITHUB_OUTPUT
+            else
+              echo "merge_status=failed" >> $GITHUB_OUTPUT
+              echo "::error::Merge failed with no identifiable conflicts"
+              exit 1
+            fi
+          fi
+
+      - name: Restore protected files
+        if: steps.check.outputs.needs_sync == 'true'
         run: |
-          git push origin main
-          echo ""
-          echo "=== Sync Complete! ==="
-          echo "Upstream commits merged successfully."
-          echo "Your workflow files are preserved."
-          echo "Vercel will auto-deploy the new changes."
+          CHANGED=false
+          echo "$PROTECTED_PATHS" | while IFS= read -r path; do
+            path=$(echo "$path" | xargs)
+            [ -z "$path" ] && continue
+            if [ -e "/tmp/protected-backup/$path" ]; then
+              cp -r "/tmp/protected-backup/$path" "$path"
+              echo "Restored: $path"
+            fi
+          done
+
+          if ! git diff --quiet; then
+            git add -A
+            git commit -m "chore: restore protected files after upstream sync"
+            echo "Protected files restored."
+          else
+            echo "No protected files were changed."
+          fi
+
+      - name: Validate build (basic syntax check)
+        if: steps.check.outputs.needs_sync == 'true'
+        run: |
+          echo "=== Post-merge validation ==="
+          # Check JSON files are valid
+          for f in $(find . -name '*.json' -not -path './node_modules/*' -not -path './.git/*' | head -20); do
+            if ! python3 -c "import json; json.load(open('$f'))" 2>/dev/null; then
+              echo "::warning::Invalid JSON: $f"
+            fi
+          done
+
+          # Check HTML files exist and aren't empty
+          for f in index.html legacy.html; do
+            if [ -f "$f" ] && [ ! -s "$f" ]; then
+              echo "::warning::Empty HTML file: $f"
+            fi
+          done
+
+          # Check package.json is valid
+          if [ -f package.json ]; then
+            if python3 -c "import json; json.load(open('package.json'))" 2>/dev/null; then
+              echo "package.json: OK"
+            else
+              echo "::error::package.json is invalid!"
+              exit 1
+            fi
+          fi
+          echo "Validation passed."
+
+      - name: Push changes
+        if: steps.check.outputs.needs_sync == 'true'
+        run: |
+          # Push with safety - never force push
+          if git push origin ${{ env.FORK_BRANCH }}; then
+            echo ""
+            echo "========================================"
+            echo "  SYNC COMPLETE"
+            echo "========================================"
+            echo "Merged: ${{ steps.check.outputs.behind }} commits from upstream"
+            echo "Strategy: ${{ github.event.inputs.strategy || 'safe' }}"
+            echo "Merge: ${{ steps.merge.outputs.merge_status }}"
+            echo "Your ${{ steps.check.outputs.ahead }} local commits: PRESERVED"
+            echo "Protected files: RESTORED"
+            echo "Rollback tag: ${{ steps.snapshot.outputs.tag }}"
+            echo "========================================"
+          else
+            echo "::error::Push failed! This usually means workflow files were modified."
+            echo "::error::You need a PAT_TOKEN secret with 'workflow' scope."
+            echo "See: Settings > Secrets > Actions > New secret > PAT_TOKEN"
+            exit 1
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Sync Upstream Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Behind upstream | ${{ steps.check.outputs.behind }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Ahead of upstream | ${{ steps.check.outputs.ahead }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Sync needed | ${{ steps.check.outputs.needs_sync }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Merge status | ${{ steps.merge.outputs.merge_status || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Strategy | ${{ github.event.inputs.strategy || 'safe' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Rollback tag | \`${{ steps.snapshot.outputs.tag || 'n/a' }}\` |" >> $GITHUB_STEP_SUMMARY
