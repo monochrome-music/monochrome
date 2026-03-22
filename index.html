@@ -1685,6 +1685,12 @@
                                     <li class="nav-item" id="sidebar-nav-about-bottom">
                                         <a href="/about">
                                             <use svg="!lucide/info.svg" size="24" />
+                                                                        <li class="nav-item" id="sidebar-nav-changelog-bottom">
+                            <a href="javascript:void(0)" onclick="window.showChangelog?.()">
+                                <use svg="lucide/file-text.svg" size="24" />
+                                <span>Changelog</span>
+                            </a>
+                        </li>
                                             <span>About</span>
                                         </a>
                                     </li>
@@ -4964,4 +4970,32 @@
         <script src="https://cdn.jsdelivr.net/npm/pocketbase@0.21.3/dist/pocketbase.umd.js"></script>
         <script type="module" src="/js/app.js"></script>
     </body>
+    
+    <!-- Changelog Modal -->
+    <div class="modal" id="changelog-modal">
+        <div class="modal-overlay"></div>
+        <div class="modal-container" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2>📝 Changelog Update</h2>
+                <button class="close-modal-btn" id="close-changelog-btn" aria-label="Close changelog">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                <!-- Loading State -->
+                <div id="changelog-loading" style="display: flex; align-items: center; justify-content: center; padding: 3rem; flex-direction: column; gap: 1rem;">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
+                        <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                    </svg>
+                    <p style="opacity: 0.7;">Memuat changelog...</p>
+                </div>
+                
+                <!-- Changelog Content (will be populated by JS) -->
+                <div id="changelog-modal-content"></div>
+            </div>
+        </div>
+    </div>
+
 </html>

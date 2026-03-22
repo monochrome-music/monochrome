@@ -32,11 +32,11 @@ import { ThemeStore } from './themeStore.js';
 import { initI18n, applyTranslations } from './i18n.js';
 import './commandPalette.js';
 import { initTracker } from './tracker.js';
+import { initChangelog, showChangelogModal } from './changelog.js';
 import {
     initAnalytics,
     trackSidebarNavigation,
     trackCreatePlaylist,
-    import { initChangelog, showChangelogModal } from './changelog.js';
     trackCreateFolder,
     trackImportJSPF,
     trackImportCSV,
@@ -436,6 +436,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Linux Media Keys Fix
     if (window.NL_MODE) {
         import('./desktop/neutralino-bridge.js').then(({ events }) => {
+
+                // Initialize changelog modal
+    initChangelog();
             events.on('mediaNext', () => Player.instance.playNext());
             events.on('mediaPrevious', () => Player.instance.playPrev());
             events.on('mediaPlayPause', () => Player.instance.handlePlayPause());

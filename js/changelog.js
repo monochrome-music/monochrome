@@ -1,5 +1,4 @@
 // Changelog Manager - Auto-generate changelog dari GitHub commits
-import { SVG_CLOSE } from './icons.js';
 
 const STORAGE_KEY = 'monochrome-last-seen-changelog';
 const REPO = 'DaffaAgradhyasto/monochrome';
@@ -277,7 +276,5 @@ export function initChangelog() {
   // autoShowChangelogIfNew();
 }
 
-// Tambahkan ke window untuk debugging
-if (import.meta.env.DEV) {
-  window.showChangelog = showChangelogModal;
-}
+// Expose showChangelog globally for sidebar button
+window.showChangelog = showChangelogModal;
