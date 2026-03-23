@@ -14,49 +14,47 @@ export class SleepTimer {
     this._tickInterval = null;
     this._callbacks = new Set();
     this._btn = null;
-    this._createUI();
+    this._initUI();
   }
 
-  _createUI() {
-    // Check if a built-in sleep timer button already exists (from desktop UI)
-    const existingBtn = document.querySelector('#sleep-timer-btn-desktop');
-    if (existingBtn) {
-      // Hook into the existing button instead of creating a new one
-      this._btn = existingBtn;
-      existingBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this._showModal();
-      });
-      return;
+  _initUI() {
+    // Wait for DOM to be ready with the now-playing bar
+    const tryCreate = () => {
+      const likeBtn = document.querySelector('#now-playing-like-btn');
+      if (likeBtn && likeBtn.parentNode) {
+        this._createButton(likeBtn);
+      } else {
+        // Retry until now-playing bar is available
+        setTimeout(tryCreate, 500);
+      }
+    };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', tryCreate);
+    } else {
+      tryCreate();
     }
+  }
 
-    // Also check if we already created one
-    const alreadyCreated = document.querySelector('.sleep-timer-btn-feature');
-    if (alreadyCreated) {
-      this._btn = alreadyCreated;
-      return;
-    }
+  _createButton(likeBtn) {
+    // Don't create duplicate
+    if (document.querySelector('.sleep-timer-feature-btn')) return;
 
     const btn = document.createElement('button');
-    btn.className = 'sleep-timer-btn-feature';
+    btn.className = 'sleep-timer-feature-btn';
     btn.title = 'Sleep Timer';
     btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
-    btn.style.cssText = 'background:none;border:none;color:var(--text-secondary);cursor:pointer;padding:4px;display:flex;align-items:center;opacity:0.7;transition:all 0.2s;';
-    btn.addEventListener('click', () => this._showModal());
+    btn.style.cssText = 'background:none;border:none;color:var(--text-secondary,#8b8fa3);cursor:pointer;padding:4px;display:flex;align-items:center;justify-content:center;opacity:0.7;transition:all 0.2s;';
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._showModal();
+    });
     btn.addEventListener('mouseenter', () => { if (!this.isActive) btn.style.opacity = '1'; });
     btn.addEventListener('mouseleave', () => { if (!this.isActive) btn.style.opacity = '0.7'; });
     this._btn = btn;
 
-    // Insert to the LEFT of the like/heart button
-    const likeBtn = document.querySelector('#now-playing-like-btn');
-    if (likeBtn && likeBtn.parentNode) {
-      likeBtn.parentNode.insertBefore(btn, likeBtn);
-    } else {
-      // Fallback: append to extra-controls or now-playing-bar
-      const controls = document.querySelector('.now-playing-bar .extra-controls')
-        || document.querySelector('.now-playing-bar');
-      if (controls) controls.appendChild(btn);
-    }
+    // Insert directly BEFORE the like/heart button
+    likeBtn.parentNode.insertBefore(btn, likeBtn);
+    console.log('[SleepTimer] Button placed next to like button');
   }
 
   _showModal() {
@@ -77,7 +75,7 @@ export class SleepTimer {
     modal.innerHTML = `
       <div style="background:var(--bg-secondary,#1a1a2e);border-radius:16px;padding:28px;max-width:380px;width:90%;border:1px solid var(--border,#333);box-shadow:0 20px 60px rgba(0,0,0,0.5);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-          <h3 style="margin:0;color:var(--text-primary);font-size:18px;">Sleep Timer</h3>
+          <h3 style="margin:0;color:var(--text-primary,#fff);font-size:18px;">Sleep Timer</h3>
           <button id="sleep-timer-close" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:20px;padding:4px;">&times;</button>
         </div>
         ${isActive ? `
@@ -89,14 +87,14 @@ export class SleepTimer {
         ` : `
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;">
             ${[5, 10, 15, 20, 30, 45, 60, 90].map(m => `
-              <button class="sleep-timer-preset" data-minutes="${m}" style="padding:10px 4px;border-radius:10px;border:1px solid var(--border,#333);background:var(--bg-tertiary,#252540);color:var(--text-primary);cursor:pointer;font-size:13px;transition:all 0.2s;">
+              <button class="sleep-timer-preset" data-minutes="${m}" style="padding:10px 4px;border-radius:10px;border:1px solid var(--border,#333);background:var(--bg-tertiary,#252540);color:var(--text-primary,#fff);cursor:pointer;font-size:13px;transition:all 0.2s;">
                 ${m < 60 ? m + ' min' : (m / 60) + ' hr' + (m > 60 ? 's' : '')}
               </button>
             `).join('')}
           </div>
-          <button id="sleep-timer-end-of-track" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border,#333);background:var(--bg-tertiary,#252540);color:var(--text-primary);cursor:pointer;font-size:13px;margin-bottom:12px;transition:all 0.2s;">End of current track</button>
+          <button id="sleep-timer-end-of-track" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border,#333);background:var(--bg-tertiary,#252540);color:var(--text-primary,#fff);cursor:pointer;font-size:13px;margin-bottom:12px;transition:all 0.2s;">End of current track</button>
           <div style="display:flex;gap:8px;">
-            <input id="sleep-timer-custom" type="number" min="1" max="480" placeholder="min" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid var(--border,#333);background:var(--bg-tertiary,#252540);color:var(--text-primary);font-size:14px;">
+            <input id="sleep-timer-custom" type="number" min="1" max="480" placeholder="min" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid var(--border,#333);background:var(--bg-tertiary,#252540);color:var(--text-primary,#fff);font-size:14px;">
             <button id="sleep-timer-custom-btn" style="padding:8px 16px;border-radius:8px;border:none;background:var(--accent,#00d4ff);color:#000;cursor:pointer;font-weight:600;font-size:13px;">Set</button>
           </div>
         `}
@@ -221,7 +219,7 @@ export class SleepTimer {
       this._btn.title = 'Sleep Timer (active)';
     } else {
       this._btn.style.opacity = '0.7';
-      this._btn.style.color = 'var(--text-secondary)';
+      this._btn.style.color = 'var(--text-secondary,#8b8fa3)';
       this._btn.title = 'Sleep Timer';
     }
   }
