@@ -18,7 +18,7 @@ export async function initializeNewFeatures(deps) {
   // 1. A-B Loop
   try {
     const { ABLoop } = await import('./ab-loop.js');
-    const abLoop = new ABLoop(player);
+    const abLoop = new ABLoop(player, audioPlayer);
     window.monochromeABLoop = abLoop;
     console.log('[Features] A-B Loop initialized');
   } catch (e) {
