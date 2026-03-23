@@ -1,6 +1,61 @@
 [
     {
         "type": "album",
+        "id": 18083938,
+        "title": "The Glow, Pt. 2",
+        "artist": { "id": 3941394, "name": "The Microphones" },
+        "releaseDate": "2001-09-25",
+        "cover": "ec648c22-9140-41d3-a7ae-0ba69ef0420e",
+        "explicit": false,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 382839956,
+        "title": "my anti-aircraft friend",
+        "artist": { "id": 19359095, "name": "julie" },
+        "releaseDate": "2024-09-13",
+        "cover": "ac790b52-61cc-460c-9277-bdac88722cc3",
+        "explicit": false,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 456475370,
+        "title": "It Aint Nun",
+        "artist": { "id": 9981740, "name": "CHRIST DILLINGER" },
+        "releaseDate": "2024-09-12",
+        "cover": "3ffc27f6-a77c-4e68-ba44-e04f034783be",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 112547160,
+        "title": "R F Y",
+        "artist": { "id": 36042731, "name": "RFY" },
+        "releaseDate": "2019-06-27",
+        "cover": "ffe3f6f9-5bc8-4b53-99c3-9b83676c099a",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 18658568,
+        "title": "100% Ghetto 4",
+        "artist": { "id": 4191963, "name": "DJ Clent" },
+        "releaseDate": "2010-10-02",
+        "cover": "82b839bd-7cf6-4650-bade-192f47301ffd",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
         "id": 504004321,
         "title": "Half Blood (BloodLuxe)",
         "artist": { "id": 50799233, "name": "slayr" },
