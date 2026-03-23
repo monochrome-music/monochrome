@@ -72,6 +72,7 @@
         "client-zip": "^2.5.0",
         "cookie-session": "^2.1.1",
         "eventemitter3": "^5.0.4",
+        "events": "^3.3.0",
         "fuse.js": "^7.1.0",
         "hls.js": "^1.6.15",
         "jose": "^6.2.0",
