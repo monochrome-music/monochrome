@@ -419,6 +419,165 @@
 }
 
 
+/* Aether Neon - Enhanced Futuristic Effects */
+
+/* Scanline overlay effect */
+:root[data-theme='aether-neon'] .main-content::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 240, 255, 0.03) 2px,
+        rgba(0, 240, 255, 0.03) 4px
+    );
+    pointer-events: none;
+    z-index: 1;
+    animation: neon-scanline-scroll 8s linear infinite;
+}
+
+@keyframes neon-scanline-scroll {
+    0% { background-position: 0 0; }
+    100% { background-position: 0 100vh; }
+}
+
+/* Glitch effect on logo */
+@keyframes neon-glitch {
+    0%, 92%, 100% { transform: none; text-shadow: 0 0 5px #00f0ff, 0 0 20px #00f0ff; }
+    93% { transform: translate(-2px, 1px); text-shadow: -2px 0 #ff00e5, 2px 0 #39ff14; }
+    95% { transform: translate(2px, -1px); text-shadow: 2px 0 #ff00e5, -2px 0 #39ff14; }
+    97% { transform: translate(-1px, 2px); text-shadow: -1px 0 #ff00e5, 1px 0 #39ff14; }
+}
+
+:root[data-theme='aether-neon'] .sidebar-logo span {
+    animation: neon-glitch 4s ease-in-out infinite, neon-flicker 3s ease-in-out infinite;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+/* Enhanced card glow on hover */
+:root[data-theme='aether-neon'] .card:hover,
+:root[data-theme='aether-neon'] .track-item:hover,
+:root[data-theme='aether-neon'] .album-card:hover,
+:root[data-theme='aether-neon'] .artist-card:hover {
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.4), 0 0 40px rgba(0, 240, 255, 0.2), 0 0 80px rgba(255, 0, 229, 0.1), inset 0 0 20px rgba(0, 240, 255, 0.05);
+    border-color: rgba(0, 240, 255, 0.6);
+}
+
+/* Neon glow on section titles */
+:root[data-theme='aether-neon'] .section-title {
+    text-shadow: 0 0 10px rgba(0, 240, 255, 0.5), 0 0 30px rgba(0, 240, 255, 0.2);
+    letter-spacing: 1px;
+}
+
+/* Cyberpunk border effect on sidebar */
+:root[data-theme='aether-neon'] .sidebar {
+    border-right: 1px solid rgba(0, 240, 255, 0.3) !important;
+    box-shadow: 2px 0 20px rgba(0, 240, 255, 0.1);
+}
+
+/* Enhanced nav items with neon hover */
+:root[data-theme='aether-neon'] .sidebar-nav .nav-item a:hover {
+    background-color: rgba(0, 240, 255, 0.1) !important;
+    box-shadow: inset 0 0 15px rgba(0, 240, 255, 0.1), 0 0 10px rgba(0, 240, 255, 0.1);
+    text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+}
+
+:root[data-theme='aether-neon'] .sidebar-nav .nav-item a.active {
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.4), inset 0 0 10px rgba(0, 240, 255, 0.1);
+    text-shadow: 0 0 10px rgba(0, 240, 255, 0.8);
+}
+
+/* Neon glow on player bar */
+:root[data-theme='aether-neon'] .player-bar,
+:root[data-theme='aether-neon'] .now-playing-bar {
+    border-top: 1px solid rgba(0, 240, 255, 0.3) !important;
+    box-shadow: 0 -5px 30px rgba(0, 240, 255, 0.1), 0 -2px 10px rgba(255, 0, 229, 0.05) !important;
+}
+
+/* Cyberpunk play button */
+:root[data-theme='aether-neon'] .play-pause-btn,
+:root[data-theme='aether-neon'] #fs-play-pause-btn {
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.5), 0 0 30px rgba(0, 240, 255, 0.2) !important;
+}
+
+:root[data-theme='aether-neon'] .play-pause-btn:hover,
+:root[data-theme='aether-neon'] #fs-play-pause-btn:hover {
+    box-shadow: 0 0 25px rgba(0, 240, 255, 0.7), 0 0 50px rgba(0, 240, 255, 0.3), 0 0 80px rgba(255, 0, 229, 0.15) !important;
+}
+
+/* Neon search bar */
+:root[data-theme='aether-neon'] .search-bar input:focus {
+    border-color: #00f0ff !important;
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.3), 0 0 30px rgba(0, 240, 255, 0.1), inset 0 0 10px rgba(0, 240, 255, 0.05) !important;
+}
+
+/* Enhanced progress bar with pulsing glow */
+:root[data-theme='aether-neon'] .progress-bar .progress-fill {
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.5), 0 0 20px rgba(255, 0, 229, 0.3);
+}
+
+/* Neon scrollbar track glow */
+:root[data-theme='aether-neon'] ::-webkit-scrollbar-thumb:hover {
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+}
+
+/* Cyberpunk detail header */
+:root[data-theme='aether-neon'] .detail-header-info .title {
+    text-shadow: 0 0 15px rgba(0, 240, 255, 0.4), 0 0 40px rgba(0, 240, 255, 0.15);
+}
+
+/* Neon modal styling */
+:root[data-theme='aether-neon'] .modal-content {
+    border: 1px solid rgba(0, 240, 255, 0.3) !important;
+    box-shadow: 0 0 30px rgba(0, 240, 255, 0.2), 0 20px 50px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Neon theme option button */
+:root[data-theme='aether-neon'] .theme-option.active {
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.5), 0 0 30px rgba(0, 240, 255, 0.2);
+}
+
+/* Holographic card image effect */
+:root[data-theme='aether-neon'] .card-image-wrapper::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(0, 240, 255, 0.1) 0%, transparent 50%, rgba(255, 0, 229, 0.1) 100%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+    z-index: 1;
+    border-radius: inherit;
+}
+
+:root[data-theme='aether-neon'] .card:hover .card-image-wrapper::after {
+    opacity: 1;
+}
+
+/* Pulsing neon accent on playing track */
+@keyframes neon-playing-pulse {
+    0%, 100% { border-left-color: #00f0ff; box-shadow: -5px 0 15px rgba(0, 240, 255, 0.3); }
+    50% { border-left-color: #ff00e5; box-shadow: -5px 0 15px rgba(255, 0, 229, 0.3); }
+}
+
+:root[data-theme='aether-neon'] .track-item.playing {
+    animation: neon-playing-pulse 3s ease-in-out infinite;
+    background: linear-gradient(90deg, rgba(0, 240, 255, 0.1), transparent) !important;
+}
+
+/* Futuristic tooltip */
+:root[data-theme='aether-neon'] #custom-tooltip {
+    border: 1px solid rgba(0, 240, 255, 0.4);
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+    backdrop-filter: blur(10px);
+}
+
 :root[data-theme='dark'] {
     color-scheme: dark;
 
