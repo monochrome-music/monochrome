@@ -1,4 +1,5 @@
 //js/downloads.js
+//@ts-check
 import {
     buildTrackFilename,
     sanitizeForFilename,
@@ -28,6 +29,8 @@ import { DownloadProgress, ProgressMessage, SegmentedDownloadProgress } from './
 import { db } from './db.js';
 import { modernSettings } from './ModernSettings.js';
 import { SVG_CLOSE } from './icons.ts';
+import { MusicAPI } from './music-api.js';
+import { LyricsManager } from './lyrics.js';
 
 const downloadTasks = new Map();
 const bulkDownloadTasks = new Map();
@@ -332,7 +335,7 @@ async function downloadTrackBlob(track, quality, api, signal = null, onProgress 
     return { blob, extension };
 }
 
-async function bulkDownload(
+async function bulkDownload({
     tracks,
     folderName,
     api,
@@ -342,8 +345,8 @@ async function bulkDownload(
     writer,
     coverBlob = null,
     type = 'playlist',
-    metadata = null
-) {
+    metadata = null,
+}) {
     const { abortController } = bulkDownloadTasks.get(notification);
     const signal = abortController.signal;
 
@@ -648,7 +651,7 @@ async function createBulkWriter(folderName) {
     }
 
     if (method === 'individual') {
-        return new SequentialFileWriter();
+        return SequentialFileWriter;
     }
     // method === 'zip' (or folder picker unavailable as fallback)
     if (!forceZipBlob && hasFileSystemAccess) {
@@ -657,26 +660,27 @@ async function createBulkWriter(folderName) {
     return new ZipBlobWriter(`${folderName}.zip`);
 }
 
-async function startBulkDownload(
+async function startBulkDownload({
     tracks,
-    defaultName,
+    folderName = '',
     api,
     quality,
-    lyricsManager,
+    lyricsManager = LyricsManager.instance,
     type,
     name,
     coverBlob = null,
-    metadata = null
-) {
+    metadata = null,
+    single = false,
+}) {
     const notification = createBulkDownloadNotification(type, name, tracks.length);
 
     try {
-        const writer = await createBulkWriter(defaultName);
+        const writer = single ? await createSingleTrackFolderWriter() : await createBulkWriter(folderName);
 
         if (writer) {
-            await bulkDownload(
+            await bulkDownload({
                 tracks,
-                defaultName,
+                folderName,
                 api,
                 quality,
                 lyricsManager,
@@ -684,8 +688,8 @@ async function startBulkDownload(
                 writer,
                 coverBlob,
                 type,
-                metadata
-            );
+                metadata,
+            });
         }
 
         completeBulkDownload(notification, true);
@@ -706,8 +710,16 @@ async function startBulkDownload(
 
 export async function downloadTracks(tracks, api, quality, lyricsManager = null) {
     const folderName = `Queue - ${new Date().toISOString().slice(0, 10)}`;
-    await startBulkDownload(tracks, folderName, api, quality, lyricsManager, 'queue', 'Queue', null, {
-        title: 'Queue',
+    await startBulkDownload({
+        tracks,
+        folderName,
+        quality,
+        type: 'queue',
+        name: 'Queue',
+        metadata: {
+            title: 'Queue',
+        },
+        api,
     });
 }
 
@@ -724,17 +736,16 @@ export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsMana
     });
 
     const coverBlob = await getCoverBlob(api, album.cover || album.album?.cover || album.coverId);
-    await startBulkDownload(
-        await annotateTracksWithDiscInfo(tracks, api),
+    await startBulkDownload({
+        tracks: await annotateTracksWithDiscInfo(tracks, api),
         folderName,
-        api,
         quality,
-        lyricsManager,
-        'album',
-        album.title,
+        type: 'album',
+        name: album.title,
         coverBlob,
-        album
-    );
+        metadata: album,
+        api,
+    });
 }
 
 export async function downloadPlaylistAsZip(playlist, tracks, api, quality, lyricsManager = null) {
@@ -746,17 +757,16 @@ export async function downloadPlaylistAsZip(playlist, tracks, api, quality, lyri
 
     const representativeTrack = tracks.find((t) => t.album?.cover);
     const coverBlob = await getCoverBlob(api, representativeTrack?.album?.cover);
-    await startBulkDownload(
+    await startBulkDownload({
         tracks,
         folderName,
-        api,
         quality,
-        lyricsManager,
-        'playlist',
-        playlist.title,
+        type: 'playlist',
+        name: playlist.title,
         coverBlob,
-        playlist
-    );
+        metadata: playlist,
+        api,
+    });
 }
 
 export async function downloadDiscography(artist, selectedReleases, api, quality, lyricsManager = null) {
@@ -922,16 +932,22 @@ function createBulkDownloadNotification(type, name, _totalItems) {
     notifEl.dataset.bulkType = type;
     notifEl.dataset.bulkName = name;
 
-    const typeLabel =
-        type === 'album'
-            ? 'Album'
-            : type === 'playlist'
-              ? 'Playlist'
-              : type === 'liked'
-                ? 'Liked Tracks'
-                : type === 'queue'
-                  ? 'Queue'
-                  : 'Discography';
+    const typeLabel = (() => {
+        switch (type) {
+            case 'album':
+                return 'Album';
+            case 'playlist':
+                return 'Playlist';
+            case 'liked':
+                return 'Liked Tracks';
+            case 'queue':
+                return 'Queue';
+            case 'discography':
+                return 'Discography';
+            default:
+                return '';
+        }
+    })();
 
     notifEl.innerHTML = `
         <div style="display: flex; align-items: start; gap: 0.75rem;">
@@ -1024,53 +1040,7 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
         return;
     }
 
-    let enrichedTrack = {
-        ...track,
-        artist: track.artist || (track.artists && track.artists.length > 0 ? track.artists[0] : null),
-    };
-
-    try {
-        const fullTrack = await api.getTrackMetadata(track.id);
-        if (fullTrack) {
-            enrichedTrack = {
-                ...fullTrack,
-                ...enrichedTrack,
-                artist: enrichedTrack.artist || fullTrack.artist,
-                album: {
-                    ...(fullTrack.album || {}),
-                    ...(enrichedTrack.album || {}),
-                },
-                discNumber: enrichedTrack.discNumber ?? fullTrack.discNumber,
-                volumeNumber: enrichedTrack.volumeNumber ?? fullTrack.volumeNumber,
-            };
-        }
-    } catch {
-        // Continue with available track payload
-    }
-
-    if (enrichedTrack.album?.id) {
-        try {
-            const albumData = await api.getAlbum(enrichedTrack.album.id);
-            if (albumData.album && (!enrichedTrack.album.title || !enrichedTrack.album.artist)) {
-                enrichedTrack.album = {
-                    ...enrichedTrack.album,
-                    ...albumData.album,
-                };
-            }
-            if (albumData.tracks?.length > 0) {
-                const { totalDiscs, tracksPerDisc } = await computeDiscInfo(albumData.tracks, api);
-                const discNumber = getTrackDiscNumber(enrichedTrack) || 1;
-                enrichedTrack.album = {
-                    ...enrichedTrack.album,
-                    totalDiscs,
-                    numberOfTracksOnDisc: tracksPerDisc.get(discNumber),
-                };
-            }
-        } catch (error) {
-            console.warn('Failed to fetch album data for metadata:', error);
-        }
-    }
-
+    const { enrichedTrack } = await api.tidalAPI.enrichTrack(track, { downloadQuality: quality });
     const filename = buildTrackFilename(enrichedTrack, quality);
 
     const controller = abortController || new AbortController();
@@ -1079,74 +1049,67 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
     try {
         // Resolve the folder writer before registering the download task so that
         // any permission prompt (requestPermission) shows before the UI task appears.
-        const folderWriter = await createSingleTrackFolderWriter();
+        const folderWriter = (await createSingleTrackFolderWriter()) || SequentialFileWriter;
 
         addDownloadTask(track.id, enrichedTrack, filename, api, controller);
 
-        // Try to write directly to the configured folder when the feature is enabled.
-        if (folderWriter) {
-            // Download the blob (metadata already applied inside downloadTrack)
-            const blob = await api.downloadTrack(track.id, quality, filename, {
-                signal: controller.signal,
-                track: enrichedTrack,
-                onProgress: (progress) => {
-                    updateDownloadProgress(track.id, progress);
-                },
-                calculateDashBytes: true,
-                triggerDownload: false,
-            });
+        // Download the blob (metadata already applied inside downloadTrack)
+        const blob = await api.downloadTrack(track.id, quality, filename, {
+            signal: controller.signal,
+            track: enrichedTrack,
+            onProgress: (progress) => {
+                updateDownloadProgress(track.id, progress);
+            },
+            calculateDashBytes: true,
+            triggerDownload: false,
+        });
 
-            const currentExtension = filename.split('.').pop()?.toLowerCase();
-            const finalFilename = buildTrackFilename(track, quality, await getExtensionFromBlob(blob))
-                .split('/')
-                .pop();
+        const finalFilename = buildTrackFilename(track, quality, await getExtensionFromBlob(blob))
+            .split('/')
+            .pop();
 
-            // Compute a subfolder path using the same template as bulk downloads so
-            // the track lands in e.g. "Album Title - Artist/" instead of the folder root.
-            const releaseDateStr =
-                enrichedTrack.album?.releaseDate ||
-                (enrichedTrack.streamStartDate ? enrichedTrack.streamStartDate.split('T')[0] : '');
-            const releaseDate = releaseDateStr ? new Date(releaseDateStr) : null;
-            const releaseYear = releaseDate && !isNaN(releaseDate.getTime()) ? releaseDate.getFullYear() : '';
-            const subFolder = formatPathTemplate(modernSettings.folderTemplate, {
-                albumTitle: enrichedTrack.album?.title,
-                albumArtist: enrichedTrack.album?.artist?.name || enrichedTrack.artist?.name,
-                year: releaseYear,
-            });
-            const entryName = subFolder ? `${subFolder}/${finalFilename}` : finalFilename;
+        // Compute a subfolder path using the same template as bulk downloads so
+        // the track lands in e.g. "Album Title - Artist/" instead of the folder root.
+        const releaseDateStr =
+            enrichedTrack.album?.releaseDate ||
+            (enrichedTrack.streamStartDate ? enrichedTrack.streamStartDate.split('T')[0] : '');
+        const releaseDate = releaseDateStr ? new Date(releaseDateStr) : null;
+        const releaseYear = releaseDate && !isNaN(releaseDate.getTime()) ? releaseDate.getFullYear() : '';
+        const subFolder = formatPathTemplate(modernSettings.folderTemplate, {
+            albumTitle: enrichedTrack.album?.title,
+            albumArtist: enrichedTrack.album?.artist?.name || enrichedTrack.artist?.name,
+            year: releaseYear,
+        });
+        const entryName = subFolder ? `${subFolder}/${finalFilename}` : finalFilename;
 
-            // Write to folder using IBulkDownloadWriter.write() via singleWriterEntry().
-            await folderWriter.write(singleWriterEntry({ name: entryName, lastModified: new Date(), input: blob }));
-
-            // If the target is the local media folder, do a cheap partial update:
-            // pass the downloaded blob and base filename so only this one track's metadata
-            // is read and inserted into localFilesCache instead of re-walking the whole folder.
-            if (modernSettings.bulkDownloadMethod === 'local') {
-                window.refreshLocalMediaFolder?.(blob, finalFilename);
-            }
-        } else {
-            await api.downloadTrack(track.id, quality, filename, {
-                signal: controller.signal,
-                track: enrichedTrack,
-                onProgress: (progress) => {
-                    updateDownloadProgress(track.id, progress);
-                },
-                calculateDashBytes: true,
-            });
-        }
-
-        completeDownloadTask(track.id, true);
+        // Write to folder using IBulkDownloadWriter.write() via singleWriterEntry().
+        await folderWriter.write(singleWriterEntry({ name: entryName, lastModified: new Date(), input: blob }));
 
         if (lyricsManager && lyricsSettings.shouldDownloadLyrics()) {
             try {
                 const lyricsData = await lyricsManager.fetchLyrics(track.id, track);
                 if (lyricsData) {
-                    lyricsManager.downloadLRC(lyricsData, track);
+                    await folderWriter.write(
+                        singleWriterEntry({
+                            name: [...entryName.split('.').slice(0, -1), 'lrc'].join('.'),
+                            lastModified: new Date(),
+                            input: lyricsManager.getLRC(lyricsData, track),
+                        })
+                    );
                 }
             } catch {
                 console.log('Could not download lyrics for track');
             }
         }
+
+        // If the target is the local media folder, do a cheap partial update:
+        // pass the downloaded blob and base filename so only this one track's metadata
+        // is read and inserted into localFilesCache instead of re-walking the whole folder.
+        if (modernSettings.bulkDownloadMethod === 'local') {
+            window.refreshLocalMediaFolder?.(blob, finalFilename);
+        }
+
+        completeDownloadTask(track.id, true);
     } catch (error) {
         if (error.name !== 'AbortError') {
             const errorMsg =
@@ -1160,5 +1123,12 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
 
 export async function downloadLikedTracks(tracks, api, quality, lyricsManager = null) {
     const folderName = `Liked Tracks - ${new Date().toISOString().slice(0, 10)}`;
-    await startBulkDownload(tracks, folderName, api, quality, lyricsManager, 'liked', 'Liked Tracks');
+    await startBulkDownload({
+        tracks,
+        folderName,
+        quality,
+        type: 'liked',
+        name: 'Liked Tracks',
+        api,
+    });
 }

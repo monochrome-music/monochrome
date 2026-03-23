@@ -5,17 +5,18 @@ import { ByteVector } from '!/@dantheman827/taglib-ts/src/byteVector.js';
 import { Mp4Tag, Mp4Item } from '!/@dantheman827/taglib-ts/src/mp4/mp4Tag.js';
 import { Variant } from '!/@dantheman827/taglib-ts/src/toolkit/variant.js';
 import { doTimed, doTimedAsync } from './doTimed';
-import type {
-    _AddMetadataMessage,
-    _GetMetadataMessage,
-    AddMetadataMessage,
-    GetMetadataMessage,
-    TagLibFileResponse,
-    TagLibMetadata,
-    TagLibMetadataResponse,
-    TagLibReadMetadata,
-    TagLibWorkerMessage,
-    TagLibWorkerResponse,
+import {
+    Mp4Stik,
+    type _AddMetadataMessage,
+    type _GetMetadataMessage,
+    type AddMetadataMessage,
+    type GetMetadataMessage,
+    type TagLibFileResponse,
+    type TagLibMetadata,
+    type TagLibMetadataResponse,
+    type TagLibReadMetadata,
+    type TagLibWorkerMessage,
+    type TagLibWorkerResponse,
 } from './taglib.types';
 import { File as TagLibFile } from '!/@dantheman827/taglib-ts/src/file.js';
 import { FileRef } from '!/@dantheman827/taglib-ts/src/fileRef.js';
@@ -52,8 +53,11 @@ export async function addMetadataToAudio(message: _AddMetadataMessage): Promise<
         releaseDate,
         copyright,
         isrc,
+        upc,
         explicit,
         lyrics,
+        stik = Mp4Stik.Normal,
+        extra,
         returnType = 'uint8array',
     } = message;
 
@@ -126,6 +130,7 @@ export async function addMetadataToAudio(message: _AddMetadataMessage): Promise<
             const mp4Tag = (underlying as Mp4File).tag() as Mp4Tag;
             mp4Tag.setItem('xid ', Mp4Item.fromStringList([`:isrc:${isrc}`]));
         }
+        if (upc) props.replace('UPC', [upc]);
         if (lyrics) props.replace('LYRICS', [lyrics.replace(/\r/g, '').replace(/\n/g, '\r\n')]);
 
         if (explicit !== undefined) {
@@ -136,6 +141,15 @@ export async function addMetadataToAudio(message: _AddMetadataMessage): Promise<
             } else {
                 props.replace('ITUNESADVISORY', [explicit ? '1' : '0']);
             }
+        }
+
+        if (stik != null && isMp4) {
+            const mp4Tag = (underlying as Mp4File).tag() as Mp4Tag;
+            mp4Tag.setItem('stik', Mp4Item.fromByte(stik));
+        }
+
+        for (const [key, value] of Object.entries(extra || {})) {
+            if (value) props.replace(key, [value]);
         }
 
         ref.setProperties(props);

@@ -7,7 +7,7 @@ import { readableStreamIterator } from './readableStreamIterator';
 export interface WriterEntry {
     name: string;
     lastModified: Date;
-    input: Blob | string | ArrayBuffer | Uint8Array;
+    input: Blob | File | string | ArrayBuffer | Uint8Array;
 }
 
 /** Minimal interface for the Neutralino bridge used by ZipNeutralinoWriter */
@@ -47,7 +47,7 @@ export interface IBulkDownloadWriter {
 /**
  * Triggers individual downloads for each file entry, one after another.
  */
-export class SequentialFileWriter implements IBulkDownloadWriter {
+class SequentialFileWriter implements IBulkDownloadWriter {
     constructor() {}
 
     async write(files: AsyncIterable<WriterEntry>): Promise<void> {
@@ -64,14 +64,19 @@ export class SequentialFileWriter implements IBulkDownloadWriter {
                 continue;
             }
 
-            if (file.input instanceof Blob) {
+            if (file.input instanceof Blob || file.input instanceof File) {
                 triggerDownload(file.input, name);
             } else {
                 triggerDownload(new Blob([file.input as BlobPart]), name);
             }
+            await new Promise((resolve) => setTimeout(resolve, 500));
         }
     }
 }
+
+const sequentialFileWriter = new SequentialFileWriter();
+
+export { sequentialFileWriter as SequentialFileWriter };
 
 /**
  * Streams a ZIP archive to a file via the File System Access API.

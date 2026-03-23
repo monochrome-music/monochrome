@@ -489,18 +489,24 @@ export class LyricsManager {
         return lrc;
     }
 
-    downloadLRC(lyricsData, track) {
+    getLRC(lyricsData, track) {
         const lrcContent = this.generateLRCContent(lyricsData, track);
         if (!lrcContent) {
             alert('No synced lyrics available for this track');
             return;
         }
 
-        const blob = new Blob([lrcContent], { type: 'application/octet-stream' });
+        return new File([lrcContent], buildTrackFilename(track, 'LOSSLESS').replace(/\.flac$/, '.lrc'), {
+            type: 'application/octet-stream',
+        });
+    }
+
+    downloadLRC(lyricsData, track) {
+        const blob = this.getLRC(lyricsData, track);
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = buildTrackFilename(track, 'LOSSLESS').replace(/\.flac$/, '.lrc');
+        a.download = blob.name;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
