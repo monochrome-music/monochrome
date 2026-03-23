@@ -107,10 +107,7 @@ function transformErasImages(eras) {
 }
 
 async function fetchTrackerData(sheetId) {
-    const endpoints = [
-        'https://trackerapi-2.artistgrid.cx/get/',
-        'https://trackerapi-2.artistgrid.cx/get/',
-    ];
+    const endpoints = ['https://trackerapi-2.artistgrid.cx/get/', 'https://trackerapi-2.artistgrid.cx/get/'];
 
     let lastError = null;
     for (const baseUrl of endpoints) {
