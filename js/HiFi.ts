@@ -718,13 +718,7 @@ export class HiFiClient {
                 headers: { 'Content-Type': 'application/json' },
             });
         } catch (err: any) {
-            if (err instanceof ResponseError) {
-                return new TidalResponse(JSON.stringify({ error: err.message }), {
-                    status: err.status,
-                    headers: { 'Content-Type': 'application/json' },
-                });
-            }
-
+            console.error(`Error processing query "${pathOrUrl}":`, err);
             throw err;
         }
     }
