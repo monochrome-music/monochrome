@@ -74,7 +74,7 @@ import {
     SVG_CLOSE,
     SVG_RESET,
 } from './icons.js';
-import { HiFiClient } from './HiFi.js';
+import { HiFiClient } from './HiFi.js'; import { initializeNewFeatures } from './feature-integrator.js';
 
 // Capture real iOS state before spoofing (needed for background audio)
 if (typeof window !== 'undefined') {
@@ -735,6 +735,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Restore UI state for the current track (like button, theme)
     if (Player.instance.currentTrack) {
         UIRenderer.instance.setCurrentTrack(Player.instance.currentTrack);
+
+            // Initialize new feature modules (A-B Loop, Spectrum Analyzer, etc.)
+    initializeNewFeatures({
+        player: Player.instance,
+        uiRenderer: UIRenderer.instance,
+        musicAPI: MusicAPI.instance,
+        audioPlayer,
+    });
     }
 
     document.querySelector('.now-playing-bar').addEventListener('click', async (e) => {
