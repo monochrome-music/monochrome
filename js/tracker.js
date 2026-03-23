@@ -108,8 +108,7 @@ function transformErasImages(eras) {
 
 async function fetchTrackerData(sheetId) {
     const endpoints = [
-        'https://tracker.israeli.ovh/get/',
-        'https://tracker.thug.surf/get/',
+        'https://trackerapi-2.artistgrid.cx/get/',
         'https://trackerapi-2.artistgrid.cx/get/',
     ];
 
