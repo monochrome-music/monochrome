@@ -1,5 +1,9 @@
 import { ffmpeg } from './ffmpeg';
 
+/**
+ * @typedef {import('./ffmpeg.types.ts').FfmpegProgress} FfmpegProgress
+ */
+
 class MP3EncodingError extends Error {
     constructor(message) {
         super(message);
@@ -11,7 +15,7 @@ class MP3EncodingError extends Error {
 /**
  *
  * @param {Blob} audioBlob
- * @param {(progress: import('./ffmpeg.types.ts').FfmpegProgress) => void} [onProgress=null]
+ * @param {(progress: FfmpegProgress) => void} [onProgress=null]
  * @param {AbortSignal|null} [signal=null]
  * @returns {Promise<Blob>} Encoded MP3 audio blob
  */
