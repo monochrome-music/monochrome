@@ -18,9 +18,45 @@ export class SleepTimer {
   }
 
   _initUI() {
+    // Check if a built-in sleep timer button already exists (from desktop UI)
+    const existingBtn = document.querySelector('#sleep-timer-btn-desktop');
+    if (existingBtn) {
+      // Move the existing button to be before the like/heart button
+      const likeBtn = document.querySelector('#now-playing-like-btn');
+      if (likeBtn && likeBtn.parentNode) {
+        likeBtn.parentNode.insertBefore(existingBtn, likeBtn);
+        this._btn = existingBtn;
+        existingBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this._showModal();
+        });
+        console.log('[SleepTimer] Moved existing desktop button before like button');
+        return;
+      }
+    }
+
+    // Also check if we already created one
+    const alreadyCreated = document.querySelector('.sleep-timer-btn-feature');
+    if (alreadyCreated) {
+      this._btn = alreadyCreated;
+      return;
+    }
+
     // Wait for DOM to be ready with the now-playing bar
     const tryCreate = () => {
+      // Try to move existing desktop button first
+      const desktopBtn = document.querySelector('#sleep-timer-btn-desktop');
       const likeBtn = document.querySelector('#now-playing-like-btn');
+      if (desktopBtn && likeBtn && likeBtn.parentNode) {
+        likeBtn.parentNode.insertBefore(desktopBtn, likeBtn);
+        this._btn = desktopBtn;
+        desktopBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this._showModal();
+        });
+        console.log('[SleepTimer] Moved existing desktop button before like button (retry)');
+        return;
+      }
       if (likeBtn && likeBtn.parentNode) {
         this._createButton(likeBtn);
       } else {
@@ -42,19 +78,22 @@ export class SleepTimer {
     const btn = document.createElement('button');
     btn.className = 'sleep-timer-feature-btn';
     btn.title = 'Sleep Timer';
-    btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
     btn.style.cssText = 'background:none;border:none;color:var(--text-secondary,#8b8fa3);cursor:pointer;padding:4px;display:flex;align-items:center;justify-content:center;opacity:0.7;transition:all 0.2s;';
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       this._showModal();
     });
-    btn.addEventListener('mouseenter', () => { if (!this.isActive) btn.style.opacity = '1'; });
-    btn.addEventListener('mouseleave', () => { if (!this.isActive) btn.style.opacity = '0.7'; });
+    btn.addEventListener('mouseenter', () => {
+      if (!this.isActive) btn.style.opacity = '1';
+    });
+    btn.addEventListener('mouseleave', () => {
+      if (!this.isActive) btn.style.opacity = '0.7';
+    });
     this._btn = btn;
-
     // Insert directly BEFORE the like/heart button
     likeBtn.parentNode.insertBefore(btn, likeBtn);
-    console.log('[SleepTimer] Button placed next to like button');
+    console.log('[SleepTimer] Button created and placed before like button');
   }
 
   _showModal() {
@@ -73,29 +112,29 @@ export class SleepTimer {
     const remaining = this.getRemaining();
 
     modal.innerHTML = `
-      <div style="background:var(--bg-secondary,#1a1a2e);border-radius:16px;padding:28px;max-width:380px;width:90%;border:1px solid var(--border,#333);box-shadow:0 20px 60px rgba(0,0,0,0.5);">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-          <h3 style="margin:0;color:var(--text-primary,#fff);font-size:18px;">Sleep Timer</h3>
-          <button id="sleep-timer-close" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:20px;padding:4px;">&times;</button>
+      <div style="background:var(--bg-secondary,#1a1a2e);border-radius:16px;padding:24px;min-width:320px;max-width:400px;color:var(--text-primary,#fff);box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h3 style="margin:0;font-size:18px;">Sleep Timer</h3>
+          <button id="sleep-timer-close" style="background:none;border:none;color:var(--text-secondary,#8b8fa3);cursor:pointer;font-size:20px;">&times;</button>
         </div>
         ${isActive ? `
           <div style="text-align:center;padding:20px 0;">
-            <div id="sleep-timer-countdown" style="font-size:48px;font-weight:700;color:var(--accent,#00d4ff);font-variant-numeric:tabular-nums;">${this._formatTime(remaining)}</div>
-            <div style="color:var(--text-secondary);margin-top:8px;">remaining</div>
-            <button id="sleep-timer-cancel" style="margin-top:20px;padding:10px 28px;border-radius:20px;border:1px solid var(--accent,#00d4ff);background:none;color:var(--accent,#00d4ff);cursor:pointer;font-size:14px;transition:all 0.2s;">Cancel Timer</button>
+            <div id="sleep-timer-countdown" style="font-size:36px;font-weight:bold;color:var(--accent,#00d4ff);">${this._formatTime(remaining)}</div>
+            <div style="color:var(--text-secondary,#8b8fa3);margin-top:8px;">remaining</div>
+            <button id="sleep-timer-cancel" style="margin-top:16px;padding:10px 24px;border-radius:8px;border:1px solid var(--border,#333);background:none;color:var(--text-primary,#fff);cursor:pointer;">Cancel Timer</button>
           </div>
         ` : `
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;">
-            ${[5, 10, 15, 20, 30, 45, 60, 90].map(m => `
-              <button class="sleep-timer-preset" data-minutes="${m}" style="padding:10px 4px;border-radius:10px;border:1px solid var(--border,#333);background:var(--bg-tertiary,#252540);color:var(--text-primary,#fff);cursor:pointer;font-size:13px;transition:all 0.2s;">
+            ${[5,10,15,20,30,45,60,90].map(m => `
+              <button class="sleep-timer-preset" data-minutes="${m}" style="padding:10px;border-radius:8px;border:1px solid var(--border,#333);background:var(--bg-tertiary,#252540);color:var(--text-primary,#fff);cursor:pointer;transition:all 0.2s;">
                 ${m < 60 ? m + ' min' : (m / 60) + ' hr' + (m > 60 ? 's' : '')}
               </button>
             `).join('')}
           </div>
-          <button id="sleep-timer-end-of-track" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border,#333);background:var(--bg-tertiary,#252540);color:var(--text-primary,#fff);cursor:pointer;font-size:13px;margin-bottom:12px;transition:all 0.2s;">End of current track</button>
+          <button id="sleep-timer-end-of-track" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border,#333);background:var(--bg-tertiary,#252540);color:var(--text-primary,#fff);cursor:pointer;margin-bottom:12px;">End of current track</button>
           <div style="display:flex;gap:8px;">
             <input id="sleep-timer-custom" type="number" min="1" max="480" placeholder="min" style="flex:1;padding:8px 12px;border-radius:8px;border:1px solid var(--border,#333);background:var(--bg-tertiary,#252540);color:var(--text-primary,#fff);font-size:14px;">
-            <button id="sleep-timer-custom-btn" style="padding:8px 16px;border-radius:8px;border:none;background:var(--accent,#00d4ff);color:#000;cursor:pointer;font-weight:600;font-size:13px;">Set</button>
+            <button id="sleep-timer-custom-btn" style="padding:8px 16px;border-radius:8px;border:none;background:var(--accent,#00d4ff);color:#000;cursor:pointer;font-weight:600;">Set</button>
           </div>
         `}
       </div>
@@ -175,12 +214,10 @@ export class SleepTimer {
     const interval = this.fadeOutDuration / steps;
     const volumeStep = this.originalVolume / steps;
     let step = 0;
-
     this._tickInterval = setInterval(() => {
       step++;
       const newVolume = Math.max(0, this.originalVolume - (volumeStep * step));
       this.audioPlayer.volume = newVolume;
-
       if (step >= steps) {
         clearInterval(this._tickInterval);
         this.audioPlayer.pause();
