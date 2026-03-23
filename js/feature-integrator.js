@@ -114,7 +114,7 @@ export async function initializeNewFeatures(deps) {
   // 8. Sleep Timer
   try {
     const { SleepTimer } = await import('./sleep-timer.js');
-    const sleepTimer = new SleepTimer(player, audioPlayer);
+    const sleepTimer = new SleepTimer(audioPlayer);
     window.monochromeSleepTimer = sleepTimer;
     console.log('[Features] Sleep Timer initialized');
   } catch (e) {
