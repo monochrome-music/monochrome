@@ -56,7 +56,14 @@ export class LosslessAPI {
 
     async fetchWithRetry(relativePath, options = {}) {
         const type = options.type || 'api';
-        const instanceRoutes = ['/track', '/album/similar', '/artist/similar', '/video', '/recommendations'];
+        const instanceRoutes = [
+            '/track',
+            '/album/similar',
+            '/artist/similar',
+            '/video',
+            '/recommendations',
+            '/trackManifests',
+        ];
 
         if (window.allTidal == true || !instanceRoutes.some((route) => relativePath.startsWith(route))) {
             try {
@@ -64,7 +71,7 @@ export class LosslessAPI {
                     console.log(relativePath);
                 }
 
-                return await HiFiClient.instance.queryResponse(relativePath);
+                return await HiFiClient.instance.query(relativePath);
             } catch (err) {
                 console.warn(
                     `Direct fetch failed for ${relativePath}. Falling back to configured API instances...`,
