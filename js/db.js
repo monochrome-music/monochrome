@@ -24,6 +24,11 @@ export class MusicDatabase {
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
 
+                // v10 introduced track_ratings (bad PR) — remove it
+                if (db.objectStoreNames.contains('track_ratings')) {
+                    db.deleteObjectStore('track_ratings');
+                }
+
                 // Favorites stores
                 if (!db.objectStoreNames.contains('favorites_tracks')) {
                     const store = db.createObjectStore('favorites_tracks', { keyPath: 'id' });
