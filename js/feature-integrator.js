@@ -33,12 +33,10 @@ export async function initializeNewFeatures(deps) {
       width: 120,
       height: 30,
     });
-    // Attach to now-playing bar
     const nowPlayingBar = document.querySelector('.now-playing-bar .controls');
     if (nowPlayingBar) {
       analyzer.createCanvas(nowPlayingBar);
     }
-    // Connect when audio plays
     const connectAnalyzer = () => {
       if (audioPlayer && !analyzer.isRunning) {
         analyzer.connect(audioPlayer);
@@ -78,7 +76,6 @@ export async function initializeNewFeatures(deps) {
   try {
     const { ListeningHeatmap } = await import('./listening-heatmap.js');
     const heatmap = new ListeningHeatmap();
-    // Record listening data on timeupdate
     audioPlayer.addEventListener('timeupdate', () => {
       if (player.currentTrack && audioPlayer.duration) {
         heatmap.record(
@@ -152,6 +149,46 @@ export async function initializeNewFeatures(deps) {
     console.log('[Features] Social Share initialized');
   } catch (e) {
     console.warn('[Features] Failed to init Social Share:', e);
+  }
+
+  // 12. Audio Normalization
+  try {
+    const { AudioNormalization } = await import('./audio-normalization.js');
+    const normalization = new AudioNormalization(audioPlayer);
+    window.monochromeAudioNormalization = normalization;
+    console.log('[Features] Audio Normalization initialized');
+  } catch (e) {
+    console.warn('[Features] Failed to init Audio Normalization:', e);
+  }
+
+  // 13. Mini Player
+  try {
+    const { MiniPlayer } = await import('./mini-player.js');
+    const miniPlayer = new MiniPlayer(player, audioPlayer);
+    window.monochromeMiniPlayer = miniPlayer;
+    console.log('[Features] Mini Player initialized');
+  } catch (e) {
+    console.warn('[Features] Failed to init Mini Player:', e);
+  }
+
+  // 14. Keyboard Shortcuts
+  try {
+    const { KeyboardShortcuts } = await import('./keyboard-shortcuts.js');
+    const shortcuts = new KeyboardShortcuts(player, audioPlayer);
+    window.monochromeKeyboardShortcuts = shortcuts;
+    console.log('[Features] Keyboard Shortcuts initialized');
+  } catch (e) {
+    console.warn('[Features] Failed to init Keyboard Shortcuts:', e);
+  }
+
+  // 15. Mood Tag
+  try {
+    const { MoodTag } = await import('./mood-tag.js');
+    const moodTag = new MoodTag(player);
+    window.monochromeMoodTag = moodTag;
+    console.log('[Features] Mood Tag initialized');
+  } catch (e) {
+    console.warn('[Features] Failed to init Mood Tag:', e);
   }
 
   console.log('[Features] All new features initialized successfully');
