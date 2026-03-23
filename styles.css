@@ -304,7 +304,119 @@
 :root[data-theme='aether-beyond'] .main-content {
     position: relative;
 }
+:root[data-theme='aether-neon'] {
+    color-scheme: dark;
 
+    --background: #020a13;
+    --foreground: #e0f7ff;
+    --card: #051525;
+    --card-foreground: #e0f7ff;
+    --primary: #00f0ff;
+    --primary-foreground: #020a13;
+    --secondary: #0a1a2a;
+    --secondary-foreground: #7fdbff;
+    --muted: #081520;
+    --muted-foreground: #5a8fa8;
+    --border: #0a2840;
+    --input: #081520;
+    --ring: #00f0ff;
+    --highlight: #00f0ff;
+    --highlight-rgb: 0, 240, 255;
+    --active-highlight: var(--highlight);
+    --explicit-badge: #f5f5f5;
+
+    --neon-glow-1: #00f0ff;
+    --neon-glow-2: #ff00e5;
+    --neon-glow-3: #39ff14;
+    --neon-cyan: #00f0ff;
+    --neon-magenta: #ff00e5;
+}
+
+/* Aether Neon - Cyberpunk Futuristic Animations */
+@keyframes neon-pulse {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.05); }
+}
+
+@keyframes neon-glow-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes neon-border-flow {
+    0% { border-color: var(--neon-glow-1, #00f0ff); }
+    33% { border-color: var(--neon-glow-2, #ff00e5); }
+    66% { border-color: var(--neon-glow-3, #39ff14); }
+    100% { border-color: var(--neon-glow-1, #00f0ff); }
+}
+
+@keyframes neon-flicker {
+    0%, 100% { text-shadow: 0 0 5px var(--neon-glow-1, #00f0ff), 0 0 20px var(--neon-glow-1, #00f0ff); }
+    50% { text-shadow: 0 0 2px var(--neon-glow-1, #00f0ff), 0 0 10px var(--neon-glow-1, #00f0ff); }
+}
+
+:root[data-theme='aether-neon'] .card,
+:root[data-theme='aether-neon'] .track-item,
+:root[data-theme='aether-neon'] .album-card,
+:root[data-theme='aether-neon'] .artist-card {
+    border: 1px solid transparent;
+    animation: neon-border-flow 4s ease infinite;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
+    background: rgba(5, 21, 37, 0.7) !important;
+}
+
+:root[data-theme='aether-neon'] .card:hover,
+:root[data-theme='aether-neon'] .track-item:hover,
+:root[data-theme='aether-neon'] .album-card:hover,
+:root[data-theme='aether-neon'] .artist-card:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 0 30px rgba(0, 240, 255, 0.3), 0 0 60px rgba(255, 0, 229, 0.15);
+}
+
+:root[data-theme='aether-neon'] .sidebar {
+    background: linear-gradient(180deg, rgba(2, 10, 19, 0.95) 0%, rgba(5, 21, 37, 0.9) 100%) !important;
+    border-right: 1px solid rgba(0, 240, 255, 0.2);
+}
+
+:root[data-theme='aether-neon'] .sidebar-logo span {
+    animation: neon-flicker 3s ease-in-out infinite;
+}
+
+:root[data-theme='aether-neon'] .player-bar {
+    background: linear-gradient(180deg, rgba(2, 10, 19, 0.9) 0%, rgba(5, 21, 37, 0.95) 100%) !important;
+    border-top: 1px solid rgba(0, 240, 255, 0.2);
+    backdrop-filter: blur(20px);
+}
+
+:root[data-theme='aether-neon'] .btn-primary,
+:root[data-theme='aether-neon'] button.primary {
+    background: linear-gradient(135deg, var(--neon-glow-1, #00f0ff), var(--neon-glow-2, #ff00e5)) !important;
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
+    transition: all 0.3s ease;
+}
+
+:root[data-theme='aether-neon'] .btn-primary:hover,
+:root[data-theme='aether-neon'] button.primary:hover {
+    box-shadow: 0 0 35px rgba(0, 240, 255, 0.6), 0 0 60px rgba(255, 0, 229, 0.3);
+    transform: translateY(-2px);
+}
+
+:root[data-theme='aether-neon'] .progress-bar {
+    background: linear-gradient(90deg, var(--neon-glow-1, #00f0ff), var(--neon-glow-2, #ff00e5), var(--neon-glow-3, #39ff14));
+    background-size: 200% 100%;
+    animation: neon-glow-shift 3s ease infinite;
+}
+
+:root[data-theme='aether-neon'] ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--neon-glow-1, #00f0ff), var(--neon-glow-2, #ff00e5));
+    border-radius: 10px;
+}
+
+:root[data-theme='aether-neon'] .main-content {
+    position: relative;
+}
 
 
 :root[data-theme='dark'] {
