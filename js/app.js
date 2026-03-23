@@ -1146,6 +1146,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Update UI with current track info for theme
         UIRenderer.instance.setCurrentTrack(Player.instance.currentTrack);
 
+                // Initialize new features on first play
+        initializeNewFeatures({ player: Player.instance, uiRenderer: UIRenderer.instance, musicAPI: MusicAPI.instance, audioPlayer });
+
         // Update Media Session with new track
         Player.instance.updateMediaSession(Player.instance.currentTrack);
 
