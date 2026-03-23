@@ -1,7 +1,7 @@
 export class MusicDatabase {
     constructor() {
         this.dbName = 'MonochromeDB';
-        this.version = 9;
+        this.version = 11;
         this.db = null;
     }
 
@@ -23,6 +23,11 @@ export class MusicDatabase {
 
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
+
+                // v10 introduced track_ratings (bad PR) — remove it
+                if (db.objectStoreNames.contains('track_ratings')) {
+                    db.deleteObjectStore('track_ratings');
+                }
 
                 // Favorites stores
                 if (!db.objectStoreNames.contains('favorites_tracks')) {
