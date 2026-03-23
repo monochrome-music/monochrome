@@ -315,6 +315,7 @@ export const themeManager = {
     },
 
     getTheme() {
+                try {
             return localStorage.getItem(this.STORAGE_KEY) || 'system';
         } catch {
             return 'system';
