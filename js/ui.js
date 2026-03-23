@@ -151,6 +151,7 @@ export class UIRenderer {
                 this.visualizer.updateDimming();
             }
         });
+            }
 
 
     static async initialize(api, player) {
