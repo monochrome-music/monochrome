@@ -312,7 +312,6 @@ export const themeManager = {
         latte: {},
                 aether: {},
         'aether-beyond': {},
-                    'aether-quantum': {},
     },
 
     getTheme() {
