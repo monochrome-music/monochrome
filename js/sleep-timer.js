@@ -6,73 +6,74 @@ export class SleepTimer {
     this.audioPlayer = audioPlayer;
     this.timerId = null;
     this.endTime = null;
-    this.mode = null; // 'time' or 'tracks'
+    this.mode = null;
     this.tracksRemaining = 0;
-    this.fadeOutDuration = 15000; // 15s fade out
+    this.fadeOutDuration = 15000;
     this.originalVolume = 1;
     this._onTrackEnd = this._onTrackEnd.bind(this);
     this._tickInterval = null;
     this._callbacks = new Set();
     this._btn = null;
+    this._moved = false;
     this._initUI();
   }
 
   _initUI() {
-    // Check if a built-in sleep timer button already exists (from desktop UI)
-    const existingBtn = document.querySelector('#sleep-timer-btn-desktop');
-    if (existingBtn) {
-      // Move the existing button to be before the like/heart button
-      const likeBtn = document.querySelector('#now-playing-like-btn');
-      if (likeBtn && likeBtn.parentNode) {
-        likeBtn.parentNode.insertBefore(existingBtn, likeBtn);
-        this._btn = existingBtn;
-        existingBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this._showModal();
-        });
-        console.log('[SleepTimer] Moved existing desktop button before like button');
-        return;
-      }
-    }
-
-    // Also check if we already created one
-    const alreadyCreated = document.querySelector('.sleep-timer-btn-feature');
-    if (alreadyCreated) {
-      this._btn = alreadyCreated;
-      return;
-    }
-
-    // Wait for DOM to be ready with the now-playing bar
-    const tryCreate = () => {
-      // Try to move existing desktop button first
+    // Use polling + MutationObserver to find and move #sleep-timer-btn-desktop
+    // This button is created by player.js AFTER our module loads
+    const tryMove = () => {
+      if (this._moved) return true;
       const desktopBtn = document.querySelector('#sleep-timer-btn-desktop');
       const likeBtn = document.querySelector('#now-playing-like-btn');
       if (desktopBtn && likeBtn && likeBtn.parentNode) {
+        // Move the desktop button to be BEFORE the like/heart button
         likeBtn.parentNode.insertBefore(desktopBtn, likeBtn);
         this._btn = desktopBtn;
+        // Attach our modal click handler
         desktopBtn.addEventListener('click', (e) => {
           e.stopPropagation();
           this._showModal();
         });
-        console.log('[SleepTimer] Moved existing desktop button before like button (retry)');
-        return;
+        this._moved = true;
+        console.log('[SleepTimer] Moved desktop button before like button');
+        return true;
       }
-      if (likeBtn && likeBtn.parentNode) {
-        this._createButton(likeBtn);
-      } else {
-        // Retry until now-playing bar is available
-        setTimeout(tryCreate, 500);
-      }
+      return false;
     };
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', tryCreate);
-    } else {
-      tryCreate();
-    }
+
+    // Try immediately
+    if (tryMove()) return;
+
+    // Poll every 500ms for up to 30 seconds
+    let attempts = 0;
+    const maxAttempts = 60;
+    const pollInterval = setInterval(() => {
+      attempts++;
+      if (tryMove() || attempts >= maxAttempts) {
+        clearInterval(pollInterval);
+        if (!this._moved) {
+          console.log('[SleepTimer] Desktop button not found after polling, creating fallback');
+          this._createFallbackButton();
+        }
+      }
+    }, 500);
+
+    // Also use MutationObserver as backup
+    const observer = new MutationObserver(() => {
+      if (tryMove()) {
+        observer.disconnect();
+        clearInterval(pollInterval);
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Auto-disconnect observer after 30s
+    setTimeout(() => observer.disconnect(), 30000);
   }
 
-  _createButton(likeBtn) {
-    // Don't create duplicate
+  _createFallbackButton() {
+    const likeBtn = document.querySelector('#now-playing-like-btn');
+    if (!likeBtn || !likeBtn.parentNode) return;
     if (document.querySelector('.sleep-timer-feature-btn')) return;
 
     const btn = document.createElement('button');
@@ -84,33 +85,21 @@ export class SleepTimer {
       e.stopPropagation();
       this._showModal();
     });
-    btn.addEventListener('mouseenter', () => {
-      if (!this.isActive) btn.style.opacity = '1';
-    });
-    btn.addEventListener('mouseleave', () => {
-      if (!this.isActive) btn.style.opacity = '0.7';
-    });
+    btn.addEventListener('mouseenter', () => { if (!this.isActive) btn.style.opacity = '1'; });
+    btn.addEventListener('mouseleave', () => { if (!this.isActive) btn.style.opacity = '0.7'; });
     this._btn = btn;
-    // Insert directly BEFORE the like/heart button
     likeBtn.parentNode.insertBefore(btn, likeBtn);
-    console.log('[SleepTimer] Button created and placed before like button');
+    this._moved = true;
+    console.log('[SleepTimer] Fallback button created before like button');
   }
 
   _showModal() {
-    // Remove existing modal
     document.getElementById('sleep-timer-modal')?.remove();
-
     const modal = document.createElement('div');
     modal.id = 'sleep-timer-modal';
-    modal.style.cssText = `
-      position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;
-      display:flex;align-items:center;justify-content:center;
-      background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);
-    `;
-
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);';
     const isActive = this.isActive;
     const remaining = this.getRemaining();
-
     modal.innerHTML = `
       <div style="background:var(--bg-secondary,#1a1a2e);border-radius:16px;padding:24px;min-width:320px;max-width:400px;color:var(--text-primary,#fff);box-shadow:0 20px 60px rgba(0,0,0,0.5);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
@@ -125,11 +114,7 @@ export class SleepTimer {
           </div>
         ` : `
           <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;">
-            ${[5,10,15,20,30,45,60,90].map(m => `
-              <button class="sleep-timer-preset" data-minutes="${m}" style="padding:10px;border-radius:8px;border:1px solid var(--border,#333);background:var(--bg-tertiary,#252540);color:var(--text-primary,#fff);cursor:pointer;transition:all 0.2s;">
-                ${m < 60 ? m + ' min' : (m / 60) + ' hr' + (m > 60 ? 's' : '')}
-              </button>
-            `).join('')}
+            ${[5,10,15,20,30,45,60,90].map(m => `<button class="sleep-timer-preset" data-minutes="${m}" style="padding:10px;border-radius:8px;border:1px solid var(--border,#333);background:var(--bg-tertiary,#252540);color:var(--text-primary,#fff);cursor:pointer;transition:all 0.2s;">${m < 60 ? m + ' min' : (m/60) + ' hr'}</button>`).join('')}
           </div>
           <button id="sleep-timer-end-of-track" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border,#333);background:var(--bg-tertiary,#252540);color:var(--text-primary,#fff);cursor:pointer;margin-bottom:12px;">End of current track</button>
           <div style="display:flex;gap:8px;">
@@ -139,45 +124,26 @@ export class SleepTimer {
         `}
       </div>
     `;
-
     document.body.appendChild(modal);
-
-    // Event listeners
     modal.querySelector('#sleep-timer-close').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
-
     if (isActive) {
-      modal.querySelector('#sleep-timer-cancel').addEventListener('click', () => {
-        this.cancel();
-        modal.remove();
-      });
+      modal.querySelector('#sleep-timer-cancel').addEventListener('click', () => { this.cancel(); modal.remove(); });
       const countdownEl = modal.querySelector('#sleep-timer-countdown');
-      const updateInterval = setInterval(() => {
-        if (!this.isActive || !document.getElementById('sleep-timer-modal')) {
-          clearInterval(updateInterval);
-          return;
-        }
+      const iv = setInterval(() => {
+        if (!this.isActive || !document.getElementById('sleep-timer-modal')) { clearInterval(iv); return; }
         countdownEl.textContent = this._formatTime(this.getRemaining());
       }, 1000);
     } else {
       modal.querySelectorAll('.sleep-timer-preset').forEach(btn => {
         btn.addEventListener('mouseenter', () => btn.style.background = 'var(--accent,#00d4ff)');
         btn.addEventListener('mouseleave', () => btn.style.background = 'var(--bg-tertiary,#252540)');
-        btn.addEventListener('click', () => {
-          this.start(parseInt(btn.dataset.minutes) * 60 * 1000);
-          modal.remove();
-        });
+        btn.addEventListener('click', () => { this.start(parseInt(btn.dataset.minutes)*60*1000); modal.remove(); });
       });
-      modal.querySelector('#sleep-timer-end-of-track')?.addEventListener('click', () => {
-        this.startEndOfTrack();
-        modal.remove();
-      });
+      modal.querySelector('#sleep-timer-end-of-track')?.addEventListener('click', () => { this.startEndOfTrack(); modal.remove(); });
       modal.querySelector('#sleep-timer-custom-btn')?.addEventListener('click', () => {
         const val = parseInt(modal.querySelector('#sleep-timer-custom').value);
-        if (val > 0) {
-          this.start(val * 60 * 1000);
-          modal.remove();
-        }
+        if (val > 0) { this.start(val*60*1000); modal.remove(); }
       });
     }
   }
@@ -190,7 +156,6 @@ export class SleepTimer {
     this.timerId = setTimeout(() => this._fadeAndStop(), durationMs - this.fadeOutDuration);
     this._updateUI(true);
     this._notifyCallbacks('start', { duration: durationMs });
-    console.log(`[SleepTimer] Started: ${Math.round(durationMs / 60000)} minutes`);
   }
 
   startEndOfTrack() {
@@ -199,7 +164,6 @@ export class SleepTimer {
     this.audioPlayer.addEventListener('ended', this._onTrackEnd);
     this._updateUI(true);
     this._notifyCallbacks('start', { mode: 'track-end' });
-    console.log('[SleepTimer] Will stop at end of current track');
   }
 
   _onTrackEnd() {
@@ -216,15 +180,13 @@ export class SleepTimer {
     let step = 0;
     this._tickInterval = setInterval(() => {
       step++;
-      const newVolume = Math.max(0, this.originalVolume - (volumeStep * step));
-      this.audioPlayer.volume = newVolume;
+      this.audioPlayer.volume = Math.max(0, this.originalVolume - (volumeStep * step));
       if (step >= steps) {
         clearInterval(this._tickInterval);
         this.audioPlayer.pause();
         this.audioPlayer.volume = this.originalVolume;
         this._cleanup();
         this._notifyCallbacks('triggered');
-        console.log('[SleepTimer] Playback stopped (fade complete)');
       }
     }, interval);
   }
@@ -233,9 +195,7 @@ export class SleepTimer {
     if (this.timerId) clearTimeout(this.timerId);
     if (this._tickInterval) clearInterval(this._tickInterval);
     this.audioPlayer.removeEventListener('ended', this._onTrackEnd);
-    if (this.originalVolume && this.audioPlayer) {
-      this.audioPlayer.volume = this.originalVolume;
-    }
+    if (this.originalVolume && this.audioPlayer) this.audioPlayer.volume = this.originalVolume;
     this._cleanup();
     this._notifyCallbacks('cancel');
   }
@@ -261,36 +221,24 @@ export class SleepTimer {
     }
   }
 
-  get isActive() {
-    return this.mode !== null;
-  }
+  get isActive() { return this.mode !== null; }
 
   getRemaining() {
-    if (this.mode === 'time' && this.endTime) {
-      return Math.max(0, this.endTime - Date.now());
-    }
+    if (this.mode === 'time' && this.endTime) return Math.max(0, this.endTime - Date.now());
     if (this.mode === 'track-end' && this.audioPlayer) {
-      const remaining = this.audioPlayer.duration - this.audioPlayer.currentTime;
-      return isFinite(remaining) ? remaining * 1000 : 0;
+      const r = this.audioPlayer.duration - this.audioPlayer.currentTime;
+      return isFinite(r) ? r * 1000 : 0;
     }
     return 0;
   }
 
   _formatTime(ms) {
-    const totalSec = Math.ceil(ms / 1000);
-    const h = Math.floor(totalSec / 3600);
-    const m = Math.floor((totalSec % 3600) / 60);
-    const s = totalSec % 60;
-    if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-    return `${m}:${String(s).padStart(2, '0')}`;
+    const t = Math.ceil(ms / 1000);
+    const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    return `${m}:${String(s).padStart(2,'0')}`;
   }
 
-  onChange(callback) {
-    this._callbacks.add(callback);
-    return () => this._callbacks.delete(callback);
-  }
-
-  _notifyCallbacks(event, data = {}) {
-    this._callbacks.forEach(cb => cb({ event, ...data }));
-  }
+  onChange(cb) { this._callbacks.add(cb); return () => this._callbacks.delete(cb); }
+  _notifyCallbacks(event, data = {}) { this._callbacks.forEach(cb => cb({ event, ...data })); }
 }
