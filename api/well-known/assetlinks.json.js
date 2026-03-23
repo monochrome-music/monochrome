@@ -1,0 +1,11 @@
+export default function handler(req, res) {
+  res.setHeader('Content-Type', 'application/json');
+  res.status(200).json([{
+    relation: ['delegate_permission/common.handle_all_urls'],
+    target: {
+      namespace: 'android_app',
+      package_name: 'app.vercel.monochrome_music_player.twa',
+      sha256_cert_fingerprints: ['AF:26:4D:12:D4:BB:16:73:7D:94:F1:F2:4F:E4:34:AA:D2:98:AC:11:0E:EE:5F:EB:A1:E6:FA:0F:DC:61:AD:CC']
+    }
+  }]);
+}
