@@ -114,5 +114,45 @@ export async function initializeNewFeatures(deps) {
     console.warn('[Features] Failed to init Similar Tracks Graph:', e);
   }
 
+  // 8. Sleep Timer
+  try {
+    const { SleepTimer } = await import('./sleep-timer.js');
+    const sleepTimer = new SleepTimer(player, audioPlayer);
+    window.monochromeSleepTimer = sleepTimer;
+    console.log('[Features] Sleep Timer initialized');
+  } catch (e) {
+    console.warn('[Features] Failed to init Sleep Timer:', e);
+  }
+
+  // 9. Crossfade
+  try {
+    const { Crossfade } = await import('./crossfade.js');
+    const crossfade = new Crossfade(player, audioPlayer);
+    window.monochromeCrossfade = crossfade;
+    console.log('[Features] Crossfade initialized');
+  } catch (e) {
+    console.warn('[Features] Failed to init Crossfade:', e);
+  }
+
+  // 10. Playback Stats
+  try {
+    const { PlaybackStats } = await import('./playback-stats.js');
+    const stats = new PlaybackStats(player, audioPlayer);
+    window.monochromePlaybackStats = stats;
+    console.log('[Features] Playback Stats initialized');
+  } catch (e) {
+    console.warn('[Features] Failed to init Playback Stats:', e);
+  }
+
+  // 11. Social Share
+  try {
+    const { SocialShare } = await import('./social-share.js');
+    const socialShare = new SocialShare(player);
+    window.monochromeSocialShare = socialShare;
+    console.log('[Features] Social Share initialized');
+  } catch (e) {
+    console.warn('[Features] Failed to init Social Share:', e);
+  }
+
   console.log('[Features] All new features initialized successfully');
 }
