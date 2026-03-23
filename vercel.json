@@ -3,6 +3,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/((?!\.well-known/).*)", "destination": "/index.html" }
+    { "source": "/.well-known/assetlinks.json", "destination": "/api/well-known/assetlinks.json" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
