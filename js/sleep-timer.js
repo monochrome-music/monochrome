@@ -19,78 +19,64 @@ export class SleepTimer {
   }
 
   _initUI() {
-    // Use polling + MutationObserver to find and move #sleep-timer-btn-desktop
-    // This button is created by player.js AFTER our module loads
-    const tryMove = () => {
+    // Hide ALL old sleep timer buttons (both mobile and desktop)
+    // and create our own button before the like/heart button
+    const hideOldButtons = () => {
+      const oldMobile = document.getElementById('sleep-timer-btn');
+      const oldDesktop = document.getElementById('sleep-timer-btn-desktop');
+      if (oldMobile) oldMobile.style.display = 'none';
+      if (oldDesktop) oldDesktop.style.display = 'none';
+    };
+
+    const tryCreate = () => {
       if (this._moved) return true;
-      const desktopBtn = document.querySelector('#sleep-timer-btn-desktop');
       const likeBtn = document.querySelector('#now-playing-like-btn');
-      if (desktopBtn && likeBtn && likeBtn.parentNode) {
-        // Move the desktop button to be BEFORE the like/heart button
-        likeBtn.parentNode.insertBefore(desktopBtn, likeBtn);
-        this._btn = desktopBtn;
-        // Attach our modal click handler
-        desktopBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this._showModal();
-        });
-        this._moved = true;
-        console.log('[SleepTimer] Moved desktop button before like button');
+      if (likeBtn && likeBtn.parentNode) {
+        hideOldButtons();
+        this._createButton(likeBtn);
         return true;
       }
       return false;
     };
 
-    // Try immediately
-    if (tryMove()) return;
+    if (tryCreate()) return;
 
-    // Poll every 500ms for up to 30 seconds
+    // Poll + MutationObserver
     let attempts = 0;
-    const maxAttempts = 60;
     const pollInterval = setInterval(() => {
       attempts++;
-      if (tryMove() || attempts >= maxAttempts) {
-        clearInterval(pollInterval);
-        if (!this._moved) {
-          console.log('[SleepTimer] Desktop button not found after polling, creating fallback');
-          this._createFallbackButton();
-        }
-      }
+      hideOldButtons(); // Keep hiding in case they appear later
+      if (tryCreate() || attempts >= 60) clearInterval(pollInterval);
     }, 500);
 
-    // Also use MutationObserver as backup
     const observer = new MutationObserver(() => {
-      if (tryMove()) {
+      hideOldButtons();
+      if (tryCreate()) {
         observer.disconnect();
         clearInterval(pollInterval);
       }
     });
     observer.observe(document.body, { childList: true, subtree: true });
-
-    // Auto-disconnect observer after 30s
     setTimeout(() => observer.disconnect(), 30000);
   }
 
-  _createFallbackButton() {
-    const likeBtn = document.querySelector('#now-playing-like-btn');
-    if (!likeBtn || !likeBtn.parentNode) return;
+  _createButton(likeBtn) {
     if (document.querySelector('.sleep-timer-feature-btn')) return;
 
     const btn = document.createElement('button');
-    btn.className = 'sleep-timer-feature-btn';
+    btn.className = 'sleep-timer-feature-btn now-playing-action-btn';
+    btn.id = 'sleep-timer-new-btn';
     btn.title = 'Sleep Timer';
     btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
-    btn.style.cssText = 'background:none;border:none;color:var(--text-secondary,#8b8fa3);cursor:pointer;padding:4px;display:flex;align-items:center;justify-content:center;opacity:0.7;transition:all 0.2s;';
+    btn.style.cssText = 'background:none;border:none;cursor:pointer;padding:4px;display:inline-flex;align-items:center;justify-content:center;transition:all 0.2s;color:var(--muted-foreground, var(--text-secondary,#8b8fa3));';
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       this._showModal();
     });
-    btn.addEventListener('mouseenter', () => { if (!this.isActive) btn.style.opacity = '1'; });
-    btn.addEventListener('mouseleave', () => { if (!this.isActive) btn.style.opacity = '0.7'; });
     this._btn = btn;
     likeBtn.parentNode.insertBefore(btn, likeBtn);
     this._moved = true;
-    console.log('[SleepTimer] Fallback button created before like button');
+    console.log('[SleepTimer] New button created before like button, old buttons hidden');
   }
 
   _showModal() {
@@ -101,7 +87,7 @@ export class SleepTimer {
     const isActive = this.isActive;
     const remaining = this.getRemaining();
     modal.innerHTML = `
-      <div style="background:var(--bg-secondary,#1a1a2e);border-radius:16px;padding:24px;min-width:320px;max-width:400px;color:var(--text-primary,#fff);box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+      <div style="background:var(--bg-secondary,#1a1a2e);border-radius:16px;padding:24px;min-width:300px;max-width:400px;width:90%;color:var(--text-primary,#fff);box-shadow:0 20px 60px rgba(0,0,0,0.5);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
           <h3 style="margin:0;font-size:18px;">Sleep Timer</h3>
           <button id="sleep-timer-close" style="background:none;border:none;color:var(--text-secondary,#8b8fa3);cursor:pointer;font-size:20px;">&times;</button>
@@ -129,10 +115,10 @@ export class SleepTimer {
     modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
     if (isActive) {
       modal.querySelector('#sleep-timer-cancel').addEventListener('click', () => { this.cancel(); modal.remove(); });
-      const countdownEl = modal.querySelector('#sleep-timer-countdown');
+      const el = modal.querySelector('#sleep-timer-countdown');
       const iv = setInterval(() => {
         if (!this.isActive || !document.getElementById('sleep-timer-modal')) { clearInterval(iv); return; }
-        countdownEl.textContent = this._formatTime(this.getRemaining());
+        el.textContent = this._formatTime(this.getRemaining());
       }, 1000);
     } else {
       modal.querySelectorAll('.sleep-timer-preset').forEach(btn => {
@@ -142,20 +128,20 @@ export class SleepTimer {
       });
       modal.querySelector('#sleep-timer-end-of-track')?.addEventListener('click', () => { this.startEndOfTrack(); modal.remove(); });
       modal.querySelector('#sleep-timer-custom-btn')?.addEventListener('click', () => {
-        const val = parseInt(modal.querySelector('#sleep-timer-custom').value);
-        if (val > 0) { this.start(val*60*1000); modal.remove(); }
+        const v = parseInt(modal.querySelector('#sleep-timer-custom').value);
+        if (v > 0) { this.start(v*60*1000); modal.remove(); }
       });
     }
   }
 
-  start(durationMs) {
+  start(ms) {
     this.cancel();
     this.mode = 'time';
-    this.endTime = Date.now() + durationMs;
+    this.endTime = Date.now() + ms;
     this.originalVolume = this.audioPlayer.volume;
-    this.timerId = setTimeout(() => this._fadeAndStop(), durationMs - this.fadeOutDuration);
+    this.timerId = setTimeout(() => this._fadeAndStop(), ms - this.fadeOutDuration);
     this._updateUI(true);
-    this._notifyCallbacks('start', { duration: durationMs });
+    this._notifyCallbacks('start', { duration: ms });
   }
 
   startEndOfTrack() {
@@ -174,13 +160,11 @@ export class SleepTimer {
   }
 
   _fadeAndStop() {
-    const steps = 30;
-    const interval = this.fadeOutDuration / steps;
-    const volumeStep = this.originalVolume / steps;
+    const steps = 30, interval = this.fadeOutDuration / steps, vs = this.originalVolume / steps;
     let step = 0;
     this._tickInterval = setInterval(() => {
       step++;
-      this.audioPlayer.volume = Math.max(0, this.originalVolume - (volumeStep * step));
+      this.audioPlayer.volume = Math.max(0, this.originalVolume - (vs * step));
       if (step >= steps) {
         clearInterval(this._tickInterval);
         this.audioPlayer.pause();
@@ -210,15 +194,8 @@ export class SleepTimer {
 
   _updateUI(active) {
     if (!this._btn) return;
-    if (active) {
-      this._btn.style.opacity = '1';
-      this._btn.style.color = 'var(--accent,#00d4ff)';
-      this._btn.title = 'Sleep Timer (active)';
-    } else {
-      this._btn.style.opacity = '0.7';
-      this._btn.style.color = 'var(--text-secondary,#8b8fa3)';
-      this._btn.title = 'Sleep Timer';
-    }
+    this._btn.style.color = active ? 'var(--accent,#00d4ff)' : 'var(--muted-foreground, var(--text-secondary,#8b8fa3))';
+    this._btn.title = active ? 'Sleep Timer (active)' : 'Sleep Timer';
   }
 
   get isActive() { return this.mode !== null; }
@@ -233,8 +210,7 @@ export class SleepTimer {
   }
 
   _formatTime(ms) {
-    const t = Math.ceil(ms / 1000);
-    const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
+    const t = Math.ceil(ms / 1000), h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
     if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
     return `${m}:${String(s).padStart(2,'0')}`;
   }
