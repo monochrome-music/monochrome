@@ -1,6 +1,17 @@
 [
     {
         "type": "album",
+        "id": 504004321,
+        "title": "Half Blood (BloodLuxe)",
+        "artist": { "id": 50799233, "name": "slayr" },
+        "releaseDate": "2025-11-05",
+        "cover": "2767cc63-7e92-4a48-aa4b-806a3ea7ec1c",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
+    },
+    {
+        "type": "album",
         "id": 89313048,
         "title": "DAYTONA",
         "artist": { "id": 3972883, "name": "Pusha T" },
