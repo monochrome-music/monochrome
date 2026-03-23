@@ -68,10 +68,6 @@ export class MusicDatabase {
                     const store = db.createObjectStore('pinned_items', { keyPath: 'id' });
                     store.createIndex('pinnedAt', 'pinnedAt', { unique: false });
                 }
-                if (!db.objectStoreNames.contains('track_ratings')) {
-                    const store = db.createObjectStore('track_ratings', { keyPath: 'id' });
-                    store.createIndex('rating', 'rating', { unique: false });
-                }
             };
         });
     }
@@ -216,29 +212,6 @@ export class MusicDatabase {
             };
             request.onerror = () => reject(request.error);
         });
-    }
-
-    // Ratings API
-    async setRating(id, rating) {
-        if (rating === 0) {
-            await this.performTransaction('track_ratings', 'readwrite', (store) => store.delete(id));
-        } else {
-            await this.performTransaction('track_ratings', 'readwrite', (store) => store.put({ id, rating }));
-        }
-        window.dispatchEvent(new CustomEvent('rating-changed', { detail: { trackId: id } }));
-    }
-
-    async getRating(id) {
-        try {
-            const result = await this.performTransaction('track_ratings', 'readonly', (store) => store.get(id));
-            return result?.rating ?? 0;
-        } catch {
-            return 0;
-        }
-    }
-
-    async getRatedTracks() {
-        return this.getAll('track_ratings');
     }
 
     _minifyItem(type, item) {
@@ -447,7 +420,6 @@ export class MusicDatabase {
 
         const userPlaylists = await this.getPlaylists(true);
         const userFolders = await this.getFolders();
-        const ratings = await this.getRatedTracks();
         const data = {
             favorites_tracks: tracks.map((t) => this._minifyItem('track', t)),
             favorites_albums: albums.map((a) => this._minifyItem('album', a)),
@@ -457,7 +429,6 @@ export class MusicDatabase {
             history_tracks: history.map((t) => this._minifyItem('track', t)),
             user_playlists: userPlaylists,
             user_folders: userFolders,
-            track_ratings: ratings,
         };
         return data;
     }
@@ -551,7 +522,6 @@ export class MusicDatabase {
             history: data.history_tracks?.length || 0,
             userPlaylists: data.user_playlists?.length || 0,
             user_folders: data.user_folders?.length || 0,
-            track_ratings: data.track_ratings?.length || 0,
         });
 
         const results = await Promise.all([
@@ -563,7 +533,6 @@ export class MusicDatabase {
             importStore('history_tracks', data.history_tracks),
             data.user_playlists ? importStore('user_playlists', data.user_playlists) : Promise.resolve(false),
             data.user_folders ? importStore('user_folders', data.user_folders) : Promise.resolve(false),
-            data.track_ratings ? importStore('track_ratings', data.track_ratings) : Promise.resolve(false),
         ]);
 
         console.log('Import results:', results);
