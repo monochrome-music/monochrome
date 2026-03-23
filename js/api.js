@@ -1649,6 +1649,25 @@ export class LosslessAPI {
             let streamUrl;
             let blob;
 
+            let atmosStreamUrl = null;
+
+            {
+                const atmosManifest = await this.fetchWithRetry(
+                    `/trackManifests/?id=${id}&formats=EAC3_JOC&manifestType=MPEG_DASH`,
+                    {
+                        type: 'streaming',
+                    }
+                ).then((res) => res.json());
+                const atmosUrl = atmosManifest.data?.data?.attributes?.uri;
+
+                if (atmosUrl) {
+                    const atmosManifest = await fetch(atmosUrl)
+                        .then((res) => res.text())
+                        .then((text) => btoa(text));
+                    atmosStreamUrl = this.extractStreamUrlFromManifest(atmosManifest);
+                }
+            }
+
             if (lookup.originalTrackUrl) {
                 streamUrl = lookup.originalTrackUrl;
             } else {
@@ -1678,95 +1697,128 @@ export class LosslessAPI {
                 }
             }
 
-            // Handle DASH streams (blob URLs)
-            if (streamUrl.startsWith('blob:')) {
-                try {
-                    const downloader = new DashDownloader();
-                    blob = await downloader.downloadDashStream(streamUrl, {
-                        signal: options.signal,
-                        onProgress,
-                        calculateDashBytes: calculateDashBytes ?? true,
-                    });
-                } catch (dashError) {
-                    console.error('DASH download failed:', dashError);
-                    if (isVideo) throw dashError;
+            const streamUrls = [streamUrl, atmosStreamUrl].filter(Boolean);
+            const streamBlobs = [];
 
-                    // Fallback to LOSSLESS if DASH fails, but not if we're already downloading LOSSLESS
-                    if (downloadQuality !== 'LOSSLESS') {
-                        console.warn('Falling back to LOSSLESS (16-bit) download.');
-                        return this.downloadTrack(id, 'LOSSLESS', filename, options);
+            for (const streamUrl of streamUrls) {
+                let blob = null;
+                // Handle DASH streams (blob URLs)
+                if (streamUrl.startsWith('blob:')) {
+                    try {
+                        const downloader = new DashDownloader();
+                        blob = await downloader.downloadDashStream(streamUrl, {
+                            signal: options.signal,
+                            onProgress,
+                            calculateDashBytes: calculateDashBytes ?? true,
+                        });
+                    } catch (dashError) {
+                        console.error('DASH download failed:', dashError);
+                        if (isVideo) throw dashError;
+
+                        // Fallback to LOSSLESS if DASH fails, but not if we're already downloading LOSSLESS
+                        if (downloadQuality !== 'LOSSLESS') {
+                            console.warn('Falling back to LOSSLESS (16-bit) download.');
+                            return this.downloadTrack(id, 'LOSSLESS', filename, options);
+                        }
+                        throw dashError;
                     }
-                    throw dashError;
-                }
-            } else if (streamUrl.includes('.m3u8') || streamUrl.includes('application/vnd.apple.mpegurl')) {
-                try {
-                    const downloader = new HlsDownloader();
-                    blob = await downloader.downloadHlsStream(streamUrl, {
-                        signal: options.signal,
-                        onProgress,
-                    });
-                } catch (hlsError) {
-                    console.error('HLS download failed:', hlsError);
-                    throw hlsError;
-                }
-            } else {
-                // Try HEAD first to get Content-Length when GET uses chunked encoding (fixes #278)
-                let headContentLength = null;
-                try {
-                    const headResponse = await fetch(streamUrl, {
-                        method: 'HEAD',
+                } else if (streamUrl.includes('.m3u8') || streamUrl.includes('application/vnd.apple.mpegurl')) {
+                    try {
+                        const downloader = new HlsDownloader();
+                        blob = await downloader.downloadHlsStream(streamUrl, {
+                            signal: options.signal,
+                            onProgress,
+                        });
+                    } catch (hlsError) {
+                        console.error('HLS download failed:', hlsError);
+                        throw hlsError;
+                    }
+                } else {
+                    // Try HEAD first to get Content-Length when GET uses chunked encoding (fixes #278)
+                    let headContentLength = null;
+                    try {
+                        const headResponse = await fetch(streamUrl, {
+                            method: 'HEAD',
+                            cache: 'no-store',
+                            signal: options.signal,
+                        });
+                        if (headResponse.ok) {
+                            const cl = headResponse.headers.get('Content-Length');
+                            if (cl) headContentLength = parseInt(cl, 10);
+                        }
+                    } catch (_) {
+                        /* ignore HEAD failure; proceed with GET */
+                    }
+
+                    const response = await fetch(streamUrl, {
                         cache: 'no-store',
                         signal: options.signal,
                     });
-                    if (headResponse.ok) {
-                        const cl = headResponse.headers.get('Content-Length');
-                        if (cl) headContentLength = parseInt(cl, 10);
-                    }
-                } catch (_) {
-                    /* ignore HEAD failure; proceed with GET */
-                }
 
-                const response = await fetch(streamUrl, {
-                    cache: 'no-store',
-                    signal: options.signal,
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Fetch failed: ${response.status}`);
-                }
-
-                const contentLengthHeader = response.headers.get('Content-Length');
-                const totalBytes = resolveDownloadTotalBytes(contentLengthHeader, headContentLength);
-
-                let receivedBytes = 0;
-
-                if (response.body) {
-                    const chunks = [];
-
-                    for await (const chunk of readableStreamIterator(response.body)) {
-                        chunks.push(chunk);
-                        receivedBytes += chunk.byteLength;
-
-                        onProgress?.(new DownloadProgress(receivedBytes, totalBytes || undefined));
+                    if (!response.ok) {
+                        throw new Error(`Fetch failed: ${response.status}`);
                     }
 
-                    const defaultMime = isVideo ? 'video/mp4' : 'audio/flac';
-                    blob = new Blob(chunks, { type: response.headers.get('Content-Type') || defaultMime });
-                } else {
-                    onProgress?.(new DownloadProgress(0, undefined));
-                    blob = await response.blob();
-                    onProgress?.(new DownloadProgress(blob.size, blob.size));
+                    const contentLengthHeader = response.headers.get('Content-Length');
+                    const totalBytes = resolveDownloadTotalBytes(contentLengthHeader, headContentLength);
+
+                    let receivedBytes = 0;
+
+                    if (response.body) {
+                        const chunks = [];
+
+                        for await (const chunk of readableStreamIterator(response.body)) {
+                            chunks.push(chunk);
+                            receivedBytes += chunk.byteLength;
+
+                            onProgress?.(new DownloadProgress(receivedBytes, totalBytes || undefined));
+                        }
+
+                        const defaultMime = isVideo ? 'video/mp4' : 'audio/flac';
+                        blob = new Blob(chunks, { type: response.headers.get('Content-Type') || defaultMime });
+                    } else {
+                        onProgress?.(new DownloadProgress(0, undefined));
+                        blob = await response.blob();
+                        onProgress?.(new DownloadProgress(blob.size, blob.size));
+                    }
                 }
+
+                streamBlobs.push(blob);
             }
 
             if (!isVideo) {
-                blob = await applyAudioPostProcessing(
-                    blob,
+                streamBlobs[0] = await applyAudioPostProcessing(
+                    streamBlobs[0],
                     quality,
                     onProgress,
                     options.signal,
                     track?.audioQuality ?? null
                 );
+            }
+
+            if (streamBlobs.length > 1) {
+                const inputArgs = [];
+                const mapArgs = ['-map', '0'];
+                const extraFiles = [];
+                for (let i = 1; i < streamBlobs.length; i++) {
+                    inputArgs.push('-i', `blob${i}`);
+                    mapArgs.push('-map', `${i}`);
+                    extraFiles.push({
+                        name: `blob${i}`,
+                        data: new Uint8Array(await streamBlobs[i].arrayBuffer()),
+                    });
+                }
+                blob = await ffmpeg(
+                    streamBlobs[0],
+                    [...inputArgs, ...mapArgs, '-c', 'copy', '-strict', '-2'],
+                    'output.mp4',
+                    'audio/mp4',
+                    onProgress,
+                    options.signal,
+                    extraFiles
+                );
+            } else {
+                blob = streamBlobs[0];
             }
 
             // Add metadata if track information is provided
