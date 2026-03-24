@@ -191,5 +191,67 @@ export async function initializeNewFeatures(deps) {
     console.warn('[Features] Failed to init Mood Tag:', e);
   }
 
+  // 16. 3D Visualizer
+  try {
+    const { Visualizer3D } = await import('./3d-visualizer.js');
+    const viz3d = new Visualizer3D(audioPlayer);
+    window.monochromeVisualizer3D = viz3d;
+    console.log('[Features] 3D Visualizer initialized');
+  } catch (e) {
+    console.warn('[Features] Failed to init 3D Visualizer:', e);
+  }
+
+  // 17. Equalizer Studio (initialized but not connected to AudioContext yet - done on demand)
+  try {
+    const { EqualizerStudio } = await import('./equalizer-studio.js');
+    const eqStudio = new EqualizerStudio(audioPlayer);
+    window.monochromeEqualizerStudio = eqStudio;
+    console.log('[Features] Equalizer Studio initialized');
+  } catch (e) {
+    console.warn('[Features] Failed to init Equalizer Studio:', e);
+  }
+
+  // 18. Release Radar
+  try {
+    const { ReleaseRadar } = await import('./release-radar.js');
+    const { musicAPI } = deps;
+    const radar = new ReleaseRadar(musicAPI);
+    window.monochromeReleaseRadar = radar;
+    console.log('[Features] Release Radar initialized');
+  } catch (e) {
+    console.warn('[Features] Failed to init Release Radar:', e);
+  }
+
+  // 19. Collaborative Room
+  try {
+    const { CollaborativeRoom } = await import('./collaborative-room.js');
+    const collabRoom = new CollaborativeRoom(player);
+    window.monochromeCollaborativeRoom = collabRoom;
+    console.log('[Features] Collaborative Room initialized');
+  } catch (e) {
+    console.warn('[Features] Failed to init Collaborative Room:', e);
+  }
+
+  // 20. Stats Dashboard
+  try {
+    const { StatsDashboard } = await import('./stats-dashboard.js');
+    const statsDashboard = new StatsDashboard();
+    window.monochromeStatsDashboard = statsDashboard;
+    console.log('[Features] Stats Dashboard initialized');
+  } catch (e) {
+    console.warn('[Features] Failed to init Stats Dashboard:', e);
+  }
+
+  // 21. Social Profile
+  try {
+    const { SocialProfile } = await import('./social-profile.js');
+    const { syncManager } = deps;
+    const socialProfile = new SocialProfile(syncManager);
+    window.monochromeSocialProfile = socialProfile;
+    console.log('[Features] Social Profile initialized');
+  } catch (e) {
+    console.warn('[Features] Failed to init Social Profile:', e);
+  }
+
   console.log('[Features] All new features initialized successfully');
 }
