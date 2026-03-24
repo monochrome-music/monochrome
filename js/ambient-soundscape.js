@@ -1,5 +1,9 @@
 // js/ambient-soundscape.js
 // Ambient Sound Mixer - Layer ambient sounds over music
+// Settings persisted to Appwrite (DB_users user_settings field)
+
+import { authManager } from './accounts/auth.js';
+import { syncManager } from './accounts/appwrite-sync.js';
 
 export class AmbientSoundscape {
   constructor(audioContext) {
@@ -7,227 +11,250 @@ export class AmbientSoundscape {
     this.sounds = {};
     this.gainNodes = {};
     this.enabled = false;
-    
-    // Preset ambient sounds (can be URLs to audio files or generated)
+    this.volumes = {};
+
     this.presets = {
-      rain: { name: 'Rain', url: null, type: 'noise' },
-      cafe: { name: 'Café', url: null, type: 'noise' },
-      waves: { name: 'Ocean Waves', url: null, type: 'noise' },
-      fireplace: { name: 'Fireplace', url: null, type: 'noise' },
-      forest: { name: 'Forest', url: null, type: 'noise' },
-      wind: { name: 'Wind', url: null, type: 'noise' },
-      thunder: { name: 'Thunder', url: null, type: 'noise' },
-      city: { name: 'City Traffic', url: null, type: 'noise' }
+      rain:      { name: 'Rain', icon: '🌧️' },
+      cafe:      { name: 'Café', icon: '☕' },
+      waves:     { name: 'Ocean Waves', icon: '🌊' },
+      fireplace: { name: 'Fireplace', icon: '🔥' },
+      forest:    { name: 'Forest', icon: '🌲' },
+      wind:      { name: 'Wind', icon: '💨' },
+      thunder:   { name: 'Thunder', icon: '⛈️' },
+      city:      { name: 'City', icon: '🏙️' },
     };
 
     this.masterGain = this.audioContext.createGain();
-    this.masterGain.gain.value = 0.3;
+    this.masterGain.gain.value = 0.5;
     this.masterGain.connect(this.audioContext.destination);
 
     this.init();
   }
 
-  init() {
+  async init() {
     this.createUI();
-    this.loadSettings();
+    await this.loadSettings();
   }
 
-  createUI() {
-    const existing = document.getElementById('ambient-soundscape-panel');
-    if (existing) return;
+  // ─── Appwrite helpers ──────────────────────────────────────────────────────
 
+  async _readSettings() {
+    try {
+      const user = authManager.user;
+      if (!user) return null;
+      const data = await syncManager.getUserData();
+      const raw = data?.profile?.user_settings || null;
+      if (!raw) return null;
+      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      return parsed?.ambientSoundscape ?? null;
+    } catch { return null; }
+  }
+
+  async _writeSettings(payload) {
+    try {
+      const user = authManager.user;
+      if (!user) return;
+      const data = await syncManager.getUserData();
+      const existing = data?.profile?.user_settings || {};
+      const merged = typeof existing === 'string' ? JSON.parse(existing) : { ...existing };
+      merged.ambientSoundscape = payload;
+      await syncManager.syncSettings(merged);
+    } catch (e) {
+      console.warn('[AmbientSoundscape] Failed to save settings:', e);
+    }
+  }
+
+  // ─── UI ────────────────────────────────────────────────────────────────────
+
+  createUI() {
+    if (document.getElementById('ambient-soundscape-panel')) return;
+
+    // Panel
     const panel = document.createElement('div');
     panel.id = 'ambient-soundscape-panel';
     panel.className = 'ambient-panel';
     panel.innerHTML = `
       <div class="ambient-header">
-        <h3>🌊 Ambient Soundscape</h3>
-        <button id="ambient-toggle" class="btn-toggle">OFF</button>
+        <span class="ambient-title">🎵 Ambient Soundscape</span>
+        <div class="ambient-header-controls">
+          <input type="range" id="ambient-master-vol" min="0" max="100" value="50" title="Master volume" />
+          <button id="ambient-toggle" class="ambient-toggle-btn">OFF</button>
+          <button id="ambient-close" class="ambient-close-btn">✕</button>
+        </div>
       </div>
       <div class="ambient-mixer" id="ambient-mixer"></div>
     `;
-
     document.body.appendChild(panel);
 
-    // Create sliders for each preset
-    const mixer = document.getElementById('ambient-mixer');
-    Object.keys(this.presets).forEach(key => {
-      const preset = this.presets[key];
+    // Sliders per sound
+    const mixer = panel.querySelector('#ambient-mixer');
+    for (const [key, preset] of Object.entries(this.presets)) {
       const item = document.createElement('div');
       item.className = 'ambient-item';
       item.innerHTML = `
-        <label>${preset.name}</label>
-        <input type="range" id="ambient-${key}" min="0" max="100" value="0" />
-        <span class="volume-label">0%</span>
+        <span class="ambient-icon">${preset.icon}</span>
+        <span class="ambient-name">${preset.name}</span>
+        <input type="range" id="ambient-vol-${key}" class="ambient-vol-slider" min="0" max="100" value="0" />
+        <span class="ambient-vol-label" id="ambient-label-${key}">0%</span>
       `;
       mixer.appendChild(item);
 
-      const slider = item.querySelector('input');
-      const label = item.querySelector('.volume-label');
-      slider.addEventListener('input', (e) => {
-        const volume = e.target.value / 100;
-        label.textContent = `${e.target.value}%`;
-        this.setVolume(key, volume);
+      item.querySelector('input').addEventListener('input', (e) => {
+        const v = parseInt(e.target.value, 10);
+        document.getElementById(`ambient-label-${key}`).textContent = `${v}%`;
+        this.setVolume(key, v / 100);
       });
+    }
+
+    // Master volume
+    panel.querySelector('#ambient-master-vol').addEventListener('input', (e) => {
+      const v = parseInt(e.target.value, 10) / 100;
+      this.masterGain.gain.setValueAtTime(v, this.audioContext.currentTime);
+      this.saveSettings();
     });
 
-    // Toggle button
-    document.getElementById('ambient-toggle').addEventListener('click', () => {
-      this.toggle();
-    });
+    panel.querySelector('#ambient-toggle').addEventListener('click', () => this.toggle());
+    panel.querySelector('#ambient-close').addEventListener('click', () => panel.classList.remove('visible'));
 
-    // Add toggle button to player bar
-    const playerBar = document.querySelector('.now-playing-bar .controls');
-    if (playerBar) {
+    // Player-bar button
+    const bar = document.querySelector('.now-playing-bar');
+    if (bar && !document.getElementById('ambient-open-btn')) {
       const btn = document.createElement('button');
-      btn.id = 'ambient-toggle-btn';
-      btn.className = 'control-btn';
+      btn.id = 'ambient-open-btn';
+      btn.className = 'now-playing-btn ambient-player-btn';
       btn.innerHTML = '🌊';
       btn.title = 'Ambient Soundscape';
-      btn.addEventListener('click', () => {
-        panel.classList.toggle('visible');
-      });
-      playerBar.appendChild(btn);
+      btn.addEventListener('click', () => panel.classList.toggle('visible'));
+      bar.appendChild(btn);
     }
   }
 
-  generateNoise(type) {
-    // Generate procedural ambient noise
-    const bufferSize = this.audioContext.sampleRate * 5; // 5 seconds
-    const buffer = this.audioContext.createBuffer(2, bufferSize, this.audioContext.sampleRate);
+  // ─── Audio ─────────────────────────────────────────────────────────────────
 
-    for (let channel = 0; channel < buffer.numberOfChannels; channel++) {
-      const data = buffer.getChannelData(channel);
-      
-      if (type === 'rain') {
-        // White noise with filtering for rain effect
-        for (let i = 0; i < bufferSize; i++) {
-          data[i] = Math.random() * 2 - 1;
+  _generateBuffer(type) {
+    const rate = this.audioContext.sampleRate;
+    const buf  = this.audioContext.createBuffer(2, rate * 4, rate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = buf.getChannelData(ch);
+      switch (type) {
+        case 'rain':
+          for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.6;
+          break;
+        case 'waves': {
+          for (let i = 0; i < d.length; i++) {
+            const t = i / rate;
+            d[i] = Math.sin(2 * Math.PI * 0.08 * t) * (Math.random() * 0.5);
+          }
+          break;
         }
-      } else if (type === 'waves') {
-        // Low-frequency oscillation for waves
-        for (let i = 0; i < bufferSize; i++) {
-          const t = i / this.audioContext.sampleRate;
-          data[i] = Math.sin(2 * Math.PI * 0.1 * t) * Math.random() * 0.5;
+        case 'fireplace':
+          for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.3 * (0.5 + 0.5 * Math.sin(i / 200));
+          break;
+        case 'wind':
+          for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.5 * (0.5 + 0.5 * Math.sin(i / 5000));
+          break;
+        case 'thunder': {
+          for (let i = 0; i < d.length; i++) {
+            const rumble = Math.sin(2 * Math.PI * 40 * (i / rate));
+            d[i] = rumble * Math.random() * 0.4 * (i < rate * 0.5 ? i / (rate * 0.5) : 1);
+          }
+          break;
         }
-      } else if (type === 'wind') {
-        // Filtered pink noise for wind
-        for (let i = 0; i < bufferSize; i++) {
-          data[i] = (Math.random() * 2 - 1) * 0.7;
-        }
-      } else {
-        // Default: white noise
-        for (let i = 0; i < bufferSize; i++) {
-          data[i] = Math.random() * 2 - 1;
-        }
+        case 'city':
+          for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.2 + Math.sin(2 * Math.PI * 80 * (i / rate)) * 0.1;
+          break;
+        case 'forest':
+          for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * 0.15 + Math.sin(2 * Math.PI * 300 * (i / rate)) * 0.05;
+          break;
+        default:
+          for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
       }
     }
-
-    return buffer;
+    return buf;
   }
 
-  setVolume(soundKey, volume) {
-    if (!this.enabled) {
+  _startSound(key) {
+    const src = this.audioContext.createBufferSource();
+    src.buffer = this._generateBuffer(key);
+    src.loop = true;
+    const gain = this.audioContext.createGain();
+    gain.gain.value = 0;
+    src.connect(gain);
+    gain.connect(this.masterGain);
+    src.start(0);
+    this.sounds[key]     = src;
+    this.gainNodes[key]  = gain;
+  }
+
+  setVolume(key, volume) {
+    this.volumes[key] = volume;
+    if (volume > 0 && !this.sounds[key]) this._startSound(key);
+    if (this.gainNodes[key]) {
+      this.gainNodes[key].gain.setValueAtTime(volume, this.audioContext.currentTime);
+    }
+    if (!this.enabled && volume > 0) {
       this.enabled = true;
-      this.updateToggleButton();
+      this._updateToggleBtn();
     }
-
-    if (!this.sounds[soundKey] && volume > 0) {
-      this.startSound(soundKey);
-    }
-
-    if (this.gainNodes[soundKey]) {
-      this.gainNodes[soundKey].gain.setValueAtTime(volume, this.audioContext.currentTime);
-    }
-
     this.saveSettings();
-  }
-
-  startSound(soundKey) {
-    const buffer = this.generateNoise(soundKey);
-    
-    const source = this.audioContext.createBufferSource();
-    source.buffer = buffer;
-    source.loop = true;
-
-    const gainNode = this.audioContext.createGain();
-    gainNode.gain.value = 0;
-
-    source.connect(gainNode);
-    gainNode.connect(this.masterGain);
-
-    source.start(0);
-
-    this.sounds[soundKey] = source;
-    this.gainNodes[soundKey] = gainNode;
-  }
-
-  stopSound(soundKey) {
-    if (this.sounds[soundKey]) {
-      this.sounds[soundKey].stop();
-      delete this.sounds[soundKey];
-      delete this.gainNodes[soundKey];
-    }
-  }
-
-  stopAll() {
-    Object.keys(this.sounds).forEach(key => this.stopSound(key));
   }
 
   toggle() {
     this.enabled = !this.enabled;
-    this.masterGain.gain.setValueAtTime(
-      this.enabled ? 0.3 : 0,
-      this.audioContext.currentTime
-    );
-    this.updateToggleButton();
+    const v = this.enabled ? (parseFloat(document.getElementById('ambient-master-vol')?.value || 50) / 100) : 0;
+    this.masterGain.gain.setValueAtTime(v, this.audioContext.currentTime);
+    this._updateToggleBtn();
     this.saveSettings();
   }
 
-  updateToggleButton() {
+  _updateToggleBtn() {
     const btn = document.getElementById('ambient-toggle');
-    if (btn) {
-      btn.textContent = this.enabled ? 'ON' : 'OFF';
-      btn.classList.toggle('active', this.enabled);
-    }
+    if (!btn) return;
+    btn.textContent = this.enabled ? 'ON' : 'OFF';
+    btn.classList.toggle('active', this.enabled);
+    const playerBtn = document.getElementById('ambient-open-btn');
+    if (playerBtn) playerBtn.classList.toggle('active', this.enabled);
   }
 
-  saveSettings() {
-    const settings = {
+  // ─── Persistence (Appwrite) ────────────────────────────────────────────────
+
+  async saveSettings() {
+    const volMap = {};
+    for (const key of Object.keys(this.presets)) {
+      volMap[key] = Math.round((this.volumes[key] ?? 0) * 100);
+    }
+    const masterEl = document.getElementById('ambient-master-vol');
+    const payload = {
       enabled: this.enabled,
-      volumes: {}
+      master:  masterEl ? parseInt(masterEl.value, 10) : 50,
+      volumes: volMap,
     };
-
-    Object.keys(this.presets).forEach(key => {
-      const slider = document.getElementById(`ambient-${key}`);
-      if (slider) {
-        settings.volumes[key] = slider.value;
-      }
-    });
-
-    localStorage.setItem('ambient-soundscape-settings', JSON.stringify(settings));
+    await this._writeSettings(payload);
   }
 
-  loadSettings() {
-    const saved = localStorage.getItem('ambient-soundscape-settings');
-    if (!saved) return;
+  async loadSettings() {
+    const s = await this._readSettings();
+    if (!s) return;
 
-    try {
-      const settings = JSON.parse(saved);
-      this.enabled = settings.enabled || false;
-      this.updateToggleButton();
+    this.enabled = s.enabled ?? false;
 
-      if (settings.volumes) {
-        Object.keys(settings.volumes).forEach(key => {
-          const slider = document.getElementById(`ambient-${key}`);
-          if (slider) {
-            slider.value = settings.volumes[key];
-            slider.dispatchEvent(new Event('input'));
-          }
-        });
-      }
-    } catch (e) {
-      console.warn('Failed to load ambient soundscape settings:', e);
+    const masterEl = document.getElementById('ambient-master-vol');
+    if (masterEl && s.master != null) {
+      masterEl.value = s.master;
+      this.masterGain.gain.value = s.master / 100;
     }
+
+    if (s.volumes) {
+      for (const [key, val] of Object.entries(s.volumes)) {
+        const slider = document.getElementById(`ambient-vol-${key}`);
+        const label  = document.getElementById(`ambient-label-${key}`);
+        if (slider) {
+          slider.value = val;
+          if (label) label.textContent = `${val}%`;
+          this.setVolume(key, val / 100);
+        }
+      }
+    }
+    this._updateToggleBtn();
   }
 }
