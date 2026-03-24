@@ -229,5 +229,16 @@
         "explicit": true,
         "audioQuality": "LOSSLESS",
         "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 281486640,
+        "title": "NO STYLIST",
+        "artist": { "id": 9503145, "name": "Destroy Lonely" },
+        "releaseDate": "2022-08-12",
+        "cover": "e352cb6d-eae5-483b-98ca-0c38f0d45716",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
     }
 ]

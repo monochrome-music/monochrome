@@ -11,6 +11,7 @@
 - [ ] **I have read the [Contributing Guidelines](https://github.com/DaffaAgradhyasto/monochrome/blob/main/CONTRIBUTING.md).**
 - [ ] **I understand every line of code I am submitting.**
 - [ ] I have tested these changes locally, and they work as expected.
+- [ ] Is this PR using AI?
 
 ---
 
