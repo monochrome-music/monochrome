@@ -1,8 +1,8 @@
 name: Desktop Build
 
 on:
-#    push:
-#        branches: [main, neutralino]
+    #    push:
+    #        branches: [main, neutralino]
     workflow_dispatch:
 
 permissions:
