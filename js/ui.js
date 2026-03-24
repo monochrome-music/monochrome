@@ -1,5 +1,6 @@
 //js/ui.js
 import { showNotification } from './downloads.js';
+import { MoodPlaylistUI } from './mood-playlist-ui.js';
 import {
     formatTime,
     createPlaceholder,
@@ -5508,4 +5509,15 @@ export class UIRenderer {
             artistEl.innerHTML = '';
         }
     }
+      async renderMoodPage() {
+    this.showPage('mood');
+    const container = document.getElementById('page-mood');
+    if (!container) return;
+    if (!this._moodPlaylistUI) {
+      this._moodPlaylistUI = new MoodPlaylistUI(this.player, this.api);
     }
+    this._moodPlaylistUI.renderPage(container);
+    document.title = 'Mood Playlist • Aether';
+  }
+
+}
