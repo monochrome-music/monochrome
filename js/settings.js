@@ -953,6 +953,21 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             qualityBadgeSettings.setEnabled(e.target.checked);
             // Re-render queue if available, but don't force navigation to library
             if (window.renderQueueFunction) window.renderQueueFunction();
+            
+            // fixed edi's and binimums cuck bullshit
+            if (player && player.currentTrack) {
+                const track = player.currentTrack;
+                const trackTitle = getTrackTitle(track);
+                const titleEl = document.querySelector('.now-playing-bar .title');
+                if (titleEl) {
+                    const qualityBadge = createQualityBadgeHTML(track);
+                    titleEl.innerHTML = `${escapeHtml(trackTitle)} ${qualityBadge}`;
+
+                    if (player.updateAdaptiveQualityBadge) {
+                        player.updateAdaptiveQualityBadge();
+                    }
+                }
+            }
         });
     }
 
