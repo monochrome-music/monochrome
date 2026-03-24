@@ -9,7 +9,6 @@ on:
 permissions:
     contents: write
     actions: write
-    workflows: write
 
 jobs:
     lint:
@@ -56,6 +55,7 @@ jobs:
                   commit_message: 'style: auto-fix linting issues'
                   commit_user_name: 'github-actions[bot]'
                   commit_user_email: 'github-actions[bot]@users.noreply.github.com'
+                  only_if_changed: true
 
             - name: Run HTML Lint
               run: bun run lint:html
