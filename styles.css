@@ -9582,3 +9582,337 @@ body.data-saver-active .album-art-placeholder {
     color: var(--text-secondary, rgba(255, 255, 255, 0.6));
     font-size: 0.9rem;
 }
+
+
+/* ============================================
+   MOOD PLAYLIST PAGE STYLES
+   ============================================ */
+
+.mood-playlist-page {
+    padding: 2rem;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.mood-playlist-page .page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, var(--accent, #a855f7), var(--primary, #6366f1));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.mood-playlist-page .page-subtitle {
+    color: var(--text-secondary, rgba(255,255,255,0.6));
+    font-size: 1rem;
+    margin-bottom: 2rem;
+}
+
+/* Mood Wheel Container */
+.mood-wheel-container {
+    margin-bottom: 2rem;
+}
+
+.mood-wheel {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: center;
+    padding: 1.5rem;
+    background: var(--card-bg, rgba(255,255,255,0.05));
+    border-radius: 16px;
+    border: 1px solid var(--border, rgba(255,255,255,0.1));
+}
+
+/* Mood Option Cards */
+.mood-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 1rem 0.75rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+    background: var(--background, #0a0a1a);
+    min-width: 80px;
+    user-select: none;
+}
+
+.mood-option:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+}
+
+.mood-option.selected {
+    border-color: var(--mood-color, #a855f7);
+    background: color-mix(in srgb, var(--mood-color, #a855f7) 15%, transparent);
+    box-shadow: 0 0 20px color-mix(in srgb, var(--mood-color, #a855f7) 30%, transparent);
+    transform: translateY(-3px) scale(1.05);
+}
+
+.mood-emoji {
+    font-size: 2rem;
+    line-height: 1;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+
+.mood-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary, rgba(255,255,255,0.6));
+    text-align: center;
+}
+
+.mood-option.selected .mood-label {
+    color: var(--text-primary, #fff);
+}
+
+/* Energy Slider */
+.mood-energy-slider {
+    background: var(--card-bg, rgba(255,255,255,0.05));
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    border: 1px solid var(--border, rgba(255,255,255,0.1));
+    margin-bottom: 1.5rem;
+    animation: fadeSlideIn 0.3s ease;
+}
+
+.mood-energy-slider label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--text-secondary, rgba(255,255,255,0.7));
+}
+
+.mood-energy-slider input[type="range"] {
+    width: 100%;
+    margin-bottom: 0.5rem;
+    accent-color: var(--accent, #a855f7);
+}
+
+.slider-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--text-secondary, rgba(255,255,255,0.4));
+}
+
+/* Action Buttons */
+.mood-actions {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.mood-generate-btn {
+    flex: 1;
+    min-width: 160px;
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent, #a855f7), var(--primary, #6366f1));
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.mood-generate-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(168, 85, 247, 0.4);
+}
+
+.mood-generate-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.mood-surprise-btn {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-radius: 12px;
+    background: var(--card-bg, rgba(255,255,255,0.08));
+    color: var(--text-primary, #fff);
+    border: 1px solid var(--border, rgba(255,255,255,0.1));
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.mood-surprise-btn:hover {
+    background: var(--card-hover, rgba(255,255,255,0.12));
+    transform: translateY(-2px);
+}
+
+/* Results Section */
+.mood-result {
+    background: var(--card-bg, rgba(255,255,255,0.05));
+    border-radius: 16px;
+    padding: 1.5rem;
+    border: 1px solid var(--border, rgba(255,255,255,0.1));
+    animation: fadeSlideIn 0.4s ease;
+}
+
+.mood-result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.mood-result-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.mood-result-meta {
+    font-size: 0.85rem;
+    color: var(--text-secondary, rgba(255,255,255,0.5));
+}
+
+.mood-result-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+}
+
+.mood-play-all-btn,
+.mood-save-btn,
+.mood-regenerate-btn {
+    padding: 0.6rem 1.1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid var(--border, rgba(255,255,255,0.1));
+}
+
+.mood-play-all-btn {
+    background: var(--accent, #a855f7);
+    color: white;
+    border-color: transparent;
+}
+
+.mood-play-all-btn:hover {
+    background: color-mix(in srgb, var(--accent, #a855f7) 80%, white);
+    transform: translateY(-1px);
+}
+
+.mood-save-btn,
+.mood-regenerate-btn {
+    background: transparent;
+    color: var(--text-primary, #fff);
+}
+
+.mood-save-btn:hover,
+.mood-regenerate-btn:hover {
+    background: var(--card-hover, rgba(255,255,255,0.08));
+    transform: translateY(-1px);
+}
+
+/* Track List */
+.mood-result-tracks {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.mood-track-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.mood-track-item:hover {
+    background: var(--card-hover, rgba(255,255,255,0.08));
+}
+
+.mood-track-index {
+    width: 24px;
+    text-align: right;
+    font-size: 0.8rem;
+    color: var(--text-secondary, rgba(255,255,255,0.4));
+    flex-shrink: 0;
+}
+
+.mood-track-info {
+    flex: 1;
+    overflow: hidden;
+}
+
+.mood-track-title {
+    font-size: 0.9rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mood-track-artist {
+    font-size: 0.8rem;
+    color: var(--text-secondary, rgba(255,255,255,0.5));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mood-track-duration {
+    font-size: 0.8rem;
+    color: var(--text-secondary, rgba(255,255,255,0.4));
+    flex-shrink: 0;
+}
+
+/* Animations */
+@keyframes fadeSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .mood-playlist-page {
+        padding: 1rem;
+    }
+    .mood-wheel {
+        gap: 0.5rem;
+        padding: 1rem;
+    }
+    .mood-option {
+        min-width: 65px;
+        padding: 0.75rem 0.5rem;
+    }
+    .mood-emoji {
+        font-size: 1.5rem;
+    }
+    .mood-actions {
+        flex-direction: column;
+    }
+}
