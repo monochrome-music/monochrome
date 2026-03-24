@@ -11,6 +11,7 @@ import {
 } from './utils.js';
 import {
     queueManager,
+    qualityBadgeSettings,
     replayGainSettings,
     trackDateSettings,
     exponentialVolumeSettings,
@@ -1661,6 +1662,13 @@ export class Player {
             if (!titleEl) return;
 
             let badgeEl = titleEl.querySelector('.shaka-quality-badge');
+
+            if (!qualityBadgeSettings.isEnabled()) {
+                if (badgeEl) badgeEl.style.display = 'none';
+                const staticBadge = titleEl.querySelector('.quality-badge:not(.shaka-quality-badge)');
+                if (staticBadge) staticBadge.style.display = 'none';
+                return;
+            }
 
             // Determine if the track is inherently an Atmos track based on metadata
             const trackBaseQuality = deriveTrackQuality(this.currentTrack);
