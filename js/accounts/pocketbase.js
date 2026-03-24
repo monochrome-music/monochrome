@@ -232,7 +232,7 @@ const syncManager = {
             };
         }
 
-        if (type === 'video') {
+        if (type?.toLowerCase().includes('video')) {
             return {
                 ...base,
                 type: 'video',

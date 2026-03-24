@@ -374,7 +374,7 @@ export class UIRenderer {
     createTrackItemHTML(track, index, showCover = false, hasMultipleDiscs = false, useTrackNumber = false) {
         const isUnavailable = track.isUnavailable;
         const isBlocked = contentBlockingSettings?.shouldHideTrack(track);
-        const isVideo = track.type === 'video';
+        const isVideo = track.type?.toLowerCase().includes('video');
 
         let trackImageHTML = '';
         if (showCover) {
@@ -1010,7 +1010,7 @@ export class UIRenderer {
         const artist = document.getElementById('fullscreen-track-artist');
         const nextTrackEl = document.getElementById('fullscreen-next-track');
 
-        const isRealVideo = track.type === 'video';
+        const isRealVideo = track.type?.toLowerCase().includes('video');
         const visualizerContainer = document.getElementById('visualizer-container');
         overlay.classList.toggle('is-video-mode', isRealVideo);
 
@@ -3826,7 +3826,7 @@ export class UIRenderer {
                     let videoCoverUrl =
                         firstTrack.videoUrl || firstTrack.videoCoverUrl || firstTrack.album?.videoCoverUrl || null;
 
-                    if (!videoCoverUrl && (firstTrack.album || firstTrack.type === 'video')) {
+                    if (!videoCoverUrl && (firstTrack.album || firstTrack.type?.toLowerCase().includes('video'))) {
                         const fetchArtwork = () => {
                             this.api
                                 .getVideoArtwork(firstTrack.title, getTrackArtists(firstTrack))
@@ -3856,7 +3856,7 @@ export class UIRenderer {
                                 });
                         };
 
-                        if (firstTrack.type === 'video') {
+                        if (firsttrack.type?.toLowerCase().includes('video')) {
                             this.api
                                 .getVideoStreamUrl(firstTrack.id)
                                 .then((url) => {
@@ -5176,7 +5176,7 @@ export class UIRenderer {
 
             let videoCoverUrl = track.videoUrl || track.videoCoverUrl || track.album?.videoCoverUrl || null;
 
-            if (!videoCoverUrl && (track.album || track.type === 'video')) {
+            if (!videoCoverUrl && (track.album || track.type?.toLowerCase().includes('video'))) {
                 const fetchArtwork = () => {
                     this.api.getVideoArtwork(track.title, getTrackArtists(track)).then(async (result) => {
                         if (result && this.currentPage === 'track' && this.currentTrackPageId === track.id) {
@@ -5204,7 +5204,7 @@ export class UIRenderer {
                     });
                 };
 
-                if (track.type === 'video') {
+                if (track.type?.toLowerCase().includes('video')) {
                     this.api
                         .getVideoStreamUrl(track.id)
                         .then((url) => {

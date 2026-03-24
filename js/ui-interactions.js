@@ -255,7 +255,7 @@ export function initializeUIInteractions(player, api, ui) {
             ? `title="Blocked: ${contentBlockingSettings.isTrackBlocked(track.id) ? 'Track blocked' : contentBlockingSettings.isArtistBlocked(track.artist?.id) ? 'Artist blocked' : 'Album blocked'}"`
             : '';
 
-        const isVideo = track.type === 'video';
+        const isVideo = track.type?.toLowerCase().includes('video');
         const coverUrl =
             isVideo && track.imageId ? api.getVideoCoverUrl(track.imageId) : api.getCoverUrl(track.album?.cover);
 

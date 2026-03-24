@@ -730,7 +730,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
             activeEl.muted = !activeEl.muted;
             localStorage.setItem('muted', activeEl.muted);
 
-            const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+            const inactiveEl = player.currentTrack?.type?.toLowerCase().includes('video') ? player.audio : player.video;
             if (inactiveEl) inactiveEl.muted = activeEl.muted;
 
             updateVolumeUI();
@@ -817,7 +817,9 @@ function initializeSmoothSliders(player) {
                     activeEl.muted = false;
                     localStorage.setItem('muted', false);
 
-                    const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+                    const inactiveEl = player.currentTrack?.type?.toLowerCase().includes('video')
+                        ? player.audio
+                        : player.video;
                     if (inactiveEl) inactiveEl.muted = false;
                 }
                 player.setVolume(position);
@@ -846,7 +848,9 @@ function initializeSmoothSliders(player) {
                 activeEl.muted = false;
                 localStorage.setItem('muted', false);
 
-                const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+                const inactiveEl = player.currentTrack?.type?.toLowerCase().includes('video')
+                    ? player.audio
+                    : player.video;
                 if (inactiveEl) inactiveEl.muted = false;
             }
             player.setVolume(position);
@@ -914,7 +918,9 @@ function initializeSmoothSliders(player) {
                 activeEl.muted = false;
                 localStorage.setItem('muted', false);
 
-                const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+                const inactiveEl = player.currentTrack?.type?.toLowerCase().includes('video')
+                    ? player.audio
+                    : player.video;
                 if (inactiveEl) inactiveEl.muted = false;
             }
             player.setVolume(position);
@@ -934,7 +940,7 @@ function initializeSmoothSliders(player) {
             activeEl.muted = false;
             localStorage.setItem('muted', false);
 
-            const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+            const inactiveEl = player.currentTrack?.type?.toLowerCase().includes('video') ? player.audio : player.video;
             if (inactiveEl) inactiveEl.muted = false;
         }
         player.setVolume(position);
@@ -950,7 +956,9 @@ function initializeSmoothSliders(player) {
                     activeEl.muted = false;
                     localStorage.setItem('muted', false);
 
-                    const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+                    const inactiveEl = player.currentTrack?.type?.toLowerCase().includes('video')
+                        ? player.audio
+                        : player.video;
                     if (inactiveEl) inactiveEl.muted = false;
                 }
                 player.setVolume(position);
@@ -971,7 +979,9 @@ function initializeSmoothSliders(player) {
                 activeEl.muted = false;
                 localStorage.setItem('muted', false);
 
-                const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+                const inactiveEl = player.currentTrack?.type?.toLowerCase().includes('video')
+                    ? player.audio
+                    : player.video;
                 if (inactiveEl) inactiveEl.muted = false;
             }
 
@@ -994,7 +1004,9 @@ function initializeSmoothSliders(player) {
                 activeEl.muted = false;
                 localStorage.setItem('muted', false);
 
-                const inactiveEl = player.currentTrack?.type === 'video' ? player.audio : player.video;
+                const inactiveEl = player.currentTrack?.type?.toLowerCase().includes('video')
+                    ? player.audio
+                    : player.video;
                 if (inactiveEl) inactiveEl.muted = false;
             }
 
@@ -1362,13 +1374,13 @@ export async function handleTrackAction(
         // Track like/unlike
         if (added) {
             if (type === 'track') trackLikeTrack(item);
-            else if (type === 'video') trackEvent('Like Video', { title: item.title });
+            else if (type?.toLowerCase().includes('video')) trackEvent('Like Video', { title: item.title });
             else if (type === 'album') trackLikeAlbum(item);
             else if (type === 'artist') trackLikeArtist(item);
             else if (type === 'playlist' || type === 'user-playlist') trackLikePlaylist(item);
         } else {
             if (type === 'track') trackUnlikeTrack(item);
-            else if (type === 'video') trackEvent('Unlike Video', { title: item.title });
+            else if (type?.toLowerCase().includes('video')) trackEvent('Unlike Video', { title: item.title });
             else if (type === 'album') trackUnlikeAlbum(item);
             else if (type === 'artist') trackUnlikeArtist(item);
             else if (type === 'playlist' || type === 'user-playlist') trackUnlikePlaylist(item);
@@ -1391,7 +1403,7 @@ export async function handleTrackAction(
         const selector =
             type === 'track'
                 ? `[data-track-id="${id}"] .like-btn`
-                : type === 'video'
+                : type?.toLowerCase().includes('video')
                   ? `.card[data-video-id="${id}"] .like-btn`
                   : `.card[data-${type}-id="${id}"] .like-btn, .card[data-playlist-id="${id}"] .like-btn`;
 
@@ -1402,12 +1414,20 @@ export async function handleTrackAction(
         if (headerBtn) elementsToUpdate.push(headerBtn);
 
         const nowPlayingLikeBtn = document.getElementById('now-playing-like-btn');
-        if (nowPlayingLikeBtn && (type === 'track' || type === 'video') && player?.currentTrack?.id === item.id) {
+        if (
+            nowPlayingLikeBtn &&
+            (type === 'track' || type?.toLowerCase().includes('video')) &&
+            player?.currentTrack?.id === item.id
+        ) {
             elementsToUpdate.push(nowPlayingLikeBtn);
         }
 
         const fsLikeBtn = document.getElementById('fs-like-btn');
-        if (fsLikeBtn && (type === 'track' || type === 'video') && player?.currentTrack?.id === item.id) {
+        if (
+            fsLikeBtn &&
+            (type === 'track' || type?.toLowerCase().includes('video')) &&
+            player?.currentTrack?.id === item.id
+        ) {
             elementsToUpdate.push(fsLikeBtn);
         }
 
@@ -1428,7 +1448,7 @@ export async function handleTrackAction(
             const itemSelector =
                 type === 'track'
                     ? `.track-item[data-track-id="${id}"]`
-                    : type === 'video'
+                    : type?.toLowerCase().includes('video')
                       ? `.video-card[data-video-id="${id}"]`
                       : `.card[data-${type}-id="${id}"], .card[data-playlist-id="${id}"]`;
 
@@ -1442,12 +1462,12 @@ export async function handleTrackAction(
                     const msg =
                         type === 'track'
                             ? 'No liked tracks yet.'
-                            : type === 'video'
+                            : type?.toLowerCase().includes('video')
                               ? 'No liked videos yet.'
                               : `No liked ${type}s yet.`;
                     container.innerHTML = `<div class="placeholder-text">${msg}</div>`;
                 }
-            } else if (added && !itemEl && ui && (type === 'track' || type === 'video')) {
+            } else if (added && !itemEl && ui && (type === 'track' || type?.toLowerCase().includes('video'))) {
                 // Add item
                 if (type === 'track') {
                     const tracksContainer = document.getElementById('library-tracks-container');
@@ -1468,7 +1488,7 @@ export async function handleTrackAction(
                             ui.updateLikeState(newEl, 'track', item.id);
                         }
                     }
-                } else if (type === 'video') {
+                } else if (type?.toLowerCase().includes('video')) {
                     const videosTabContent = document.getElementById('library-tab-videos');
                     if (videosTabContent) {
                         const grid = videosTabContent.querySelector('.card-grid');
@@ -2168,7 +2188,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             if (isSearch) {
                 const clickedTrack = trackDataStore.get(trackItem);
                 if (clickedTrack) {
-                    if (trackItem.dataset.type === 'video') {
+                    if (trackItem.dataset.type?.toLowerCase().includes('video')) {
                         player.playVideo(clickedTrack);
                     } else {
                         player.setQueue([clickedTrack], 0);
