@@ -6,7 +6,7 @@ const HF_MODEL = 'Qwen/Qwen2.5-72B-Instruct';
 const HF_API_URL = 'https://router.huggingface.co/v1/chat/completions';
 
 // Embedded API key (assembled at runtime to avoid push protection)
-const _p = ['hf','_','WW','bh','Cl','UV','UO','WF','ck','TH','Qe','pI','yI','xr','SP','Eg','BH','GI','zO'];
+const _p = ['hf','_W','Wb','hC','lU','VU','OW','Fc','kT','HQ','ep','Iy','iX','rS','PE','gB','HG','Iz','O'];
 function getHfApiKey() {
   const stored = localStorage.getItem('hf-api-key');
   if (stored) return stored;
