@@ -39,6 +39,8 @@ const syncManager = {
                     const newRecord = await this.pb.collection('DB_users').create(
                         {
                             firebase_id: uid,
+                            username: this.pb.authStore.model?.username || uid.substring(0, 8),
+                            display_name: this.pb.authStore.model?.name || this.pb.authStore.model?.username || "New User",
                             library: {},
                             history: [],
                             user_playlists: {},
@@ -47,6 +49,7 @@ const syncManager = {
                         { f_id: uid }
                     );
                     this._userRecordCache = newRecord;
+                    console.log('[PocketBase] Created initial user record for', uid);
                     return newRecord;
                 } catch (createError) {
                     const retryResult = await this.pb.collection('DB_users').getList(1, 1, {
@@ -86,9 +89,9 @@ const syncManager = {
         const favoriteAlbums = this.safeParseInternal(record.favorite_albums, 'favorite_albums', []);
 
         const profile = {
-            username: record.username,
-            display_name: record.display_name,
-            avatar_url: record.avatar_url,
+            username: record.username || this.pb.authStore.model?.username || record.firebase_id,
+            display_name: record.display_name || this.pb.authStore.model?.name || this.pb.authStore.model?.username || "Guest",
+            avatar_url: record.avatar_url || (this.pb.authStore.model?.avatar ? this.pb.files.getUrl(this.pb.authStore.model, this.pb.authStore.model.avatar) : null),
             banner: record.banner,
             status: record.status,
             about: record.about,
