@@ -3080,7 +3080,7 @@ export class UIRenderer {
                 }
             }
 
-            const firstCopyright = tracks.find((track) => track.copyright)?.copyright;
+            const firstCopyright = tracks.find((track) => track.copyright)?.copyright || album.copyright;
 
             metaEl.innerHTML =
                 (dateDisplay ? `${dateDisplay} • ` : '') + `${tracks.length} tracks • ${formatDuration(totalDuration)}`;

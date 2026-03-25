@@ -13,7 +13,10 @@
       "Bash(grep -r \"importData\\\\|exportData\" d:/projects/monochrome/js --include=*.js)",
       "Bash(grep -r \"onAuthStateChanged\\\\|authManager.user\" d:/projects/monochrome/js --include=*.js)",
       "Bash(gh api:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(grep -r createOAuth2Session d:/projects/monochrome/node_modules/appwrite/ --include=*.js -l)",
+      "Bash(find d:/projects/monochrome -name *.js -path */appwrite/*)",
+      "Bash(find d:/projects/monochrome/dist -name *.js)"
     ]
   }
 }

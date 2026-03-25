@@ -197,6 +197,7 @@ const syncManager = {
         const base = {
             id: item.id,
             addedAt: item.addedAt || Date.now(),
+            isSynced: true, // Mark as synced when minifying for cloud or returning from cloud
         };
 
         if (type === 'track') {
@@ -333,6 +334,7 @@ const syncManager = {
                 numberOfTracks: playlist.tracks ? playlist.tracks.length : 0,
                 images: playlist.images || [],
                 isPublic: playlist.isPublic || false,
+                isSynced: true,
             };
 
             if (playlist.isPublic) {
@@ -362,6 +364,7 @@ const syncManager = {
                 playlists: folder.playlists || [],
                 createdAt: folder.createdAt || Date.now(),
                 updatedAt: folder.updatedAt || Date.now(),
+                isSynced: true,
             };
         }
 
@@ -593,8 +596,16 @@ const syncManager = {
                     const mergeItem = (collection, item, type) => {
                         const id = type === 'playlist' ? item.uuid || item.id : item.id;
                         if (!collection[id]) {
+                            // If it was already synced but is now missing from cloud, it was deleted elsewhere
+                            if (item.isSynced) {
+                                return;
+                            }
+                            // Otherwise it's a new local item, upload it
                             collection[id] = this._minifyItem(type, item);
                             needsUpdate = true;
+                        } else {
+                            // Ensure cloud version is also marked as synced
+                            collection[id].isSynced = true;
                         }
                     };
 
@@ -606,6 +617,9 @@ const syncManager = {
 
                     localData.userPlaylists.forEach((playlist) => {
                         if (!userPlaylists[playlist.id]) {
+                            // If already synced, don't re-upload (it was deleted elsewhere)
+                            if (playlist.isSynced) return;
+
                             userPlaylists[playlist.id] = {
                                 id: playlist.id,
                                 name: playlist.name,
@@ -618,13 +632,20 @@ const syncManager = {
                                 numberOfTracks: playlist.tracks ? playlist.tracks.length : 0,
                                 images: playlist.images || [],
                                 isPublic: playlist.isPublic || false,
+                                isSynced: true,
                             };
                             needsUpdate = true;
+                        } else {
+                            userPlaylists[playlist.id].isSynced = true;
                         }
                     });
 
                     localData.userFolders.forEach((folder) => {
                         if (!userFolders[folder.id]) {
+                            // If folders had isSynced, we'd check it here too
+                            // For now folders are simpler, but let's be consistent if they had it
+                            if (folder.isSynced) return;
+
                             userFolders[folder.id] = {
                                 id: folder.id,
                                 name: folder.name,
@@ -632,8 +653,11 @@ const syncManager = {
                                 playlists: folder.playlists || [],
                                 createdAt: folder.createdAt || Date.now(),
                                 updatedAt: folder.updatedAt || Date.now(),
+                                isSynced: true,
                             };
                             needsUpdate = true;
+                        } else {
+                            userFolders[folder.id].isSynced = true;
                         }
                     });
 

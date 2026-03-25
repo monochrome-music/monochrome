@@ -1,0 +1,9 @@
+{
+  "version": "2.5",
+  "data": {
+    "limit": 25,
+    "offset": 0,
+    "totalNumberOfItems": 0,
+    "items": []
+  }
+}
