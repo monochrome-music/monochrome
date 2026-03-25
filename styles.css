@@ -4299,7 +4299,7 @@ input:checked + .slider::before {
 #toggle-ui-btn {
     position: absolute;
     top: 1rem;
-    right: 8rem;
+            right: 11.5rem;
     background-color: var(--background);
     border: none;
     color: var(--foreground);
@@ -7925,7 +7925,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 }
 
 body:has(#side-panel.active) #toggle-ui-btn {
-    right: calc(600px + 8rem);
+    right: calc(600px + 11.5rem);
 }
 
 @media (max-width: 1200px) {
@@ -7942,7 +7942,7 @@ body:has(#side-panel.active) #toggle-ui-btn {
     }
 
     body:has(#side-panel.active) #toggle-ui-btn {
-        right: calc(50vw + 8rem);
+        right: calc(50vw + 11.5rem);
     }
 }
 
