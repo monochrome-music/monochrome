@@ -10336,7 +10336,8 @@ body.fullscreen-active .now-playing-drawer {
 }
 
 .sidebar-ai-chat-item svg {
-    color: var(--primary);
+        color: inherit;
+            transition: color var(--transition-fast);
 }
 
 .ai-chat-badge {
