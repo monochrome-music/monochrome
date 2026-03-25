@@ -416,8 +416,8 @@ export function openAiChatPanel(track) {
         <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.75rem;color:var(--muted-foreground);padding:0.25rem 0;">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
           Ask anything about <strong style="color:var(--foreground);margin-left:2px;">${currentTrackTitle}</strong>
-        </div>
-      `;
+        <button id="close-ai-chat-btn" title="Close" style="background:none;border:none;cursor:pointer;color:var(--muted-foreground);padding:4px;display:flex;align-items:center;flex-shrink:0;border-radius:4px;margin-left:auto"><svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><line x1='18' y1='6' x2='6' y2='18'/><line x1='6' y1='6' x2='18' y2='18'/></svg></button></div>
+      `; controls.querySelector('#close-ai-chat-btn').addEventListener('click',()=>{sidePanelManager.close();aiChatManager._isOpen=false;const f=document.getElementById('fs-ai-chat-btn');if(f)f.classList.remove('active');});
     },
     // Content (body)
     (content) => {
