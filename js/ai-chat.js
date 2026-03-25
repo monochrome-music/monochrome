@@ -186,6 +186,10 @@ const CHAT_STYLES = `
   0%, 80%, 100% { transform: translateY(0); }
   40%           { transform: translateY(-6px); }
 }
+  .ai-chat-messages-content p.ai-p{margin:0 0 .5rem;line-height:1.6}
+  .ai-chat-messages-content h3.ai-h3{font-size:.85rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:.6rem 0 .3rem;opacity:.85}
+  .ai-chat-messages-content h2.ai-h2{font-size:1rem;font-weight:700;margin:.6rem 0 .3rem}
+  .ai-chat-messages-content ul.ai-ul,.ai-chat-messages-content ol.ai-ol{margin:.35rem 0 .5rem 1.25rem;padding:0}.ai-chat-messages-content li.ai-li,.ai-chat-messages-content li.ai-oli{margin:.1rem 0;line-height:1.5}.ai-chat-messages-content code.ai-ic{background:rgba(255,255,255,.12);border-radius:3px;padding:.1em .35em;font-family:monospace;font-size:.85em}.ai-chat-messages-content pre.ai-cb{background:rgba(0,0,0,.3);border-radius:6px;padding:.75rem 1rem;overflow-x:auto;margin:.5rem 0;font-size:.8rem}.ai-chat-messages-content pre.ai-cb code{background:none;padding:0;font-family:monospace}.ai-chat-messages-content blockquote.ai-bq{border-left:3px solid var(--primary);margin:.5rem 0;padding:.3rem .75rem;opacity:.85;font-style:italic}.ai-chat-messages-content hr.ai-hr{border:none;border-top:1px solid var(--border);margin:.75rem 0}.ai-chat-messages-content strong{font-weight:700}.ai-chat-messages-content em{font-style:italic}
 `;
 
 function injectChatStyles() {
@@ -196,6 +200,8 @@ function injectChatStyles() {
   document.head.appendChild(style);
 }
 
+function escapeHtml(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function parseMarkdown(text){let h=escapeHtml(text);h=h.replace(/```([\s\S]*?)```/g,'<pre class="ai-cb"><code>$1</code></pre>');h=h.replace(/`([^`]+)`/g,'<code class="ai-ic">$1</code>');h=h.replace(/^### (.+)$/gm,'<h3 class="ai-h3">$1</h3>');h=h.replace(/^## (.+)$/gm,'<h2 class="ai-h2">$1</h2>');h=h.replace(/^# (.+)$/gm,'<h1 class="ai-h1">$1</h1>');h=h.replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>');h=h.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');h=h.replace(/\*([^*\n]+)\*/g,'<em>$1</em>');h=h.replace(/^&gt; (.+)$/gm,'<blockquote class="ai-bq">$1</blockquote>');h=h.replace(/^---$/gm,'<hr class="ai-hr">');h=h.replace(/^[\-\*] (.+)$/gm,'<li class="ai-li">$1</li>');h=h.replace(/(<li class="ai-li">.*<\/li>\n?)+/g,'<ul class="ai-ul">$&</ul>');h=h.replace(/^\d+\. (.+)$/gm,'<li class="ai-oli">$1</li>');h=h.replace(/(<li class="ai-oli">.*<\/li>\n?)+/g,'<ol class="ai-ol">$&</ol>');h=h.replace(/\n\n/g,'</p><p class="ai-p">');h=h.replace(/\n/g,'<br>');if(!/^<(h[1-6]|ul|ol|pre|blockquote|hr)/.test(h))h='<p class="ai-p">'+h+'</p>';return h;}
 /**
  * Render chat messages area dan input box ke dalam container element.
  * Mengembalikan cleanup function.
@@ -217,7 +223,7 @@ function renderChatUI(container, track) {
   ].join(';');
 
   container.innerHTML = `
-    <div id="ai-chat-messages" style="
+    <div id="ai-chat-messages" class="ai-chat-messages-content" style="
       flex: 1 1 0;
       min-height: 0;
       overflow-y: auto;
@@ -301,7 +307,7 @@ function renderChatUI(container, track) {
       'font-size:0.875rem',
       `align-self:${isUser ? 'flex-end' : 'flex-start'}`,
       'max-width:88%',
-      'white-space:pre-wrap',
+            'white-space:normal',
       'word-break:break-word',
       'animation:aiBubbleIn 0.25s ease',
       'line-height:1.5',
@@ -310,7 +316,7 @@ function renderChatUI(container, track) {
     if (isLoading) {
       div.innerHTML = '<span class="ai-typing-dots"><span>.</span><span>.</span><span>.</span></span>';
     } else {
-      div.textContent = text;
+            div.innerHTML = isUser ? escapeHtml(text) : parseMarkdown(text);
     }
     return div;
   };
@@ -355,7 +361,7 @@ function renderChatUI(container, track) {
     try {
       const aiText = await callHuggingFaceAPI(userText);
       loadingBubble.innerHTML = '';
-      loadingBubble.textContent = aiText;
+            loadingBubble.innerHTML = parseMarkdown(aiText);
       chatState.messages.push({ role: 'assistant', content: aiText });
     } catch (err) {
       loadingBubble.innerHTML = '';
