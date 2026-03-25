@@ -10376,4 +10376,55 @@ body:has(#side-panel.active) #fs-ai-chat-btn {
     body:has(#side-panel.active) #fs-ai-chat-btn {
         display: none;
     }
+
+    /* ============================================================
+   AI CHAT BAR - FULLSCREEN vs NON-FULLSCREEN POSITIONING
+   Chat bar melayang (floating) saat fullscreen OFF
+   Chat bar normal (bottom: 0) saat fullscreen ON
+   ============================================================ */
+
+/* Saat fullscreen AKTIF: side-panel memanjang penuh tanpa player bar */
+#side-panel.fullscreen-mode {
+    bottom: 0 !important;
+    top: 0 !important;
+}
+
+#side-panel.fullscreen-mode .panel-content {
+    padding-bottom: 1rem;
+}
+
+/* AI Chat input wrapper - floating saat TIDAK fullscreen */
+#ai-chat-input-wrapper,
+.ai-chat-input-wrapper {
+    position: sticky;
+    bottom: 0;
+    background: color-mix(in srgb, var(--card) 60%, transparent);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    padding: var(--spacing-sm) var(--spacing-md);
+    z-index: 10;
+    border-radius: 0 0 var(--radius) var(--radius);
+}
+
+/* Saat fullscreen OFF: panel content perlu padding bawah agar chat input tidak tertutup player bar */
+#side-panel:not(.fullscreen-mode) .panel-content {
+    padding-bottom: calc(var(--player-bar-height-desktop) + 3rem);
+}
+
+/* Mobile: saat fullscreen OFF, padding bawah sesuai mobile player bar */
+@media (max-width: 768px) {
+    #side-panel:not(.fullscreen-mode) .panel-content {
+        padding-bottom: calc(var(--player-bar-height-mobile) + 2rem);
+    }
+
+    /* Fullscreen mobile: panel penuh */
+    #side-panel.fullscreen-mode {
+        bottom: 0 !important;
+        top: 0 !important;
+    }
+
+    #side-panel.fullscreen-mode .panel-content {
+        padding-bottom: env(safe-area-inset-bottom, 1rem);
+    }
+}
 }
