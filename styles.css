@@ -10101,3 +10101,204 @@ body.data-saver-active .album-art-placeholder {
     color: var(--text-secondary, rgba(255,255,255,0.6));
     font-size: 0.9rem;
 }
+
+/* ============================================================
+   NOW PLAYING DRAWER
+   Muncul dari bawah kiri saat lagu diputar, hilang jika pause
+   ============================================================ */
+
+.now-playing-drawer {
+    position: fixed;
+    bottom: calc(var(--player-height, 80px) + 1rem);
+    left: 1.25rem;
+    z-index: 200;
+    pointer-events: auto;
+
+    /* Hidden by default */
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+    visibility: hidden;
+    transition:
+        opacity 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+        transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+        visibility 0s linear 0.35s;
+}
+
+.now-playing-drawer.npd-visible {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    visibility: visible;
+    transition:
+        opacity 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+        transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+        visibility 0s linear 0s;
+}
+
+.npd-inner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: rgba(var(--card-rgb, 30, 30, 40), 0.85);
+    backdrop-filter: blur(16px) saturate(1.5);
+    -webkit-backdrop-filter: blur(16px) saturate(1.5);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 0.6rem 1rem 0.6rem 0.6rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    max-width: 280px;
+}
+
+.npd-inner:hover {
+    transform: scale(1.03);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.npd-cover {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: var(--muted);
+}
+
+.npd-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+    flex: 1;
+}
+
+.npd-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.npd-artist {
+    font-size: 0.72rem;
+    color: var(--muted-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Animated sound wave bars */
+.npd-wave {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.npd-wave span {
+    display: block;
+    width: 3px;
+    border-radius: 2px;
+    background: var(--primary);
+    animation: npdWave 1.2s ease-in-out infinite;
+    transform-origin: bottom;
+}
+
+.npd-wave span:nth-child(1) { height: 8px;  animation-delay: 0s; }
+.npd-wave span:nth-child(2) { height: 14px; animation-delay: 0.15s; }
+.npd-wave span:nth-child(3) { height: 20px; animation-delay: 0.3s; }
+.npd-wave span:nth-child(4) { height: 14px; animation-delay: 0.45s; }
+.npd-wave span:nth-child(5) { height: 8px;  animation-delay: 0.6s; }
+
+@keyframes npdWave {
+    0%, 100% { transform: scaleY(0.4); opacity: 0.6; }
+    50%       { transform: scaleY(1);   opacity: 1; }
+}
+
+/* Pause state: freeze wave animation */
+.now-playing-drawer.npd-paused .npd-wave span {
+    animation-play-state: paused;
+    opacity: 0.4;
+}
+
+/* Hide drawer when sidebar is in fullscreen split view */
+#fullscreen-cover-overlay.active ~ .now-playing-drawer,
+body.fullscreen-active .now-playing-drawer {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+/* ============================================================
+   AI CHAT BUTTON (Fullscreen)
+   ============================================================ */
+
+.fullscreen-ai-toggle {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.75);
+    padding: 0.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+    flex-shrink: 0;
+}
+
+.fullscreen-ai-toggle:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.12);
+    transform: scale(1.1);
+}
+
+.fullscreen-ai-toggle.active {
+    color: var(--primary);
+    background: rgba(var(--highlight-rgb, 150, 100, 255), 0.15);
+}
+
+/* ============================================================
+   AI CHAT PANEL ANIMATIONS
+   Bubble slide-in + typing indicator
+   ============================================================ */
+
+@keyframes aiBubbleIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Typing dots animation */
+.ai-typing-dots {
+    display: inline-flex;
+    gap: 3px;
+    align-items: center;
+    padding: 2px 0;
+}
+
+.ai-typing-dots span {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--muted-foreground);
+    animation: aiTypingDot 1.4s infinite ease-in-out;
+}
+
+.ai-typing-dots span:nth-child(1) { animation-delay: 0s; }
+.ai-typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.ai-typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes aiTypingDot {
+    0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+    40%           { transform: scale(1.2); opacity: 1; }
+}
