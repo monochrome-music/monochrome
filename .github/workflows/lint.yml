@@ -9,7 +9,6 @@ on:
 permissions:
     contents: write
     actions: write
-    workflows: write
 
 jobs:
     lint:
