@@ -10354,3 +10354,26 @@ body.fullscreen-active .now-playing-drawer {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.5; transform: scale(0.8); }
 }
+
+
+/* Position AI chat button next to lyrics mic button */
+#fs-ai-chat-btn {
+    right: 8rem;
+}
+
+/* Adjust side panel shift for AI chat button too */
+body:has(#side-panel.active) #fs-ai-chat-btn {
+    right: calc(600px + 8rem);
+}
+
+@media (max-width: 1200px) {
+    body:has(#side-panel.active) #fs-ai-chat-btn {
+        right: calc(50vw + 8rem);
+    }
+}
+
+@media (max-width: 768px) {
+    body:has(#side-panel.active) #fs-ai-chat-btn {
+        display: none;
+    }
+}
