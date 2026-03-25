@@ -2882,7 +2882,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             headerAccountDropdown.innerHTML = '';
 
             if (!user) {
-                const iconBtnStyle = 'background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;transition:opacity 0.15s';
+                const iconBtnStyle =
+                    'background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;transition:opacity 0.15s';
                 headerAccountDropdown.innerHTML = `
                     <span style="font-size:0.75rem;color:var(--muted-foreground);padding:0.25rem 0.5rem">Connect with</span>
                     <div style="display:flex;gap:0.5rem;padding:0.25rem 0.5rem;align-items:center">
@@ -2895,13 +2896,22 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <button class="btn-secondary" id="header-email-auth">Connect with Email</button>
                 `;
 
-                for (const id of ['header-discord-auth', 'header-google-auth', 'header-github-auth', 'header-spotify-auth']) {
+                for (const id of [
+                    'header-discord-auth',
+                    'header-google-auth',
+                    'header-github-auth',
+                    'header-spotify-auth',
+                ]) {
                     const btn = document.getElementById(id);
                     const svg = btn.querySelector('svg');
                     svg.style.filter = 'brightness(0) invert(1)';
                     svg.style.transition = 'filter 0.15s';
-                    btn.addEventListener('mouseenter', () => { svg.style.filter = 'brightness(0) invert(0.5)'; });
-                    btn.addEventListener('mouseleave', () => { svg.style.filter = 'brightness(0) invert(1)'; });
+                    btn.addEventListener('mouseenter', () => {
+                        svg.style.filter = 'brightness(0) invert(0.5)';
+                    });
+                    btn.addEventListener('mouseleave', () => {
+                        svg.style.filter = 'brightness(0) invert(1)';
+                    });
                 }
 
                 document.getElementById('header-google-auth').onclick = () => authManager.signInWithGoogle();

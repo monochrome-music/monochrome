@@ -218,8 +218,14 @@ export class AuthManager {
 
             if (clearDataBtn) clearDataBtn.style.display = 'none';
             if (emailToggleBtn) emailToggleBtn.style.display = 'inline-block';
-            if (githubBtn) { githubBtn.style.display = 'inline-block'; githubBtn.onclick = () => this.signInWithGitHub(); }
-            if (discordBtn) { discordBtn.style.display = 'inline-block'; discordBtn.onclick = () => this.signInWithDiscord(); }
+            if (githubBtn) {
+                githubBtn.style.display = 'inline-block';
+                githubBtn.onclick = () => this.signInWithGitHub();
+            }
+            if (discordBtn) {
+                discordBtn.style.display = 'inline-block';
+                discordBtn.onclick = () => this.signInWithDiscord();
+            }
             if (statusText) statusText.textContent = 'Sync your library across devices';
         }
     }

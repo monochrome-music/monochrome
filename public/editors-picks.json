@@ -232,11 +232,11 @@
     },
     {
         "type": "album",
-        "id": 281486640,
-        "title": "NO STYLIST",
-        "artist": { "id": 9503145, "name": "Destroy Lonely" },
-        "releaseDate": "2022-08-12",
-        "cover": "e352cb6d-eae5-483b-98ca-0c38f0d45716",
+        "id": 365819314,
+        "title": "One Life",
+        "artist": { "id": "17300439", "name": "1oneam" },
+        "releaseDate": "2024-05-30",
+        "cover": "eb5d74f6-7403-4404-8452-9b68713445fe",
         "explicit": true,
         "audioQuality": "LOSSLESS",
         "mediaMetadata": { "tags": ["LOSSLESS"] }
