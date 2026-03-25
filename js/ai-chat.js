@@ -201,7 +201,7 @@ function injectChatStyles() {
 }
 
 function escapeHtml(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function parseMarkdown(text){let h=escapeHtml(text);h=h.replace(/^### (.+)$/gm,'<h3 class="ai-h3">$1</h3>');h=h.replace(/^## (.+)$/gm,'<h2 class="ai-h2">$1</h2>');h=h.replace(/^# (.+)$/gm,'<h1 class="ai-h1">$1</h1>');h=h.replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>');h=h.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');h=h.replace(/\*([^*\n]+)\*/g,'<em>$1</em>');h=h.replace(/^&gt; (.+)$/gm,'<blockquote class="ai-bq">$1</blockquote>');h=h.replace(/^---$/gm,'<hr class="ai-hr">');h=h.replace(/^[\-\*] (.+)$/gm,'<li class="ai-li">$1</li>');h=h.replace(/\n\n/g,'</p><p class="ai-p">');h=h.replace(/\n/g,'<br>');return '<p class="ai-p">'+h+'</p>';}
+function parseMarkdown(text){let h=escapeHtml(text);h=h.replace(/^### (.+)$/gm,'<h3 class="ai-h3">$1</h3>');h=h.replace(/^## (.+)$/gm,'<h2 class="ai-h2">$1</h2>');h=h.replace(/^# (.+)$/gm,'<h1 class="ai-h1">$1</h1>');h=h.replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>');h=h.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');h=h.replace(/\*([^*\n]+)\*/g,'<em>$1</em>');h=h.replace(/^&gt; (.+)$/gm,'<blockquote class="ai-bq">$1</blockquote>');h=h.replace(/^---$/gm,'<hr class="ai-hr">');h=h.replace(/^[\-\*] (.+)$/gm,'<li class="ai-li">$1</li>');h=h.replace(/(<li[^>]+>[\s\S]*?<\/li>\n?)+/g,'<ul class="ai-ul">$&</ul>');h=h.replace(/\n\n/g,'</p><p class="ai-p">');h=h.replace(/\n/g,'<br>');return '<p class="ai-p">'+h+'</p>';}
 /**
  * Render chat messages area dan input box ke dalam container element.
  * Mengembalikan cleanup function.
