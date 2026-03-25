@@ -154,24 +154,15 @@ export class UIRenderer {
             }
         });
         
-        // Show/hide now-playing drawer based on play/pause
-        window.addEventListener('player-play', () => {
-            const drawer = document.getElementById('now-playing-drawer');
-            if (drawer) drawer.classList.add('visible');
-        });
-        window.addEventListener('player-pause', () => {
-            const drawer = document.getElementById('now-playing-drawer');
-            if (drawer) drawer.classList.remove('visible');
-        });
-        
-            // Click drawer to open AI chat
-            const drawerEl = document.getElementById('now-playing-drawer');
-            if (drawerEl) {
-                drawerEl.addEventListener('click', () => {
-                    aiChatManager.toggle(this.player.currentTrack);
-                });
-            }
-            }
+        // Sidebar AI chat link click handler
+        const sidebarAiChatLink = document.getElementById('sidebar-ai-chat-link');
+        if (sidebarAiChatLink) {
+            sidebarAiChatLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                aiChatManager.toggle(this.player.currentTrack);
+            });
+        }
+    }
 
 
     static async initialize(api, player) {
@@ -1136,6 +1127,10 @@ export class UIRenderer {
         if (window.location.hash !== '#fullscreen') {
             window.history.pushState({ fullscreen: true }, '', '#fullscreen');
         }
+
+        // AI Chat cycling: hide drawer indicator, show fullscreen button
+        aiChatManager.onEnterFullscreen();
+
         const overlay = document.getElementById('fullscreen-cover-overlay');
         const nextTrackEl = document.getElementById('fullscreen-next-track');
         const lyricsToggleBtn = document.getElementById('toggle-fullscreen-lyrics-btn');
@@ -1266,6 +1261,9 @@ export class UIRenderer {
             clearTimeout(this.uiToggleMouseTimer);
             this.uiToggleMouseTimer = null;
         }
+
+        // AI Chat cycling: move from fullscreen to drawer
+        aiChatManager.onExitFullscreen();
     }
 
     setupUIToggleButton(overlay) {

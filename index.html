@@ -36,15 +36,7 @@
                 <canvas id="aether-particles-canvas"></canvas>
         <audio id="audio-player" crossorigin="anonymous" style="display: none"></audio>
         <video id="video-player" crossorigin="anonymous" style="display: none"></video>
-                <!-- AI Chat Now Playing Drawer -->
-        <div id="now-playing-drawer" class="now-playing-ai-drawer" role="button" tabindex="0" id="now-playing-drawer" class="now-playing-ai-drawer">
-            <div class="now-playing-drawer-content">
-                <div class="now-playing-drawer-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                </div>
-                <span class="now-playing-drawer-text">Tanya AI tentang lagu ini</span>
-            </div>
-        </div>
+
         <div id="context-menu">
             <ul>
                 <li data-action="shuffle-play-card" data-type-filter="album,playlist,mix,user-playlist">
@@ -1687,6 +1679,13 @@
                                 <a href="/settings">
                                     <use svg="!lucide/settings.svg" size="24" />
                                     <span>Settings</span>
+                                </a>
+                            </li>
+                            <li class="nav-item sidebar-ai-chat-item" id="sidebar-ai-chat-item" style="display:none">
+                                <a href="#" id="sidebar-ai-chat-link">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                    <span>AI Chat</span>
+                                    <span class="ai-chat-badge"></span>
                                 </a>
                             </li>
                         </ul>

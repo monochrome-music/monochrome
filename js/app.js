@@ -24,6 +24,7 @@ import { MultiScrobbler } from './multi-scrobbler.js';
 import { LyricsManager, openLyricsPanel, clearLyricsPanelSync } from './lyrics.js';
 import { createRouter, updateTabTitle, navigate } from './router.js';
 import { initializePlayerEvents, initializeTrackInteractions, handleTrackAction } from './events.js';
+import { initAiChat } from './ai-chat.js';
 import { initializeUIInteractions } from './ui-interactions.js';
 import { debounce, getShareUrl } from './utils.js';
 import { sidePanelManager } from './side-panel.js';
@@ -455,6 +456,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Initialize tracker
     initTracker();
+
+    // Initialize AI chat (set default key if not already configured)
+    initAiChat();
 
     // Linux Media Keys Fix
     if (window.NL_MODE) {
