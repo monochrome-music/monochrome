@@ -458,12 +458,14 @@ export const aiChatManager = {
 
   onEnterFullscreen() {
     this.hideDrawerIndicator();
+        document.getElementById('side-panel')?.classList.add('fullscreen-mode');
   },
 
   onExitFullscreen() {
     if (this._isOpen) {
       this.close();
     }
+        document.getElementById('side-panel')?.classList.remove('fullscreen-mode');
     if (this._wasOpenInFullscreen && chatState.messages.length > 0) {
       this.showDrawerIndicator();
     }
