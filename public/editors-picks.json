@@ -163,5 +163,49 @@
         "explicit": true,
         "audioQuality": "LOSSLESS",
         "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 379517195,
+        "title": "Haram",
+        "artist": { "id": 5225704, "name": "Armand Hammer" },
+        "releaseDate": "2021-03-26",
+        "cover": "69ebc3e7-bd0b-4dd7-88a5-a2e180b84f0d",
+        "explicit": false,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 36160524,
+        "title": "Nasa Gang (Remastered)",
+        "artist": { "id": 4611745, "name": "SpaceGhostPurrp" },
+        "releaseDate": "2014-10-07",
+        "cover": "359d42ec-1984-4d63-a4ae-ecf286463372",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 445752470,
+        "title": "FOR NOTHING",
+        "artist": { "id": 49124576, "name": "nine vicious" },
+        "releaseDate": "2025-07-04",
+        "cover": "8b9018dd-d3c3-46e0-be5a-c16d48180176",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 435083611,
+        "title": "Buddha Therapy",
+        "artist": { "id": 4858188, "name": "Metro Zu" },
+        "releaseDate": "2017-05-01",
+        "cover": "5c6c367a-99ed-4fa4-8e91-ea10d6066e26",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
     }
 ]
