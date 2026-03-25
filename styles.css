@@ -2386,6 +2386,7 @@ input[type='search']::-webkit-search-cancel-button {
 }
 
 .explicit-badge {
+    display: inline-block;
     background-color: var(--secondary);
     color: var(--muted-foreground);
     font-size: 0.6rem;
@@ -2395,9 +2396,12 @@ input[type='search']::-webkit-search-cancel-button {
     margin-left: 0.5rem;
     vertical-align: middle;
     line-height: 1;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
 }
 
 .quality-hires {
+    display: inline-block;
     border: 1px solid var(--secondary);
     color: var(--muted-foreground);
     font-size: 0.6rem;
@@ -2407,6 +2411,8 @@ input[type='search']::-webkit-search-cancel-button {
     margin-left: 0.5rem;
     vertical-align: middle;
     line-height: 1;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
 }
 
 .track-list {
@@ -9617,10 +9623,9 @@ body.data-saver-active .album-art-placeholder {
 }
 
 .mood-wheel {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
     gap: 0.75rem;
-    justify-content: center;
     padding: 1.5rem;
     background: var(--card-bg, rgba(255,255,255,0.05));
     border-radius: 16px;
@@ -9712,8 +9717,8 @@ body.data-saver-active .album-art-placeholder {
 }
 
 .mood-generate-btn {
-    flex: 1;
-    min-width: 160px;
+    flex: 1 1 0;
+    min-width: 0;
     padding: 0.875rem 1.5rem;
     font-size: 1rem;
     font-weight: 600;
@@ -9741,6 +9746,7 @@ body.data-saver-active .album-art-placeholder {
 }
 
 .mood-surprise-btn {
+    flex: 0 0 auto;
     padding: 0.875rem 1.25rem;
     font-size: 0.9rem;
     font-weight: 600;
@@ -9903,6 +9909,7 @@ body.data-saver-active .album-art-placeholder {
         padding: 1rem;
     }
     .mood-wheel {
+        grid-template-columns: repeat(3, 1fr);
         gap: 0.5rem;
         padding: 1rem;
     }
