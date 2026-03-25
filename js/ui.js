@@ -34,6 +34,7 @@ import { syncManager } from './accounts/pocketbase.js';
 import { Visualizer } from './visualizer.js';
 import { navigate } from './router.js';
 import { sidePanelManager } from './side-panel.js';
+import { aiChatManager } from './ai-chat.js';
 import {
     renderUnreleasedPage as renderUnreleasedTrackerPage,
     renderTrackerArtistPage as renderTrackerArtistContent,
@@ -151,6 +152,16 @@ export class UIRenderer {
             if (this.visualizer) {
                 this.visualizer.updateDimming();
             }
+        });
+        
+        // Show/hide now-playing drawer based on play/pause
+        window.addEventListener('player-play', () => {
+            const drawer = document.getElementById('now-playing-drawer');
+            if (drawer) drawer.classList.add('visible');
+        });
+        window.addEventListener('player-pause', () => {
+            const drawer = document.getElementById('now-playing-drawer');
+            if (drawer) drawer.classList.remove('visible');
         });
             }
 
@@ -1520,6 +1531,13 @@ export class UIRenderer {
         if (fsQueueBtn) {
             fsQueueBtn.onclick = () => {
                 document.getElementById('queue-btn')?.click();
+            };
+        }
+                const fsAiChatBtn = document.getElementById('fs-ai-chat-btn');
+        if (fsAiChatBtn) {
+            fsAiChatBtn.onclick = (e) => {
+                e.stopPropagation();
+                aiChatManager.toggle(this.player.currentTrack);
             };
         }
 
