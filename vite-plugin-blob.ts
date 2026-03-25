@@ -5,10 +5,10 @@ import type { Plugin } from 'vite';
 import mime from 'mime';
 import { createHash } from 'crypto';
 
-function hashString(input: string, algorithm = "sha256"): string {
-  return createHash(algorithm)
-               .update(input, "utf8")  // specify string encoding
-               .digest("hex");         // return as hex
+function hashString(input: string, algorithm = 'sha256'): string {
+    return createHash(algorithm)
+        .update(input, 'utf8') // specify string encoding
+        .digest('hex'); // return as hex
 }
 
 /**

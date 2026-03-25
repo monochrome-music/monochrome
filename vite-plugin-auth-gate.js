@@ -19,6 +19,33 @@ function parseBody(req) {
     });
 }
 
+function buildInjectionScript(env) {
+    const AUTH_ENABLED = (env.AUTH_ENABLED ?? 'false') !== 'false';
+    const APPWRITE_ENDPOINT = env.APPWRITE_ENDPOINT;
+    const APPWRITE_PROJECT_ID = env.APPWRITE_PROJECT_ID;
+    const POCKETBASE_URL = env.POCKETBASE_URL;
+    const AUTH_GOOGLE_ENABLED = env.AUTH_GOOGLE_ENABLED;
+    const AUTH_EMAIL_ENABLED = env.AUTH_EMAIL_ENABLED;
+
+    const flags = [];
+    if (AUTH_ENABLED) flags.push('window.__AUTH_GATE__=true');
+    const authProviderOverrides = {};
+    if (AUTH_GOOGLE_ENABLED !== undefined) {
+        authProviderOverrides.google = AUTH_GOOGLE_ENABLED !== 'false';
+    }
+    if (AUTH_EMAIL_ENABLED !== undefined) {
+        authProviderOverrides.password = AUTH_EMAIL_ENABLED !== 'false';
+    }
+    if (Object.keys(authProviderOverrides).length > 0) {
+        flags.push(`window.__AUTH_PROVIDERS__=${JSON.stringify(authProviderOverrides)}`);
+    }
+    if (APPWRITE_ENDPOINT) flags.push(`window.__APPWRITE_ENDPOINT__=${JSON.stringify(APPWRITE_ENDPOINT)}`);
+    if (APPWRITE_PROJECT_ID) flags.push(`window.__APPWRITE_PROJECT_ID__=${JSON.stringify(APPWRITE_PROJECT_ID)}`);
+    if (POCKETBASE_URL) flags.push(`window.__POCKETBASE_URL__=${JSON.stringify(POCKETBASE_URL)}`);
+
+    return flags.length > 0 ? `<script>${flags.join(';')};</script>` : null;
+}
+
 export default function authGatePlugin() {
     let env = {};
 
@@ -29,33 +56,13 @@ export default function authGatePlugin() {
             env = loadEnv(mode, process.cwd(), '');
         },
 
+        transformIndexHtml(html) {
+            const scriptTag = buildInjectionScript(env);
+            return scriptTag ? html.replace('</head>', `${scriptTag}\n</head>`) : html;
+        },
+
         configurePreviewServer(server) {
-            const AUTH_ENABLED = (env.AUTH_ENABLED ?? 'false') !== 'false';
-            const APPWRITE_ENDPOINT = env.APPWRITE_ENDPOINT;
-            const APPWRITE_PROJECT_ID = env.APPWRITE_PROJECT_ID;
-            const POCKETBASE_URL = env.POCKETBASE_URL;
-            const AUTH_GOOGLE_ENABLED = env.AUTH_GOOGLE_ENABLED;
-            const AUTH_EMAIL_ENABLED = env.AUTH_EMAIL_ENABLED;
-
-            // --- Build injection script (always, for both auth gate and env config) ---
-
-            const flags = [];
-            if (AUTH_ENABLED) flags.push('window.__AUTH_GATE__=true');
-            const authProviderOverrides = {};
-            if (AUTH_GOOGLE_ENABLED !== undefined) {
-                authProviderOverrides.google = AUTH_GOOGLE_ENABLED !== 'false';
-            }
-            if (AUTH_EMAIL_ENABLED !== undefined) {
-                authProviderOverrides.password = AUTH_EMAIL_ENABLED !== 'false';
-            }
-            if (Object.keys(authProviderOverrides).length > 0) {
-                flags.push(`window.__AUTH_PROVIDERS__=${JSON.stringify(authProviderOverrides)}`);
-            }
-            if (APPWRITE_ENDPOINT) flags.push(`window.__APPWRITE_ENDPOINT__=${JSON.stringify(APPWRITE_ENDPOINT)}`);
-            if (APPWRITE_PROJECT_ID)
-                flags.push(`window.__APPWRITE_PROJECT_ID__=${JSON.stringify(APPWRITE_PROJECT_ID)}`);
-            if (POCKETBASE_URL) flags.push(`window.__POCKETBASE_URL__=${JSON.stringify(POCKETBASE_URL)}`);
-            const configScript = flags.length > 0 ? `<script>${flags.join(';')};</script>` : null;
+            const configScript = buildInjectionScript(env);
 
             // --- Pre-build injected HTML pages ---
 
@@ -69,6 +76,7 @@ export default function authGatePlugin() {
             }
 
             let loginHtml = null;
+            const AUTH_ENABLED = (env.AUTH_ENABLED ?? 'false') !== 'false';
             if (AUTH_ENABLED) {
                 const loginPath = join(distDir, 'login.html');
                 if (existsSync(loginPath)) {
@@ -98,7 +106,7 @@ export default function authGatePlugin() {
                     process.exit(1);
                 }
 
-                console.log(`Auth gate enabled (Project: ${APPWRITE_PROJECT_ID})`);
+                console.log(`Auth gate enabled (Project: ${env.APPWRITE_PROJECT_ID})`);
 
                 server.middlewares.use(
                     cookieSession({

@@ -2,6 +2,7 @@
 // Shared Audio Context Manager - handles EQ and provides context for visualizer
 // Supports 3-32 parametric EQ bands
 
+import { isIos } from './platform-detection.js';
 import { equalizerSettings, monoAudioSettings } from './storage.js';
 
 // Generate frequency array for given number of bands using logarithmic spacing
@@ -299,9 +300,7 @@ class AudioContextManager {
 
         this.audio = audioElement;
 
-        // Detect iOS - skip Web Audio initialization on iOS to avoid lock screen audio issues
-        const isIOS = typeof window !== 'undefined' && window.__IS_IOS__ === true;
-        if (isIOS) {
+        if (isIos) {
             console.log('[AudioContext] Skipping Web Audio initialization on iOS for lock screen compatibility');
             return;
         }
@@ -697,6 +696,8 @@ class AudioContextManager {
         return this.preamp || 0;
     }
 
+    /**
+     * Called when the app enters the background (screen lock, app switch).
     /**
      * Export equalizer settings to text format
      * @returns {string} Exported settings in text format

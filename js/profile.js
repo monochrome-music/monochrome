@@ -4,6 +4,7 @@ import { navigate } from './router.js';
 import { MusicAPI } from './music-api.js';
 import { apiSettings } from './storage.js';
 import { debounce, escapeHtml } from './utils.js';
+import { Player } from './player.js';
 
 // objects execution february 29th 2027
 
@@ -37,15 +38,22 @@ let currentFavoriteAlbums = [];
 const api = new MusicAPI(apiSettings);
 
 async function uploadImage(file) {
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
-        const response = await fetch('/upload', { method: 'POST', body: formData });
-        if (!response.ok) throw new Error(`Upload failed: ${response.status}`);
-        const data = await response.json();
-        if (!data.success) throw new Error(data.error || 'Upload failed');
-        return data.url;
+        const response = await fetch(`https://worker.uploads.monochrome.qzz.io/${file.name}`, {
+            method: 'PUT',
+            headers: {
+                'x-api-key': 'if_youre_reading_this_fuck_off',
+                'Content-Type': file.type || 'application/octet-stream',
+            },
+            body: file,
+        });
+
+        if (!response.ok) {
+            if (response.status === 413) throw new Error('File exceeds 10MB');
+            throw new Error(`Upload failed: ${response.status}`);
+        }
+
+        return `https://images.monochrome.qzz.io/${await response.text()}`;
     } catch (error) {
         console.error('Upload error:', error);
         throw error;
@@ -819,9 +827,9 @@ async function handleTrackClick(title, artist) {
         const results = await api.searchTracks(query, { limit: 1 });
         if (results.items.length > 0) {
             const track = results.items[0];
-            if (window.monochromePlayer) {
-                window.monochromePlayer.setQueue([track], 0);
-                window.monochromePlayer.playTrackFromQueue();
+            if (Player.instance) {
+                Player.instance.setQueue([track], 0);
+                Player.instance.playTrackFromQueue();
             }
         } else {
             alert('Track not found');

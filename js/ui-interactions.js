@@ -1,9 +1,5 @@
 //js/ui-interactions.js
 import {
-    SVG_CLOSE,
-    SVG_BIN,
-    SVG_HEART,
-    SVG_DOWNLOAD,
     formatTime,
     getTrackTitle,
     getTrackArtists,
@@ -17,6 +13,17 @@ import { db } from './db.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { showNotification, downloadTracks } from './downloads.js';
 import { trackSearchTabChange, trackOpenQueue } from './analytics.js';
+import {
+    SVG_CLOSE,
+    SVG_BIN,
+    SVG_HEART,
+    SVG_DOWNLOAD,
+    SVG_HEART_FILLED,
+    SVG_SQUARE_PEN,
+    SVG_TRASH,
+    SVG_EQUAL,
+} from './icons.js';
+import { hapticSuccess } from './haptics.js';
 
 export function initializeUIInteractions(player, api, ui) {
     const sidebar = document.querySelector('.sidebar');
@@ -111,22 +118,19 @@ export function initializeUIInteractions(player, api, ui) {
 
         container.innerHTML = `
             <button id="download-queue-btn" class="btn-icon" title="Download Queue" style="display: ${showActionBtns ? 'flex' : 'none'}">
-                ${SVG_DOWNLOAD}
+                ${SVG_DOWNLOAD(20)}
             </button>
             <button id="like-queue-btn" class="btn-icon" title="Add Queue to Liked" style="display: ${showActionBtns ? 'flex' : 'none'}">
-                ${SVG_HEART}
+                ${SVG_HEART(20)}
             </button>
             <button id="add-queue-to-playlist-btn" class="btn-icon" title="Add Queue to Playlist" style="display: ${showActionBtns ? 'flex' : 'none'}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                </svg>
+                ${SVG_SQUARE_PEN(20)}
             </button>
             <button id="clear-queue-btn" class="btn-icon" title="Clear Queue" style="display: ${showActionBtns ? 'flex' : 'none'}">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                ${SVG_TRASH(20)}
             </button>
             <button id="close-side-panel-btn" class="btn-icon" title="Close">
-                ${SVG_CLOSE}
+                ${SVG_CLOSE(20)}
             </button>
         `;
 
@@ -258,10 +262,7 @@ export function initializeUIInteractions(player, api, ui) {
         return `
         <div class="queue-track-item ${isPlaying ? 'playing' : ''} ${isBlocked ? 'blocked' : ''}" data-queue-index="${index}" data-track-id="${track.id}" draggable="${isBlocked ? 'false' : 'true'}" ${blockedTitle}>
             <div class="drag-handle">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="5" y1="8" x2="19" y2="8"></line>
-                    <line x1="5" y1="16" x2="19" y2="16"></line>
-                </svg>
+                ${SVG_EQUAL(16)}
             </div>
             <div class="track-item-info">
                 <img src="${coverUrl}"
@@ -273,10 +274,10 @@ export function initializeUIInteractions(player, api, ui) {
             </div>
             <div class="track-item-duration">${isBlocked ? '--:--' : formatTime(track.duration)}</div>
             <button class="queue-like-btn" data-action="toggle-like" title="Add to Liked">
-                ${SVG_HEART}
+                ${SVG_HEART(20)}
             </button>
             <button class="queue-remove-btn" data-track-index="${index}" title="Remove from queue">
-                ${SVG_BIN}
+                ${SVG_BIN(20)}
             </button>
         </div>
     `;
@@ -307,10 +308,9 @@ export function initializeUIInteractions(player, api, ui) {
                     syncManager.syncLibraryItem('track', track, added);
 
                     likeBtn.classList.toggle('active', added);
-                    likeBtn.innerHTML = added
-                        ? SVG_HEART.replace('class="heart-icon"', 'class="heart-icon filled"')
-                        : SVG_HEART;
+                    likeBtn.innerHTML = added ? SVG_HEART_FILLED(20) : SVG_HEART(20);
 
+                    hapticSuccess();
                     showNotification(added ? `Added to Liked: ${track.title}` : `Removed from Liked: ${track.title}`);
                 }
                 return;
@@ -462,9 +462,7 @@ export function initializeUIInteractions(player, api, ui) {
             if (likeBtn && track) {
                 const isLiked = await db.isFavorite('track', track.id);
                 likeBtn.classList.toggle('active', isLiked);
-                likeBtn.innerHTML = isLiked
-                    ? SVG_HEART.replace('class="heart-icon"', 'class="heart-icon filled"')
-                    : SVG_HEART;
+                likeBtn.innerHTML = isLiked ? SVG_HEART_FILLED(20) : SVG_HEART(20);
             }
         });
 

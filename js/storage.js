@@ -1,4 +1,7 @@
 //storage.js
+
+import { SVG_RIGHT_ARROW } from './icons';
+
 export const apiSettings = {
     STORAGE_KEY: 'monochrome-api-instances-v9',
     INSTANCES_URLS: [
@@ -95,6 +98,7 @@ export const apiSettings = {
                         { url: 'https://katze.qqdl.site', version: '2.2' },
                         { url: 'https://hund.qqdl.site', version: '2.2' },
                         { url: 'https://wolf.qqdl.site', version: '2.2' },
+                        { url: 'https://hifi.p1nkhamster.xyz/', version: '2.6' },
                     ],
                 };
                 this.instancesLoaded = true;
@@ -105,13 +109,11 @@ export const apiSettings = {
             let groupedInstances = { api: [], streaming: [] };
 
             if (data.api && Array.isArray(data.api)) {
-                groupedInstances.api = data.api.filter((instance) => !instance.url.includes('spotisaver.net'));
+                groupedInstances.api = data.api;
             }
 
             if (data.streaming && Array.isArray(data.streaming)) {
-                groupedInstances.streaming = data.streaming.filter(
-                    (instance) => !instance.url.includes('spotisaver.net')
-                );
+                groupedInstances.streaming = data.streaming;
             } else if (groupedInstances.api.length > 0) {
                 groupedInstances.streaming = [...groupedInstances.api];
             }
@@ -147,7 +149,10 @@ export const apiSettings = {
         const defaultUrls = instancesObj[type] || instancesObj.api || [];
         const userUrls = userInst[type] || [];
 
-        const combined = [...userUrls.map((u) => (typeof u === 'string' ? { url: u, isUser: true } : { ...u, isUser: true })), ...defaultUrls];
+        const combined = [
+            ...userUrls.map((u) => (typeof u === 'string' ? { url: u, isUser: true } : { ...u, isUser: true })),
+            ...defaultUrls,
+        ];
 
         if (combined.length === 0) return [];
 
@@ -181,6 +186,10 @@ export const apiSettings = {
     },
 
     async refreshInstances() {
+        this.instancesLoaded = false;
+        this._loadPromise = null;
+        localStorage.removeItem(this.STORAGE_KEY);
+
         const instances = await this.loadInstancesFromGitHub();
 
         const shuffle = (array) => {
@@ -482,6 +491,23 @@ export const nowPlayingSettings = {
     },
 };
 
+export const gaplessPlaybackSettings = {
+    STORAGE_KEY: 'gapless-playback-enabled',
+
+    isEnabled() {
+        try {
+            const val = localStorage.getItem(this.STORAGE_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+};
+
 export const fullscreenCoverClickSettings = {
     STORAGE_KEY: 'fullscreen-cover-click-action',
 
@@ -692,58 +718,6 @@ export const trackDateSettings = {
 
     setUseAlbumYear(enabled) {
         localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
-    },
-};
-
-export const bulkDownloadSettings = {
-    METHOD_KEY: 'bulk-download-method',
-    FORCE_ZIP_BLOB_KEY: 'bulk-download-force-zip-blob',
-    LEGACY_INDIVIDUAL_KEY: 'force-individual-downloads',
-    VALID_METHODS: ['zip', 'folder', 'individual'],
-
-    /** Returns the selected bulk download method: 'zip' | 'folder' | 'individual' */
-    getMethod() {
-        try {
-            const stored = localStorage.getItem(this.METHOD_KEY);
-            if (stored && this.VALID_METHODS.includes(stored)) {
-                return stored;
-            }
-            const legacy = localStorage.getItem(this.LEGACY_INDIVIDUAL_KEY);
-            if (legacy === 'true') {
-                localStorage.setItem(this.METHOD_KEY, 'individual');
-                localStorage.removeItem(this.LEGACY_INDIVIDUAL_KEY);
-                return 'individual';
-            }
-            return 'zip';
-        } catch {
-            return 'zip';
-        }
-    },
-
-    setMethod(method) {
-        localStorage.setItem(this.METHOD_KEY, method);
-    },
-
-    /** When using ZIP mode, force in-memory blob download instead of streaming to disk */
-    shouldForceZipBlob() {
-        try {
-            return localStorage.getItem(this.FORCE_ZIP_BLOB_KEY) === 'true';
-        } catch {
-            return false;
-        }
-    },
-
-    setForceZipBlob(enabled) {
-        localStorage.setItem(this.FORCE_ZIP_BLOB_KEY, enabled ? 'true' : 'false');
-    },
-
-    // Kept for backward compatibility
-    shouldForceIndividual() {
-        return this.getMethod() === 'individual';
-    },
-
-    setForceIndividual(enabled) {
-        this.setMethod(enabled ? 'individual' : 'zip');
     },
 };
 
@@ -1556,8 +1530,7 @@ export const sidebarSettings = {
             document.body.classList.add('sidebar-collapsed');
             const toggleBtn = document.getElementById('sidebar-toggle');
             if (toggleBtn) {
-                toggleBtn.innerHTML =
-                    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+                toggleBtn.innerHTML = SVG_RIGHT_ARROW(20);
             }
         }
     },
@@ -1567,6 +1540,7 @@ export const listenBrainzSettings = {
     ENABLED_KEY: 'listenbrainz-enabled',
     TOKEN_KEY: 'listenbrainz-token',
     CUSTOM_URL_KEY: 'listenbrainz-custom-url',
+    LOVE_ON_LIKE_KEY: 'listenbrainz-love-on-like',
 
     isEnabled() {
         try {
@@ -1602,6 +1576,18 @@ export const listenBrainzSettings = {
 
     setCustomUrl(url) {
         localStorage.setItem(this.CUSTOM_URL_KEY, url);
+    },
+
+    shouldLoveOnLike() {
+        try {
+            return localStorage.getItem(this.LOVE_ON_LIKE_KEY) === 'true';
+        } catch {
+            return false;
+        }
+    },
+
+    setLoveOnLike(enabled) {
+        localStorage.setItem(this.LOVE_ON_LIKE_KEY, enabled ? 'true' : 'false');
     },
 };
 
@@ -2709,6 +2695,14 @@ export const keyboardShortcuts = {
             alt: false,
             description: 'Toggle visualizer auto-cycle',
         },
+        multiSelectToggle: {
+            key: 'control',
+            shift: false,
+            ctrl: true,
+            alt: false,
+            description: 'Toggle track selection (individual)',
+        },
+        multiSelectRange: { key: 'shift', shift: true, ctrl: false, alt: false, description: 'Select track range' },
     },
 
     getShortcuts() {

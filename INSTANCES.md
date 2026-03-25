@@ -12,6 +12,7 @@ The official Monochrome instance maintained by the core team:
 | ------------------------------------------------------ | -------- | ---------------- |
 | [monochrome.tf](https://monochrome.tf)                 | Official | Primary instance |
 | [monochrome.samidy.com](https://monochrome.samidy.com) | Official | Secondary mirror |
+| [lossless.wtf](https://lossless.wtf)                   | Official | Failover mirror  |
 
 ---
 
@@ -29,10 +30,10 @@ These instances are community instances of Monochrome & its WebUI:
 
 These instances provide the tidal-ui web interface, not monochrome:
 
-| Provider            | URL                                            | Status    |
-| ------------------- | ---------------------------------------------- | --------- |
-| **squid.wtf**       | [tidal.squid.wtf](https://tidal.squid.wtf)     | Community |
-| **QQDL**            | [tidal.qqdl.site](https://tidal.qqdl.site/)    | Community |
+| Provider      | URL                                         | Status    |
+| ------------- | ------------------------------------------- | --------- |
+| **squid.wtf** | [tidal.squid.wtf](https://tidal.squid.wtf)  | Community |
+| **QQDL**      | [tidal.qqdl.site](https://tidal.qqdl.site/) | Community |
 
 ---
 
@@ -47,17 +48,17 @@ These are available API endpoints that can be used with Monochrome or other Hi-F
 
 ### Official & Community APIs
 
-| Provider          | URL                                 | Notes            |
-| ----------------- | ----------------------------------- | ---------------- |
-| **Monochrome**    | `https://monochrome-api.samidy.com` | Official API     |
-|                   | `https://api.monochrome.tf`         | Official API     |
-|                   | `https://arran.monochrome.tf`       | Official API     |
-| **squid.wtf**     | `https://triton.squid.wtf`          | Community hosted |
-| **Lucida (QQDL)** | `https://wolf.qqdl.site`            | Community hosted |
-|                   | `https://maus.qqdl.site`            | Community hosted |
-|                   | `https://vogel.qqdl.site`           | Community hosted |
-|                   | `https://katze.qqdl.site`           | Community hosted |
-|                   | `https://hund.qqdl.site`            | Community hosted |
+| Provider          | URL                                 | Notes                                                                   |
+| ----------------- | ----------------------------------- | ----------------------------------------------------------------------- |
+| **Monochrome**    | `https://monochrome-api.samidy.com` | Official API                                                            |
+|                   | `https://api.monochrome.tf`         | Official API                                                            |
+|                   | `https://arran.monochrome.tf`       | Official API                                                            |
+| **squid.wtf**     | `https://triton.squid.wtf`          | Community hosted                                                        |
+| **Lucida (QQDL)** | `https://wolf.qqdl.site`            | Community hosted                                                        |
+|                   | `https://maus.qqdl.site`            | Community hosted                                                        |
+|                   | `https://vogel.qqdl.site`           | Community hosted                                                        |
+|                   | `https://katze.qqdl.site`           | Community hosted                                                        |
+|                   | `https://hund.qqdl.site`            | Community hosted                                                        |
 | **Kinoplus**      | `https://tidal.kinoplus.online`     | Community hosted - [Limited/No-Sub](https://rentry.co/limitedtidalaccs) |
 
 ---

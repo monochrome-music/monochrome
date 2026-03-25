@@ -5,7 +5,8 @@ import { authManager } from './auth.js';
 
 const PUBLIC_COLLECTION = 'public_playlists';
 const DEFAULT_POCKETBASE_URL = 'https://data.samidy.xyz';
-const POCKETBASE_URL = localStorage.getItem('monochrome-pocketbase-url') || DEFAULT_POCKETBASE_URL;
+const POCKETBASE_URL =
+    window.__POCKETBASE_URL__ || localStorage.getItem('monochrome-pocketbase-url') || DEFAULT_POCKETBASE_URL;
 
 console.log('[PocketBase] Using URL:', POCKETBASE_URL);
 
@@ -225,6 +226,10 @@ const syncManager = {
                 streamStartDate: item.streamStartDate || null,
                 version: item.version || null,
                 mixes: item.mixes || null,
+                isPodcast: item.isPodcast || (item.id && String(item.id).startsWith('podcast_')) || null,
+                enclosureUrl: item.enclosureUrl || null,
+                enclosureType: item.enclosureType || null,
+                enclosureLength: item.enclosureLength || null,
             };
         }
 
