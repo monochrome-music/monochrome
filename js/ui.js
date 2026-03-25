@@ -163,6 +163,14 @@ export class UIRenderer {
             const drawer = document.getElementById('now-playing-drawer');
             if (drawer) drawer.classList.remove('visible');
         });
+        
+            // Click drawer to open AI chat
+            const drawerEl = document.getElementById('now-playing-drawer');
+            if (drawerEl) {
+                drawerEl.addEventListener('click', () => {
+                    aiChatManager.toggle(this.player.currentTrack);
+                });
+            }
             }
 
 
