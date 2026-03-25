@@ -235,3 +235,53 @@ Jawab dalam bahasa yang sama dengan pertanyaan pengguna (Indonesia atau Inggris)
     }
   );
 }
+
+
+/**
+ * aiChatManager - manager object for AI chat panel
+ * Provides toggle, open, and close methods
+ */
+export const aiChatManager = {
+    _isOpen: false,
+
+    toggle(track) {
+        if (this._isOpen) {
+            this.close();
+        } else {
+            this.open(track);
+        }
+    },
+
+    open(track) {
+        this._isOpen = true;
+        openAiChatPanel(track);
+    },
+
+    close() {
+        this._isOpen = false;
+        sidePanelManager.close();
+    },
+
+    showDrawer() {
+        const drawer = document.getElementById('now-playing-drawer');
+        if (drawer) drawer.classList.add('visible');
+    },
+
+    hideDrawer() {
+        const drawer = document.getElementById('now-playing-drawer');
+        if (drawer) drawer.classList.remove('visible');
+    },
+};
+
+// Setup audio element listeners for drawer show/hide
+document.addEventListener('DOMContentLoaded', () => {
+    const setupDrawerListeners = () => {
+        const audio = document.getElementById('audio-player');
+        if (audio) {
+            audio.addEventListener('play', () => aiChatManager.showDrawer());
+            audio.addEventListener('pause', () => aiChatManager.hideDrawer());
+            audio.addEventListener('ended', () => aiChatManager.hideDrawer());
+        }
+    };
+    setTimeout(setupDrawerListeners, 500);
+});
