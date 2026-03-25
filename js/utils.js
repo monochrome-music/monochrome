@@ -391,6 +391,10 @@ export const getTrackArtists = (track = {}, { fallback = 'Unknown Artist' } = {}
         return track.artists.map((artist) => artist?.name).join(', ');
     }
 
+    if (track?.artist?.name) {
+        return track.artist.name;
+    }
+
     return fallback;
 };
 

@@ -672,16 +672,6 @@ export class Player {
         }
 
         // Proactively fetch more artist tracks when the last track starts playing
-        console.log('[playTrackFromQueue] Check for fetch:', {
-            radioEnabled: this.radioEnabled,
-            artistId: this.artistPopularTracksState.artistId,
-            hasMore: this.artistPopularTracksState.hasMore,
-            isFetching: this.artistPopularTracksState.isFetching,
-            currentIndex: this.currentQueueIndex,
-            queueLength: currentQueue.length,
-            isLastTrack: this.currentQueueIndex >= currentQueue.length - 1,
-        });
-
         if (
             !this.radioEnabled &&
             this.artistPopularTracksState.artistId &&
@@ -689,9 +679,7 @@ export class Player {
             !this.artistPopularTracksState.isFetching &&
             this.currentQueueIndex >= currentQueue.length - 1
         ) {
-            console.log('[playTrackFromQueue] Fetching more tracks!');
             this.fetchMoreArtistPopularTracks().then((newTracks) => {
-                console.log('[playTrackFromQueue] Got tracks:', newTracks?.length);
                 if (newTracks && newTracks.length > 0) {
                     this.addToQueue(newTracks);
                 }
@@ -857,7 +845,11 @@ export class Player {
                         const response = await fetch(streamUrl);
                         if (response.ok) {
                             const blob = await response.blob();
+                            if (this.currentObjectUrl) {
+                                URL.revokeObjectURL(this.currentObjectUrl);
+                            }
                             streamUrl = URL.createObjectURL(blob);
+                            this.currentObjectUrl = streamUrl;
                         }
                     } catch (e) {
                         console.warn('Failed to fetch tracker blob, trying direct link', e);
@@ -882,7 +874,11 @@ export class Player {
                 const played = await this.safePlay(activeElement);
                 if (!played) return;
             } else if (track.isLocal && track.file) {
+                if (this.currentObjectUrl) {
+                    URL.revokeObjectURL(this.currentObjectUrl);
+                }
                 streamUrl = URL.createObjectURL(track.file);
+                this.currentObjectUrl = streamUrl;
                 if (this.playbackSequence !== currentSequence) return;
 
                 this.currentRgValues = null; // No replaygain for local files yet

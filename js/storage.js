@@ -238,7 +238,7 @@ export const apiSettings = {
                 console.error('Failed to save instances:', e);
             }
         } else {
-            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(instances));
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify({ timestamp: Date.now(), data: instances }));
         }
     },
 };

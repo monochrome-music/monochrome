@@ -187,8 +187,8 @@ export function addDownloadTask(trackId, track, filename, api, abortController) 
             <img src="${api.getCoverUrl(track.album?.cover)}"
                  style="width: 40px; height: 40px; border-radius: 4px; flex-shrink: 0;">
             <div style="flex: 1; min-width: 0;">
-                <div style="font-weight: 500; font-size: 0.9rem; margin-bottom: 0.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${trackTitle}</div>
-                <div style="font-size: 0.8rem; color: var(--muted-foreground); margin-bottom: 0.5rem;">${trackArtists}</div>
+                <div style="font-weight: 500; font-size: 0.9rem; margin-bottom: 0.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(trackTitle)}</div>
+                <div style="font-size: 0.8rem; color: var(--muted-foreground); margin-bottom: 0.5rem;">${escapeHtml(trackArtists)}</div>
                 <div class="download-progress-bar" style="height: 4px; background: var(--secondary); border-radius: 2px; overflow: hidden;">
                     <div class="download-progress-fill" style="width: 0%; height: 100%; background: var(--highlight); transition: width 0.2s;"></div>
                 </div>

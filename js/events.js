@@ -480,7 +480,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
                     const historyEntry = await db.addToHistory(player.currentTrack);
                     syncManager.syncHistoryItem(historyEntry);
 
-                    if (window.location.hash === '#recent') {
+                    if (window.location.pathname === '/recent') {
                         ui.renderRecentPage();
                     }
                 }
