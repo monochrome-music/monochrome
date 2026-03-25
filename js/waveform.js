@@ -4,7 +4,7 @@ export class WaveformGenerator {
     constructor() {
         // Use OfflineAudioContext to prevent creating unnecessary OS audio streams
         // decodeAudioData doesn't require a real-time AudioContext
-        this.audioContext = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 1, 44100);
+        this.audioContext = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 44100, 44100);
         this.cache = new Map();
     }
 
@@ -13,17 +13,49 @@ export class WaveformGenerator {
             return this.cache.get(trackId);
         }
 
+        if (url.includes('.mpd') || url.includes('.m3u8')) {
+            console.warn(`[Waveform] Skipping manifest URL (DASH/HLS not supported for waveform): ${url}`);
+            return null;
+        }
+
         try {
             const response = await fetch(url);
-            const arrayBuffer = await response.arrayBuffer();
-            const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+            if (!response.ok) {
+                const errorMsg = `Failed to fetch audio: ${response.status} ${response.statusText}`;
+                console.warn(`[Waveform] ${errorMsg} for ${url}`);
+                throw new Error(errorMsg);
+            }
 
-            const peaks = this.extractPeaks(audioBuffer);
-            const result = { peaks, duration: audioBuffer.duration };
-            this.cache.set(trackId, result);
-            return result;
+            const contentType = response.headers.get('content-type') || '';
+            const contentLength = response.headers.get('content-length');
+            
+            if (contentType.includes('text/html') || contentType.includes('application/dash+xml') || contentType.includes('application/vnd.apple.mpegurl')) {
+                console.warn(`[Waveform] Skipping non-audio content type: ${contentType}`);
+                return null;
+            }
+
+            const arrayBuffer = await response.arrayBuffer();
+            
+            console.log(`[Waveform] Downloaded ${arrayBuffer.byteLength} bytes, Type: ${contentType}`);
+
+            // Check if buffer is suspiciously small (e.g., < 20KB is probably an error message)
+            if (arrayBuffer.byteLength < 20000) {
+                 console.warn(`[Waveform] Data too small (${arrayBuffer.byteLength} bytes), skipping.`);
+                 return null;
+            }
+
+            try {
+                const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+                const peaks = this.extractPeaks(audioBuffer);
+                const result = { peaks, duration: audioBuffer.duration };
+                this.cache.set(trackId, result);
+                return result;
+            } catch (decodeError) {
+                console.error(`[Waveform] decodeAudioData failed for ${contentType} (${arrayBuffer.byteLength} bytes):`, decodeError);
+                return null;
+            }
         } catch (error) {
-            console.error('Waveform generation failed:', error);
+            console.error('[Waveform] Generation error:', error);
             return null;
         }
     }
