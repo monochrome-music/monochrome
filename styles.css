@@ -10427,4 +10427,68 @@ body:has(#side-panel.active) #fs-ai-chat-btn {
         padding-bottom: env(safe-area-inset-bottom, 1rem);
     }
 }
+
+/* ============================================================
+   AI CHAT PANEL - DESKTOP FIX (overrides blok sebelumnya)
+   Masalah: chat bar tidak menempel di bawah di desktop
+   Solusi: flex layout + panel berhenti di atas player bar
+   ============================================================ */
+
+/* Panel AI chat: flex column penuh agar input menempel di bawah */
+#side-panel[data-view='ai-chat'] #side-panel-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    padding: 0;
+}
+
+/* Messages mengisi semua ruang tersisa */
+#side-panel[data-view='ai-chat'] #ai-chat-messages {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    min-height: 0;
+    padding: 1rem;
+}
+
+/* Input textarea menempel di bawah (tidak flex-grow) */
+#side-panel[data-view='ai-chat'] #ai-chat-input {
+    flex-shrink: 0;
+}
+
+/* Tombol kirim menempel di bawah */
+#side-panel[data-view='ai-chat'] #ai-chat-send {
+    flex-shrink: 0;
+}
+
+/* Wrapper bawah (input + tombol): latar belakang dan padding */
+#side-panel[data-view='ai-chat'] #side-panel-content > #ai-chat-input,
+#side-panel[data-view='ai-chat'] #side-panel-content > #ai-chat-send {
+    background: color-mix(in srgb, var(--card) 90%, transparent);
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin: 0;
+}
+
+#side-panel[data-view='ai-chat'] #side-panel-content > #ai-chat-input {
+    border-top: 1px solid var(--border);
+    padding-top: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
+}
+
+#side-panel[data-view='ai-chat'] #side-panel-content > #ai-chat-send {
+    padding-top: 0;
+    padding-bottom: var(--spacing-md);
+}
+
+/* Desktop/laptop: panel berhenti di atas player bar saat TIDAK fullscreen */
+@media (min-width: 769px) {
+    #side-panel:not(.fullscreen-mode) {
+        bottom: calc(var(--player-bar-height-desktop) + 20px) !important;
+    }
+
+    /* Override padding-bottom berlebih dari CSS sebelumnya */
+    #side-panel:not(.fullscreen-mode) .panel-content {
+        padding-bottom: 0 !important;
+    }
+}
 }
