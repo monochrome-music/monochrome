@@ -1,5 +1,5 @@
 // js/accounts/auth.js
-import { auth } from './config.js';
+import { pb } from './config.js';
 
 export class AuthManager {
     constructor() {
@@ -9,37 +9,50 @@ export class AuthManager {
     }
 
     async init() {
-        const params = new URLSearchParams(window.location.search);
-        const userId = params.get('userId');
-        const secret = params.get('secret');
-        const isOAuthRedirect = params.get('oauth') === '1';
-
-        if (userId && secret && userId !== 'null' && secret !== 'null') {
-            try {
-                await auth.createSession(userId, secret);
-                window.history.replaceState({}, '', window.location.pathname);
-            } catch (error) {
-                console.warn('OAuth session handoff failed:', error.message);
+        // PocketBase handles persistence automatically via pb.authStore.
+        // We just need to check if we are logged in.
+        if (pb.authStore.isValid) {
+            this.user = {
+                $id: pb.authStore.model.id,
+                email: pb.authStore.model.email,
+                name: pb.authStore.model.name || pb.authStore.model.username
+            };
+            this.updateUI(this.user);
+            this.notifyListeners(this.user);
+        } else {
+            // Handle OAuth2 callback if we are coming back from Google
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('oauth')) {
+                // PocketBase doesn't strictly need us to do anything here if using popups,
+                // but if using redirects, we'd handle it. 
+                // For now, let's assume we're using the standard flow.
                 window.history.replaceState({}, '', window.location.pathname);
             }
-        } else if (isOAuthRedirect) {
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            window.history.replaceState({}, '', window.location.pathname);
-        }
-
-        try {
-            this.user = await auth.get();
-            this.updateUI(this.user);
-            this.authListeners.forEach((listener) => listener(this.user));
-        } catch {
-            this.user = null;
             this.updateUI(null);
         }
+        
+        // Listen to auth changes (login/logout from other tabs or same tab)
+        pb.authStore.onChange((token, model) => {
+            if (model) {
+                this.user = {
+                    $id: model.id,
+                    email: model.email,
+                    name: model.name || model.username
+                };
+            } else {
+                this.user = null;
+            }
+            this.updateUI(this.user);
+            this.notifyListeners(this.user);
+        }, true);
+    }
+
+    notifyListeners(user) {
+        this.authListeners.forEach((listener) => listener(user));
     }
 
     onAuthStateChanged(callback) {
         this.authListeners.push(callback);
-        // If we already have a user state, trigger immediately
         if (this.user !== null) {
             callback(this.user);
         }
@@ -47,11 +60,9 @@ export class AuthManager {
 
     async signInWithGoogle() {
         try {
-            auth.createOAuth2Session(
-                'google',
-                window.location.origin + '/index.html?oauth=1',
-                window.location.origin + '/login.html'
-            );
+            // This will redirect to Google
+            await pb.collection('users').authWithOAuth2({ provider: 'google' });
+            // After successful login, the authStore is updated automatically
         } catch (error) {
             console.error('Login failed:', error);
             alert(`Login failed: ${error.message}`);
@@ -60,24 +71,7 @@ export class AuthManager {
 
     async signInWithGitHub() {
         try {
-            auth.createOAuth2Session(
-                'github',
-                window.location.origin + '/index.html?oauth=1',
-                window.location.origin + '/login.html'
-            );
-        } catch (error) {
-            console.error('Login failed:', error);
-            alert(`Login failed: ${error.message}`);
-        }
-    }
-
-    async signInWithSpotify() {
-        try {
-            auth.createOAuth2Session(
-                'spotify',
-                window.location.origin + '/index.html?oauth=1',
-                window.location.origin + '/login.html'
-            );
+            await pb.collection('users').authWithOAuth2({ provider: 'github' });
         } catch (error) {
             console.error('Login failed:', error);
             alert(`Login failed: ${error.message}`);
@@ -86,11 +80,7 @@ export class AuthManager {
 
     async signInWithDiscord() {
         try {
-            auth.createOAuth2Session(
-                'discord',
-                window.location.origin + '/index.html?oauth=1',
-                window.location.origin + '/login.html'
-            );
+            await pb.collection('users').authWithOAuth2({ provider: 'discord' });
         } catch (error) {
             console.error('Login failed:', error);
             alert(`Login failed: ${error.message}`);
@@ -99,11 +89,8 @@ export class AuthManager {
 
     async signInWithEmail(email, password) {
         try {
-            await auth.createEmailPasswordSession(email, password);
-            this.user = await auth.get();
-            this.updateUI(this.user);
-            this.authListeners.forEach((listener) => listener(this.user));
-            return this.user;
+            const authData = await pb.collection('users').authWithPassword(email, password);
+            return authData.record;
         } catch (error) {
             console.error('Email Login failed:', error);
             alert(`Login failed: ${error.message}`);
@@ -113,12 +100,12 @@ export class AuthManager {
 
     async signUpWithEmail(email, password) {
         try {
-            await auth.create('unique()', email, password);
-            await auth.createEmailPasswordSession(email, password);
-            this.user = await auth.get();
-            this.updateUI(this.user);
-            this.authListeners.forEach((listener) => listener(this.user));
-            return this.user;
+            await pb.collection('users').create({
+                email,
+                password,
+                passwordConfirm: password,
+            });
+            return await this.signInWithEmail(email, password);
         } catch (error) {
             console.error('Sign Up failed:', error);
             alert(`Sign Up failed: ${error.message}`);
@@ -128,7 +115,7 @@ export class AuthManager {
 
     async sendPasswordReset(email) {
         try {
-            await auth.createRecovery(email, window.location.origin + '/reset-password');
+            await pb.collection('users').requestPasswordReset(email);
             alert(`Password reset email sent to ${email}`);
         } catch (error) {
             console.error('Password reset failed:', error);
@@ -139,10 +126,10 @@ export class AuthManager {
 
     async signOut() {
         try {
-            await auth.deleteSession('current');
+            pb.authStore.clear();
             this.user = null;
             this.updateUI(null);
-            this.authListeners.forEach((listener) => listener(null));
+            this.notifyListeners(null);
 
             if (window.__AUTH_GATE__) {
                 window.location.href = '/login';
@@ -166,40 +153,6 @@ export class AuthManager {
 
         if (!connectBtn) return;
 
-        if (window.__AUTH_GATE__) {
-            connectBtn.textContent = 'Sign Out';
-            connectBtn.classList.add('danger');
-            connectBtn.onclick = () => this.signOut();
-            if (clearDataBtn) clearDataBtn.style.display = 'none';
-            if (emailContainer) emailContainer.style.display = 'none';
-            if (emailToggleBtn) emailToggleBtn.style.display = 'none';
-            if (githubBtn) githubBtn.style.display = 'none';
-            if (discordBtn) discordBtn.style.display = 'none';
-            if (statusText) statusText.textContent = user ? `Signed in as ${user.email}` : 'Signed in';
-
-            const accountPage = document.getElementById('page-account');
-            if (accountPage) {
-                const title = accountPage.querySelector('.section-title');
-                if (title) title.textContent = 'Account';
-                accountPage.querySelectorAll('.account-content > p, .account-content > div').forEach((el) => {
-                    if (el.id !== 'auth-status' && el.id !== 'auth-buttons-container') {
-                        el.style.display = 'none';
-                    }
-                });
-            }
-
-            const customDbBtn = document.getElementById('custom-db-btn');
-            if (customDbBtn) {
-                const pbFromEnv = !!window.__POCKETBASE_URL__;
-                if (pbFromEnv) {
-                    const settingItem = customDbBtn.closest('.setting-item');
-                    if (settingItem) settingItem.style.display = 'none';
-                }
-            }
-
-            return;
-        }
-
         if (user) {
             connectBtn.textContent = 'Sign Out';
             connectBtn.classList.add('danger');
@@ -211,6 +164,13 @@ export class AuthManager {
             if (githubBtn) githubBtn.style.display = 'none';
             if (discordBtn) discordBtn.style.display = 'none';
             if (statusText) statusText.textContent = `Signed in as ${user.email}`;
+            
+            // Hide custom DB button if it's already set from environment
+            const customDbBtn = document.getElementById('custom-db-btn');
+            if (customDbBtn && window.__POCKETBASE_URL__) {
+                const settingItem = customDbBtn.closest('.setting-item');
+                if (settingItem) settingItem.style.display = 'none';
+            }
         } else {
             connectBtn.textContent = 'Connect with Google';
             connectBtn.classList.remove('danger');

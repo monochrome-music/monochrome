@@ -1,17 +1,8 @@
-//js/accounts/pocketbase.js
-import PocketBase from 'pocketbase';
+import { pb } from './config.js';
 import { db } from '../db.js';
 import { authManager } from './auth.js';
 
 const PUBLIC_COLLECTION = 'public_playlists';
-const DEFAULT_POCKETBASE_URL = 'https://data.samidy.xyz';
-const POCKETBASE_URL =
-    window.__POCKETBASE_URL__ || localStorage.getItem('monochrome-pocketbase-url') || DEFAULT_POCKETBASE_URL;
-
-console.log('[PocketBase] Using URL:', POCKETBASE_URL);
-
-const pb = new PocketBase(POCKETBASE_URL);
-pb.autoCancellation(false);
 
 const syncManager = {
     pb: pb,

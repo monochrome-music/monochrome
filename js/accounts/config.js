@@ -1,28 +1,23 @@
-import { Client, Account } from 'appwrite';
+//js/accounts/config.js
+import PocketBase from 'pocketbase';
 
-const getEndpoint = () => {
-    const local = localStorage.getItem('monochrome-appwrite-endpoint');
+const getPocketBaseURL = () => {
+    const local = localStorage.getItem('monochrome-pocketbase-url');
     if (local) return local;
 
-    if (window.__APPWRITE_ENDPOINT__) return window.__APPWRITE_ENDPOINT__;
+    if (window.__POCKETBASE_URL__) return window.__POCKETBASE_URL__;
 
     const hostname = window.location.hostname;
-    if (hostname.endsWith('monochrome.tf') || hostname === 'monochrome.tf') {
-        return 'https://auth.monochrome.tf/v1';
+    // Default to the user's custom server if on Netlify or samidy.com
+    if (hostname.includes('netlify.app') || hostname.includes('samidy.com')) {
+        return 'https://pb.ahbh.top';
     }
-    return 'https://auth.samidy.com/v1';
+    
+    // Default fallback
+    return 'https://pb.ahbh.top';
 };
 
-const getProject = () => {
-    const local = localStorage.getItem('monochrome-appwrite-project');
-    if (local) return local;
+const pb = new PocketBase(getPocketBaseURL());
+pb.autoCancellation(false);
 
-    if (window.__APPWRITE_PROJECT_ID__) return window.__APPWRITE_PROJECT_ID__;
-
-    return 'auth-for-monochrome';
-};
-
-const client = new Client().setEndpoint(getEndpoint()).setProject(getProject());
-
-const account = new Account(client);
-export { client, account as auth };
+export { pb };
