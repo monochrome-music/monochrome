@@ -201,7 +201,7 @@ function injectChatStyles() {
 }
 
 function escapeHtml(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-function parseMarkdown(text){let h=escapeHtml(text);h=h.replace(/```([\s\S]*?)```/g,'<pre class="ai-cb"><code>$1</code></pre>');h=h.replace(/`([^`]+)`/g,'<code class="ai-ic">$1</code>');h=h.replace(/^### (.+)$/gm,'<h3 class="ai-h3">$1</h3>');h=h.replace(/^## (.+)$/gm,'<h2 class="ai-h2">$1</h2>');h=h.replace(/^# (.+)$/gm,'<h1 class="ai-h1">$1</h1>');h=h.replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>');h=h.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');h=h.replace(/\*([^*\n]+)\*/g,'<em>$1</em>');h=h.replace(/^&gt; (.+)$/gm,'<blockquote class="ai-bq">$1</blockquote>');h=h.replace(/^---$/gm,'<hr class="ai-hr">');h=h.replace(/^[\-\*] (.+)$/gm,'<li class="ai-li">$1</li>');h=h.replace(/(<li class="ai-li">.*<\/li>\n?)+/g,'<ul class="ai-ul">$&</ul>');h=h.replace(/^\d+\. (.+)$/gm,'<li class="ai-oli">$1</li>');h=h.replace(/(<li class="ai-oli">.*<\/li>\n?)+/g,'<ol class="ai-ol">$&</ol>');h=h.replace(/\n\n/g,'</p><p class="ai-p">');h=h.replace(/\n/g,'<br>');if(!/^<(h[1-6]|ul|ol|pre|blockquote|hr)/.test(h))h='<p class="ai-p">'+h+'</p>';return h;}
+function parseMarkdown(text){let h=escapeHtml(text);h=h.replace(/^### (.+)$/gm,'<h3 class="ai-h3">$1</h3>');h=h.replace(/^## (.+)$/gm,'<h2 class="ai-h2">$1</h2>');h=h.replace(/^# (.+)$/gm,'<h1 class="ai-h1">$1</h1>');h=h.replace(/\*\*\*(.+?)\*\*\*/g,'<strong><em>$1</em></strong>');h=h.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');h=h.replace(/\*([^*\n]+)\*/g,'<em>$1</em>');h=h.replace(/^&gt; (.+)$/gm,'<blockquote class="ai-bq">$1</blockquote>');h=h.replace(/^---$/gm,'<hr class="ai-hr">');h=h.replace(/^[\-\*] (.+)$/gm,'<li class="ai-li">$1</li>');h=h.replace(/\n\n/g,'</p><p class="ai-p">');h=h.replace(/\n/g,'<br>');return '<p class="ai-p">'+h+'</p>';}
 /**
  * Render chat messages area dan input box ke dalam container element.
  * Mengembalikan cleanup function.
@@ -293,7 +293,8 @@ function renderChatUI(container, track) {
   `;
 
   const messagesEl = container.querySelector('#ai-chat-messages');
-  const inputEl = container.querySelector('#ai-chat-input');
+    const inputEl = container.querySelector('#ai-chat-input');
+    
   const sendBtn = container.querySelector('#ai-chat-send');
 
   // Helper: buat bubble chat
