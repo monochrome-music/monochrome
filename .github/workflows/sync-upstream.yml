@@ -1,18 +1,35 @@
-name: Sync Fork with Upstream
+name: Sync Upstream
 
 on:
   schedule:
-    - cron: '0 6 * * *'  # daily at 6am UTC
-  workflow_dispatch:
+    - cron: '0 */6 * * *' # Every 6 hours
+  workflow_dispatch: # Allow manual trigger
 
 jobs:
-  sync:
+  sync_with_upstream:
     runs-on: ubuntu-latest
     steps:
-      - name: Sync fork
-        uses: repo-sync/github-sync@v2
+      - name: Checkout main
+        uses: actions/checkout@v3
         with:
-          source_repo: https://github.com/monochrome-music/monochrome.git
-          source_branch: main
-          destination_branch: main
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          ref: main             # Use your fork's branch (main)
+          fetch-depth: 0        # Full history for merge
+
+      - name: Setup git config
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+
+      - name: Sync with Upstream
+        run: |
+          git remote add upstream https://github.com/monochrome-music/monochrome
+          git fetch upstream
+          
+          echo "Attempting to merge upstream/main into main..."
+          # Try to merge without overwriting your personal changes!
+          # If there is a conflict in config.js, it will stop here.
+          git merge upstream/main --message "chore: sync with upstream"
+          
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
