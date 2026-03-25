@@ -1,19 +1,20 @@
 import { sidePanelManager } from './side-panel.js';
 
-// HuggingFace Inference API config
-const HF_MODEL = 'HuggingFaceH4/zephyr-7b-beta';
-const HF_API_URL = `https://api-inference.huggingface.co/models/${HF_MODEL}`;
+// HuggingFace Inference API v2 config
+// Model ringan & cepat: mistralai/Mistral-7B-Instruct-v0.3
+const HF_MODEL = 'mistralai/Mistral-7B-Instruct-v0.3';
+const HF_API_URL = `https://router.huggingface.co/hf-inference/models/${HF_MODEL}/v1/chat/completions`;
 
-// API key is loaded from localStorage.
-// Set via: localStorage.setItem('hf-api-key', 'your_key_here')
-// Or call initAiChat('your_key') at app startup.
+// API key dimuat dari localStorage.
+// Set via: localStorage.setItem('hf-api-key', 'hf_your_key_here')
+// Atau panggil initAiChat('hf_your_key') saat startup.
 function getHfApiKey() {
   return localStorage.getItem('hf-api-key') || '';
 }
 
 /**
- * Initialize AI chat with an API key. Call once at app startup.
- * The key is persisted to localStorage for subsequent sessions.
+ * Inisialisasi AI chat dengan API key. Panggil sekali saat startup.
+ * Key disimpan ke localStorage untuk sesi berikutnya.
  */
 export function initAiChat(apiKey) {
   if (apiKey) {
@@ -22,10 +23,10 @@ export function initAiChat(apiKey) {
 }
 
 /**
- * Shared conversation state that persists across fullscreen/drawer transitions.
+ * Shared conversation state yang persists antar transisi fullscreen/drawer.
  */
 const chatState = {
-  messages: [],          // Array of { role: 'user'|'assistant'|'intro', content: string }
+  messages: [],
   currentTrackId: null,
   currentTrackTitle: '',
   currentTrackArtist: '',
@@ -33,7 +34,7 @@ const chatState = {
 };
 
 /**
- * Build a system context string for the current track.
+ * Bangun system context string untuk track saat ini.
  */
 function getSystemContext() {
   const { currentTrackTitle, currentTrackArtist, currentTrackAlbum } = chatState;
@@ -45,7 +46,7 @@ Keep your responses concise but informative. Respond in the same language the us
 }
 
 /**
- * Update track context. Clears history if the track changed.
+ * Update track context. Hapus history jika track berubah.
  */
 function updateTrackContext(track) {
   const trackId = track?.id || track?.title || null;
@@ -66,57 +67,69 @@ function updateTrackContext(track) {
 }
 
 /**
- * Call HuggingFace Inference API with the conversation history.
+ * Panggil HuggingFace Inference API v2 (Chat Completions)
+ * dengan conversation history.
  */
 async function callHuggingFaceAPI(userMessage) {
   const apiKey = getHfApiKey();
   if (!apiKey) {
-    throw new Error('No API key configured. Run: localStorage.setItem("hf-api-key", "your_huggingface_key") in the browser console, then reload.');
+    throw new Error(
+      'API key belum dikonfigurasi. Jalankan: localStorage.setItem("hf-api-key", "hf_your_key") di browser console, lalu reload.'
+    );
   }
 
   const systemContext = getSystemContext();
 
-  // Build Zephyr prompt format
-  let prompt = `<|system|>\n${systemContext}</s>\n`;
-  const recentHistory = chatState.messages.filter(m => m.role !== 'intro').slice(-8);
+  // Bangun messages array untuk Chat Completions API
+  const messages = [
+    { role: 'system', content: systemContext },
+  ];
+
+  // Tambah history percakapan (maks 8 pesan terakhir)
+  const recentHistory = chatState.messages
+    .filter(m => m.role !== 'intro')
+    .slice(-8);
+
   for (const msg of recentHistory) {
-    if (msg.role === 'user') {
-      prompt += `<|user|>\n${msg.content}</s>\n`;
-    } else if (msg.role === 'assistant') {
-      prompt += `<|assistant|>\n${msg.content}</s>\n`;
+    if (msg.role === 'user' || msg.role === 'assistant') {
+      messages.push({ role: msg.role, content: msg.content });
     }
   }
-  // Add the latest user message if not already in history
-  if (!recentHistory.length || recentHistory[recentHistory.length - 1].content !== userMessage) {
-    prompt += `<|user|>\n${userMessage}</s>\n`;
+
+  // Tambah pesan user terbaru jika belum ada di history
+  if (
+    !recentHistory.length ||
+    recentHistory[recentHistory.length - 1].content !== userMessage
+  ) {
+    messages.push({ role: 'user', content: userMessage });
   }
-  prompt += `<|assistant|>\n`;
 
   const response = await fetch(HF_API_URL, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      inputs: prompt,
-      parameters: {
-        max_new_tokens: 512,
-        temperature: 0.7,
-        top_p: 0.9,
-        return_full_text: false,
-        do_sample: true,
-      },
+      model: HF_MODEL,
+      messages,
+      max_tokens: 512,
+      temperature: 0.7,
+      top_p: 0.9,
+      stream: false,
     }),
   });
 
   if (!response.ok) {
     const errBody = await response.text().catch(() => '');
     if (response.status === 503) {
-      throw new Error('Model is loading, please try again in a moment.');
+      throw new Error('Model sedang loading, coba lagi sebentar.');
     }
     if (response.status === 429) {
-      throw new Error('Rate limited. Please wait a moment and try again.');
+      throw new Error('Rate limited. Tunggu sebentar dan coba lagi.');
+    }
+    if (response.status === 401) {
+      throw new Error('API key tidak valid. Pastikan key dimulai dengan "hf_".');
     }
     throw new Error(`API error ${response.status}: ${errBody || response.statusText}`);
   }
@@ -125,82 +138,130 @@ async function callHuggingFaceAPI(userMessage) {
 
   if (data.error) {
     if (typeof data.error === 'string' && data.error.includes('loading')) {
-      throw new Error('Model is loading, please try again in a moment.');
+      throw new Error('Model sedang loading, coba lagi sebentar.');
     }
-    throw new Error(data.error);
+    throw new Error(typeof data.error === 'string' ? data.error : JSON.stringify(data.error));
   }
 
-  let aiText = (Array.isArray(data) ? data[0]?.generated_text : data?.generated_text)?.trim() || '';
+  const aiText =
+    data?.choices?.[0]?.message?.content?.trim() || '';
 
-  // Clean up any leftover prompt tokens
-  aiText = aiText.replace(/<\|.*?\|>/g, '').trim();
-
-  return aiText || 'Sorry, I couldn\'t generate a response. Please try again.';
+  return aiText || 'Maaf, tidak bisa membuat respons. Coba lagi.';
 }
 
 /**
- * Render the chat messages area and input box into a container element.
- * Returns a cleanup function.
+ * CSS animasi untuk bubble chat
+ */
+const CHAT_STYLES = `
+@keyframes aiBubbleIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.ai-typing-dots span {
+  display: inline-block;
+  animation: aiDotBounce 1.2s infinite;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+.ai-typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.ai-typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes aiDotBounce {
+  0%, 80%, 100% { transform: translateY(0); }
+  40%           { transform: translateY(-6px); }
+}
+`;
+
+function injectChatStyles() {
+  if (document.getElementById('ai-chat-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'ai-chat-styles';
+  style.textContent = CHAT_STYLES;
+  document.head.appendChild(style);
+}
+
+/**
+ * Render chat messages area dan input box ke dalam container element.
+ * Mengembalikan cleanup function.
  */
 function renderChatUI(container, track) {
+  injectChatStyles();
   updateTrackContext(track);
 
   const { currentTrackTitle, currentTrackArtist } = chatState;
 
-  container.style.cssText = 'display:flex;flex-direction:column;height:100%;overflow:hidden;';
+  // Layout utama: flex column, isi penuh container
+  container.style.cssText = [
+    'display:flex',
+    'flex-direction:column',
+    'height:100%',
+    'min-height:0',
+    'overflow:hidden',
+    'box-sizing:border-box',
+  ].join(';');
+
   container.innerHTML = `
     <div id="ai-chat-messages" style="
-      flex:1;
-      overflow-y:auto;
-      display:flex;
-      flex-direction:column;
-      gap:0.75rem;
-      padding:1rem;
-      padding-bottom:0.5rem;
+      flex: 1 1 0;
+      min-height: 0;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      padding: 1rem;
+      padding-bottom: 0.5rem;
+      box-sizing: border-box;
     "></div>
     <div style="
-      padding:0.75rem 1rem;
-      border-top:1px solid var(--border);
-      display:flex;
-      gap:0.5rem;
-      align-items:flex-end;
-      background:var(--background);
+      flex-shrink: 0;
+      padding: 0.75rem 1rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-end;
+      background: var(--background);
+      box-sizing: border-box;
     ">
       <textarea
         id="ai-chat-input"
         placeholder="Ask about this song..."
         rows="2"
         style="
-          flex:1;
-          resize:none;
-          background:var(--input);
-          border:1px solid var(--border);
-          border-radius:var(--radius-sm, 6px);
-          padding:0.5rem 0.75rem;
-          font-size:0.875rem;
-          color:var(--foreground);
-          font-family:inherit;
-          outline:none;
-          transition:border-color 0.2s;
+          flex: 1;
+          resize: none;
+          background: var(--input);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm, 6px);
+          padding: 0.5rem 0.75rem;
+          font-size: 0.875rem;
+          color: var(--foreground);
+          font-family: inherit;
+          outline: none;
+          transition: border-color 0.2s;
+          box-sizing: border-box;
+          min-height: 40px;
+          max-height: 120px;
+          overflow-y: auto;
         "
       ></textarea>
       <button
         id="ai-chat-send"
         title="Send message"
         style="
-          background:var(--primary);
-          color:var(--primary-foreground);
-          border:none;
-          border-radius:var(--radius-sm, 6px);
-          padding:0.5rem 1rem;
-          cursor:pointer;
-          font-size:0.875rem;
-          min-height:40px;
-          font-family:inherit;
-          transition:opacity 0.2s;
-          display:flex;
-          align-items:center;
-          justify-content:center;
+          flex-shrink: 0;
+          background: var(--primary);
+          color: var(--primary-foreground);
+          border: none;
+          border-radius: var(--radius-sm, 6px);
+          padding: 0 1rem;
+          cursor: pointer;
+          font-size: 0.875rem;
+          height: 40px;
+          min-width: 40px;
+          font-family: inherit;
+          transition: opacity 0.2s;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         "
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -212,22 +273,23 @@ function renderChatUI(container, track) {
   const inputEl = container.querySelector('#ai-chat-input');
   const sendBtn = container.querySelector('#ai-chat-send');
 
-  // Helper to create a message bubble
+  // Helper: buat bubble chat
   const createBubble = (text, isUser = false, isLoading = false) => {
     const div = document.createElement('div');
-    div.style.cssText = `
-      background:${isUser ? 'var(--primary)' : 'var(--card)'};
-      color:${isUser ? 'var(--primary-foreground)' : 'var(--foreground)'};
-      border-radius:var(--radius, 8px);
-      padding:0.75rem 1rem;
-      font-size:0.875rem;
-      align-self:${isUser ? 'flex-end' : 'flex-start'};
-      max-width:88%;
-      white-space:pre-wrap;
-      word-break:break-word;
-      animation:aiBubbleIn 0.25s ease;
-      line-height:1.5;
-    `;
+    div.style.cssText = [
+      `background:${isUser ? 'var(--primary)' : 'var(--card)'}`,
+      `color:${isUser ? 'var(--primary-foreground)' : 'var(--foreground)'}`,
+      'border-radius:var(--radius, 8px)',
+      'padding:0.75rem 1rem',
+      'font-size:0.875rem',
+      `align-self:${isUser ? 'flex-end' : 'flex-start'}`,
+      'max-width:88%',
+      'white-space:pre-wrap',
+      'word-break:break-word',
+      'animation:aiBubbleIn 0.25s ease',
+      'line-height:1.5',
+      'box-sizing:border-box',
+    ].join(';');
     if (isLoading) {
       div.innerHTML = '<span class="ai-typing-dots"><span>.</span><span>.</span><span>.</span></span>';
     } else {
@@ -236,9 +298,8 @@ function renderChatUI(container, track) {
     return div;
   };
 
-  // Render existing messages from chatState
+  // Render pesan yang sudah ada dari chatState
   if (chatState.messages.length === 0) {
-    // Add intro message
     const introText = `Hi! I'm ready to help you explore "${currentTrackTitle}" by ${currentTrackArtist}. Ask me anything — song meaning, lyrics, artist background, or context behind the music.`;
     chatState.messages.push({ role: 'intro', content: introText });
   }
@@ -248,12 +309,11 @@ function renderChatUI(container, track) {
     messagesEl.appendChild(bubble);
   }
 
-  // Scroll to bottom
   requestAnimationFrame(() => {
     messagesEl.scrollTop = messagesEl.scrollHeight;
   });
 
-  // Send message handler
+  // Handler kirim pesan
   let isSending = false;
 
   const sendMessage = async () => {
@@ -261,17 +321,16 @@ function renderChatUI(container, track) {
     if (!userText || isSending) return;
 
     inputEl.value = '';
+    inputEl.style.height = '';
     isSending = true;
     sendBtn.disabled = true;
     sendBtn.style.opacity = '0.5';
 
-    // Add user bubble
     chatState.messages.push({ role: 'user', content: userText });
     const userBubble = createBubble(userText, true);
     messagesEl.appendChild(userBubble);
     messagesEl.scrollTop = messagesEl.scrollHeight;
 
-    // Add loading bubble
     const loadingBubble = createBubble('', false, true);
     messagesEl.appendChild(loadingBubble);
     messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -283,11 +342,9 @@ function renderChatUI(container, track) {
       chatState.messages.push({ role: 'assistant', content: aiText });
     } catch (err) {
       loadingBubble.innerHTML = '';
-      const errorText = `⚠ ${err.message}`;
-      loadingBubble.textContent = errorText;
+      loadingBubble.textContent = `⚠ ${err.message}`;
       loadingBubble.style.color = 'var(--muted-foreground)';
       loadingBubble.style.fontStyle = 'italic';
-      // Don't persist error messages to chatState
     }
 
     isSending = false;
@@ -304,6 +361,10 @@ function renderChatUI(container, track) {
       sendMessage();
     }
   });
+  inputEl.addEventListener('input', () => {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+  });
   inputEl.addEventListener('focus', () => {
     inputEl.style.borderColor = 'var(--primary)';
   });
@@ -315,7 +376,7 @@ function renderChatUI(container, track) {
 }
 
 /**
- * Open AI Chat panel in side panel (same pattern as Lyrics panel)
+ * Buka AI Chat panel di side panel
  */
 export function openAiChatPanel(track) {
   updateTrackContext(track);
@@ -342,8 +403,7 @@ export function openAiChatPanel(track) {
 }
 
 /**
- * aiChatManager - manager object for AI chat panel
- * Provides toggle, open, close methods and drawer cycling logic
+ * aiChatManager - manager object untuk AI chat panel
  */
 export const aiChatManager = {
   _isOpen: false,
@@ -361,7 +421,6 @@ export const aiChatManager = {
     this._isOpen = true;
     this._wasOpenInFullscreen = true;
     openAiChatPanel(track);
-    // Toggle active class on fullscreen button
     const fsBtn = document.getElementById('fs-ai-chat-btn');
     if (fsBtn) fsBtn.classList.add('active');
   },
@@ -369,37 +428,23 @@ export const aiChatManager = {
   close() {
     this._isOpen = false;
     sidePanelManager.close();
-    // Remove active class on fullscreen button
     const fsBtn = document.getElementById('fs-ai-chat-btn');
     if (fsBtn) fsBtn.classList.remove('active');
   },
 
-  /**
-   * Called when entering fullscreen mode.
-   * Hide the drawer AI chat indicator.
-   */
   onEnterFullscreen() {
     this.hideDrawerIndicator();
   },
 
-  /**
-   * Called when exiting fullscreen mode.
-   * If AI chat was used, show the drawer indicator.
-   */
   onExitFullscreen() {
-    // Close the side panel if AI chat was open in fullscreen
     if (this._isOpen) {
       this.close();
     }
-    // Show drawer indicator if the AI chat was interacted with
     if (this._wasOpenInFullscreen && chatState.messages.length > 0) {
       this.showDrawerIndicator();
     }
   },
 
-  /**
-   * Show the AI chat indicator in the sidebar.
-   */
   showDrawerIndicator() {
     const indicator = document.getElementById('sidebar-ai-chat-item');
     if (indicator) {
@@ -408,14 +453,10 @@ export const aiChatManager = {
     }
   },
 
-  /**
-   * Hide the AI chat indicator in the sidebar.
-   */
   hideDrawerIndicator() {
     const indicator = document.getElementById('sidebar-ai-chat-item');
     if (indicator) {
       indicator.classList.remove('ai-chat-visible');
-      // Delay hiding for transition
       setTimeout(() => {
         if (!indicator.classList.contains('ai-chat-visible')) {
           indicator.style.display = 'none';
@@ -424,10 +465,7 @@ export const aiChatManager = {
     }
   },
 
-  /**
-   * Get current chat state for external use
-   */
   hasActiveChat() {
     return chatState.messages.length > 1;
-  }
+  },
 };
