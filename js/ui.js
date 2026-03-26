@@ -1146,7 +1146,7 @@ export class UIRenderer {
         }
 
         if (lyricsManager && activeElement) {
-            lyricsToggleBtn.style.display = 'flex';
+            if (lyricsToggleBtn) lyricsToggleBtn.style.display = 'flex';
             lyricsToggleBtn.classList.remove('active');
 
             const toggleLyrics = () => {
@@ -1158,7 +1158,7 @@ export class UIRenderer {
             lyricsToggleBtn.parentNode.replaceChild(newToggleBtn, lyricsToggleBtn);
             newToggleBtn.addEventListener('click', toggleLyrics);
         } else {
-            lyricsToggleBtn.style.display = 'none';
+            if (lyricsToggleBtn) lyricsToggleBtn.style.display = 'none';
         }
 
         const playerBar = document.querySelector('.now-playing-bar');
