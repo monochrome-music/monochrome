@@ -4,7 +4,7 @@ dist
 *.local
 .vite
 .vscode
-
+.claude
 # Docker
 .env
 # Neutralino
