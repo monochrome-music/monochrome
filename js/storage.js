@@ -58,8 +58,8 @@ export const apiSettings = {
             let data = null;
             let fetchError = null;
 
-            // Prefer first URL, only try others as fallback
-            const urls = [...this.INSTANCES_URLS];
+            // Shuffle URLs to pick a random one first
+            const urls = [...this.INSTANCES_URLS].sort(() => Math.random() - 0.5);
 
             for (const url of urls) {
                 try {
@@ -200,26 +200,12 @@ export const apiSettings = {
             return array;
         };
 
-        const prioritySort = (array) => {
-            const getUrl = (item) => (typeof item === 'string' ? item : item.url || '');
-            const top = [];
-            const middle = [];
-            const bottom = [];
-            for (const item of array) {
-                const url = getUrl(item);
-                if (url.includes('hifi.geeked.wtf')) top.push(item);
-                else if (url.includes('.qqdl.site')) bottom.push(item);
-                else middle.push(item);
-            }
-            return [...top, ...shuffle(middle), ...shuffle(bottom)];
-        };
-
         if (instances.api && instances.api.length) {
-            instances.api = prioritySort([...instances.api]);
+            instances.api = shuffle([...instances.api]);
         }
 
         if (instances.streaming && instances.streaming.length) {
-            instances.streaming = prioritySort([...instances.streaming]);
+            instances.streaming = shuffle([...instances.streaming]);
         }
 
         this.saveInstances(instances);
