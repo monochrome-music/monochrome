@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep:*)",
+      "Bash(find /c/Users/Admin/Documents/GitHub/monochrome -type f \\\\\\(-name *.html -o -name index.html \\\\\\))",
+      "Bash(xargs wc:*)"
+    ]
+  }
+}

@@ -1,5 +1,50 @@
 // functions/playlist/[id].js
 
+class TidalAPI {
+    static CLIENT_ID = 'txNoH4kkV41MfH25';
+    static CLIENT_SECRET = 'dQjy0MinCEvxi1O4UmxvxWnDjt4cgHBPw8ll6nYBk98=';
+
+    async getToken() {
+        const params = new URLSearchParams({
+            client_id: TidalAPI.CLIENT_ID,
+            client_secret: TidalAPI.CLIENT_SECRET,
+            grant_type: 'client_credentials',
+        });
+        const res = await fetch('https://auth.tidal.com/v1/oauth2/token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                Authorization: 'Basic ' + btoa(`${TidalAPI.CLIENT_ID}:${TidalAPI.CLIENT_SECRET}`),
+            },
+            body: params,
+        });
+        if (!res.ok) throw new Error(`Token request failed: ${res.status}`);
+        const data = await res.json();
+        return data.access_token;
+    }
+
+    async fetchJson(url, params = {}) {
+        const token = await this.getToken();
+        const u = new URL(url);
+        Object.entries(params).forEach(([k, v]) => u.searchParams.set(k, String(v)));
+        const res = await fetch(u.toString(), {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error(`Tidal API error: ${res.status}`);
+        return res.json();
+    }
+
+    async getPlaylistMetadata(id) {
+        return await this.fetchJson(`https://api.tidal.com/v1/playlists/${id}`, { countryCode: 'US' });
+    }
+
+    getCoverUrl(id, size = '1080') {
+        if (!id) return '';
+        const formattedId = String(id).replace(/-/g, '/');
+        return `https://resources.tidal.com/images/${formattedId}/${size}x${size}.jpg`;
+    }
+}
+
 class ServerAPI {
     constructor() {
         this.INSTANCES_URLS = [
@@ -75,7 +120,6 @@ class ServerAPI {
             const response = await this.fetchWithRetry(`/playlist/${id}`);
             return await response.json();
         } catch {
-            // Fallback to query param style
             const response = await this.fetchWithRetry(`/playlist?id=${id}`);
             return await response.json();
         }
@@ -97,12 +141,24 @@ export async function onRequest(context) {
     const playlistId = params.id;
 
     if (isBot && playlistId) {
+        let api;
+        let playlist;
         try {
-            const api = new ServerAPI();
-            const data = await api.getPlaylistMetadata(playlistId);
-            const playlist = data.playlist || data.data || data;
+            api = new TidalAPI();
+            playlist = await api.getPlaylistMetadata(playlistId);
+        } catch (directError) {
+            console.warn(`Direct Tidal API failed for playlist ${playlistId}, falling back to proxies:`, directError);
+            try {
+                api = new ServerAPI();
+                const data = await api.getPlaylistMetadata(playlistId);
+                playlist = data.playlist || data.data || data;
+            } catch (fallbackError) {
+                console.error(`All methods failed for playlist ${playlistId}:`, fallbackError);
+            }
+        }
 
-            if (playlist && (playlist.title || playlist.name)) {
+        if (playlist && (playlist.title || playlist.name)) {
+            try {
                 const title = playlist.title || playlist.name;
                 const trackCount = playlist.numberOfTracks;
                 const description = `Playlist • ${trackCount} Tracks\nListen on Monochrome`;
@@ -120,7 +176,7 @@ export async function onRequest(context) {
                         <title>${title}</title>
                         <meta name="description" content="${description}">
                         <meta name="theme-color" content="#000000">
-                        
+
                         <meta property="og:site_name" content="Monochrome">
                         <meta property="og:title" content="${title}">
                         <meta property="og:description" content="${description}">
@@ -128,7 +184,7 @@ export async function onRequest(context) {
                         <meta property="og:type" content="music.playlist">
                         <meta property="og:url" content="${pageUrl}">
                         <meta property="music:song_count" content="${trackCount}">
-                        
+
                         <meta name="twitter:card" content="summary_large_image">
                         <meta name="twitter:title" content="${title}">
                         <meta name="twitter:description" content="${description}">
@@ -143,9 +199,9 @@ export async function onRequest(context) {
                 `;
 
                 return new Response(metaHtml, { headers: { 'content-type': 'text/html;charset=UTF-8' } });
+            } catch (error) {
+                console.error(`Error generating meta tags for playlist ${playlistId}:`, error);
             }
-        } catch (error) {
-            console.error(`Error for playlist ${playlistId}:`, error);
         }
     }
 
