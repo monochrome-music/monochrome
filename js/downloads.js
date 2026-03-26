@@ -723,7 +723,7 @@ export async function downloadTracks(tracks, api, quality, lyricsManager = null)
     });
 }
 
-export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsManager = null) {
+export async function downloadAlbum(album, tracks, api, quality, lyricsManager = null) {
     const releaseDateStr =
         album.releaseDate || (tracks[0]?.streamStartDate ? tracks[0].streamStartDate.split('T')[0] : '');
     const releaseDate = releaseDateStr ? new Date(releaseDateStr) : null;
@@ -748,7 +748,7 @@ export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsMana
     });
 }
 
-export async function downloadPlaylistAsZip(playlist, tracks, api, quality, lyricsManager = null) {
+export async function downloadPlaylist(playlist, tracks, api, quality, lyricsManager = null) {
     const folderName = formatPathTemplate(modernSettings.folderTemplate, {
         albumTitle: playlist.title,
         albumArtist: 'Playlist',
