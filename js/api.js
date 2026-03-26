@@ -10,7 +10,7 @@ import {
     getTrackDiscNumber,
     getMimeType,
 } from './utils.js';
-import { trackDateSettings } from './storage.js';
+import { preferDolbyAtmosSettings, trackDateSettings } from './storage.js';
 import { APICache } from './cache.js';
 import { DashDownloader } from './dash-downloader.ts';
 import { HlsDownloader } from './hls-downloader.js';
@@ -1467,7 +1467,7 @@ export class LosslessAPI {
         return result;
     }
 
-    async getStreamUrl(id, quality = 'HI_RES_LOSSLESS') {
+    async getStreamUrl(id, quality = 'HI_RES_LOSSLESS', download = false) {
         const cacheKey = `stream_info_${id}_${quality}`;
 
         if (this.streamCache.has(cacheKey)) {
@@ -1514,7 +1514,7 @@ export class LosslessAPI {
                 paramsArray.push(['formats', 'AACLC']);
                 paramsArray.push(['formats', 'FLAC_HIRES']);
                 paramsArray.push(['formats', 'FLAC']);
-            } else if (quality === 'DOLBY_ATMOS' && canPlayAtmos) {
+            } else if (quality === 'DOLBY_ATMOS' && (canPlayAtmos || download)) {
                 paramsArray.push(['formats', 'EAC3_JOC']);
             } else {
                 // Default fallback or "auto" behavior
@@ -1522,7 +1522,7 @@ export class LosslessAPI {
                 paramsArray.push(['formats', 'AACLC']);
                 paramsArray.push(['formats', 'FLAC']);
                 paramsArray.push(['formats', 'FLAC_HIRES']);
-                if (canPlayAtmos) {
+                if (canPlayAtmos || download) {
                     paramsArray.push(['formats', 'EAC3_JOC']);
                 }
             }
@@ -1635,6 +1635,10 @@ export class LosslessAPI {
     }
 
     async enrichTrack(input, { downloadQuality = 'HI_RES_LOSSLESS' }) {
+        if (downloadQuality == 'DOLBY_ATMOS' && !input?.audioModes?.includes('DOLBY_ATMOS')) {
+            downloadQuality = 'LOSSLESS';
+        }
+
         const id = input?.id || input;
         const track = typeof input === 'object' ? input : await this.getTrack(id, downloadQuality);
         const isVideo = track?.type?.toLowerCase().includes('video');
@@ -1725,7 +1729,7 @@ export class LosslessAPI {
      *
      * @throws {Error} If stream URL cannot be resolved, manifest is missing, or download fails
      * @throws {AbortError} If the download is aborted via the signal
-     * @throws {MP3EncodingError|FfmpegError} If audio transcoding fails
+     * @throws {FfmpegError} If audio transcoding fails
      */
     async downloadTrack(id, quality = 'HI_RES_LOSSLESS', filename, options = {}) {
         // Load ffmpeg in the background.
@@ -1738,7 +1742,7 @@ export class LosslessAPI {
 
         try {
             // Custom FFMPEG formats are not native TIDAL qualities; download LOSSLESS and transcode
-            const downloadQuality = isCustomFormat(quality) ? 'LOSSLESS' : quality;
+            let downloadQuality = isCustomFormat(quality) ? 'LOSSLESS' : quality;
 
             const { lookup, enrichedTrack, isVideo } = await this.enrichTrack(track, { downloadQuality });
 
@@ -1768,9 +1772,22 @@ export class LosslessAPI {
                     throw new Error('Could not resolve manifest');
                 }
 
-                streamUrl = this.extractStreamUrlFromManifest(manifest);
+                if (preferDolbyAtmosSettings.isEnabled() && track.audioModes?.includes('DOLBY_ATMOS')) {
+                    try {
+                        const stream = await this.getStreamUrl(id, 'DOLBY_ATMOS', true);
+                        const manifest = await fetch(stream.url);
+                        const manifestText = await manifest.text();
+                        streamUrl = this.extractStreamUrlFromManifest(btoa(manifestText));
+                    } catch (err) {
+                        console.error('Failed to extract Dolby Atmos stream URL:', err);
+                    }
+                }
+
                 if (!streamUrl) {
-                    throw new Error('Could not resolve stream URL');
+                    streamUrl = this.extractStreamUrlFromManifest(manifest);
+                    if (!streamUrl) {
+                        throw new Error('Could not resolve stream URL');
+                    }
                 }
             }
 

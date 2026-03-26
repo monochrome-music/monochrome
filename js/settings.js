@@ -34,6 +34,7 @@ import {
     gaplessPlaybackSettings,
     analyticsSettings,
     modalSettings,
+    preferDolbyAtmosSettings,
 } from './storage.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
 import { db } from './db.js';
@@ -830,7 +831,6 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     if (downloadQualitySetting) {
         // Assign categories to the static (native) options already in the HTML
         const staticCategories = {
-            DOLBY_ATMOS: 'Spatial',
             HI_RES_LOSSLESS: 'Lossless',
             LOSSLESS: 'Lossless',
             HIGH: 'AAC',
@@ -857,7 +857,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             const m = text.match(/(\d+)\s*kbps/i);
             return m ? parseInt(m[1], 10) : Infinity;
         };
-        const categoryOrder = ['Spatial', 'Lossless', 'AAC', 'MP3', 'OGG'];
+        const categoryOrder = ['Lossless', 'AAC', 'MP3', 'OGG'];
         allOptions.sort((a, b) => {
             if (a.category == b.category && a.category === 'Lossless') return 0; // Preserve original order for lossless options
             const ai = categoryOrder.indexOf(a.category);
@@ -892,6 +892,14 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         downloadQualitySetting.addEventListener('change', (e) => {
             downloadQualitySettings.setQuality(e.target.value);
             updateLosslessContainerVisibility();
+        });
+    }
+
+    const prefersAtmosSetting = document.getElementById('dolby-atmos-toggle');
+    if (prefersAtmosSetting) {
+        prefersAtmosSetting.checked = preferDolbyAtmosSettings.isEnabled();
+        prefersAtmosSetting.addEventListener('change', (e) => {
+            preferDolbyAtmosSettings.setEnabled(e.target.checked);
         });
     }
 
