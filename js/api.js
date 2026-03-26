@@ -14,7 +14,6 @@ import { trackDateSettings } from './storage.js';
 import { APICache } from './cache.js';
 import { DashDownloader } from './dash-downloader.ts';
 import { HlsDownloader } from './hls-downloader.js';
-import { MP3EncodingError } from './mp3-encoder.js';
 import { loadFfmpeg, FfmpegError, ffmpeg } from './ffmpeg.js';
 import { triggerDownload, applyAudioPostProcessing } from './download-utils.ts';
 import { isCustomFormat } from './ffmpegFormats.ts';
@@ -1877,7 +1876,15 @@ export class LosslessAPI {
                 try {
                     if (isVideo) {
                         blob = new File(
-                            [await ffmpeg(blob, ['-c', 'copy'], 'output.mp4', 'video/mp4', onProgress, options.signal)],
+                            [
+                                await ffmpeg(blob, {
+                                    args: ['-c', 'copy'],
+                                    outputName: 'output.mp4',
+                                    outputMime: 'video/mp4',
+                                    onProgress,
+                                    signal: options.signal,
+                                }),
+                            ],
                             'output.mp4',
                             { type: 'video/mp4' }
                         );
@@ -1908,11 +1915,7 @@ export class LosslessAPI {
                 throw error;
             }
             console.error('Download failed:', error);
-            if (
-                error instanceof MP3EncodingError ||
-                error instanceof FfmpegError ||
-                error.code === 'MP3_ENCODING_FAILED'
-            ) {
+            if (error instanceof FfmpegError || error.code === 'MP3_ENCODING_FAILED') {
                 throw error;
             }
             if (error.message === RATE_LIMIT_ERROR_MESSAGE) {

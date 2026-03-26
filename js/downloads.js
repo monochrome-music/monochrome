@@ -980,11 +980,32 @@ function createBulkDownloadNotification(type, name, _totalItems) {
     return notifEl;
 }
 
+/**
+ *
+ * @param {HTMLElement} notifEl
+ * @param {number} current
+ * @param {number} total
+ * @param {string} currentItem
+ * @param {FfmpegProgress | ProgressMessage | null} progress
+ * @returns
+ */
 function updateBulkDownloadProgress(notifEl, current, total, currentItem, progress = null) {
+    /** @type {HTMLElement | null} */
     const progressFill = notifEl.querySelector('.download-progress-fill');
+
+    /** @type {HTMLElement | null} */
     const statusEl = notifEl.querySelector('.download-status');
 
+    if (!progressFill || !statusEl) {
+        console.log('Progress elements not found in notification');
+        return;
+    }
+
     if (progress instanceof FfmpegProgress) {
+        if (progress.stage == 'stdout') {
+            return;
+        }
+
         const percent = progress.progress || 0;
         progressFill.style.width = `${percent}%`;
         progressFill.style.background = '#3b82f6'; // Blue for encoding
