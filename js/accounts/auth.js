@@ -97,6 +97,19 @@ export class AuthManager {
         }
     }
 
+        async signInWithFacebook() {
+                    try {
+                                    auth.createOAuth2Session(
+                                                        'facebook',
+                                                        window.location.origin + '/index.html?oauth=1',
+                                                        window.location.origin + '/login.html'
+                                                    );
+                                } catch (error) {
+                                    console.error('Login failed:', error);
+                                    alert(`Login failed: ${error.message}`);
+                                }
+                }
+
     async signInWithEmail(email, password) {
         try {
             await auth.createEmailPasswordSession(email, password);
