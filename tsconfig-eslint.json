@@ -10,7 +10,7 @@
             "!/*": ["node_modules/*"]
         },
         "allowJs": true,
-        "checkJs": false,
+        "checkJs": true,
         "resolveJsonModule": true,
         "isolatedModules": true,
         "verbatimModuleSyntax": true,
