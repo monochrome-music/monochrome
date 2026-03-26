@@ -284,5 +284,16 @@
         "explicit": true,
         "audioQuality": "LOSSLESS",
         "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 473188494,
+        "title": "Blue Flame",
+        "artist": { "id": 3799089, "name": "Lil B" },
+        "releaseDate": "2010-09-13",
+        "cover": "35b19623-cb5c-491a-81ea-ebac108c58f2",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
     }
 ]
