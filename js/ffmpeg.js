@@ -3,6 +3,10 @@ import coreJs from '!/@ffmpeg/core/dist/esm/ffmpeg-core.js?blob-url';
 import coreWasm from '!/@ffmpeg/core/dist/esm/ffmpeg-core.wasm?blob-url';
 import { FfmpegProgress } from './ffmpeg.types';
 
+/**
+ * @typedef {import('./ffmpeg.types.ts').FfmpegProgress} FfmpegProgress
+ */
+
 class FfmpegError extends Error {
     constructor(message) {
         super(message);
@@ -31,7 +35,7 @@ export function loadFfmpeg() {
  * @param {string[]} args
  * @param {string} outputName
  * @param {string} outputMime
- * @param {(progress: import('./ffmpeg.types.ts').FfmpegProgress) => void} onProgress
+ * @param {(progress: FfmpegProgress) => void} onProgress
  * @param {AbortSignal|null} signal
  * @param {Array<{name: string, data: ArrayBuffer | Uint8Array}>} extraFiles
  * @returns {Promise<Blob>} Encoded audio blob
@@ -126,7 +130,7 @@ async function ffmpegWorker(
  * @param {string[]} [args=[]] - FFmpeg command-line arguments
  * @param {string} [outputName='output'] - Name of the output file
  * @param {string} [outputMime='application/octet-stream'] - MIME type of the output
- * @param {(progress: import('./ffmpeg.types.ts').FfmpegProgress) => void} [onProgress=null] - Optional callback for progress updates
+ * @param {(progress: FfmpegProgress) => void} [onProgress=null] - Optional callback for progress updates
  * @param {AbortSignal|null} [signal=null] - Optional abort signal to cancel encoding
  * @param {Array} [extraFiles=[]] - Additional files to provide to FFmpeg
  * @returns {Promise<Blob>} Encoded audio blob

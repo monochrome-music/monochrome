@@ -1,7 +1,13 @@
 import { getCoverBlob, getTrackTitle, getFullArtistString, getMimeType, getTrackCoverId } from './utils.js';
 import { addMetadataWithTagLib, getMetadataWithTagLib } from './taglib.ts';
-import { doTimed, doTimedAsync } from './doTimed.ts';
 import { LyricsManager } from './lyrics.js';
+import { Mp4Stik } from './taglib.types.ts';
+
+/**
+ * @typedef {import('./container-classes.ts').Track} Track
+ * @typedef {import('./container-classes.ts').EnrichedTrack} EnrichedTrack
+ * @typedef {import("./taglib.types.ts").TagLibMetadata} TagLibMetadata
+ */
 
 export function prefetchMetadataObjects(track, api, coverBlob = null) {
     const coverId = getTrackCoverId(track);
@@ -18,7 +24,7 @@ export function prefetchMetadataObjects(track, api, coverBlob = null) {
 /**
  * Adds metadata tags to audio files (FLAC, M4A or MP3)
  * @param {Blob} audioBlob - The audio file blob
- * @param {Object} track - Track metadata
+ * @param {Track | EnrichedTrack} track - Track metadata
  * @param {Object} api - API instance for fetching album art
  * @param {string} quality - Audio quality
  * @returns {Promise<Blob>} - Audio blob with embedded metadata
@@ -27,7 +33,7 @@ export async function addMetadataToAudio(audioBlob, track, api, _quality, prefet
     const { coverFetch, lyricsFetch } = prefetchPromises;
 
     /**
-     * @type {import("./taglib.worker.ts").TagLibMetadata}
+     * @type {TagLibMetadata}
      */
     const data = {};
 
@@ -42,7 +48,17 @@ export async function addMetadataToAudio(audioBlob, track, api, _quality, prefet
         data.totalDiscs = track.album?.totalDiscs;
         data.copyright = track.copyright;
         data.isrc = track.isrc;
+        data.upc = track.album?.upc;
         data.explicit = Boolean(track.explicit);
+        data.stik = track.type?.toLowerCase().includes('video') ? Mp4Stik.MusicVideo : Mp4Stik.Normal;
+        data.extra = {
+            TIDAL_TRACK_ID: track.id ? String(track.id) : undefined,
+            TIDAL_ALBUM_ID: track.album?.id ? String(track.album?.id) : undefined,
+            TIDAL_TRACK_URL: track.url?.trim() || undefined,
+            TIDAL_ALBUM_URL: track.album?.url?.trim() || undefined,
+            ALBUM_RELEASE_DATE: track.album?.releaseDate?.trim() || undefined,
+            TIDAL_DATA: JSON.stringify(track, null, 2).replace(/\n/g, '\r\n'),
+        };
 
         if (track.bpm != null) {
             const bpm = Number(track.bpm);

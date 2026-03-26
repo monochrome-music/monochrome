@@ -24,6 +24,15 @@ import { resolveDownloadTotalBytes } from './downloadProgressUtils.js';
 import { readableStreamIterator } from './readableStreamIterator.js';
 import { HiFiClient, TidalResponse } from './HiFi.ts';
 import { isIos, isSafari } from './platform-detection.js';
+import {
+    TrackAlbum,
+    EnrichedAlbum,
+    EnrichedTrack,
+    ReplayGain,
+    PlaybackInfo,
+    Track,
+    Album,
+} from './container-classes.js';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 export { resolveDownloadTotalBytes };
@@ -229,7 +238,7 @@ export class LosslessAPI {
 
         if (track.type && typeof track.type === 'string') {
             const lowType = track.type.toLowerCase();
-            if (lowType === 'video' || lowType === 'track') {
+            if (lowType.includes('video') || lowType.includes('track')) {
                 normalized = { ...track, type: lowType };
             }
         }
@@ -794,6 +803,16 @@ export class LosslessAPI {
             });
         }
 
+        tracks = tracks.map((t) => {
+            if (t.album) {
+                t.album = Object.assign(new TrackAlbum(), t.album);
+            }
+
+            return Object.assign(new Track(), t);
+        });
+
+        album = Object.assign(new Album(), album);
+
         const result = { album, tracks };
 
         if (!(response instanceof TidalResponse)) {
@@ -906,6 +925,14 @@ export class LosslessAPI {
         // Removed to reduce API load. Playlists can be very large.
         // tracks = await this.enrichTracksWithAlbumDates(tracks);
 
+        tracks = tracks.map((t) => {
+            if (t.album) {
+                t.album = Object.assign(new TrackAlbum(), t.album);
+            }
+
+            return Object.assign(new Track(), t);
+        });
+
         const result = { playlist, tracks };
 
         if (!(response instanceof TidalResponse)) {
@@ -949,6 +976,14 @@ export class LosslessAPI {
         // Enrich tracks with album release dates
         // Limited to reduce API load
         tracks = await this.enrichTracksWithAlbumDates(tracks, 10);
+
+        tracks = tracks.map((t) => {
+            if (t.album) {
+                t.album = Object.assign(new TrackAlbum(), t.album);
+            }
+
+            return Object.assign(new Track(), t);
+        });
 
         const mix = {
             id: mixData.id,
@@ -1315,7 +1350,7 @@ export class LosslessAPI {
 
         const isTrack = (v) => v?.id && v.duration;
         const isAlbum = (v) => v?.id && 'numberOfTracks' in v;
-        const isVideo = (v) => v?.id && v.type === 'VIDEO';
+        const isVideo = (v) => v?.id && !!v.type?.toLowerCase().includes('video');
 
         const scan = (value, visited) => {
             if (!value || typeof value !== 'object' || visited.has(value)) return;
@@ -1906,6 +1941,74 @@ export class LosslessAPI {
         return streamUrl;
     }
 
+    async enrichTrack(input, { downloadQuality = 'HI_RES_LOSSLESS' }) {
+        const id = input?.id || input;
+        const track = typeof input === 'object' ? input : await this.getTrack(id, downloadQuality);
+        const isVideo = track?.type?.toLowerCase().includes('video');
+        downloadQuality = isCustomFormat(downloadQuality) ? 'LOSSLESS' : downloadQuality;
+
+        let lookup;
+        if (isVideo) {
+            lookup = await this.getVideo(id);
+        } else {
+            lookup = Object.assign(new PlaybackInfo(), await this.getTrack(id, downloadQuality));
+        }
+
+        if (input instanceof EnrichedTrack) {
+            return {
+                lookup,
+                enrichedTrack: input,
+                isVideo,
+            };
+        }
+
+        const enrichedTrack = { ...track };
+        if (lookup.info) {
+            enrichedTrack.replayGain = Object.assign(new ReplayGain(), {
+                trackReplayGain: lookup.info.trackReplayGain,
+                trackPeakAmplitude: lookup.info.trackPeakAmplitude,
+                albumReplayGain: lookup.info.albumReplayGain,
+                albumPeakAmplitude: lookup.info.albumPeakAmplitude,
+            });
+        }
+
+        if (track.album?.id && (track.album?.totalDiscs == null || track.album?.numberOfTracksOnDisc == null)) {
+            try {
+                const albumData = await this.getAlbum(track.album.id);
+                enrichedTrack.album = Object.assign(new EnrichedAlbum(), {
+                    ...albumData.album,
+                    ...enrichedTrack.album,
+                });
+
+                if (albumData.tracks?.length > 0) {
+                    const discTrackCounts = new Map();
+                    let maxDiscNumber = 0;
+                    for (const t of albumData.tracks) {
+                        const dn = getTrackDiscNumber(t);
+                        discTrackCounts.set(dn, (discTrackCounts.get(dn) || 0) + 1);
+                        if (dn > maxDiscNumber) maxDiscNumber = dn;
+                    }
+                    const totalDiscs = maxDiscNumber || 1;
+                    const discNumber = getTrackDiscNumber(track);
+                    enrichedTrack.album = Object.assign(new EnrichedAlbum(), {
+                        ...(enrichedTrack.album || {}),
+
+                        totalDiscs: track.album?.totalDiscs ?? totalDiscs,
+                        numberOfTracksOnDisc: track.album?.numberOfTracksOnDisc ?? discTrackCounts.get(discNumber),
+                    });
+                }
+            } catch (e) {
+                console.warn('Failed to fetch album for disc info:', e);
+            }
+        }
+
+        if (!(enrichedTrack.album instanceof EnrichedAlbum)) {
+            enrichedTrack.album = Object.assign(new TrackAlbum(), enrichedTrack.album);
+        }
+
+        return { lookup, enrichedTrack: Object.assign(new EnrichedTrack(), enrichedTrack), isVideo };
+    }
+
     /**
      * Downloads a track or video from TIDAL in the specified quality.
      *
@@ -1939,18 +2042,12 @@ export class LosslessAPI {
 
         const { onProgress, track, calculateDashBytes = true } = options;
         const prefetchPromises = prefetchMetadataObjects(track, this);
-        const isVideo = track?.type === 'video';
 
         try {
             // Custom FFMPEG formats are not native TIDAL qualities; download LOSSLESS and transcode
             const downloadQuality = isCustomFormat(quality) ? 'LOSSLESS' : quality;
 
-            let lookup;
-            if (isVideo) {
-                lookup = await this.getVideo(id);
-            } else {
-                lookup = await this.getTrack(id, downloadQuality);
-            }
+            const { lookup, enrichedTrack, isVideo } = await this.enrichTrack(track, { downloadQuality });
 
             let streamUrl;
             let blob;
@@ -2081,41 +2178,6 @@ export class LosslessAPI {
                     stage: 'processing',
                     message: 'Adding metadata...',
                 });
-
-                const enrichedTrack = { ...track };
-                if (lookup.info) {
-                    enrichedTrack.replayGain = {
-                        trackReplayGain: lookup.info.trackReplayGain,
-                        trackPeakAmplitude: lookup.info.trackPeakAmplitude,
-                        albumReplayGain: lookup.info.albumReplayGain,
-                        albumPeakAmplitude: lookup.info.albumPeakAmplitude,
-                    };
-                }
-
-                if (track.album?.id && (track.album?.totalDiscs == null || track.album?.numberOfTracksOnDisc == null)) {
-                    try {
-                        const albumData = await this.getAlbum(track.album.id);
-                        if (albumData.tracks?.length > 0) {
-                            const discTrackCounts = new Map();
-                            let maxDiscNumber = 0;
-                            for (const t of albumData.tracks) {
-                                const dn = getTrackDiscNumber(t);
-                                discTrackCounts.set(dn, (discTrackCounts.get(dn) || 0) + 1);
-                                if (dn > maxDiscNumber) maxDiscNumber = dn;
-                            }
-                            const totalDiscs = maxDiscNumber || 1;
-                            const discNumber = getTrackDiscNumber(track);
-                            enrichedTrack.album = {
-                                ...(enrichedTrack.album || {}),
-                                totalDiscs: track.album?.totalDiscs ?? totalDiscs,
-                                numberOfTracksOnDisc:
-                                    track.album?.numberOfTracksOnDisc ?? discTrackCounts.get(discNumber),
-                            };
-                        }
-                    } catch (e) {
-                        console.warn('Failed to fetch album for disc info:', e);
-                    }
-                }
 
                 onProgress?.(new DownloadProgress('Adding metadata'));
                 try {
