@@ -72,16 +72,18 @@ class ServerAPI {
         }
 
         if (data) {
-            this.apiInstances = (data.api || []).map((item) => item.url || item);
+            this.apiInstances = (data.api || [])
+                .map((item) => item.url || item)
+                .filter((url) => !/\.squid\.wtf/i.test(url));
             return this.apiInstances;
         }
 
         console.error('Failed to load instances from all uptime APIs');
         return [
+            'https://hifi.geeked.wtf',
             'https://eu-central.monochrome.tf',
             'https://us-west.monochrome.tf',
             'https://arran.monochrome.tf',
-            'https://triton.squid.wtf',
             'https://api.monochrome.tf',
             'https://monochrome-api.samidy.com',
             'https://maus.qqdl.site',
@@ -135,7 +137,7 @@ class ServerAPI {
 export async function onRequest(context) {
     const { request, params, env } = context;
     const userAgent = request.headers.get('User-Agent') || '';
-    const isBot = /discordbot|twitterbot|facebookexternalhit|bingbot|googlebot|slurp|whatsapp|pinterest|slackbot/i.test(
+    const isBot = /discordbot|twitterbot|facebookexternalhit|bingbot|googlebot|slurp|whatsapp|pinterest|slackbot|telegrambot|linkedinbot|mastodon|signal|snapchat|redditbot|skypeuripreview|viberbot|linebot|embedly|quora|outbrain|tumblr|duckduckbot|yandexbot|rogerbot|showyoubot|kakaotalk|naverbot|seznambot|mediapartners|adsbot|petalbot|applebot|ia_archiver/i.test(
         userAgent
     );
     const albumId = params.id;
