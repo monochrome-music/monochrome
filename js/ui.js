@@ -1950,11 +1950,6 @@ export class UIRenderer {
                         trackDataStore.set(el, playlist);
                     }
                 });
-            } else if (folders.length === 0) {
-                myPlaylistsContainer.insertAdjacentHTML(
-                    'afterbegin',
-                    createPlaceholder('No playlists yet. Create your first playlist!')
-                );
             }
         }
 

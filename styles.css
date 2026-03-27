@@ -6817,6 +6817,10 @@ img[src=''] {
         padding: var(--spacing-sm);
     }
 
+    .track-item.track-item--inline-like {
+        grid-template-columns: 36px minmax(0, 1fr) auto minmax(2.5rem, auto) auto;
+    }
+
     .track-item-info {
         gap: var(--spacing-sm);
         min-width: 0;
@@ -7084,6 +7088,10 @@ img[src=''] {
         padding: var(--spacing-xs);
     }
 
+    .track-item.track-item--inline-like {
+        grid-template-columns: 32px minmax(0, 1fr) auto minmax(2.25rem, auto) auto;
+    }
+
     .track-number {
         width: 32px;
     }
@@ -7248,6 +7256,10 @@ img[src=''] {
 
     .track-item {
         grid-template-columns: 32px 1fr 32px auto;
+    }
+
+    .track-item.track-item--inline-like {
+        grid-template-columns: 32px minmax(0, 1fr) auto minmax(2.25rem, auto) auto;
     }
 
     .player-controls .buttons button {
