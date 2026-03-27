@@ -943,51 +943,36 @@ export class Player {
 
                 await this.safePlay(activeElement);
             } else {
-                const isQobuz = String(track.id).startsWith('q:');
+                // Tidal: Try to get ReplayGain from manifest first, supplement with track info if needed
+                const streamInfoPromise = this.preloadCache.has(track.id)
+                    ? Promise.resolve(this.preloadCache.get(track.id))
+                    : this.api.getStreamUrl(track.id, this.quality);
 
-                if (isQobuz) {
-                    // Qobuz: skip getTrack call, directly fetch stream URL
-                    this.currentRgValues = null;
+                // We only need the legacy track info if we missed getting ReplayGain from the manifest endpoint
+                const resolvedStreamInfo = await streamInfoPromise;
+                if (this.playbackSequence !== currentSequence) return;
+
+                streamUrl = resolvedStreamInfo.url;
+
+                if (resolvedStreamInfo.rgInfo) {
+                    this.currentRgValues = resolvedStreamInfo.rgInfo;
                     this.applyReplayGain();
-
-                    if (this.preloadCache.has(track.id)) {
-                        streamUrl = this.preloadCache.get(track.id).url;
-                    } else {
-                        const streamInfo = await this.api.getStreamUrl(track.id, this.quality);
-                        streamUrl = streamInfo.url;
-                    }
                 } else {
-                    // Tidal: Try to get ReplayGain from manifest first, supplement with track info if needed
-                    const streamInfoPromise = this.preloadCache.has(track.id)
-                        ? Promise.resolve(this.preloadCache.get(track.id))
-                        : this.api.getStreamUrl(track.id, this.quality);
-
-                    // We only need the legacy track info if we missed getting ReplayGain from the manifest endpoint
-                    const resolvedStreamInfo = await streamInfoPromise;
+                    // Fallback to legacy metadata if manifest lacked normalization data
+                    const trackData = await this.api.getTrack(track.id, this.quality).catch(() => null);
                     if (this.playbackSequence !== currentSequence) return;
 
-                    streamUrl = resolvedStreamInfo.url;
-
-                    if (resolvedStreamInfo.rgInfo) {
-                        this.currentRgValues = resolvedStreamInfo.rgInfo;
-                        this.applyReplayGain();
+                    if (trackData && trackData.info) {
+                        this.currentRgValues = {
+                            trackReplayGain: trackData.info.trackReplayGain,
+                            trackPeakAmplitude: trackData.info.trackPeakAmplitude,
+                            albumReplayGain: trackData.info.albumReplayGain,
+                            albumPeakAmplitude: trackData.info.albumPeakAmplitude,
+                        };
                     } else {
-                        // Fallback to legacy metadata if manifest lacked normalization data
-                        const trackData = await this.api.getTrack(track.id, this.quality).catch(() => null);
-                        if (this.playbackSequence !== currentSequence) return;
-
-                        if (trackData && trackData.info) {
-                            this.currentRgValues = {
-                                trackReplayGain: trackData.info.trackReplayGain,
-                                trackPeakAmplitude: trackData.info.trackPeakAmplitude,
-                                albumReplayGain: trackData.info.albumReplayGain,
-                                albumPeakAmplitude: trackData.info.albumPeakAmplitude,
-                            };
-                        } else {
-                            this.currentRgValues = null;
-                        }
-                        this.applyReplayGain();
+                        this.currentRgValues = null;
                     }
+                    this.applyReplayGain();
                 }
 
                 if (this.playbackSequence !== currentSequence) return;
