@@ -1424,10 +1424,10 @@ export async function handleTrackAction(
         });
 
         // Handle Library Page Update
-        if (window.location.hash === '#library') {
+        if (window.location.pathname.split('/').filter(Boolean)[0] === 'library') {
             const itemSelector =
                 type === 'track'
-                    ? `.track-item[data-track-id="${id}"]`
+                    ? `.track-item[data-track-id="${id}"], .card[data-track-id="${id}"]`
                     : type === 'video'
                       ? `.video-card[data-video-id="${id}"]`
                       : `.card[data-${type}-id="${id}"], .card[data-playlist-id="${id}"]`;
@@ -1455,17 +1455,29 @@ export async function handleTrackAction(
                         const placeholder = tracksContainer.querySelector('.placeholder-text');
                         if (placeholder) placeholder.remove();
 
-                        const index = tracksContainer.children.length;
-                        const trackHTML = ui.createTrackItemHTML(item, index, true, false);
-
+                        const layout = localStorage.getItem('libraryLikedTracksView') || 'list';
                         const tempDiv = document.createElement('div');
-                        tempDiv.innerHTML = trackHTML;
+                        if (layout === 'grid') {
+                            tracksContainer.className = 'card-grid';
+                            tempDiv.innerHTML = ui.createTrackCardHTML(item);
+                        } else {
+                            tracksContainer.className = 'track-list';
+                            const index = tracksContainer.children.length;
+                            tempDiv.innerHTML = ui.createTrackItemHTML(item, index, true, false, false, true);
+                        }
                         const newEl = tempDiv.firstElementChild;
 
                         if (newEl) {
                             tracksContainer.appendChild(newEl);
                             trackDataStore.set(newEl, item);
-                            ui.updateLikeState(newEl, 'track', item.id);
+                            ui.updateLikeState(newEl, item.type === 'video' ? 'video' : 'track', item.id);
+                            const likedToolbar = document.getElementById('library-liked-tracks-toolbar');
+                            if (likedToolbar) likedToolbar.style.display = 'flex';
+                            const shuffleBtn = document.getElementById('shuffle-liked-tracks-btn');
+                            const downloadBtn = document.getElementById('download-liked-tracks-btn');
+                            if (shuffleBtn) shuffleBtn.style.display = 'flex';
+                            if (downloadBtn) downloadBtn.style.display = 'flex';
+                            ui.setupLibraryLikedTracksSearch(tracksContainer);
                         }
                     }
                 } else if (type === 'video') {
@@ -2145,7 +2157,8 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             trackItem &&
             !trackItem.dataset.queueIndex &&
             !e.target.closest('.remove-from-playlist-btn') &&
-            !e.target.closest('.artist-link')
+            !e.target.closest('.artist-link') &&
+            !e.target.closest('.like-btn')
         ) {
             const clickedTrackId = trackItem.dataset.trackId;
             const isSearch = window.location.pathname.startsWith('/search/');

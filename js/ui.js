@@ -116,6 +116,16 @@ function sortTracks(tracks, sortType) {
     }
 }
 
+const TRACKLIST_HEADER_WITH_LIKE_COL_HTML = `
+    <div class="track-list-header">
+        <span style="width: 40px; text-align: center;">#</span>
+        <span>Title</span>
+        <span class="track-list-header-spacer" aria-hidden="true"></span>
+        <span class="duration-header">Duration</span>
+        <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
+    </div>
+`;
+
 export class UIRenderer {
     static #instance = null;
 
@@ -371,7 +381,14 @@ export class UIRenderer {
         }
     }
 
-    createTrackItemHTML(track, index, showCover = false, hasMultipleDiscs = false, useTrackNumber = false) {
+    createTrackItemHTML(
+        track,
+        index,
+        showCover = false,
+        hasMultipleDiscs = false,
+        useTrackNumber = false,
+        inlineLike = false
+    ) {
         const isUnavailable = track.isUnavailable;
         const isBlocked = contentBlockingSettings?.shouldHideTrack(track);
         const isVideo = track.type === 'video';
@@ -440,12 +457,23 @@ export class UIRenderer {
             ? `title="Blocked: ${contentBlockingSettings.isTrackBlocked(track.id) ? 'Track blocked' : contentBlockingSettings.isArtistBlocked(track.artist?.id) ? 'Artist blocked' : 'Album blocked'}"`
             : '';
 
+        const likeType = isVideo ? 'video' : 'track';
+        const showRowLike = inlineLike && !isUnavailable && !isBlocked;
+        const inlineLikeHTML = showRowLike
+            ? `<div class="track-item-inline-like">
+                <button type="button" class="like-btn track-row-like-btn" data-action="toggle-like" data-type="${likeType}" title="Add to Liked">
+                    ${this.createHeartIcon(false)}
+                </button>
+            </div>`
+            : '';
+
         const classList = [
             'track-item',
             isVideo ? 'video-track-item' : '',
             isCurrentTrack ? 'playing' : '',
             isUnavailable ? 'unavailable' : '',
             isBlocked ? 'blocked' : '',
+            showRowLike ? 'track-item--inline-like' : '',
         ]
             .filter(Boolean)
             .join(' ');
@@ -470,6 +498,7 @@ export class UIRenderer {
                         <div class="artist">${getTrackArtistsHTML(track)}${yearDisplay}</div>
                     </div>
                 </div>
+                ${inlineLikeHTML}
                 <div class="track-item-duration">${isUnavailable || isBlocked ? '--:--' : track.duration ? formatTime(track.duration) : '--:--'}</div>
                 <div class="track-item-actions">
                     ${actionsHTML}
@@ -704,7 +733,11 @@ export class UIRenderer {
         const duration = formatTime(video.duration);
         const artistName = getTrackArtists(video);
 
-        const videoCoverUrl = this.api.getVideoCoverUrl(video.imageId);
+        const videoCoverCandidate = video.imageId || video.image || video.cover || null;
+        const videoCoverUrl =
+            videoCoverCandidate && (typeof videoCoverCandidate === 'string' || typeof videoCoverCandidate === 'number')
+                ? this.api.getVideoCoverUrl(videoCoverCandidate)
+                : null;
         const cover = video.image || video.cover;
         let imageHTML;
 
@@ -870,7 +903,51 @@ export class UIRenderer {
         searchInput.addEventListener('input', listener);
     }
 
-    renderListWithTracks(container, tracks, showCover, append = false, useTrackNumber = false) {
+    setupLibraryLikedTracksSearch(container) {
+        const searchInput = document.getElementById('library-liked-tracks-search');
+        if (!searchInput || !container) return;
+
+        this.setupSearchClearButton(searchInput);
+
+        const oldListener = searchInput._libraryLikedSearchListener;
+        if (oldListener) {
+            searchInput.removeEventListener('input', oldListener);
+        }
+
+        const listener = () => {
+            const query = searchInput.value.toLowerCase().trim();
+            const selector = container.classList.contains('card-grid')
+                ? '.card[data-track-id]'
+                : '.track-item';
+            container.querySelectorAll(selector).forEach((item) => {
+                const track = trackDataStore.get(item);
+                if (!track) {
+                    item.style.display = '';
+                    return;
+                }
+                const title = (getTrackTitle(track) || '').toLowerCase();
+                const artist = (
+                    track.artist?.name ||
+                    track.artists?.[0]?.name ||
+                    ''
+                ).toLowerCase();
+                const matches = !query || title.includes(query) || artist.includes(query);
+                item.style.display = matches ? '' : 'none';
+            });
+        };
+
+        searchInput._libraryLikedSearchListener = listener;
+        searchInput.addEventListener('input', listener);
+    }
+
+    renderListWithTracks(
+        container,
+        tracks,
+        showCover,
+        append = false,
+        useTrackNumber = false,
+        inlineLike = false
+    ) {
         const fragment = document.createDocumentFragment();
         const tempDiv = document.createElement('div');
 
@@ -878,7 +955,9 @@ export class UIRenderer {
         const hasMultipleDiscs = tracks.some((t) => (t.volumeNumber || t.discNumber || 1) > 1);
 
         tempDiv.innerHTML = tracks
-            .map((track, i) => this.createTrackItemHTML(track, i, showCover, hasMultipleDiscs, useTrackNumber))
+            .map((track, i) =>
+                this.createTrackItemHTML(track, i, showCover, hasMultipleDiscs, useTrackNumber, inlineLike)
+            )
             .join('');
 
         // Bind data to elements immediately using index, avoiding selector ambiguity
@@ -1022,6 +1101,11 @@ export class UIRenderer {
         if (isRealVideo) {
             if (sidePanelManager.isActive('lyrics')) {
                 sidePanelManager.close();
+            }
+
+            const fsLikeBtn = document.getElementById('fs-like-btn');
+            if (fsLikeBtn) {
+                this.updateLikeState(fsLikeBtn.parentElement, 'video', track.id);
             }
 
             if (videoContainer) {
@@ -1711,14 +1795,39 @@ export class UIRenderer {
         const likedTracks = await db.getFavorites('track');
         const shuffleBtn = document.getElementById('shuffle-liked-tracks-btn');
         const downloadBtn = document.getElementById('download-liked-tracks-btn');
+        const likedToolbar = document.getElementById('library-liked-tracks-toolbar');
+        const viewListBtn = document.getElementById('library-liked-tracks-view-list');
+        const viewGridBtn = document.getElementById('library-liked-tracks-view-grid');
+        const likedViewLayout = localStorage.getItem('libraryLikedTracksView') || 'list';
 
         if (likedTracks.length) {
+            if (likedToolbar) likedToolbar.style.display = 'flex';
             if (shuffleBtn) shuffleBtn.style.display = 'flex';
             if (downloadBtn) downloadBtn.style.display = 'flex';
-            this.renderListWithTracks(tracksContainer, likedTracks, true);
+            if (viewListBtn) viewListBtn.classList.toggle('active', likedViewLayout === 'list');
+            if (viewGridBtn) viewGridBtn.classList.toggle('active', likedViewLayout === 'grid');
+
+            if (likedViewLayout === 'grid') {
+                tracksContainer.className = 'card-grid';
+                tracksContainer.innerHTML = likedTracks.map((t) => this.createTrackCardHTML(t)).join('');
+                likedTracks.forEach((track) => {
+                    const el = tracksContainer.querySelector(`[data-track-id="${track.id}"]`);
+                    if (el) {
+                        trackDataStore.set(el, track);
+                        const lt = track.type === 'video' ? 'video' : 'track';
+                        this.updateLikeState(el, lt, track.id);
+                    }
+                });
+            } else {
+                tracksContainer.className = 'track-list';
+                this.renderListWithTracks(tracksContainer, likedTracks, true, false, false, true);
+            }
+            this.setupLibraryLikedTracksSearch(tracksContainer);
         } else {
+            if (likedToolbar) likedToolbar.style.display = 'none';
             if (shuffleBtn) shuffleBtn.style.display = 'none';
             if (downloadBtn) downloadBtn.style.display = 'none';
+            tracksContainer.className = 'track-list';
             tracksContainer.innerHTML = createPlaceholder('No liked tracks yet.');
         }
 
@@ -1733,6 +1842,7 @@ export class UIRenderer {
                         trackDataStore.set(el, video);
                         this.updateLikeState(el, 'video', video.id);
                         el.addEventListener('click', (e) => {
+                            if (e.target.closest('.like-btn')) return;
                             if (e.target.closest('.card-play-btn') || e.target.closest('.card-image-container')) {
                                 e.stopPropagation();
                                 this.player.playVideo(video);
@@ -1826,22 +1936,25 @@ export class UIRenderer {
         const visiblePlaylists = myPlaylists.filter((p) => !playlistsInFolders.has(p.id));
 
         if (myPlaylistsContainer) {
+            myPlaylistsContainer.querySelectorAll('.user-playlist').forEach((el) => el.remove());
+            myPlaylistsContainer.querySelectorAll('.placeholder-text').forEach((el) => el.remove());
+
             if (visiblePlaylists.length) {
-                myPlaylistsContainer.innerHTML = visiblePlaylists
-                    .map((p) => this.createUserPlaylistCardHTML(p))
-                    .join('');
+                myPlaylistsContainer.insertAdjacentHTML(
+                    'afterbegin',
+                    visiblePlaylists.map((p) => this.createUserPlaylistCardHTML(p)).join('')
+                );
                 visiblePlaylists.forEach((playlist) => {
                     const el = myPlaylistsContainer.querySelector(`[data-user-playlist-id="${playlist.id}"]`);
                     if (el) {
                         trackDataStore.set(el, playlist);
                     }
                 });
-            } else {
-                if (folders.length === 0) {
-                    myPlaylistsContainer.innerHTML = createPlaceholder('No playlists yet. Create your first playlist!');
-                } else {
-                    myPlaylistsContainer.innerHTML = '';
-                }
+            } else if (folders.length === 0) {
+                myPlaylistsContainer.insertAdjacentHTML(
+                    'afterbegin',
+                    createPlaceholder('No playlists yet. Create your first playlist!')
+                );
             }
         }
 
@@ -2268,7 +2381,7 @@ export class UIRenderer {
                 this.lastRecommendedTracks = filteredTracks;
 
                 if (filteredTracks.length > 0) {
-                    this.renderListWithTracks(songsContainer, filteredTracks, true);
+                    this.renderListWithTracks(songsContainer, filteredTracks, true, false, false, true);
                 } else {
                     songsContainer.innerHTML = createPlaceholder('No song recommendations found.');
                 }
@@ -2343,6 +2456,7 @@ export class UIRenderer {
         const explicitBadge = hasExplicitContent(track) ? this.createExplicitBadge() : '';
         const qualityBadge = createQualityBadgeHTML(track);
         const isCompact = cardSettings.isCompactAlbum();
+        const likeType = track.type === 'video' ? 'video' : 'track';
 
         return this.createBaseCardHTML({
             type: 'track',
@@ -2358,7 +2472,7 @@ export class UIRenderer {
                 track.videoUrl || track.album?.videoCoverUrl
             ),
             actionButtonsHTML: `
-                <button class="like-btn card-like-btn" data-action="toggle-like" data-type="track" title="Add to Liked">
+                <button class="like-btn card-like-btn" data-action="toggle-like" data-type="${likeType}" title="Add to Liked">
                     ${this.createHeartIcon(false)}
                 </button>
             `,
@@ -2854,7 +2968,7 @@ export class UIRenderer {
             trackSearch(query, totalResults);
 
             if (finalTracks.length) {
-                this.renderListWithTracks(tracksContainer, finalTracks, true);
+                this.renderListWithTracks(tracksContainer, finalTracks, true, false, false, true);
             } else {
                 tracksContainer.innerHTML = createPlaceholder('No tracks found.');
             }
@@ -2869,7 +2983,9 @@ export class UIRenderer {
                     const el = videosContainer.querySelector(`[data-video-id="${video.id}"]`);
                     if (el) {
                         trackDataStore.set(el, video);
+                        this.updateLikeState(el, 'video', video.id);
                         el.addEventListener('click', (e) => {
+                            if (e.target.closest('.like-btn')) return;
                             if (e.target.closest('.card-play-btn') || e.target.closest('.card-image-container')) {
                                 e.stopPropagation();
                                 this.player.playVideo(video);
@@ -3318,7 +3434,7 @@ export class UIRenderer {
             recommendedTracks = contentBlockingSettings.filterTracks(recommendedTracks);
 
             if (recommendedTracks.length > 0) {
-                this.renderListWithTracks(recommendedContainer, recommendedTracks, true);
+                this.renderListWithTracks(recommendedContainer, recommendedTracks, true, false, false, true);
 
                 const trackItems = recommendedContainer.querySelectorAll('.track-item');
                 trackItems.forEach((item) => {
@@ -3343,14 +3459,15 @@ export class UIRenderer {
 
                                         const tracklistContainer = document.getElementById('playlist-detail-tracklist');
                                         if (tracklistContainer && updatedPlaylist.tracks) {
-                                            tracklistContainer.innerHTML = `
-                                                                                                                                                <div class="track-list-header">
-                                                                                                                                                    <span style="width: 40px; text-align: center;">#</span>
-                                                                                                                                                    <span>Title</span>
-                                                                                                                                                    <span class="duration-header">Duration</span>
-                                                                                                                                                    <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
-                                                                                                                                                </div>                                            `;
-                                            this.renderListWithTracks(tracklistContainer, updatedPlaylist.tracks, true);
+                                            tracklistContainer.innerHTML = TRACKLIST_HEADER_WITH_LIKE_COL_HTML;
+                                            this.renderListWithTracks(
+                                                tracklistContainer,
+                                                updatedPlaylist.tracks,
+                                                true,
+                                                true,
+                                                false,
+                                                true
+                                            );
 
                                             if (document.querySelector('.remove-from-playlist-btn')) {
                                                 this.enableTrackReordering(
@@ -3421,15 +3538,7 @@ export class UIRenderer {
         titleEl.innerHTML = '<div class="skeleton" style="height: 48px; width: 300px; max-width: 90%;"></div>';
         metaEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 200px; max-width: 80%;"></div>';
         descEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 100%;"></div>';
-        tracklistContainer.innerHTML = `
-            <div class="track-list-header">
-                <span style="width: 40px; text-align: center;">#</span>
-                <span>Title</span>
-                <span class="duration-header">Duration</span>
-                <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
-            </div>
-            ${this.createSkeletonTracks(10, true)}
-        `;
+        tracklistContainer.innerHTML = `${TRACKLIST_HEADER_WITH_LIKE_COL_HTML}${this.createSkeletonTracks(10, true)}`;
 
         try {
             // Check if it's a user playlist (UUID format)
@@ -3519,15 +3628,8 @@ export class UIRenderer {
                 const renderTracks = () => {
                     // Re-fetch container each time because enableTrackReordering clones it
                     const container = document.getElementById('playlist-detail-tracklist');
-                    container.innerHTML = `
-                        <div class="track-list-header">
-                            <span style="width: 40px; text-align: center;">#</span>
-                            <span>Title</span>
-                            <span class="duration-header">Duration</span>
-                            <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
-                        </div>
-                    `;
-                    this.renderListWithTracks(container, currentTracks, true, true);
+                    container.innerHTML = TRACKLIST_HEADER_WITH_LIKE_COL_HTML;
+                    this.renderListWithTracks(container, currentTracks, true, true, false, true);
 
                     // Add remove buttons and enable reordering ONLY IF OWNED
                     if (ownedPlaylist) {
@@ -3670,15 +3772,8 @@ export class UIRenderer {
                 let currentTracks = sortTracks(originalTracks, currentSort);
 
                 const renderTracks = () => {
-                    tracklistContainer.innerHTML = `
-                        <div class="track-list-header">
-                            <span style="width: 40px; text-align: center;">#</span>
-                            <span>Title</span>
-                            <span class="duration-header">Duration</span>
-                            <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
-                        </div>
-                    `;
-                    this.renderListWithTracks(tracklistContainer, currentTracks, true, true);
+                    tracklistContainer.innerHTML = TRACKLIST_HEADER_WITH_LIKE_COL_HTML;
+                    this.renderListWithTracks(tracklistContainer, currentTracks, true, true, false, true);
                 };
 
                 const applySort = (sortType) => {
@@ -3801,15 +3896,7 @@ export class UIRenderer {
         titleEl.innerHTML = '<div class="skeleton" style="height: 48px; width: 300px; max-width: 90%;"></div>';
         metaEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 200px; max-width: 80%;"></div>';
         descEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 100%;"></div>';
-        tracklistContainer.innerHTML = `
-            <div class="track-list-header">
-                <span style="width: 40px; text-align: center;">#</span>
-                <span>Title</span>
-                <span class="duration-header">Duration</span>
-                <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
-            </div>
-            ${this.createSkeletonTracks(10, true)}
-        `;
+        tracklistContainer.innerHTML = `${TRACKLIST_HEADER_WITH_LIKE_COL_HTML}${this.createSkeletonTracks(10, true)}`;
 
         try {
             const { mix, tracks } = await this.api.getMix(mixId, provider);
@@ -3920,16 +4007,9 @@ export class UIRenderer {
             metaEl.textContent = `${tracks.length} tracks • ${formatDuration(totalDuration)}`;
             descEl.innerHTML = `${mix.subTitle}`;
 
-            tracklistContainer.innerHTML = `
-                <div class="track-list-header">
-                    <span style="width: 40px; text-align: center;">#</span>
-                    <span>Title</span>
-                    <span class="duration-header">Duration</span>
-                    <span style="display: flex; justify-content: flex-end; opacity: 0.8;">Menu</span>
-                </div>
-            `;
+            tracklistContainer.innerHTML = TRACKLIST_HEADER_WITH_LIKE_COL_HTML;
 
-            this.renderListWithTracks(tracklistContainer, tracks, true, true);
+            this.renderListWithTracks(tracklistContainer, tracks, true, true, false, true);
 
             // Set play button action
             playBtn.onclick = () => {
