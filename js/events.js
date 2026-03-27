@@ -1458,10 +1458,12 @@ export async function handleTrackAction(
                         const layout = localStorage.getItem('libraryLikedTracksView') || 'list';
                         const tempDiv = document.createElement('div');
                         if (layout === 'grid') {
-                            tracksContainer.className = 'card-grid';
+                            tracksContainer.classList.remove('track-list');
+                            tracksContainer.classList.add('card-grid');
                             tempDiv.innerHTML = ui.createTrackCardHTML(item);
                         } else {
-                            tracksContainer.className = 'track-list';
+                            tracksContainer.classList.remove('card-grid');
+                            tracksContainer.classList.add('track-list');
                             const index = tracksContainer.children.length;
                             tempDiv.innerHTML = ui.createTrackItemHTML(item, index, true, false, false, true);
                         }
@@ -1470,7 +1472,7 @@ export async function handleTrackAction(
                         if (newEl) {
                             tracksContainer.appendChild(newEl);
                             trackDataStore.set(newEl, item);
-                            ui.updateLikeState(newEl, item.type === 'video' ? 'video' : 'track', item.id);
+                            ui.updateLikeState(newEl, 'track', item.id);
                             const likedToolbar = document.getElementById('library-liked-tracks-toolbar');
                             if (likedToolbar) likedToolbar.style.display = 'flex';
                             const shuffleBtn = document.getElementById('shuffle-liked-tracks-btn');

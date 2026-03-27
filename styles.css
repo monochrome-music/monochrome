@@ -2419,7 +2419,7 @@ body.multi-select-mode .track-item:hover {
 }
 
 .track-row-like-btn.active {
-    color: var(--highlight);
+    color: #ef4444;
 }
 
 .track-item-duration {
