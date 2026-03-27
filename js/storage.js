@@ -77,28 +77,25 @@ export const apiSettings = {
                 console.error('Failed to load instances from all uptime APIs:', fetchError);
                 this.defaultInstances = {
                     api: [
-                        { url: 'https://eu-central.monochrome.tf', version: '2.4' },
-                        { url: 'https://us-west.monochrome.tf', version: '2.4' },
-                        { url: 'https://arran.monochrome.tf', version: '2.4' },
-                        { url: 'https://triton.squid.wtf', version: '2.4' },
-                        { url: 'https://api.monochrome.tf', version: '2.3' },
+                        { url: 'https://hifi.geeked.wtf', version: '2.7' },
+                        { url: 'https://eu-central.monochrome.tf', version: '2.7' },
+                        { url: 'https://us-west.monochrome.tf', version: '2.7' },
+                        { url: 'https://api.monochrome.tf', version: '2.5' },
                         { url: 'https://monochrome-api.samidy.com', version: '2.3' },
-                        { url: 'https://maus.qqdl.site', version: '2.2' },
-                        { url: 'https://vogel.qqdl.site', version: '2.2' },
-                        { url: 'https://katze.qqdl.site', version: '2.2' },
-                        { url: 'https://hund.qqdl.site', version: '2.2' },
+                        { url: 'https://maus.qqdl.site', version: '2.6' },
+                        { url: 'https://vogel.qqdl.site', version: '2.6' },
+                        { url: 'https://katze.qqdl.site', version: '2.6' },
+                        { url: 'https://hund.qqdl.site', version: '2.6' },
                         { url: 'https://tidal.kinoplus.online', version: '2.2' },
                         { url: 'https://wolf.qqdl.site', version: '2.2' },
                     ],
                     streaming: [
-                        { url: 'https://arran.monochrome.tf', version: '2.4' },
-                        { url: 'https://triton.squid.wtf', version: '2.4' },
-                        { url: 'https://maus.qqdl.site', version: '2.2' },
-                        { url: 'https://vogel.qqdl.site', version: '2.2' },
-                        { url: 'https://katze.qqdl.site', version: '2.2' },
-                        { url: 'https://hund.qqdl.site', version: '2.2' },
-                        { url: 'https://wolf.qqdl.site', version: '2.2' },
-                        { url: 'https://hifi.p1nkhamster.xyz/', version: '2.6' },
+                        { url: 'https://hifi.geeked.wtf', version: '2.7' },
+                        { url: 'https://maus.qqdl.site', version: '2.6' },
+                        { url: 'https://vogel.qqdl.site', version: '2.6' },
+                        { url: 'https://katze.qqdl.site', version: '2.6' },
+                        { url: 'https://hund.qqdl.site', version: '2.6' },
+                        { url: 'https://wolf.qqdl.site', version: '2.6' },
                     ],
                 };
                 this.instancesLoaded = true;
@@ -108,12 +105,17 @@ export const apiSettings = {
 
             let groupedInstances = { api: [], streaming: [] };
 
+            const isBlockedInstance = (item) => {
+                const url = typeof item === 'string' ? item : item.url;
+                return url && /\.squid\.wtf/i.test(url);
+            };
+
             if (data.api && Array.isArray(data.api)) {
-                groupedInstances.api = data.api;
+                groupedInstances.api = data.api.filter((item) => !isBlockedInstance(item));
             }
 
             if (data.streaming && Array.isArray(data.streaming)) {
-                groupedInstances.streaming = data.streaming;
+                groupedInstances.streaming = data.streaming.filter((item) => !isBlockedInstance(item));
             } else if (groupedInstances.api.length > 0) {
                 groupedInstances.streaming = [...groupedInstances.api];
             }
@@ -1806,7 +1808,6 @@ export const sidebarSectionSettings = {
     SHOW_DONATE_KEY: 'sidebar-show-donate',
     SHOW_SETTINGS_KEY: 'sidebar-show-settings',
     SHOW_ABOUT_KEY: 'sidebar-show-about',
-    SHOW_DOWNLOAD_KEY: 'sidebar-show-download',
     SHOW_DISCORD_KEY: 'sidebar-show-discord',
     SHOW_GITHUB_KEY: 'sidebar-show-github',
     ORDER_KEY: 'sidebar-menu-order',
@@ -1818,7 +1819,6 @@ export const sidebarSectionSettings = {
         'sidebar-nav-donate',
         'sidebar-nav-settings',
         'sidebar-nav-about-bottom',
-        'sidebar-nav-download-bottom',
         'sidebar-nav-discordbtn',
         'sidebar-nav-githubbtn',
     ],
@@ -1919,19 +1919,6 @@ export const sidebarSectionSettings = {
         localStorage.setItem(this.SHOW_ABOUT_KEY, enabled ? 'true' : 'false');
     },
 
-    shouldShowDownload() {
-        try {
-            const val = localStorage.getItem(this.SHOW_DOWNLOAD_KEY);
-            return val === null ? true : val === 'true';
-        } catch {
-            return true;
-        }
-    },
-
-    setShowDownload(enabled) {
-        localStorage.setItem(this.SHOW_DOWNLOAD_KEY, enabled ? 'true' : 'false');
-    },
-
     shouldShowDiscord() {
         try {
             const val = localStorage.getItem(this.SHOW_DISCORD_KEY);
@@ -2016,7 +2003,6 @@ export const sidebarSectionSettings = {
             { id: 'sidebar-nav-donate', check: this.shouldShowDonate() },
             { id: 'sidebar-nav-settings', check: this.shouldShowSettings() },
             { id: 'sidebar-nav-about-bottom', check: this.shouldShowAbout() },
-            { id: 'sidebar-nav-download-bottom', check: this.shouldShowDownload() },
             { id: 'sidebar-nav-discordbtn', check: this.shouldShowDiscord() },
             { id: 'sidebar-nav-githubbtn', check: this.shouldShowGithub() },
         ];
