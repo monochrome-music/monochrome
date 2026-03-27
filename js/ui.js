@@ -738,13 +738,18 @@ export class UIRenderer {
             videoCoverCandidate && (typeof videoCoverCandidate === 'string' || typeof videoCoverCandidate === 'number')
                 ? this.api.getVideoCoverUrl(videoCoverCandidate)
                 : null;
-        const cover = video.image || video.cover;
+        const coverFallback = video.image || video.cover;
+        const coverPrimitive =
+            coverFallback != null &&
+            (typeof coverFallback === 'string' || typeof coverFallback === 'number')
+                ? coverFallback
+                : null;
         let imageHTML;
 
         if (videoCoverUrl) {
             imageHTML = `<img src="${videoCoverUrl}" alt="${escapeHtml(video.title)}" class="card-image" loading="lazy">`;
-        } else if (cover) {
-            imageHTML = this.getCoverHTML(cover, escapeHtml(video.title));
+        } else if (coverPrimitive) {
+            imageHTML = this.getCoverHTML(coverPrimitive, escapeHtml(video.title));
         } else {
             imageHTML = `<div class="card-image video-icon-placeholder" style="display: flex; align-items: center; justify-content: center; background: var(--secondary); aspect-ratio: 16/9; width: 100%;">${SVG_PLAY(48, { style: 'opacity: 0.7;' })}</div>`;
         }
@@ -843,18 +848,20 @@ export class UIRenderer {
         const oldListener = clearBtn._clearListener;
         if (oldListener) clearBtn.removeEventListener('click', oldListener);
 
-        // Toggle visibility based on input value
+        const oldToggle = inputElement._searchClearToggleListener;
+        if (oldToggle) inputElement.removeEventListener('input', oldToggle);
+
         const toggleVisibility = () => {
             clearBtn.style.display = inputElement.value.trim() ? 'flex' : 'none';
         };
 
-        // Clear input on click
         const clearListener = () => {
             inputElement.value = '';
             inputElement.dispatchEvent(new Event('input'));
             inputElement.focus();
         };
 
+        inputElement._searchClearToggleListener = toggleVisibility;
         inputElement.addEventListener('input', toggleVisibility);
         clearBtn._clearListener = clearListener;
         clearBtn.addEventListener('click', clearListener);
@@ -1718,6 +1725,7 @@ export class UIRenderer {
     }
 
     showPage(pageId) {
+        const previousPage = this.currentPage;
         this.currentPage = pageId;
         document.querySelectorAll('.page').forEach((page) => {
             page.classList.toggle('active', page.id === `page-${pageId}`);
@@ -1730,7 +1738,10 @@ export class UIRenderer {
             );
         });
 
-        document.querySelector('.main-content').scrollTop = 0;
+        const mainContent = document.querySelector('.main-content');
+        if (mainContent && previousPage !== pageId) {
+            mainContent.scrollTop = 0;
+        }
 
         // Clear artist context when navigating away from artist page
         if (pageId !== 'artist') {
@@ -1809,7 +1820,8 @@ export class UIRenderer {
             if (viewGridBtn) viewGridBtn.classList.toggle('active', likedViewLayout === 'grid');
 
             if (likedViewLayout === 'grid') {
-                tracksContainer.className = 'card-grid';
+                tracksContainer.classList.remove('track-list');
+                tracksContainer.classList.add('card-grid');
                 tracksContainer.innerHTML = likedTracks.map((t) => this.createTrackCardHTML(t)).join('');
                 likedTracks.forEach((track) => {
                     const el = tracksContainer.querySelector(`[data-track-id="${track.id}"]`);
@@ -1820,7 +1832,8 @@ export class UIRenderer {
                     }
                 });
             } else {
-                tracksContainer.className = 'track-list';
+                tracksContainer.classList.remove('card-grid');
+                tracksContainer.classList.add('track-list');
                 this.renderListWithTracks(tracksContainer, likedTracks, true, false, false, true);
             }
             this.setupLibraryLikedTracksSearch(tracksContainer);
@@ -1828,7 +1841,8 @@ export class UIRenderer {
             if (likedToolbar) likedToolbar.style.display = 'none';
             if (shuffleBtn) shuffleBtn.style.display = 'none';
             if (downloadBtn) downloadBtn.style.display = 'none';
-            tracksContainer.className = 'track-list';
+            tracksContainer.classList.remove('card-grid');
+            tracksContainer.classList.add('track-list');
             tracksContainer.innerHTML = createPlaceholder('No liked tracks yet.');
         }
 

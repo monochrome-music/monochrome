@@ -19,6 +19,7 @@ jobs:
               uses: actions/checkout@v4
               with:
                   fetch-depth: 1
+                  ref: ${{ github.head_ref || github.ref }}
 
             - name: Setup Bun
               uses: oven-sh/setup-bun@v1
@@ -55,7 +56,6 @@ jobs:
                   commit_message: 'style: auto-fix linting issues'
                   commit_user_name: 'github-actions[bot]'
                   commit_user_email: 'github-actions[bot]@users.noreply.github.com'
-                  only_if_changed: true
 
             - name: Run HTML Lint
               run: bun run lint:html
