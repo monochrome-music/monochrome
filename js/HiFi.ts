@@ -149,7 +149,7 @@ class HiFiClient {
 
     setToken({ token, tokenExpiry, refreshToken }: HiFiClient.TokenOptions & HiFiClient.RefreshTokenOptions) {
         this.token = token;
-        this.appTokenExpiry = this.appTokenExpiry;
+        this.appTokenExpiry = tokenExpiry;
         this.refreshToken = refreshToken;
     }
 
