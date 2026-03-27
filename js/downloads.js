@@ -20,6 +20,7 @@ import { db } from './db.js';
 import { modernSettings } from './ModernSettings.js';
 import { SVG_CLOSE } from './icons.ts';
 import { LyricsManager } from './lyrics.js';
+import { MusicAPI } from './music-api.js';
 
 const downloadTasks = new Map();
 const bulkDownloadTasks = new Map();
@@ -1012,7 +1013,13 @@ function completeBulkDownload(notifEl, success = true, message = null) {
     }
 }
 
-export async function downloadTrackWithMetadata(track, quality, api, lyricsManager = null, abortController = null) {
+export async function downloadTrackWithMetadata(
+    track,
+    quality,
+    api = MusicAPI.instance.tidalAPI,
+    lyricsManager = null,
+    abortController = null
+) {
     if (!track) {
         alert('No track is currently playing');
         return;
@@ -1024,7 +1031,7 @@ export async function downloadTrackWithMetadata(track, quality, api, lyricsManag
         return;
     }
 
-    const { enrichedTrack } = await api.tidalAPI.enrichTrack(track, { downloadQuality: quality });
+    const { enrichedTrack } = await api.enrichTrack(track, { downloadQuality: quality });
     const filename = buildTrackFilename(enrichedTrack, quality);
 
     const controller = abortController || new AbortController();
