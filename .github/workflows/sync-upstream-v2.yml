@@ -2,8 +2,8 @@ name: Sinkronisasi Upstream (Penggabungan Cerdas)
 
 on:
   schedule:
-          # Cek setiap 2 detik
-            - cron: '* * * * *' # Runs every minute (GitHub Actions minimum; detik tidak didukung)
+          # Cek setiap 5 menit
+         - cron: '*/5 * * * *'
   workflow_dispatch:
     inputs:
       force_sync:
