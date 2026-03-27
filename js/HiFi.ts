@@ -249,7 +249,7 @@ class HiFiClient {
         while (true) {
             const unauthorized = res?.status === 401;
             const previousResponse = res;
-            const token = await await this.#fetchAppToken({
+            const token = await this.#fetchAppToken({
                 clientId: this.#clientId,
                 clientSecret: this.#clientSecret,
                 signal,
