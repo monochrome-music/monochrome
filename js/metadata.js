@@ -189,7 +189,7 @@ export async function readTrackMetadata(file, { filename = file?.name || 'Unknow
         console.warn('Error reading metadata for', filename, e);
     }
 
-    if (metadata.album.cover === 'assets/appicon.png' && siblings.length > 0) {
+    if (metadata.album.cover === 'assets/appicon.png' && siblings?.length > 0) {
         const baseName = filename.substring(0, filename.lastIndexOf('.'));
         const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
         const coverFile = siblings.find((f) => {
