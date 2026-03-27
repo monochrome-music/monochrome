@@ -1641,7 +1641,7 @@ export async function handleTrackAction(
         // Use stored href from card if available, otherwise construct URL
         const contextMenu = document.getElementById('context-menu');
         const storedHref = contextMenu?._contextHref;
-        const typeForUrl= type === 'user-playlist' ? 'userplaylist' : type;
+        const typeForUrl = type === 'user-playlist' ? 'userplaylist' : type;
         const url = getShareUrl(storedHref ? storedHref : `/${typeForUrl}/${item.id || item.uuid}`);
 
         trackCopyLink(type, item.id || item.uuid);
