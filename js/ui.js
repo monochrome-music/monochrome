@@ -938,6 +938,7 @@ export class UIRenderer {
 
         searchInput._libraryLikedSearchListener = listener;
         searchInput.addEventListener('input', listener);
+        listener();
     }
 
     renderListWithTracks(
@@ -1842,7 +1843,10 @@ export class UIRenderer {
                         trackDataStore.set(el, video);
                         this.updateLikeState(el, 'video', video.id);
                         el.addEventListener('click', (e) => {
-                            if (e.target.closest('.like-btn')) return;
+                            if (e.target.closest('.like-btn')) {
+                                e.stopPropagation();
+                                return;
+                            }
                             if (e.target.closest('.card-play-btn') || e.target.closest('.card-image-container')) {
                                 e.stopPropagation();
                                 this.player.playVideo(video);
@@ -2980,7 +2984,10 @@ export class UIRenderer {
                         trackDataStore.set(el, video);
                         this.updateLikeState(el, 'video', video.id);
                         el.addEventListener('click', (e) => {
-                            if (e.target.closest('.like-btn')) return;
+                            if (e.target.closest('.like-btn')) {
+                                e.stopPropagation();
+                                return;
+                            }
                             if (e.target.closest('.card-play-btn') || e.target.closest('.card-image-container')) {
                                 e.stopPropagation();
                                 this.player.playVideo(video);
