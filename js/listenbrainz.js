@@ -249,7 +249,7 @@ export class ListenBrainzScrobbler {
     }
 
     async loveTrack(track) {
-        if (!track.artist?.name || track.title) return;
+        if (!track.artist?.name || !track.title) return;
         const trackKey = `${track.artist.name}-${track.title}`;
         if (!this.isEnabled() || this.lovingTracks.has(trackKey)) return;
         this.lovingTracks.add(trackKey);
