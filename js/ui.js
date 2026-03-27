@@ -1959,7 +1959,7 @@ export class UIRenderer {
 
             if (visiblePlaylists.length) {
                 myPlaylistsContainer.insertAdjacentHTML(
-                    'afterbegin',
+                    'beforeend',
                     visiblePlaylists.map((p) => this.createUserPlaylistCardHTML(p)).join('')
                 );
                 visiblePlaylists.forEach((playlist) => {

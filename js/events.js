@@ -2249,6 +2249,34 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                 return;
             }
 
+            const libraryTracksContainer = card.closest('#library-tracks-container');
+            if (libraryTracksContainer && card.dataset.trackId) {
+                if (
+                    e.target.closest('.like-btn') ||
+                    e.target.closest('.card-play-btn') ||
+                    e.target.closest('.card-menu-btn')
+                ) {
+                    return;
+                }
+                e.preventDefault();
+                const clickedTrackId = card.dataset.trackId;
+                const clickedTrack = trackDataStore.get(card);
+                if (!clickedTrack) return;
+                const allTrackElements = Array.from(
+                    libraryTracksContainer.querySelectorAll('.card[data-track-id]')
+                );
+                const trackList = allTrackElements.map((el) => trackDataStore.get(el)).filter(Boolean);
+                if (trackList.length === 0) return;
+                const startIndex = trackList.findIndex((t) => t.id == clickedTrackId);
+                player.setQueue(trackList, startIndex);
+                if (ui.currentPage === 'artist' && ui.currentArtistId) {
+                    player.setArtistPopularTracksContext(ui.currentArtistId, trackList, trackList.length, true);
+                }
+                document.getElementById('shuffle-btn').classList.remove('active');
+                player.playTrackFromQueue();
+                return;
+            }
+
             const href = card.dataset.href;
             if (href) {
                 // Allow native links inside card to work if any exist

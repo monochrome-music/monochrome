@@ -6047,6 +6047,10 @@ img[src=''] {
     margin-bottom: var(--spacing-lg);
 }
 
+#page-library #my-playlists-container .library-create-dashed-card {
+    order: 1;
+}
+
 #page-library .library-create-dashed-card {
     display: block;
     width: 100%;
