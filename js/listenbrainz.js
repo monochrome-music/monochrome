@@ -253,7 +253,7 @@ export class ListenBrainzScrobbler {
         const trackKey = `${track.artist.name}-${track.title}`;
         if (!this.isEnabled() || this.lovingTracks.has(trackKey)) return;
         this.lovingTracks.add(trackKey);
-        
+
         try {
             const apiUrl = this.getApiUrl();
             const mbids = await this._lookupMbids(track);
