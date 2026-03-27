@@ -1240,15 +1240,10 @@ export class LosslessAPI {
         if (cached) return cached;
 
         try {
-            const url = `https://api.tidal.com/v1/artists/${artistId}/bio?locale=en_US&countryCode=GB`;
-            const response = await fetch(url, {
-                headers: {
-                    'X-Tidal-Token': TIDAL_V2_TOKEN,
-                },
-            });
+            const response = await HiFiClient.instance.query(`/artist/bio/?id=${artistId}`);
 
             if (response.ok) {
-                const data = await response.json();
+                const { data } = await response.json();
                 if (data && data.text) {
                     const bio = {
                         text: data.text,
