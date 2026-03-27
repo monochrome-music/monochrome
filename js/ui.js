@@ -4821,7 +4821,6 @@ export class UIRenderer {
         const url = link.url;
 
         if (url.includes('tidal.com')) return '';
-        if (url.includes('qobuz.com')) return '';
 
         let icon = SVG_GLOBE(24);
         let title = 'Website';
