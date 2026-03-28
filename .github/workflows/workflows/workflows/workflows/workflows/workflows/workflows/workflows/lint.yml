@@ -19,7 +19,6 @@ jobs:
               uses: actions/checkout@v4
               with:
                   fetch-depth: 1
-                  ref: ${{ github.head_ref || github.ref }}
 
             - name: Setup Bun
               uses: oven-sh/setup-bun@v1
