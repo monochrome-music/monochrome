@@ -1025,10 +1025,31 @@ function completeBulkDownload(notifEl, success = true, message = null) {
     }
 }
 
+/**
+ * Downloads a track with metadata and optionally lyrics.
+ * @async
+ * @param {Object} track - The track object to download
+ * @param {string} quality - The desired audio quality for download
+ * @param {MusicAPI | LosslessAPI} [api=MusicAPI.instance] - The API instance to use for downloading
+ * @param {Object} [lyricsManager=null] - Optional manager for fetching and processing lyrics
+ * @param {AbortController} [abortController=null] - Optional abort controller for cancelling the download
+ * @returns {Promise<void>}
+ * @throws {Error} If the download fails (except for AbortError)
+ * @description
+ * This function:
+ * - Validates that a track is provided
+ * - Prevents duplicate downloads of the same track
+ * - Enriches track metadata via the API
+ * - Downloads the audio blob with progress tracking
+ * - Organizes the file into subfolders based on the folder template
+ * - Optionally downloads and saves lyrics in LRC format
+ * - Updates the local media folder cache if using LocalMedia download method
+ * - Handles errors gracefully and updates download task status
+ */
 export async function downloadTrackWithMetadata(
     track,
     quality,
-    api = MusicAPI.instance.tidalAPI,
+    api = MusicAPI.instance,
     lyricsManager = null,
     abortController = null
 ) {
@@ -1037,13 +1058,16 @@ export async function downloadTrackWithMetadata(
         return;
     }
 
+    /** @type {LosslessAPI} */
+    const tidalAPI = api.tidalAPI || api;
+
     const downloadKey = `track-${track.id}`;
     if (ongoingDownloads.has(downloadKey)) {
         showNotification('This track is already being downloaded');
         return;
     }
 
-    const { enrichedTrack } = await api.enrichTrack(track, { downloadQuality: quality });
+    const { enrichedTrack } = await tidalAPI.enrichTrack(track, { downloadQuality: quality });
     const filename = buildTrackFilename(enrichedTrack, quality);
 
     const controller = abortController || new AbortController();
