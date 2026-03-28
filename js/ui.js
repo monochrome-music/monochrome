@@ -740,8 +740,7 @@ export class UIRenderer {
                 : null;
         const coverFallback = video.image || video.cover;
         const coverPrimitive =
-            coverFallback != null &&
-            (typeof coverFallback === 'string' || typeof coverFallback === 'number')
+            coverFallback != null && (typeof coverFallback === 'string' || typeof coverFallback === 'number')
                 ? coverFallback
                 : null;
         let imageHTML;
@@ -923,9 +922,7 @@ export class UIRenderer {
 
         const listener = () => {
             const query = searchInput.value.toLowerCase().trim();
-            const selector = container.classList.contains('card-grid')
-                ? '.card[data-track-id]'
-                : '.track-item';
+            const selector = container.classList.contains('card-grid') ? '.card[data-track-id]' : '.track-item';
             container.querySelectorAll(selector).forEach((item) => {
                 const track = trackDataStore.get(item);
                 if (!track) {
@@ -933,11 +930,7 @@ export class UIRenderer {
                     return;
                 }
                 const title = (getTrackTitle(track) || '').toLowerCase();
-                const artist = (
-                    track.artist?.name ||
-                    track.artists?.[0]?.name ||
-                    ''
-                ).toLowerCase();
+                const artist = (track.artist?.name || track.artists?.[0]?.name || '').toLowerCase();
                 const matches = !query || title.includes(query) || artist.includes(query);
                 item.style.display = matches ? '' : 'none';
             });
@@ -948,14 +941,7 @@ export class UIRenderer {
         listener();
     }
 
-    renderListWithTracks(
-        container,
-        tracks,
-        showCover,
-        append = false,
-        useTrackNumber = false,
-        inlineLike = false
-    ) {
+    renderListWithTracks(container, tracks, showCover, append = false, useTrackNumber = false, inlineLike = false) {
         const fragment = document.createDocumentFragment();
         const tempDiv = document.createElement('div');
 
