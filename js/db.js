@@ -1,7 +1,7 @@
 export class MusicDatabase {
     constructor() {
         this.dbName = 'MonochromeDB';
-        this.version = 9;
+        this.version = 11;
         this.db = null;
     }
 
@@ -23,6 +23,11 @@ export class MusicDatabase {
 
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
+
+                // v10 introduced track_ratings (bad PR) — remove it
+                if (db.objectStoreNames.contains('track_ratings')) {
+                    db.deleteObjectStore('track_ratings');
+                }
 
                 // Favorites stores
                 if (!db.objectStoreNames.contains('favorites_tracks')) {
@@ -107,7 +112,6 @@ export class MusicDatabase {
             const store = transaction.objectStore(storeName);
             const index = store.index('timestamp');
 
-            // Check the most recent entry
             const cursorReq = index.openCursor(null, 'prev');
 
             cursorReq.onsuccess = (e) => {
@@ -115,11 +119,9 @@ export class MusicDatabase {
                 if (cursor) {
                     const lastTrack = cursor.value;
                     if (lastTrack.id === track.id) {
-                        // If same track, delete the old entry so we just update the timestamp
                         store.delete(cursor.primaryKey);
                     }
                 }
-                // Add the new entry
                 store.put(entry);
             };
 
@@ -172,11 +174,13 @@ export class MusicDatabase {
 
         if (exists) {
             await this.performTransaction(storeName, 'readwrite', (store) => store.delete(key));
+            window.dispatchEvent(new CustomEvent('favorites-changed'));
             return false; // Removed
         } else {
             const minified = this._minifyItem(type, item);
             const entry = { ...minified, addedAt: Date.now() };
             await this.performTransaction(storeName, 'readwrite', (store) => store.put(entry));
+            window.dispatchEvent(new CustomEvent('favorites-changed'));
             return true; // Added
         }
     }
@@ -258,6 +262,10 @@ export class MusicDatabase {
                 mixes: item.mixes || null,
                 isTracker: item.isTracker || (item.id && String(item.id).startsWith('tracker-')),
                 trackerInfo: item.trackerInfo || null,
+                isPodcast: item.isPodcast || (item.id && String(item.id).startsWith('podcast_')) || null,
+                enclosureUrl: item.enclosureUrl || null,
+                enclosureType: item.enclosureType || null,
+                enclosureLength: item.enclosureLength || null,
                 audioUrl: item.remoteUrl || item.audioUrl || null,
                 remoteUrl: item.remoteUrl || null,
                 audioQuality: item.audioQuality || null,
@@ -583,6 +591,7 @@ export class MusicDatabase {
 
         // TRIGGER SYNC
         this._dispatchPlaylistSync('create', playlist);
+        window.dispatchEvent(new CustomEvent('playlist-tracks-changed'));
 
         return playlist;
     }
@@ -600,6 +609,7 @@ export class MusicDatabase {
         await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
 
         this._dispatchPlaylistSync('update', playlist);
+        window.dispatchEvent(new CustomEvent('playlist-tracks-changed'));
 
         return playlist;
     }
@@ -623,6 +633,7 @@ export class MusicDatabase {
             this._updatePlaylistMetadata(playlist);
             await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
             this._dispatchPlaylistSync('update', playlist);
+            window.dispatchEvent(new CustomEvent('playlist-tracks-changed'));
         }
 
         return playlist;
@@ -643,6 +654,7 @@ export class MusicDatabase {
         await this.performTransaction('user_playlists', 'readwrite', (store) => store.put(playlist));
 
         this._dispatchPlaylistSync('update', playlist);
+        window.dispatchEvent(new CustomEvent('playlist-tracks-changed'));
 
         return playlist;
     }
@@ -652,6 +664,7 @@ export class MusicDatabase {
 
         // TRIGGER SYNC (but for deleting)
         this._dispatchPlaylistSync('delete', { id: playlistId });
+        window.dispatchEvent(new CustomEvent('playlist-tracks-changed'));
     }
 
     async getPlaylist(playlistId) {

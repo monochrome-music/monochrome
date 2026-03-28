@@ -1,32 +1,30 @@
 import { getCoverBlob, getTrackTitle, getFullArtistString, getMimeType, getTrackCoverId } from './utils.js';
-import { fetchTagLib, addMetadataWithTagLib, getMetadataWithTagLib } from './taglib.ts';
-import { doTimed, doTimedAsync } from './doTimed.ts';
-import { managers } from './app.js';
+import { addMetadataWithTagLib, getMetadataWithTagLib } from './taglib.ts';
+import { LyricsManager } from './lyrics.js';
+import { Mp4Stik } from './taglib.types.ts';
 
-export const METADATA_STRINGS = {
-    VENDOR_STRING: 'Monochrome',
-    DEFAULT_TITLE: 'Unknown Title',
-    DEFAULT_ARTIST: 'Unknown Artist',
-    DEFAULT_ALBUM: 'Unknown Album',
-};
+/**
+ * @typedef {import('./container-classes.ts').Track} Track
+ * @typedef {import('./container-classes.ts').EnrichedTrack} EnrichedTrack
+ * @typedef {import("./taglib.types.ts").TagLibMetadata} TagLibMetadata
+ */
 
 export function prefetchMetadataObjects(track, api, coverBlob = null) {
-    const _tagLib = fetchTagLib().catch(console.error);
     const coverId = getTrackCoverId(track);
     const coverFetch = coverBlob
         ? Promise.resolve(coverBlob)
         : coverId
           ? getCoverBlob(api, coverId).catch(console.error)
           : Promise.resolve(null);
-    const lyricsFetch = managers?.lyricsManager?.fetchLyrics?.(track.id, track)?.catch(console.error);
+    const lyricsFetch = LyricsManager.instance.fetchLyrics?.(track.id, track)?.catch(console.error);
 
-    return { _tagLib, coverFetch, lyricsFetch };
+    return { coverFetch, lyricsFetch };
 }
 
 /**
  * Adds metadata tags to audio files (FLAC, M4A or MP3)
  * @param {Blob} audioBlob - The audio file blob
- * @param {Object} track - Track metadata
+ * @param {Track | EnrichedTrack} track - Track metadata
  * @param {Object} api - API instance for fetching album art
  * @param {string} quality - Audio quality
  * @returns {Promise<Blob>} - Audio blob with embedded metadata
@@ -35,23 +33,32 @@ export async function addMetadataToAudio(audioBlob, track, api, _quality, prefet
     const { coverFetch, lyricsFetch } = prefetchPromises;
 
     /**
-     * @type {import("./taglib.worker.ts").TagLibMetadata}
+     * @type {TagLibMetadata}
      */
     const data = {};
-
-    const audioBuffer = await doTimedAsync('Get audio array buffer', () => audioBlob.arrayBuffer());
 
     try {
         data.title = getTrackTitle(track);
         data.artist = getFullArtistString(track);
-        data.albumTitle = track.album.title;
+        data.albumTitle = track.album?.title;
         data.albumArtist = track.album?.artist?.name || track.artist?.name;
         data.trackNumber = track.trackNumber;
         data.discNumber = track.volumeNumber ?? track.discNumber;
-        data.totalTracks = track.album.numberOfTracks;
+        data.totalTracks = track.album?.numberOfTracksOnDisc ?? track.album?.numberOfTracks;
+        data.totalDiscs = track.album?.totalDiscs;
         data.copyright = track.copyright;
         data.isrc = track.isrc;
+        data.upc = track.album?.upc;
         data.explicit = Boolean(track.explicit);
+        data.stik = track.type?.toLowerCase().includes('video') ? Mp4Stik.MusicVideo : Mp4Stik.Normal;
+        data.extra = {
+            TIDAL_TRACK_ID: track.id ? String(track.id) : undefined,
+            TIDAL_ALBUM_ID: track.album?.id ? String(track.album?.id) : undefined,
+            TIDAL_TRACK_URL: track.url?.trim() || undefined,
+            TIDAL_ALBUM_URL: track.album?.url?.trim() || undefined,
+            ALBUM_RELEASE_DATE: track.album?.releaseDate?.trim() || undefined,
+            TIDAL_DATA: JSON.stringify(track, null, 2).replace(/\n/g, '\r\n'),
+        };
 
         if (track.bpm != null) {
             const bpm = Number(track.bpm);
@@ -88,9 +95,9 @@ export async function addMetadataToAudio(audioBlob, track, api, _quality, prefet
         try {
             if (track.album?.cover) {
                 const coverBlob = await coverFetch;
-                const coverBuffer = new Uint8Array(await coverBlob.arrayBuffer());
 
                 if (coverBlob) {
+                    const coverBuffer = new Uint8Array(await coverBlob.arrayBuffer());
                     data.cover = {
                         data: coverBuffer,
                         type: getMimeType(coverBuffer),
@@ -108,16 +115,14 @@ export async function addMetadataToAudio(audioBlob, track, api, _quality, prefet
             console.warn('Error setting lyrics metadata', track, e);
         }
 
-        const newAudioBuffer = await addMetadataWithTagLib(audioBuffer, {
-            ...data,
-        });
-
-        return doTimed(
-            'Create new audio blob',
-            () =>
-                new Blob([newAudioBuffer], {
-                    type: audioBlob.type,
-                })
+        return await addMetadataWithTagLib(
+            audioBlob,
+            {
+                ...data,
+            },
+            undefined,
+            true,
+            true
         );
     } catch (err) {
         console.error(err);
@@ -128,12 +133,12 @@ export async function addMetadataToAudio(audioBlob, track, api, _quality, prefet
 
 /**
  * Reads metadata from a file
- * @param {File} file
+ * @param {Uint8Array | Blob | File | FileSystemFileHandle | FileSystemFileEntry} file
  * @returns {Promise<Object>} Track metadata
  */
-export async function readTrackMetadata(file, siblings = []) {
+export async function readTrackMetadata(file, { filename = file?.name || 'Unknown Title', siblings } = {}) {
     const metadata = {
-        title: file.name.replace(/\.[^/.]+$/, ''),
+        title: filename?.replace(/\.[^/.]+$/, ''),
         artists: [],
         artist: { name: 'Unknown Artist' }, // For fallback/compatibility
         album: { title: 'Unknown Album', cover: 'assets/appicon.png', releaseDate: null },
@@ -143,23 +148,32 @@ export async function readTrackMetadata(file, siblings = []) {
         explicit: false,
         isLocal: true,
         file: file,
-        id: `local-${file.name}-${file.lastModified}`,
+        id: `local-${filename}-${file.lastModified}`,
     };
 
     try {
-        const data = await getMetadataWithTagLib(await file.arrayBuffer());
+        const data = await getMetadataWithTagLib(file, filename, true);
 
         if (data) {
             metadata.title = data.title || metadata.title;
-            metadata.artists.push(
-                ...(data.artist || '')
-                    .split(';')
-                    .map((a) => a.trim())
-                    .filter((a) => a)
-            );
-            metadata.artist = data.artist || metadata.artist;
+            const artistNames = (data.artist || '')
+                .split(';')
+                .map((a) => a.trim())
+                .filter((a) => a);
+
+            if (artistNames.length > 0) {
+                metadata.artists = artistNames.map((name) => ({ name }));
+                metadata.artist = metadata.artists[0];
+            }
+
             metadata.album.title = data.albumTitle || metadata.album.title;
             metadata.album.releaseDate = data.releaseDate || metadata.album.releaseDate;
+
+            if (data.albumArtist) {
+                metadata.album.artist = { name: data.albumArtist };
+            } else if (metadata.artist.name !== 'Unknown Artist') {
+                metadata.album.artist = { name: metadata.artist.name };
+            }
 
             if (data.cover) {
                 const blob = new Blob([data.cover.data], { type: data.cover.type });
@@ -172,15 +186,11 @@ export async function readTrackMetadata(file, siblings = []) {
             metadata.explicit = !!data.explicit;
         }
     } catch (e) {
-        console.warn('Error reading metadata for', file.name, e);
+        console.warn('Error reading metadata for', filename, e);
     }
 
-    if (metadata.artists.length > 0) {
-        metadata.artist = metadata.artists[0];
-    }
-
-    if (metadata.album.cover === 'assets/appicon.png' && siblings.length > 0) {
-        const baseName = file.name.substring(0, file.name.lastIndexOf('.'));
+    if (metadata.album.cover === 'assets/appicon.png' && siblings?.length > 0) {
+        const baseName = filename.substring(0, filename.lastIndexOf('.'));
         const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
         const coverFile = siblings.find((f) => {
             const fName = f.name;

@@ -1,4 +1,7 @@
 //storage.js
+
+import { SVG_RIGHT_ARROW } from './icons';
+
 export const apiSettings = {
     STORAGE_KEY: 'monochrome-api-instances-v9',
     INSTANCES_URLS: [
@@ -6,8 +9,24 @@ export const apiSettings = {
         'https://tidal-uptime.props-76styles.workers.dev/',
     ],
     defaultInstances: { api: [], streaming: [] },
+    userInstances: null,
     instancesLoaded: false,
     _loadPromise: null,
+
+    _loadUserInstances() {
+        if (this.userInstances) return this.userInstances;
+        try {
+            const stored = localStorage.getItem('monochrome-user-api-instances-v1');
+            this.userInstances = stored ? JSON.parse(stored) : { api: [], streaming: [] };
+        } catch {
+            this.userInstances = { api: [], streaming: [] };
+        }
+        return this.userInstances;
+    },
+
+    _saveUserInstances() {
+        localStorage.setItem('monochrome-user-api-instances-v1', JSON.stringify(this.userInstances));
+    },
 
     async loadInstancesFromGitHub() {
         if (this.instancesLoaded) {
@@ -39,8 +58,8 @@ export const apiSettings = {
             let data = null;
             let fetchError = null;
 
-            // Shuffle URLs to pick a random one first
-            const urls = [...this.INSTANCES_URLS].sort(() => Math.random() - 0.5);
+            // Prefer first URL, only try others as fallback
+            const urls = [...this.INSTANCES_URLS];
 
             for (const url of urls) {
                 try {
@@ -58,27 +77,25 @@ export const apiSettings = {
                 console.error('Failed to load instances from all uptime APIs:', fetchError);
                 this.defaultInstances = {
                     api: [
-                        { url: 'https://eu-central.monochrome.tf', version: '2.4' },
-                        { url: 'https://us-west.monochrome.tf', version: '2.4' },
-                        { url: 'https://arran.monochrome.tf', version: '2.4' },
-                        { url: 'https://triton.squid.wtf', version: '2.4' },
-                        { url: 'https://api.monochrome.tf', version: '2.3' },
+                        { url: 'https://hifi.geeked.wtf', version: '2.7' },
+                        { url: 'https://eu-central.monochrome.tf', version: '2.7' },
+                        { url: 'https://us-west.monochrome.tf', version: '2.7' },
+                        { url: 'https://api.monochrome.tf', version: '2.5' },
                         { url: 'https://monochrome-api.samidy.com', version: '2.3' },
-                        { url: 'https://maus.qqdl.site', version: '2.2' },
-                        { url: 'https://vogel.qqdl.site', version: '2.2' },
-                        { url: 'https://katze.qqdl.site', version: '2.2' },
-                        { url: 'https://hund.qqdl.site', version: '2.2' },
+                        { url: 'https://maus.qqdl.site', version: '2.6' },
+                        { url: 'https://vogel.qqdl.site', version: '2.6' },
+                        { url: 'https://katze.qqdl.site', version: '2.6' },
+                        { url: 'https://hund.qqdl.site', version: '2.6' },
                         { url: 'https://tidal.kinoplus.online', version: '2.2' },
                         { url: 'https://wolf.qqdl.site', version: '2.2' },
                     ],
                     streaming: [
-                        { url: 'https://arran.monochrome.tf', version: '2.4' },
-                        { url: 'https://triton.squid.wtf', version: '2.4' },
-                        { url: 'https://maus.qqdl.site', version: '2.2' },
-                        { url: 'https://vogel.qqdl.site', version: '2.2' },
-                        { url: 'https://katze.qqdl.site', version: '2.2' },
-                        { url: 'https://hund.qqdl.site', version: '2.2' },
-                        { url: 'https://wolf.qqdl.site', version: '2.2' },
+                        { url: 'https://hifi.geeked.wtf', version: '2.7' },
+                        { url: 'https://maus.qqdl.site', version: '2.6' },
+                        { url: 'https://vogel.qqdl.site', version: '2.6' },
+                        { url: 'https://katze.qqdl.site', version: '2.6' },
+                        { url: 'https://hund.qqdl.site', version: '2.6' },
+                        { url: 'https://wolf.qqdl.site', version: '2.6' },
                     ],
                 };
                 this.instancesLoaded = true;
@@ -88,14 +105,17 @@ export const apiSettings = {
 
             let groupedInstances = { api: [], streaming: [] };
 
+            const isBlockedInstance = (item) => {
+                const url = typeof item === 'string' ? item : item.url;
+                return url && /\.squid\.wtf/i.test(url);
+            };
+
             if (data.api && Array.isArray(data.api)) {
-                groupedInstances.api = data.api.filter((instance) => !instance.url.includes('spotisaver.net'));
+                groupedInstances.api = data.api.filter((item) => !isBlockedInstance(item));
             }
 
             if (data.streaming && Array.isArray(data.streaming)) {
-                groupedInstances.streaming = data.streaming.filter(
-                    (instance) => !instance.url.includes('spotisaver.net')
-                );
+                groupedInstances.streaming = data.streaming.filter((item) => !isBlockedInstance(item));
             } else if (groupedInstances.api.length > 0) {
                 groupedInstances.streaming = [...groupedInstances.api];
             }
@@ -126,14 +146,52 @@ export const apiSettings = {
         let instancesObj;
 
         instancesObj = await this.loadInstancesFromGitHub();
+        const userInst = this._loadUserInstances();
 
-        const targetUrls = instancesObj[type] || instancesObj.api || [];
-        if (targetUrls.length === 0) return [];
+        const defaultUrls = instancesObj[type] || instancesObj.api || [];
+        const userUrls = userInst[type] || [];
 
-        return targetUrls;
+        const combined = [
+            ...userUrls.map((u) => (typeof u === 'string' ? { url: u, isUser: true } : { ...u, isUser: true })),
+            ...defaultUrls,
+        ];
+
+        if (combined.length === 0) return [];
+
+        return combined;
+    },
+
+    addUserInstance(type, url) {
+        const userInst = this._loadUserInstances();
+        if (!userInst[type]) userInst[type] = [];
+
+        if (!userInst[type].some((u) => (typeof u === 'string' ? u === url : u.url === url))) {
+            userInst[type].push({ url, isUser: true, version: 'custom' });
+            this._saveUserInstances();
+            return true;
+        }
+        return false;
+    },
+
+    removeUserInstance(type, url) {
+        const userInst = this._loadUserInstances();
+        if (!userInst[type]) return false;
+
+        const initialLength = userInst[type].length;
+        userInst[type] = userInst[type].filter((u) => (typeof u === 'string' ? u !== url : u.url !== url));
+
+        if (userInst[type].length !== initialLength) {
+            this._saveUserInstances();
+            return true;
+        }
+        return false;
     },
 
     async refreshInstances() {
+        this.instancesLoaded = false;
+        this._loadPromise = null;
+        localStorage.removeItem(this.STORAGE_KEY);
+
         const instances = await this.loadInstancesFromGitHub();
 
         const shuffle = (array) => {
@@ -144,12 +202,26 @@ export const apiSettings = {
             return array;
         };
 
+        const prioritySort = (array) => {
+            const getUrl = (item) => (typeof item === 'string' ? item : item.url || '');
+            const top = [];
+            const middle = [];
+            const bottom = [];
+            for (const item of array) {
+                const url = getUrl(item);
+                if (url.includes('hifi.geeked.wtf')) top.push(item);
+                else if (url.includes('.qqdl.site')) bottom.push(item);
+                else middle.push(item);
+            }
+            return [...top, ...shuffle(middle), ...shuffle(bottom)];
+        };
+
         if (instances.api && instances.api.length) {
-            instances.api = shuffle([...instances.api]);
+            instances.api = prioritySort([...instances.api]);
         }
 
         if (instances.streaming && instances.streaming.length) {
-            instances.streaming = shuffle([...instances.streaming]);
+            instances.streaming = prioritySort([...instances.streaming]);
         }
 
         this.saveInstances(instances);
@@ -160,9 +232,23 @@ export const apiSettings = {
     saveInstances(instances, type) {
         if (type) {
             try {
+                this._loadUserInstances();
+                const userInst = instances.filter((i) => i.isUser);
+                const defaultInst = instances.filter((i) => !i.isUser);
+
+                this.userInstances[type] = userInst;
+                this._saveUserInstances();
+
                 const stored = localStorage.getItem(this.STORAGE_KEY);
                 let fullObj = stored ? JSON.parse(stored) : { api: [], streaming: [] };
-                fullObj[type] = instances;
+
+                if (fullObj && fullObj.data) {
+                    fullObj.data[type] = defaultInst;
+                } else {
+                    if (!fullObj) fullObj = { api: [], streaming: [] };
+                    fullObj[type] = defaultInst;
+                }
+
                 localStorage.setItem(this.STORAGE_KEY, JSON.stringify(fullObj));
             } catch (e) {
                 console.error('Failed to save instances:', e);
@@ -421,6 +507,23 @@ export const nowPlayingSettings = {
     },
 };
 
+export const gaplessPlaybackSettings = {
+    STORAGE_KEY: 'gapless-playback-enabled',
+
+    isEnabled() {
+        try {
+            const val = localStorage.getItem(this.STORAGE_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+};
+
 export const fullscreenCoverClickSettings = {
     STORAGE_KEY: 'fullscreen-cover-click-action',
 
@@ -539,7 +642,13 @@ export const downloadQualitySettings = {
     STORAGE_KEY: 'download-quality',
     getQuality() {
         try {
-            return localStorage.getItem(this.STORAGE_KEY) || 'HI_RES_LOSSLESS';
+            const stored = localStorage.getItem(this.STORAGE_KEY) || 'HI_RES_LOSSLESS';
+            // Migrate legacy value to renamed format
+            if (stored === 'MP3_320') {
+                this.setQuality('FFMPEG_MP3_320');
+                return 'FFMPEG_MP3_320';
+            }
+            return stored;
         } catch {
             return 'HI_RES_LOSSLESS';
         }
@@ -553,7 +662,8 @@ export const losslessContainerSettings = {
     STORAGE_KEY: 'lossless-container',
     getContainer() {
         try {
-            return localStorage.getItem(this.STORAGE_KEY) || 'flac';
+            const stored = localStorage.getItem(this.STORAGE_KEY) || 'flac';
+            return stored;
         } catch {
             return 'flac';
         }
@@ -579,22 +689,6 @@ export const coverArtSizeSettings = {
 
 export const waveformSettings = {
     STORAGE_KEY: 'waveform-seekbar-enabled',
-
-    isEnabled() {
-        try {
-            return localStorage.getItem(this.STORAGE_KEY) === 'true';
-        } catch {
-            return false;
-        }
-    },
-
-    setEnabled(enabled) {
-        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
-    },
-};
-
-export const smoothScrollingSettings = {
-    STORAGE_KEY: 'smooth-scrolling-enabled',
 
     isEnabled() {
         try {
@@ -643,22 +737,6 @@ export const trackDateSettings = {
     },
 };
 
-export const bulkDownloadSettings = {
-    STORAGE_KEY: 'force-individual-downloads',
-
-    shouldForceIndividual() {
-        try {
-            return localStorage.getItem(this.STORAGE_KEY) === 'true';
-        } catch {
-            return false;
-        }
-    },
-
-    setForceIndividual(enabled) {
-        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
-    },
-};
-
 export const playlistSettings = {
     M3U_KEY: 'playlist-generate-m3u',
     M3U8_KEY: 'playlist-generate-m3u8',
@@ -667,6 +745,7 @@ export const playlistSettings = {
     JSON_KEY: 'playlist-generate-json',
     RELATIVE_PATHS_KEY: 'playlist-relative-paths',
     SEPARATE_DISCS_KEY: 'playlist-separate-discs-in-zip',
+    INCLUDE_COVER_KEY: 'playlist-include-cover',
 
     shouldGenerateM3U() {
         try {
@@ -753,6 +832,19 @@ export const playlistSettings = {
 
     setSeparateDiscsInZip(enabled) {
         localStorage.setItem(this.SEPARATE_DISCS_KEY, enabled ? 'true' : 'false');
+    },
+
+    shouldIncludeCover() {
+        try {
+            const val = localStorage.getItem(this.INCLUDE_COVER_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setIncludeCover(enabled) {
+        localStorage.setItem(this.INCLUDE_COVER_KEY, enabled ? 'true' : 'false');
     },
 };
 
@@ -1454,8 +1546,7 @@ export const sidebarSettings = {
             document.body.classList.add('sidebar-collapsed');
             const toggleBtn = document.getElementById('sidebar-toggle');
             if (toggleBtn) {
-                toggleBtn.innerHTML =
-                    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
+                toggleBtn.innerHTML = SVG_RIGHT_ARROW(20);
             }
         }
     },
@@ -1465,6 +1556,7 @@ export const listenBrainzSettings = {
     ENABLED_KEY: 'listenbrainz-enabled',
     TOKEN_KEY: 'listenbrainz-token',
     CUSTOM_URL_KEY: 'listenbrainz-custom-url',
+    LOVE_ON_LIKE_KEY: 'listenbrainz-love-on-like',
 
     isEnabled() {
         try {
@@ -1500,6 +1592,18 @@ export const listenBrainzSettings = {
 
     setCustomUrl(url) {
         localStorage.setItem(this.CUSTOM_URL_KEY, url);
+    },
+
+    shouldLoveOnLike() {
+        try {
+            return localStorage.getItem(this.LOVE_ON_LIKE_KEY) === 'true';
+        } catch {
+            return false;
+        }
+    },
+
+    setLoveOnLike(enabled) {
+        localStorage.setItem(this.LOVE_ON_LIKE_KEY, enabled ? 'true' : 'false');
     },
 };
 
@@ -1704,7 +1808,6 @@ export const sidebarSectionSettings = {
     SHOW_DONATE_KEY: 'sidebar-show-donate',
     SHOW_SETTINGS_KEY: 'sidebar-show-settings',
     SHOW_ABOUT_KEY: 'sidebar-show-about',
-    SHOW_DOWNLOAD_KEY: 'sidebar-show-download',
     SHOW_DISCORD_KEY: 'sidebar-show-discord',
     SHOW_GITHUB_KEY: 'sidebar-show-github',
     ORDER_KEY: 'sidebar-menu-order',
@@ -1716,7 +1819,6 @@ export const sidebarSectionSettings = {
         'sidebar-nav-donate',
         'sidebar-nav-settings',
         'sidebar-nav-about-bottom',
-        'sidebar-nav-download-bottom',
         'sidebar-nav-discordbtn',
         'sidebar-nav-githubbtn',
     ],
@@ -1817,19 +1919,6 @@ export const sidebarSectionSettings = {
         localStorage.setItem(this.SHOW_ABOUT_KEY, enabled ? 'true' : 'false');
     },
 
-    shouldShowDownload() {
-        try {
-            const val = localStorage.getItem(this.SHOW_DOWNLOAD_KEY);
-            return val === null ? true : val === 'true';
-        } catch {
-            return true;
-        }
-    },
-
-    setShowDownload(enabled) {
-        localStorage.setItem(this.SHOW_DOWNLOAD_KEY, enabled ? 'true' : 'false');
-    },
-
     shouldShowDiscord() {
         try {
             const val = localStorage.getItem(this.SHOW_DISCORD_KEY);
@@ -1914,7 +2003,6 @@ export const sidebarSectionSettings = {
             { id: 'sidebar-nav-donate', check: this.shouldShowDonate() },
             { id: 'sidebar-nav-settings', check: this.shouldShowSettings() },
             { id: 'sidebar-nav-about-bottom', check: this.shouldShowAbout() },
-            { id: 'sidebar-nav-download-bottom', check: this.shouldShowDownload() },
             { id: 'sidebar-nav-discordbtn', check: this.shouldShowDiscord() },
             { id: 'sidebar-nav-githubbtn', check: this.shouldShowGithub() },
         ];
@@ -2607,6 +2695,14 @@ export const keyboardShortcuts = {
             alt: false,
             description: 'Toggle visualizer auto-cycle',
         },
+        multiSelectToggle: {
+            key: 'control',
+            shift: false,
+            ctrl: true,
+            alt: false,
+            description: 'Toggle track selection (individual)',
+        },
+        multiSelectRange: { key: 'shift', shift: true, ctrl: false, alt: false, description: 'Select track range' },
     },
 
     getShortcuts() {

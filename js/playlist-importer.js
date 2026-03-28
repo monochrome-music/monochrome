@@ -5,21 +5,21 @@ function isFuzzyMatch(str1, str2) {
     return s1.includes(s2) || s2.includes(s1);
 }
 
-function findBestMatch(items, targetArtist, targetAlbum, options) {
+function findBestMatch(items, targetArtist, targetAlbum, importOptions) {
     if (!items || items.length === 0) return null;
-    if (!options?.strictArtistMatch && !options?.albumMatch) return items[0];
+    if (!importOptions?.strictArtistMatch && !importOptions?.strictAlbumMatch) return items[0];
 
     return (
         items.find((item) => {
             let artistOk = true;
             let albumOk = true;
 
-            if (options.strictArtistMatch && targetArtist) {
+            if (importOptions.strictArtistMatch && targetArtist) {
                 const itemArtist = item.artist?.name || item.artists?.[0]?.name;
                 if (!isFuzzyMatch(itemArtist, targetArtist)) artistOk = false;
             }
 
-            if (options.albumMatch && targetAlbum) {
+            if (importOptions.strictAlbumMatch && targetAlbum) {
                 const itemAlbum = item.album?.title;
                 if (itemAlbum && !isFuzzyMatch(itemAlbum, targetAlbum)) albumOk = false;
             }
@@ -148,7 +148,9 @@ const HEADER_MAPPINGS = {
 };
 
 function normalizeHeader(header) {
+    if (!header) return '';
     return header
+        .replace(/^\uFEFF/, '')
         .toLowerCase()
         .trim()
         .replace(/[_\s]+/g, ' ');
@@ -255,7 +257,13 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
             const typeValue = values[mappedHeaders.type]?.toLowerCase().trim();
             if (typeValue === 'album' || typeValue === 'favorite album') return 'album';
             if (typeValue === 'artist' || typeValue === 'favorite artist') return 'artist';
-            if (typeValue === 'track' || typeValue === 'favorite' || typeValue === 'favorite track') return 'track';
+            if (
+                typeValue === 'favorite' ||
+                typeValue === 'favorite track' ||
+                typeValue === 'track' ||
+                typeValue === 'playlist'
+            )
+                return 'track';
         }
 
         const hasTrackName = mappedHeaders.track !== undefined && values[mappedHeaders.track];
@@ -263,6 +271,11 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
         const hasAlbumName = mappedHeaders.album !== undefined && values[mappedHeaders.album];
 
         if (hasTrackName && hasArtistName) return 'track';
+
+        if (hasTrackName && hasAlbumName && values[mappedHeaders.track] === values[mappedHeaders.album]) {
+            return hasArtistName ? 'track' : 'album';
+        }
+
         if (hasAlbumName && hasArtistName && !hasTrackName) return 'album';
         if (hasArtistName && !hasTrackName && !hasAlbumName) return 'artist';
 
@@ -281,6 +294,8 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
         const albumName = mappedHeaders.album !== undefined ? values[mappedHeaders.album] : '';
         const isrc = mappedHeaders.isrc !== undefined ? values[mappedHeaders.isrc] : '';
         const playlistName = mappedHeaders.playlistName !== undefined ? values[mappedHeaders.playlistName] : '';
+        const typeValue = mappedHeaders.type !== undefined ? values[mappedHeaders.type]?.toLowerCase().trim() : '';
+        const isFavorite = typeValue.includes('favorite');
 
         if (onProgress) {
             onProgress({
@@ -313,6 +328,7 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
                 }
 
                 if (foundTrack) {
+                    if (isFavorite) foundTrack.isFavorite = true;
                     tracks.push(foundTrack);
                     if (playlistName) {
                         if (!playlists[playlistName]) {
@@ -341,6 +357,7 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
                 }
 
                 if (foundAlbum) {
+                    if (isFavorite) foundAlbum.isFavorite = true;
                     albums.push(foundAlbum);
                 } else {
                     missingItems.push({
@@ -360,6 +377,7 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
                 }
 
                 if (foundArtist) {
+                    if (isFavorite) foundArtist.isFavorite = true;
                     artists.push(foundArtist);
                 } else {
                     missingItems.push({
@@ -395,7 +413,17 @@ export async function parseDynamicCSV(csvText, api, onProgress, options = {}) {
     };
 }
 
-export async function importToLibrary(csvResult, db, onProgress) {
+/**
+ * Imports CSV result to library
+ * @param {Object} csvResult - Result from parseDynamicCSV
+ * @param {Object} db - Database instance
+ * @param {Function} onProgress - Progress callback
+ * @param {Object} options - Import options
+ * @returns {Promise<Object} - Results summary
+ */
+export async function importToLibrary(csvResult, db, onProgress, options = {}) {
+    const { favoriteTracks = true, favoriteAlbums = true, favoriteArtists = true } = options;
+
     const results = {
         tracks: { added: 0, failed: 0 },
         albums: { added: 0, failed: 0 },
@@ -410,9 +438,11 @@ export async function importToLibrary(csvResult, db, onProgress) {
     for (const track of csvResult.tracks) {
         if (!addedTrackIds.has(track.id)) {
             try {
-                await db.toggleFavorite('track', track);
+                if (favoriteTracks || track.isFavorite) {
+                    await db.toggleFavorite('track', track);
+                    results.tracks.added++;
+                }
                 addedTrackIds.add(track.id);
-                results.tracks.added++;
             } catch {
                 results.tracks.failed++;
             }
@@ -423,9 +453,11 @@ export async function importToLibrary(csvResult, db, onProgress) {
     for (const album of csvResult.albums) {
         if (!addedAlbumIds.has(album.id)) {
             try {
-                await db.toggleFavorite('album', album);
+                if (favoriteAlbums || album.isFavorite) {
+                    await db.toggleFavorite('album', album);
+                    results.albums.added++;
+                }
                 addedAlbumIds.add(album.id);
-                results.albums.added++;
             } catch {
                 results.albums.failed++;
             }
@@ -436,9 +468,11 @@ export async function importToLibrary(csvResult, db, onProgress) {
     for (const artist of csvResult.artists) {
         if (!addedArtistIds.has(artist.id)) {
             try {
-                await db.toggleFavorite('artist', artist);
+                if (favoriteArtists || artist.isFavorite) {
+                    await db.toggleFavorite('artist', artist);
+                    results.artists.added++;
+                }
                 addedArtistIds.add(artist.id);
-                results.artists.added++;
             } catch {
                 results.artists.failed++;
             }
@@ -462,7 +496,7 @@ export async function importToLibrary(csvResult, db, onProgress) {
     return results;
 }
 
-export async function parseCSV(csvText, api, onProgress, options = {}) {
+export async function parseCSV(csvText, api, onProgress, importOptions = {}) {
     const lines = csvText.trim().split('\n');
     if (lines.length < 2) return { tracks: [], missingTracks: [] };
 
@@ -548,7 +582,7 @@ export async function parseCSV(csvText, api, onProgress, options = {}) {
                     const searchResult = await api.searchTracks(searchQuery);
 
                     if (searchResult.items && searchResult.items.length > 0) {
-                        const match = findBestMatch(searchResult.items, artistNames, albumName, options);
+                        const match = findBestMatch(searchResult.items, artistNames, albumName, importOptions);
                         if (match) tracks.push(match);
                         else missingTracks.push({ title: trackTitle, artist: artistNames, album: albumName });
                     } else {

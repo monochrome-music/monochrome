@@ -1,4 +1,6 @@
 //js/utils.js
+import { modernSettings } from './ModernSettings.js';
+import { SVG_ATMOS } from './icons.js';
 import { qualityBadgeSettings, coverArtSizeSettings, trackDateSettings } from './storage.js';
 
 export const QUALITY = 'HI_RES_LOSSLESS';
@@ -10,15 +12,17 @@ export const REPEAT_MODE = {
 };
 
 export const AUDIO_QUALITIES = {
+    DOLBY_ATMOS: 'DOLBY_ATMOS',
     HI_RES_LOSSLESS: 'HI_RES_LOSSLESS',
     LOSSLESS: 'LOSSLESS',
     HIGH: 'HIGH',
     LOW: 'LOW',
 };
 
-export const QUALITY_PRIORITY = ['HI_RES_LOSSLESS', 'LOSSLESS', 'HIGH', 'LOW'];
+export const QUALITY_PRIORITY = ['DOLBY_ATMOS', 'HI_RES_LOSSLESS', 'LOSSLESS', 'HIGH', 'LOW'];
 
 export const QUALITY_TOKENS = {
+    DOLBY_ATMOS: ['DOLBY_ATMOS', 'ATMOS'],
     HI_RES_LOSSLESS: [
         'HI_RES_LOSSLESS',
         'HIRES_LOSSLESS',
@@ -38,31 +42,14 @@ export const QUALITY_TOKENS = {
 
 export const RATE_LIMIT_ERROR_MESSAGE = 'Too Many Requests. Please wait a moment and try again.';
 
-export const SVG_PLAY =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><polygon points="7 3 21 12 7 21 7 3"></polygon></svg>';
-export const SVG_PAUSE =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
-export const SVG_VOLUME =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>';
-export const SVG_MUTE =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>';
-export const SVG_DOWNLOAD =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>';
-export const SVG_MENU =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>';
-export const SVG_HEART =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="heart-icon"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>';
-export const SVG_CLOSE =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
-export const SVG_BIN =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>';
-export const SVG_MIX =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>';
-
 export const formatTime = (seconds) => {
     if (isNaN(seconds)) return '0:00';
-    const m = Math.floor(seconds / 60);
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
     const s = Math.floor(seconds % 60);
+    if (h > 0) {
+        return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
     return `${m}:${String(s).padStart(2, '0')}`;
 };
 
@@ -91,6 +78,45 @@ export const sanitizeForFilename = (value) => {
 };
 
 /**
+ * Sanitizes a single path component (no slashes allowed in the output).
+ * Invalid filesystem characters are replaced with underscores.
+ */
+export const sanitizeForPathComponent = (value) => {
+    if (!value) return 'Unknown';
+    return value
+        .replace(/[\\/:*?"<>|]/g, '_')
+        .replace(/\s+/g, ' ')
+        .trim();
+};
+
+/**
+ * Like {@link formatTemplate} but allows `/` in the template for nested
+ * directory structures.  Each path component has invalid characters replaced,
+ * the path is normalised to forward-slash separators, and empty components,
+ * `.`, and `..` segments are stripped.
+ */
+export const formatPathTemplate = (template, data) => {
+    let result = replaceTokens(template, {
+        discNumber: String(Number(data.discNumber || 1)),
+        trackNumber: data.trackNumber ? String(data.trackNumber).padStart(2, '0') : '00',
+        artist: sanitizeForPathComponent(data.artist || 'Unknown Artist'),
+        title: sanitizeForPathComponent(data.title || 'Unknown Title'),
+        album: sanitizeForPathComponent(data.album || 'Unknown Album'),
+        albumArtist: sanitizeForPathComponent(data.albumArtist || 'Unknown Artist'),
+        albumTitle: sanitizeForPathComponent(data.albumTitle || 'Unknown Album'),
+        year: sanitizeForPathComponent(String(data.year || 'Unknown')),
+    });
+
+    // Normalise separators, collapse duplicates, strip . and ..
+    return result
+        .replace(/\\/g, '/')
+        .split('/')
+        .map((p) => p.trim())
+        .filter((p) => p !== '' && p !== '.' && p !== '..')
+        .join('/');
+};
+
+/**
  * Detects audio format from DataView of first bytes
  * @param {DataView} view - DataView of first 12 bytes of audio file
  * @param {string} mimeType - MIME type from blob
@@ -106,6 +132,17 @@ export const detectAudioFormat = (view, mimeType = '') => {
         view.getUint8(3) === 0x43 // C
     ) {
         return 'flac';
+    }
+
+    // Check for OGG signature: "OggS" (0x4F 0x67 0x67 0x53)
+    if (
+        view.byteLength >= 4 &&
+        view.getUint8(0) === 0x4f && // O
+        view.getUint8(1) === 0x67 && // g
+        view.getUint8(2) === 0x67 && // g
+        view.getUint8(3) === 0x53 // S
+    ) {
+        return 'ogg';
     }
 
     // Check for MP4/M4A signature: "ftyp" at offset 4
@@ -127,6 +164,22 @@ export const detectAudioFormat = (view, mimeType = '') => {
         view.getUint8(2) === 0x33 // 3
     ) {
         return 'mp3';
+    }
+
+    // Detect RIFF/WAVE by "RIFF" at offset 0 and "WAVE" at offset 8 (only in dev mode)
+    if (
+        import.meta.env.DEV &&
+        view.byteLength >= 12 &&
+        view.getUint8(0) === 0x52 && // R
+        view.getUint8(1) === 0x49 && // I
+        view.getUint8(2) === 0x46 && // F
+        view.getUint8(3) === 0x46 && // F
+        view.getUint8(8) === 0x57 && // W
+        view.getUint8(9) === 0x41 && // A
+        view.getUint8(10) === 0x56 && // V
+        view.getUint8(11) === 0x45 // E
+    ) {
+        return 'wav';
     }
 
     // Check for MPEG frame sync (0xFF 0xFB or 0xFF 0xFA)
@@ -153,6 +206,7 @@ export const detectAudioFormat = (view, mimeType = '') => {
 
     // Fallback to MIME type
     if (mimeType === 'audio/flac') return 'flac';
+    if (mimeType === 'audio/ogg') return 'ogg';
     if (mimeType === 'audio/mp4' || mimeType === 'audio/x-m4a') return 'mp4';
     if (mimeType === 'audio/mp3' || mimeType === 'audio/mpeg') return 'mp3';
 
@@ -177,8 +231,10 @@ export const getExtensionFromBlob = async (blob) => {
     if (format) return format;
 
     if (blob.type.includes('video')) return 'mp4';
-    if (blob.type === 'audio/mp4' || blob.type === 'audio/x-m4a') return 'm4a';
-    if (blob.type === 'audio/mpeg' || blob.type === 'audio/mp3') return 'mp3';
+    if (blob.type === 'audio/flac') return 'flac';
+    if (blob.type === 'audio/ogg') return 'ogg';
+    if (blob.type === 'audio/mp4' || blob.type === 'audio/x-m4a') return 'mp4';
+    if (blob.type === 'audio/mp3' || blob.type === 'audio/mpeg') return 'mp3';
 
     return 'flac';
 };
@@ -187,21 +243,21 @@ export const getExtensionForQuality = (quality) => {
     switch (quality) {
         case 'LOW':
         case 'HIGH':
+        case 'DOLBY_ATMOS':
             return 'm4a';
-        case 'MP3_320':
-            return 'mp3';
         default:
             return 'flac';
     }
 };
 
 export const buildTrackFilename = (track, quality, extension = null) => {
-    const template = localStorage.getItem('filename-template') || '{trackNumber} - {artist} - {title}';
+    const template = modernSettings.filenameTemplate;
     const ext = extension || getExtensionForQuality(quality);
 
     const artistName = track.artist?.name || track.artists?.[0]?.name || 'Unknown Artist';
 
     const data = {
+        discNumber: getTrackDiscNumber(track) || 1,
         trackNumber: track.trackNumber,
         artist: artistName,
         title: getTrackTitle(track),
@@ -236,7 +292,9 @@ export const createQualityBadgeHTML = (track) => {
     if (!qualityBadgeSettings.isEnabled()) return '';
 
     const quality = deriveTrackQuality(track);
-    if (quality === 'HI_RES_LOSSLESS') {
+    if (quality === 'DOLBY_ATMOS') {
+        return `<span class="quality-badge quality-atmos" title="Dolby Atmos">${SVG_ATMOS(20)}</span>`;
+    } else if (quality === 'HI_RES_LOSSLESS') {
         return '<span class="quality-badge quality-hires" title="Hi-Res Lossless">HD</span>';
     }
     return '';
@@ -358,17 +416,17 @@ export const getTrackArtistsHTML = (track = {}, { fallback = 'Unknown Artist' } 
     return fallback;
 };
 
-export const formatTemplate = (template, data) => {
-    let result = template;
-    result = result.replace(/\{trackNumber\}/g, data.trackNumber ? String(data.trackNumber).padStart(2, '0') : '00');
-    result = result.replace(/\{artist\}/g, sanitizeForFilename(data.artist || 'Unknown Artist'));
-    result = result.replace(/\{title\}/g, sanitizeForFilename(data.title || 'Unknown Title'));
-    result = result.replace(/\{album\}/g, sanitizeForFilename(data.album || 'Unknown Album'));
-    result = result.replace(/\{albumArtist\}/g, sanitizeForFilename(data.albumArtist || 'Unknown Artist'));
-    result = result.replace(/\{albumTitle\}/g, sanitizeForFilename(data.albumTitle || 'Unknown Album'));
-    result = result.replace(/\{year\}/g, data.year || 'Unknown');
-    return result;
-};
+export const formatTemplate = (template, data) =>
+    replaceTokens(template, {
+        discNumber: String(Number(data.discNumber || 1)),
+        trackNumber: data.trackNumber ? String(data.trackNumber).padStart(2, '0') : '00',
+        artist: sanitizeForFilename(data.artist || 'Unknown Artist'),
+        title: sanitizeForFilename(data.title || 'Unknown Title'),
+        album: sanitizeForFilename(data.album || 'Unknown Album'),
+        albumArtist: sanitizeForFilename(data.albumArtist || 'Unknown Artist'),
+        albumTitle: sanitizeForFilename(data.albumTitle || 'Unknown Album'),
+        year: data.year || 'Unknown',
+    });
 
 export const calculateTotalDuration = (tracks) => {
     if (!Array.isArray(tracks) || tracks.length === 0) return 0;
@@ -628,4 +686,85 @@ export function getTrackCoverId(track) {
         track.album?.image ||
         null
     );
+}
+
+/**
+ * Converts a value to a positive integer.
+ * @param {*} value - The value to convert to a positive integer.
+ * @returns {number|null} The parsed positive integer, or null if the value is not a finite positive number.
+ */
+export function toPositiveInt(value) {
+    const parsed = parseInt(value, 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+/**
+ * Extracts the disc number from a track object by checking multiple possible property names.
+ * @param {Object} track - The track object to extract the disc number from.
+ * @returns {number|null} The disc number as a positive integer, or null if no valid disc number is found.
+ */
+export function getTrackDiscNumber(track) {
+    const candidates = [
+        track?.volumeNumber,
+        track?.discNumber,
+        track?.mediaNumber,
+        track?.media_number,
+        track?.volume,
+        track?.disc,
+        track?.volume?.number,
+        track?.disc?.number,
+        track?.media?.number,
+        track?.disc,
+        track?.disc_no,
+        track?.discNo,
+        track?.disc_number,
+        track?.mediaMetadata?.discNumber,
+    ];
+
+    for (const candidate of candidates) {
+        const parsed = toPositiveInt(candidate);
+        if (parsed) return parsed;
+    }
+    return null;
+}
+
+/**
+ * Executes a function with a fallback error handler.
+ * Works with both synchronous and asynchronous callbacks.
+ *
+ * If the callback returns a Promise, the result will also be a Promise.
+ *
+ * @template T
+ * @param {() => T | Promise<T>} fn Function to execute
+ * @param {(error: unknown) => T | Promise<T>} onError Error handler
+ * @returns {T | Promise<T>}
+ */
+export function tryCatch(fn, onError) {
+    try {
+        const result = fn();
+
+        if (result instanceof Promise) {
+            return result.catch(onError);
+        }
+
+        return result;
+    } catch (err) {
+        return onError(err);
+    }
+}
+
+/**
+ * Replace `{token}` placeholders in a template string.
+ *
+ * Replacement values are inserted verbatim and are NOT reprocessed,
+ * preventing cascading replacements if values contain token patterns.
+ *
+ * @param {string} template The input string containing tokens like `{tokenName}`
+ * @param {Record<string, string>} tokens An object of tokens to replace and the replacement values.
+ * @returns {string} The string with valid tokens replaced
+ */
+export function replaceTokens(template, tokens) {
+    return template.replace(/{([^{}]+)}/g, (match, key) => {
+        return key in tokens ? tokens[key] : match;
+    });
 }

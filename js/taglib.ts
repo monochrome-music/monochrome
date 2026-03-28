@@ -1,76 +1,190 @@
-import { TagLib } from 'taglib-wasm';
-import { fetchBlobURL } from './utils';
-import _TagLibWasm from '!/taglib-wasm/dist/taglib-web.wasm?url';
+import { doTimed, doTimedAsync } from './doTimed';
 import type {
-    TagLibWorkerMessageType,
     AddMetadataMessage,
-    GetMetadataMessage,
     TagLibFileResponse,
     TagLibMetadataResponse,
-    TagLibMetadata,
     TagLibReadMetadata,
+    TagLibReadTypes,
+    TagLibWriteTypes,
 } from './taglib.types';
 import TagLibWorker from './taglib.worker?worker';
 
-let tagLib: Promise<TagLib> | null = null;
+export async function withTimeout<T>(callback: () => Promise<T>, timeout: number): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+        const timer = setTimeout(() => {
+            reject(new Error(`Operation timed out after ${timeout} ms`));
+        }, timeout);
 
-async function fetchTagLib(): Promise<string> {
-    return fetchTagLib.blobUrl || (fetchTagLib.blobUrl = await fetchBlobURL(_TagLibWasm));
+        callback()
+            .then((result) => {
+                clearTimeout(timer);
+                resolve(result);
+            })
+            .catch((err) => {
+                clearTimeout(timer);
+                reject(err);
+            });
+    });
 }
 
-namespace fetchTagLib {
-    export let blobUrl = '';
+function toUint8Array(audioData: ArrayBufferLike | Uint8Array) {
+    if (audioData instanceof Uint8Array) {
+        return audioData;
+    }
+
+    return doTimed(
+        `Converting audio data (${(audioData as any)?.constructor?.name}) to Uint8Array`,
+        () => new Uint8Array(audioData)
+    );
 }
 
-export { fetchTagLib };
+async function convertInputToTaglib<R = TagLibReadTypes>(
+    audioData: TagLibReadTypes | TagLibWriteTypes,
+    direct: boolean = false
+): Promise<R> {
+    if ('FileSystemFileEntry' in globalThis && audioData instanceof FileSystemFileEntry) {
+        audioData = await doTimedAsync('Getting File from FileSystemFileEntry', async () => {
+            const file = await new Promise<File>((resolve) =>
+                (audioData as FileSystemFileEntry).file((f) => resolve(f))
+            );
+            return toUint8Array(new Uint8Array(await file.arrayBuffer()));
+        });
+    }
+
+    if ((audioData instanceof Blob || audioData instanceof File) && !direct) {
+        return (await doTimedAsync(
+            `Reading ${audioData instanceof File ? 'File' : 'Blob'} as Uint8Array`,
+            async () => new Uint8Array(await audioData.arrayBuffer())
+        )) as R;
+    } else if ('FileSystemFileHandle' in globalThis && audioData instanceof FileSystemFileHandle && !direct) {
+        return (await doTimedAsync('Reading File from FileSystemHandle as Uint8Array', async () => {
+            const file = await audioData.getFile();
+            const arrayBuffer = await file.arrayBuffer();
+            return await toUint8Array(arrayBuffer);
+        })) as R;
+    } else if (
+        !(audioData instanceof Uint8Array) &&
+        !(audioData instanceof Blob) &&
+        !(audioData instanceof File) &&
+        !('FileSystemFileEntry' in globalThis && audioData instanceof FileSystemFileEntry) &&
+        !('FileSystemFileHandle' in globalThis && audioData instanceof FileSystemFileHandle)
+    ) {
+        return toUint8Array(audioData as any) as R;
+    }
+
+    return audioData as R;
+}
+
+const workerModule = import('./taglib.worker.js');
 
 export async function addMetadataWithTagLib(
-    audioData: Uint8Array,
-    data: Omit<AddMetadataMessage, 'type' | 'wasmUrl' | 'audioData'>
+    audioData: TagLibWriteTypes,
+    data: Omit<AddMetadataMessage, 'type' | 'audioData'>,
+    filename?: string,
+    direct: boolean = false,
+    returnBlob: boolean = false,
+    timeout: number = 10000
 ) {
-    if (!(audioData instanceof Uint8Array)) {
-        audioData = new Uint8Array(audioData);
+    audioData = await convertInputToTaglib(audioData, direct);
+
+    if (direct) {
+        const { addMetadataToAudio } = await workerModule;
+
+        return await doTimedAsync('Adding metadata with taglib-ts (direct)', () =>
+            addMetadataToAudio({
+                ...data,
+                filename,
+                audioData,
+                returnType: returnBlob && direct ? 'blob' : 'uint8array',
+            })
+        );
+    } else {
+        const worker = new TagLibWorker();
+
+        try {
+            return await doTimedAsync(
+                'Adding metadata with taglib-ts (worker)',
+                async () =>
+                    await withTimeout(
+                        () =>
+                            new Promise<Uint8Array>((resolve, reject) => {
+                                worker.onmessage = (e: MessageEvent<TagLibFileResponse>) => {
+                                    const { data, error } = e.data;
+
+                                    if (error) {
+                                        reject(new Error(error));
+                                    } else {
+                                        resolve(data!);
+                                    }
+                                };
+                                worker.onerror = reject;
+                                worker.onmessageerror = reject;
+
+                                const transferables: Transferable[] = [];
+                                if ((audioData as any)?.buffer instanceof ArrayBuffer) {
+                                    transferables.push((audioData as any).buffer);
+                                }
+
+                                if ((data as any).cover?.data?.buffer instanceof ArrayBuffer) {
+                                    transferables.push((data as any).cover.data.buffer);
+                                }
+
+                                worker.postMessage({ ...data, type: 'Add', audioData, filename }, transferables);
+                            }),
+                        timeout
+                    )
+            );
+        } finally {
+            worker.terminate();
+        }
     }
-
-    const worker = new TagLibWorker();
-    const wasmUrl = await fetchTagLib();
-
-    return new Promise<Uint8Array>((resolve, reject) => {
-        worker.onmessage = (e: MessageEvent<TagLibFileResponse>) => {
-            const { data, error } = e.data;
-
-            if (error) {
-                reject(new Error(error));
-            } else {
-                resolve(data!);
-            }
-        };
-        worker.onerror = reject;
-        worker.onmessageerror = reject;
-        worker.postMessage({ ...data, type: 'Add', wasmUrl, audioData }, [audioData.buffer]);
-    });
 }
 
-export async function getMetadataWithTagLib(audioData: Uint8Array) {
-    if (!(audioData instanceof Uint8Array)) {
-        audioData = new Uint8Array(audioData);
+export async function getMetadataWithTagLib(
+    audioData: TagLibReadTypes,
+    filename?: string,
+    direct: boolean = false,
+    timeout: number = 10000
+) {
+    audioData = await convertInputToTaglib<TagLibReadTypes>(audioData, direct);
+
+    if (direct) {
+        const { getMetadataFromAudio } = await workerModule;
+
+        return await doTimedAsync('Getting metadata with taglib-ts (direct)', () =>
+            getMetadataFromAudio({ filename, audioData })
+        );
+    } else {
+        const worker = new TagLibWorker();
+
+        try {
+            return await doTimedAsync('Getting metadata with taglib-ts (worker)', () =>
+                withTimeout(
+                    () =>
+                        new Promise<TagLibReadMetadata>((resolve, reject) => {
+                            worker.onmessage = (e: MessageEvent<TagLibMetadataResponse>) => {
+                                const { data, error } = e.data;
+
+                                if (error) {
+                                    reject(new Error(error));
+                                } else {
+                                    resolve(data!);
+                                }
+                            };
+                            worker.onerror = reject;
+                            worker.onmessageerror = reject;
+
+                            const transferables: Transferable[] = [];
+                            if ((audioData as any)?.buffer instanceof ArrayBuffer) {
+                                transferables.push((audioData as any).buffer);
+                            }
+                            worker.postMessage({ type: 'Get', audioData, filename }, transferables);
+                        }),
+                    timeout
+                )
+            );
+        } finally {
+            worker.terminate();
+        }
     }
-
-    const worker = new Worker(new URL(TagLibWorker, import.meta.url), { type: 'module' });
-    const wasmUrl = await fetchTagLib();
-
-    return new Promise<TagLibReadMetadata>((resolve, reject) => {
-        worker.onmessage = (e: MessageEvent<TagLibMetadataResponse>) => {
-            const { data, error } = e.data;
-
-            if (error) {
-                reject(new Error(error));
-            } else {
-                resolve(data!);
-            }
-        };
-        worker.onerror = reject;
-        worker.onmessageerror = reject;
-        worker.postMessage({ type: 'Get', wasmUrl, audioData }, [audioData.buffer]);
-    });
 }

@@ -1,5 +1,50 @@
 // functions/album/[id].js
 
+class TidalAPI {
+    static CLIENT_ID = 'txNoH4kkV41MfH25';
+    static CLIENT_SECRET = 'dQjy0MinCEvxi1O4UmxvxWnDjt4cgHBPw8ll6nYBk98=';
+
+    async getToken() {
+        const params = new URLSearchParams({
+            client_id: TidalAPI.CLIENT_ID,
+            client_secret: TidalAPI.CLIENT_SECRET,
+            grant_type: 'client_credentials',
+        });
+        const res = await fetch('https://auth.tidal.com/v1/oauth2/token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                Authorization: 'Basic ' + btoa(`${TidalAPI.CLIENT_ID}:${TidalAPI.CLIENT_SECRET}`),
+            },
+            body: params,
+        });
+        if (!res.ok) throw new Error(`Token request failed: ${res.status}`);
+        const data = await res.json();
+        return data.access_token;
+    }
+
+    async fetchJson(url, params = {}) {
+        const token = await this.getToken();
+        const u = new URL(url);
+        Object.entries(params).forEach(([k, v]) => u.searchParams.set(k, String(v)));
+        const res = await fetch(u.toString(), {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error(`Tidal API error: ${res.status}`);
+        return res.json();
+    }
+
+    async getAlbumMetadata(id) {
+        return await this.fetchJson(`https://api.tidal.com/v1/albums/${id}`, { countryCode: 'US' });
+    }
+
+    getCoverUrl(id, size = '1280') {
+        if (!id) return '';
+        const formattedId = String(id).replace(/-/g, '/');
+        return `https://resources.tidal.com/images/${formattedId}/${size}x${size}.jpg`;
+    }
+}
+
 class ServerAPI {
     constructor() {
         this.INSTANCES_URLS = [
@@ -29,16 +74,16 @@ class ServerAPI {
         if (data) {
             this.apiInstances = (data.api || [])
                 .map((item) => item.url || item)
-                .filter((url) => !url.includes('spotisaver.net'));
+                .filter((url) => !/\.squid\.wtf/i.test(url));
             return this.apiInstances;
         }
 
         console.error('Failed to load instances from all uptime APIs');
         return [
+            'https://hifi.geeked.wtf',
             'https://eu-central.monochrome.tf',
             'https://us-west.monochrome.tf',
             'https://arran.monochrome.tf',
-            'https://triton.squid.wtf',
             'https://api.monochrome.tf',
             'https://monochrome-api.samidy.com',
             'https://maus.qqdl.site',
@@ -92,19 +137,33 @@ class ServerAPI {
 export async function onRequest(context) {
     const { request, params, env } = context;
     const userAgent = request.headers.get('User-Agent') || '';
-    const isBot = /discordbot|twitterbot|facebookexternalhit|bingbot|googlebot|slurp|whatsapp|pinterest|slackbot/i.test(
-        userAgent
-    );
+    const isBot =
+        /discordbot|twitterbot|facebookexternalhit|bingbot|googlebot|slurp|whatsapp|pinterest|slackbot|telegrambot|linkedinbot|mastodon|signal|snapchat|redditbot|skypeuripreview|viberbot|linebot|embedly|quora|outbrain|tumblr|duckduckbot|yandexbot|rogerbot|showyoubot|kakaotalk|naverbot|seznambot|mediapartners|adsbot|petalbot|applebot|ia_archiver/i.test(
+            userAgent
+        );
     const albumId = params.id;
 
     if (isBot && albumId) {
+        let api;
+        let album;
+        let tracks = [];
         try {
-            const api = new ServerAPI();
-            const data = await api.getAlbumMetadata(albumId);
-            const album = data.data || data.album || data;
-            const tracks = album.items || data.tracks || [];
+            api = new TidalAPI();
+            album = await api.getAlbumMetadata(albumId);
+        } catch (directError) {
+            console.warn(`Direct Tidal API failed for album ${albumId}, falling back to proxies:`, directError);
+            try {
+                api = new ServerAPI();
+                const data = await api.getAlbumMetadata(albumId);
+                album = data.data || data.album || data;
+                tracks = album.items || data.tracks || [];
+            } catch (fallbackError) {
+                console.error(`All methods failed for album ${albumId}:`, fallbackError);
+            }
+        }
 
-            if (album && (album.title || album.name)) {
+        if (album && (album.title || album.name)) {
+            try {
                 const title = album.title || album.name;
                 const artist = album.artist?.name || 'Unknown Artist';
                 const year = album.releaseDate ? new Date(album.releaseDate).getFullYear() : '';
@@ -124,7 +183,7 @@ export async function onRequest(context) {
                         <title>${title}</title>
                         <meta name="description" content="${description}">
                         <meta name="theme-color" content="#000000">
-                        
+
                         <meta property="og:site_name" content="Monochrome">
                         <meta property="og:title" content="${title}">
                         <meta property="og:description" content="${description}">
@@ -133,7 +192,7 @@ export async function onRequest(context) {
                         <meta property="og:url" content="${pageUrl}">
                         <meta property="music:musician" content="${artist}">
                         <meta property="music:release_date" content="${album.releaseDate}">
-                        
+
                         <meta name="twitter:card" content="summary_large_image">
                         <meta name="twitter:title" content="${title}">
                         <meta name="twitter:description" content="${description}">
@@ -148,9 +207,9 @@ export async function onRequest(context) {
                 `;
 
                 return new Response(metaHtml, { headers: { 'content-type': 'text/html;charset=UTF-8' } });
+            } catch (error) {
+                console.error(`Error generating meta tags for album ${albumId}:`, error);
             }
-        } catch (error) {
-            console.error(`Error for album ${albumId}:`, error);
         }
     }
 
