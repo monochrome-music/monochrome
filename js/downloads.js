@@ -1568,7 +1568,7 @@ function completeBulkDownload(notifEl, success = true, message = null) {
     } else {
         const isMediaStoreError = String(message || '').includes('MediaStore audio permission was not granted');
         if (isMediaStoreError) {
-            progressFill.style.width = '100%';
+            progressFill.style.width = '100%'; // test idk github being fucky
         }
         progressFill.style.background = '#ef4444';
         statusEl.textContent = message || '✗ Download failed';
