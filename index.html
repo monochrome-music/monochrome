@@ -3818,7 +3818,25 @@
                                         <span class="slider"></span>
                                     </label>
                                 </div>
-                                <div class="setting-item">
+                                                <div class="setting-item">
+                    <div class="info">
+                        <span class="label">Crossfade</span>
+                        <span class="description">Smoothly transition between tracks by fading out current and fading in next</span>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="crossfade-toggle"
+                        />
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-item" id="crossfade-duration-setting">
+                    <div class="info">
+                        <span class="label">Crossfade Duration</span>
+                        <span class="description">Duration of the crossfade effect in seconds (1-12)</span>
+                    </div>
+                    <input type="number" id="crossfade-duration-input" min="1" max="12" step="0.5" value="3" style="width: 80px">
+                </div>
+<div class="setting-item">
                                     <div class="info">
                                         <span class="label">Gapless Playback</span>
                                         <span class="description">Play audio without interruption between tracks</span>
