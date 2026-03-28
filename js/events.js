@@ -2262,9 +2262,7 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
                 const clickedTrackId = card.dataset.trackId;
                 const clickedTrack = trackDataStore.get(card);
                 if (!clickedTrack) return;
-                const allTrackElements = Array.from(
-                    libraryTracksContainer.querySelectorAll('.card[data-track-id]')
-                );
+                const allTrackElements = Array.from(libraryTracksContainer.querySelectorAll('.card[data-track-id]'));
                 const trackList = allTrackElements.map((el) => trackDataStore.get(el)).filter(Boolean);
                 if (trackList.length === 0) return;
                 const startIndex = trackList.findIndex((t) => t.id == clickedTrackId);
