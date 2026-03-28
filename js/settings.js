@@ -63,7 +63,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
     // Email Auth UI Logic
     const toggleEmailBtn = document.getElementById('toggle-email-auth-btn');
-    const cancelEmailBtn = document.getElementById('cancel-email-auth-btn');
+    const authModalCloseBtn = document.getElementById('email-auth-modal-close');
     const authModal = document.getElementById('email-auth-modal');
     const emailInput = document.getElementById('auth-email');
     const passwordInput = document.getElementById('auth-password');
@@ -77,14 +77,10 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
-    if (cancelEmailBtn && authModal) {
-        cancelEmailBtn.addEventListener('click', () => {
-            authModal.classList.remove('active');
-        });
-
-        authModal.querySelector('.modal-overlay').addEventListener('click', () => {
-            authModal.classList.remove('active');
-        });
+    if (authModal) {
+        const closeAuthModal = () => authModal.classList.remove('active');
+        authModalCloseBtn?.addEventListener('click', closeAuthModal);
+        authModal.querySelector('.modal-overlay')?.addEventListener('click', closeAuthModal);
     }
 
     if (signInBtn) {
