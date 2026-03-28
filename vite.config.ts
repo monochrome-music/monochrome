@@ -6,12 +6,25 @@ import path from 'path';
 import uploadPlugin from './vite-plugin-upload.js';
 import blobAssetPlugin from './vite-plugin-blob.js';
 import svgUse from './vite-plugin-svg-use.js';
+import { execSync } from 'child_process';
+
+function getGitCommitHash() {
+    try {
+        return execSync('git rev-parse --short HEAD').toString().trim();
+    } catch {
+        return 'unknown';
+    }
+}
 
 export default defineConfig(({ mode }) => {
     const IS_NEUTRALINO = mode === 'neutralino';
+    const commitHash = getGitCommitHash();
 
     return {
         base: './',
+        define: {
+            __COMMIT_HASH__: JSON.stringify(commitHash),
+        },
         worker: {
             format: 'es',
         },
