@@ -1,4 +1,28 @@
-// functions/user/@[username].js
+// functions/podcasts/[id].js
+
+const PODCASTINDEX_API_BASE = 'https://api.podcastindex.org/api/1.0';
+const PODCAST_API_KEY = 'YU5HMSDYBQQVYDF6QN4P';
+const PODCAST_API_SECRET = '8hCvpjSL7T$S7^5ftnf5MhqQwYUYVjM^fmUL3Ld$';
+
+async function sha1(str) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(str);
+    const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function getAuthHeaders() {
+    const apiHeaderTime = Math.floor(Date.now() / 1000).toString();
+    const combined = PODCAST_API_KEY + PODCAST_API_SECRET + apiHeaderTime;
+    const authHeader = await sha1(combined);
+    return {
+        'User-Agent': 'MonochromeMusic/1.0',
+        'X-Auth-Key': PODCAST_API_KEY,
+        'X-Auth-Date': apiHeaderTime,
+        Authorization: authHeader,
+    };
+}
 
 export async function onRequest(context) {
     const { request, params, env } = context;
@@ -7,36 +31,30 @@ export async function onRequest(context) {
         /discordbot|twitterbot|facebookexternalhit|bingbot|googlebot|slurp|whatsapp|pinterest|slackbot|telegrambot|linkedinbot|mastodon|signal|snapchat|redditbot|skypeuripreview|viberbot|linebot|embedly|quora|outbrain|tumblr|duckduckbot|yandexbot|rogerbot|showyoubot|kakaotalk|naverbot|seznambot|mediapartners|adsbot|petalbot|applebot|ia_archiver/i.test(
             userAgent
         );
-    const username = params.username;
+    const podcastId = params.id;
 
-    if (isBot && username) {
+    if (isBot && podcastId) {
         try {
-            const POCKETBASE_URL = 'https://data.samidy.xyz';
-            const filter = `username="${username}"`;
-            const profileUrl = `${POCKETBASE_URL}/api/collections/DB_users/records?filter=${encodeURIComponent(filter)}&fields=username,display_name,avatar_url,banner,about,status`;
+            const headers = await getAuthHeaders();
+            const response = await fetch(`${PODCASTINDEX_API_BASE}/podcasts/byfeedid?id=${podcastId}&pretty`, {
+                method: 'GET',
+                headers,
+            });
 
-            const response = await fetch(profileUrl);
-            if (!response.ok) throw new Error(`PocketBase error: ${response.status}`);
+            if (!response.ok) throw new Error(`PodcastIndex error: ${response.status}`);
 
             const data = await response.json();
-            const profile = data.items && data.items.length > 0 ? data.items[0] : null;
+            const feed = data.status === 'true' && data.feed ? data.feed : null;
 
-            if (profile) {
-                const displayName = profile.display_name || profile.username;
-                const title = `${displayName} (@${profile.username})`;
-                let description = profile.about || `View ${displayName}'s profile on Monochrome.`;
-
-                if (profile.status) {
-                    try {
-                        const statusObj = JSON.parse(profile.status);
-                        description = `Listening to: ${statusObj.text}\n\n${description}`;
-                    } catch {
-                        description = `Listening to: ${profile.status}\n\n${description}`;
-                    }
-                }
-
-                const imageUrl = profile.avatar_url || 'https://monochrome-music-player.vercel.app/assets/appicon.png';
-                const bannerUrl = profile.banner || '';
+            if (feed && feed.title) {
+                const title = feed.title;
+                const author = feed.author || feed.ownerName || '';
+                const episodeCount = feed.episodeCount || 0;
+                const rawDescription = feed.description || '';
+                const description = author
+                    ? `Podcast by ${author} • ${episodeCount} Episodes\nListen on Monochrome`
+                    : `Podcast • ${episodeCount} Episodes\nListen on Monochrome`;
+                const imageUrl = feed.image || feed.artwork || 'https://monochrome.tf/assets/appicon.png';
                 const pageUrl = new URL(request.url).href;
 
                 const metaHtml = `
@@ -47,14 +65,14 @@ export async function onRequest(context) {
                         <title>${title}</title>
                         <meta name="description" content="${description}">
                         <meta name="theme-color" content="#000000">
-                        
+
                         <meta property="og:site_name" content="Monochrome">
                         <meta property="og:title" content="${title}">
                         <meta property="og:description" content="${description}">
                         <meta property="og:image" content="${imageUrl}">
-                        <meta property="og:type" content="profile">
+                        <meta property="og:type" content="website">
                         <meta property="og:url" content="${pageUrl}">
-                        
+
                         <meta name="twitter:card" content="summary_large_image">
                         <meta name="twitter:title" content="${title}">
                         <meta name="twitter:description" content="${description}">
@@ -63,8 +81,7 @@ export async function onRequest(context) {
                     <body>
                         <h1>${title}</h1>
                         <p>${description}</p>
-                        <img src="${imageUrl}" alt="Profile Avatar">
-                        ${bannerUrl ? `<img src="${bannerUrl}" alt="Profile Banner">` : ''}
+                        <img src="${imageUrl}" alt="Podcast Cover">
                     </body>
                     </html>
                 `;
@@ -72,7 +89,7 @@ export async function onRequest(context) {
                 return new Response(metaHtml, { headers: { 'content-type': 'text/html;charset=UTF-8' } });
             }
         } catch (error) {
-            console.error(`Error for user profile ${username}:`, error);
+            console.error(`Error for podcast ${podcastId}:`, error);
         }
     }
 
