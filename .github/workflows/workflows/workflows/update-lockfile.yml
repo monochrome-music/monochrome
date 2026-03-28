@@ -1,0 +1,43 @@
+name: Update Lock File
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-lock:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Configure Git
+        uses: DanTheMan827/config-git-user-action@v1
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ./bun_modules
+            ./node_modules
+            ./bun.lock
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Commit changes
+        run: |
+          git add -A . || true
+          git commit "update lockfile" || true
+          git push || true
