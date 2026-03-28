@@ -39,7 +39,8 @@ const api = new MusicAPI(apiSettings);
 
 async function uploadImage(file) {
     try {
-        const response = await fetch(`https://worker.uploads.monochrome.qzz.io/${file.name}`, {
+        const fileNameWithoutSpace = file.name.replace(/\s/g, '_');
+        const response = await fetch(`https://worker.uploads.monochrome.qzz.io/${fileNameWithoutSpace}`, {
             method: 'PUT',
             headers: {
                 'x-api-key': 'if_youre_reading_this_fuck_off',
