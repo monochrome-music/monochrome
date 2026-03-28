@@ -50,11 +50,14 @@
                 <li data-action="add-to-queue">Add to queue</li>
                 <li
                     data-action="toggle-like"
-                    data-type-filter="album,artist,playlist,mix,user-playlist"
+                    data-label-track="Like"
+                    data-label-unlike-track="Unlike"
                     data-label-album="Save album to library"
                     data-label-unlike-album="Remove album from library"
                     data-label-playlist="Save playlist to library"
                     data-label-unlike-playlist="Remove playlist from library"
+                    data-label-video="Like"
+                    data-label-unlike-video="Unlike"
                 >
                     Like
                 </li>
@@ -878,39 +881,36 @@
 
         <div id="email-auth-modal" class="modal">
             <div class="modal-overlay"></div>
-            <div class="modal-content email-auth-modal-content">
-                <div class="email-auth-modal-header">
-                    <h3>Email Authentication</h3>
-                    <button
-                        type="button"
-                        class="btn-icon email-auth-modal-close"
-                        id="email-auth-modal-close"
-                        title="Close"
-                    >
-                        <use svg="!lucide/x.svg" size="20" />
-                    </button>
-                </div>
+            <div class="modal-content">
+                <h3 style="text-align: center; margin-bottom: 10px">Email Authentication</h3>
                 <input
                     type="email"
                     id="auth-email"
-                    class="template-input email-auth-input"
+                    class="template-input"
                     placeholder="Email Address"
+                    style="margin-bottom: 0.5rem"
                 />
-                <div class="email-auth-password-block">
-                    <input
-                        type="password"
-                        id="auth-password"
-                        class="template-input email-auth-input"
-                        placeholder="Password"
-                    />
-                    <button type="button" id="reset-password-btn" class="email-auth-forgot-link">
-                        Forgot password?
-                    </button>
+                <input
+                    type="password"
+                    id="auth-password"
+                    class="template-input"
+                    placeholder="Password"
+                    style="margin-bottom: 1rem"
+                />
+                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px">
+                    <button id="email-signin-btn" class="btn-primary" style="flex: 1">Sign In</button>
+                    <button id="email-signup-btn" class="btn-secondary" style="flex: 1">Sign Up</button>
                 </div>
-                <div class="email-auth-actions">
-                    <button type="button" id="email-signin-btn" class="btn-primary email-auth-submit">Sign In</button>
-                    <button type="button" id="email-signup-btn" class="btn-secondary email-auth-submit">Sign Up</button>
-                </div>
+                <button
+                    id="reset-password-btn"
+                    class="btn-secondary"
+                    style="width: 100%; margin-top: 10px; font-size: 0.9rem"
+                >
+                    Forgot Password?
+                </button>
+                <button id="cancel-email-auth-btn" class="btn-secondary" style="width: 100%; margin-top: 10px">
+                    Cancel
+                </button>
             </div>
         </div>
 
@@ -1789,31 +1789,6 @@
                         </button>
                         <div id="search-history" class="search-history" style="display: none"></div>
                     </form>
-                    <div class="header-account-control">
-                        <button
-                            id="header-account-btn"
-                            class="btn-icon"
-                            title="Account"
-                            style="
-                                width: 36px;
-                                height: 36px;
-                                border-radius: 50%;
-                                overflow: hidden;
-                                padding: 0;
-                                border: 1px solid var(--border);
-                            "
-                        >
-                            <span id="header-account-icon" class="header-account-icon-wrap">
-                                <use svg="!lucide/user.svg" size="20" />
-                            </span>
-                            <img
-                                id="header-account-img"
-                                alt="Account avatar"
-                                style="width: 100%; height: 100%; object-fit: cover; display: none"
-                            />
-                        </button>
-                        <div id="header-account-dropdown" class="dropdown-menu"></div>
-                    </div>
                 </header>
 
                 <div id="page-home" class="page">
@@ -1988,34 +1963,23 @@
                     <section class="content-section">
                         <div class="library-header">
                             <h2>My Playlists</h2>
+                            <button id="create-playlist-btn" class="btn-primary" style="margin: 10px 0">
+                                Create Playlist
+                            </button>
+                            <button
+                                id="create-folder-btn"
+                                class="btn-primary"
+                                style="
+                                    margin: 10px 0 10px 10px;
+                                    background-color: var(--secondary);
+                                    color: var(--foreground);
+                                "
+                            >
+                                Create Folder
+                            </button>
                         </div>
                         <div class="card-grid" id="my-folders-container"></div>
-                        <div class="card-grid" id="my-playlists-container">
-                            <button
-                                type="button"
-                                class="card library-create-dashed-card"
-                                id="library-create-playlist-card"
-                            >
-                                <div class="library-create-dashed-art">
-                                    <use svg="!lucide/list-music.svg" size="28" />
-                                </div>
-                                <div class="card-info">
-                                    <h4 class="card-title">Create playlist</h4>
-                                </div>
-                            </button>
-                            <button
-                                type="button"
-                                class="card library-create-dashed-card"
-                                id="library-create-folder-card"
-                            >
-                                <div class="library-create-dashed-art">
-                                    <use svg="!lucide/folder-plus.svg" size="28" />
-                                </div>
-                                <div class="card-info">
-                                    <h4 class="card-title">Create folder</h4>
-                                </div>
-                            </button>
-                        </div>
+                        <div class="card-grid" id="my-playlists-container"></div>
                     </section>
 
                     <section class="content-section">
@@ -2029,80 +1993,39 @@
                             <button class="search-tab" data-tab="local">Local Files</button>
                         </div>
                         <div class="search-tab-content active" id="library-tab-tracks">
-                            <div
-                                id="library-liked-tracks-toolbar"
-                                class="library-liked-tracks-toolbar"
-                                style="display: none"
-                            >
-                                <form class="library-liked-search track-list-search-container" onsubmit="return false;">
-                                    <use svg="!lucide/search.svg" class="search-icon" size="18" />
-                                    <input
-                                        type="search"
-                                        id="library-liked-tracks-search"
-                                        class="track-list-search-input"
-                                        placeholder="Search liked tracks..."
-                                        autocomplete="off"
-                                        autocorrect="off"
-                                        autocapitalize="off"
-                                        spellcheck="false"
-                                    />
-                                    <button
-                                        type="button"
-                                        class="search-clear-btn btn-icon"
-                                        title="Clear search"
-                                        style="display: none"
-                                    >
-                                        &times;
-                                    </button>
-                                </form>
-                                <div class="library-liked-tracks-toolbar-actions">
-                                    <button
-                                        type="button"
-                                        id="library-liked-tracks-view-list"
-                                        class="btn-icon library-liked-view-btn"
-                                        title="List view"
-                                    >
-                                        <use svg="!lucide/layout-list.svg" size="18" />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        id="library-liked-tracks-view-grid"
-                                        class="btn-icon library-liked-view-btn"
-                                        title="Card view"
-                                    >
-                                        <use svg="!lucide/layout-grid.svg" size="18" />
-                                    </button>
-                                    <button
-                                        id="shuffle-liked-tracks-btn"
-                                        class="btn-secondary"
-                                        style="
-                                            width: 32px;
-                                            height: 32px;
-                                            padding: 0;
-                                            align-items: center;
-                                            justify-content: center;
-                                            border-radius: 50%;
-                                        "
-                                        title="Shuffle Liked Tracks"
-                                    >
-                                        <use svg="!lucide/shuffle.svg" size="16" />
-                                    </button>
-                                    <button
-                                        id="download-liked-tracks-btn"
-                                        class="btn-secondary"
-                                        style="
-                                            width: 32px;
-                                            height: 32px;
-                                            padding: 0;
-                                            align-items: center;
-                                            justify-content: center;
-                                            border-radius: 50%;
-                                        "
-                                        title="Download Liked Tracks"
-                                    >
-                                        <use svg="!lucide/download.svg" size="16" />
-                                    </button>
-                                </div>
+                            <div style="display: flex; justify-content: flex-start; gap: 0.5rem; margin-bottom: 0.5rem">
+                                <button
+                                    id="shuffle-liked-tracks-btn"
+                                    class="btn-secondary"
+                                    style="
+                                        display: none;
+                                        width: 32px;
+                                        height: 32px;
+                                        padding: 0;
+                                        align-items: center;
+                                        justify-content: center;
+                                        border-radius: 50%;
+                                    "
+                                    title="Shuffle Liked Tracks"
+                                >
+                                    <use svg="!lucide/shuffle.svg" size="16" />
+                                </button>
+                                <button
+                                    id="download-liked-tracks-btn"
+                                    class="btn-secondary"
+                                    style="
+                                        display: none;
+                                        width: 32px;
+                                        height: 32px;
+                                        padding: 0;
+                                        align-items: center;
+                                        justify-content: center;
+                                        border-radius: 50%;
+                                    "
+                                    title="Download Liked Tracks"
+                                >
+                                    <use svg="!lucide/download.svg" size="16" />
+                                </button>
                             </div>
                             <div class="track-list" id="library-tracks-container"></div>
                         </div>
@@ -4997,13 +4920,8 @@
                             title="Save to Favorites"
                             style="display: none"
                         ></button>
-                        <button
-                            id="now-playing-add-playlist-btn"
-                            title="Add to playlist"
-                            class="desktop-only"
-                            aria-label="Add to playlist"
-                        >
-                            <use svg="!lucide/list-plus.svg" size="20" />
+                        <button id="now-playing-add-playlist-btn" title="Add to Playlist" class="desktop-only">
+                            <use svg="!lucide/square-pen.svg" size="20" />
                         </button>
 
                         <button
@@ -5015,8 +4933,8 @@
                         >
                             <use svg="./images/mix.svg" size="20" />
                         </button>
-                        <button id="toggle-lyrics-btn" title="Lyrics" style="display: none" aria-label="Lyrics">
-                            <use svg="!lucide/mic-vocal.svg" size="20" />
+                        <button id="toggle-lyrics-btn" title="Lyrics" style="display: none">
+                            <use svg="./images/mic.svg" size="20" />
                         </button>
                         <button id="download-current-btn" title="Download current track" class="desktop-only">
                             <use svg="!lucide/download.svg" size="20" />
@@ -5025,13 +4943,8 @@
                             <use svg="!lucide/cast.svg" size="20" />
                         </button>
 
-                        <button
-                            id="mobile-add-playlist-btn"
-                            class="mobile-only"
-                            title="Add to playlist"
-                            aria-label="Add to playlist"
-                        >
-                            <use svg="!lucide/list-plus.svg" size="20" />
+                        <button id="mobile-add-playlist-btn" class="mobile-only">
+                            <use svg="!lucide/square-pen.svg" size="20" />
                         </button>
                         <button id="queue-btn" title="Queue">
                             <use svg="!lucide/list.svg" size="24" />
