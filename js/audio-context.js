@@ -312,10 +312,10 @@ class AudioContextManager {
             try {
                 this.audioContext = new AudioContext(highResOptions);
                 console.log(`[AudioContext] Created with high-res settings: ${this.audioContext.sampleRate}Hz`);
-            } catch (e) {
+            } catch (_e) {
                 try {
                     this.audioContext = new AudioContext({ latencyHint: 'playback' });
-                } catch (e2) {
+                } catch (_e2) {
                     this.audioContext = new AudioContext();
                 }
             }
@@ -358,7 +358,7 @@ class AudioContextManager {
             if (this.source) {
                 try {
                     this.source.disconnect();
-                } catch (e) {}
+                } catch (_e) {}
             }
 
             this.audio = audioElement;
@@ -386,7 +386,7 @@ class AudioContextManager {
             // Disconnect everything first
             try {
                 this.source.disconnect();
-            } catch (e) {}
+            } catch (_e) {}
             this.outputNode.disconnect();
             if (this.volumeNode) {
                 this.volumeNode.disconnect();

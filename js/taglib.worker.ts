@@ -1,8 +1,8 @@
 // filepath: /workspaces/monochrome/js/taglib.worker.ts
-declare var self: DedicatedWorkerGlobalScope;
+declare let self: DedicatedWorkerGlobalScope;
 
 import { ByteVector } from '!/@dantheman827/taglib-ts/src/byteVector.js';
-import { Mp4Tag, Mp4Item } from '!/@dantheman827/taglib-ts/src/mp4/mp4Tag.js';
+import { Mp4Item } from '!/@dantheman827/taglib-ts/src/mp4/mp4Tag.js';
 import { Variant } from '!/@dantheman827/taglib-ts/src/toolkit/variant.js';
 import { doTimed, doTimedAsync } from './doTimed';
 import {
@@ -10,7 +10,6 @@ import {
     type _AddMetadataMessage,
     type _GetMetadataMessage,
     type AddMetadataMessage,
-    type GetMetadataMessage,
     type TagLibFileResponse,
     type TagLibMetadata,
     type TagLibMetadataResponse,
@@ -18,6 +17,7 @@ import {
     type TagLibWorkerMessage,
     type TagLibWorkerResponse,
 } from './taglib.types';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { File as TagLibFile } from '!/@dantheman827/taglib-ts/src/file.js';
 import { FileRef } from '!/@dantheman827/taglib-ts/src/fileRef.js';
 import { ChunkedByteVectorStream } from '!/@dantheman827/taglib-ts/src/toolkit/chunkedByteVectorStream.js';
@@ -26,10 +26,13 @@ import { BlobStream } from '!/@dantheman827/taglib-ts/src/toolkit/blobStream.js'
 import { FileSystemFileHandleStream } from '!/@dantheman827/taglib-ts/src/toolkit/fileSystemFileHandleStream.js';
 
 // Imported to ensure support is bundled in this chunk, even if not directly used
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { FlacFile } from '!/@dantheman827/taglib-ts/src/flac/flacFile.js';
 import { MpegFile } from '!/@dantheman827/taglib-ts/src/mpeg/mpegFile.js';
 import { Mp4File } from '!/@dantheman827/taglib-ts/src/mp4/mp4File.js';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { OggFile } from '!/@dantheman827/taglib-ts/src/ogg/oggFile.js';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { OggVorbisFile } from '!/@dantheman827/taglib-ts/src/ogg/vorbis/vorbisFile.js';
 
 export const isWorker = typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope;
@@ -38,7 +41,7 @@ export async function addMetadataToAudio(message: _AddMetadataMessage): Promise<
     const {
         audioData,
         audioRef,
-        filename,
+        filename: _filename,
         title,
         artist,
         albumTitle,
@@ -84,7 +87,7 @@ export async function addMetadataToAudio(message: _AddMetadataMessage): Promise<
         if (title) props.replace('TITLE', [title]);
         if (artist) props.replace('ARTIST', [artist]);
         if (albumTitle) props.replace('ALBUM', [albumTitle]);
-        if (albumArtist || artist) props.replace('ALBUMARTIST', [albumArtist || artist!]);
+        if (albumArtist || artist) props.replace('ALBUMARTIST', [albumArtist || artist]);
 
         if (trackNumber) {
             const trackStr =
@@ -127,7 +130,7 @@ export async function addMetadataToAudio(message: _AddMetadataMessage): Promise<
         if (copyright) props.replace('COPYRIGHT', [copyright]);
         if (isrc) props.replace('ISRC', [isrc]);
         if (isrc && isMp4) {
-            const mp4Tag = (underlying as Mp4File).tag() as Mp4Tag;
+            const mp4Tag = underlying.tag();
             mp4Tag.setItem('xid ', Mp4Item.fromStringList([`:isrc:${isrc}`]));
         }
         if (upc) props.replace('UPC', [upc]);
@@ -136,7 +139,7 @@ export async function addMetadataToAudio(message: _AddMetadataMessage): Promise<
         if (explicit !== undefined) {
             if (isMp4) {
                 // rtng is a byte item — must be set directly on the Mp4Tag
-                const mp4Tag = (underlying as Mp4File).tag() as Mp4Tag;
+                const mp4Tag = underlying.tag();
                 mp4Tag.setItem('rtng', Mp4Item.fromByte(explicit ? 1 : 0));
             } else {
                 props.replace('ITUNESADVISORY', [explicit ? '1' : '0']);
@@ -144,7 +147,7 @@ export async function addMetadataToAudio(message: _AddMetadataMessage): Promise<
         }
 
         if (stik != null && isMp4) {
-            const mp4Tag = (underlying as Mp4File).tag() as Mp4Tag;
+            const mp4Tag = underlying.tag();
             mp4Tag.setItem('stik', Mp4Item.fromByte(stik));
         }
 
@@ -167,7 +170,7 @@ export async function addMetadataToAudio(message: _AddMetadataMessage): Promise<
         await ref.save();
     });
 
-    const file = ref.file() as TagLibFile;
+    const file = ref.file();
     if (!file) return audioData;
     const stream = file.stream();
 
@@ -197,7 +200,7 @@ export async function addMetadataToAudio(message: _AddMetadataMessage): Promise<
 }
 
 export async function getMetadataFromAudio(message: _GetMetadataMessage): Promise<TagLibReadMetadata> {
-    const { audioData, audioRef, filename } = message;
+    const { audioData, audioRef } = message;
     const data: TagLibReadMetadata = { duration: 0 };
 
     const ref =
@@ -253,7 +256,7 @@ export async function getMetadataFromAudio(message: _GetMetadataMessage): Promis
     data.isrc = props.get('ISRC')?.[0] || undefined;
 
     if (isMp4) {
-        const mp4Tag = (underlying as Mp4File).tag() as Mp4Tag;
+        const mp4Tag = underlying.tag();
         data.explicit = mp4Tag.item('rtng')?.toByte() === 1;
     } else {
         data.explicit = props.get('ITUNESADVISORY')?.[0] === '1';

@@ -22,7 +22,11 @@ export async function withTimeout<T>(callback: () => Promise<T>, timeout: number
             })
             .catch((err) => {
                 clearTimeout(timer);
-                reject(err);
+                if (err instanceof Error) {
+                    reject(err);
+                } else {
+                    reject(new Error(String(err)));
+                }
             });
     });
 }
@@ -33,7 +37,7 @@ function toUint8Array(audioData: ArrayBufferLike | Uint8Array) {
     }
 
     return doTimed(
-        `Converting audio data (${(audioData as any)?.constructor?.name}) to Uint8Array`,
+        `Converting audio data (${(audioData as object)?.constructor?.name}) to Uint8Array`,
         () => new Uint8Array(audioData)
     );
 }
@@ -60,7 +64,7 @@ async function convertInputToTaglib<R = TagLibReadTypes>(
         return (await doTimedAsync('Reading File from FileSystemHandle as Uint8Array', async () => {
             const file = await audioData.getFile();
             const arrayBuffer = await file.arrayBuffer();
-            return await toUint8Array(arrayBuffer);
+            return toUint8Array(arrayBuffer);
         })) as R;
     } else if (
         !(audioData instanceof Uint8Array) &&
@@ -69,7 +73,7 @@ async function convertInputToTaglib<R = TagLibReadTypes>(
         !('FileSystemFileEntry' in globalThis && audioData instanceof FileSystemFileEntry) &&
         !('FileSystemFileHandle' in globalThis && audioData instanceof FileSystemFileHandle)
     ) {
-        return toUint8Array(audioData as any) as R;
+        return toUint8Array(audioData as unknown as ArrayBufferLike) as R;
     }
 
     return audioData as R;
@@ -114,19 +118,19 @@ export async function addMetadataWithTagLib(
                                     if (error) {
                                         reject(new Error(error));
                                     } else {
-                                        resolve(data!);
+                                        resolve(data);
                                     }
                                 };
                                 worker.onerror = reject;
                                 worker.onmessageerror = reject;
 
                                 const transferables: Transferable[] = [];
-                                if ((audioData as any)?.buffer instanceof ArrayBuffer) {
-                                    transferables.push((audioData as any).buffer);
+                                if ((audioData as Uint8Array)?.buffer instanceof ArrayBuffer) {
+                                    transferables.push((audioData as Uint8Array).buffer);
                                 }
 
-                                if ((data as any).cover?.data?.buffer instanceof ArrayBuffer) {
-                                    transferables.push((data as any).cover.data.buffer);
+                                if (data.cover?.data?.buffer instanceof ArrayBuffer) {
+                                    transferables.push(data.cover.data.buffer);
                                 }
 
                                 worker.postMessage({ ...data, type: 'Add', audioData, filename }, transferables);
@@ -168,15 +172,15 @@ export async function getMetadataWithTagLib(
                                 if (error) {
                                     reject(new Error(error));
                                 } else {
-                                    resolve(data!);
+                                    resolve(data);
                                 }
                             };
                             worker.onerror = reject;
                             worker.onmessageerror = reject;
 
                             const transferables: Transferable[] = [];
-                            if ((audioData as any)?.buffer instanceof ArrayBuffer) {
-                                transferables.push((audioData as any).buffer);
+                            if ((audioData as Uint8Array)?.buffer instanceof ArrayBuffer) {
+                                transferables.push((audioData as Uint8Array).buffer);
                             }
                             worker.postMessage({ type: 'Get', audioData, filename }, transferables);
                         }),

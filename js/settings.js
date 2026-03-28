@@ -40,7 +40,7 @@ import { db } from './db.js';
 import { authManager } from './accounts/auth.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { containerFormats, customFormats } from './ffmpegFormats.ts';
-import { modernSettings } from './ModernSettings.js';
+import { BulkDownloadMethod, modernSettings } from './ModernSettings.js';
 
 async function getButterchurnPresets(...args) {
     const butterchurnModule = await import('./visualizers/butterchurn.js');
@@ -942,10 +942,10 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     const showQualityBadgesToggle = document.getElementById('show-quality-badges-toggle');
     if (showQualityBadgesToggle) {
         showQualityBadgesToggle.checked = qualityBadgeSettings.isEnabled();
-        showQualityBadgesToggle.addEventListener('change', (e) => {
+        showQualityBadgesToggle.addEventListener('change', async (e) => {
             qualityBadgeSettings.setEnabled(e.target.checked);
             // Re-render queue if available, but don't force navigation to library
-            if (window.renderQueueFunction) window.renderQueueFunction();
+            if (window.renderQueueFunction) await window.renderQueueFunction();
         });
     }
 
@@ -978,15 +978,15 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         if (!forceZipBlobSettingItem) return;
         const method = modernSettings.bulkDownloadMethod;
         // Only relevant when zip method is selected and the browser supports streaming
-        const visible = method === 'zip' && hasFileSystemAccess;
+        const visible = method === BulkDownloadMethod.Zip && hasFileSystemAccess;
         forceZipBlobSettingItem.style.display = visible ? '' : 'none';
     }
 
     /** Shows/hides folder-picker-specific and folder-method settings */
     async function updateFolderMethodVisibility() {
         const method = modernSettings.bulkDownloadMethod;
-        const isFolderMethod = method === 'folder';
-        const isFolderOrLocal = isFolderMethod || method === 'local';
+        const isFolderMethod = method === BulkDownloadMethod.Folder;
+        const isFolderOrLocal = isFolderMethod || method === BulkDownloadMethod.LocalMedia;
 
         if (rememberFolderSetting) {
             rememberFolderSetting.style.display = isFolderMethod && hasFolderPicker ? '' : 'none';
@@ -1021,8 +1021,8 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             }
             // If the stored method is 'folder' or 'local' without native support, fall back to 'zip'
             const currentMethod = modernSettings.bulkDownloadMethod;
-            if (currentMethod === 'folder' || currentMethod === 'local') {
-                modernSettings.bulkDownloadMethod = 'zip';
+            if (currentMethod === BulkDownloadMethod.Folder || currentMethod === BulkDownloadMethod.LocalMedia) {
+                modernSettings.bulkDownloadMethod = BulkDownloadMethod.Zip;
             }
         }
         bulkDownloadMethod.value = modernSettings.bulkDownloadMethod;
@@ -1032,7 +1032,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             modernSettings.bulkDownloadMethod = newMethod;
 
             // When switching to 'local', prompt to select the local media folder if not yet configured
-            if (newMethod === 'local') {
+            if (newMethod === BulkDownloadMethod.LocalMedia) {
                 const existingHandle = await db.getSetting('local_folder_handle');
                 if (!existingHandle) {
                     let picked = false;
@@ -1114,7 +1114,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     }
 
     updateForceZipBlobVisibility();
-    updateFolderMethodVisibility();
+    await updateFolderMethodVisibility();
 
     const includeCoverToggle = document.getElementById('include-cover-toggle');
     if (includeCoverToggle) {
@@ -3036,7 +3036,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             try {
                 await syncManager.clearCloudData();
                 alert('Cloud data cleared successfully.');
-                authManager.signOut();
+                await authManager.signOut();
             } catch (error) {
                 console.error('Failed to clear cloud data:', error);
                 alert('Failed to clear cloud data: ' + error.message);
@@ -3387,7 +3387,7 @@ function initializeFontSettings() {
     });
 
     // Google Fonts apply
-    fontGoogleApply.addEventListener('click', () => {
+    fontGoogleApply.addEventListener('click', async () => {
         const input = fontGoogleInput.value.trim();
         if (!input) return;
 
@@ -3406,16 +3406,16 @@ function initializeFontSettings() {
             // Not a URL, treat as font name
         }
 
-        fontSettings.loadGoogleFont(fontName);
+        await fontSettings.loadGoogleFont(fontName);
     });
 
     // URL font apply
-    fontUrlApply.addEventListener('click', () => {
+    fontUrlApply.addEventListener('click', async () => {
         const url = fontUrlInput.value.trim();
         const name = fontUrlName.value.trim();
         if (!url) return;
 
-        fontSettings.loadFontFromUrl(url, name || 'CustomFont');
+        await fontSettings.loadFontFromUrl(url, name || 'CustomFont');
     });
 
     // File upload

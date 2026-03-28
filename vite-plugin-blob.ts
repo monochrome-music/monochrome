@@ -106,7 +106,7 @@ export default function getBlobUrl() {
 
                 chunk.code = chunk.code.replace(
                     /"__BLOB_ASSET_(.*?)__"/g,
-                    (_, refId) => `"${this.getFileName(refId)}"`
+                    (_, refId: string) => `"${this.getFileName(refId)}"`
                 );
             }
         },

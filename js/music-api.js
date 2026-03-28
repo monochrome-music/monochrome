@@ -35,7 +35,7 @@ export class MusicAPI {
     }
 
     // Get the appropriate API based on provider
-    getAPI(provider = null) {
+    getAPI() {
         return this.tidalAPI;
     }
 
@@ -101,31 +101,31 @@ export class MusicAPI {
     }
 
     // Get methods
-    async getTrack(id, quality, provider = null) {
+    async getTrack(id, quality) {
         const api = this.getAPI();
         const cleanId = this.stripProviderPrefix(id);
         return api.getTrack(cleanId, quality);
     }
 
-    async getTrackMetadata(id, provider = null) {
+    async getTrackMetadata(id) {
         const api = this.getAPI();
         const cleanId = this.stripProviderPrefix(id);
         return api.getTrackMetadata(cleanId);
     }
 
-    async getAlbum(id, provider = null) {
+    async getAlbum(id) {
         const api = this.getAPI();
         const cleanId = this.stripProviderPrefix(id);
         return api.getAlbum(cleanId);
     }
 
-    async getArtist(id, provider = null) {
+    async getArtist(id) {
         const api = this.getAPI();
         const cleanId = this.stripProviderPrefix(id);
         return api.getArtist(cleanId);
     }
 
-    async getArtistBiography(id, provider = null) {
+    async getArtistBiography(id) {
         const api = this.getAPI();
         const cleanId = this.stripProviderPrefix(id);
         if (typeof api.getArtistBiography === 'function') {
@@ -134,13 +134,13 @@ export class MusicAPI {
         return null;
     }
 
-    async getVideo(id, provider = null) {
+    async getVideo(id) {
         const api = this.getAPI();
         const cleanId = this.stripProviderPrefix(id);
         return api.getVideo(cleanId);
     }
 
-    async getVideoStreamUrl(id, provider = null) {
+    async getVideoStreamUrl(id) {
         const api = this.getAPI();
         const cleanId = this.stripProviderPrefix(id);
         if (typeof api.getVideoStreamUrl === 'function') {
@@ -157,7 +157,7 @@ export class MusicAPI {
         return this.tidalAPI.getPlaylist(id);
     }
 
-    async getMix(id, _provider = null) {
+    async getMix(id) {
         // Mixes are always Tidal for now
         return this.tidalAPI.getMix(id);
     }
@@ -172,7 +172,7 @@ export class MusicAPI {
     }
 
     // Stream methods
-    async getStreamUrl(id, quality, provider = null) {
+    async getStreamUrl(id, quality) {
         const api = this.getAPI();
         const cleanId = this.stripProviderPrefix(id);
         return api.getStreamUrl(cleanId, quality);

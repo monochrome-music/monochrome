@@ -654,7 +654,7 @@ export function fetchBlob(url) {
 }
 
 export async function fetchBlobURL(url) {
-    return await URL.createObjectURL(await fetchBlob(url));
+    return URL.createObjectURL(await fetchBlob(url));
 }
 
 export function getMimeType(data) {

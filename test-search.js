@@ -5,4 +5,4 @@ async function test() {
     const json = await res.json();
     console.log(JSON.stringify(json.data || {}));
 }
-test();
+void test();

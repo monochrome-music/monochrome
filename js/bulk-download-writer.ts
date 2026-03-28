@@ -86,9 +86,7 @@ export class ZipStreamWriter implements IBulkDownloadWriter {
     constructor(private readonly suggestedFilename: string) {}
 
     async write(files: AsyncIterable<WriterEntry>): Promise<void> {
-        // showSaveFilePicker is part of the File System Access API (not yet in all TS DOM libs)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const fileHandle = await (window as any).showSaveFilePicker({
+        const fileHandle = await window.showSaveFilePicker({
             suggestedName: this.suggestedFilename,
             types: [{ description: 'ZIP Archive', accept: { 'application/zip': ['.zip'] } }],
         });
@@ -140,7 +138,6 @@ export class ZipNeutralinoWriter implements IBulkDownloadWriter {
 
         await bridge.filesystem.writeBinaryFile(savePath, new ArrayBuffer(0));
 
-        const reader = response.body.getReader();
         let receivedLength = 0;
 
         for await (const value of readableStreamIterator(response.body)) {
@@ -189,8 +186,7 @@ export class FolderPickerWriter implements IBulkDownloadWriter {
         // Try to re-use a saved handle first
         if (savedHandle) {
             try {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const permission = await (savedHandle as any).requestPermission({ mode: 'readwrite' });
+                const permission = await savedHandle.requestPermission({ mode: 'readwrite' });
                 if (permission === 'granted') {
                     return new FolderPickerWriter(savedHandle);
                 }
@@ -200,9 +196,8 @@ export class FolderPickerWriter implements IBulkDownloadWriter {
         }
 
         // showDirectoryPicker is part of the File System Access API (not yet in all TS DOM libs)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         try {
-            const dirHandle: FileSystemDirectoryHandle = await (window as any).showDirectoryPicker({
+            const dirHandle: FileSystemDirectoryHandle = await window.showDirectoryPicker({
                 mode: 'readwrite',
             });
             return new FolderPickerWriter(dirHandle);
@@ -287,10 +282,7 @@ export class NeutralinoFolderWriter implements IBulkDownloadWriter {
                 buffer = await input.arrayBuffer();
             } else if (typeof input === 'string') {
                 const encoded = new TextEncoder().encode(input);
-                buffer = encoded.buffer.slice(
-                    encoded.byteOffset,
-                    encoded.byteOffset + encoded.byteLength
-                ) as ArrayBuffer;
+                buffer = encoded.buffer.slice(encoded.byteOffset, encoded.byteOffset + encoded.byteLength);
             } else if (input instanceof Uint8Array) {
                 buffer = input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength) as ArrayBuffer;
             } else {

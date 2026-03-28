@@ -1,6 +1,5 @@
 import { loadEnv } from 'vite';
 import cookieSession from 'cookie-session';
-import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { readFileSync, existsSync } from 'fs';
 import { join, extname } from 'path';
 

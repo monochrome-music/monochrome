@@ -29,7 +29,7 @@ export function prefetchMetadataObjects(track, api, coverBlob = null) {
  * @param {string} quality - Audio quality
  * @returns {Promise<Blob>} - Audio blob with embedded metadata
  */
-export async function addMetadataToAudio(audioBlob, track, api, _quality, prefetchPromises) {
+export async function addMetadataToAudio(audioBlob, track, _api, _quality, prefetchPromises) {
     const { coverFetch, lyricsFetch } = prefetchPromises;
 
     /**
