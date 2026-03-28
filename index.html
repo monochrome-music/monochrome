@@ -1718,12 +1718,6 @@
                                             <span>GitHub</span>
                                         </a>
                                     </li>
-                                    <li class="nav-item" id="sidebar-nav-download-bottom">
-                                        <a href="/download">
-                                            <use svg="!lucide/download.svg" size="24" />
-                                            <span>Download</span>
-                                        </a>
-                                    </li>
                                 </ul>
                             </nav>
                         </div>
@@ -3252,18 +3246,6 @@
                                     </div>
                                     <div class="setting-item">
                                         <div class="info">
-                                            <span class="label">Show Download in Sidebar</span>
-                                            <span class="description"
-                                                >Display the Download link in the sidebar navigation</span
-                                            >
-                                        </div>
-                                        <label class="toggle-switch">
-                                            <input type="checkbox" id="sidebar-show-download-bottom-toggle" checked />
-                                            <span class="slider"></span>
-                                        </label>
-                                    </div>
-                                    <div class="setting-item">
-                                        <div class="info">
                                             <span class="label">Show Discord in Sidebar</span>
                                             <span class="description"
                                                 >Display the Discord link in the sidebar navigation</span
@@ -4645,6 +4627,15 @@
                                     </div>
                                 </div>
                             </div>
+                            <p
+                                id="settings-commit-info"
+                                style="
+                                    text-align: center;
+                                    color: var(--muted-foreground);
+                                    font-size: 0.75rem;
+                                    padding: 1rem 0 0.5rem;
+                                "
+                            ></p>
                         </div>
                     </div>
                 </div>
@@ -4719,6 +4710,7 @@
                         </p>
                         <div class="about-footer">
                             <p class="version">Version 2.5.0</p>
+                            <p class="version" id="about-commit-info"></p>
                             <p class="disclaimer">
                                 This is an independent client and is not affiliated with or endorsed by TIDAL or any
                                 music streaming service.
@@ -4755,6 +4747,8 @@
                             "
                         >
                             <button id="auth-connect-btn" class="btn-secondary">Connect with Google</button>
+                            <button id="auth-github-btn" class="btn-secondary">Connect with GitHub</button>
+                            <button id="auth-discord-btn" class="btn-secondary">Connect with Discord</button>
                             <button id="toggle-email-auth-btn" class="btn-secondary">Connect with Email</button>
                             <button id="view-my-profile-btn" class="btn-secondary" style="display: none">
                                 View My Profile
