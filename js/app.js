@@ -1437,7 +1437,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        if (e.target.closest('#create-playlist-btn')) {
+        if (e.target.closest('#create-playlist-btn') || e.target.closest('#library-create-playlist-card')) {
             trackOpenModal('Create Playlist');
             const modal = document.getElementById('playlist-modal');
             document.getElementById('playlist-modal-title').textContent = 'Create Playlist';
@@ -1491,7 +1491,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('playlist-name-input').focus();
         }
 
-        if (e.target.closest('#create-folder-btn')) {
+        if (e.target.closest('#create-folder-btn') || e.target.closest('#library-create-folder-card')) {
             trackOpenModal('Create Folder');
             const modal = document.getElementById('folder-modal');
             document.getElementById('folder-name-input').value = '';
@@ -1518,6 +1518,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (e.target.closest('#folder-modal-cancel')) {
             document.getElementById('folder-modal').classList.remove('active');
+        }
+
+        if (e.target.closest('#library-liked-tracks-view-list')) {
+            localStorage.setItem('libraryLikedTracksView', 'list');
+            if (window.location.pathname.split('/').filter(Boolean)[0] === 'library') {
+                await UIRenderer.instance.renderLibraryPage();
+            }
+        }
+        if (e.target.closest('#library-liked-tracks-view-grid')) {
+            localStorage.setItem('libraryLikedTracksView', 'grid');
+            if (window.location.pathname.split('/').filter(Boolean)[0] === 'library') {
+                await UIRenderer.instance.renderLibraryPage();
+            }
         }
 
         if (e.target.closest('#delete-folder-btn')) {
@@ -3016,7 +3029,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
             headerAccountImg.style.display = 'none';
-            headerAccountIcon.style.display = 'block';
+            headerAccountIcon.style.display = 'flex';
         });
     }
 });

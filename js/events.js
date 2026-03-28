@@ -1508,10 +1508,10 @@ export async function handleTrackAction(
         });
 
         // Handle Library Page Update
-        if (window.location.hash === '#library') {
+        if (window.location.pathname.split('/').filter(Boolean)[0] === 'library') {
             const itemSelector =
                 type === 'track'
-                    ? `.track-item[data-track-id="${id}"]`
+                    ? `.track-item[data-track-id="${id}"], .card[data-track-id="${id}"]`
                     : type === 'video'
                       ? `.video-card[data-video-id="${id}"]`
                       : `.card[data-${type}-id="${id}"], .card[data-playlist-id="${id}"]`;
@@ -1539,17 +1539,31 @@ export async function handleTrackAction(
                         const placeholder = tracksContainer.querySelector('.placeholder-text');
                         if (placeholder) placeholder.remove();
 
-                        const index = tracksContainer.children.length;
-                        const trackHTML = ui.createTrackItemHTML(item, index, true, false);
-
+                        const layout = localStorage.getItem('libraryLikedTracksView') || 'list';
                         const tempDiv = document.createElement('div');
-                        tempDiv.innerHTML = trackHTML;
+                        if (layout === 'grid') {
+                            tracksContainer.classList.remove('track-list');
+                            tracksContainer.classList.add('card-grid');
+                            tempDiv.innerHTML = ui.createTrackCardHTML(item);
+                        } else {
+                            tracksContainer.classList.remove('card-grid');
+                            tracksContainer.classList.add('track-list');
+                            const index = tracksContainer.children.length;
+                            tempDiv.innerHTML = ui.createTrackItemHTML(item, index, true, false, false, true);
+                        }
                         const newEl = tempDiv.firstElementChild;
 
                         if (newEl) {
                             tracksContainer.appendChild(newEl);
                             trackDataStore.set(newEl, item);
                             ui.updateLikeState(newEl, 'track', item.id);
+                            const likedToolbar = document.getElementById('library-liked-tracks-toolbar');
+                            if (likedToolbar) likedToolbar.style.display = 'flex';
+                            const shuffleBtn = document.getElementById('shuffle-liked-tracks-btn');
+                            const downloadBtn = document.getElementById('download-liked-tracks-btn');
+                            if (shuffleBtn) shuffleBtn.style.display = 'flex';
+                            if (downloadBtn) downloadBtn.style.display = 'flex';
+                            ui.setupLibraryLikedTracksSearch(tracksContainer);
                         }
                     }
                 } else if (type === 'video') {
@@ -2229,7 +2243,8 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             trackItem &&
             !trackItem.dataset.queueIndex &&
             !e.target.closest('.remove-from-playlist-btn') &&
-            !e.target.closest('.artist-link')
+            !e.target.closest('.artist-link') &&
+            !e.target.closest('.like-btn')
         ) {
             const clickedTrackId = trackItem.dataset.trackId;
             const isSearch = window.location.pathname.startsWith('/search/');
@@ -2315,6 +2330,32 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             }
 
             if (e.target.closest('.edit-playlist-btn') || e.target.closest('.delete-playlist-btn')) {
+                return;
+            }
+
+            const libraryTracksContainer = card.closest('#library-tracks-container');
+            if (libraryTracksContainer && card.dataset.trackId) {
+                if (
+                    e.target.closest('.like-btn') ||
+                    e.target.closest('.card-play-btn') ||
+                    e.target.closest('.card-menu-btn')
+                ) {
+                    return;
+                }
+                e.preventDefault();
+                const clickedTrackId = card.dataset.trackId;
+                const clickedTrack = trackDataStore.get(card);
+                if (!clickedTrack) return;
+                const allTrackElements = Array.from(libraryTracksContainer.querySelectorAll('.card[data-track-id]'));
+                const trackList = allTrackElements.map((el) => trackDataStore.get(el)).filter(Boolean);
+                if (trackList.length === 0) return;
+                const startIndex = trackList.findIndex((t) => t.id == clickedTrackId);
+                player.setQueue(trackList, startIndex);
+                if (ui.currentPage === 'artist' && ui.currentArtistId) {
+                    player.setArtistPopularTracksContext(ui.currentArtistId, trackList, trackList.length, true);
+                }
+                document.getElementById('shuffle-btn').classList.remove('active');
+                player.playTrackFromQueue();
                 return;
             }
 
