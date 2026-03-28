@@ -546,9 +546,9 @@ export function createStringAtom(type, value, truncateType = true) {
 
 export function createUserAtom(namespace, name, value) {
     const encoder = new TextEncoder();
-    const dashBytes = encoder.encode('----'); // User-defined atom type
+    const _dashBytes = encoder.encode('----'); // User-defined atom type
     const namespaceBytes = encoder.encode(namespace);
-    const meanBytes = encoder.encode('mean'); // Standard 'mean' atom for namespace
+    const _meanBytes = encoder.encode('mean'); // Standard 'mean' atom for namespace
     const nameBytes = encoder.encode(name);
     const valueBytes = encoder.encode('\x00\x00\x00\x01\x00\x00\x00\x00' + value);
 

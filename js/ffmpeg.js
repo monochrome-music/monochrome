@@ -95,7 +95,7 @@ async function ffmpegWorker(
             reject(new FfmpegError('Worker failed: ' + error.message));
         };
 
-        (async () => {
+        void (async () => {
             const transferables = [];
             if (audioData) transferables.push(audioData);
             for (const f of extraFiles) {

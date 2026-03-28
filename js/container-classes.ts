@@ -59,7 +59,7 @@ export class MediaMetadata {
 }
 
 export class Artist {
-    handle: any;
+    handle: unknown;
     id: number;
     name: string;
     picture: string;
@@ -68,6 +68,7 @@ export class Artist {
 
 export class EnrichedTrack extends Track {
     declare album: TrackAlbum | EnrichedAlbum;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-redundant-type-constituents
     declare replayGain: any | ReplayGain;
 }
 

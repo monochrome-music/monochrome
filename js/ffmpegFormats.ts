@@ -192,7 +192,7 @@ export async function transcodeWithCustomFormat(
     format: CustomFormat,
     onProgress: ((progress: ProgressEvent) => void) | null = null,
     signal: AbortSignal | null = null,
-    extraFiles: any[] = []
+    extraFiles: { name: string; data: ArrayBuffer | Uint8Array }[] = []
 ): Promise<Blob> {
     return ffmpeg(
         audioBlob,
@@ -214,7 +214,7 @@ export async function transcodeWithContainerFormat(
     format: ContainerFormat,
     onProgress: ((progress: ProgressEvent) => void) | null = null,
     signal: AbortSignal | null = null,
-    extraFiles: any[] = []
+    extraFiles: { name: string; data: ArrayBuffer | Uint8Array }[] = []
 ): Promise<Blob> {
     return ffmpeg(
         audioBlob,

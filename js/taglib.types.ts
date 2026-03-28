@@ -51,7 +51,6 @@ export enum Mp4Stik {
     WhackedBookmark = 5,
     MusicVideo = 6,
     Movie = 9,
-    ShortFilm = 9,
     TVShow = 10,
     Booklet = 11,
 }
