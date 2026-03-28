@@ -638,7 +638,6 @@ export class LosslessAPI {
 
         const response = await this.fetchWithRetry(`/video/?id=${id}`, {
             type: 'streaming',
-            allowedDomains: ['api.monochrome.tf', 'arran.monochrome.tf'],
         });
         const jsonResponse = await response.json();
 
