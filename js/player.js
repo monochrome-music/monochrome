@@ -9,6 +9,7 @@ import {
     escapeHtml,
     deriveTrackQuality,
 } from './utils.js';
+import { CrossfadeManager, GaplessManager } from './playback-features.js';
 import {
     queueManager,
     qualityBadgeSettings,
@@ -133,7 +134,9 @@ export class Player {
             console.error('Browser not supported for Shaka Player');
         }
 
-        this.loadQueueState();
+        this.loadQueueState();         // Inisialisasi Crossfade dan Gapless Playback managers         this.crossfadeManager = new CrossfadeManager(this);         this.gaplessManager = new GaplessManager(this);
+                this.crossfadeManager = new CrossfadeManager(this);
+                this.gaplessManager = new GaplessManager(this);
         this.setupMediaSession();
 
         this.radioEnabled = radioSettings.isEnabled();
@@ -738,10 +741,12 @@ export class Player {
         }
 
         audioContextManager.changeSource(activeElement);
+                this.gaplessManager?.attach(activeElement);
 
         if (isVideoTrack) {
             if (coverEl) coverEl.style.display = 'none';
             if (this.video) {
+            
                 const isInFullscreen = document.getElementById('fullscreen-cover-overlay')?.style.display === 'flex';
 
                 if (!isInFullscreen) {
