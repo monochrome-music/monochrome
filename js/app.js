@@ -406,9 +406,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     {
         const repo = 'https://github.com/monochrome-music/monochrome';
         const hash = typeof __COMMIT_HASH__ !== 'undefined' ? __COMMIT_HASH__ : 'dev';
-        const commitLink = hash !== 'dev' && hash !== 'unknown'
-            ? `<a href="${repo}/commit/${hash}" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline">${hash}</a>`
-            : hash;
+        const commitLink =
+            hash !== 'dev' && hash !== 'unknown'
+                ? `<a href="${repo}/commit/${hash}" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline">${hash}</a>`
+                : hash;
         const repoLink = `<a href="${repo}" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline">monochrome-music/monochrome</a>`;
         const html = `Commit ${commitLink} · ${repoLink}`;
         const aboutEl = document.getElementById('about-commit-info');
