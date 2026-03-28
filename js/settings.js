@@ -2731,15 +2731,6 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
-    const sidebarShowDownloadToggle = document.getElementById('sidebar-show-download-bottom-toggle');
-    if (sidebarShowDownloadToggle) {
-        sidebarShowDownloadToggle.checked = sidebarSectionSettings.shouldShowDownload();
-        sidebarShowDownloadToggle.addEventListener('change', (e) => {
-            sidebarSectionSettings.setShowDownload(e.target.checked);
-            sidebarSectionSettings.applySidebarVisibility();
-        });
-    }
-
     const sidebarShowDiscordToggle = document.getElementById('sidebar-show-discordbtn-toggle');
     if (sidebarShowDiscordToggle) {
         sidebarShowDiscordToggle.checked = sidebarSectionSettings.shouldShowDiscord();
