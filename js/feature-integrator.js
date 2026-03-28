@@ -253,5 +253,56 @@ export async function initializeNewFeatures(deps) {
     console.warn('[Features] Failed to init Social Profile:', e);
   }
 
+
+  // 22. Smart Playlists
+  try {
+    const { SmartPlaylistManager } = await import('./smart-playlists.js');
+    const smartPlaylists = new SmartPlaylistManager();
+    window.monochromeSmartPlaylists = smartPlaylists;
+    console.log('[Features] Smart Playlists initialized');
+  } catch (e) {
+    console.warn('[Features] Failed to init Smart Playlists:', e);
+  }
+
+  // 23. Library Search
+  try {
+    const { LibrarySearchManager } = await import('./library-search.js');
+    const libSearch = new LibrarySearchManager();
+    window.monochromeLibrarySearch = libSearch;
+    console.log('[Features] Library Search initialized');
+  } catch (e) {
+    console.warn('[Features] Failed to init Library Search:', e);
+  }
+
+  // 24. Bulk Editor
+  try {
+    const { BulkTrackEditor } = await import('./bulk-editor.js');
+    const bulkEditor = new BulkTrackEditor();
+    window.monochromeBulkEditor = bulkEditor;
+    console.log('[Features] Bulk Editor initialized');
+  } catch (e) {
+    console.warn('[Features] Failed to init Bulk Editor:', e);
+  }
+
+  // 25. Duplicate Detector
+  try {
+    const { DuplicateTrackDetector } = await import('./duplicate-detector.js');
+    const duplicateDetector = new DuplicateTrackDetector();
+    window.monochromeDuplicateDetector = duplicateDetector;
+    console.log('[Features] Duplicate Detector initialized');
+  } catch (e) {
+    console.warn('[Features] Failed to init Duplicate Detector:', e);
+  }
+
+  // 26. Library Stats
+  try {
+    const { LibraryStatsManager } = await import('./library-stats.js');
+    const libStats = new LibraryStatsManager();
+    window.monochromeLibraryStats = libStats;
+    console.log('[Features] Library Stats initialized');
+  } catch (e) {
+    console.warn('[Features] Failed to init Library Stats:', e);
+  }
+
   console.log('[Features] All new features initialized successfully');
 }
