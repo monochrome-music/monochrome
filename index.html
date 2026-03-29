@@ -4000,9 +4000,9 @@
 
                                 <div class="setting-item">
                                     <div class="info">
-                                        <span class="label">Equalizer</span>
+                                        <span class="label">AutoEQ</span>
                                         <span class="description"
-                                            >16-band parametric equalizer for fine audio control</span
+                                            >Precision headphone correction &amp; parametric equalizer</span
                                         >
                                     </div>
                                     <label class="toggle-switch">
@@ -4012,217 +4012,242 @@
                                 </div>
 
                                 <div class="equalizer-container" id="equalizer-container" style="display: none">
-                                    <div class="equalizer-header">
-                                        <div class="equalizer-preset-row">
-                                            <label for="equalizer-preset-select">Preset</label>
-                                            <select id="equalizer-preset-select">
-                                                <optgroup label="Built-in Presets">
-                                                    <option value="flat">Flat</option>
-                                                    <option value="bass_boost">Bass Boost</option>
-                                                    <option value="bass_reducer">Bass Reducer</option>
-                                                    <option value="treble_boost">Treble Boost</option>
-                                                    <option value="treble_reducer">Treble Reducer</option>
-                                                    <option value="vocal_boost">Vocal Boost</option>
-                                                    <option value="loudness">Loudness</option>
-                                                    <option value="rock">Rock</option>
-                                                    <option value="pop">Pop</option>
-                                                    <option value="classical">Classical</option>
-                                                    <option value="jazz">Jazz</option>
-                                                    <option value="electronic">Electronic</option>
-                                                    <option value="hip_hop">Hip-Hop</option>
-                                                    <option value="r_and_b">R&B</option>
-                                                    <option value="acoustic">Acoustic</option>
-                                                    <option value="podcast">Podcast / Speech</option>
-                                                </optgroup>
-                                                <optgroup label="Custom Presets" id="custom-presets-optgroup">
-                                                    <!-- Custom presets will be populated by JavaScript -->
-                                                </optgroup>
-                                            </select>
-                                            <label for="eq-band-count">Bands</label>
-                                            <input
-                                                type="number"
-                                                id="eq-band-count"
-                                                class="eq-band-count-input"
-                                                min="3"
-                                                max="32"
-                                                value="16"
-                                                title="Number of EQ bands (3-32)"
-                                            />
-                                            <button
-                                                id="equalizer-reset-btn"
-                                                class="btn-secondary"
-                                                title="Reset to Flat"
-                                            >
-                                                <use svg="!lucide/rotate-ccw.svg" size="16" />
-                                            </button>
-                                            <button
-                                                id="eq-export-btn"
-                                                class="btn-secondary"
-                                                title="Export EQ settings to text"
-                                                style="font-size: 0.75rem; padding: 0.25rem 0.5rem"
-                                            >
-                                                Export
-                                            </button>
-                                            <button
-                                                id="eq-import-btn"
-                                                class="btn-secondary"
-                                                title="Import EQ settings from text or file"
-                                                style="font-size: 0.75rem; padding: 0.25rem 0.5rem"
-                                            >
-                                                Import
-                                            </button>
-                                            <input
-                                                type="file"
-                                                id="eq-import-file"
-                                                accept=".txt"
-                                                style="display: none"
-                                            />
+                                    <!-- Mode Toggle -->
+                                    <div class="autoeq-mode-toggle">
+                                        <button class="autoeq-mode-btn active" data-mode="autoeq">AutoEQ</button>
+                                        <button class="autoeq-mode-btn" data-mode="parametric">Parametric EQ</button>
+                                    </div>
+
+                                    <!-- Frequency Response Graph -->
+                                    <div class="autoeq-graph-section">
+                                        <div class="autoeq-graph-header">
+                                            <span class="autoeq-graph-title">Frequency Response</span>
+                                            <div class="autoeq-graph-legend">
+                                                <span class="legend-item legend-original"
+                                                    ><span class="legend-dot"></span>Original</span
+                                                >
+                                                <span class="legend-item legend-target"
+                                                    ><span class="legend-dot"></span>Target (Primary)</span
+                                                >
+                                                <span class="legend-item legend-corrected"
+                                                    ><span class="legend-dot"></span>Corrected</span
+                                                >
+                                            </div>
+                                        </div>
+                                        <div class="autoeq-graph-wrapper" id="autoeq-graph-wrapper">
+                                            <canvas id="autoeq-response-canvas" class="autoeq-response-canvas"></canvas>
+                                        </div>
+                                    </div>
+
+                                    <!-- AutoEQ Controls -->
+                                    <div class="autoeq-controls-section">
+                                        <div class="autoeq-type-filters">
+                                            <button class="autoeq-type-btn active" data-type="all">ALL</button>
+                                            <button class="autoeq-type-btn" data-type="over-ear">OVER-EAR</button>
+                                            <button class="autoeq-type-btn" data-type="in-ear">IN-EAR</button>
                                         </div>
 
-                                        <div class="custom-preset-controls">
-                                            <div class="custom-preset-input-row">
-                                                <input
-                                                    type="text"
-                                                    id="custom-preset-name"
-                                                    placeholder="Preset name (e.g., Home, Car, Work)"
-                                                    maxlength="50"
-                                                />
+                                        <div class="autoeq-control-group">
+                                            <label class="autoeq-control-label">HEADPHONE MODEL</label>
+                                            <div class="autoeq-select-wrapper">
+                                                <select id="autoeq-headphone-select">
+                                                    <option value="">Select a headphone...</option>
+                                                </select>
                                                 <button
-                                                    id="save-custom-preset-btn"
-                                                    class="btn-primary"
-                                                    title="Save current EQ as custom preset"
+                                                    id="autoeq-import-measurement-btn"
+                                                    class="autoeq-settings-btn"
+                                                    title="Import measurement file"
                                                 >
-                                                    Save
+                                                    <use svg="!lucide/file-input.svg" size="16" />
                                                 </button>
                                             </div>
-                                            <button
-                                                id="delete-custom-preset-btn"
-                                                class="btn-secondary delete-preset-btn"
-                                                style="display: none"
-                                                title="Delete selected custom preset"
-                                            >
-                                                <use svg="!lucide/trash.svg" size="16" />
-                                                Delete Preset
-                                            </button>
                                         </div>
 
-                                        <div class="eq-range-controls">
-                                            <label>DB Range:</label>
-                                            <input
-                                                type="number"
-                                                id="eq-range-min"
-                                                class="eq-range-input"
-                                                min="-60"
-                                                max="0"
-                                                value="-30"
-                                                title="Minimum gain in dB"
-                                            />
-                                            <span>to</span>
-                                            <input
-                                                type="number"
-                                                id="eq-range-max"
-                                                class="eq-range-input"
-                                                min="0"
-                                                max="60"
-                                                value="30"
-                                                title="Maximum gain in dB"
-                                            />
-                                            <span>dB</span>
-                                            <button
-                                                id="apply-eq-range-btn"
-                                                class="btn-secondary"
-                                                title="Apply new range to all bands"
-                                            >
-                                                Apply
-                                            </button>
-                                            <button
-                                                id="reset-eq-range-btn"
-                                                class="btn-secondary"
-                                                title="Reset to default (-30 to +30 dB)"
-                                            >
-                                                Reset
-                                            </button>
+                                        <div class="autoeq-control-group">
+                                            <label class="autoeq-control-label">TARGET</label>
+                                            <div class="autoeq-select-wrapper">
+                                                <select id="autoeq-target-select">
+                                                    <option value="harman_oe_2018">Harman Over-Ear 2018</option>
+                                                    <option value="harman_ie_2019">Harman In-Ear 2019</option>
+                                                    <option value="seap">SEAP</option>
+                                                    <option value="seap_bass">SEAP Bass Boost</option>
+                                                    <option value="diffuse_field">Diffuse Field</option>
+                                                    <option value="knowles">Knowles</option>
+                                                    <option value="moondrop">Moondrop VDSF</option>
+                                                    <option value="hifi_endgame">HiFi Endgame 2026</option>
+                                                    <option value="peqdb_ultra">PEQdB Ultra</option>
+                                                    <option value="flat">Flat (Calibration)</option>
+                                                </select>
+                                                <button
+                                                    id="autoeq-target-settings-btn"
+                                                    class="autoeq-settings-btn"
+                                                    title="Target settings"
+                                                >
+                                                    <use svg="!lucide/settings-2.svg" size="16" />
+                                                </button>
+                                            </div>
                                         </div>
 
-                                        <div class="eq-freq-controls">
-                                            <label>Freq Range:</label>
-                                            <input
-                                                type="number"
-                                                id="eq-freq-min"
-                                                class="eq-freq-input"
-                                                min="10"
-                                                max="20000"
-                                                value="20"
-                                                title="Minimum frequency in Hz"
-                                            />
-                                            <span>Hz to</span>
-                                            <input
-                                                type="number"
-                                                id="eq-freq-max"
-                                                class="eq-freq-input"
-                                                min="20"
-                                                max="96000"
-                                                value="20000"
-                                                title="Maximum frequency in Hz"
-                                            />
-                                            <span>Hz</span>
-                                            <button
-                                                id="apply-eq-freq-btn"
-                                                class="btn-secondary"
-                                                title="Apply new frequency range"
-                                            >
-                                                Apply
-                                            </button>
-                                            <button
-                                                id="reset-eq-freq-btn"
-                                                class="btn-secondary"
-                                                title="Reset to default (20 Hz to 20 kHz)"
-                                            >
-                                                Reset
-                                            </button>
+                                        <div class="autoeq-controls-row">
+                                            <div class="autoeq-control-mini">
+                                                <label class="autoeq-control-label">FILTER BANDS</label>
+                                                <select id="autoeq-band-count">
+                                                    <option value="5">5</option>
+                                                    <option value="10" selected>10</option>
+                                                    <option value="15">15</option>
+                                                    <option value="20">20</option>
+                                                    <option value="32">32</option>
+                                                </select>
+                                            </div>
+                                            <div class="autoeq-control-mini">
+                                                <label class="autoeq-control-label">MAX HZ</label>
+                                                <select id="autoeq-max-freq">
+                                                    <option value="6000">6k</option>
+                                                    <option value="8000">8k</option>
+                                                    <option value="10000">10k</option>
+                                                    <option value="16000" selected>16k</option>
+                                                    <option value="20000">20k</option>
+                                                    <option value="22000">22k</option>
+                                                </select>
+                                            </div>
+                                            <div class="autoeq-control-mini">
+                                                <label class="autoeq-control-label">SAMPLE RATE</label>
+                                                <select id="autoeq-sample-rate">
+                                                    <option value="44100">44.1k</option>
+                                                    <option value="48000" selected>48k</option>
+                                                    <option value="96000">96k</option>
+                                                </select>
+                                            </div>
                                         </div>
 
-                                        <div
-                                            class="eq-preamp-controls"
-                                            style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem"
-                                        >
-                                            <label style="font-size: 0.75rem; opacity: 0.8">Preamp:</label>
-                                            <input
-                                                type="range"
-                                                id="eq-preamp-slider"
-                                                min="-20"
-                                                max="20"
-                                                step="0.1"
-                                                value="0"
-                                                style="flex: 1; max-width: 120px"
-                                                title="Preamp gain in dB"
-                                            />
-                                            <input
-                                                type="number"
-                                                id="eq-preamp-input"
-                                                min="-20"
-                                                max="20"
-                                                step="0.1"
-                                                value="0"
-                                                style="width: 60px; padding: 0.25rem; font-size: 0.75rem"
-                                                title="Preamp value in dB"
-                                            />
-                                            <span style="font-size: 0.75rem">dB</span>
+                                        <div class="autoeq-actions-row">
+                                            <button
+                                                id="autoeq-download-btn"
+                                                class="autoeq-download-btn"
+                                                title="Export EQ settings"
+                                            >
+                                                <use svg="!lucide/download.svg" size="20" />
+                                            </button>
+                                            <button id="autoeq-run-btn" class="autoeq-run-btn" disabled>AutoEq</button>
+                                        </div>
+                                        <span id="autoeq-status" class="autoeq-status"></span>
+                                    </div>
+
+                                    <!-- Saved Profiles -->
+                                    <div class="autoeq-saved-section" id="autoeq-saved-section">
+                                        <div class="autoeq-saved-header" id="autoeq-saved-toggle">
+                                            <div class="autoeq-saved-header-left">
+                                                <span class="autoeq-saved-title">SAVED PROFILES</span>
+                                                <span class="autoeq-saved-count" id="autoeq-saved-count">0</span>
+                                            </div>
+                                            <div class="autoeq-saved-header-right">
+                                                <input
+                                                    type="text"
+                                                    id="autoeq-profile-name"
+                                                    class="autoeq-profile-name-input"
+                                                    placeholder="Profile name..."
+                                                    maxlength="50"
+                                                />
+                                                <button id="autoeq-save-btn" class="btn-primary autoeq-save-btn">
+                                                    Save
+                                                </button>
+                                                <button class="autoeq-collapse-btn" id="autoeq-saved-collapse">
+                                                    <use svg="!lucide/chevron-up.svg" size="18" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="autoeq-saved-grid" id="autoeq-saved-grid">
+                                            <!-- Dynamically populated profile cards -->
                                         </div>
                                     </div>
 
-                                    <div class="equalizer-bands-wrapper">
-                                        <canvas id="eq-response-canvas" class="eq-response-canvas"></canvas>
-                                        <div class="equalizer-bands" id="equalizer-bands">
-                                            <!-- Bands will be dynamically generated by JavaScript -->
+                                    <!-- Database Browser -->
+                                    <div class="autoeq-database-section" id="autoeq-database-section">
+                                        <div class="autoeq-database-header">
+                                            <div>
+                                                <h4 class="autoeq-database-title">Database</h4>
+                                                <span class="autoeq-database-subtitle">AutoEq Repo</span>
+                                            </div>
+                                            <span class="autoeq-database-count" id="autoeq-database-count"></span>
+                                        </div>
+                                        <div class="autoeq-database-search">
+                                            <use svg="!lucide/search.svg" size="16" />
+                                            <input
+                                                type="text"
+                                                id="autoeq-headphone-search"
+                                                placeholder="Search model (e.g. HD 600)..."
+                                                autocomplete="off"
+                                            />
+                                        </div>
+                                        <div class="autoeq-database-content">
+                                            <div class="autoeq-database-list" id="autoeq-database-list">
+                                                <!-- Dynamically populated -->
+                                            </div>
+                                            <div class="autoeq-database-alpha-index" id="autoeq-alpha-index">
+                                                <!-- A-Z generated by JS -->
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div class="equalizer-scale">
-                                        <span>+30 dB</span>
-                                        <span>0 dB</span>
-                                        <span>-30 dB</span>
+                                    <!-- Parametric EQ Filters (collapsible) -->
+                                    <div class="autoeq-filters-section" id="autoeq-filters-section">
+                                        <div class="autoeq-filters-header" id="autoeq-filters-toggle">
+                                            <span>PARAMETRIC EQ FILTERS</span>
+                                            <button class="autoeq-collapse-btn" id="autoeq-filters-collapse">
+                                                <use svg="!lucide/chevron-up.svg" size="18" />
+                                            </button>
+                                        </div>
+                                        <div class="autoeq-filters-content" id="autoeq-filters-content">
+                                            <div class="autoeq-filters-actions">
+                                                <button
+                                                    id="autoeq-add-band-btn"
+                                                    class="btn-secondary"
+                                                    title="Add a new EQ band"
+                                                >
+                                                    + Add Band
+                                                </button>
+                                                <button
+                                                    id="autoeq-remove-band-btn"
+                                                    class="btn-secondary"
+                                                    title="Remove last EQ band"
+                                                >
+                                                    - Remove Band
+                                                </button>
+                                                <button
+                                                    id="autoeq-reset-bands-btn"
+                                                    class="btn-secondary"
+                                                    title="Reset all bands to flat"
+                                                >
+                                                    Reset
+                                                </button>
+                                            </div>
+                                            <div class="autoeq-preamp-row">
+                                                <span class="autoeq-preamp-label">Preamp</span>
+                                                <input
+                                                    type="range"
+                                                    id="eq-preamp-slider"
+                                                    class="autoeq-preamp-slider"
+                                                    min="-20"
+                                                    max="20"
+                                                    step="0.1"
+                                                    value="0"
+                                                />
+                                                <span class="autoeq-preamp-value" id="autoeq-preamp-value">0 dB</span>
+                                            </div>
+                                            <div class="autoeq-bands-list" id="autoeq-bands-list">
+                                                <!-- Dynamically generated per-band controls -->
+                                            </div>
+                                        </div>
                                     </div>
+
+                                    <!-- Hidden file inputs -->
+                                    <input
+                                        type="file"
+                                        id="autoeq-import-measurement-file"
+                                        accept=".txt,.csv"
+                                        style="display: none"
+                                    />
+                                    <input type="file" id="eq-import-file" accept=".txt" style="display: none" />
                                 </div>
                             </div>
                         </div>
