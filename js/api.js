@@ -1780,7 +1780,7 @@ export class LosslessAPI {
                 if (preferDolbyAtmosSettings.isEnabled() && track.audioModes?.includes('DOLBY_ATMOS')) {
                     try {
                         const stream = await this.getStreamUrl(id, 'DOLBY_ATMOS', true);
-                        const manifest = await fetch(stream.url);
+                        const manifest = await fetch(stream.url, { signal: options.signal });
                         const manifestText = await manifest.text();
                         streamUrl = this.extractStreamUrlFromManifest(btoa(manifestText));
                     } catch (err) {
