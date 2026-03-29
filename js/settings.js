@@ -1259,17 +1259,23 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     let currentPreamp = equalizerSettings.getPreamp();
 
     /**
-     * Generate frequency labels for given band count and frequency range
+     * Generate frequency labels for given band count and frequency range.
+     * If freqArray is provided, use those exact frequencies for labels.
      */
-    const generateFreqLabels = (count, minFreq = currentFreqRange.min, maxFreq = currentFreqRange.max) => {
+    const generateFreqLabels = (count, minFreq = currentFreqRange.min, maxFreq = currentFreqRange.max, freqArray = null) => {
         const labels = [];
-        const safeMin = Math.max(10, minFreq);
-        const safeMax = Math.min(96000, maxFreq);
 
         for (let i = 0; i < count; i++) {
-            const t = i / (count - 1);
-            const freq = safeMin * Math.pow(safeMax / safeMin, t);
-            const rounded = Math.round(freq);
+            let rounded;
+            if (freqArray && freqArray[i] != null) {
+                rounded = Math.round(freqArray[i]);
+            } else {
+                const safeMin = Math.max(10, minFreq);
+                const safeMax = Math.min(96000, maxFreq);
+                const t = count > 1 ? i / (count - 1) : 0;
+                const freq = safeMin * Math.pow(safeMax / safeMin, t);
+                rounded = Math.round(freq);
+            }
 
             if (rounded < 1000) {
                 labels.push(rounded.toString());
@@ -1284,18 +1290,20 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     };
 
     /**
-     * Generate EQ bands HTML
+     * Generate EQ bands HTML.
+     * Pass freqArray to use actual filter frequencies (e.g. after AutoEQ).
      */
     const generateEQBands = (
         count,
         rangeMin = currentRange.min,
         rangeMax = currentRange.max,
         freqMin = currentFreqRange.min,
-        freqMax = currentFreqRange.max
+        freqMax = currentFreqRange.max,
+        freqArray = null
     ) => {
         if (!eqBandsContainer) return;
 
-        const labels = generateFreqLabels(count, freqMin, freqMax);
+        const labels = generateFreqLabels(count, freqMin, freqMax, freqArray);
         eqBandsContainer.innerHTML = '';
 
         for (let i = 0; i < count; i++) {
@@ -1774,22 +1782,46 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 const customPresets = equalizerSettings.getCustomPresets();
                 const customPreset = customPresets[presetKey];
                 if (customPreset && customPreset.gains) {
-                    // Check if preset has different band count
                     const presetBands = customPreset.bandCount || customPreset.gains.length;
-                    if (presetBands !== currentBandCount) {
-                        // Update band count to match preset
+
+                    if (customPreset.frequencies || customPreset.qValues || customPreset.filterTypes) {
+                        // Full profile (saved from AutoEQ or parametric EQ with custom Q)
+                        audioContextManager.applyProfile({
+                            bandCount: presetBands,
+                            frequencies: customPreset.frequencies || audioContextManager.frequencies,
+                            gains: customPreset.gains,
+                            qValues: customPreset.qValues || null,
+                            filterTypes: customPreset.filterTypes || null,
+                            preamp: customPreset.preamp || 0,
+                        });
                         currentBandCount = presetBands;
-                        equalizerSettings.setBandCount(presetBands);
                         if (eqBandCountInput) eqBandCountInput.value = presetBands;
+                        currentPreamp = customPreset.preamp || 0;
+                        updatePreampUI(currentPreamp);
                         generateEQBands(
                             presetBands,
                             currentRange.min,
                             currentRange.max,
                             currentFreqRange.min,
-                            currentFreqRange.max
+                            currentFreqRange.max,
+                            customPreset.frequencies || null
                         );
+                    } else {
+                        // Legacy preset (gains only)
+                        if (presetBands !== currentBandCount) {
+                            currentBandCount = presetBands;
+                            equalizerSettings.setBandCount(presetBands);
+                            if (eqBandCountInput) eqBandCountInput.value = presetBands;
+                            generateEQBands(
+                                presetBands,
+                                currentRange.min,
+                                currentRange.max,
+                                currentFreqRange.min,
+                                currentFreqRange.max
+                            );
+                        }
+                        audioContextManager.setAllGains(customPreset.gains);
                     }
-                    audioContextManager.setAllGains(customPreset.gains);
                     updateAllBandUI(customPreset.gains);
                     equalizerSettings.setPreset(presetKey);
                 }
@@ -1810,7 +1842,19 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     if (eqResetBtn) {
         eqResetBtn.addEventListener('click', () => {
             audioContextManager.reset();
+            // Reset also clears AutoEQ profile, update preamp + regenerate with log-spaced labels
+            currentPreamp = 0;
+            updatePreampUI(0);
+            generateEQBands(
+                currentBandCount,
+                currentRange.min,
+                currentRange.max,
+                currentFreqRange.min,
+                currentFreqRange.max
+                // no freqArray — back to log-spaced labels
+            );
             updateAllBandUI(new Array(currentBandCount).fill(0));
+            drawEQCurve();
             if (eqPresetSelect) {
                 eqPresetSelect.value = 'flat';
                 updateDeleteButtonVisibility();
@@ -1827,8 +1871,13 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 return;
             }
 
-            const currentGains = audioContextManager.getGains();
-            const presetId = equalizerSettings.saveCustomPreset(name, currentGains);
+            const profile = audioContextManager.getProfileState();
+            const presetId = equalizerSettings.saveCustomPreset(name, profile.gains, {
+                frequencies: profile.frequencies,
+                qValues: profile.qValues,
+                filterTypes: profile.filterTypes,
+                preamp: profile.preamp,
+            });
 
             if (presetId) {
                 populateCustomPresets();
@@ -2182,16 +2231,19 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                     currentBandCount = equalizerSettings.getBandCount();
                     if (eqBandCountInput) eqBandCountInput.value = currentBandCount;
 
-                    // Regenerate bands and update UI
+                    // Regenerate bands — use actual imported frequencies for labels
+                    const importedFreqs = audioContextManager.frequencies;
                     generateEQBands(
                         currentBandCount,
                         currentRange.min,
                         currentRange.max,
                         currentFreqRange.min,
-                        currentFreqRange.max
+                        currentFreqRange.max,
+                        importedFreqs
                     );
                     const gains = audioContextManager.getGains?.() || equalizerSettings.getGains(currentBandCount);
                     updateAllBandUI(gains);
+                    drawEQCurve();
 
                     eqImportBtn.textContent = 'Imported!';
                     setTimeout(() => {
@@ -2459,7 +2511,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                     }
 
                     // Apply to equalizer
-                    const exportText = audioContextManager.applyAutoEQBands(bands);
+                    audioContextManager.applyAutoEQBands(bands);
 
                     // Update UI to reflect new band count and gains
                     currentBandCount = audioContextManager.getBandCount();
@@ -2468,12 +2520,15 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                     currentPreamp = equalizerSettings.getPreamp();
                     updatePreampUI(currentPreamp);
 
+                    // Use actual AutoEQ frequencies for band labels
+                    const actualFrequencies = audioContextManager.frequencies;
                     generateEQBands(
                         currentBandCount,
                         currentRange.min,
                         currentRange.max,
                         currentFreqRange.min,
-                        currentFreqRange.max
+                        currentFreqRange.max,
+                        actualFrequencies
                     );
                     const gains = audioContextManager.getGains();
                     updateAllBandUI(gains);
@@ -2481,7 +2536,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
                     // Update preset selector
                     if (eqPresetSelect) {
-                        eqPresetSelect.value = 'flat'; // No built-in preset matches
+                        eqPresetSelect.value = 'flat';
                     }
 
                     const headphoneName = autoeqSelectedEntry ? autoeqSelectedEntry.name : 'Custom';

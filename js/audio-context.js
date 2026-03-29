@@ -110,6 +110,10 @@ class AudioContextManager {
         this.frequencies = generateFrequencies(this.bandCount, this.freqRange.min, this.freqRange.max);
         this.currentGains = new Array(this.bandCount).fill(0);
 
+        // Custom per-band Q and filter types (null = use uniform defaults)
+        this.bandQValues = null;
+        this.bandFilterTypes = null;
+
         // Callbacks for audio graph changes (for visualizers like Butterchurn)
         this._graphChangeCallbacks = [];
 
@@ -130,6 +134,10 @@ class AudioContextManager {
 
         // Save new band count
         equalizerSettings.setBandCount(newCount);
+
+        // Clear custom per-band data — back to uniform log-spaced EQ
+        this.bandQValues = null;
+        this.bandFilterTypes = null;
 
         // Update configuration
         this.bandCount = newCount;
@@ -172,6 +180,10 @@ class AudioContextManager {
 
         // Save new frequency range
         equalizerSettings.setFreqRange(newMin, newMax);
+
+        // Clear custom per-band data — back to uniform log-spaced EQ
+        this.bandQValues = null;
+        this.bandFilterTypes = null;
 
         // Update configuration
         this.freqRange = { min: newMin, max: newMax };
@@ -239,9 +251,11 @@ class AudioContextManager {
         // Create biquad filters for each frequency band
         this.filters = this.frequencies.map((freq, index) => {
             const filter = this.audioContext.createBiquadFilter();
-            filter.type = 'peaking';
+            filter.type = (this.bandFilterTypes && this.bandFilterTypes[index]) || 'peaking';
             filter.frequency.value = freq;
-            filter.Q.value = this._calculateQ(index);
+            filter.Q.value = (this.bandQValues && this.bandQValues[index] != null)
+                ? this.bandQValues[index]
+                : this._calculateQ(index);
             filter.gain.value = this.currentGains[index] || 0;
             return filter;
         });
@@ -637,11 +651,23 @@ class AudioContextManager {
     }
 
     /**
-     * Reset all bands to flat
+     * Reset all bands to flat and clear any custom AutoEQ / profile state
      */
     reset() {
+        // Clear custom band data — return to uniform log-spaced EQ
+        this.bandQValues = null;
+        this.bandFilterTypes = null;
+        this.frequencies = generateFrequencies(this.bandCount, this.freqRange.min, this.freqRange.max);
         this.setAllGains(new Array(this.bandCount).fill(0));
+        this.setPreamp(0);
         equalizerSettings.setPreset('flat');
+
+        // Rebuild filters so Q values are reset to uniform
+        if (this.isInitialized && this.audioContext) {
+            this._destroyEQ();
+            this._createEQ();
+            this._connectGraph();
+        }
     }
 
     /**
@@ -698,77 +724,114 @@ class AudioContextManager {
 
     /**
      * Apply AutoEQ-generated bands to the equalizer
-     * Unlike regular presets, AutoEQ bands have specific frequencies, gains, and Q values
-     * @param {Array<{id: number, type: string, freq: number, gain: number, q: number, enabled: boolean}>} bands
-     * @returns {string} Exported text representation of the applied EQ
+     * @param {Array<{id, type, freq, gain, q, enabled}>} bands
+     * @returns {string} Exported text for use with import or copy
      */
     applyAutoEQBands(bands) {
         if (!bands || bands.length === 0) return '';
 
-        const enabledBands = bands.filter(b => b.enabled);
+        const sortedBands = [...bands.filter(b => b.enabled)].sort((a, b) => a.freq - b.freq);
+        if (sortedBands.length === 0) return '';
+
+        // Calculate preamp: headroom against the highest positive gain
+        const maxGain = Math.max(0, ...sortedBands.map(b => b.gain));
+        const preamp = maxGain > 0 ? -(Math.round(maxGain * 10) / 10) : 0;
+
+        this.applyProfile({
+            bandCount: sortedBands.length,
+            frequencies: sortedBands.map(b => Math.round(b.freq)),
+            gains: sortedBands.map(b => b.gain),
+            qValues: sortedBands.map(b => b.q),
+            filterTypes: sortedBands.map(b => b.type || 'peaking'),
+            preamp,
+        });
+
+        // Return text representation
+        const lines = [`Preamp: ${preamp.toFixed(1)} dB`];
+        sortedBands.forEach((band, i) => {
+            const ft = band.type === 'lowshelf' ? 'LS' : band.type === 'highshelf' ? 'HS' : 'PK';
+            lines.push(`Filter ${i + 1}: ON ${ft} Fc ${Math.round(band.freq)} Hz Gain ${band.gain.toFixed(1)} dB Q ${band.q.toFixed(2)}`);
+        });
+        return lines.join('\n');
+    }
+
+    /**
+     * Apply a full EQ profile: frequencies, gains, Q values, filter types, and preamp.
+     * Used by AutoEQ, profile import, and custom preset restore.
+     * @param {{bandCount, frequencies, gains, qValues, filterTypes, preamp}} profile
+     */
+    applyProfile({ bandCount, frequencies, gains, qValues, filterTypes, preamp = 0 }) {
         const count = Math.max(
             equalizerSettings.MIN_BANDS,
-            Math.min(equalizerSettings.MAX_BANDS, enabledBands.length)
+            Math.min(equalizerSettings.MAX_BANDS, bandCount)
         );
 
-        // Calculate preamp: negative of max positive gain to prevent clipping
-        const maxGain = Math.max(0, ...enabledBands.map(b => b.gain));
-        const preamp = maxGain > 0 ? -Math.round(maxGain * 10) / 10 : 0;
+        // Store custom band data
+        this.bandCount = count;
+        this.frequencies = frequencies.slice(0, count);
+        this.currentGains = gains.slice(0, count).map(g => this._clampGain(g));
+        this.bandQValues = qValues ? qValues.slice(0, count) : null;
+        this.bandFilterTypes = filterTypes ? filterTypes.slice(0, count) : null;
 
-        // Update band count
-        if (count !== this.bandCount) {
-            equalizerSettings.setBandCount(count);
-            this.bandCount = count;
-            this.frequencies = generateFrequencies(count, this.freqRange.min, this.freqRange.max);
-            this.currentGains = new Array(count).fill(0);
-            equalizerSettings.setGains(this.currentGains);
-
-            if (this.isInitialized && this.audioContext) {
-                this._destroyEQ();
-                this._createEQ();
-                this._connectGraph();
-            }
-        }
-
-        // Apply gains and set filter frequencies/Q directly
-        const now = this.audioContext?.currentTime || 0;
-        const sortedBands = [...enabledBands].sort((a, b) => a.freq - b.freq);
-
-        sortedBands.forEach((band, index) => {
-            if (index >= this.bandCount) return;
-
-            const gain = this._clampGain(band.gain);
-            this.currentGains[index] = gain;
-
-            if (this.filters[index] && this.audioContext) {
-                this.filters[index].frequency.setTargetAtTime(
-                    Math.min(band.freq, this.audioContext.sampleRate / 2 - 1), now, 0.01
-                );
-                this.filters[index].gain.setTargetAtTime(gain, now, 0.01);
-                this.filters[index].Q.setTargetAtTime(band.q, now, 0.01);
-            }
-
-            // Update stored frequency
-            if (index < this.frequencies.length) {
-                this.frequencies[index] = Math.round(band.freq);
-            }
-        });
-
-        // Apply preamp
-        this.setPreamp(preamp);
-
-        // Save
+        // Persist to storage
+        equalizerSettings.setBandCount(count);
         equalizerSettings.setGains(this.currentGains);
 
-        // Generate export text
-        const lines = [`Preamp: ${preamp.toFixed(1)} dB`];
-        sortedBands.forEach((band, index) => {
-            if (index >= this.bandCount) return;
-            const filterType = band.type === 'lowshelf' ? 'LS' : band.type === 'highshelf' ? 'HS' : 'PK';
-            lines.push(`Filter ${index + 1}: ON ${filterType} Fc ${Math.round(band.freq)} Hz Gain ${band.gain.toFixed(1)} dB Q ${band.q.toFixed(2)}`);
-        });
+        // Set preamp
+        this.preamp = preamp;
+        equalizerSettings.setPreamp(preamp);
 
-        return lines.join('\n');
+        if (this.isInitialized && this.audioContext) {
+            // Destroy old filters and build new ones directly from profile
+            this._destroyEQ();
+
+            if (!this.preampNode) {
+                this.preampNode = this.audioContext.createGain();
+            }
+            this.preampNode.gain.value = Math.pow(10, preamp / 20);
+
+            const maxSafeFreq = this.audioContext.sampleRate / 2 - 1;
+            this.filters = this.frequencies.map((freq, i) => {
+                const filter = this.audioContext.createBiquadFilter();
+                filter.type = (this.bandFilterTypes && this.bandFilterTypes[i]) || 'peaking';
+                filter.frequency.value = Math.min(freq, maxSafeFreq);
+                filter.Q.value = (this.bandQValues && this.bandQValues[i] != null)
+                    ? this.bandQValues[i]
+                    : this._calculateQ(i);
+                filter.gain.value = this.currentGains[i] || 0;
+                return filter;
+            });
+
+            if (!this.volumeNode) {
+                this.volumeNode = this.audioContext.createGain();
+                this.volumeNode.gain.value = this.currentVolume;
+            }
+
+            this._connectGraph();
+        } else if (this.preampNode) {
+            // Audio not yet initialized — preamp node may exist if it was previously set
+            this.preampNode.gain.value = Math.pow(10, preamp / 20);
+        }
+
+        // Notify UI of band count / frequency change
+        window.dispatchEvent(new CustomEvent('equalizer-band-count-changed', {
+            detail: { bandCount: count, frequencies: this.frequencies },
+        }));
+    }
+
+    /**
+     * Get the full current filter state for saving as a profile
+     * @returns {{frequencies, gains, qValues, filterTypes, preamp, bandCount}}
+     */
+    getProfileState() {
+        return {
+            bandCount: this.bandCount,
+            frequencies: [...this.frequencies],
+            gains: [...this.currentGains],
+            qValues: this.bandQValues ? [...this.bandQValues] : null,
+            filterTypes: this.bandFilterTypes ? [...this.bandFilterTypes] : null,
+            preamp: this.preamp || 0,
+        };
     }
 
     /**
@@ -783,7 +846,13 @@ class AudioContextManager {
         this.frequencies.forEach((freq, index) => {
             const gain = this.currentGains[index] || 0;
             const filterNum = index + 1;
-            lines.push(`Filter ${filterNum}: ON PK Fc ${freq} Hz Gain ${gain.toFixed(1)} dB Q 0.71`);
+            const q = (this.bandQValues && this.bandQValues[index] != null)
+                ? this.bandQValues[index].toFixed(2)
+                : this._calculateQ(index).toFixed(2);
+            const filterType = (this.bandFilterTypes && this.bandFilterTypes[index])
+                ? (this.bandFilterTypes[index] === 'lowshelf' ? 'LS' : this.bandFilterTypes[index] === 'highshelf' ? 'HS' : 'PK')
+                : 'PK';
+            lines.push(`Filter ${filterNum}: ON ${filterType} Fc ${freq} Hz Gain ${gain.toFixed(1)} dB Q ${q}`);
         });
 
         return lines.join('\n');
@@ -829,27 +898,29 @@ class AudioContextManager {
                 return false;
             }
 
-            // Apply preamp
-            this.setPreamp(preamp);
+            // Convert type codes to Web Audio types
+            const typeMap = { PK: 'peaking', LS: 'lowshelf', HS: 'highshelf' };
+            const count = Math.max(
+                equalizerSettings.MIN_BANDS,
+                Math.min(equalizerSettings.MAX_BANDS, filters.length)
+            );
+            const importedBands = filters.slice(0, count).map(f => ({
+                freq: f.freq,
+                gain: f.gain,
+                q: f.q,
+                type: typeMap[f.type] || 'peaking',
+                enabled: true,
+            }));
 
-            // If different number of bands, adjust
-            if (filters.length !== this.bandCount) {
-                const newCount = Math.max(
-                    equalizerSettings.MIN_BANDS,
-                    Math.min(equalizerSettings.MAX_BANDS, filters.length)
-                );
-                this.setBandCount(newCount);
-            }
-
-            // Extract gains from filters
-            const gains = filters.slice(0, this.bandCount).map((f) => f.gain);
-            this.setAllGains(gains);
-
-            // Store filter frequencies if different
-            const newFreqs = filters.slice(0, this.bandCount).map((f) => f.freq);
-            if (JSON.stringify(newFreqs) !== JSON.stringify(this.frequencies)) {
-                equalizerSettings.setFreqRange(newFreqs[0], newFreqs[newFreqs.length - 1]);
-            }
+            // Use applyProfile to apply all fields including Q and filter types
+            this.applyProfile({
+                bandCount: count,
+                frequencies: importedBands.map(b => b.freq),
+                gains: importedBands.map(b => b.gain),
+                qValues: importedBands.map(b => b.q),
+                filterTypes: importedBands.map(b => b.type),
+                preamp,
+            });
 
             return true;
         } catch (e) {

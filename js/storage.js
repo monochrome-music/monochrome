@@ -1331,7 +1331,7 @@ export const equalizerSettings = {
         return {};
     },
 
-    saveCustomPreset(name, gains) {
+    saveCustomPreset(name, gains, extras = {}) {
         try {
             if (!name || !Array.isArray(gains) || gains.length < this.MIN_BANDS || gains.length > this.MAX_BANDS) {
                 console.warn('[EQ] Invalid preset data');
@@ -1353,9 +1353,14 @@ export const equalizerSettings = {
 
             presets[presetId] = {
                 name: sanitizedName,
-                gains: gains.map((g) => Math.round(g * 10) / 10), // Round to 1 decimal place
+                gains: gains.map((g) => Math.round(g * 10) / 10),
                 bandCount: gains.length,
                 createdAt: Date.now(),
+                // Optional full profile fields
+                frequencies: extras.frequencies || null,
+                qValues: extras.qValues || null,
+                filterTypes: extras.filterTypes || null,
+                preamp: extras.preamp != null ? extras.preamp : 0,
             };
 
             localStorage.setItem(this.CUSTOM_PRESETS_KEY, JSON.stringify(presets));
@@ -1381,7 +1386,7 @@ export const equalizerSettings = {
         }
     },
 
-    updateCustomPreset(presetId, name, gains) {
+    updateCustomPreset(presetId, name, gains, extras = {}) {
         try {
             const presets = this.getCustomPresets();
             if (!presets[presetId]) {
@@ -1398,8 +1403,13 @@ export const equalizerSettings = {
                 }
             }
 
-            if (Array.isArray(gains) && gains.length === this.DEFAULT_BAND_COUNT) {
+            if (Array.isArray(gains) && gains.length >= this.MIN_BANDS && gains.length <= this.MAX_BANDS) {
                 presets[presetId].gains = gains.map((g) => Math.round(g * 10) / 10);
+                presets[presetId].bandCount = gains.length;
+                presets[presetId].frequencies = extras.frequencies || presets[presetId].frequencies || null;
+                presets[presetId].qValues = extras.qValues || presets[presetId].qValues || null;
+                presets[presetId].filterTypes = extras.filterTypes || presets[presetId].filterTypes || null;
+                presets[presetId].preamp = extras.preamp != null ? extras.preamp : (presets[presetId].preamp || 0);
                 presets[presetId].updatedAt = Date.now();
             }
 
