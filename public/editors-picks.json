@@ -1,5 +1,54 @@
 [
     {
+        "type": "userplaylist",
+        "id": "6i4y9s7y5hb5wyz",
+        "title": "BULLY",
+        "artist": { "id": 25022, "name": "Kanye West" },
+        "releaseDate": "2026-03-28",
+        "cover": "https://i.imgur.gg/pLz6Vrf-d4v.jpg",
+        "explicit": true,
+        "numberOfTracks": 18
+    },
+    {
+        "type": "artist",
+        "id": 10932434,
+        "name": "black midi",
+        "picture": "025bd6b8-be5f-4c95-bda0-e313f94cfdf5"
+    },
+    {
+        "type": "album",
+        "id": 310478316,
+        "title": "Lone Wolf",
+        "artist": { "id": 4225137, "name": "Jay Lewis" },
+        "releaseDate": "2023-09-08",
+        "cover": "b1c432b6-2e3a-483f-9026-853741756ad3",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 509288326,
+        "title": "BBY LOBOTOMY",
+        "artist": { "id": 48966543, "name": "Percatric" },
+        "releaseDate": "2026-03-20",
+        "cover": "9b0bbcef-1cc2-44ef-b741-40880cea49b9",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 101715365,
+        "title": "Icedancer",
+        "artist": { "id": 5555246, "name": "Bladee" },
+        "releaseDate": "2018-12-29",
+        "cover": "11465814-2e0b-4d46-8a72-5df21f1ac0b8",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
         "type": "album",
         "id": 18083938,
         "title": "The Glow, Pt. 2",
