@@ -4057,6 +4057,80 @@
                                         </div>
                                     </div>
 
+                                    <!-- AutoEQ Section -->
+                                    <div class="autoeq-section" id="autoeq-section">
+                                        <div class="autoeq-header" id="autoeq-toggle-header">
+                                            <span>AutoEQ — Headphone Correction</span>
+                                            <span class="autoeq-toggle-icon" id="autoeq-toggle-icon">+</span>
+                                        </div>
+                                        <div class="autoeq-content" id="autoeq-content" style="display: none">
+                                            <div class="autoeq-row">
+                                                <label for="autoeq-headphone-search">Headphone</label>
+                                                <input
+                                                    type="text"
+                                                    id="autoeq-headphone-search"
+                                                    placeholder="Search 4000+ headphones..."
+                                                    autocomplete="off"
+                                                />
+                                            </div>
+                                            <div class="autoeq-row autoeq-type-filters">
+                                                <button class="autoeq-type-btn active" data-type="all">All</button>
+                                                <button class="autoeq-type-btn" data-type="over-ear">Over-Ear</button>
+                                                <button class="autoeq-type-btn" data-type="in-ear">In-Ear</button>
+                                            </div>
+                                            <div id="autoeq-results" class="autoeq-results"></div>
+                                            <div id="autoeq-selected" class="autoeq-selected" style="display: none">
+                                                <span id="autoeq-selected-name"></span>
+                                                <button id="autoeq-clear-btn" class="btn-secondary" title="Clear selection">&times;</button>
+                                            </div>
+                                            <div class="autoeq-row">
+                                                <label for="autoeq-target-select">Target</label>
+                                                <select id="autoeq-target-select">
+                                                    <option value="harman_oe_2018">Harman Over-Ear 2018</option>
+                                                    <option value="harman_ie_2019">Harman In-Ear 2019</option>
+                                                    <option value="seap">SEAP</option>
+                                                    <option value="seap_bass">SEAP Bass</option>
+                                                    <option value="diffuse_field">Diffuse Field</option>
+                                                    <option value="knowles">Knowles</option>
+                                                    <option value="moondrop">Moondrop VDSF</option>
+                                                    <option value="hifi_endgame">HiFi Endgame 2026</option>
+                                                    <option value="peqdb_ultra">PEQdB Ultra</option>
+                                                    <option value="flat">Flat (Calibration)</option>
+                                                </select>
+                                            </div>
+                                            <div class="autoeq-row">
+                                                <label for="autoeq-band-count">Bands</label>
+                                                <select id="autoeq-band-count">
+                                                    <option value="5">5</option>
+                                                    <option value="10" selected>10</option>
+                                                    <option value="15">15</option>
+                                                    <option value="20">20</option>
+                                                    <option value="32">32</option>
+                                                </select>
+                                                <label for="autoeq-max-freq">Max Freq</label>
+                                                <select id="autoeq-max-freq">
+                                                    <option value="6000">6 kHz</option>
+                                                    <option value="8000">8 kHz</option>
+                                                    <option value="10000">10 kHz</option>
+                                                    <option value="16000" selected>16 kHz</option>
+                                                    <option value="20000">20 kHz</option>
+                                                    <option value="22000">22 kHz</option>
+                                                </select>
+                                            </div>
+                                            <div class="autoeq-row autoeq-actions">
+                                                <button id="autoeq-run-btn" class="btn-primary" disabled>AutoEQ</button>
+                                                <button id="autoeq-import-measurement-btn" class="btn-secondary">Import Measurement</button>
+                                                <input
+                                                    type="file"
+                                                    id="autoeq-import-measurement-file"
+                                                    accept=".txt,.csv"
+                                                    style="display: none"
+                                                />
+                                                <span id="autoeq-status" class="autoeq-status"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div class="equalizer-bands-wrapper">
                                         <canvas id="eq-response-canvas" class="eq-response-canvas"></canvas>
                                         <div class="equalizer-bands" id="equalizer-bands">
