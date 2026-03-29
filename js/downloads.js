@@ -13,12 +13,7 @@ import {
 } from './utils.js';
 import { lyricsSettings, playlistSettings } from './storage.js';
 import { generateM3U, generateM3U8, generateCUE, generateNFO, generateJSON } from './playlist-generator.js';
-import {
-    ZipStreamWriter,
-    ZipBlobWriter,
-    FolderPickerWriter,
-    SequentialFileWriter,
-} from './bulk-download-writer.ts';
+import { ZipStreamWriter, ZipBlobWriter, FolderPickerWriter, SequentialFileWriter } from './bulk-download-writer.ts';
 import { FfmpegProgress } from './ffmpeg.types.js';
 import { DownloadProgress, ProgressMessage, SegmentedDownloadProgress } from './progressEvents.js';
 import { db } from './db.js';
