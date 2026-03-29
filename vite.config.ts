@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
-import neutralino from 'vite-plugin-neutralino';
 import authGatePlugin from './vite-plugin-auth-gate.js';
 import path from 'path';
 import uploadPlugin from './vite-plugin-upload.js';
@@ -17,7 +16,6 @@ function getGitCommitHash() {
 }
 
 export default defineConfig(({ mode }) => {
-    const IS_NEUTRALINO = mode === 'neutralino';
     const commitHash = getGitCommitHash();
 
     return {
@@ -59,7 +57,6 @@ export default defineConfig(({ mode }) => {
             sourcemap: true,
         },
         plugins: [
-            IS_NEUTRALINO && neutralino(),
             authGatePlugin(),
             uploadPlugin(),
             blobAssetPlugin(),

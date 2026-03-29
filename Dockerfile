@@ -1,11 +1,10 @@
 # Node Alpine -- multi-arch (amd64 + arm64)
-FROM oven/bun:1.3.10-alpine AS builder
+FROM oven/bun:1.3.11-alpine AS builder
 
 WORKDIR /app
 
-# Install system dependencies required for Bun and Neutralino
+# Install system dependencies required for Bun
 RUN apk add --no-cache wget curl bash
-RUN apk add --no-cache python3 make g++ && ln -sf python3 /usr/bin/python
 
 # Accept build arguments for environment variables
 ARG AUTH_ENABLED
@@ -24,7 +23,7 @@ RUN bun install
 # Copy the rest of the project
 COPY . .
 
-# Build the project (Bun is now available for "bun x neu build")
+# Build the project
 RUN bun run build
 
 # Serve with nginx

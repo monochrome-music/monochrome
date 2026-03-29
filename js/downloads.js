@@ -1,5 +1,4 @@
 //js/downloads.js
-//@ts-check
 import {
     buildTrackFilename,
     sanitizeForFilename,
@@ -9,19 +8,15 @@ import {
     formatPathTemplate,
     getCoverBlob,
     getExtensionFromBlob,
-    formatTemplate,
     escapeHtml,
     getTrackDiscNumber,
 } from './utils.js';
-import { AbortError } from './errorTypes.ts';
 import { lyricsSettings, playlistSettings } from './storage.js';
 import { generateM3U, generateM3U8, generateCUE, generateNFO, generateJSON } from './playlist-generator.js';
 import {
     ZipStreamWriter,
     ZipBlobWriter,
-    ZipNeutralinoWriter,
     FolderPickerWriter,
-    NeutralinoFolderWriter,
     SequentialFileWriter,
 } from './bulk-download-writer.ts';
 import { FfmpegProgress } from './ffmpeg.types.js';
@@ -29,7 +24,6 @@ import { DownloadProgress, ProgressMessage, SegmentedDownloadProgress } from './
 import { db } from './db.js';
 import { modernSettings } from './ModernSettings.js';
 import { SVG_CLOSE } from './icons.ts';
-import { MusicAPI } from './music-api.js';
 import { LyricsManager } from './lyrics.js';
 
 const downloadTasks = new Map();
@@ -438,13 +432,13 @@ async function bulkDownload({
 
         // For albums, generate CUE file (one per disc if multi-disc)
         if (type === 'album' && playlistSettings.shouldGenerateCUE()) {
-            const tracksByVolume = Object.groupBy(
-                tracks.map((track, index) => ({
-                    ...track,
-                    trackPath: trackPaths[index],
-                })),
-                (track) => String(getTrackDiscNumber(track) || 1)
-            );
+            const tracksByVolume = tracks.reduce((acc, track, index) => {
+                const discNumber = String(getTrackDiscNumber(track) || 1);
+                if (!acc[discNumber]) acc[discNumber] = [];
+                acc[discNumber].push({ ...track, trackPath: trackPaths[index] });
+                return acc;
+            }, {});
+
             const multiDisc = Object.keys(tracksByVolume).length > 1;
 
             for (const [volumeNumber, volumeTracks] of Object.entries(tracksByVolume)) {
@@ -511,17 +505,12 @@ async function bulkDownload({
 async function createSingleTrackFolderWriter() {
     if (!modernSettings.downloadSinglesToFolder) return null;
 
-    const isNeutralino =
-        typeof window !== 'undefined' &&
-        (window.NL_MODE || window.location.search.includes('mode=neutralino') || window.parent !== window);
     const method = modernSettings.bulkDownloadMethod;
     const hasFolderPicker = 'showDirectoryPicker' in window;
 
     if (method === 'local') {
         const localHandle = await db.getSetting('local_folder_handle');
-        if (isNeutralino) {
-            if (localHandle?.path) return new NeutralinoFolderWriter(localHandle.path);
-        } else if (hasFolderPicker && localHandle && typeof localHandle.requestPermission === 'function') {
+        if (hasFolderPicker && localHandle && typeof localHandle.requestPermission === 'function') {
             try {
                 const permission = await localHandle.requestPermission({ mode: 'readwrite' });
                 if (permission === 'granted') return FolderPickerWriter.fromHandle(localHandle);
@@ -534,7 +523,7 @@ async function createSingleTrackFolderWriter() {
 
     if (method === 'folder' && hasFolderPicker) {
         const rememberFolder = modernSettings.rememberBulkDownloadFolder;
-        const savedHandle = rememberFolder ? modernSettings.bulkDownloadFolder : null;
+        const savedHandle = rememberFolder ? await db.getSetting('bulk_download_folder_handle') : null;
         // Try to reuse the saved handle silently first.
         if (savedHandle && typeof savedHandle.requestPermission === 'function') {
             try {
@@ -548,8 +537,7 @@ async function createSingleTrackFolderWriter() {
         try {
             const writer = await FolderPickerWriter.create();
             if (rememberFolder) {
-                modernSettings.bulkDownloadFolder = writer.getDirHandle();
-                await modernSettings.waitPending();
+                await db.saveSetting('bulk_download_folder_handle', writer.getDirHandle());
             }
             return writer;
         } catch (error) {
@@ -570,9 +558,6 @@ async function createSingleTrackFolderWriter() {
  * or null when individual sequential downloads should be used.
  */
 async function createBulkWriter(folderName) {
-    const isNeutralino =
-        typeof window !== 'undefined' &&
-        (window.NL_MODE || window.location.search.includes('mode=neutralino') || window.parent !== window);
     const method = modernSettings.bulkDownloadMethod;
     const forceZipBlob = modernSettings.forceZipBlob;
     const hasFileSystemAccess = 'showSaveFilePicker' in window && 'createWritable' in FileSystemFileHandle.prototype;
@@ -581,23 +566,7 @@ async function createBulkWriter(folderName) {
     // ── Local Media Folder method ────────────────────────────────────────────
     if (method === 'local') {
         const localHandle = await db.getSetting('local_folder_handle');
-        if (isNeutralino) {
-            if (localHandle?.path) {
-                return new NeutralinoFolderWriter(localHandle.path);
-            }
-            // No folder configured – prompt now
-            const bridge = await import('./desktop/neutralino-bridge.js');
-            const pickedPath = await bridge.os.showFolderDialog('Select Download Folder');
-            if (!pickedPath) return null; // user cancelled – fall back to default
-            // Persist as the local media folder so future downloads reuse it
-            const handle = {
-                name: pickedPath.split(/[/\\]/).pop() || pickedPath,
-                isNeutralino: true,
-                path: pickedPath,
-            };
-            await db.saveSetting('local_folder_handle', handle);
-            return new NeutralinoFolderWriter(pickedPath);
-        } else if (hasFolderPicker) {
+        if (hasFolderPicker) {
             // Browser mode: try to reuse the stored handle with write permission
             if (localHandle && typeof localHandle.requestPermission === 'function') {
                 try {
@@ -622,11 +591,6 @@ async function createBulkWriter(folderName) {
             }
         }
         // Browser without File System Access API – fall through to ZIP
-    }
-
-    // ── Neutralino default (ZIP) ─────────────────────────────────────────────
-    if (isNeutralino) {
-        return new ZipNeutralinoWriter(folderName);
     }
 
     // ── Folder Picker method ─────────────────────────────────────────────────

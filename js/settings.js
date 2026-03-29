@@ -220,10 +220,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             return;
         }
 
-        let authWindow = null;
-        if (!window.Neutralino) {
-            authWindow = window.open('', '_blank');
-        }
+        let authWindow = window.open('', '_blank');
 
         lastfmConnectBtn.disabled = true;
         lastfmConnectBtn.textContent = 'Opening Last.fm...';
@@ -231,16 +228,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         try {
             const { token, url } = await scrobbler.lastfm.getAuthUrl();
 
-            if (window.Neutralino) {
-                try {
-                    await Neutralino.os.open(url);
-                } catch (e) {
-                    // Fallback if os.open fails
-                    console.error('Neutralino open failed, falling back to window.open', e);
-                    if (!authWindow) authWindow = window.open(url, '_blank');
-                    else authWindow.location.href = url;
-                }
-            } else if (authWindow) {
+            if (authWindow) {
                 authWindow.location.href = url;
             } else {
                 alert('Popup blocked! Please allow popups.');
@@ -587,10 +575,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 return;
             }
 
-            let authWindow = null;
-            if (!window.Neutralino) {
-                authWindow = window.open('', '_blank');
-            }
+            let authWindow = window.open('', '_blank');
 
             librefmConnectBtn.disabled = true;
             librefmConnectBtn.textContent = 'Opening Libre.fm...';
@@ -598,9 +583,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             try {
                 const { token, url } = await scrobbler.librefm.getAuthUrl();
 
-                if (window.Neutralino) {
-                    await Neutralino.os.open(url);
-                } else if (authWindow) {
+                if (authWindow) {
                     authWindow.location.href = url;
                 } else {
                     alert('Popup blocked! Please allow popups.');
@@ -1037,20 +1020,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 if (!existingHandle) {
                     let picked = false;
                     try {
-                        const isNeutralino =
-                            window.Neutralino && (window.NL_MODE || window.location.search.includes('mode=neutralino'));
-                        if (isNeutralino) {
-                            const path = await window.Neutralino.os.showFolderDialog('Select Local Media Folder');
-                            if (path) {
-                                picked = true;
-                                const handle = {
-                                    name: path.split(/[/\\]/).pop() || path,
-                                    isNeutralino: true,
-                                    path,
-                                };
-                                await db.saveSetting('local_folder_handle', handle);
-                            }
-                        } else if (hasFolderPicker) {
+                        if (hasFolderPicker) {
                             const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
                             if (handle) {
                                 picked = true;
