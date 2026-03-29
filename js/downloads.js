@@ -682,7 +682,7 @@ export async function downloadTracks(tracks, api, quality, lyricsManager = null)
     });
 }
 
-export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsManager = null) {
+export async function downloadAlbum(album, tracks, api, quality, lyricsManager = null) {
     const releaseDateStr =
         album.releaseDate || (tracks[0]?.streamStartDate ? tracks[0].streamStartDate.split('T')[0] : '');
     const releaseDate = releaseDateStr ? new Date(releaseDateStr) : null;
@@ -707,7 +707,7 @@ export async function downloadAlbumAsZip(album, tracks, api, quality, lyricsMana
     });
 }
 
-export async function downloadPlaylistAsZip(playlist, tracks, api, quality, lyricsManager = null) {
+export async function downloadPlaylist(playlist, tracks, api, quality, lyricsManager = null) {
     const folderName = formatPathTemplate(modernSettings.folderTemplate, {
         albumTitle: playlist.title,
         albumArtist: 'Playlist',
@@ -939,11 +939,32 @@ function createBulkDownloadNotification(type, name, _totalItems) {
     return notifEl;
 }
 
+/**
+ *
+ * @param {HTMLElement} notifEl
+ * @param {number} current
+ * @param {number} total
+ * @param {string} currentItem
+ * @param {FfmpegProgress | ProgressMessage | null} progress
+ * @returns
+ */
 function updateBulkDownloadProgress(notifEl, current, total, currentItem, progress = null) {
+    /** @type {HTMLElement | null} */
     const progressFill = notifEl.querySelector('.download-progress-fill');
+
+    /** @type {HTMLElement | null} */
     const statusEl = notifEl.querySelector('.download-status');
 
+    if (!progressFill || !statusEl) {
+        console.log('Progress elements not found in notification');
+        return;
+    }
+
     if (progress instanceof FfmpegProgress) {
+        if (progress.stage == 'stdout') {
+            return;
+        }
+
         const percent = progress.progress || 0;
         progressFill.style.width = `${percent}%`;
         progressFill.style.background = '#3b82f6'; // Blue for encoding
