@@ -4575,6 +4575,64 @@
                                         </button>
                                     </div>
                                 </div>
+                                <div
+                                    id="blocked-content-list"
+                                    style="
+                                        display: none;
+                                        margin-top: 1rem;
+                                        border-top: 1px solid var(--border);
+                                        padding-top: 1rem;
+                                    "
+                                >
+                                    <div
+                                        id="blocked-empty-message"
+                                        style="text-align: center; color: var(--muted-foreground); padding: 1rem"
+                                    >
+                                        No content blocked yet.
+                                    </div>
+
+                                    <div id="blocked-artists-section" style="margin-bottom: 1.5rem; display: none">
+                                        <h4
+                                            style="
+                                                font-size: 0.875rem;
+                                                font-weight: 600;
+                                                margin-bottom: 0.5rem;
+                                                color: var(--foreground);
+                                            "
+                                        >
+                                            Blocked Artists
+                                        </h4>
+                                        <ul id="blocked-artists-list" class="blocked-items-list"></ul>
+                                    </div>
+
+                                    <div id="blocked-albums-section" style="margin-bottom: 1.5rem; display: none">
+                                        <h4
+                                            style="
+                                                font-size: 0.875rem;
+                                                font-weight: 600;
+                                                margin-bottom: 0.5rem;
+                                                color: var(--foreground);
+                                            "
+                                        >
+                                            Blocked Albums
+                                        </h4>
+                                        <ul id="blocked-albums-list" class="blocked-items-list"></ul>
+                                    </div>
+
+                                    <div id="blocked-tracks-section" style="margin-bottom: 1.5rem; display: none">
+                                        <h4
+                                            style="
+                                                font-size: 0.875rem;
+                                                font-weight: 600;
+                                                margin-bottom: 0.5rem;
+                                                color: var(--foreground);
+                                            "
+                                        >
+                                            Blocked Tracks
+                                        </h4>
+                                        <ul id="blocked-tracks-list" class="blocked-items-list"></ul>
+                                    </div>
+                                </div>
                             </div>
                             <p
                                 id="settings-commit-info"
