@@ -5,9 +5,7 @@
     "description": "[<img src=\"https://github.com/DaffaAgradhyasto/monochrome/blob/main/assets/512.png?raw=true\" alt=\"Monochrome Logo\">](https://monochrome-music-player.vercel.app)",
     "scripts": {
         "dev": "vite",
-        "dev:desktop": "start bun run dev & node scripts/dev-runner.js",
         "build": "vite build",
-        "build:desktop": "bun x neu build",
         "postbuild": "node -e \"const fs = require('fs'); const path = require('path'); const src = 'extensions'; const dest = path.join('dist', 'Monochrome', 'extensions'); if (fs.existsSync(src)) { fs.mkdirSync(dest, { recursive: true }); fs.cpSync(src, dest, { recursive: true }); console.log('Extensions manually copied to ' + dest); }\"",
         "preview": "vite preview",
         "lint:js": "eslint .",
@@ -30,7 +28,6 @@
     "devDependencies": {
         "@capacitor/assets": "^3.0.5",
         "@capacitor/cli": "^8.2.0",
-        "@neutralinojs/neu": "^11.7.0",
         "@types/node": "^25.3.5",
         "eslint": "^9.39.3",
         "eslint-config-prettier": "^10.1.8",
@@ -44,7 +41,6 @@
         "stylelint-config-standard-scss": "^16.0.0",
         "typescript": "^5.9.3",
         "vite": "^7.3.1",
-        "vite-plugin-neutralino": "^1.0.3",
         "vite-plugin-pwa": "^1.2.0"
     },
     "overrides": {
@@ -63,7 +59,6 @@
         "@ffmpeg/ffmpeg": "^0.12.15",
         "@ffmpeg/util": "^0.12.2",
         "@kawarp/core": "^1.1.1",
-        "@neutralinojs/lib": "^6.5.0",
         "@svta/common-media-library": "^0.18.1",
         "@uimaxbai/am-lyrics": "^1.1.4",
         "appwrite": "^23.0.0",

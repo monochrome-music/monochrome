@@ -807,7 +807,6 @@ export class Player {
         this.updatePlayingTrackIndicator();
         this.updateMediaSession(track);
         this.updateMediaSessionPlaybackState();
-        this.updateNativeWindow(track);
 
         try {
             let streamUrl;

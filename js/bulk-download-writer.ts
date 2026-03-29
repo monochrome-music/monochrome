@@ -1,5 +1,4 @@
 import { triggerDownload } from './download-utils';
-import { readableStreamIterator } from './readableStreamIterator';
 
 /**
  * A single entry to be included in a ZIP archive or written directly to a folder.
@@ -8,22 +7,6 @@ export interface WriterEntry {
     name: string;
     lastModified: Date;
     input: Blob | File | string | ArrayBuffer | Uint8Array;
-}
-
-/** Minimal interface for the Neutralino bridge used by ZipNeutralinoWriter */
-interface NeutralinoBridge {
-    os: {
-        showSaveDialog(
-            title: string,
-            options: { defaultPath: string; filters: Array<{ name: string; extensions: string[] }> }
-        ): Promise<string | null>;
-        showFolderDialog(title: string, options?: Record<string, unknown>): Promise<string | null>;
-    };
-    filesystem: {
-        writeBinaryFile(path: string, buffer: ArrayBuffer): Promise<void>;
-        appendBinaryFile(path: string, buffer: ArrayBuffer): Promise<void>;
-        createDirectory(path: string): Promise<void>;
-    };
 }
 
 async function loadClientZip() {
@@ -112,44 +95,6 @@ export class ZipBlobWriter implements IBulkDownloadWriter {
         const response = downloadZip(files);
         const blob = await response.blob();
         triggerDownload(blob, this.filename);
-    }
-}
-
-/**
- * Writes a ZIP archive to the filesystem via the Neutralino desktop bridge,
- * showing a native save dialog first.
- */
-export class ZipNeutralinoWriter implements IBulkDownloadWriter {
-    constructor(private readonly folderName: string) {}
-
-    async write(files: AsyncIterable<WriterEntry>): Promise<void> {
-        const bridge = (await import('./desktop/neutralino-bridge.js')) as unknown as NeutralinoBridge;
-
-        const savePath = await bridge.os.showSaveDialog(`Select save location for ${this.folderName}.zip`, {
-            defaultPath: `${this.folderName}.zip`,
-            filters: [{ name: 'ZIP Archive', extensions: ['zip'] }],
-        });
-
-        if (!savePath) {
-            throw new DOMException('User cancelled save dialog', 'AbortError');
-        }
-
-        const { downloadZip } = await loadClientZip();
-        const response = downloadZip(files);
-        if (!response.body) throw new Error('ZIP response body is null');
-
-        await bridge.filesystem.writeBinaryFile(savePath, new ArrayBuffer(0));
-
-        const reader = response.body.getReader();
-        let receivedLength = 0;
-
-        for await (const value of readableStreamIterator(response.body)) {
-            const chunk = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength);
-            await bridge.filesystem.appendBinaryFile(savePath, chunk);
-            receivedLength += value.length;
-        }
-
-        console.log(`[ZIP] Download complete. Total size: ${receivedLength} bytes.`);
     }
 }
 
@@ -247,57 +192,6 @@ export class FolderPickerWriter implements IBulkDownloadWriter {
                 await writable.abort();
                 throw error;
             }
-        }
-    }
-}
-
-/**
- * Writes files directly into a folder on the local filesystem via the
- * Neutralino desktop bridge.  Subdirectories are created automatically.
- */
-export class NeutralinoFolderWriter implements IBulkDownloadWriter {
-    constructor(private readonly basePath: string) {}
-
-    async write(files: AsyncIterable<WriterEntry>): Promise<void> {
-        // Import once per write() call; the module system caches the result.
-        const bridge = (await import('./desktop/neutralino-bridge.js')) as unknown as NeutralinoBridge;
-        const createdDirs = new Set<string>();
-
-        for await (const file of files) {
-            const parts = file.name.split('/').filter(Boolean);
-            if (parts.length === 0) continue;
-
-            // Ensure all parent directories exist
-            for (let i = 1; i < parts.length; i++) {
-                const dirPath = this.basePath + '/' + parts.slice(0, i).join('/');
-                if (!createdDirs.has(dirPath)) {
-                    try {
-                        await bridge.filesystem.createDirectory(dirPath);
-                    } catch {
-                        // Directory may already exist; ignore
-                    }
-                    createdDirs.add(dirPath);
-                }
-            }
-
-            const filePath = this.basePath + '/' + file.name;
-            let buffer: ArrayBuffer;
-            const { input } = file;
-            if (input instanceof Blob) {
-                buffer = await input.arrayBuffer();
-            } else if (typeof input === 'string') {
-                const encoded = new TextEncoder().encode(input);
-                buffer = encoded.buffer.slice(
-                    encoded.byteOffset,
-                    encoded.byteOffset + encoded.byteLength
-                ) as ArrayBuffer;
-            } else if (input instanceof Uint8Array) {
-                buffer = input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength) as ArrayBuffer;
-            } else {
-                buffer = input;
-            }
-
-            await bridge.filesystem.writeBinaryFile(filePath, buffer);
         }
     }
 }

@@ -574,82 +574,41 @@ document.addEventListener('DOMContentLoaded', async () => {
             const handle = await db.getSetting('local_folder_handle');
             if (!handle) return;
 
-            const isNeutralino =
-                window.Neutralino && (window.NL_MODE || window.location.search.includes('mode=neutralino'));
             const tracks = (window.localFilesCache = []);
             let idCounter = 0;
             const { readTrackMetadata } = await loadMetadataModule();
 
-            if (isNeutralino) {
-                async function scanNeu(dirPath) {
-                    const entries = await window.Neutralino.filesystem.readDirectory(dirPath);
-                    for (const entry of entries) {
-                        if (entry.entry === '.' || entry.entry === '..') continue;
-                        const fullPath = `${dirPath}/${entry.entry}`;
-                        if (entry.type === 'FILE') {
-                            const name = entry.entry.toLowerCase();
-                            if (
-                                name.endsWith('.flac') ||
-                                name.endsWith('.mp3') ||
-                                name.endsWith('.m4a') ||
-                                name.endsWith('.wav') ||
-                                name.endsWith('.ogg')
-                            ) {
-                                try {
-                                    const buffer = await window.Neutralino.filesystem.readBinaryFile(fullPath);
-                                    const stats = await window.Neutralino.filesystem.getStats(fullPath);
-                                    const file = new File([buffer], entry.entry, { lastModified: stats.mtime });
-                                    const metadata = await readTrackMetadata(file);
-                                    metadata.id = `local-${idCounter++}-${entry.entry}`;
-                                    tracks.push(metadata);
-                                    UIRenderer.instance.renderLocalFiles(
-                                        document.getElementById('library-local-container')
-                                    );
-                                } catch (e) {
-                                    console.error('Failed to read file:', fullPath, e);
-                                }
-                            }
-                        } else if (entry.type === 'DIRECTORY') {
-                            await scanNeu(fullPath);
-                        }
-                    }
-                }
-                await scanNeu(handle.path);
-            } else {
-                // Request read permission before iterating. When the browser has
-                // already granted it (e.g. within the same session or via a
-                // persistent grant) this succeeds without a user gesture.
-                if (typeof handle.requestPermission === 'function') {
-                    const permission = await handle.requestPermission({ mode: 'read' });
-                    if (permission !== 'granted') return;
-                }
-
-                async function scanBrowser(dirHandle) {
-                    for await (const entry of dirHandle.values()) {
-                        if (entry.kind === 'file') {
-                            const name = entry.name.toLowerCase();
-                            if (
-                                name.endsWith('.flac') ||
-                                name.endsWith('.mp3') ||
-                                name.endsWith('.m4a') ||
-                                name.endsWith('.wav') ||
-                                name.endsWith('.ogg')
-                            ) {
-                                const file = await entry.getFile();
-                                const metadata = await readTrackMetadata(file);
-                                metadata.id = `local-${idCounter++}-${file.name}`;
-                                tracks.push(metadata);
-                                UIRenderer.instance.renderLocalFiles(
-                                    document.getElementById('library-local-container')
-                                );
-                            }
-                        } else if (entry.kind === 'directory') {
-                            await scanBrowser(entry);
-                        }
-                    }
-                }
-                await scanBrowser(handle);
+            // Request read permission before iterating. When the browser has
+            // already granted it (e.g. within the same session or via a
+            // persistent grant) this succeeds without a user gesture.
+            if (typeof handle.requestPermission === 'function') {
+                const permission = await handle.requestPermission({ mode: 'read' });
+                if (permission !== 'granted') return;
             }
+
+            async function scanBrowser(dirHandle) {
+                for await (const entry of dirHandle.values()) {
+                    if (entry.kind === 'file') {
+                        const name = entry.name.toLowerCase();
+                        if (
+                            name.endsWith('.flac') ||
+                            name.endsWith('.mp3') ||
+                            name.endsWith('.m4a') ||
+                            name.endsWith('.wav') ||
+                            name.endsWith('.ogg')
+                        ) {
+                            const file = await entry.getFile();
+                            const metadata = await readTrackMetadata(file);
+                            metadata.id = `local-${idCounter++}-${file.name}`;
+                            tracks.push(metadata);
+                            UIRenderer.instance.renderLocalFiles(document.getElementById('library-local-container'));
+                        }
+                    } else if (entry.kind === 'directory') {
+                        await scanBrowser(entry);
+                    }
+                }
+            }
+            await scanBrowser(handle);
 
             tracks.sort((a, b) => (a.artist.name || '').localeCompare(b.artist.name || ''));
             // Update only the local-files section without navigating to the library page.
@@ -718,17 +677,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         const ua = navigator.userAgent;
         const isChromeOrEdge = (ua.indexOf('Chrome') > -1 || ua.indexOf('Edg') > -1) && !/Mobile|Android/.test(ua);
         const hasFileSystemApi = 'showDirectoryPicker' in window;
-        const isNeutralino =
-            window.NL_MODE ||
-            window.location.search.includes('mode=neutralino') ||
-            window.location.search.includes('nl_port=');
 
-        if (!isNeutralino && (!isChromeOrEdge || !hasFileSystemApi)) {
+        if (!isChromeOrEdge || !hasFileSystemApi) {
             selectLocalBtn.style.display = 'none';
             browserWarning.style.display = 'block';
-        } else if (isNeutralino) {
-            selectLocalBtn.style.display = 'flex';
-            browserWarning.style.display = 'none';
         }
     }
 
@@ -2616,22 +2568,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.target.closest('#select-local-folder-btn') || e.target.closest('#change-local-folder-btn')) {
             const isChange = e.target.closest('#change-local-folder-btn') !== null;
             try {
-                const isNeutralino =
-                    window.Neutralino && (window.NL_MODE || window.location.search.includes('mode=neutralino'));
-                let handle;
-                let path;
-
-                if (isNeutralino) {
-                    path = await window.Neutralino.os.showFolderDialog('Select Music Folder');
-                    if (!path) return;
-                    // Mock a handle object for UI compatibility
-                    handle = { name: path.split(/[/\\]/).pop() || path, isNeutralino: true, path };
-                } else {
-                    handle = await window.showDirectoryPicker({
-                        id: 'music-folder',
-                        mode: 'read',
-                    });
-                }
+                const handle = await window.showDirectoryPicker({
+                    id: 'music-folder',
+                    mode: 'read',
+                });
 
                 await db.saveSetting('local_folder_handle', handle);
                 if (isChange) {
