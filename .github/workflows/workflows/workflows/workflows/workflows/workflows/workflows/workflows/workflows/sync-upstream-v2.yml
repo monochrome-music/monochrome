@@ -2,8 +2,8 @@ name: Sinkronisasi Upstream (Penggabungan Cerdas)
 
 on:
   schedule:
-          # Cek setiap 5 menit
-         - cron: '*/5 * * * *'
+    # Cek setiap 10 menit
+    - cron: '*/10 * * * *'
   workflow_dispatch:
     inputs:
       force_sync:
