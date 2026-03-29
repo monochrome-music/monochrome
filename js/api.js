@@ -15,7 +15,6 @@ import { db } from './db.js';
 import { APICache } from './cache.js';
 import { DashDownloader } from './dash-downloader.ts';
 import { HlsDownloader } from './hls-downloader.js';
-import { MP3EncodingError } from './mp3-encoder.js';
 import { loadFfmpeg, FfmpegError, ffmpeg } from './ffmpeg.js';
 import { triggerDownload, applyAudioPostProcessing } from './download-utils.ts';
 import { isCustomFormat } from './ffmpegFormats.ts';
@@ -32,6 +31,8 @@ import {
     PlaybackInfo,
     Track,
     Album,
+    PreparedVideo,
+    PreparedTrack,
 } from './container-classes.js';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
@@ -238,7 +239,11 @@ export class LosslessAPI {
 
         if (track.type && typeof track.type === 'string') {
             const lowType = track.type.toLowerCase();
-            if (lowType.includes('video') || lowType.includes('track')) {
+            if (lowType.includes('video')) {
+                normalized = { ...track, type: 'video' };
+            } else if (lowType.includes('track')) {
+                normalized = { ...track, type: 'track' };
+            } else {
                 normalized = { ...track, type: lowType };
             }
         }
@@ -254,7 +259,7 @@ export class LosslessAPI {
 
         normalized.isUnavailable = isTrackUnavailable(normalized);
 
-        return normalized;
+        return normalized.type == 'video' ? new PreparedVideo(normalized) : new PreparedTrack(normalized);
     }
 
     prepareAlbum(album) {
@@ -662,7 +667,6 @@ export class LosslessAPI {
 
         const response = await this.fetchWithRetry(`/video/?id=${id}`, {
             type: 'streaming',
-            allowedDomains: ['api.monochrome.tf', 'arran.monochrome.tf'],
         });
         const jsonResponse = await response.json();
 
@@ -805,13 +809,13 @@ export class LosslessAPI {
 
         tracks = tracks.map((t) => {
             if (t.album) {
-                t.album = Object.assign(new TrackAlbum(), t.album);
+                t.album = new TrackAlbum(t.album);
             }
 
-            return Object.assign(new Track(), t);
+            return new Track(t);
         });
 
-        album = Object.assign(new Album(), album);
+        album = new Album(album);
 
         const result = { album, tracks };
 
@@ -927,10 +931,10 @@ export class LosslessAPI {
 
         tracks = tracks.map((t) => {
             if (t.album) {
-                t.album = Object.assign(new TrackAlbum(), t.album);
+                t.album = new TrackAlbum(t.album);
             }
 
-            return Object.assign(new Track(), t);
+            return new Track(t);
         });
 
         const result = { playlist, tracks };
@@ -979,10 +983,10 @@ export class LosslessAPI {
 
         tracks = tracks.map((t) => {
             if (t.album) {
-                t.album = Object.assign(new TrackAlbum(), t.album);
+                t.album = new TrackAlbum(t.album);
             }
 
-            return Object.assign(new Track(), t);
+            return new Track(t);
         });
 
         const mix = {
@@ -1821,7 +1825,7 @@ export class LosslessAPI {
                 paramsArray.push(['formats', 'AACLC']);
                 paramsArray.push(['formats', 'FLAC_HIRES']);
                 paramsArray.push(['formats', 'FLAC']);
-            } else if (quality === 'DOLBY_ATMOS' && canPlayAtmos) {
+            } else if (quality === 'DOLBY_ATMOS' && (canPlayAtmos || download)) {
                 paramsArray.push(['formats', 'EAC3_JOC']);
             } else {
                 // Default fallback or "auto" behavior
@@ -1829,7 +1833,7 @@ export class LosslessAPI {
                 paramsArray.push(['formats', 'AACLC']);
                 paramsArray.push(['formats', 'FLAC']);
                 paramsArray.push(['formats', 'FLAC_HIRES']);
-                if (canPlayAtmos) {
+                if (canPlayAtmos || download) {
                     paramsArray.push(['formats', 'EAC3_JOC']);
                 }
             }
@@ -1942,6 +1946,10 @@ export class LosslessAPI {
     }
 
     async enrichTrack(input, { downloadQuality = 'HI_RES_LOSSLESS' }) {
+        if (downloadQuality == 'DOLBY_ATMOS' && !input?.audioModes?.includes('DOLBY_ATMOS')) {
+            downloadQuality = 'LOSSLESS';
+        }
+
         const id = input?.id || input;
         const track = typeof input === 'object' ? input : await this.getTrack(id, downloadQuality);
         const isVideo = track?.type?.toLowerCase().includes('video');
@@ -1951,7 +1959,7 @@ export class LosslessAPI {
         if (isVideo) {
             lookup = await this.getVideo(id);
         } else {
-            lookup = Object.assign(new PlaybackInfo(), await this.getTrack(id, downloadQuality));
+            lookup = new PlaybackInfo(await this.getTrack(id, downloadQuality));
         }
 
         if (input instanceof EnrichedTrack) {
@@ -1962,9 +1970,9 @@ export class LosslessAPI {
             };
         }
 
-        const enrichedTrack = { ...track };
+        const enrichedTrack = { ...this.prepareTrack(track) };
         if (lookup.info) {
-            enrichedTrack.replayGain = Object.assign(new ReplayGain(), {
+            enrichedTrack.replayGain = new ReplayGain({
                 trackReplayGain: lookup.info.trackReplayGain,
                 trackPeakAmplitude: lookup.info.trackPeakAmplitude,
                 albumReplayGain: lookup.info.albumReplayGain,
@@ -1975,7 +1983,7 @@ export class LosslessAPI {
         if (track.album?.id && (track.album?.totalDiscs == null || track.album?.numberOfTracksOnDisc == null)) {
             try {
                 const albumData = await this.getAlbum(track.album.id);
-                enrichedTrack.album = Object.assign(new EnrichedAlbum(), {
+                enrichedTrack.album = new EnrichedAlbum({
                     ...albumData.album,
                     ...enrichedTrack.album,
                 });
@@ -1990,7 +1998,7 @@ export class LosslessAPI {
                     }
                     const totalDiscs = maxDiscNumber || 1;
                     const discNumber = getTrackDiscNumber(track);
-                    enrichedTrack.album = Object.assign(new EnrichedAlbum(), {
+                    enrichedTrack.album = new EnrichedAlbum({
                         ...(enrichedTrack.album || {}),
 
                         totalDiscs: track.album?.totalDiscs ?? totalDiscs,
@@ -2003,10 +2011,10 @@ export class LosslessAPI {
         }
 
         if (!(enrichedTrack.album instanceof EnrichedAlbum)) {
-            enrichedTrack.album = Object.assign(new TrackAlbum(), enrichedTrack.album);
+            enrichedTrack.album = new TrackAlbum(enrichedTrack.album);
         }
 
-        return { lookup, enrichedTrack: Object.assign(new EnrichedTrack(), enrichedTrack), isVideo };
+        return { lookup, enrichedTrack: new EnrichedTrack(enrichedTrack), isVideo };
     }
 
     /**
@@ -2032,7 +2040,7 @@ export class LosslessAPI {
      *
      * @throws {Error} If stream URL cannot be resolved, manifest is missing, or download fails
      * @throws {AbortError} If the download is aborted via the signal
-     * @throws {MP3EncodingError|FfmpegError} If audio transcoding fails
+     * @throws {FfmpegError} If audio transcoding fails
      */
     async downloadTrack(id, quality = 'HI_RES_LOSSLESS', filename, options = {}) {
         // Load ffmpeg in the background.
@@ -2045,7 +2053,7 @@ export class LosslessAPI {
 
         try {
             // Custom FFMPEG formats are not native TIDAL qualities; download LOSSLESS and transcode
-            const downloadQuality = isCustomFormat(quality) ? 'LOSSLESS' : quality;
+            let downloadQuality = isCustomFormat(quality) ? 'LOSSLESS' : quality;
 
             const { lookup, enrichedTrack, isVideo } = await this.enrichTrack(track, { downloadQuality });
 
@@ -2075,9 +2083,22 @@ export class LosslessAPI {
                     throw new Error('Could not resolve manifest');
                 }
 
-                streamUrl = this.extractStreamUrlFromManifest(manifest);
+                if (preferDolbyAtmosSettings.isEnabled() && track.audioModes?.includes('DOLBY_ATMOS')) {
+                    try {
+                        const stream = await this.getStreamUrl(id, 'DOLBY_ATMOS', true);
+                        const manifest = await fetch(stream.url, { signal: options.signal });
+                        const manifestText = await manifest.text();
+                        streamUrl = this.extractStreamUrlFromManifest(btoa(manifestText));
+                    } catch (err) {
+                        console.error('Failed to extract Dolby Atmos stream URL:', err);
+                    }
+                }
+
                 if (!streamUrl) {
-                    throw new Error('Could not resolve stream URL');
+                    streamUrl = this.extractStreamUrlFromManifest(manifest);
+                    if (!streamUrl) {
+                        throw new Error('Could not resolve stream URL');
+                    }
                 }
             }
 
@@ -2183,7 +2204,15 @@ export class LosslessAPI {
                 try {
                     if (isVideo) {
                         blob = new File(
-                            [await ffmpeg(blob, ['-c', 'copy'], 'output.mp4', 'video/mp4', onProgress, options.signal)],
+                            [
+                                await ffmpeg(blob, {
+                                    args: ['-c', 'copy'],
+                                    outputName: 'output.mp4',
+                                    outputMime: 'video/mp4',
+                                    onProgress,
+                                    signal: options.signal,
+                                }),
+                            ],
                             'output.mp4',
                             { type: 'video/mp4' }
                         );
@@ -2214,11 +2243,7 @@ export class LosslessAPI {
                 throw error;
             }
             console.error('Download failed:', error);
-            if (
-                error instanceof MP3EncodingError ||
-                error instanceof FfmpegError ||
-                error.code === 'MP3_ENCODING_FAILED'
-            ) {
+            if (error instanceof FfmpegError || error.code === 'MP3_ENCODING_FAILED') {
                 throw error;
             }
             if (error.message === RATE_LIMIT_ERROR_MESSAGE) {

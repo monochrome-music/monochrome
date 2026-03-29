@@ -1339,8 +1339,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             try {
                 const { mix, tracks } = await MusicAPI.instance.getMix(mixId);
-                const { downloadPlaylistAsZip } = await loadDownloadsModule();
-                await downloadPlaylistAsZip(
+                const { downloadPlaylist } = await loadDownloadsModule();
+                await downloadPlaylist(
                     mix,
                     tracks,
                     MusicAPI.instance,
@@ -1388,8 +1388,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     tracks = data.tracks;
                 }
 
-                const { downloadPlaylistAsZip } = await loadDownloadsModule();
-                await downloadPlaylistAsZip(
+                const { downloadPlaylist } = await loadDownloadsModule();
+                await downloadPlaylist(
                     playlist,
                     tracks,
                     MusicAPI.instance,
@@ -2305,8 +2305,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             try {
                 const { album, tracks } = await MusicAPI.instance.getAlbum(albumId);
-                const { downloadAlbumAsZip } = await loadDownloadsModule();
-                await downloadAlbumAsZip(
+                const { downloadAlbum } = await loadDownloadsModule();
+                await downloadAlbum(
                     album,
                     tracks,
                     MusicAPI.instance,

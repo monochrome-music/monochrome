@@ -666,6 +666,14 @@ export const downloadQualitySettings = {
                 this.setQuality('FFMPEG_MP3_320');
                 return 'FFMPEG_MP3_320';
             }
+
+            // Migrate legacy atmos value
+            if (stored === 'DOLBY_ATMOS') {
+                this.setQuality('HI_RES_LOSSLESS');
+                preferDolbyAtmosSettings.setEnabled(true);
+                return 'HI_RES_LOSSLESS';
+            }
+
             return stored;
         } catch {
             return 'HI_RES_LOSSLESS';
@@ -673,6 +681,21 @@ export const downloadQualitySettings = {
     },
     setQuality(quality) {
         localStorage.setItem(this.STORAGE_KEY, quality);
+    },
+};
+
+export const preferDolbyAtmosSettings = {
+    STORAGE_KEY: 'prefer-dolby-atmos',
+    isEnabled() {
+        try {
+            const stored = localStorage.getItem(this.STORAGE_KEY) || 'false';
+            return stored === 'true';
+        } catch {
+            return false;
+        }
+    },
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
     },
 };
 
