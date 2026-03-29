@@ -3718,6 +3718,8 @@ function initializeBlockedContentManager() {
                 e.stopPropagation();
                 const id = btn.dataset.id;
                 const type = btn.dataset.type;
+                const itemLi = btn.closest('li');
+                const itemName = itemLi ? itemLi.querySelector('.item-name').textContent : 'item';
 
                 if (type === 'artist') {
                     contentBlockingSettings.unblockArtist(id);
@@ -3727,6 +3729,10 @@ function initializeBlockedContentManager() {
                     contentBlockingSettings.unblockTrack(id);
                 }
 
+                if (typeof showNotification === 'function') {
+                    showNotification(`Unblocked ${type}: ${itemName}`);
+                }
+                
                 renderBlockedLists();
             });
         });
