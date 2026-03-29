@@ -1,7 +1,7 @@
 [
     {
         "type": "userplaylist",
-        "id": "6i4y9s7y5hb5wyz",
+        "id": "5fd08395-e598-4b1a-924f-460e5f2e8b06",
         "title": "BULLY",
         "artist": { "id": 25022, "name": "Kanye West" },
         "releaseDate": "2026-03-28",
@@ -10,10 +10,15 @@
         "numberOfTracks": 18
     },
     {
-        "type": "artist",
-        "id": 10932434,
-        "name": "black midi",
-        "picture": "025bd6b8-be5f-4c95-bda0-e313f94cfdf5"
+        "type": "album",
+        "id": 234935928,
+        "title": "Hellfire",
+        "artist": { "id": 10932434, "name": "black midi" },
+        "releaseDate": "2022-07-15",
+        "cover": "71e4b49b-ada3-4e08-b08c-3a7c264117f0",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
     },
     {
         "type": "album",
