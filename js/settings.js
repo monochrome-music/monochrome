@@ -36,7 +36,7 @@ import {
     modalSettings,
     preferDolbyAtmosSettings,
 } from './storage.js';
-import { audioContextManager, EQ_PRESETS } from './audio-context.js';
+import { audioContextManager, EQ_PRESETS, EQ_BUILT_IN_PROFILES } from './audio-context.js';
 import { runAutoEqAlgorithm } from './autoeq-engine.js';
 import { parseRawData, TARGETS } from './autoeq-data.js';
 import { fetchAutoEqIndex, fetchHeadphoneData, searchHeadphones } from './autoeq-importer.js';
@@ -1776,6 +1776,38 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
         eqPresetSelect.addEventListener('change', (e) => {
             const presetKey = e.target.value;
+
+            // Check if it's a factory profile (full 16-band fixed profile)
+            if (presetKey.startsWith('factory_')) {
+                const factoryKey = presetKey.slice('factory_'.length);
+                const profile = EQ_BUILT_IN_PROFILES[factoryKey];
+                if (profile) {
+                    audioContextManager.applyProfile({
+                        bandCount: profile.bandCount,
+                        frequencies: profile.frequencies,
+                        gains: profile.gains,
+                        qValues: profile.qValues,
+                        filterTypes: profile.filterTypes,
+                        preamp: profile.preamp,
+                    });
+                    currentBandCount = profile.bandCount;
+                    if (eqBandCountInput) eqBandCountInput.value = profile.bandCount;
+                    currentPreamp = profile.preamp;
+                    updatePreampUI(currentPreamp);
+                    generateEQBands(
+                        profile.bandCount,
+                        currentRange.min,
+                        currentRange.max,
+                        currentFreqRange.min,
+                        currentFreqRange.max,
+                        profile.frequencies
+                    );
+                    updateAllBandUI(profile.gains);
+                    equalizerSettings.setPreset(presetKey);
+                }
+                updateDeleteButtonVisibility();
+                return;
+            }
 
             // Check if it's a custom preset
             if (isCustomPreset(presetKey)) {

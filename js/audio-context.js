@@ -88,6 +88,25 @@ function getPresetsForBandCount(bandCount) {
 // Default export for backwards compatibility (16 bands)
 const EQ_PRESETS = EQ_PRESETS_16;
 
+// Standard 16-band ISO-like log-spaced frequencies (20Hz – 20kHz)
+const STANDARD_16_FREQS = generateFrequencies(16, 20, 20000);
+
+// Factory profiles: full profile objects for each built-in preset
+const EQ_BUILT_IN_PROFILES = Object.fromEntries(
+    Object.entries(EQ_PRESETS_16).map(([key, preset]) => [
+        key,
+        {
+            name: preset.name,
+            bandCount: 16,
+            frequencies: [...STANDARD_16_FREQS],
+            gains: [...preset.gains],
+            qValues: null,
+            filterTypes: null,
+            preamp: 0,
+        },
+    ])
+);
+
 class AudioContextManager {
     constructor() {
         this.audioContext = null;
@@ -941,4 +960,6 @@ export {
     getPresetsForBandCount,
     interpolatePreset,
     EQ_PRESETS_16,
+    EQ_BUILT_IN_PROFILES,
+    STANDARD_16_FREQS,
 };
