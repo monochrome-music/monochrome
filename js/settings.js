@@ -34,6 +34,7 @@ import {
     gaplessPlaybackSettings,
     analyticsSettings,
     modalSettings,
+    preferDolbyAtmosSettings,
 } from './storage.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
 import { db } from './db.js';
@@ -813,7 +814,6 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     if (downloadQualitySetting) {
         // Assign categories to the static (native) options already in the HTML
         const staticCategories = {
-            DOLBY_ATMOS: 'Spatial',
             HI_RES_LOSSLESS: 'Lossless',
             LOSSLESS: 'Lossless',
             HIGH: 'AAC',
@@ -840,7 +840,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             const m = text.match(/(\d+)\s*kbps/i);
             return m ? parseInt(m[1], 10) : Infinity;
         };
-        const categoryOrder = ['Spatial', 'Lossless', 'AAC', 'MP3', 'OGG'];
+        const categoryOrder = ['Lossless', 'AAC', 'MP3', 'OGG'];
         allOptions.sort((a, b) => {
             if (a.category == b.category && a.category === 'Lossless') return 0; // Preserve original order for lossless options
             const ai = categoryOrder.indexOf(a.category);
@@ -875,6 +875,14 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         downloadQualitySetting.addEventListener('change', (e) => {
             downloadQualitySettings.setQuality(e.target.value);
             updateLosslessContainerVisibility();
+        });
+    }
+
+    const prefersAtmosSetting = document.getElementById('dolby-atmos-toggle');
+    if (prefersAtmosSetting) {
+        prefersAtmosSetting.checked = preferDolbyAtmosSettings.isEnabled();
+        prefersAtmosSetting.addEventListener('change', (e) => {
+            preferDolbyAtmosSettings.setEnabled(e.target.checked);
         });
     }
 
@@ -979,7 +987,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         if (resetSavedFolderSetting) {
             let showReset = false;
             if (isFolderMethod && hasFolderPicker && modernSettings.rememberBulkDownloadFolder) {
-                const savedHandle = await db.getSetting('bulk_download_folder_handle');
+                const savedHandle = modernSettings.bulkDownloadFolder;
                 showReset = !!savedHandle;
             }
             resetSavedFolderSetting.style.display = showReset ? '' : 'none';
@@ -1064,7 +1072,8 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
     if (resetSavedFolderBtn) {
         resetSavedFolderBtn.addEventListener('click', async () => {
-            await db.saveSetting('bulk_download_folder_handle', null);
+            modernSettings.bulkDownloadFolder = null;
+            await modernSettings.waitPending();
             await updateFolderMethodVisibility();
         });
     }
@@ -1084,7 +1093,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     }
 
     updateForceZipBlobVisibility();
-    updateFolderMethodVisibility();
+    await updateFolderMethodVisibility();
 
     const includeCoverToggle = document.getElementById('include-cover-toggle');
     if (includeCoverToggle) {
@@ -2579,6 +2588,23 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             }
         });
         observer.observe(appearanceTabContent, { attributes: true });
+    }
+
+    // Watch for downloads tab becoming active and update setting visibility
+    const downloadsTabContent = document.getElementById('settings-tab-downloads');
+    if (downloadsTabContent) {
+        const observer = new MutationObserver(async (mutations) => {
+            for (const mutation of mutations) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    if (downloadsTabContent.classList.contains('active')) {
+                        console.log('[Settings] Downloads tab became active, updating setting visibility');
+                        updateForceZipBlobVisibility();
+                        await updateFolderMethodVisibility();
+                    }
+                }
+            }
+        });
+        observer.observe(downloadsTabContent, { attributes: true });
     }
 
     // Visualizer Mode Select
