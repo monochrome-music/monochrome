@@ -30,6 +30,8 @@ import {
     PlaybackInfo,
     Track,
     Album,
+    PreparedVideo,
+    PreparedTrack,
 } from './container-classes.js';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
@@ -214,7 +216,11 @@ export class LosslessAPI {
 
         if (track.type && typeof track.type === 'string') {
             const lowType = track.type.toLowerCase();
-            if (lowType.includes('video') || lowType.includes('track')) {
+            if (lowType.includes('video')) {
+                normalized = { ...track, type: 'video' };
+            } else if (lowType.includes('track')) {
+                normalized = { ...track, type: 'track' };
+            } else {
                 normalized = { ...track, type: lowType };
             }
         }
@@ -230,7 +236,7 @@ export class LosslessAPI {
 
         normalized.isUnavailable = isTrackUnavailable(normalized);
 
-        return normalized;
+        return normalized.type == 'video' ? new PreparedVideo(normalized) : new PreparedTrack(normalized);
     }
 
     prepareAlbum(album) {
@@ -780,13 +786,13 @@ export class LosslessAPI {
 
         tracks = tracks.map((t) => {
             if (t.album) {
-                t.album = Object.assign(new TrackAlbum(), t.album);
+                t.album = new TrackAlbum(t.album);
             }
 
-            return Object.assign(new Track(), t);
+            return new Track(t);
         });
 
-        album = Object.assign(new Album(), album);
+        album = new Album(album);
 
         const result = { album, tracks };
 
@@ -902,10 +908,10 @@ export class LosslessAPI {
 
         tracks = tracks.map((t) => {
             if (t.album) {
-                t.album = Object.assign(new TrackAlbum(), t.album);
+                t.album = new TrackAlbum(t.album);
             }
 
-            return Object.assign(new Track(), t);
+            return new Track(t);
         });
 
         const result = { playlist, tracks };
@@ -938,10 +944,10 @@ export class LosslessAPI {
 
         tracks = tracks.map((t) => {
             if (t.album) {
-                t.album = Object.assign(new TrackAlbum(), t.album);
+                t.album = new TrackAlbum(t.album);
             }
 
-            return Object.assign(new Track(), t);
+            return new Track(t);
         });
 
         const mix = {
@@ -1647,7 +1653,7 @@ export class LosslessAPI {
         if (isVideo) {
             lookup = await this.getVideo(id);
         } else {
-            lookup = Object.assign(new PlaybackInfo(), await this.getTrack(id, downloadQuality));
+            lookup = new PlaybackInfo(await this.getTrack(id, downloadQuality));
         }
 
         if (input instanceof EnrichedTrack) {
@@ -1658,9 +1664,9 @@ export class LosslessAPI {
             };
         }
 
-        const enrichedTrack = { ...track };
+        const enrichedTrack = { ...this.prepareTrack(track) };
         if (lookup.info) {
-            enrichedTrack.replayGain = Object.assign(new ReplayGain(), {
+            enrichedTrack.replayGain = new ReplayGain({
                 trackReplayGain: lookup.info.trackReplayGain,
                 trackPeakAmplitude: lookup.info.trackPeakAmplitude,
                 albumReplayGain: lookup.info.albumReplayGain,
@@ -1671,7 +1677,7 @@ export class LosslessAPI {
         if (track.album?.id && (track.album?.totalDiscs == null || track.album?.numberOfTracksOnDisc == null)) {
             try {
                 const albumData = await this.getAlbum(track.album.id);
-                enrichedTrack.album = Object.assign(new EnrichedAlbum(), {
+                enrichedTrack.album = new EnrichedAlbum({
                     ...albumData.album,
                     ...enrichedTrack.album,
                 });
@@ -1686,7 +1692,7 @@ export class LosslessAPI {
                     }
                     const totalDiscs = maxDiscNumber || 1;
                     const discNumber = getTrackDiscNumber(track);
-                    enrichedTrack.album = Object.assign(new EnrichedAlbum(), {
+                    enrichedTrack.album = new EnrichedAlbum({
                         ...(enrichedTrack.album || {}),
 
                         totalDiscs: track.album?.totalDiscs ?? totalDiscs,
@@ -1699,10 +1705,10 @@ export class LosslessAPI {
         }
 
         if (!(enrichedTrack.album instanceof EnrichedAlbum)) {
-            enrichedTrack.album = Object.assign(new TrackAlbum(), enrichedTrack.album);
+            enrichedTrack.album = new TrackAlbum(enrichedTrack.album);
         }
 
-        return { lookup, enrichedTrack: Object.assign(new EnrichedTrack(), enrichedTrack), isVideo };
+        return { lookup, enrichedTrack: new EnrichedTrack(enrichedTrack), isVideo };
     }
 
     /**
