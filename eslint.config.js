@@ -4,14 +4,7 @@ import prettierConfig from 'eslint-config-prettier';
 
 export default [
     {
-        ignores: [
-            '**/dist/**',
-            '**/node_modules/**',
-            '**/legacy/**',
-            '**/bin/**',
-            '**/www/**',
-            '**/public/lib/**',
-        ],
+        ignores: ['**/dist/**', '**/node_modules/**', '**/legacy/**', '**/bin/**', '**/www/**', '**/public/lib/**'],
     },
     js.configs.recommended,
     prettierConfig,
