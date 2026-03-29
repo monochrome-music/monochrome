@@ -705,14 +705,11 @@ class AudioContextManager {
     applyAutoEQBands(bands) {
         if (!bands || bands.length === 0) return '';
 
-        const enabledBands = bands.filter(b => b.enabled);
-        const count = Math.max(
-            equalizerSettings.MIN_BANDS,
-            Math.min(equalizerSettings.MAX_BANDS, enabledBands.length)
-        );
+        const enabledBands = bands.filter((b) => b.enabled);
+        const count = Math.max(equalizerSettings.MIN_BANDS, Math.min(equalizerSettings.MAX_BANDS, enabledBands.length));
 
         // Calculate preamp: negative of max positive gain to prevent clipping
-        const maxGain = Math.max(0, ...enabledBands.map(b => b.gain));
+        const maxGain = Math.max(0, ...enabledBands.map((b) => b.gain));
         const preamp = maxGain > 0 ? -Math.round(maxGain * 10) / 10 : 0;
 
         // Update band count
@@ -742,7 +739,9 @@ class AudioContextManager {
 
             if (this.filters[index] && this.audioContext) {
                 this.filters[index].frequency.setTargetAtTime(
-                    Math.min(band.freq, this.audioContext.sampleRate / 2 - 1), now, 0.01
+                    Math.min(band.freq, this.audioContext.sampleRate / 2 - 1),
+                    now,
+                    0.01
                 );
                 this.filters[index].gain.setTargetAtTime(gain, now, 0.01);
                 this.filters[index].Q.setTargetAtTime(band.q, now, 0.01);
@@ -765,7 +764,9 @@ class AudioContextManager {
         sortedBands.forEach((band, index) => {
             if (index >= this.bandCount) return;
             const filterType = band.type === 'lowshelf' ? 'LS' : band.type === 'highshelf' ? 'HS' : 'PK';
-            lines.push(`Filter ${index + 1}: ON ${filterType} Fc ${Math.round(band.freq)} Hz Gain ${band.gain.toFixed(1)} dB Q ${band.q.toFixed(2)}`);
+            lines.push(
+                `Filter ${index + 1}: ON ${filterType} Fc ${Math.round(band.freq)} Hz Gain ${band.gain.toFixed(1)} dB Q ${band.q.toFixed(2)}`
+            );
         });
 
         return lines.join('\n');

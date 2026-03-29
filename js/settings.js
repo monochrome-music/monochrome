@@ -1295,7 +1295,6 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     const formatFreq = (freq) => {
         if (freq >= 1000) return (freq / 1000).toFixed(freq % 1000 === 0 ? 0 : 1) + 'k';
         return Math.round(freq).toString();
-
     };
 
     /**
@@ -1312,7 +1311,10 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         autoeqCanvas.height = rect.height * dpr;
         ctx.scale(dpr, dpr);
 
-        const padLeft = 40, padRight = 10, padTop = 10, padBottom = 30;
+        const padLeft = 40,
+            padRight = 10,
+            padTop = 10,
+            padBottom = 30;
         const w = rect.width - padLeft - padRight;
         const h = rect.height - padTop - padBottom;
 
@@ -1333,9 +1335,9 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         // Fixed curve colors (work across all themes)
         const gridColor = 'rgba(255,255,255,0.06)';
         const textColor = 'rgba(255,255,255,0.4)';
-        const originalColor = '#3b82f6';       // Blue
+        const originalColor = '#3b82f6'; // Blue
         const targetColor = 'rgba(255,255,255,0.5)'; // White/gray dashed
-        const correctedColor = '#f472b6';      // Pink
+        const correctedColor = '#f472b6'; // Pink
 
         // Draw grid
         ctx.strokeStyle = gridColor;
@@ -1386,8 +1388,10 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 if (p.freq < FREQ_MIN || p.freq > FREQ_MAX) continue;
                 const x = gx(p.freq);
                 const y = gy(p.gain);
-                if (!started) { ctx.moveTo(x, y); started = true; }
-                else ctx.lineTo(x, y);
+                if (!started) {
+                    ctx.moveTo(x, y);
+                    started = true;
+                } else ctx.lineTo(x, y);
             }
             ctx.stroke();
             ctx.restore();
@@ -1395,7 +1399,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
         // Normalize all data to center around dbCenter
         const targetId = autoeqTargetSelect ? autoeqTargetSelect.value : 'harman_oe_2018';
-        const targetEntry = TARGETS.find(t => t.id === targetId);
+        const targetEntry = TARGETS.find((t) => t.id === targetId);
         const targetData = targetEntry?.data;
 
         let graphShift = 0;
@@ -1411,15 +1415,32 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
             if (autoeqCurrentBands && autoeqCurrentBands.length > 0) {
                 const sampleRate = autoeqSampleRate ? parseInt(autoeqSampleRate.value, 10) : 48000;
-                const nodeColors = ['#f472b6','#fb923c','#facc15','#4ade80','#22d3ee','#818cf8','#c084fc','#f87171','#34d399','#60a5fa','#a78bfa','#fb7185','#fbbf24','#2dd4bf','#38bdf8','#a3e635'];
+                const nodeColors = [
+                    '#f472b6',
+                    '#fb923c',
+                    '#facc15',
+                    '#4ade80',
+                    '#22d3ee',
+                    '#818cf8',
+                    '#c084fc',
+                    '#f87171',
+                    '#34d399',
+                    '#60a5fa',
+                    '#a78bfa',
+                    '#fb7185',
+                    '#fbbf24',
+                    '#2dd4bf',
+                    '#38bdf8',
+                    '#a3e635',
+                ];
 
                 // Draw individual band bell curves (filled)
                 autoeqCurrentBands.forEach((band, i) => {
                     if (!band.enabled || Math.abs(band.gain) < 0.1) return;
                     const color = nodeColors[i % nodeColors.length];
-                    const r = parseInt(color.slice(1,3), 16);
-                    const g2 = parseInt(color.slice(3,5), 16);
-                    const b2 = parseInt(color.slice(5,7), 16);
+                    const r = parseInt(color.slice(1, 3), 16);
+                    const g2 = parseInt(color.slice(3, 5), 16);
+                    const b2 = parseInt(color.slice(5, 7), 16);
 
                     // Draw filled bell shape
                     ctx.save();
@@ -1441,8 +1462,10 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                         const resp = calculateBiquadResponse(f, band, sampleRate);
                         const bx = gx(f);
                         const by = gy(resp);
-                        if (!started) { ctx.moveTo(bx, by); started = true; }
-                        else ctx.lineTo(bx, by);
+                        if (!started) {
+                            ctx.moveTo(bx, by);
+                            started = true;
+                        } else ctx.lineTo(bx, by);
                     }
                     ctx.strokeStyle = `rgba(${r},${g2},${b2},0.5)`;
                     ctx.lineWidth = 1;
@@ -1473,20 +1496,25 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
             // Draw Target curve (shifted)
             if (targetData) {
-                const shiftedTarget = targetData.map(p => ({ freq: p.freq, gain: p.gain + graphShift }));
+                const shiftedTarget = targetData.map((p) => ({ freq: p.freq, gain: p.gain + graphShift }));
                 drawCurve(shiftedTarget, targetColor, 1.5, true);
             }
 
             // Draw Original measurement (normalized + shifted)
             if (autoeqSelectedMeasurement) {
-                const normOff = targetData ? getNormalizationOffset(targetData) - getNormalizationOffset(autoeqSelectedMeasurement) : 0;
-                const normalized = autoeqSelectedMeasurement.map(p => ({ freq: p.freq, gain: p.gain + normOff + graphShift }));
+                const normOff = targetData
+                    ? getNormalizationOffset(targetData) - getNormalizationOffset(autoeqSelectedMeasurement)
+                    : 0;
+                const normalized = autoeqSelectedMeasurement.map((p) => ({
+                    freq: p.freq,
+                    gain: p.gain + normOff + graphShift,
+                }));
                 drawCurve(normalized, originalColor, 1.5);
             }
 
             // Draw Corrected curve (shifted)
             if (autoeqCorrectedCurve) {
-                const shiftedCorrected = autoeqCorrectedCurve.map(p => ({ freq: p.freq, gain: p.gain + graphShift }));
+                const shiftedCorrected = autoeqCorrectedCurve.map((p) => ({ freq: p.freq, gain: p.gain + graphShift }));
                 drawCurve(shiftedCorrected, correctedColor, 2);
             }
         }
@@ -1513,7 +1541,24 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 const y = gy(nodeGain);
 
                 // Draw node circle with unique color per band
-                const nodeColors = ['#f472b6','#fb923c','#facc15','#4ade80','#22d3ee','#818cf8','#c084fc','#f87171','#34d399','#60a5fa','#a78bfa','#fb7185','#fbbf24','#2dd4bf','#38bdf8','#a3e635'];
+                const nodeColors = [
+                    '#f472b6',
+                    '#fb923c',
+                    '#facc15',
+                    '#4ade80',
+                    '#22d3ee',
+                    '#818cf8',
+                    '#c084fc',
+                    '#f87171',
+                    '#34d399',
+                    '#60a5fa',
+                    '#a78bfa',
+                    '#fb7185',
+                    '#fbbf24',
+                    '#2dd4bf',
+                    '#38bdf8',
+                    '#a3e635',
+                ];
                 const nodeColor = nodeColors[i % nodeColors.length];
                 const isHovered = i === hoveredNode;
                 const isDragged = i === draggedNode;
@@ -1526,9 +1571,9 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                     ctx.arc(x, y, radius + 4, 0, Math.PI * 2);
                     ctx.fillStyle = nodeColor.replace(')', ', 0.25)').replace('rgb', 'rgba').replace('#', '');
                     // Use hex to rgba
-                    const r2 = parseInt(nodeColor.slice(1,3), 16);
-                    const g2 = parseInt(nodeColor.slice(3,5), 16);
-                    const b2 = parseInt(nodeColor.slice(5,7), 16);
+                    const r2 = parseInt(nodeColor.slice(1, 3), 16);
+                    const g2 = parseInt(nodeColor.slice(3, 5), 16);
+                    const b2 = parseInt(nodeColor.slice(5, 7), 16);
                     ctx.fillStyle = `rgba(${r2},${g2},${b2},0.25)`;
                     ctx.fill();
                     ctx.restore();
@@ -1571,12 +1616,14 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             return;
         }
         const targetId = autoeqTargetSelect ? autoeqTargetSelect.value : 'harman_oe_2018';
-        const targetEntry = TARGETS.find(t => t.id === targetId);
+        const targetEntry = TARGETS.find((t) => t.id === targetId);
         const targetData = targetEntry?.data;
-        const normOff = targetData ? getNormalizationOffset(targetData) - getNormalizationOffset(autoeqSelectedMeasurement) : 0;
+        const normOff = targetData
+            ? getNormalizationOffset(targetData) - getNormalizationOffset(autoeqSelectedMeasurement)
+            : 0;
         const sampleRate = autoeqSampleRate ? parseInt(autoeqSampleRate.value, 10) : 48000;
 
-        autoeqCorrectedCurve = autoeqSelectedMeasurement.map(p => {
+        autoeqCorrectedCurve = autoeqSelectedMeasurement.map((p) => {
             let correction = 0;
             for (const band of autoeqCurrentBands) {
                 if (band.enabled) correction += calculateBiquadResponse(p.freq, band, sampleRate);
@@ -1602,7 +1649,10 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         if (!isParam && !autoeqCorrectedCurve) return -1;
 
         const rect = autoeqCanvas.getBoundingClientRect();
-        const padLeft = 40, padRight = 10, padTop = 10, padBottom = 30;
+        const padLeft = 40,
+            padRight = 10,
+            padTop = 10,
+            padBottom = 30;
         const w = rect.width - padLeft - padRight;
         const h = rect.height - padTop - padBottom;
 
@@ -1614,14 +1664,15 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         let graphShift = 0;
         if (!isParam) {
             const targetId = autoeqTargetSelect ? autoeqTargetSelect.value : 'harman_oe_2018';
-            const targetEntry = TARGETS.find(t => t.id === targetId);
+            const targetEntry = TARGETS.find((t) => t.id === targetId);
             const targetData = targetEntry?.data;
             if (targetData) graphShift = 75 - getNormalizationOffset(targetData);
             else if (autoeqSelectedMeasurement) graphShift = 75 - getNormalizationOffset(autoeqSelectedMeasurement);
         }
 
         const sampleRate = autoeqSampleRate ? parseInt(autoeqSampleRate.value, 10) : 48000;
-        let closest = -1, closestDist = Infinity;
+        let closest = -1,
+            closestDist = Infinity;
         autoeqCurrentBands.forEach((band, i) => {
             if (!band.enabled) return;
             const x = padLeft + freqToX(band.freq, w);
@@ -1674,10 +1725,14 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             const coords = getCanvasCoords(e);
             if (draggedNode !== null && autoeqCurrentBands) {
                 const rect = autoeqCanvas.getBoundingClientRect();
-                const padLeft = 40, padRight = 10, padTop = 10, padBottom = 30;
+                const padLeft = 40,
+                    padRight = 10,
+                    padTop = 10,
+                    padBottom = 30;
                 const w = rect.width - padLeft - padRight;
                 const h = rect.height - padTop - padBottom;
-                const dbMin = 50, dbMax = 100;
+                const dbMin = 50,
+                    dbMax = 100;
 
                 const freq = xToFreq(coords.x - padLeft, w);
                 const corrGain = interpolate(autoeqCurrentBands[draggedNode].freq, autoeqCorrectedCurve || []);
@@ -1685,7 +1740,10 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 const gainDelta = newDb - corrGain;
 
                 autoeqCurrentBands[draggedNode].freq = Math.max(20, Math.min(20000, freq));
-                autoeqCurrentBands[draggedNode].gain = Math.max(-12, Math.min(12, autoeqCurrentBands[draggedNode].gain + gainDelta * 0.3));
+                autoeqCurrentBands[draggedNode].gain = Math.max(
+                    -12,
+                    Math.min(12, autoeqCurrentBands[draggedNode].gain + gainDelta * 0.3)
+                );
 
                 computeCorrectedCurve();
                 applyBandsToAudio(autoeqCurrentBands);
@@ -1718,53 +1776,74 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             drawAutoEQGraph();
         });
 
-        autoeqCanvas.addEventListener('wheel', (e) => {
-            if (hoveredNode >= 0 && autoeqCurrentBands) {
-                e.preventDefault();
-                const delta = e.deltaY > 0 ? -0.15 : 0.15;
-                autoeqCurrentBands[hoveredNode].q = Math.max(0.1, Math.min(10, autoeqCurrentBands[hoveredNode].q + delta));
-                computeCorrectedCurve();
-                applyBandsToAudio(autoeqCurrentBands);
-                drawAutoEQGraph();
-                renderBandControls(autoeqCurrentBands);
-            }
-        }, { passive: false });
+        autoeqCanvas.addEventListener(
+            'wheel',
+            (e) => {
+                if (hoveredNode >= 0 && autoeqCurrentBands) {
+                    e.preventDefault();
+                    const delta = e.deltaY > 0 ? -0.15 : 0.15;
+                    autoeqCurrentBands[hoveredNode].q = Math.max(
+                        0.1,
+                        Math.min(10, autoeqCurrentBands[hoveredNode].q + delta)
+                    );
+                    computeCorrectedCurve();
+                    applyBandsToAudio(autoeqCurrentBands);
+                    drawAutoEQGraph();
+                    renderBandControls(autoeqCurrentBands);
+                }
+            },
+            { passive: false }
+        );
 
         // Touch support
         let touchNodeIdx = -1;
-        autoeqCanvas.addEventListener('touchstart', (e) => {
-            const touch = e.touches[0];
-            const coords = { x: touch.clientX - autoeqCanvas.getBoundingClientRect().left, y: touch.clientY - autoeqCanvas.getBoundingClientRect().top };
-            touchNodeIdx = findClosestNode(coords.x, coords.y, 25);
-            if (touchNodeIdx >= 0) {
-                draggedNode = touchNodeIdx;
-                e.preventDefault();
-            }
-        }, { passive: false });
-
-        autoeqCanvas.addEventListener('touchmove', (e) => {
-            if (draggedNode !== null && autoeqCurrentBands) {
+        autoeqCanvas.addEventListener(
+            'touchstart',
+            (e) => {
                 const touch = e.touches[0];
-                const rect = autoeqCanvas.getBoundingClientRect();
-                const coords = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
-                const padLeft = 40, padRight = 10, padTop = 10, padBottom = 30;
-                const w = rect.width - padLeft - padRight;
-
-                const freq = xToFreq(coords.x - padLeft, w);
-                autoeqCurrentBands[draggedNode].freq = Math.max(20, Math.min(20000, freq));
-
-                computeCorrectedCurve();
-                applyBandsToAudio(autoeqCurrentBands);
-                if (!graphAnimFrame) {
-                    graphAnimFrame = requestAnimationFrame(() => {
-                        drawAutoEQGraph();
-                        renderBandControls(autoeqCurrentBands);
-                        graphAnimFrame = null;
-                    });
+                const coords = {
+                    x: touch.clientX - autoeqCanvas.getBoundingClientRect().left,
+                    y: touch.clientY - autoeqCanvas.getBoundingClientRect().top,
+                };
+                touchNodeIdx = findClosestNode(coords.x, coords.y, 25);
+                if (touchNodeIdx >= 0) {
+                    draggedNode = touchNodeIdx;
+                    e.preventDefault();
                 }
-                e.preventDefault();
-            }
-        }, { passive: false });
+            },
+            { passive: false }
+        );
+
+        autoeqCanvas.addEventListener(
+            'touchmove',
+            (e) => {
+                if (draggedNode !== null && autoeqCurrentBands) {
+                    const touch = e.touches[0];
+                    const rect = autoeqCanvas.getBoundingClientRect();
+                    const coords = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+                    const padLeft = 40,
+                        padRight = 10,
+                        padTop = 10,
+                        padBottom = 30;
+                    const w = rect.width - padLeft - padRight;
+
+                    const freq = xToFreq(coords.x - padLeft, w);
+                    autoeqCurrentBands[draggedNode].freq = Math.max(20, Math.min(20000, freq));
+
+                    computeCorrectedCurve();
+                    applyBandsToAudio(autoeqCurrentBands);
+                    if (!graphAnimFrame) {
+                        graphAnimFrame = requestAnimationFrame(() => {
+                            drawAutoEQGraph();
+                            renderBandControls(autoeqCurrentBands);
+                            graphAnimFrame = null;
+                        });
+                    }
+                    e.preventDefault();
+                }
+            },
+            { passive: false }
+        );
 
         autoeqCanvas.addEventListener('touchend', () => {
             draggedNode = null;
@@ -1773,7 +1852,9 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
         // Resize observer for graph
         if (autoeqGraphWrapper) {
-            const ro = new ResizeObserver(() => { drawAutoEQGraph(); });
+            const ro = new ResizeObserver(() => {
+                drawAutoEQGraph();
+            });
             ro.observe(autoeqGraphWrapper);
         }
     }
@@ -1865,7 +1946,8 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         autoeqSavedCollapse.addEventListener('click', (e) => {
             e.stopPropagation();
             autoeqSavedCollapse.classList.toggle('collapsed');
-            if (savedGrid) savedGrid.style.display = autoeqSavedCollapse.classList.contains('collapsed') ? 'none' : 'flex';
+            if (savedGrid)
+                savedGrid.style.display = autoeqSavedCollapse.classList.contains('collapsed') ? 'none' : 'flex';
         });
     }
 
@@ -1873,7 +1955,8 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     if (autoeqFiltersToggle) {
         autoeqFiltersToggle.addEventListener('click', () => {
             if (autoeqFiltersCollapse) autoeqFiltersCollapse.classList.toggle('collapsed');
-            if (autoeqFiltersContent) autoeqFiltersContent.style.display = autoeqFiltersContent.style.display === 'none' ? 'flex' : 'none';
+            if (autoeqFiltersContent)
+                autoeqFiltersContent.style.display = autoeqFiltersContent.style.display === 'none' ? 'flex' : 'none';
         });
     }
 
@@ -1919,7 +2002,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
         const drawMiniFill = (data, colors) => {
             if (!data || data.length < 2) return;
-            const allGains = data.map(p => p.gain);
+            const allGains = data.map((p) => p.gain);
             const dMin = Math.min(...allGains) - 2;
             const dMax = Math.max(...allGains) + 2;
             const dRange = dMax - dMin || 1;
@@ -2026,7 +2109,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         if (!autoeqCurrentBands || !autoeqSelectedMeasurement) return;
 
         const targetId = autoeqTargetSelect ? autoeqTargetSelect.value : 'harman_oe_2018';
-        const targetEntry = TARGETS.find(t => t.id === targetId);
+        const targetEntry = TARGETS.find((t) => t.id === targetId);
 
         const profile = {
             id: 'autoeq_' + Date.now(),
@@ -2038,7 +2121,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             bandCount: autoeqCurrentBands.length,
             maxFreq: autoeqMaxFreq ? parseInt(autoeqMaxFreq.value, 10) : 16000,
             sampleRate: autoeqSampleRate ? parseInt(autoeqSampleRate.value, 10) : 48000,
-            bands: autoeqCurrentBands.map(b => ({ ...b })),
+            bands: autoeqCurrentBands.map((b) => ({ ...b })),
             gains: audioContextManager.getGains ? audioContextManager.getGains() : [],
             preamp: equalizerSettings.getPreamp(),
             measurementData: downsampleCurve(autoeqSelectedMeasurement),
@@ -2058,7 +2141,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         const profile = profiles[profileId];
         if (!profile) return;
 
-        autoeqCurrentBands = profile.bands.map(b => ({ ...b }));
+        autoeqCurrentBands = profile.bands.map((b) => ({ ...b }));
         autoeqCorrectedCurve = profile.correctedData ? [...profile.correctedData] : null;
         autoeqSelectedMeasurement = profile.measurementData ? [...profile.measurementData] : null;
         autoeqSelectedEntry = { name: profile.headphoneName, type: profile.headphoneType };
@@ -2095,9 +2178,9 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     // ========================================
     // Type Filter Buttons
     // ========================================
-    autoeqTypeButtons.forEach(btn => {
+    autoeqTypeButtons.forEach((btn) => {
         btn.addEventListener('click', () => {
-            autoeqTypeButtons.forEach(b => b.classList.remove('active'));
+            autoeqTypeButtons.forEach((b) => b.classList.remove('active'));
             btn.classList.add('active');
             autoeqTypeFilter = btn.dataset.type;
             // Re-search if query exists
@@ -2152,13 +2235,14 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         autoeqDatabaseList.innerHTML = '';
 
         if (entries.length === 0) {
-            autoeqDatabaseList.innerHTML = '<div style="padding: 1rem; text-align: center; color: var(--muted-foreground); font-size: 0.8rem;">No results found</div>';
+            autoeqDatabaseList.innerHTML =
+                '<div style="padding: 1rem; text-align: center; color: var(--muted-foreground); font-size: 0.8rem;">No results found</div>';
             return;
         }
 
         // Group by base model name (strip source suffix like "(crinacle)")
         const modelMap = new Map();
-        entries.forEach(entry => {
+        entries.forEach((entry) => {
             const baseName = entry.name.replace(/\s*\([^)]*\)\s*$/, '').trim() || entry.name;
             if (!modelMap.has(baseName)) {
                 modelMap.set(baseName, []);
@@ -2191,7 +2275,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 const subList = document.createElement('div');
                 subList.className = 'autoeq-db-sub-list';
 
-                variants.forEach(entry => {
+                variants.forEach((entry) => {
                     const subItem = document.createElement('div');
                     subItem.className = 'autoeq-db-sub-item';
                     // Extract source from parentheses
@@ -2229,7 +2313,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         alphaContainer.innerHTML = '';
 
         const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');
-        letters.forEach(letter => {
+        letters.forEach((letter) => {
             const btn = document.createElement('button');
             btn.textContent = letter;
             btn.addEventListener('click', () => {
@@ -2304,7 +2388,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             setTimeout(() => {
                 try {
                     const targetId = autoeqTargetSelect ? autoeqTargetSelect.value : 'harman_oe_2018';
-                    const targetEntry = TARGETS.find(t => t.id === targetId);
+                    const targetEntry = TARGETS.find((t) => t.id === targetId);
                     if (!targetEntry || !targetEntry.data || targetEntry.data.length === 0) {
                         setAutoEQStatus('Invalid target curve', 'error');
                         autoeqRunBtn.disabled = false;
@@ -2315,7 +2399,15 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                     const maxFreq = autoeqMaxFreq ? parseInt(autoeqMaxFreq.value, 10) : 16000;
                     const sampleRate = autoeqSampleRate ? parseInt(autoeqSampleRate.value, 10) : 48000;
 
-                    const bands = runAutoEqAlgorithm(autoeqSelectedMeasurement, targetEntry.data, bandCount, maxFreq, 20, 5.0, sampleRate);
+                    const bands = runAutoEqAlgorithm(
+                        autoeqSelectedMeasurement,
+                        targetEntry.data,
+                        bandCount,
+                        maxFreq,
+                        20,
+                        5.0,
+                        sampleRate
+                    );
 
                     if (!bands || bands.length === 0) {
                         setAutoEQStatus('No correction needed', 'success');
@@ -2389,7 +2481,9 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             autoeqCurrentBands.forEach((band, i) => {
                 if (!band.enabled) return;
                 const type = band.type === 'peaking' ? 'PK' : band.type === 'lowshelf' ? 'LSC' : 'HSC';
-                lines.push(`Filter ${i + 1}: ON ${type} Fc ${Math.round(band.freq)} Hz Gain ${band.gain.toFixed(1)} dB Q ${band.q.toFixed(2)}`);
+                lines.push(
+                    `Filter ${i + 1}: ON ${type} Fc ${Math.round(band.freq)} Hz Gain ${band.gain.toFixed(1)} dB Q ${band.q.toFixed(2)}`
+                );
             });
             const exportText = lines.join('\n');
             const blob = new Blob([exportText], { type: 'text/plain' });
@@ -2427,7 +2521,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
     const setEQMode = (mode) => {
         currentMode = mode;
-        modeButtons.forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+        modeButtons.forEach((b) => b.classList.toggle('active', b.dataset.mode === mode));
 
         const graphSection = document.querySelector('.autoeq-graph-section');
         const controlsSection = document.querySelector('.autoeq-controls-section');
@@ -2458,7 +2552,14 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 const defaultBands = [];
                 for (let i = 0; i < 10; i++) {
                     const freq = 20 * Math.pow(20000 / 20, i / 9);
-                    defaultBands.push({ id: i, type: 'peaking', freq: Math.round(freq), gain: 0, q: 1.0, enabled: true });
+                    defaultBands.push({
+                        id: i,
+                        type: 'peaking',
+                        freq: Math.round(freq),
+                        gain: 0,
+                        q: 1.0,
+                        enabled: true,
+                    });
                 }
                 autoeqCurrentBands = defaultBands;
                 applyBandsToAudio(autoeqCurrentBands);
@@ -2468,7 +2569,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         }
     };
 
-    modeButtons.forEach(btn => {
+    modeButtons.forEach((btn) => {
         btn.addEventListener('click', () => setEQMode(btn.dataset.mode));
     });
 
@@ -2533,7 +2634,9 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     if (resetBandsBtn) {
         resetBandsBtn.addEventListener('click', () => {
             if (!autoeqCurrentBands) return;
-            autoeqCurrentBands.forEach(b => { b.gain = 0; });
+            autoeqCurrentBands.forEach((b) => {
+                b.gain = 0;
+            });
             applyBandsToAudio(autoeqCurrentBands);
             renderBandControls(autoeqCurrentBands);
             computeCorrectedCurve();
@@ -2575,7 +2678,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         if (profiles[activeProfileId]) {
             // Restore state silently
             const profile = profiles[activeProfileId];
-            autoeqCurrentBands = profile.bands?.map(b => ({ ...b })) || null;
+            autoeqCurrentBands = profile.bands?.map((b) => ({ ...b })) || null;
             autoeqCorrectedCurve = profile.correctedData ? [...profile.correctedData] : null;
             autoeqSelectedMeasurement = profile.measurementData ? [...profile.measurementData] : null;
             autoeqSelectedEntry = { name: profile.headphoneName, type: profile.headphoneType };

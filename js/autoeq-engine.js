@@ -14,42 +14,55 @@ const _C = [12.0, 12.0, 0.6, 48000, Math.PI, 10, 40];
  */
 function calculateBiquadResponse(f, band, sr = _C[3]) {
     if (!band.enabled) return 0;
-    const w = 2 * _C[4] * band.freq / sr;
-    const p = 2 * _C[4] * f / sr;
+    const w = (2 * _C[4] * band.freq) / sr;
+    const p = (2 * _C[4] * f) / sr;
     const s = Math.sin(w) / (2 * band.q);
     const A = Math.pow(_C[5], band.gain / _C[6]);
     const c = Math.cos(w);
-    let b0 = 0, b1 = 0, b2 = 0, a0 = 0, a1 = 0, a2 = 0;
+    let b0 = 0,
+        b1 = 0,
+        b2 = 0,
+        a0 = 0,
+        a1 = 0,
+        a2 = 0;
 
     const t = band.type[0];
 
     if (t === 'p') {
-        b0 = 1 + s * A; b1 = -2 * c; b2 = 1 - s * A;
-        a0 = 1 + s / A; a1 = -2 * c; a2 = 1 - s / A;
+        b0 = 1 + s * A;
+        b1 = -2 * c;
+        b2 = 1 - s * A;
+        a0 = 1 + s / A;
+        a1 = -2 * c;
+        a2 = 1 - s / A;
     } else if (t === 'l') {
         const sq = 2 * Math.sqrt(A) * s;
-        b0 = A * ((A + 1) - (A - 1) * c + sq);
-        b1 = 2 * A * ((A - 1) - (A + 1) * c);
-        b2 = A * ((A + 1) - (A - 1) * c - sq);
-        a0 = (A + 1) + (A - 1) * c + sq;
-        a1 = -2 * ((A - 1) + (A + 1) * c);
-        a2 = (A + 1) + (A - 1) * c - sq;
+        b0 = A * (A + 1 - (A - 1) * c + sq);
+        b1 = 2 * A * (A - 1 - (A + 1) * c);
+        b2 = A * (A + 1 - (A - 1) * c - sq);
+        a0 = A + 1 + (A - 1) * c + sq;
+        a1 = -2 * (A - 1 + (A + 1) * c);
+        a2 = A + 1 + (A - 1) * c - sq;
     } else if (t === 'h') {
         const sq = 2 * Math.sqrt(A) * s;
-        b0 = A * ((A + 1) + (A - 1) * c + sq);
-        b1 = -2 * A * ((A - 1) + (A + 1) * c);
-        b2 = A * ((A + 1) + (A - 1) * c - sq);
-        a0 = (A + 1) - (A - 1) * c + sq;
-        a1 = 2 * ((A - 1) - (A + 1) * c);
-        a2 = (A + 1) - (A - 1) * c - sq;
+        b0 = A * (A + 1 + (A - 1) * c + sq);
+        b1 = -2 * A * (A - 1 + (A + 1) * c);
+        b2 = A * (A + 1 + (A - 1) * c - sq);
+        a0 = A + 1 - (A - 1) * c + sq;
+        a1 = 2 * (A - 1 - (A + 1) * c);
+        a2 = A + 1 - (A - 1) * c - sq;
     } else {
         return 0;
     }
 
     const _a0 = 1 / a0;
-    const b0n = b0 * _a0, b1n = b1 * _a0, b2n = b2 * _a0;
-    const a1n = a1 * _a0, a2n = a2 * _a0;
-    const cp = Math.cos(p), c2p = Math.cos(2 * p);
+    const b0n = b0 * _a0,
+        b1n = b1 * _a0,
+        b2n = b2 * _a0;
+    const a1n = a1 * _a0,
+        a2n = a2 * _a0;
+    const cp = Math.cos(p),
+        c2p = Math.cos(2 * p);
     const n = b0n * b0n + b1n * b1n + b2n * b2n + 2 * (b0n * b1n + b1n * b2n) * cp + 2 * b0n * b2n * c2p;
     const d = 1 + a1n * a1n + a2n * a2n + 2 * (a1n + a1n * a2n) * cp + 2 * a2n * c2p;
     return 10 * Math.log10(n / d);
@@ -67,7 +80,10 @@ function interpolate(freq, data) {
     if (freq >= data[data.length - 1].freq) return data[data.length - 1].gain;
     for (let i = 0; i < data.length - 1; i++) {
         if (freq >= data[i].freq && freq <= data[i + 1].freq) {
-            return data[i].gain + (freq - data[i].freq) / (data[i + 1].freq - data[i].freq) * (data[i + 1].gain - data[i].gain);
+            return (
+                data[i].gain +
+                ((freq - data[i].freq) / (data[i + 1].freq - data[i].freq)) * (data[i + 1].gain - data[i].gain)
+            );
         }
     }
     return 0;
@@ -79,7 +95,8 @@ function interpolate(freq, data) {
  * @returns {number} Average gain in midrange
  */
 function getNormalizationOffset(data) {
-    let sum = 0, count = 0;
+    let sum = 0,
+        count = 0;
     for (const p of data) {
         if (p.freq >= 250 && p.freq <= 2500) {
             sum += p.gain;
@@ -101,13 +118,24 @@ function getNormalizationOffset(data) {
  * @param {number} maxQ - Maximum Q factor
  * @returns {Array<{id: number, type: string, freq: number, gain: number, q: number, enabled: boolean}>}
  */
-function runAutoEqAlgorithm(measurement, target, bandCount, maxFreq = 16000, minFreq = 20, maxQ = 5.0, sampleRate = _C[3]) {
+function runAutoEqAlgorithm(
+    measurement,
+    target,
+    bandCount,
+    maxFreq = 16000,
+    minFreq = 20,
+    maxQ = 5.0,
+    sampleRate = _C[3]
+) {
     const off = getNormalizationOffset(target) - getNormalizationOffset(measurement);
-    let err = measurement.map(p => ({ freq: p.freq, gain: (p.gain + off) - interpolate(p.freq, target) }));
+    let err = measurement.map((p) => ({ freq: p.freq, gain: p.gain + off - interpolate(p.freq, target) }));
     const out = [];
 
     for (let i = 0; i < bandCount; i++) {
-        let maxDev = 0, maxWeightedDev = 0, peakFreq = 1000, peakIdx = 0;
+        let maxDev = 0,
+            maxWeightedDev = 0,
+            peakFreq = 1000,
+            peakIdx = 0;
 
         // Scan for maximum weighted error
         for (let j = 0; j < err.length; j++) {
@@ -146,7 +174,8 @@ function runAutoEqAlgorithm(measurement, target, bandCount, maxFreq = 16000, min
         if (Math.abs(gain) < 0.2) break;
 
         // Q factor calculation from error bandwidth (half-gain points)
-        let upperFreq = peakFreq, lowerFreq = peakFreq;
+        let upperFreq = peakFreq,
+            lowerFreq = peakFreq;
         const thresholdError = maxDev / 2;
         for (let k = peakIdx; k >= 0; k--) {
             if (Math.abs(err[k].gain) < Math.abs(thresholdError)) {
@@ -172,7 +201,7 @@ function runAutoEqAlgorithm(measurement, target, bandCount, maxFreq = 16000, min
         out.push(newBand);
 
         // Update error curve by applying the new band's response
-        err = err.map(p => ({ ...p, gain: p.gain + calculateBiquadResponse(p.freq, newBand, sampleRate) }));
+        err = err.map((p) => ({ ...p, gain: p.gain + calculateBiquadResponse(p.freq, newBand, sampleRate) }));
     }
 
     return out.sort((a, b) => a.freq - b.freq).map((b, i) => ({ ...b, id: i }));

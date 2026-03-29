@@ -3869,9 +3869,15 @@
                                         <div class="autoeq-graph-header">
                                             <span class="autoeq-graph-title">Frequency Response</span>
                                             <div class="autoeq-graph-legend">
-                                                <span class="legend-item legend-original"><span class="legend-dot"></span>Original</span>
-                                                <span class="legend-item legend-target"><span class="legend-dot"></span>Target (Primary)</span>
-                                                <span class="legend-item legend-corrected"><span class="legend-dot"></span>Corrected</span>
+                                                <span class="legend-item legend-original"
+                                                    ><span class="legend-dot"></span>Original</span
+                                                >
+                                                <span class="legend-item legend-target"
+                                                    ><span class="legend-dot"></span>Target (Primary)</span
+                                                >
+                                                <span class="legend-item legend-corrected"
+                                                    ><span class="legend-dot"></span>Corrected</span
+                                                >
                                             </div>
                                         </div>
                                         <div class="autoeq-graph-wrapper" id="autoeq-graph-wrapper">
@@ -3893,7 +3899,11 @@
                                                 <select id="autoeq-headphone-select">
                                                     <option value="">Select a headphone...</option>
                                                 </select>
-                                                <button id="autoeq-import-measurement-btn" class="autoeq-settings-btn" title="Import measurement file">
+                                                <button
+                                                    id="autoeq-import-measurement-btn"
+                                                    class="autoeq-settings-btn"
+                                                    title="Import measurement file"
+                                                >
                                                     <use svg="!lucide/file-input.svg" size="16" />
                                                 </button>
                                             </div>
@@ -3914,7 +3924,11 @@
                                                     <option value="peqdb_ultra">PEQdB Ultra</option>
                                                     <option value="flat">Flat (Calibration)</option>
                                                 </select>
-                                                <button id="autoeq-target-settings-btn" class="autoeq-settings-btn" title="Target settings">
+                                                <button
+                                                    id="autoeq-target-settings-btn"
+                                                    class="autoeq-settings-btn"
+                                                    title="Target settings"
+                                                >
                                                     <use svg="!lucide/settings-2.svg" size="16" />
                                                 </button>
                                             </div>
@@ -3953,12 +3967,14 @@
                                         </div>
 
                                         <div class="autoeq-actions-row">
-                                            <button id="autoeq-download-btn" class="autoeq-download-btn" title="Export EQ settings">
+                                            <button
+                                                id="autoeq-download-btn"
+                                                class="autoeq-download-btn"
+                                                title="Export EQ settings"
+                                            >
                                                 <use svg="!lucide/download.svg" size="20" />
                                             </button>
-                                            <button id="autoeq-run-btn" class="autoeq-run-btn" disabled>
-                                                AutoEq
-                                            </button>
+                                            <button id="autoeq-run-btn" class="autoeq-run-btn" disabled>AutoEq</button>
                                         </div>
                                         <span id="autoeq-status" class="autoeq-status"></span>
                                     </div>
@@ -3978,7 +3994,9 @@
                                                     placeholder="Profile name..."
                                                     maxlength="50"
                                                 />
-                                                <button id="autoeq-save-btn" class="btn-primary autoeq-save-btn">Save</button>
+                                                <button id="autoeq-save-btn" class="btn-primary autoeq-save-btn">
+                                                    Save
+                                                </button>
                                                 <button class="autoeq-collapse-btn" id="autoeq-saved-collapse">
                                                     <use svg="!lucide/chevron-up.svg" size="18" />
                                                 </button>
@@ -4027,13 +4045,25 @@
                                         </div>
                                         <div class="autoeq-filters-content" id="autoeq-filters-content">
                                             <div class="autoeq-filters-actions">
-                                                <button id="autoeq-add-band-btn" class="btn-secondary" title="Add a new EQ band">
+                                                <button
+                                                    id="autoeq-add-band-btn"
+                                                    class="btn-secondary"
+                                                    title="Add a new EQ band"
+                                                >
                                                     + Add Band
                                                 </button>
-                                                <button id="autoeq-remove-band-btn" class="btn-secondary" title="Remove last EQ band">
+                                                <button
+                                                    id="autoeq-remove-band-btn"
+                                                    class="btn-secondary"
+                                                    title="Remove last EQ band"
+                                                >
                                                     - Remove Band
                                                 </button>
-                                                <button id="autoeq-reset-bands-btn" class="btn-secondary" title="Reset all bands to flat">
+                                                <button
+                                                    id="autoeq-reset-bands-btn"
+                                                    class="btn-secondary"
+                                                    title="Reset all bands to flat"
+                                                >
                                                     Reset
                                                 </button>
                                             </div>
@@ -4057,7 +4087,12 @@
                                     </div>
 
                                     <!-- Hidden file inputs -->
-                                    <input type="file" id="autoeq-import-measurement-file" accept=".txt,.csv" style="display: none" />
+                                    <input
+                                        type="file"
+                                        id="autoeq-import-measurement-file"
+                                        accept=".txt,.csv"
+                                        style="display: none"
+                                    />
                                     <input type="file" id="eq-import-file" accept=".txt" style="display: none" />
                                 </div>
                             </div>

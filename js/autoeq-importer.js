@@ -9,14 +9,54 @@ const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
 
 // Static fallback list in case GitHub API fails
 const FALLBACK_INDEX = [
-    { name: 'Sennheiser HD 600 (crinacle)', type: 'over-ear', path: 'crinacle/gras_43ag-7_harman_over-ear_2018/Sennheiser HD 600', fileName: 'Sennheiser HD 600.csv' },
-    { name: 'Sennheiser HD 650 (crinacle)', type: 'over-ear', path: 'crinacle/gras_43ag-7_harman_over-ear_2018/Sennheiser HD 650', fileName: 'Sennheiser HD 650.csv' },
-    { name: 'Sennheiser HD 800 S (crinacle)', type: 'over-ear', path: 'crinacle/gras_43ag-7_harman_over-ear_2018/Sennheiser HD 800 S', fileName: 'Sennheiser HD 800 S.csv' },
-    { name: 'Beyerdynamic DT 770 Pro 80 Ohm (oratory1990)', type: 'over-ear', path: 'oratory1990/harman_over-ear_2018/Beyerdynamic DT 770 Pro 80 Ohm', fileName: 'Beyerdynamic DT 770 Pro 80 Ohm.csv' },
-    { name: 'Moondrop Blessing 2 Dusk (crinacle)', type: 'in-ear', path: 'crinacle/harman_in-ear_2019v2/Moondrop Blessing 2 Dusk', fileName: 'Moondrop Blessing 2 Dusk.csv' },
-    { name: 'Apple AirPods Pro 2 (crinacle)', type: 'in-ear', path: 'crinacle/harman_in-ear_2019v2/Apple AirPods Pro 2', fileName: 'Apple AirPods Pro 2.csv' },
-    { name: 'Sony WH-1000XM5 (crinacle)', type: 'over-ear', path: 'crinacle/gras_43ag-7_harman_over-ear_2018/Sony WH-1000XM5', fileName: 'Sony WH-1000XM5.csv' },
-    { name: 'HiFiMAN Sundara (oratory1990)', type: 'over-ear', path: 'oratory1990/harman_over-ear_2018/HiFiMAN Sundara', fileName: 'HiFiMAN Sundara.csv' },
+    {
+        name: 'Sennheiser HD 600 (crinacle)',
+        type: 'over-ear',
+        path: 'crinacle/gras_43ag-7_harman_over-ear_2018/Sennheiser HD 600',
+        fileName: 'Sennheiser HD 600.csv',
+    },
+    {
+        name: 'Sennheiser HD 650 (crinacle)',
+        type: 'over-ear',
+        path: 'crinacle/gras_43ag-7_harman_over-ear_2018/Sennheiser HD 650',
+        fileName: 'Sennheiser HD 650.csv',
+    },
+    {
+        name: 'Sennheiser HD 800 S (crinacle)',
+        type: 'over-ear',
+        path: 'crinacle/gras_43ag-7_harman_over-ear_2018/Sennheiser HD 800 S',
+        fileName: 'Sennheiser HD 800 S.csv',
+    },
+    {
+        name: 'Beyerdynamic DT 770 Pro 80 Ohm (oratory1990)',
+        type: 'over-ear',
+        path: 'oratory1990/harman_over-ear_2018/Beyerdynamic DT 770 Pro 80 Ohm',
+        fileName: 'Beyerdynamic DT 770 Pro 80 Ohm.csv',
+    },
+    {
+        name: 'Moondrop Blessing 2 Dusk (crinacle)',
+        type: 'in-ear',
+        path: 'crinacle/harman_in-ear_2019v2/Moondrop Blessing 2 Dusk',
+        fileName: 'Moondrop Blessing 2 Dusk.csv',
+    },
+    {
+        name: 'Apple AirPods Pro 2 (crinacle)',
+        type: 'in-ear',
+        path: 'crinacle/harman_in-ear_2019v2/Apple AirPods Pro 2',
+        fileName: 'Apple AirPods Pro 2.csv',
+    },
+    {
+        name: 'Sony WH-1000XM5 (crinacle)',
+        type: 'over-ear',
+        path: 'crinacle/gras_43ag-7_harman_over-ear_2018/Sony WH-1000XM5',
+        fileName: 'Sony WH-1000XM5.csv',
+    },
+    {
+        name: 'HiFiMAN Sundara (oratory1990)',
+        type: 'over-ear',
+        path: 'oratory1990/harman_over-ear_2018/HiFiMAN Sundara',
+        fileName: 'HiFiMAN Sundara.csv',
+    },
 ];
 
 /**
@@ -91,10 +131,13 @@ async function fetchAutoEqIndex() {
 
         // 3. Save to cache
         try {
-            localStorage.setItem(CACHE_KEY, JSON.stringify({
-                timestamp: Date.now(),
-                data: sortedEntries,
-            }));
+            localStorage.setItem(
+                CACHE_KEY,
+                JSON.stringify({
+                    timestamp: Date.now(),
+                    data: sortedEntries,
+                })
+            );
             console.log(`[AutoEQ] Cached ${sortedEntries.length} entries`);
         } catch (e) {
             console.warn('[AutoEQ] Failed to save cache (storage full?)', e);
@@ -153,12 +196,12 @@ function searchHeadphones(query, entries, typeFilter = 'all', limit = 100) {
     let filtered = entries;
 
     if (typeFilter !== 'all') {
-        filtered = filtered.filter(e => e.type === typeFilter);
+        filtered = filtered.filter((e) => e.type === typeFilter);
     }
 
     if (query && query.trim()) {
         const lower = query.toLowerCase().trim();
-        filtered = filtered.filter(e => e.name.toLowerCase().includes(lower));
+        filtered = filtered.filter((e) => e.name.toLowerCase().includes(lower));
     }
 
     return filtered.slice(0, limit);

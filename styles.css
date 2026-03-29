@@ -7789,9 +7789,16 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     display: inline-block;
 }
 
-.legend-original .legend-dot { background: #3b82f6; }
-.legend-target .legend-dot { background: rgba(255,255,255,0.5); border: 1px dashed rgba(255,255,255,0.3); }
-.legend-corrected .legend-dot { background: #f472b6; }
+.legend-original .legend-dot {
+    background: #3b82f6;
+}
+.legend-target .legend-dot {
+    background: rgb(255, 255, 255, 0.5);
+    border: 1px dashed rgb(255, 255, 255, 0.3);
+}
+.legend-corrected .legend-dot {
+    background: #f472b6;
+}
 
 .autoeq-graph-wrapper {
     position: relative;
@@ -7997,8 +8004,12 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     font-style: italic;
 }
 
-.autoeq-status.error { color: var(--destructive); }
-.autoeq-status.success { color: var(--primary); }
+.autoeq-status.error {
+    color: var(--destructive);
+}
+.autoeq-status.success {
+    color: var(--primary);
+}
 
 /* --- Saved Profiles --- */
 .autoeq-saved-section {
@@ -8381,10 +8392,19 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     color: var(--muted-foreground);
 }
 
-.autoeq-database-list::-webkit-scrollbar { width: 6px; }
-.autoeq-database-list::-webkit-scrollbar-track { background: transparent; }
-.autoeq-database-list::-webkit-scrollbar-thumb { background: rgb(var(--highlight-rgb), 0.2); border-radius: 3px; }
-.autoeq-database-list::-webkit-scrollbar-thumb:hover { background: rgb(var(--highlight-rgb), 0.4); }
+.autoeq-database-list::-webkit-scrollbar {
+    width: 6px;
+}
+.autoeq-database-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+.autoeq-database-list::-webkit-scrollbar-thumb {
+    background: rgb(var(--highlight-rgb), 0.2);
+    border-radius: 3px;
+}
+.autoeq-database-list::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--highlight-rgb), 0.4);
+}
 
 /* --- Parametric EQ Filters Section --- */
 .autoeq-filters-section {
