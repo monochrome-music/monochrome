@@ -163,7 +163,7 @@ export class UIRenderer {
                 this.visualizer.updateDimming();
             }
         });
-        
+
         // Sidebar AI chat link click handler
         const sidebarAiChatLink = document.getElementById('sidebar-ai-chat-link');
         if (sidebarAiChatLink) {
@@ -173,7 +173,6 @@ export class UIRenderer {
             });
         }
     }
-
 
     static async initialize(api, player) {
         if (UIRenderer.#instance) {
@@ -308,7 +307,6 @@ export class UIRenderer {
             const isLocal = track.isLocal;
             const isTracker = track.isTracker || (track.id && String(track.id).startsWith('tracker-'));
             const shouldHideLikes = isLocal || isTracker;
-
 
             if (likeBtn) {
                 if (shouldHideLikes) {
@@ -1475,7 +1473,7 @@ export class UIRenderer {
             shuffleBtn.classList.toggle('active', this.player.shuffleActive);
         };
 
-            // Sync fullscreen repeat button from mini player DOM
+        // Sync fullscreen repeat button from mini player DOM
         const miniRepeatBtn = document.getElementById('repeat-btn');
         if (miniRepeatBtn) {
             repeatBtn.className = miniRepeatBtn.className;
@@ -1494,20 +1492,20 @@ export class UIRenderer {
         repeatBtn.onclick = () => {
             const mode = this.player.toggleRepeat();
             repeatBtn.classList.toggle('active', mode !== 0);
-                        repeatBtn.classList.toggle('repeat-one', mode === 2);
+            repeatBtn.classList.toggle('repeat-one', mode === 2);
             if (mode === 2) {
                 repeatBtn.innerHTML = SVG_REPEAT_ONE(24);
             } else {
                 repeatBtn.innerHTML = SVG_REPEAT(24);
             }
-                            // Sync mini player repeat button
-                const miniRepeatBtn = document.getElementById('repeat-btn');
-                if (miniRepeatBtn) {
-                    miniRepeatBtn.classList.toggle('active', mode !== 0);
-                    miniRepeatBtn.classList.toggle('repeat-one', mode === 2);
-                    miniRepeatBtn.title = mode === 0 ? 'Repeat' : mode === 1 ? 'Repeat Queue' : 'Repeat One';
+            // Sync mini player repeat button
+            const miniRepeatBtn = document.getElementById('repeat-btn');
+            if (miniRepeatBtn) {
+                miniRepeatBtn.classList.toggle('active', mode !== 0);
+                miniRepeatBtn.classList.toggle('repeat-one', mode === 2);
+                miniRepeatBtn.title = mode === 0 ? 'Repeat' : mode === 1 ? 'Repeat Queue' : 'Repeat One';
                 miniRepeatBtn.innerHTML = repeatBtn.innerHTML;
-                }
+            }
         };
 
         // Progress bar with drag support
@@ -1617,7 +1615,7 @@ export class UIRenderer {
                 document.getElementById('queue-btn')?.click();
             };
         }
-                const fsAiChatBtn = document.getElementById('fs-ai-chat-btn');
+        const fsAiChatBtn = document.getElementById('fs-ai-chat-btn');
         if (fsAiChatBtn) {
             fsAiChatBtn.onclick = (e) => {
                 e.stopPropagation();
@@ -1816,7 +1814,7 @@ export class UIRenderer {
             });
 
             // Preset buttons
-            fsSpeedPresetBtns.forEach(btn => {
+            fsSpeedPresetBtns.forEach((btn) => {
                 btn.addEventListener('click', () => {
                     const speed = parseFloat(btn.dataset.speed);
                     fsSpeedSlider.value = speed;
@@ -1926,6 +1924,16 @@ export class UIRenderer {
             document.querySelectorAll('.settings-tab').forEach((t) => t.classList.remove('active'));
             document.querySelectorAll('.settings-tab-content').forEach((c) => c.classList.remove('active'));
         }
+    }
+
+    async renderWrappedPage() {
+        const { SpotifyWrapped } = await import('./spotify-wrapped.js');
+        const wrapped = new SpotifyWrapped();
+        const container = document.getElementById('page-wrapped');
+        if (container) {
+            await wrapped.renderWrapped(container);
+        }
+        this.showPage('wrapped');
     }
 
     async renderLibraryPage() {
@@ -3215,8 +3223,6 @@ export class UIRenderer {
                     this.updateLikeState(el, 'playlist', playlist.uuid);
                 }
             });
-
-            
         } catch (error) {
             if (error.name === 'AbortError') return;
             console.error('Search failed:', error);
@@ -3651,10 +3657,17 @@ export class UIRenderer {
                                             this.renderListWithTracks(tracklistContainer, updatedPlaylist.tracks, true);
 
                                             if (document.querySelector('.remove-from-playlist-btn')) {
-                                                this.enableTrackReordering(tracklistContainer, updatedPlaylist.tracks, async (newTracks) => {
-                                                    const updated = await db.updatePlaylistTracks(playlistId, newTracks);
-                                                    syncManager.syncUserPlaylist(updated, 'update');
-                                                });
+                                                this.enableTrackReordering(
+                                                    tracklistContainer,
+                                                    updatedPlaylist.tracks,
+                                                    async (newTracks) => {
+                                                        const updated = await db.updatePlaylistTracks(
+                                                            playlistId,
+                                                            newTracks
+                                                        );
+                                                        syncManager.syncUserPlaylist(updated, 'update');
+                                                    }
+                                                );
                                             }
 
                                             // Update the playlist metadata
@@ -3837,34 +3850,33 @@ export class UIRenderer {
                             removeBtn.dataset.trackId = currentTracks[index].id;
                             removeBtn.dataset.type = currentTracks[index].type || 'track';
 
-                                const menuBtn = actionsDiv.querySelector('.track-menu-btn');
-                                actionsDiv.insertBefore(removeBtn, menuBtn);
+                            const menuBtn = actionsDiv.querySelector('.track-menu-btn');
+                            actionsDiv.insertBefore(removeBtn, menuBtn);
+                        });
+                    }
+
+                    // Always add is-editable class for owned playlists to fix layout
+                    // This expands the grid columns to accommodate the remove button
+                    container.classList.add('is-editable');
+
+                    // Only enable drag-and-drop reordering in custom sort mode
+                    if (currentSort === 'custom') {
+                        const saveTrackOrder = async (newTracks) => {
+                            if (ownedPlaylist) {
+                                const updatedPlaylist = await db.updatePlaylistTracks(playlistId, newTracks);
+                                syncManager.syncUserPlaylist(updatedPlaylist, 'update');
+                                return;
+                            }
+
+                            await syncManager.updatePublicPlaylistTracks(playlistId, newTracks, {
+                                title: playlistData.name || playlistData.title,
+                                description: playlistData.description || '',
+                                cover: playlistData.cover || null,
                             });
-                        }
-
-                        // Always add is-editable class for owned playlists to fix layout
-                        // This expands the grid columns to accommodate the remove button
-                        container.classList.add('is-editable');
-
-                        // Only enable drag-and-drop reordering in custom sort mode
-                        if (currentSort === 'custom') {
-                            const saveTrackOrder = async (newTracks) => {
-                                if (ownedPlaylist) {
-                                    const updatedPlaylist = await db.updatePlaylistTracks(playlistId, newTracks);
-                                    syncManager.syncUserPlaylist(updatedPlaylist, 'update');
-                                    return;
-                                }
-
-                                await syncManager.updatePublicPlaylistTracks(playlistId, newTracks, {
-                                    title: playlistData.name || playlistData.title,
-                                    description: playlistData.description || '',
-                                    cover: playlistData.cover || null,
-                                });
-                                showNotification('Collaborative playlist updated');
-                            };
-                            this.enableTrackReordering(container, currentTracks, saveTrackOrder);
-                        }
-                 else {
+                            showNotification('Collaborative playlist updated');
+                        };
+                        this.enableTrackReordering(container, currentTracks, saveTrackOrder);
+                    } else {
                         container.classList.remove('is-editable');
                     }
                 };
@@ -5650,15 +5662,14 @@ export class UIRenderer {
             artistEl.innerHTML = '';
         }
     }
-      async renderMoodPage() {
-    this.showPage('mood');
-    const container = document.getElementById('page-mood');
-    if (!container) return;
-    if (!this._moodPlaylistUI) {
-      this._moodPlaylistUI = new MoodPlaylistUI(this.player, this.api);
+    async renderMoodPage() {
+        this.showPage('mood');
+        const container = document.getElementById('page-mood');
+        if (!container) return;
+        if (!this._moodPlaylistUI) {
+            this._moodPlaylistUI = new MoodPlaylistUI(this.player, this.api);
+        }
+        this._moodPlaylistUI.renderPage(container);
+        document.title = 'Mood Playlist • Aether';
     }
-    this._moodPlaylistUI.renderPage(container);
-    document.title = 'Mood Playlist • Aether';
-  }
-
 }

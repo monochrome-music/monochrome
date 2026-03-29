@@ -10492,3 +10492,469 @@ body:has(#side-panel.active) #fs-ai-chat-btn {
     }
 }
 }
+
+/* ===== Spotify Wrapped ===== */
+.wrapped-container {
+    padding: 1.5rem;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.wrapped-page-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #e94560, #533483);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0 0 0.25rem;
+}
+
+.wrapped-page-desc {
+    color: var(--text-secondary, #8b8fa3);
+    font-size: 0.9rem;
+    margin: 0 0 1.5rem;
+}
+
+.wrapped-card {
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    position: relative;
+}
+
+.wrapped-slides-container {
+    min-height: 420px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.5rem;
+    transition: background 0.5s ease;
+}
+
+.wrapped-slide {
+    text-align: center;
+    color: #fff;
+    width: 100%;
+    animation: wrappedFadeIn 0.5s ease;
+}
+
+@keyframes wrappedFadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes wrappedSlideIn {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes wrappedPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+@keyframes wrappedFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+/* Intro Slide */
+.wrapped-intro {
+    position: relative;
+}
+
+.wrapped-intro .wrapped-year {
+    font-size: 1.2rem;
+    font-weight: 300;
+    letter-spacing: 0.3em;
+    opacity: 0.7;
+    margin-bottom: 0.5rem;
+}
+
+.wrapped-intro .wrapped-title {
+    font-size: 3rem;
+    font-weight: 800;
+    line-height: 1.1;
+    background: linear-gradient(135deg, #e94560, #ff6b8a);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: wrappedPulse 2s ease infinite;
+}
+
+.wrapped-intro .wrapped-subtitle {
+    font-size: 0.85rem;
+    opacity: 0.5;
+    margin-top: 1rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+}
+
+.wrapped-decoration {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.wrapped-circle {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.1;
+}
+
+.wrapped-circle.c1 {
+    width: 200px;
+    height: 200px;
+    background: #e94560;
+    top: -50px;
+    right: -50px;
+    animation: wrappedFloat 3s ease infinite;
+}
+
+.wrapped-circle.c2 {
+    width: 150px;
+    height: 150px;
+    background: #533483;
+    bottom: -30px;
+    left: -30px;
+    animation: wrappedFloat 4s ease infinite 1s;
+}
+
+.wrapped-circle.c3 {
+    width: 100px;
+    height: 100px;
+    background: #0f3460;
+    top: 50%;
+    left: 50%;
+    animation: wrappedFloat 3.5s ease infinite 0.5s;
+}
+
+/* Minutes Slide */
+.wrapped-minutes .wrapped-label {
+    font-size: 1rem;
+    opacity: 0.8;
+    margin-bottom: 0.5rem;
+}
+
+.wrapped-big-number {
+    font-size: 4rem;
+    font-weight: 800;
+    line-height: 1;
+    animation: wrappedPulse 2s ease infinite;
+}
+
+.wrapped-medium-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.wrapped-unit {
+    font-size: 1rem;
+    opacity: 0.8;
+    margin-top: 0.25rem;
+}
+
+.wrapped-detail {
+    font-size: 0.8rem;
+    opacity: 0.6;
+    margin-top: 1rem;
+}
+
+/* List Slides (Artists/Tracks) */
+.wrapped-artists .wrapped-label,
+.wrapped-tracks .wrapped-label {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+}
+
+.wrapped-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.wrapped-list-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    backdrop-filter: blur(4px);
+    opacity: 0;
+}
+
+.wrapped-rank {
+    font-size: 1.2rem;
+    font-weight: 800;
+    min-width: 1.5rem;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.wrapped-info {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+}
+
+.wrapped-name {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.wrapped-meta {
+    display: block;
+    font-size: 0.75rem;
+    opacity: 0.6;
+    margin-top: 0.1rem;
+}
+
+.wrapped-cover {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+/* Personality Slide */
+.wrapped-personality .wrapped-label {
+    font-size: 1rem;
+    opacity: 0.8;
+    margin-bottom: 1rem;
+}
+
+.wrapped-personality-icon {
+    font-size: 4rem;
+    margin-bottom: 0.5rem;
+    animation: wrappedFloat 3s ease infinite;
+}
+
+.wrapped-personality-badge {
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+}
+
+.wrapped-personality-desc {
+    font-size: 0.95rem;
+    opacity: 0.8;
+    max-width: 280px;
+    margin: 0 auto;
+    line-height: 1.4;
+}
+
+/* Peak Slide */
+.wrapped-peak .wrapped-label {
+    font-size: 1rem;
+    opacity: 0.8;
+    margin-bottom: 1.5rem;
+}
+
+.wrapped-peak-hour {
+    margin-bottom: 1.5rem;
+}
+
+.wrapped-peak-day {
+    margin-bottom: 1rem;
+}
+
+/* Summary Slide */
+.wrapped-summary .wrapped-year {
+    font-size: 1rem;
+    opacity: 0.6;
+    margin-bottom: 0.25rem;
+}
+
+.wrapped-summary .wrapped-label {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+}
+
+.wrapped-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.wrapped-summary-item {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 0.75rem;
+    text-align: center;
+}
+
+.wrapped-summary-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 800;
+}
+
+.wrapped-summary-label {
+    display: block;
+    font-size: 0.7rem;
+    opacity: 0.6;
+    margin-top: 0.2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.wrapped-top-summary {
+    font-size: 0.85rem;
+    opacity: 0.8;
+    margin-bottom: 1.25rem;
+    line-height: 1.6;
+}
+
+.wrapped-share-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    padding: 0.7rem 1.5rem;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(4px);
+}
+
+.wrapped-share-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+/* Navigation */
+.wrapped-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.wrapped-nav-prev,
+.wrapped-nav-next {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    transition: color 0.2s;
+}
+
+.wrapped-nav-prev:hover,
+.wrapped-nav-next:hover {
+    color: #fff;
+}
+
+.wrapped-dots {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.wrapped-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.wrapped-dot.active {
+    background: #fff;
+    transform: scale(1.3);
+}
+
+/* Modal */
+.wrapped-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+    animation: wrappedModalIn 0.3s ease;
+}
+
+@keyframes wrappedModalIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.wrapped-modal-card {
+    width: 90%;
+    max-width: 420px;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    position: relative;
+}
+
+.wrapped-modal-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(0, 0, 0, 0.4);
+    border: none;
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.wrapped-modal-close:hover {
+    background: rgba(0, 0, 0, 0.6);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .wrapped-container {
+        padding: 1rem;
+    }
+
+    .wrapped-slides-container {
+        min-height: 360px;
+        padding: 1.5rem 1rem;
+    }
+
+    .wrapped-intro .wrapped-title {
+        font-size: 2.2rem;
+    }
+
+    .wrapped-big-number {
+        font-size: 3rem;
+    }
+
+    .wrapped-list-item {
+        padding: 0.5rem;
+    }
+}

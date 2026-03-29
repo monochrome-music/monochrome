@@ -310,12 +310,12 @@ export const themeManager = {
         macchiato: {},
         frappe: {},
         latte: {},
-                aether: {},
+        aether: {},
         'aether-beyond': {},
     },
 
     getTheme() {
-                try {
+        try {
             return localStorage.getItem(this.STORAGE_KEY) || 'system';
         } catch {
             return 'system';
@@ -1588,8 +1588,7 @@ export const playbackContinuationSettings = {
 
         const keys = Object.keys(all);
         if (keys.length > this.MAX_ENTRIES) {
-            keys
-                .sort((a, b) => (all[a]?.updatedAt || 0) - (all[b]?.updatedAt || 0))
+            keys.sort((a, b) => (all[a]?.updatedAt || 0) - (all[b]?.updatedAt || 0))
                 .slice(0, keys.length - this.MAX_ENTRIES)
                 .forEach((key) => delete all[key]);
         }
@@ -1892,6 +1891,7 @@ export const sidebarSectionSettings = {
     SHOW_UNRELEASED_KEY: 'sidebar-show-unreleased',
     SHOW_DONATE_KEY: 'sidebar-show-donate',
     SHOW_SETTINGS_KEY: 'sidebar-show-settings',
+    SHOW_WRAPPED_KEY: 'sidebar-show-wrapped',
     SHOW_ABOUT_KEY: 'sidebar-show-about',
     SHOW_DOWNLOAD_KEY: 'sidebar-show-download',
     SHOW_DISCORD_KEY: 'sidebar-show-discord',
@@ -1904,6 +1904,7 @@ export const sidebarSectionSettings = {
         'sidebar-nav-unreleased',
         'sidebar-nav-donate',
         'sidebar-nav-settings',
+        'sidebar-nav-wrapped',
         'sidebar-nav-about-bottom',
         'sidebar-nav-download-bottom',
         'sidebar-nav-discordbtn',
@@ -1991,6 +1992,19 @@ export const sidebarSectionSettings = {
         } else {
             localStorage.removeItem(this.SHOW_SETTINGS_KEY);
         }
+    },
+
+    shouldShowWrapped() {
+        try {
+            const val = localStorage.getItem(this.SHOW_WRAPPED_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShowWrapped(enabled) {
+        localStorage.setItem(this.SHOW_WRAPPED_KEY, enabled ? 'true' : 'false');
     },
 
     shouldShowAbout() {
@@ -2102,6 +2116,7 @@ export const sidebarSectionSettings = {
             { id: 'sidebar-nav-unreleased', check: this.shouldShowUnreleased() },
             { id: 'sidebar-nav-donate', check: this.shouldShowDonate() },
             { id: 'sidebar-nav-settings', check: this.shouldShowSettings() },
+            { id: 'sidebar-nav-wrapped', check: this.shouldShowWrapped() },
             { id: 'sidebar-nav-about-bottom', check: this.shouldShowAbout() },
             { id: 'sidebar-nav-download-bottom', check: this.shouldShowDownload() },
             { id: 'sidebar-nav-discordbtn', check: this.shouldShowDiscord() },
@@ -2845,7 +2860,6 @@ export const keyboardShortcuts = {
     },
 };
 
-
 // ========================================
 // Super Data Saver Settings
 // ========================================
@@ -2909,8 +2923,6 @@ export const dataSaverSettings = {
 
     getSavingsDescription() {
         if (!this.isEnabled()) return 'Off';
-        return this.getMode() === 'extreme'
-            ? 'Extreme - Hemat hingga ~90% data'
-            : 'Moderate - Hemat hingga ~60% data';
-    }
+        return this.getMode() === 'extreme' ? 'Extreme - Hemat hingga ~90% data' : 'Moderate - Hemat hingga ~60% data';
+    },
 };

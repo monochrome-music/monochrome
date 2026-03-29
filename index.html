@@ -3,15 +3,15 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                <title>Aether Music</title>
+        <title>Aether Music</title>
         <link rel="canonical" href="https://monochrome-music-player.vercel.app/" />
-                <meta name="theme-color" content="#0a0a1a" />
+        <meta name="theme-color" content="#0a0a1a" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <base href="/" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-                <meta name="apple-mobile-web-app-title" content="Aether" />
-                <meta name="description" content="A futuristic music streaming application" />
+        <meta name="apple-mobile-web-app-title" content="Aether" />
+        <meta name="description" content="A futuristic music streaming application" />
 
         <!-- Preconnect to critical third-party origins -->
         <link rel="preconnect" href="https://api.fonts.coollabs.io" crossorigin />
@@ -33,7 +33,7 @@
     </head>
 
     <body>
-                <canvas id="aether-particles-canvas"></canvas>
+        <canvas id="aether-particles-canvas"></canvas>
         <audio id="audio-player" crossorigin="anonymous" style="display: none"></audio>
         <video id="video-player" crossorigin="anonymous" style="display: none"></video>
 
@@ -144,11 +144,11 @@
                 <button id="toggle-ui-btn" class="fullscreen-ui-toggle" title="Split View">
                     <use svg="!lucide/panel-right.svg" size="24" />
                 </button>
-<button id="toggle-fullscreen-lyrics-btn" class="fullscreen-lyrics-toggle" title="Toggle Lyrics">
+                <button id="toggle-fullscreen-lyrics-btn" class="fullscreen-lyrics-toggle" title="Toggle Lyrics">
                     <use svg="!lucide/mic.svg" size="24" />
                 </button>
                 <button id="fs-ai-chat-btn" class="fullscreen-lyrics-toggle" title="Ask AI about this song">
-                                <use svg="!lucide/message-circle.svg" size="24" />
+                    <use svg="!lucide/message-circle.svg" size="24" />
                 </button>
                 <button id="close-fullscreen-cover-btn" title="Close">&times;</button>
                 <div class="fullscreen-main-view">
@@ -508,8 +508,8 @@
                     <div id="jspf-import-panel" class="import-panel" style="display: none">
                         <p style="margin-bottom: 0.5rem; font-size: 0.9rem">Import from JSPF</p>
                         <p style="font-size: 0.8rem; margin: 0">
-                        JSPF (JSON Shareable Playlist Format) is supported by ListenBrainz and other services.
-                        Import playlists with rich metadata including MusicBrainz identifiers.
+                            JSPF (JSON Shareable Playlist Format) is supported by ListenBrainz and other services.
+                            Import playlists with rich metadata including MusicBrainz identifiers.
                         </p>
                         <br />
                         <input
@@ -997,8 +997,8 @@
                 <div class="missing-tracks-content">
                     <p>
                         Unfortunately, some songs weren't able to be added. This could be an issue with our import
-                        system - try searching for the song and adding it. It could also be due to  not having
-                        the song :(
+                        system - try searching for the song and adding it. It could also be due to not having the song
+                        :(
                     </p>
                     <div class="missing-tracks-list">
                         <h4>Missing Tracks:</h4>
@@ -1110,7 +1110,12 @@
                 </p>
                 <div style="margin-bottom: 1rem">
                     <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem">PocketBase URL</label>
-                    <input type="url" id="custom-pb-url" class="template-input" placeholder="https://data.DaffaAgradhyasto.xyz" />
+                    <input
+                        type="url"
+                        id="custom-pb-url"
+                        class="template-input"
+                        placeholder="https://data.DaffaAgradhyasto.xyz"
+                    />
                 </div>
                 <div style="margin-bottom: 1rem">
                     <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem">Appwrite Endpoint</label>
@@ -1123,12 +1128,7 @@
                 </div>
                 <div style="margin-bottom: 1rem">
                     <label style="display: block; margin-bottom: 0.5rem; font-size: 0.9rem">Appwrite Project ID</label>
-                    <input
-                        type="text"
-                        id="custom-appwrite-project"
-                        class="template-input"
-                        placeholder="auth-for-"
-                    />
+                    <input type="text" id="custom-appwrite-project" class="template-input" placeholder="auth-for-" />
                 </div>
                 <div class="modal-actions">
                     <button id="custom-db-cancel" class="btn-secondary">Cancel</button>
@@ -1304,7 +1304,7 @@
                                 placeholder="https://example.com"
                             />
                             <p style="font-size: 0.8rem; color: var(--muted-foreground); margin-top: 0.25rem">
-                                It is recommended to create a  profile instead.
+                                It is recommended to create a profile instead.
                             </p>
                         </div>
                         <div style="margin-bottom: 1rem">
@@ -1490,8 +1490,8 @@
             <div class="modal-content">
                 <h3 style="text-align: center; margin-bottom: 1rem">Support Aether</h3>
                 <p style="text-align: center; margin-bottom: 1.5rem; line-height: 1.6; color: var(--muted-foreground)">
-                    If Aether has been useful to you and you're able to, consider making a donation. It helps pay
-                    for the server and domain, and you get to support us :)
+                    If Aether has been useful to you and you're able to, consider making a donation. It helps pay for
+                    the server and domain, and you get to support us :)
                 </p>
                 <div style="display: flex; justify-content: center; margin-bottom: 2rem">
                     <a
@@ -1657,12 +1657,12 @@
                                     <span>Recent</span>
                                 </a>
                             </li>
-                                                    <li class="nav-item" id="sidebar-nav-mood">
-                            <a href="/mood">
-                                <use svg="!lucide/music.svg" size="24" />
-                                <span>Mood Playlist</span>
-                            </a>
-                        </li>
+                            <li class="nav-item" id="sidebar-nav-mood">
+                                <a href="/mood">
+                                    <use svg="!lucide/music.svg" size="24" />
+                                    <span>Mood Playlist</span>
+                                </a>
+                            </li>
                             <li class="nav-item" id="sidebar-nav-unreleased">
                                 <a href="/unreleased">
                                     <use svg="./images/squares.svg" size="24" />
@@ -1681,9 +1681,41 @@
                                     <span>Settings</span>
                                 </a>
                             </li>
+                            <li class="nav-item" id="sidebar-nav-wrapped">
+                                <a href="/wrapped">
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="24"
+                                        height="24"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                                        <path d="M2 17l10 5 10-5" />
+                                        <path d="M2 12l10 5 10-5" />
+                                    </svg>
+                                    <span>Wrapped</span>
+                                </a>
+                            </li>
                             <li class="nav-item sidebar-ai-chat-item" id="sidebar-ai-chat-item">
                                 <a href="#" id="sidebar-ai-chat-link">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="24"
+                                        height="24"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                    </svg>
                                     <span>AI Chat</span>
                                     <span class="ai-chat-badge"></span>
                                 </a>
@@ -1703,7 +1735,7 @@
                                     <li class="nav-item" id="sidebar-nav-about-bottom">
                                         <a href="/about">
                                             <use svg="!lucide/info.svg" size="24" />
-                                                                                                    <span>About</span>
+                                            <span>About</span>
                                         </a>
                                     </li>
                                     <li class="nav-item" id="sidebar-nav-discordbtn">
@@ -1794,7 +1826,6 @@
                 <div id="page-home" class="page">
                     <div class="home-header-tabs">
                         <button class="home-tab active" data-tab="for-you">Home</button>
-                         
                     </div>
 
                     <div id="home-view-for-you" class="home-view active">
@@ -1928,7 +1959,8 @@
                                 <div class="card-grid" id="home-editors-picks"></div>
                             </section>
                         </div>
-                    </div>          </div>
+                    </div>
+                </div>
                 <div id="page-search" class="page">
                     <h2 class="section-title" id="search-results-title">Search Results</h2>
                     <div class="search-tabs">
@@ -2095,7 +2127,7 @@
                     </div>
                     <div class="track-list" id="recent-tracks-container"></div>
                 </div>
-                
+
                 <div id="page-mood" class="page"></div>
 
                 <div id="page-unreleased" class="page">
@@ -2690,9 +2722,9 @@
                                     <div class="theme-option" data-theme="machiatto">Machiatto</div>
                                     <div class="theme-option" data-theme="frappe">Frappé</div>
                                     <div class="theme-option" data-theme="latte">Latte</div>
-                                                                <div class="theme-option" data-theme="aether">Aether</div>
-                            <div class="theme-option" data-theme="aether-beyond">Aether Beyond</div>
-                                                                <div class="theme-option" data-theme="aether-neon">Aether Neon</div>
+                                    <div class="theme-option" data-theme="aether">Aether</div>
+                                    <div class="theme-option" data-theme="aether-beyond">Aether Beyond</div>
+                                    <div class="theme-option" data-theme="aether-neon">Aether Neon</div>
                                     <div class="theme-option" data-theme="custom">Custom</div>
                                 </div>
                                 <div id="applied-community-theme-container" style="display: none; margin-top: 1rem">
@@ -3232,6 +3264,18 @@
                                         </div>
                                         <label class="toggle-switch">
                                             <input type="checkbox" id="sidebar-show-settings-toggle" checked />
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+                                    <div class="setting-item">
+                                        <div class="info">
+                                            <span class="label">Show Wrapped in Sidebar</span>
+                                            <span class="description"
+                                                >Display the Wrapped link in the sidebar navigation</span
+                                            >
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" id="sidebar-show-wrapped-toggle" checked />
                                             <span class="slider"></span>
                                         </label>
                                     </div>
@@ -3818,25 +3862,37 @@
                                         <span class="slider"></span>
                                     </label>
                                 </div>
-                                                <div class="setting-item">
-                    <div class="info">
-                        <span class="label">Crossfade</span>
-                        <span class="description">Smoothly transition between tracks by fading out current and fading in next</span>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="crossfade-toggle"
-                        />
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div class="setting-item" id="crossfade-duration-setting">
-                    <div class="info">
-                        <span class="label">Crossfade Duration</span>
-                        <span class="description">Duration of the crossfade effect in seconds (1-12)</span>
-                    </div>
-                    <input type="number" id="crossfade-duration-input" min="1" max="12" step="0.5" value="3" style="width: 80px">
-                </div>
-<div class="setting-item">
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Crossfade</span>
+                                        <span class="description"
+                                            >Smoothly transition between tracks by fading out current and fading in
+                                            next</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="crossfade-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item" id="crossfade-duration-setting">
+                                    <div class="info">
+                                        <span class="label">Crossfade Duration</span>
+                                        <span class="description"
+                                            >Duration of the crossfade effect in seconds (1-12)</span
+                                        >
+                                    </div>
+                                    <input
+                                        type="number"
+                                        id="crossfade-duration-input"
+                                        min="1"
+                                        max="12"
+                                        step="0.5"
+                                        value="3"
+                                        style="width: 80px"
+                                    />
+                                </div>
+                                <div class="setting-item">
                                     <div class="info">
                                         <span class="label">Gapless Playback</span>
                                         <span class="description">Play audio without interruption between tracks</span>
@@ -4462,59 +4518,58 @@
 
                     <div class="settings-tab-content" id="settings-tab-system">
                         <div class="settings-list">
-                                                        <div class="settings-group">
-                        
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="setting-info">
+                                        <span class="label" data-i18n="settings.dataSaverToggle">Super Data Saver</span>
+                                        <span class="description" data-i18n="settings.dataSaverDesc"
+                                            >Hemat kuota internet secara drastis. Menurunkan kualitas streaming,
+                                            menonaktifkan fitur boros data, dan memperkecil ukuran gambar.</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="data-saver-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
 
-                        <div class="setting-item">
-                            <div class="setting-info">
-                            <span class="label" data-i18n="settings.dataSaverToggle">Super Data Saver</span>
-                                <span class="description" data-i18n="settings.dataSaverDesc">Hemat kuota internet secara drastis. Menurunkan kualitas streaming, menonaktifkan fitur boros data, dan memperkecil ukuran gambar.</span>
+                                <div class="setting-item" id="data-saver-mode-setting" style="display: none">
+                                    <div class="setting-info">
+                                        <span class="label">Mode Hemat</span>
+                                        <span class="description"
+                                            >Moderate: tetap nyaman. Extreme: hemat maksimal, cover art
+                                            dinonaktifkan.</span
+                                        >
+                                    </div>
+                                    <select id="data-saver-mode" class="setting-select">
+                                        <option value="moderate">Moderate (~60% hemat)</option>
+                                        <option value="extreme">Extreme (~90% hemat)</option>
+                                    </select>
+                                </div>
+
+                                <div class="setting-item" id="data-saver-status" style="display: none">
+                                    <div class="setting-info">
+                                        <span class="label">Status</span>
+                                        <span class="description" id="data-saver-status-text">-</span>
+                                    </div>
+                                </div>
+
+                                <div class="setting-item" id="data-saver-details" style="display: none">
+                                    <div class="setting-info">
+                                        <span class="label">Yang dioptimasi:</span>
+                                        <span class="description">
+                                            Streaming: kualitas terendah (AAC 96kbps) &bull; Cover art: resolusi kecil /
+                                            dinonaktifkan &bull; Background blur: off &bull; Waveform: off &bull;
+                                            Visualizer: off &bull; Dynamic color: off &bull; Prefetch: off &bull;
+                                            Analytics: off
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" id="data-saver-toggle">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
 
-                        <div class="setting-item" id="data-saver-mode-setting" style="display: none;">
-                            <div class="setting-info">
-                                <span class="label">Mode Hemat</span>
-                                <span class="description">Moderate: tetap nyaman. Extreme: hemat maksimal, cover art dinonaktifkan.</span>
-                            </div>
-                            <select id="data-saver-mode" class="setting-select">
-                                <option value="moderate">Moderate (~60% hemat)</option>
-                                <option value="extreme">Extreme (~90% hemat)</option>
-                            </select>
-                        </div>
-
-                        <div class="setting-item" id="data-saver-status" style="display: none;">
-                            <div class="setting-info">
-                                <span class="label">Status</span>
-                                <span class="description" id="data-saver-status-text">-</span>
-                            </div>
-                        </div>
-
-                        <div class="setting-item" id="data-saver-details" style="display: none;">
-                            <div class="setting-info">
-                                <span class="label">Yang dioptimasi:</span>
-                                <span class="description">
-                                    Streaming: kualitas terendah (AAC 96kbps) &bull;
-                                    Cover art: resolusi kecil / dinonaktifkan &bull;
-                                    Background blur: off &bull;
-                                    Waveform: off &bull;
-                                    Visualizer: off &bull;
-                                    Dynamic color: off &bull;
-                                    Prefetch: off &bull;
-                                    Analytics: off
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                                                            <div class="settings-group">
-                        <div class="setting-item">
-                            <div class="setting-info">
-
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="setting-info">
                                         <span class="label">Keyboard Shortcuts</span>
                                         <span class="description">View and customize keyboard shortcuts</span>
                                     </div>
@@ -4653,9 +4708,9 @@
                     <h2 class="section-title" style="text-align: center">About Aether</h2>
                     <div class="about-content">
                         <p class="about-description">
-                            Aether is a lightweight, privacy-focused music streaming client designed for
-                            high-fidelity audio playback. Built with modern web technologies, it provides a clean,
-                            distraction-free listening experience.
+                            Aether is a lightweight, privacy-focused music streaming client designed for high-fidelity
+                            audio playback. Built with modern web technologies, it provides a clean, distraction-free
+                            listening experience.
                             <br />
                         </p>
                         <div class="about-donate">
@@ -4713,8 +4768,14 @@
                         </div>
                         <p style="text-align: center; color: grey">
                             made with ‪‪❤︎‬ by
-                            <a href="https://github.com/DaffaAgradhyasto" style="text-decoration: underline">Xarc I Hoshi</a> &
-                            <a href="https://github.com/DaffaAgradhyasto" style="text-decoration: underline">Edideaur</a> &
+                            <a href="https://github.com/DaffaAgradhyasto" style="text-decoration: underline"
+                                >Xarc I Hoshi</a
+                            >
+                            &
+                            <a href="https://github.com/DaffaAgradhyasto" style="text-decoration: underline"
+                                >Edideaur</a
+                            >
+                            &
                             <a href="https://github.com/DaffaAgradhyasto" style="text-decoration: underline">Samidy</a>.
                         </p>
                         <div class="about-footer">
@@ -4837,8 +4898,8 @@
                     <div style="text-align: center; padding: 2rem; max-width: 500px; margin: 0 auto">
                         <h2 class="section-title" style="margin-bottom: 1.5rem">Support Aether</h2>
                         <p style="margin-bottom: 1.5rem; line-height: 1.6; color: var(--muted-foreground)">
-                            If Aether has been useful to you and you're able to, consider making a donation. It
-                            helps pay for the server and domain, and you get to support us :)
+                            If Aether has been useful to you and you're able to, consider making a donation. It helps
+                            pay for the server and domain, and you get to support us :)
                         </p>
                         <a
                             href="https://ko-fi.com/boysgmnglegends"
@@ -4872,6 +4933,7 @@
                         </div>
                     </div>
                 </div>
+                <div id="page-wrapped" class="page"></div>
             </main>
 
             <footer class="now-playing-bar">
@@ -4988,137 +5050,165 @@
         </div>
         <script src="https://cdn.jsdelivr.net/npm/pocketbase@0.21.3/dist/pocketbase.umd.js"></script>
         <script type="module" src="/js/app.js"></script>
-                <script>
-        // Aether Beyond Particle System
-        (function() {
-            let animId = null;
-            let particles = [];
-            const canvas = document.getElementById('aether-particles-canvas');
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
+        <script>
+            // Aether Beyond Particle System
+            (function () {
+                let animId = null;
+                let particles = [];
+                const canvas = document.getElementById('aether-particles-canvas');
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
 
-            function resize() {
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-            }
+                function resize() {
+                    canvas.width = window.innerWidth;
+                    canvas.height = window.innerHeight;
+                }
 
-            function createParticle() {
-                return {
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height,
-                    vx: (Math.random() - 0.5) * 0.5,
-                    vy: (Math.random() - 0.5) * 0.5,
-                    r: Math.random() * 2 + 0.5,
-                    o: Math.random() * 0.5 + 0.1,
-                    c: ['#a855f7','#6366f1','#ec4899','#00ffaa','#00d4ff'][Math.floor(Math.random()*5)],
-                    pulse: Math.random() * Math.PI * 2,
-                    pulseSpeed: Math.random() * 0.02 + 0.01
-                };
-            }
+                function createParticle() {
+                    return {
+                        x: Math.random() * canvas.width,
+                        y: Math.random() * canvas.height,
+                        vx: (Math.random() - 0.5) * 0.5,
+                        vy: (Math.random() - 0.5) * 0.5,
+                        r: Math.random() * 2 + 0.5,
+                        o: Math.random() * 0.5 + 0.1,
+                        c: ['#a855f7', '#6366f1', '#ec4899', '#00ffaa', '#00d4ff'][Math.floor(Math.random() * 5)],
+                        pulse: Math.random() * Math.PI * 2,
+                        pulseSpeed: Math.random() * 0.02 + 0.01,
+                    };
+                }
 
-            function initParticles() {
-                particles = [];
-                const count = Math.min(80, Math.floor(canvas.width * canvas.height / 15000));
-                for (let i = 0; i < count; i++) particles.push(createParticle());
-            }
+                function initParticles() {
+                    particles = [];
+                    const count = Math.min(80, Math.floor((canvas.width * canvas.height) / 15000));
+                    for (let i = 0; i < count; i++) particles.push(createParticle());
+                }
 
-            function drawParticles() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                particles.forEach(p => {
-                    p.x += p.vx;
-                    p.y += p.vy;
-                    p.pulse += p.pulseSpeed;
-                    if (p.x < 0) p.x = canvas.width;
-                    if (p.x > canvas.width) p.x = 0;
-                    if (p.y < 0) p.y = canvas.height;
-                    if (p.y > canvas.height) p.y = 0;
-                    const opacity = p.o * (0.5 + 0.5 * Math.sin(p.pulse));
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-                    ctx.fillStyle = p.c;
-                    ctx.globalAlpha = opacity;
-                    ctx.fill();
-                    ctx.globalAlpha = opacity * 0.3;
-                    ctx.beginPath();
-                    ctx.arc(p.x, p.y, p.r * 3, 0, Math.PI * 2);
-                    ctx.fillStyle = p.c;
-                    ctx.fill();
-                });
-                // Draw connections
-                ctx.globalAlpha = 1;
-                for (let i = 0; i < particles.length; i++) {
-                    for (let j = i + 1; j < particles.length; j++) {
-                        const dx = particles[i].x - particles[j].x;
-                        const dy = particles[i].y - particles[j].y;
-                        const dist = Math.sqrt(dx*dx + dy*dy);
-                        if (dist < 120) {
-                            ctx.beginPath();
-                            ctx.moveTo(particles[i].x, particles[i].y);
-                            ctx.lineTo(particles[j].x, particles[j].y);
-                            ctx.strokeStyle = particles[i].c;
-                            ctx.globalAlpha = (1 - dist/120) * 0.15;
-                            ctx.lineWidth = 0.5;
-                            ctx.stroke();
+                function drawParticles() {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    particles.forEach((p) => {
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.pulse += p.pulseSpeed;
+                        if (p.x < 0) p.x = canvas.width;
+                        if (p.x > canvas.width) p.x = 0;
+                        if (p.y < 0) p.y = canvas.height;
+                        if (p.y > canvas.height) p.y = 0;
+                        const opacity = p.o * (0.5 + 0.5 * Math.sin(p.pulse));
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                        ctx.fillStyle = p.c;
+                        ctx.globalAlpha = opacity;
+                        ctx.fill();
+                        ctx.globalAlpha = opacity * 0.3;
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.r * 3, 0, Math.PI * 2);
+                        ctx.fillStyle = p.c;
+                        ctx.fill();
+                    });
+                    // Draw connections
+                    ctx.globalAlpha = 1;
+                    for (let i = 0; i < particles.length; i++) {
+                        for (let j = i + 1; j < particles.length; j++) {
+                            const dx = particles[i].x - particles[j].x;
+                            const dy = particles[i].y - particles[j].y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            if (dist < 120) {
+                                ctx.beginPath();
+                                ctx.moveTo(particles[i].x, particles[i].y);
+                                ctx.lineTo(particles[j].x, particles[j].y);
+                                ctx.strokeStyle = particles[i].c;
+                                ctx.globalAlpha = (1 - dist / 120) * 0.15;
+                                ctx.lineWidth = 0.5;
+                                ctx.stroke();
+                            }
                         }
                     }
+                    ctx.globalAlpha = 1;
+                    animId = requestAnimationFrame(drawParticles);
                 }
-                ctx.globalAlpha = 1;
-                animId = requestAnimationFrame(drawParticles);
-            }
 
-            function startParticles() {
-                if (animId) return;
-                resize();
-                initParticles();
-                canvas.style.display = 'block';
-                drawParticles();
-            }
+                function startParticles() {
+                    if (animId) return;
+                    resize();
+                    initParticles();
+                    canvas.style.display = 'block';
+                    drawParticles();
+                }
 
-            function stopParticles() {
-                if (animId) { cancelAnimationFrame(animId); animId = null; }
-                canvas.style.display = 'none';
-                particles = [];
-            }
+                function stopParticles() {
+                    if (animId) {
+                        cancelAnimationFrame(animId);
+                        animId = null;
+                    }
+                    canvas.style.display = 'none';
+                    particles = [];
+                }
 
-            function checkTheme() {
-                const theme = document.documentElement.getAttribute('data-theme');
-                if (['aether-beyond', 'aether-neon'].includes(theme)) startParticles();
-                else stopParticles();
-            }
+                function checkTheme() {
+                    const theme = document.documentElement.getAttribute('data-theme');
+                    if (['aether-beyond', 'aether-neon'].includes(theme)) startParticles();
+                    else stopParticles();
+                }
 
-            window.addEventListener('resize', () => { if (animId) { resize(); initParticles(); } });
-            window.addEventListener('theme-changed', checkTheme);
-            new MutationObserver(checkTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-            checkTheme();
-        })();
+                window.addEventListener('resize', () => {
+                    if (animId) {
+                        resize();
+                        initParticles();
+                    }
+                });
+                window.addEventListener('theme-changed', checkTheme);
+                new MutationObserver(checkTheme).observe(document.documentElement, {
+                    attributes: true,
+                    attributeFilter: ['data-theme'],
+                });
+                checkTheme();
+            })();
         </script>
     </body>
-    
+
     <!-- Changelog Modal -->
     <div class="modal" id="changelog-modal">
         <div class="modal-overlay"></div>
-        <div class="modal-container" style="max-width: 700px;">
+        <div class="modal-container" style="max-width: 700px">
             <div class="modal-header">
                 <h2>📝 Changelog Update</h2>
                 <button class="close-modal-btn" id="close-changelog-btn" aria-label="Close changelog">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M18 6L6 18M6 6l12 12"/>
+                        <path d="M18 6L6 18M6 6l12 12" />
                     </svg>
                 </button>
             </div>
-            <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+            <div class="modal-body" style="max-height: 60vh; overflow-y: auto">
                 <!-- Loading State -->
-                <div id="changelog-loading" style="display: flex; align-items: center; justify-content: center; padding: 3rem; flex-direction: column; gap: 1rem;">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
-                        <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                <div
+                    id="changelog-loading"
+                    style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 3rem;
+                        flex-direction: column;
+                        gap: 1rem;
+                    "
+                >
+                    <svg
+                        width="40"
+                        height="40"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        style="animation: spin 1s linear infinite"
+                    >
+                        <path d="M21 12a9 9 0 11-6.219-8.56" />
                     </svg>
-                    <p style="opacity: 0.7;">Memuat changelog...</p>
+                    <p style="opacity: 0.7">Memuat changelog...</p>
                 </div>
-                
+
                 <!-- Changelog Content (will be populated by JS) -->
                 <div id="changelog-modal-content"></div>
             </div>
         </div>
     </div>
-
 </html>
