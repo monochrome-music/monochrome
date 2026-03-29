@@ -37,6 +37,9 @@ import {
     preferDolbyAtmosSettings,
 } from './storage.js';
 import { audioContextManager, EQ_PRESETS } from './audio-context.js';
+import { runAutoEqAlgorithm } from './autoeq-engine.js';
+import { parseRawData, TARGETS } from './autoeq-data.js';
+import { fetchAutoEqIndex, fetchHeadphoneData, searchHeadphones } from './autoeq-importer.js';
 import { db } from './db.js';
 import { authManager } from './accounts/auth.js';
 import { syncManager } from './accounts/pocketbase.js';
@@ -2257,6 +2260,286 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             }, 100);
         });
     }
+
+    // ========================================
+    // AutoEQ - Headphone Correction
+    // ========================================
+    const autoeqToggleHeader = document.getElementById('autoeq-toggle-header');
+    const autoeqContent = document.getElementById('autoeq-content');
+    const autoeqToggleIcon = document.getElementById('autoeq-toggle-icon');
+    const autoeqSearchInput = document.getElementById('autoeq-headphone-search');
+    const autoeqResults = document.getElementById('autoeq-results');
+    const autoeqSelected = document.getElementById('autoeq-selected');
+    const autoeqSelectedName = document.getElementById('autoeq-selected-name');
+    const autoeqClearBtn = document.getElementById('autoeq-clear-btn');
+    const autoeqTargetSelect = document.getElementById('autoeq-target-select');
+    const autoeqBandCount = document.getElementById('autoeq-band-count');
+    const autoeqMaxFreq = document.getElementById('autoeq-max-freq');
+    const autoeqRunBtn = document.getElementById('autoeq-run-btn');
+    const autoeqStatus = document.getElementById('autoeq-status');
+    const autoeqImportBtn = document.getElementById('autoeq-import-measurement-btn');
+    const autoeqImportFile = document.getElementById('autoeq-import-measurement-file');
+    const autoeqTypeButtons = document.querySelectorAll('.autoeq-type-btn');
+
+    let autoeqIndex = [];
+    let autoeqSelectedMeasurement = null;
+    let autoeqSelectedEntry = null;
+    let autoeqTypeFilter = 'all';
+    let autoeqSearchTimer = null;
+
+    // Toggle AutoEQ section
+    if (autoeqToggleHeader) {
+        autoeqToggleHeader.addEventListener('click', () => {
+            const isVisible = autoeqContent.style.display !== 'none';
+            autoeqContent.style.display = isVisible ? 'none' : 'block';
+            if (autoeqToggleIcon) autoeqToggleIcon.textContent = isVisible ? '+' : '−';
+        });
+    }
+
+    // Set status message
+    const setAutoEQStatus = (msg, type = '') => {
+        if (!autoeqStatus) return;
+        autoeqStatus.textContent = msg;
+        autoeqStatus.className = 'autoeq-status' + (type ? ' ' + type : '');
+    };
+
+    // Update run button state
+    const updateAutoEQRunBtn = () => {
+        if (autoeqRunBtn) {
+            autoeqRunBtn.disabled = !autoeqSelectedMeasurement;
+        }
+    };
+
+    // Render search results
+    const renderAutoEQResults = (entries) => {
+        if (!autoeqResults) return;
+        autoeqResults.innerHTML = '';
+
+        if (entries.length === 0) {
+            autoeqResults.classList.remove('visible');
+            return;
+        }
+
+        entries.forEach(entry => {
+            const item = document.createElement('div');
+            item.className = 'autoeq-result-item';
+            item.innerHTML = `<span>${entry.name}</span><span class="autoeq-result-type">${entry.type}</span>`;
+            item.addEventListener('click', async () => {
+                setAutoEQStatus('Loading measurement...', '');
+                try {
+                    const data = await fetchHeadphoneData(entry);
+                    autoeqSelectedMeasurement = data;
+                    autoeqSelectedEntry = entry;
+
+                    // Show selected, hide results
+                    if (autoeqSelected) {
+                        autoeqSelected.style.display = 'flex';
+                        if (autoeqSelectedName) autoeqSelectedName.textContent = entry.name;
+                    }
+                    autoeqResults.classList.remove('visible');
+                    if (autoeqSearchInput) autoeqSearchInput.value = '';
+
+                    // Auto-select appropriate target based on headphone type
+                    if (autoeqTargetSelect) {
+                        if (entry.type === 'in-ear') {
+                            autoeqTargetSelect.value = 'harman_ie_2019';
+                        } else {
+                            autoeqTargetSelect.value = 'harman_oe_2018';
+                        }
+                    }
+
+                    updateAutoEQRunBtn();
+                    setAutoEQStatus(`Loaded ${data.length} points`, 'success');
+                } catch (err) {
+                    setAutoEQStatus('Failed to load: ' + err.message, 'error');
+                }
+            });
+            autoeqResults.appendChild(item);
+        });
+
+        autoeqResults.classList.add('visible');
+    };
+
+    // Search input with debounce
+    if (autoeqSearchInput) {
+        autoeqSearchInput.addEventListener('input', () => {
+            clearTimeout(autoeqSearchTimer);
+            autoeqSearchTimer = setTimeout(async () => {
+                const query = autoeqSearchInput.value.trim();
+                if (!query) {
+                    autoeqResults.classList.remove('visible');
+                    return;
+                }
+
+                // Load index if not yet loaded
+                if (autoeqIndex.length === 0) {
+                    setAutoEQStatus('Loading headphone database...', '');
+                    try {
+                        autoeqIndex = await fetchAutoEqIndex();
+                        setAutoEQStatus(`Loaded ${autoeqIndex.length} headphones`, 'success');
+                    } catch (err) {
+                        setAutoEQStatus('Failed to load database', 'error');
+                        return;
+                    }
+                }
+
+                const results = searchHeadphones(query, autoeqIndex, autoeqTypeFilter, 100);
+                renderAutoEQResults(results);
+            }, 300);
+        });
+
+        autoeqSearchInput.addEventListener('focus', () => {
+            if (autoeqSearchInput.value.trim() && autoeqResults.children.length > 0) {
+                autoeqResults.classList.add('visible');
+            }
+        });
+    }
+
+    // Type filter buttons
+    autoeqTypeButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            autoeqTypeButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            autoeqTypeFilter = btn.dataset.type;
+
+            // Re-search if there's a query
+            if (autoeqSearchInput && autoeqSearchInput.value.trim() && autoeqIndex.length > 0) {
+                const results = searchHeadphones(autoeqSearchInput.value.trim(), autoeqIndex, autoeqTypeFilter, 100);
+                renderAutoEQResults(results);
+            }
+        });
+    });
+
+    // Clear selected headphone
+    if (autoeqClearBtn) {
+        autoeqClearBtn.addEventListener('click', () => {
+            autoeqSelectedMeasurement = null;
+            autoeqSelectedEntry = null;
+            if (autoeqSelected) autoeqSelected.style.display = 'none';
+            updateAutoEQRunBtn();
+            setAutoEQStatus('', '');
+        });
+    }
+
+    // Run AutoEQ
+    if (autoeqRunBtn) {
+        autoeqRunBtn.addEventListener('click', () => {
+            if (!autoeqSelectedMeasurement) return;
+
+            setAutoEQStatus('Running AutoEQ...', '');
+            autoeqRunBtn.disabled = true;
+
+            // Use setTimeout to allow UI to update before heavy computation
+            setTimeout(() => {
+                try {
+                    // Get target curve
+                    const targetId = autoeqTargetSelect ? autoeqTargetSelect.value : 'harman_oe_2018';
+                    const targetEntry = TARGETS.find(t => t.id === targetId);
+                    if (!targetEntry || !targetEntry.data || targetEntry.data.length === 0) {
+                        setAutoEQStatus('Invalid target curve', 'error');
+                        updateAutoEQRunBtn();
+                        return;
+                    }
+
+                    const bandCount = autoeqBandCount ? parseInt(autoeqBandCount.value, 10) : 10;
+                    const maxFreq = autoeqMaxFreq ? parseInt(autoeqMaxFreq.value, 10) : 16000;
+
+                    // Run algorithm
+                    const bands = runAutoEqAlgorithm(
+                        autoeqSelectedMeasurement,
+                        targetEntry.data,
+                        bandCount,
+                        maxFreq
+                    );
+
+                    if (!bands || bands.length === 0) {
+                        setAutoEQStatus('No correction needed', 'success');
+                        updateAutoEQRunBtn();
+                        return;
+                    }
+
+                    // Apply to equalizer
+                    const exportText = audioContextManager.applyAutoEQBands(bands);
+
+                    // Update UI to reflect new band count and gains
+                    currentBandCount = audioContextManager.getBandCount();
+                    if (eqBandCountInput) eqBandCountInput.value = currentBandCount;
+
+                    currentPreamp = equalizerSettings.getPreamp();
+                    updatePreampUI(currentPreamp);
+
+                    generateEQBands(
+                        currentBandCount,
+                        currentRange.min,
+                        currentRange.max,
+                        currentFreqRange.min,
+                        currentFreqRange.max
+                    );
+                    const gains = audioContextManager.getGains();
+                    updateAllBandUI(gains);
+                    drawEQCurve();
+
+                    // Update preset selector
+                    if (eqPresetSelect) {
+                        eqPresetSelect.value = 'flat'; // No built-in preset matches
+                    }
+
+                    const headphoneName = autoeqSelectedEntry ? autoeqSelectedEntry.name : 'Custom';
+                    setAutoEQStatus(`Applied ${bands.length} bands for ${headphoneName}`, 'success');
+                    updateAutoEQRunBtn();
+                } catch (err) {
+                    console.error('[AutoEQ] Algorithm failed:', err);
+                    setAutoEQStatus('Error: ' + err.message, 'error');
+                    updateAutoEQRunBtn();
+                }
+            }, 50);
+        });
+    }
+
+    // Import custom measurement file
+    if (autoeqImportBtn && autoeqImportFile) {
+        autoeqImportBtn.addEventListener('click', () => {
+            autoeqImportFile.click();
+        });
+
+        autoeqImportFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = parseRawData(event.target.result);
+                    if (data.length === 0) {
+                        setAutoEQStatus('Invalid measurement file', 'error');
+                        return;
+                    }
+
+                    autoeqSelectedMeasurement = data;
+                    autoeqSelectedEntry = { name: file.name.replace(/\.(txt|csv)$/i, ''), type: 'over-ear' };
+
+                    if (autoeqSelected) {
+                        autoeqSelected.style.display = 'flex';
+                        if (autoeqSelectedName) autoeqSelectedName.textContent = autoeqSelectedEntry.name;
+                    }
+
+                    updateAutoEQRunBtn();
+                    setAutoEQStatus(`Imported ${data.length} points from ${file.name}`, 'success');
+                } catch (err) {
+                    setAutoEQStatus('Failed to parse file', 'error');
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        });
+    }
+
+    // Close results when clicking outside
+    document.addEventListener('click', (e) => {
+        if (autoeqResults && !autoeqResults.contains(e.target) && e.target !== autoeqSearchInput) {
+            autoeqResults.classList.remove('visible');
+        }
+    });
 
     // Now Playing Mode
     const nowPlayingMode = document.getElementById('now-playing-mode');
