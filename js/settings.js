@@ -3732,7 +3732,7 @@ function initializeBlockedContentManager() {
                 if (typeof showNotification === 'function') {
                     showNotification(`Unblocked ${type}: ${itemName}`);
                 }
-                
+
                 renderBlockedLists();
             });
         });
