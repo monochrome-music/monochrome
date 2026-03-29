@@ -199,6 +199,7 @@ export async function ffmpegInfo(audioBlob, { onProgress = null, signal = null }
 
                 onProgress?.(progress);
             },
+            signal,
             logConsole: false,
         });
     } catch (err) {
