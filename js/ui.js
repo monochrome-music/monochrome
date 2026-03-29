@@ -721,7 +721,7 @@ export class UIRenderer {
         return this.createBaseCardHTML({
             type: 'album',
             id: album.id,
-            href: `/album/${album.id}`,
+            href: album._href || `/album/${album.id}`,
             title: `${escapeHtml(album.title)} ${explicitBadge} ${qualityBadge}`,
             subtitle: `${escapeHtml(artistName)} • ${yearDisplay}${typeLabel}`,
             imageHTML: this.getCoverHTML(
@@ -2766,6 +2766,28 @@ export class UIRenderer {
                                     cardsHTML.push(this.createAlbumCardHTML(result.album));
                                     itemsToStore.push({ el: null, data: result.album, type: 'album' });
                                 }
+                            }
+                        } else if (item.type === 'userplaylist') {
+                            if (item.id && item.title) {
+                                const playlist = {
+                                    id: item.id,
+                                    name: item.title,
+                                    cover: item.cover,
+                                    numberOfTracks: item.numberOfTracks || 0,
+                                };
+                                cardsHTML.push(
+                                    this.createAlbumCardHTML({
+                                        ...playlist,
+                                        title: item.title,
+                                        artist: item.artist,
+                                        cover: item.cover,
+                                        explicit: item.explicit,
+                                        releaseDate: item.releaseDate,
+                                        type: 'ALBUM',
+                                        _href: `/userplaylist/${item.id}`,
+                                    })
+                                );
+                                itemsToStore.push({ el: null, data: playlist, type: 'user-playlist' });
                             }
                         } else if (item.type === 'artist') {
                             if (item.name && item.picture) {
