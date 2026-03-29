@@ -14,6 +14,7 @@ import {
     listenBrainzSettings,
     waveformSettings,
     keyboardShortcuts,
+    privateSessionSettings,
 } from './storage.js';
 import { showNotification, downloadTrackWithMetadata, downloadAlbum, downloadPlaylist } from './downloads.js';
 import { downloadQualitySettings } from './storage.js';
@@ -54,7 +55,17 @@ import {
     trackStartMix,
     trackEvent,
 } from './analytics.js';
-import { SVG_BIN, SVG_MUTE, SVG_PAUSE, SVG_PLAY, SVG_VOLUME, SVG_CHECKBOX,  SVG_CHECKBOX_CHECKED, SVG_REPEAT, SVG_REPEAT_ONE } from './icons.js';
+import {
+    SVG_BIN,
+    SVG_MUTE,
+    SVG_PAUSE,
+    SVG_PLAY,
+    SVG_VOLUME,
+    SVG_CHECKBOX,
+    SVG_CHECKBOX_CHECKED,
+    SVG_REPEAT,
+    SVG_REPEAT_ONE,
+} from './icons.js';
 
 let currentTrackIdForWaveform = null;
 
@@ -427,10 +438,12 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
 
             if (player.currentTrack) {
                 // Track play event
-                trackPlayTrack(player.currentTrack);
+                if (!privateSessionSettings.isEnabled()) {
+                    trackPlayTrack(player.currentTrack);
+                }
 
                 // Scrobble
-                if (scrobbler.isAuthenticated()) {
+                if (scrobbler.isAuthenticated() && !privateSessionSettings.isEnabled()) {
                     scrobbler.updateNowPlaying(player.currentTrack);
                 }
 
@@ -478,8 +491,10 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
                 // Log to history after 10 seconds of playback
                 if (currentTime >= 10 && player.currentTrack && player.currentTrack.id !== historyLoggedTrackId) {
                     historyLoggedTrackId = player.currentTrack.id;
-                    const historyEntry = await db.addToHistory(player.currentTrack);
-                    syncManager.syncHistoryItem(historyEntry);
+                    if (!privateSessionSettings.isEnabled()) {
+                        const historyEntry = await db.addToHistory(player.currentTrack);
+                        syncManager.syncHistoryItem(historyEntry);
+                    }
 
                     if (window.location.hash === '#recent') {
                         ui.renderRecentPage();
@@ -587,13 +602,14 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
         repeatBtn.classList.toggle('repeat-one', mode === REPEAT_MODE.ONE);
         repeatBtn.title =
             mode === REPEAT_MODE.OFF ? 'Repeat' : mode === REPEAT_MODE.ALL ? 'Repeat Queue' : 'Repeat One';
-                // Sync fullscreen repeat button
+        // Sync fullscreen repeat button
         const fsRepeatBtn = document.getElementById('fs-repeat-btn');
         if (fsRepeatBtn) {
             fsRepeatBtn.classList.toggle('active', mode !== REPEAT_MODE.OFF);
             fsRepeatBtn.classList.toggle('repeat-one', mode === REPEAT_MODE.ONE);
-            fsRepeatBtn.title = mode === REPEAT_MODE.OFF ? 'Repeat' : mode === REPEAT_MODE.ALL ? 'Repeat Queue' : 'Repeat One';
-                        fsRepeatBtn.innerHTML = mode === REPEAT_MODE.ONE ? SVG_REPEAT_ONE(24) : SVG_REPEAT(24);
+            fsRepeatBtn.title =
+                mode === REPEAT_MODE.OFF ? 'Repeat' : mode === REPEAT_MODE.ALL ? 'Repeat Queue' : 'Repeat One';
+            fsRepeatBtn.innerHTML = mode === REPEAT_MODE.ONE ? SVG_REPEAT_ONE(24) : SVG_REPEAT(24);
         }
     });
 
@@ -683,7 +699,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
         });
 
         // Preset buttons
-        speedPresetBtns.forEach(btn => {
+        speedPresetBtns.forEach((btn) => {
             btn.addEventListener('click', () => {
                 const speed = parseFloat(btn.dataset.speed);
                 miniSpeedSlider.value = speed;

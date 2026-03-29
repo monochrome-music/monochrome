@@ -2234,10 +2234,70 @@ export class UIRenderer {
                 this.renderHomeSongs(false, seeds),
                 this.renderHomeAlbums(false, seeds),
                 this.renderHomeArtists(false, seeds),
+                this.renderHomeDaylistAndCapsule(),
             ]);
         } finally {
             this.renderLock = false;
         }
+    }
+
+    async renderHomeDaylistAndCapsule() {
+        const section = document.getElementById('section-daylist-capsule');
+        if (!section) return;
+
+        const { daylistSettings, timeCapsuleSettings } = await import('./storage.js');
+
+        const showDaylist = daylistSettings.shouldShow();
+        const showCapsule = timeCapsuleSettings.shouldShow();
+
+        if (!showDaylist && !showCapsule) {
+            section.style.display = 'none';
+            return;
+        }
+
+        section.style.display = '';
+
+        const daylistContainer = document.getElementById('home-daylist-container');
+        if (daylistContainer) {
+            if (showDaylist) {
+                daylistContainer.style.display = '';
+                const { Daylist } = await import('./daylist.js');
+                const daylist = new Daylist(this.player, this.api);
+                await daylist.renderDaylistCard(daylistContainer);
+            } else {
+                daylistContainer.style.display = 'none';
+            }
+        }
+
+        const capsuleContainer = document.getElementById('home-time-capsule-container');
+        if (capsuleContainer) {
+            if (showCapsule) {
+                capsuleContainer.style.display = '';
+                const { TimeCapsule } = await import('./time-capsule.js');
+                const capsule = new TimeCapsule(this.player, this.api);
+                await capsule.renderTimeCapsuleCard(capsuleContainer);
+            } else {
+                capsuleContainer.style.display = 'none';
+            }
+        }
+    }
+
+    async renderPrivateSessionIndicator() {
+        const { privateSessionSettings } = await import('./storage.js');
+        const isActive = privateSessionSettings.isEnabled();
+
+        const containers = document.querySelectorAll('[id*="private-session-indicator"]');
+        containers.forEach((container) => {
+            container.innerHTML = isActive
+                ? `<div class="private-session-indicator">
+                    <span class="ps-dot"></span>
+                    <span>Sesi Pribadi aktif</span>
+                </div>`
+                : '';
+        });
+
+        const toggle = document.getElementById('private-session-toggle');
+        if (toggle) toggle.checked = isActive;
     }
 
     setupHomeTabs() {

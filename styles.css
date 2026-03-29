@@ -203,33 +203,72 @@
 
 /* Aether Beyond - Ultra Futuristic Animations */
 @keyframes aether-pulse {
-    0%, 100% { opacity: 0.3; transform: scale(1); }
-    50% { opacity: 0.7; transform: scale(1.05); }
+    0%,
+    100% {
+        opacity: 0.3;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.05);
+    }
 }
 
 @keyframes aether-float {
-    0%, 100% { transform: translateY(0px) rotate(0deg); }
-    25% { transform: translateY(-20px) rotate(2deg); }
-    50% { transform: translateY(-10px) rotate(-1deg); }
-    75% { transform: translateY(-25px) rotate(1deg); }
+    0%,
+    100% {
+        transform: translateY(0px) rotate(0deg);
+    }
+    25% {
+        transform: translateY(-20px) rotate(2deg);
+    }
+    50% {
+        transform: translateY(-10px) rotate(-1deg);
+    }
+    75% {
+        transform: translateY(-25px) rotate(1deg);
+    }
 }
 
 @keyframes aether-glow-shift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
 }
 
 @keyframes aether-border-flow {
-    0% { border-color: var(--aether-glow-1, #a855f7); }
-    33% { border-color: var(--aether-glow-2, #6366f1); }
-    66% { border-color: var(--aether-glow-3, #ec4899); }
-    100% { border-color: var(--aether-glow-1, #a855f7); }
+    0% {
+        border-color: var(--aether-glow-1, #a855f7);
+    }
+    33% {
+        border-color: var(--aether-glow-2, #6366f1);
+    }
+    66% {
+        border-color: var(--aether-glow-3, #ec4899);
+    }
+    100% {
+        border-color: var(--aether-glow-1, #a855f7);
+    }
 }
 
 @keyframes aether-neon-flicker {
-    0%, 100% { text-shadow: 0 0 5px var(--aether-glow-1, #a855f7), 0 0 20px var(--aether-glow-1, #a855f7); }
-    50% { text-shadow: 0 0 2px var(--aether-glow-1, #a855f7), 0 0 10px var(--aether-glow-1, #a855f7); }
+    0%,
+    100% {
+        text-shadow:
+            0 0 5px var(--aether-glow-1, #a855f7),
+            0 0 20px var(--aether-glow-1, #a855f7);
+    }
+    50% {
+        text-shadow:
+            0 0 2px var(--aether-glow-1, #a855f7),
+            0 0 10px var(--aether-glow-1, #a855f7);
+    }
 }
 
 #aether-particles-canvas {
@@ -259,7 +298,9 @@
 :root[data-theme='aether-beyond'] .album-card:hover,
 :root[data-theme='aether-beyond'] .artist-card:hover {
     transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 0 30px rgba(168, 85, 247, 0.3), 0 0 60px rgba(99, 102, 241, 0.15);
+    box-shadow:
+        0 0 30px rgba(168, 85, 247, 0.3),
+        0 0 60px rgba(99, 102, 241, 0.15);
 }
 
 :root[data-theme='aether-beyond'] .sidebar {
@@ -286,12 +327,19 @@
 
 :root[data-theme='aether-beyond'] .btn-primary:hover,
 :root[data-theme='aether-beyond'] button.primary:hover {
-    box-shadow: 0 0 35px rgba(168, 85, 247, 0.6), 0 0 60px rgba(99, 102, 241, 0.3);
+    box-shadow:
+        0 0 35px rgba(168, 85, 247, 0.6),
+        0 0 60px rgba(99, 102, 241, 0.3);
     transform: translateY(-2px);
 }
 
 :root[data-theme='aether-beyond'] .progress-bar {
-    background: linear-gradient(90deg, var(--aether-glow-1, #a855f7), var(--aether-glow-3, #ec4899), var(--aether-cyber, #00d4ff));
+    background: linear-gradient(
+        90deg,
+        var(--aether-glow-1, #a855f7),
+        var(--aether-glow-3, #ec4899),
+        var(--aether-cyber, #00d4ff)
+    );
     background-size: 200% 100%;
     animation: aether-glow-shift 3s ease infinite;
 }
@@ -334,26 +382,56 @@
 
 /* Aether Neon - Cyberpunk Futuristic Animations */
 @keyframes neon-pulse {
-    0%, 100% { opacity: 0.3; transform: scale(1); }
-    50% { opacity: 0.7; transform: scale(1.05); }
+    0%,
+    100% {
+        opacity: 0.3;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.05);
+    }
 }
 
 @keyframes neon-glow-shift {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
 }
 
 @keyframes neon-border-flow {
-    0% { border-color: var(--neon-glow-1, #00f0ff); }
-    33% { border-color: var(--neon-glow-2, #ff00e5); }
-    66% { border-color: var(--neon-glow-3, #39ff14); }
-    100% { border-color: var(--neon-glow-1, #00f0ff); }
+    0% {
+        border-color: var(--neon-glow-1, #00f0ff);
+    }
+    33% {
+        border-color: var(--neon-glow-2, #ff00e5);
+    }
+    66% {
+        border-color: var(--neon-glow-3, #39ff14);
+    }
+    100% {
+        border-color: var(--neon-glow-1, #00f0ff);
+    }
 }
 
 @keyframes neon-flicker {
-    0%, 100% { text-shadow: 0 0 5px var(--neon-glow-1, #00f0ff), 0 0 20px var(--neon-glow-1, #00f0ff); }
-    50% { text-shadow: 0 0 2px var(--neon-glow-1, #00f0ff), 0 0 10px var(--neon-glow-1, #00f0ff); }
+    0%,
+    100% {
+        text-shadow:
+            0 0 5px var(--neon-glow-1, #00f0ff),
+            0 0 20px var(--neon-glow-1, #00f0ff);
+    }
+    50% {
+        text-shadow:
+            0 0 2px var(--neon-glow-1, #00f0ff),
+            0 0 10px var(--neon-glow-1, #00f0ff);
+    }
 }
 
 :root[data-theme='aether-neon'] .card,
@@ -372,7 +450,9 @@
 :root[data-theme='aether-neon'] .album-card:hover,
 :root[data-theme='aether-neon'] .artist-card:hover {
     transform: translateY(-4px) scale(1.02);
-    box-shadow: 0 0 30px rgba(0, 240, 255, 0.3), 0 0 60px rgba(255, 0, 229, 0.15);
+    box-shadow:
+        0 0 30px rgba(0, 240, 255, 0.3),
+        0 0 60px rgba(255, 0, 229, 0.15);
 }
 
 :root[data-theme='aether-neon'] .sidebar {
@@ -399,12 +479,19 @@
 
 :root[data-theme='aether-neon'] .btn-primary:hover,
 :root[data-theme='aether-neon'] button.primary:hover {
-    box-shadow: 0 0 35px rgba(0, 240, 255, 0.6), 0 0 60px rgba(255, 0, 229, 0.3);
+    box-shadow:
+        0 0 35px rgba(0, 240, 255, 0.6),
+        0 0 60px rgba(255, 0, 229, 0.3);
     transform: translateY(-2px);
 }
 
 :root[data-theme='aether-neon'] .progress-bar {
-    background: linear-gradient(90deg, var(--neon-glow-1, #00f0ff), var(--neon-glow-2, #ff00e5), var(--neon-glow-3, #39ff14));
+    background: linear-gradient(
+        90deg,
+        var(--neon-glow-1, #00f0ff),
+        var(--neon-glow-2, #ff00e5),
+        var(--neon-glow-3, #39ff14)
+    );
     background-size: 200% 100%;
     animation: neon-glow-shift 3s ease infinite;
 }
@@ -417,7 +504,6 @@
 :root[data-theme='aether-neon'] .main-content {
     position: relative;
 }
-
 
 /* Aether Neon - Enhanced Futuristic Effects */
 
@@ -442,20 +528,48 @@
 }
 
 @keyframes neon-scanline-scroll {
-    0% { background-position: 0 0; }
-    100% { background-position: 0 100vh; }
+    0% {
+        background-position: 0 0;
+    }
+    100% {
+        background-position: 0 100vh;
+    }
 }
 
 /* Glitch effect on logo */
 @keyframes neon-glitch {
-    0%, 92%, 100% { transform: none; text-shadow: 0 0 5px #00f0ff, 0 0 20px #00f0ff; }
-    93% { transform: translate(-2px, 1px); text-shadow: -2px 0 #ff00e5, 2px 0 #39ff14; }
-    95% { transform: translate(2px, -1px); text-shadow: 2px 0 #ff00e5, -2px 0 #39ff14; }
-    97% { transform: translate(-1px, 2px); text-shadow: -1px 0 #ff00e5, 1px 0 #39ff14; }
+    0%,
+    92%,
+    100% {
+        transform: none;
+        text-shadow:
+            0 0 5px #00f0ff,
+            0 0 20px #00f0ff;
+    }
+    93% {
+        transform: translate(-2px, 1px);
+        text-shadow:
+            -2px 0 #ff00e5,
+            2px 0 #39ff14;
+    }
+    95% {
+        transform: translate(2px, -1px);
+        text-shadow:
+            2px 0 #ff00e5,
+            -2px 0 #39ff14;
+    }
+    97% {
+        transform: translate(-1px, 2px);
+        text-shadow:
+            -1px 0 #ff00e5,
+            1px 0 #39ff14;
+    }
 }
 
 :root[data-theme='aether-neon'] .sidebar-logo span {
-    animation: neon-glitch 4s ease-in-out infinite, neon-flicker 3s ease-in-out infinite;
+    animation:
+        neon-glitch 4s ease-in-out infinite,
+        neon-flicker 3s ease-in-out infinite;
     letter-spacing: 2px;
     text-transform: uppercase;
 }
@@ -465,13 +579,19 @@
 :root[data-theme='aether-neon'] .track-item:hover,
 :root[data-theme='aether-neon'] .album-card:hover,
 :root[data-theme='aether-neon'] .artist-card:hover {
-    box-shadow: 0 0 15px rgba(0, 240, 255, 0.4), 0 0 40px rgba(0, 240, 255, 0.2), 0 0 80px rgba(255, 0, 229, 0.1), inset 0 0 20px rgba(0, 240, 255, 0.05);
+    box-shadow:
+        0 0 15px rgba(0, 240, 255, 0.4),
+        0 0 40px rgba(0, 240, 255, 0.2),
+        0 0 80px rgba(255, 0, 229, 0.1),
+        inset 0 0 20px rgba(0, 240, 255, 0.05);
     border-color: rgba(0, 240, 255, 0.6);
 }
 
 /* Neon glow on section titles */
 :root[data-theme='aether-neon'] .section-title {
-    text-shadow: 0 0 10px rgba(0, 240, 255, 0.5), 0 0 30px rgba(0, 240, 255, 0.2);
+    text-shadow:
+        0 0 10px rgba(0, 240, 255, 0.5),
+        0 0 30px rgba(0, 240, 255, 0.2);
     letter-spacing: 1px;
 }
 
@@ -484,12 +604,16 @@
 /* Enhanced nav items with neon hover */
 :root[data-theme='aether-neon'] .sidebar-nav .nav-item a:hover {
     background-color: rgba(0, 240, 255, 0.1) !important;
-    box-shadow: inset 0 0 15px rgba(0, 240, 255, 0.1), 0 0 10px rgba(0, 240, 255, 0.1);
+    box-shadow:
+        inset 0 0 15px rgba(0, 240, 255, 0.1),
+        0 0 10px rgba(0, 240, 255, 0.1);
     text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
 }
 
 :root[data-theme='aether-neon'] .sidebar-nav .nav-item a.active {
-    box-shadow: 0 0 20px rgba(0, 240, 255, 0.4), inset 0 0 10px rgba(0, 240, 255, 0.1);
+    box-shadow:
+        0 0 20px rgba(0, 240, 255, 0.4),
+        inset 0 0 10px rgba(0, 240, 255, 0.1);
     text-shadow: 0 0 10px rgba(0, 240, 255, 0.8);
 }
 
@@ -497,29 +621,41 @@
 :root[data-theme='aether-neon'] .player-bar,
 :root[data-theme='aether-neon'] .now-playing-bar {
     border-top: 1px solid rgba(0, 240, 255, 0.3) !important;
-    box-shadow: 0 -5px 30px rgba(0, 240, 255, 0.1), 0 -2px 10px rgba(255, 0, 229, 0.05) !important;
+    box-shadow:
+        0 -5px 30px rgba(0, 240, 255, 0.1),
+        0 -2px 10px rgba(255, 0, 229, 0.05) !important;
 }
 
 /* Cyberpunk play button */
 :root[data-theme='aether-neon'] .play-pause-btn,
 :root[data-theme='aether-neon'] #fs-play-pause-btn {
-    box-shadow: 0 0 15px rgba(0, 240, 255, 0.5), 0 0 30px rgba(0, 240, 255, 0.2) !important;
+    box-shadow:
+        0 0 15px rgba(0, 240, 255, 0.5),
+        0 0 30px rgba(0, 240, 255, 0.2) !important;
 }
 
 :root[data-theme='aether-neon'] .play-pause-btn:hover,
 :root[data-theme='aether-neon'] #fs-play-pause-btn:hover {
-    box-shadow: 0 0 25px rgba(0, 240, 255, 0.7), 0 0 50px rgba(0, 240, 255, 0.3), 0 0 80px rgba(255, 0, 229, 0.15) !important;
+    box-shadow:
+        0 0 25px rgba(0, 240, 255, 0.7),
+        0 0 50px rgba(0, 240, 255, 0.3),
+        0 0 80px rgba(255, 0, 229, 0.15) !important;
 }
 
 /* Neon search bar */
 :root[data-theme='aether-neon'] .search-bar input:focus {
     border-color: #00f0ff !important;
-    box-shadow: 0 0 10px rgba(0, 240, 255, 0.3), 0 0 30px rgba(0, 240, 255, 0.1), inset 0 0 10px rgba(0, 240, 255, 0.05) !important;
+    box-shadow:
+        0 0 10px rgba(0, 240, 255, 0.3),
+        0 0 30px rgba(0, 240, 255, 0.1),
+        inset 0 0 10px rgba(0, 240, 255, 0.05) !important;
 }
 
 /* Enhanced progress bar with pulsing glow */
 :root[data-theme='aether-neon'] .progress-bar .progress-fill {
-    box-shadow: 0 0 10px rgba(0, 240, 255, 0.5), 0 0 20px rgba(255, 0, 229, 0.3);
+    box-shadow:
+        0 0 10px rgba(0, 240, 255, 0.5),
+        0 0 20px rgba(255, 0, 229, 0.3);
 }
 
 /* Neon scrollbar track glow */
@@ -529,18 +665,24 @@
 
 /* Cyberpunk detail header */
 :root[data-theme='aether-neon'] .detail-header-info .title {
-    text-shadow: 0 0 15px rgba(0, 240, 255, 0.4), 0 0 40px rgba(0, 240, 255, 0.15);
+    text-shadow:
+        0 0 15px rgba(0, 240, 255, 0.4),
+        0 0 40px rgba(0, 240, 255, 0.15);
 }
 
 /* Neon modal styling */
 :root[data-theme='aether-neon'] .modal-content {
     border: 1px solid rgba(0, 240, 255, 0.3) !important;
-    box-shadow: 0 0 30px rgba(0, 240, 255, 0.2), 0 20px 50px rgba(0, 0, 0, 0.5) !important;
+    box-shadow:
+        0 0 30px rgba(0, 240, 255, 0.2),
+        0 20px 50px rgba(0, 0, 0, 0.5) !important;
 }
 
 /* Neon theme option button */
 :root[data-theme='aether-neon'] .theme-option.active {
-    box-shadow: 0 0 15px rgba(0, 240, 255, 0.5), 0 0 30px rgba(0, 240, 255, 0.2);
+    box-shadow:
+        0 0 15px rgba(0, 240, 255, 0.5),
+        0 0 30px rgba(0, 240, 255, 0.2);
 }
 
 /* Holographic card image effect */
@@ -562,8 +704,15 @@
 
 /* Pulsing neon accent on playing track */
 @keyframes neon-playing-pulse {
-    0%, 100% { border-left-color: #00f0ff; box-shadow: -5px 0 15px rgba(0, 240, 255, 0.3); }
-    50% { border-left-color: #ff00e5; box-shadow: -5px 0 15px rgba(255, 0, 229, 0.3); }
+    0%,
+    100% {
+        border-left-color: #00f0ff;
+        box-shadow: -5px 0 15px rgba(0, 240, 255, 0.3);
+    }
+    50% {
+        border-left-color: #ff00e5;
+        box-shadow: -5px 0 15px rgba(255, 0, 229, 0.3);
+    }
 }
 
 :root[data-theme='aether-neon'] .track-item.playing {
@@ -2794,7 +2943,7 @@ body.multi-select-mode .track-item:hover {
     align-items: center;
     justify-content: center;
     opacity: 0;
-        z-index: 10;
+    z-index: 10;
 }
 
 .track-item:hover .track-menu-btn {
@@ -4299,7 +4448,7 @@ input:checked + .slider::before {
 #toggle-ui-btn {
     position: absolute;
     top: 1rem;
-            right: 11.5rem;
+    right: 11.5rem;
     background-color: var(--background);
     border: none;
     color: var(--foreground);
@@ -9476,7 +9625,6 @@ body.data-saver-active .album-art-placeholder {
     pointer-events: none;
 }
 
-
 /* ========================================
    Changelog Modal Styles
    ======================================== */
@@ -9592,7 +9740,6 @@ body.data-saver-active .album-art-placeholder {
     font-size: 0.9rem;
 }
 
-
 /* ============================================
    MOOD PLAYLIST PAGE STYLES
    ============================================ */
@@ -9614,7 +9761,7 @@ body.data-saver-active .album-art-placeholder {
 }
 
 .mood-playlist-page .page-subtitle {
-    color: var(--text-secondary, rgba(255,255,255,0.6));
+    color: var(--text-secondary, rgba(255, 255, 255, 0.6));
     font-size: 1rem;
     margin-bottom: 2rem;
 }
@@ -9629,9 +9776,9 @@ body.data-saver-active .album-art-placeholder {
     grid-template-columns: repeat(5, 1fr);
     gap: 0.75rem;
     padding: 1.5rem;
-    background: var(--card-bg, rgba(255,255,255,0.05));
+    background: var(--card-bg, rgba(255, 255, 255, 0.05));
     border-radius: 16px;
-    border: 1px solid var(--border, rgba(255,255,255,0.1));
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
 }
 
 /* Mood Option Cards */
@@ -9652,7 +9799,7 @@ body.data-saver-active .album-art-placeholder {
 
 .mood-option:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
 }
 
 .mood-option.selected {
@@ -9665,13 +9812,13 @@ body.data-saver-active .album-art-placeholder {
 .mood-emoji {
     font-size: 2rem;
     line-height: 1;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
 .mood-label {
     font-size: 0.75rem;
     font-weight: 600;
-    color: var(--text-secondary, rgba(255,255,255,0.6));
+    color: var(--text-secondary, rgba(255, 255, 255, 0.6));
     text-align: center;
 }
 
@@ -9681,10 +9828,10 @@ body.data-saver-active .album-art-placeholder {
 
 /* Energy Slider */
 .mood-energy-slider {
-    background: var(--card-bg, rgba(255,255,255,0.05));
+    background: var(--card-bg, rgba(255, 255, 255, 0.05));
     border-radius: 12px;
     padding: 1.25rem 1.5rem;
-    border: 1px solid var(--border, rgba(255,255,255,0.1));
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
     margin-bottom: 1.5rem;
     animation: fadeSlideIn 0.3s ease;
 }
@@ -9694,10 +9841,10 @@ body.data-saver-active .album-art-placeholder {
     font-size: 0.85rem;
     font-weight: 600;
     margin-bottom: 0.75rem;
-    color: var(--text-secondary, rgba(255,255,255,0.7));
+    color: var(--text-secondary, rgba(255, 255, 255, 0.7));
 }
 
-.mood-energy-slider input[type="range"] {
+.mood-energy-slider input[type='range'] {
     width: 100%;
     margin-bottom: 0.5rem;
     accent-color: var(--accent, #a855f7);
@@ -9707,7 +9854,7 @@ body.data-saver-active .album-art-placeholder {
     display: flex;
     justify-content: space-between;
     font-size: 0.75rem;
-    color: var(--text-secondary, rgba(255,255,255,0.4));
+    color: var(--text-secondary, rgba(255, 255, 255, 0.4));
 }
 
 /* Action Buttons */
@@ -9753,25 +9900,25 @@ body.data-saver-active .album-art-placeholder {
     font-size: 0.9rem;
     font-weight: 600;
     border-radius: 12px;
-    background: var(--card-bg, rgba(255,255,255,0.08));
+    background: var(--card-bg, rgba(255, 255, 255, 0.08));
     color: var(--text-primary, #fff);
-    border: 1px solid var(--border, rgba(255,255,255,0.1));
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
 }
 
 .mood-surprise-btn:hover {
-    background: var(--card-hover, rgba(255,255,255,0.12));
+    background: var(--card-hover, rgba(255, 255, 255, 0.12));
     transform: translateY(-2px);
 }
 
 /* Results Section */
 .mood-result {
-    background: var(--card-bg, rgba(255,255,255,0.05));
+    background: var(--card-bg, rgba(255, 255, 255, 0.05));
     border-radius: 16px;
     padding: 1.5rem;
-    border: 1px solid var(--border, rgba(255,255,255,0.1));
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
     animation: fadeSlideIn 0.4s ease;
 }
 
@@ -9792,7 +9939,7 @@ body.data-saver-active .album-art-placeholder {
 
 .mood-result-meta {
     font-size: 0.85rem;
-    color: var(--text-secondary, rgba(255,255,255,0.5));
+    color: var(--text-secondary, rgba(255, 255, 255, 0.5));
 }
 
 .mood-result-actions {
@@ -9811,7 +9958,7 @@ body.data-saver-active .album-art-placeholder {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-    border: 1px solid var(--border, rgba(255,255,255,0.1));
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
 }
 
 .mood-play-all-btn {
@@ -9833,7 +9980,7 @@ body.data-saver-active .album-art-placeholder {
 
 .mood-save-btn:hover,
 .mood-regenerate-btn:hover {
-    background: var(--card-hover, rgba(255,255,255,0.08));
+    background: var(--card-hover, rgba(255, 255, 255, 0.08));
     transform: translateY(-1px);
 }
 
@@ -9855,14 +10002,14 @@ body.data-saver-active .album-art-placeholder {
 }
 
 .mood-track-item:hover {
-    background: var(--card-hover, rgba(255,255,255,0.08));
+    background: var(--card-hover, rgba(255, 255, 255, 0.08));
 }
 
 .mood-track-index {
     width: 24px;
     text-align: right;
     font-size: 0.8rem;
-    color: var(--text-secondary, rgba(255,255,255,0.4));
+    color: var(--text-secondary, rgba(255, 255, 255, 0.4));
     flex-shrink: 0;
 }
 
@@ -9881,7 +10028,7 @@ body.data-saver-active .album-art-placeholder {
 
 .mood-track-artist {
     font-size: 0.8rem;
-    color: var(--text-secondary, rgba(255,255,255,0.5));
+    color: var(--text-secondary, rgba(255, 255, 255, 0.5));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -9889,7 +10036,7 @@ body.data-saver-active .album-art-placeholder {
 
 .mood-track-duration {
     font-size: 0.8rem;
-    color: var(--text-secondary, rgba(255,255,255,0.4));
+    color: var(--text-secondary, rgba(255, 255, 255, 0.4));
     flex-shrink: 0;
 }
 
@@ -9927,7 +10074,6 @@ body.data-saver-active .album-art-placeholder {
     }
 }
 
-
 /* ============================================
    MOOD QUEUE FAB & MODAL STYLES
    ============================================ */
@@ -9963,7 +10109,7 @@ body.data-saver-active .album-art-placeholder {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.7);
+    background: rgba(0, 0, 0, 0.7);
     z-index: 9500;
     align-items: center;
     justify-content: center;
@@ -9978,20 +10124,26 @@ body.data-saver-active .album-art-placeholder {
 .mood-queue-content {
     background: var(--background, #0a0a1a);
     border-radius: 20px;
-    border: 1px solid var(--border, rgba(255,255,255,0.1));
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
     padding: 2rem;
     max-width: 500px;
     width: 100%;
     max-height: 80vh;
     overflow-y: auto;
     position: relative;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
     animation: modalIn 0.3s ease;
 }
 
 @keyframes modalIn {
-    from { opacity: 0; transform: scale(0.9) translateY(20px); }
-    to { opacity: 1; transform: scale(1) translateY(0); }
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
 }
 
 .mood-queue-close {
@@ -10000,7 +10152,7 @@ body.data-saver-active .album-art-placeholder {
     right: 1rem;
     background: none;
     border: none;
-    color: var(--text-secondary, rgba(255,255,255,0.5));
+    color: var(--text-secondary, rgba(255, 255, 255, 0.5));
     cursor: pointer;
     font-size: 1.25rem;
     padding: 0.25rem;
@@ -10020,7 +10172,7 @@ body.data-saver-active .album-art-placeholder {
 
 .mood-queue-suggestion {
     font-size: 0.85rem;
-    color: var(--text-secondary, rgba(255,255,255,0.5));
+    color: var(--text-secondary, rgba(255, 255, 255, 0.5));
     margin-bottom: 1.5rem;
 }
 
@@ -10040,7 +10192,7 @@ body.data-saver-active .album-art-placeholder {
     padding: 0.875rem 0.5rem;
     border-radius: 12px;
     border: 2px solid transparent;
-    background: var(--card-bg, rgba(255,255,255,0.05));
+    background: var(--card-bg, rgba(255, 255, 255, 0.05));
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -10058,7 +10210,7 @@ body.data-saver-active .album-art-placeholder {
 .mood-card-label {
     font-size: 0.7rem;
     font-weight: 600;
-    color: var(--text-secondary, rgba(255,255,255,0.6));
+    color: var(--text-secondary, rgba(255, 255, 255, 0.6));
     text-align: center;
 }
 
@@ -10073,8 +10225,8 @@ body.data-saver-active .album-art-placeholder {
     flex: 1;
     padding: 0.6rem 0.875rem;
     border-radius: 8px;
-    border: 1px solid var(--border, rgba(255,255,255,0.1));
-    background: var(--card-bg, rgba(255,255,255,0.05));
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+    background: var(--card-bg, rgba(255, 255, 255, 0.05));
     color: var(--text-primary, #fff);
     font-size: 0.9rem;
 }
@@ -10108,7 +10260,7 @@ body.data-saver-active .album-art-placeholder {
     justify-content: center;
     gap: 0.75rem;
     padding: 1.5rem 0;
-    color: var(--text-secondary, rgba(255,255,255,0.6));
+    color: var(--text-secondary, rgba(255, 255, 255, 0.6));
     font-size: 0.9rem;
 }
 
@@ -10156,7 +10308,9 @@ body.data-saver-active .album-art-placeholder {
     padding: 0.6rem 1rem 0.6rem 0.6rem;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
     max-width: 280px;
 }
 
@@ -10217,15 +10371,37 @@ body.data-saver-active .album-art-placeholder {
     transform-origin: bottom;
 }
 
-.npd-wave span:nth-child(1) { height: 8px;  animation-delay: 0s; }
-.npd-wave span:nth-child(2) { height: 14px; animation-delay: 0.15s; }
-.npd-wave span:nth-child(3) { height: 20px; animation-delay: 0.3s; }
-.npd-wave span:nth-child(4) { height: 14px; animation-delay: 0.45s; }
-.npd-wave span:nth-child(5) { height: 8px;  animation-delay: 0.6s; }
+.npd-wave span:nth-child(1) {
+    height: 8px;
+    animation-delay: 0s;
+}
+.npd-wave span:nth-child(2) {
+    height: 14px;
+    animation-delay: 0.15s;
+}
+.npd-wave span:nth-child(3) {
+    height: 20px;
+    animation-delay: 0.3s;
+}
+.npd-wave span:nth-child(4) {
+    height: 14px;
+    animation-delay: 0.45s;
+}
+.npd-wave span:nth-child(5) {
+    height: 8px;
+    animation-delay: 0.6s;
+}
 
 @keyframes npdWave {
-    0%, 100% { transform: scaleY(0.4); opacity: 0.6; }
-    50%       { transform: scaleY(1);   opacity: 1; }
+    0%,
+    100% {
+        transform: scaleY(0.4);
+        opacity: 0.6;
+    }
+    50% {
+        transform: scaleY(1);
+        opacity: 1;
+    }
 }
 
 /* Pause state: freeze wave animation */
@@ -10256,7 +10432,10 @@ body.fullscreen-active .now-playing-drawer {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+    transition:
+        color 0.2s ease,
+        background 0.2s ease,
+        transform 0.15s ease;
     flex-shrink: 0;
 }
 
@@ -10304,21 +10483,36 @@ body.fullscreen-active .now-playing-drawer {
     animation: aiTypingDot 1.4s infinite ease-in-out;
 }
 
-.ai-typing-dots span:nth-child(1) { animation-delay: 0s; }
-.ai-typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-.ai-typing-dots span:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes aiTypingDot {
-    0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
-    40%           { transform: scale(1.2); opacity: 1; }
+.ai-typing-dots span:nth-child(1) {
+    animation-delay: 0s;
+}
+.ai-typing-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+.ai-typing-dots span:nth-child(3) {
+    animation-delay: 0.4s;
 }
 
+@keyframes aiTypingDot {
+    0%,
+    80%,
+    100% {
+        transform: scale(0.8);
+        opacity: 0.5;
+    }
+    40% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+}
 
 /* ==============================================
    Sidebar AI Chat Item
    ============================================== */
 .sidebar-ai-chat-item {
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    transition:
+        opacity 0.3s ease,
+        transform 0.3s ease;
     opacity: 1;
     transform: translateX(0);
 }
@@ -10336,8 +10530,8 @@ body.fullscreen-active .now-playing-drawer {
 }
 
 .sidebar-ai-chat-item svg {
-        color: inherit;
-            transition: color var(--transition-fast);
+    color: inherit;
+    transition: color var(--transition-fast);
 }
 
 .ai-chat-badge {
@@ -10351,10 +10545,16 @@ body.fullscreen-active .now-playing-drawer {
 }
 
 @keyframes aiChatBadgePulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(0.8); }
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(0.8);
+    }
 }
-
 
 /* Position AI chat button next to lyrics mic button */
 #fs-ai-chat-btn {
@@ -10383,114 +10583,114 @@ body:has(#side-panel.active) #fs-ai-chat-btn {
    Chat bar normal (bottom: 0) saat fullscreen ON
    ============================================================ */
 
-/* Saat fullscreen AKTIF: side-panel memanjang penuh tanpa player bar */
-#side-panel.fullscreen-mode {
-    bottom: 0 !important;
-    top: 0 !important;
-}
-
-#side-panel.fullscreen-mode .panel-content {
-    padding-bottom: 1rem;
-}
-
-/* AI Chat input wrapper - floating saat TIDAK fullscreen */
-#ai-chat-input-wrapper,
-.ai-chat-input-wrapper {
-    position: sticky;
-    bottom: 0;
-    background: color-mix(in srgb, var(--card) 60%, transparent);
-    backdrop-filter: blur(20px);
-    border-top: 1px solid var(--border);
-    padding: var(--spacing-sm) var(--spacing-md);
-    z-index: 10;
-    border-radius: 0 0 var(--radius) var(--radius);
-}
-
-/* Saat fullscreen OFF: panel content perlu padding bawah agar chat input tidak tertutup player bar */
-#side-panel:not(.fullscreen-mode) .panel-content {
-    padding-bottom: calc(var(--player-bar-height-desktop) + 3rem);
-}
-
-/* Mobile: saat fullscreen OFF, padding bawah sesuai mobile player bar */
-@media (max-width: 768px) {
-    #side-panel:not(.fullscreen-mode) .panel-content {
-        padding-bottom: calc(var(--player-bar-height-mobile) + 2rem);
-    }
-
-    /* Fullscreen mobile: panel penuh */
+    /* Saat fullscreen AKTIF: side-panel memanjang penuh tanpa player bar */
     #side-panel.fullscreen-mode {
         bottom: 0 !important;
         top: 0 !important;
     }
 
     #side-panel.fullscreen-mode .panel-content {
-        padding-bottom: env(safe-area-inset-bottom, 1rem);
+        padding-bottom: 1rem;
     }
-}
 
-/* ============================================================
+    /* AI Chat input wrapper - floating saat TIDAK fullscreen */
+    #ai-chat-input-wrapper,
+    .ai-chat-input-wrapper {
+        position: sticky;
+        bottom: 0;
+        background: color-mix(in srgb, var(--card) 60%, transparent);
+        backdrop-filter: blur(20px);
+        border-top: 1px solid var(--border);
+        padding: var(--spacing-sm) var(--spacing-md);
+        z-index: 10;
+        border-radius: 0 0 var(--radius) var(--radius);
+    }
+
+    /* Saat fullscreen OFF: panel content perlu padding bawah agar chat input tidak tertutup player bar */
+    #side-panel:not(.fullscreen-mode) .panel-content {
+        padding-bottom: calc(var(--player-bar-height-desktop) + 3rem);
+    }
+
+    /* Mobile: saat fullscreen OFF, padding bawah sesuai mobile player bar */
+    @media (max-width: 768px) {
+        #side-panel:not(.fullscreen-mode) .panel-content {
+            padding-bottom: calc(var(--player-bar-height-mobile) + 2rem);
+        }
+
+        /* Fullscreen mobile: panel penuh */
+        #side-panel.fullscreen-mode {
+            bottom: 0 !important;
+            top: 0 !important;
+        }
+
+        #side-panel.fullscreen-mode .panel-content {
+            padding-bottom: env(safe-area-inset-bottom, 1rem);
+        }
+    }
+
+    /* ============================================================
    AI CHAT PANEL - DESKTOP FIX (overrides blok sebelumnya)
    Masalah: chat bar tidak menempel di bawah di desktop
    Solusi: flex layout + panel berhenti di atas player bar
    ============================================================ */
 
-/* Panel AI chat: flex column penuh agar input menempel di bawah */
-#side-panel[data-view='ai-chat'] #side-panel-content {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    overflow: hidden;
-    padding: 0;
-}
-
-/* Messages mengisi semua ruang tersisa */
-#side-panel[data-view='ai-chat'] #ai-chat-messages {
-    flex: 1 1 auto;
-    overflow-y: auto;
-    min-height: 0;
-    padding: 1rem;
-}
-
-/* Input textarea menempel di bawah (tidak flex-grow) */
-#side-panel[data-view='ai-chat'] #ai-chat-input {
-    flex-shrink: 0;
-}
-
-/* Tombol kirim menempel di bawah */
-#side-panel[data-view='ai-chat'] #ai-chat-send {
-    flex-shrink: 0;
-}
-
-/* Wrapper bawah (input + tombol): latar belakang dan padding */
-#side-panel[data-view='ai-chat'] #side-panel-content > #ai-chat-input,
-#side-panel[data-view='ai-chat'] #side-panel-content > #ai-chat-send {
-    background: color-mix(in srgb, var(--card) 90%, transparent);
-    padding: var(--spacing-sm) var(--spacing-md);
-    margin: 0;
-}
-
-#side-panel[data-view='ai-chat'] #side-panel-content > #ai-chat-input {
-    border-top: 1px solid var(--border);
-    padding-top: var(--spacing-md);
-    padding-bottom: var(--spacing-sm);
-}
-
-#side-panel[data-view='ai-chat'] #side-panel-content > #ai-chat-send {
-    padding-top: 0;
-    padding-bottom: var(--spacing-md);
-}
-
-/* Desktop/laptop: panel berhenti di atas player bar saat TIDAK fullscreen */
-@media (min-width: 769px) {
-    #side-panel:not(.fullscreen-mode) {
-        bottom: calc(var(--player-bar-height-desktop) + 20px) !important;
+    /* Panel AI chat: flex column penuh agar input menempel di bawah */
+    #side-panel[data-view='ai-chat'] #side-panel-content {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+        padding: 0;
     }
 
-    /* Override padding-bottom berlebih dari CSS sebelumnya */
-    #side-panel:not(.fullscreen-mode) .panel-content {
-        padding-bottom: 0 !important;
+    /* Messages mengisi semua ruang tersisa */
+    #side-panel[data-view='ai-chat'] #ai-chat-messages {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        min-height: 0;
+        padding: 1rem;
     }
-}
+
+    /* Input textarea menempel di bawah (tidak flex-grow) */
+    #side-panel[data-view='ai-chat'] #ai-chat-input {
+        flex-shrink: 0;
+    }
+
+    /* Tombol kirim menempel di bawah */
+    #side-panel[data-view='ai-chat'] #ai-chat-send {
+        flex-shrink: 0;
+    }
+
+    /* Wrapper bawah (input + tombol): latar belakang dan padding */
+    #side-panel[data-view='ai-chat'] #side-panel-content > #ai-chat-input,
+    #side-panel[data-view='ai-chat'] #side-panel-content > #ai-chat-send {
+        background: color-mix(in srgb, var(--card) 90%, transparent);
+        padding: var(--spacing-sm) var(--spacing-md);
+        margin: 0;
+    }
+
+    #side-panel[data-view='ai-chat'] #side-panel-content > #ai-chat-input {
+        border-top: 1px solid var(--border);
+        padding-top: var(--spacing-md);
+        padding-bottom: var(--spacing-sm);
+    }
+
+    #side-panel[data-view='ai-chat'] #side-panel-content > #ai-chat-send {
+        padding-top: 0;
+        padding-bottom: var(--spacing-md);
+    }
+
+    /* Desktop/laptop: panel berhenti di atas player bar saat TIDAK fullscreen */
+    @media (min-width: 769px) {
+        #side-panel:not(.fullscreen-mode) {
+            bottom: calc(var(--player-bar-height-desktop) + 20px) !important;
+        }
+
+        /* Override padding-bottom berlebih dari CSS sebelumnya */
+        #side-panel:not(.fullscreen-mode) .panel-content {
+            padding-bottom: 0 !important;
+        }
+    }
 }
 
 /* ===== Spotify Wrapped ===== */
@@ -10540,23 +10740,45 @@ body:has(#side-panel.active) #fs-ai-chat-btn {
 }
 
 @keyframes wrappedFadeIn {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 @keyframes wrappedSlideIn {
-    from { opacity: 0; transform: translateX(-20px); }
-    to { opacity: 1; transform: translateX(0); }
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
 @keyframes wrappedPulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
+    0%,
+    100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
 }
 
 @keyframes wrappedFloat {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
 }
 
 /* Intro Slide */
@@ -10899,8 +11121,12 @@ body:has(#side-panel.active) #fs-ai-chat-btn {
 }
 
 @keyframes wrappedModalIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
 }
 
 .wrapped-modal-card {
@@ -10956,5 +11182,559 @@ body:has(#side-panel.active) #fs-ai-chat-btn {
 
     .wrapped-list-item {
         padding: 0.5rem;
+    }
+}
+
+/* ===== Daylist ===== */
+.daylist-card {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    min-height: 180px;
+    display: flex;
+    align-items: flex-end;
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.daylist-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+}
+
+.daylist-gradient {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    z-index: 0;
+}
+
+.daylist-gradient::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(transparent 30%, rgba(0, 0, 0, 0.7) 100%);
+}
+
+.daylist-content {
+    position: relative;
+    z-index: 1;
+    padding: 1.25rem;
+    width: 100%;
+    color: #fff;
+}
+
+.daylist-emoji {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.daylist-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    text-transform: capitalize;
+    margin-bottom: 0.25rem;
+}
+
+.daylist-subtitle {
+    font-size: 0.8rem;
+    opacity: 0.8;
+    margin-bottom: 0.5rem;
+}
+
+.daylist-count {
+    font-size: 0.75rem;
+    opacity: 0.6;
+}
+
+.daylist-play-btn {
+    position: absolute;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #fff;
+    color: #333;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease;
+}
+
+.daylist-play-btn:hover {
+    transform: scale(1.1);
+}
+
+/* Daylist Tracks Modal */
+.daylist-tracks-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: wrappedModalIn 0.3s ease;
+}
+
+.daylist-tracks-panel {
+    background: var(--bg-secondary, #1a1a2e);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.daylist-tracks-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem;
+    border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+}
+
+.daylist-tracks-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary, #8b8fa3);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px 8px;
+}
+
+.daylist-play-all-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 1rem 1.25rem;
+    padding: 0.7rem 1.25rem;
+    background: var(--accent, #e94560);
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.daylist-play-all-btn:hover {
+    opacity: 0.9;
+}
+
+.daylist-tracks-list {
+    overflow-y: auto;
+    padding: 0 1.25rem 1.25rem;
+    flex: 1;
+}
+
+.daylist-track-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.05));
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.daylist-track-item:hover {
+    background: var(--bg-tertiary, rgba(255, 255, 255, 0.05));
+    border-radius: 8px;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+.daylist-track-num {
+    min-width: 1.5rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-secondary, #8b8fa3);
+}
+
+.daylist-track-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.daylist-track-title {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--text-primary, #fff);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.daylist-track-artist {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-secondary, #8b8fa3);
+    margin-top: 0.1rem;
+}
+
+.daylist-track-cover {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+/* ===== Time Capsule ===== */
+.time-capsule-card {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    min-height: 180px;
+    display: flex;
+    align-items: flex-end;
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.time-capsule-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+}
+
+.time-capsule-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+    z-index: 0;
+}
+
+.time-capsule-bg::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(transparent 30%, rgba(0, 0, 0, 0.7) 100%);
+}
+
+.time-capsule-year-bubble {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.15;
+    font-size: 3rem;
+    font-weight: 900;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.time-capsule-year-bubble.y1 {
+    width: 120px;
+    height: 120px;
+    top: -20px;
+    right: -20px;
+    font-size: 1.2rem;
+    animation: wrappedFloat 4s ease infinite;
+}
+
+.time-capsule-year-bubble.y2 {
+    width: 90px;
+    height: 90px;
+    top: 30%;
+    left: 10%;
+    font-size: 1rem;
+    animation: wrappedFloat 5s ease infinite 1s;
+}
+
+.time-capsule-year-bubble.y3 {
+    width: 70px;
+    height: 70px;
+    bottom: 10%;
+    right: 20%;
+    font-size: 0.9rem;
+    animation: wrappedFloat 3.5s ease infinite 0.5s;
+}
+
+.time-capsule-content {
+    position: relative;
+    z-index: 1;
+    padding: 1.25rem;
+    width: 100%;
+    color: #fff;
+}
+
+.time-capsule-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.time-capsule-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.time-capsule-subtitle {
+    font-size: 0.8rem;
+    opacity: 0.8;
+    margin-bottom: 0.5rem;
+}
+
+.time-capsule-count {
+    font-size: 0.75rem;
+    opacity: 0.6;
+}
+
+.time-capsule-play-btn {
+    position: absolute;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #fff;
+    color: #333;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease;
+}
+
+.time-capsule-play-btn:hover {
+    transform: scale(1.1);
+}
+
+/* Time Capsule Tracks Modal */
+.time-capsule-tracks-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: wrappedModalIn 0.3s ease;
+}
+
+.time-capsule-tracks-panel {
+    background: var(--bg-secondary, #1a1a2e);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.time-capsule-tracks-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem;
+    border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+}
+
+.time-capsule-tracks-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary, #8b8fa3);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px 8px;
+}
+
+.time-capsule-play-all-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 1rem 1.25rem;
+    padding: 0.7rem 1.25rem;
+    background: var(--accent, #e94560);
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.time-capsule-play-all-btn:hover {
+    opacity: 0.9;
+}
+
+.time-capsule-tracks-list {
+    overflow-y: auto;
+    padding: 0 1.25rem 1.25rem;
+    flex: 1;
+}
+
+.time-capsule-track-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.05));
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.time-capsule-track-item:hover {
+    background: var(--bg-tertiary, rgba(255, 255, 255, 0.05));
+    border-radius: 8px;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+.time-capsule-track-num {
+    min-width: 1.5rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-secondary, #8b8fa3);
+}
+
+.time-capsule-track-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.time-capsule-track-title {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--text-primary, #fff);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.time-capsule-track-artist {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-secondary, #8b8fa3);
+    margin-top: 0.1rem;
+}
+
+.time-capsule-track-cover {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+/* ===== Private Session ===== */
+.private-session-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(233, 69, 96, 0.15);
+    border: 1px solid rgba(233, 69, 96, 0.3);
+    border-radius: 8px;
+    color: var(--accent, #e94560);
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin: 0.5rem 0;
+    animation: privateSessionPulse 3s ease infinite;
+}
+
+@keyframes privateSessionPulse {
+    0%,
+    100% {
+        border-color: rgba(233, 69, 96, 0.3);
+    }
+    50% {
+        border-color: rgba(233, 69, 96, 0.6);
+    }
+}
+
+.private-session-indicator .ps-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent, #e94560);
+    animation: psDotBlink 2s ease infinite;
+}
+
+@keyframes psDotBlink {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.4;
+    }
+}
+
+.private-session-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.75rem;
+    background: none;
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.15));
+    border-radius: 6px;
+    color: var(--text-secondary, #8b8fa3);
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.private-session-toggle-btn:hover {
+    background: var(--bg-tertiary, rgba(255, 255, 255, 0.05));
+}
+
+.private-session-toggle-btn.active {
+    background: rgba(233, 69, 96, 0.15);
+    border-color: rgba(233, 69, 96, 0.4);
+    color: var(--accent, #e94560);
+}
+
+/* ===== Home Section: Daylist & Time Capsule Grid ===== */
+.daylist-time-capsule-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+}
+
+@media (max-width: 480px) {
+    .daylist-time-capsule-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .daylist-card,
+    .time-capsule-card {
+        min-height: 150px;
     }
 }

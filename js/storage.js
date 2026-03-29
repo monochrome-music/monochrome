@@ -1851,6 +1851,59 @@ export const homePageSettings = {
     },
 };
 
+// Private Session - hide activity from scrobblers and analytics
+export const privateSessionSettings = {
+    ENABLED_KEY: 'private-session-enabled',
+
+    isEnabled() {
+        try {
+            return localStorage.getItem(this.ENABLED_KEY) === 'true';
+        } catch {
+            return false;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.ENABLED_KEY, enabled ? 'true' : 'false');
+    },
+};
+
+// Home page: Daylist & Time Capsule visibility
+// (add these methods to homePageSettings, but since it's a const object, we create separate exports)
+export const daylistSettings = {
+    SHOW_KEY: 'home-show-daylist',
+
+    shouldShow() {
+        try {
+            const val = localStorage.getItem(this.SHOW_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShow(enabled) {
+        localStorage.setItem(this.SHOW_KEY, enabled ? 'true' : 'false');
+    },
+};
+
+export const timeCapsuleSettings = {
+    SHOW_KEY: 'home-show-time-capsule',
+
+    shouldShow() {
+        try {
+            const val = localStorage.getItem(this.SHOW_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setShow(enabled) {
+        localStorage.setItem(this.SHOW_KEY, enabled ? 'true' : 'false');
+    },
+};
+
 export const radioSettings = {
     ENABLED_KEY: 'radio-enabled',
 

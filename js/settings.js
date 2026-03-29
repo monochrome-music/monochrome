@@ -2692,6 +2692,24 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
+    const daylistToggle = document.getElementById('show-daylist-toggle');
+    if (daylistToggle) {
+        const { daylistSettings } = await import('./storage.js');
+        daylistToggle.checked = daylistSettings.shouldShow();
+        daylistToggle.addEventListener('change', (e) => {
+            daylistSettings.setShow(e.target.checked);
+        });
+    }
+
+    const timeCapsuleToggle = document.getElementById('show-time-capsule-toggle');
+    if (timeCapsuleToggle) {
+        const { timeCapsuleSettings } = await import('./storage.js');
+        timeCapsuleToggle.checked = timeCapsuleSettings.shouldShow();
+        timeCapsuleToggle.addEventListener('change', (e) => {
+            timeCapsuleSettings.setShow(e.target.checked);
+        });
+    }
+
     const shuffleEditorsPicksToggle = document.getElementById('shuffle-editors-picks-toggle');
     if (shuffleEditorsPicksToggle) {
         shuffleEditorsPicksToggle.checked = homePageSettings.shouldShuffleEditorsPicks();

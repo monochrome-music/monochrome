@@ -16,7 +16,7 @@ import {
     pwaUpdateSettings,
     modalSettings,
     keyboardShortcuts,
-        dataSaverSettings,
+    dataSaverSettings,
 } from './storage.js';
 import { UIRenderer } from './ui.js';
 import { Player } from './player.js';
@@ -79,7 +79,8 @@ import {
     SVG_CLOSE,
     SVG_RESET,
 } from './icons.js';
-import { HiFiClient } from './HiFi.js'; import { initializeNewFeatures } from './feature-integrator.js';
+import { HiFiClient } from './HiFi.js';
+import { initializeNewFeatures } from './feature-integrator.js';
 
 // Capture real iOS state before spoofing (needed for background audio)
 if (typeof window !== 'undefined') {
@@ -699,6 +700,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     const { initializeSettings } = await loadSettingsModule();
     await initializeSettings(scrobbler, Player.instance, MusicAPI.instance, UIRenderer.instance);
 
+    // Private session toggle
+    const psToggle = document.getElementById('private-session-toggle');
+    if (psToggle) {
+        const { privateSessionSettings } = await import('./storage.js');
+        psToggle.checked = privateSessionSettings.isEnabled();
+        psToggle.addEventListener('change', (e) => {
+            privateSessionSettings.setEnabled(e.target.checked);
+            UIRenderer.instance.renderPrivateSessionIndicator();
+        });
+    }
+
     // Track sidebar navigation clicks
     document.querySelectorAll('.sidebar-nav a').forEach((link) => {
         link.addEventListener('click', () => {
@@ -727,13 +739,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (Player.instance.currentTrack) {
         UIRenderer.instance.setCurrentTrack(Player.instance.currentTrack);
 
-            // Initialize new feature modules (A-B Loop, Spectrum Analyzer, etc.)
-    initializeNewFeatures({
-        player: Player.instance,
-        uiRenderer: UIRenderer.instance,
-        musicAPI: MusicAPI.instance,
-        audioPlayer,
-    });
+        // Initialize new feature modules (A-B Loop, Spectrum Analyzer, etc.)
+        initializeNewFeatures({
+            player: Player.instance,
+            uiRenderer: UIRenderer.instance,
+            musicAPI: MusicAPI.instance,
+            audioPlayer,
+        });
     }
 
     document.querySelector('.now-playing-bar').addEventListener('click', async (e) => {
@@ -1080,7 +1092,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     document.getElementById('toggle-lyrics-btn')?.addEventListener('click', async (e) => {
         e.stopPropagation();
-                // Open fullscreen and toggle lyrics instead of side panel
+        // Open fullscreen and toggle lyrics instead of side panel
         const fullscreen = document.getElementById('fullscreen-cover-overlay');
         if (fullscreen && fullscreen.style.display !== 'flex') {
             // Open fullscreen first
@@ -1137,8 +1149,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Update UI with current track info for theme
         UIRenderer.instance.setCurrentTrack(Player.instance.currentTrack);
 
-                // Initialize new features on first play
-        initializeNewFeatures({ player: Player.instance, uiRenderer: UIRenderer.instance, musicAPI: MusicAPI.instance, audioPlayer });
+        // Initialize new features on first play
+        initializeNewFeatures({
+            player: Player.instance,
+            uiRenderer: UIRenderer.instance,
+            musicAPI: MusicAPI.instance,
+            audioPlayer,
+        });
 
         // Update Media Session with new track
         Player.instance.updateMediaSession(Player.instance.currentTrack);
@@ -3397,7 +3414,6 @@ function applyDataSaverOnStartup() {
     }
 }
 applyDataSaverOnStartup();
-
 
 // ========== REPEAT BUTTON SYNC BETWEEN FULLSCREEN AND MINI PLAYER ==========
 (function syncRepeatButtons() {
