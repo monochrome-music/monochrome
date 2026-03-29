@@ -1022,8 +1022,8 @@ export const equalizerSettings = {
     ABSOLUTE_FREQ_MIN: 10,
     ABSOLUTE_FREQ_MAX: 96000,
     DEFAULT_PREAMP: 0,
-    PREAMP_MIN: -20,
-    PREAMP_MAX: 20,
+    PREAMP_MIN: -30,
+    PREAMP_MAX: 30,
 
     isEnabled() {
         try {

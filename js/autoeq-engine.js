@@ -3,7 +3,7 @@
 // Iterative peak-flattening parametric EQ optimization
 
 // Constants: [MAX_BOOST, MAX_CUT, MIN_Q, DEFAULT_SR, PI, 10, 40]
-const _C = [12.0, 12.0, 0.6, 48000, Math.PI, 10, 40];
+const _C = [30.0, 30.0, 0.6, 48000, Math.PI, 10, 40];
 
 /**
  * Calculate biquad filter magnitude response at a given frequency
@@ -139,8 +139,8 @@ function runAutoEqAlgorithm(measurement, target, bandCount, maxFreq = 16000, min
 
         // Safety clamps - reduce max boost at higher frequencies
         let safeBoost = _C[0];
-        if (peakFreq > 3000) safeBoost = 6.0;
-        if (peakFreq > 6000) safeBoost = 3.0;
+        if (peakFreq > 3000) safeBoost = 15.0;
+        if (peakFreq > 6000) safeBoost = 8.0;
         if (gain > safeBoost) gain = safeBoost;
         if (gain < -_C[1]) gain = -_C[1];
         if (Math.abs(gain) < 0.2) break;

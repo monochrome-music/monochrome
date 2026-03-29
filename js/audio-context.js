@@ -721,7 +721,7 @@ class AudioContextManager {
      * @param {number} db - Preamp value in dB (-20 to +20)
      */
     setPreamp(db) {
-        const clampedDb = Math.max(-20, Math.min(20, parseFloat(db) || 0));
+        const clampedDb = Math.max(-30, Math.min(30, parseFloat(db) || 0));
         this.preamp = clampedDb;
         equalizerSettings.setPreamp(clampedDb);
 
