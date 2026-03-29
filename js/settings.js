@@ -1858,11 +1858,13 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                     equalizerSettings.setPreset(presetKey);
                 }
             } else {
-                // Built-in preset - use current band count
+                // Built-in preset - applies via applyProfile (clears AutoEQ state, resets preamp)
                 const presets = EQ_PRESETS;
                 const preset = presets[presetKey];
                 if (preset) {
                     audioContextManager.applyPreset(presetKey);
+                    currentPreamp = 0;
+                    updatePreampUI(0);
                     updateAllBandUI(preset.gains);
                 }
             }
@@ -2200,7 +2202,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         eqPreampInput.addEventListener('change', (e) => {
             let value = parseFloat(e.target.value);
             // Clamp to valid range
-            value = Math.max(-20, Math.min(20, value || 0));
+            value = Math.max(equalizerSettings.PREAMP_MIN, Math.min(equalizerSettings.PREAMP_MAX, value || 0));
             updatePreampUI(value);
         });
 
@@ -2566,10 +2568,11 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                     updateAllBandUI(gains);
                     drawEQCurve();
 
-                    // Update preset selector
+                    // Update preset selector (AutoEQ results don't match any named preset)
                     if (eqPresetSelect) {
                         eqPresetSelect.value = 'flat';
                     }
+                    equalizerSettings.setPreset('flat');
 
                     const headphoneName = autoeqSelectedEntry ? autoeqSelectedEntry.name : 'Custom';
                     setAutoEQStatus(`Applied ${bands.length} bands for ${headphoneName}`, 'success');

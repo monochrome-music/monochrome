@@ -661,11 +661,22 @@ class AudioContextManager {
      * Apply a preset
      */
     applyPreset(presetKey) {
-        const presets = getPresetsForBandCount(this.bandCount);
-        const preset = presets[presetKey];
+        const preset = EQ_PRESETS_16[presetKey];
         if (!preset) return;
 
-        this.setAllGains(preset.gains);
+        // Always apply as a full profile with log-spaced frequencies so any
+        // stale AutoEQ per-band state (Q values, filter types, custom frequencies)
+        // is cleared, and preamp is reset to 0.
+        const freqs = generateFrequencies(this.bandCount, this.freqRange.min, this.freqRange.max);
+        const gains = interpolatePreset(preset.gains, this.bandCount);
+        this.applyProfile({
+            bandCount: this.bandCount,
+            frequencies: freqs,
+            gains,
+            qValues: null,
+            filterTypes: null,
+            preamp: 0,
+        });
         equalizerSettings.setPreset(presetKey);
     }
 
