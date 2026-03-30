@@ -3995,24 +3995,27 @@ input:checked + .slider::before {
     position: absolute;
     top: 1rem;
     right: 4.5rem;
-    background: rgb(0, 0, 0, 0.5);
+    background-color: var(--background);
     border: none;
-    color: white;
-    padding: 0.75rem;
+    color: var(--foreground);
+    width: 48px;
+    height: 48px;
     border-radius: var(--radius-full);
     cursor: pointer;
     z-index: 1001;
     display: flex;
     align-items: center;
     justify-content: center;
+    opacity: 0.5;
     transition:
-        all 0.2s ease,
+        opacity 0.2s ease,
+        transform 0.2s ease,
         right 0.3s ease;
 }
 
 .fullscreen-lyrics-toggle:hover {
-    background: rgb(0, 0, 0, 0.7);
-    transform: scale(1.1);
+    opacity: 0.8;
+    transform: scale(1.05);
 }
 
 .fullscreen-lyrics-toggle.active {
@@ -4027,7 +4030,6 @@ input:checked + .slider::before {
     background-color: var(--background);
     border: none;
     color: var(--foreground);
-    font-size: 2rem;
     width: 48px;
     height: 48px;
     border-radius: var(--radius-full);
@@ -4036,7 +4038,8 @@ input:checked + .slider::before {
     align-items: center;
     justify-content: center;
     transition:
-        opacity 0.2s,
+        opacity 0.2s ease,
+        transform 0.2s ease,
         right 0.3s ease;
     z-index: 10;
     opacity: 0.5;
@@ -4044,6 +4047,7 @@ input:checked + .slider::before {
 
 #close-fullscreen-cover-btn:hover {
     opacity: 0.8;
+    transform: scale(1.05);
 }
 
 /* UI Hidden State for Visualizer Mode */
@@ -4063,12 +4067,72 @@ input:checked + .slider::before {
     pointer-events: none;
 }
 
+body:has(#fullscreen-cover-overlay.ui-hidden.inline-lyrics) #side-panel[data-view='lyrics'] {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+}
+
 #fullscreen-cover-overlay:not(.ui-hidden) .fullscreen-main-view,
 #fullscreen-cover-overlay:not(.ui-hidden) .fullscreen-controls,
 #fullscreen-cover-overlay:not(.ui-hidden) #fullscreen-next-track {
     opacity: 1;
     pointer-events: auto;
     transition: opacity 0.5s ease;
+}
+
+/* Auto-hide controls on idle */
+#fullscreen-cover-overlay.controls-idle .fullscreen-track-info,
+#fullscreen-cover-overlay.controls-idle .fullscreen-controls,
+#fullscreen-cover-overlay.controls-idle #fullscreen-next-track,
+#fullscreen-cover-overlay.controls-idle #toggle-ui-btn,
+#fullscreen-cover-overlay.controls-idle .fullscreen-lyrics-toggle,
+#fullscreen-cover-overlay.controls-idle #close-fullscreen-cover-btn {
+    opacity: 0;
+    pointer-events: none;
+    transition:
+        opacity 0.6s ease,
+        transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#fullscreen-cover-overlay.controls-idle #fullscreen-cover-image {
+    transform: translateY(4rem);
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#fullscreen-cover-overlay:not(.controls-idle) #fullscreen-cover-image {
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#fullscreen-cover-overlay.controls-idle .fullscreen-controls {
+    transform: translateY(1.5rem);
+}
+
+#fullscreen-cover-overlay.controls-idle .fullscreen-track-info {
+    transform: translateY(0.5rem);
+}
+
+#fullscreen-cover-overlay.controls-idle #toggle-ui-btn,
+#fullscreen-cover-overlay.controls-idle .fullscreen-lyrics-toggle,
+#fullscreen-cover-overlay.controls-idle #close-fullscreen-cover-btn {
+    transform: translateY(-0.5rem);
+}
+
+#fullscreen-cover-overlay:not(.controls-idle) .fullscreen-track-info,
+#fullscreen-cover-overlay:not(.controls-idle) .fullscreen-controls,
+#fullscreen-cover-overlay:not(.controls-idle) #fullscreen-next-track,
+#fullscreen-cover-overlay:not(.controls-idle) #toggle-ui-btn,
+#fullscreen-cover-overlay:not(.controls-idle) .fullscreen-lyrics-toggle,
+#fullscreen-cover-overlay:not(.controls-idle) #close-fullscreen-cover-btn {
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+        opacity 0.4s ease,
+        transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#fullscreen-cover-overlay.controls-idle {
+    cursor: none;
 }
 
 #fullscreen-cover-image {
@@ -4087,6 +4151,18 @@ input:checked + .slider::before {
         0 25px 60px rgb(0, 0, 0, 0.6),
         0 10px 30px rgb(0, 0, 0, 0.4),
         0 0 100px rgb(0, 0, 0, 0.3);
+}
+
+#fullscreen-cover-overlay.visualizer-active .fullscreen-controls {
+    text-shadow: 0 1px 8px rgb(0, 0, 0, 0.8);
+}
+
+#fullscreen-cover-overlay.visualizer-active .fullscreen-buttons button {
+    filter: drop-shadow(0 2px 6px rgb(0, 0, 0, 0.7));
+}
+
+#fullscreen-cover-overlay.visualizer-active .fullscreen-progress-container .progress-bar {
+    box-shadow: 0 0 12px rgb(0, 0, 0, 0.5);
 }
 
 .fullscreen-track-info {
@@ -5892,15 +5968,6 @@ img[src=''] {
 #fullscreen-cover-overlay.ui-hidden #close-fullscreen-cover-btn {
     opacity: 0;
     pointer-events: none;
-    transform: translateY(20px);
-}
-
-#fullscreen-cover-overlay.is-video-mode.ui-hidden .fullscreen-controls {
-    transform: translateY(100px);
-}
-
-#fullscreen-cover-overlay.is-video-mode.ui-hidden .fullscreen-main-view {
-    transform: translateY(0);
 }
 
 /* Modals */
@@ -7601,43 +7668,128 @@ body:has(#fullscreen-cover-overlay:not([style*='display: none'])) .now-playing-b
     }
 }
 
-/* Fullscreen layout shift when side panel is active */
-body:has(#side-panel.active) .fullscreen-main-view {
+/* Inline lyrics mode in fullscreen */
+body:has(#fullscreen-cover-overlay.inline-lyrics[style*='flex']) #side-panel[data-view='lyrics'] {
+    background: transparent;
+    backdrop-filter: none;
+    border-left: none;
+    box-shadow: none;
+    width: 50%;
+    max-width: 50%;
+}
+
+body:has(#fullscreen-cover-overlay.inline-lyrics[style*='flex']) #side-panel[data-view='lyrics'] .panel-header {
+    display: none;
+}
+
+body:has(#fullscreen-cover-overlay.inline-lyrics[style*='flex']) #side-panel[data-view='lyrics'] .panel-content {
+    padding: 6rem 3rem 4rem;
+    mask-image: linear-gradient(to bottom, transparent, black 5%, black 85%, transparent);
+}
+
+body:has(#fullscreen-cover-overlay.inline-lyrics[style*='flex']) #side-panel[data-view='lyrics'] .synced-line {
+    font-size: 1.75rem;
+    line-height: 1.6;
+    padding: 0.6rem 0;
+    text-shadow: 0 2px 12px rgb(0, 0, 0, 0.8);
+}
+
+body:has(#fullscreen-cover-overlay.inline-lyrics[style*='flex']) #side-panel[data-view='lyrics'] .synced-line.active {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--foreground);
+    text-shadow:
+        0 2px 16px rgb(0, 0, 0, 0.9),
+        0 0 40px rgb(0, 0, 0, 0.5);
+}
+
+/* Inline lyrics layout shift */
+body:has(#side-panel.active[data-view='lyrics']):has(#fullscreen-cover-overlay.inline-lyrics) .fullscreen-main-view {
     transition:
         flex 0.3s ease,
-        padding-right 0.3s ease,
-        margin-right 0.3s ease;
+        padding-right 0.3s ease;
+    padding-right: 50%;
+}
+
+body:has(#side-panel.active[data-view='lyrics']):has(#fullscreen-cover-overlay.inline-lyrics)
+    .fullscreen-lyrics-toggle {
+    right: calc(50% + 4.5rem);
+}
+
+body:has(#side-panel.active[data-view='lyrics']):has(#fullscreen-cover-overlay.inline-lyrics)
+    #close-fullscreen-cover-btn {
+    right: calc(50% + 1rem);
+}
+
+body:has(#side-panel.active[data-view='lyrics']):has(#fullscreen-cover-overlay.inline-lyrics) #toggle-ui-btn {
+    right: calc(50% + 8rem);
+}
+
+/* Side panel lyrics layout shift (non-inline) */
+body:has(#side-panel.active[data-view='lyrics']):has(#fullscreen-cover-overlay:not(.inline-lyrics))
+    .fullscreen-main-view {
+    transition:
+        flex 0.3s ease,
+        padding-right 0.3s ease;
     padding-right: 600px;
 }
 
-body:has(#side-panel.active) .fullscreen-lyrics-toggle {
+body:has(#side-panel.active[data-view='lyrics']):has(#fullscreen-cover-overlay:not(.inline-lyrics))
+    .fullscreen-lyrics-toggle {
     right: calc(600px + 4.5rem);
 }
 
-body:has(#side-panel.active) #close-fullscreen-cover-btn {
+body:has(#side-panel.active[data-view='lyrics']):has(#fullscreen-cover-overlay:not(.inline-lyrics))
+    #close-fullscreen-cover-btn {
+    right: calc(600px + 1rem);
+}
+
+/* Fullscreen layout shift when queue panel is active */
+body:has(#side-panel.active[data-view='queue']) .fullscreen-main-view {
+    transition:
+        flex 0.3s ease,
+        padding-right 0.3s ease;
+    padding-right: 600px;
+}
+
+body:has(#side-panel.active[data-view='queue']) .fullscreen-lyrics-toggle {
+    right: calc(600px + 4.5rem);
+}
+
+body:has(#side-panel.active[data-view='queue']) #close-fullscreen-cover-btn {
     right: calc(600px + 1rem);
 }
 
 @media (max-width: 1200px) {
-    body:has(#side-panel.active) .fullscreen-main-view {
+    body:has(#side-panel.active[data-view='queue']) .fullscreen-main-view,
+    body:has(#side-panel.active[data-view='lyrics']):has(#fullscreen-cover-overlay:not(.inline-lyrics))
+        .fullscreen-main-view {
         padding-right: 50vw;
     }
 
-    body:has(#side-panel.active) .fullscreen-lyrics-toggle {
+    body:has(#side-panel.active[data-view='queue']) .fullscreen-lyrics-toggle,
+    body:has(#side-panel.active[data-view='lyrics']):has(#fullscreen-cover-overlay:not(.inline-lyrics))
+        .fullscreen-lyrics-toggle {
         right: calc(50vw + 4.5rem);
     }
 
-    body:has(#side-panel.active) #close-fullscreen-cover-btn {
+    body:has(#side-panel.active[data-view='queue']) #close-fullscreen-cover-btn,
+    body:has(#side-panel.active[data-view='lyrics']):has(#fullscreen-cover-overlay:not(.inline-lyrics))
+        #close-fullscreen-cover-btn {
         right: calc(50vw + 1rem);
     }
 }
 
 @media (max-width: 768px) {
+    body:has(#fullscreen-cover-overlay.inline-lyrics[style*='flex']) #side-panel[data-view='lyrics'] {
+        width: 100vw;
+        max-width: 100vw;
+    }
+
     body:has(#side-panel.active) .fullscreen-main-view {
         padding-right: 0;
     }
 
-    /* Hide fullscreen specific buttons on mobile when panel is open */
     body:has(#side-panel.active) .fullscreen-lyrics-toggle,
     body:has(#side-panel.active) #close-fullscreen-cover-btn {
         display: none;
