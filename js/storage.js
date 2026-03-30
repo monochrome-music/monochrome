@@ -1002,6 +1002,8 @@ export const visualizerSettings = {
 export const equalizerSettings = {
     ENABLED_KEY: 'equalizer-enabled',
     GAINS_KEY: 'equalizer-gains',
+    BAND_TYPES_KEY: 'equalizer-band-types',
+    BAND_QS_KEY: 'equalizer-band-qs',
     PRESET_KEY: 'equalizer-preset',
     CUSTOM_PRESETS_KEY: 'equalizer-custom-presets',
     BAND_COUNT_KEY: 'equalizer-band-count',
@@ -1278,6 +1280,58 @@ export const equalizerSettings = {
         }
     },
 
+    getBandTypes(bandCount) {
+        const count = bandCount || this.getBandCount();
+        try {
+            const stored = localStorage.getItem(this.BAND_TYPES_KEY);
+            if (stored) {
+                const types = JSON.parse(stored);
+                if (Array.isArray(types) && types.length === count) {
+                    return types;
+                }
+            }
+        } catch {
+            /* ignore */
+        }
+        return new Array(count).fill('peaking');
+    },
+
+    setBandTypes(types) {
+        try {
+            if (Array.isArray(types) && types.length >= this.MIN_BANDS && types.length <= this.MAX_BANDS) {
+                localStorage.setItem(this.BAND_TYPES_KEY, JSON.stringify(types));
+            }
+        } catch (e) {
+            console.warn('[EQ] Failed to save band types:', e);
+        }
+    },
+
+    getBandQs(bandCount) {
+        const count = bandCount || this.getBandCount();
+        try {
+            const stored = localStorage.getItem(this.BAND_QS_KEY);
+            if (stored) {
+                const qs = JSON.parse(stored);
+                if (Array.isArray(qs) && qs.length === count) {
+                    return qs;
+                }
+            }
+        } catch {
+            /* ignore */
+        }
+        return null;
+    },
+
+    setBandQs(qs) {
+        try {
+            if (Array.isArray(qs) && qs.length >= this.MIN_BANDS && qs.length <= this.MAX_BANDS) {
+                localStorage.setItem(this.BAND_QS_KEY, JSON.stringify(qs));
+            }
+        } catch (e) {
+            console.warn('[EQ] Failed to save band Qs:', e);
+        }
+    },
+
     /**
      * Interpolate gains array to match target band count
      */
@@ -1431,8 +1485,8 @@ export const equalizerSettings = {
         try {
             const profiles = this.getAutoEQProfiles();
             const id = profile.id || 'autoeq_' + Date.now();
-            profile.id = id;
-            profiles[id] = profile;
+            const profileCopy = { ...profile, id };
+            profiles[id] = profileCopy;
             localStorage.setItem(this.AUTOEQ_PROFILES_KEY, JSON.stringify(profiles));
             return id;
         } catch (e) {
@@ -2621,7 +2675,7 @@ export const contentBlockingSettings = {
 
     isArtistBlocked(artistId) {
         if (!artistId) return false;
-        return this.getBlockedArtists().some((a) => a.id === artistId);
+        return this.getBlockedArtists().some((a) => String(a.id) === String(artistId));
     },
 
     blockArtist(artist) {

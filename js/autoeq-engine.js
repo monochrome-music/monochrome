@@ -2,8 +2,14 @@
 // AutoEQ Algorithm - Ported from Seap Engine AutoEqEngine.ts
 // Iterative peak-flattening parametric EQ optimization
 
-// Constants: [MAX_BOOST, MAX_CUT, MIN_Q, DEFAULT_SR, PI, 10, 40]
-const _C = [12.0, 12.0, 0.6, 48000, Math.PI, 10, 40];
+// Constants
+const MAX_BOOST = 12.0;
+const MAX_CUT = 12.0;
+const MIN_Q = 0.6;
+const DEFAULT_SR = 48000;
+const PI = Math.PI;
+const DB_BASE = 10;
+const DB_DIVISOR = 40;
 
 /**
  * Calculate biquad filter magnitude response at a given frequency
@@ -12,12 +18,13 @@ const _C = [12.0, 12.0, 0.6, 48000, Math.PI, 10, 40];
  * @param {number} sr - Sample rate
  * @returns {number} Magnitude in dB
  */
-function calculateBiquadResponse(f, band, sr = _C[3]) {
+function calculateBiquadResponse(f, band, sr = DEFAULT_SR) {
     if (!band.enabled) return 0;
-    const w = 2 * _C[4] * band.freq / sr;
-    const p = 2 * _C[4] * f / sr;
+    if (!band.type || band.type.length === 0) return 0;
+    const w = 2 * PI * band.freq / sr;
+    const p = 2 * PI * f / sr;
     const s = Math.sin(w) / (2 * band.q);
-    const A = Math.pow(_C[5], band.gain / _C[6]);
+    const A = Math.pow(DB_BASE, band.gain / DB_DIVISOR);
     const c = Math.cos(w);
     let b0 = 0, b1 = 0, b2 = 0, a0 = 0, a1 = 0, a2 = 0;
 
@@ -101,9 +108,14 @@ function getNormalizationOffset(data) {
  * @param {number} maxQ - Maximum Q factor
  * @returns {Array<{id: number, type: string, freq: number, gain: number, q: number, enabled: boolean}>}
  */
-function runAutoEqAlgorithm(measurement, target, bandCount, maxFreq = 16000, minFreq = 20, maxQ = 5.0, sampleRate = _C[3]) {
+function runAutoEqAlgorithm(measurement, target, bandCount, maxFreq = 16000, minFreq = 20, maxQ = 5.0, sampleRate = DEFAULT_SR) {
+    if (minFreq > maxFreq) return [];
     const off = getNormalizationOffset(target) - getNormalizationOffset(measurement);
     let err = measurement.map(p => ({ freq: p.freq, gain: (p.gain + off) - interpolate(p.freq, target) }));
+
+    const hasInRangePoints = err.some(p => p.freq >= minFreq && p.freq <= maxFreq);
+    if (!hasInRangePoints) return [];
+
     const out = [];
 
     for (let i = 0; i < bandCount; i++) {
@@ -138,11 +150,11 @@ function runAutoEqAlgorithm(measurement, target, bandCount, maxFreq = 16000, min
         let gain = -maxDev;
 
         // Safety clamps - reduce max boost at higher frequencies
-        let safeBoost = _C[0];
+        let safeBoost = MAX_BOOST;
         if (peakFreq > 3000) safeBoost = 6.0;
         if (peakFreq > 6000) safeBoost = 3.0;
         if (gain > safeBoost) gain = safeBoost;
-        if (gain < -_C[1]) gain = -_C[1];
+        if (gain < -MAX_CUT) gain = -MAX_CUT;
         if (Math.abs(gain) < 0.2) break;
 
         // Q factor calculation from error bandwidth (half-gain points)
@@ -164,7 +176,7 @@ function runAutoEqAlgorithm(measurement, target, bandCount, maxFreq = 16000, min
         let bandwidth = Math.log2(upperFreq / Math.max(1, lowerFreq));
         if (bandwidth < 0.1) bandwidth = 0.1;
         let q = Math.sqrt(Math.pow(2, bandwidth)) / (Math.pow(2, bandwidth) - 1);
-        q = Math.max(_C[2], Math.min(maxQ, q));
+        q = Math.max(MIN_Q, Math.min(maxQ, q));
         if (peakFreq > 5000 && q > 3.0) q = 3.0;
         if (gain > 0 && q > 2.0) q = 2.0;
 

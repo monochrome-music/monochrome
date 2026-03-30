@@ -43,7 +43,14 @@ async function fetchAutoEqIndex() {
     // 2. Fetch from GitHub API
     try {
         console.log('[AutoEQ] Fetching index from GitHub...');
-        const response = await fetch('https://api.github.com/repos/jaakkopasanen/AutoEq/git/trees/master?recursive=1');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        let response;
+        try {
+            response = await fetch('https://api.github.com/repos/jaakkopasanen/AutoEq/git/trees/master?recursive=1', { signal: controller.signal });
+        } finally {
+            clearTimeout(timeoutId);
+        }
 
         if (!response.ok) {
             const cachedRaw = localStorage.getItem(CACHE_KEY);
@@ -116,7 +123,19 @@ async function fetchAutoEqIndex() {
 
         return sortedEntries;
     } catch (err) {
-        console.error('[AutoEQ] Failed to fetch index:', err);
+        if (err.name === 'AbortError') {
+            console.warn('[AutoEQ] GitHub API request timed out. Falling back to cache or fallback index.');
+            const cachedRaw = localStorage.getItem(CACHE_KEY);
+            if (cachedRaw) {
+                try {
+                    return JSON.parse(cachedRaw).data;
+                } catch {
+                    /* ignore parse error */
+                }
+            }
+        } else {
+            console.error('[AutoEQ] Failed to fetch index:', err);
+        }
         return FALLBACK_INDEX;
     }
 }
@@ -138,7 +157,14 @@ async function fetchHeadphoneData(entry) {
 
     for (const url of urls) {
         try {
-            const response = await fetch(url);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+            let response;
+            try {
+                response = await fetch(url, { signal: controller.signal });
+            } finally {
+                clearTimeout(timeoutId);
+            }
             if (!response.ok) continue;
 
             const text = await response.text();

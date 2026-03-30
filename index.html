@@ -3870,7 +3870,7 @@
 
                                     <!-- Tutorial Panel -->
                                     <div class="eq-howto-panel" id="eq-howto-panel" style="display:none">
-                                        <button class="eq-howto-close" id="eq-howto-close">&times;</button>
+                                        <button class="eq-howto-close" id="eq-howto-close" aria-label="Close tutorial">&times;</button>
 
                                         <div class="eq-howto-tab autoeq" id="eq-howto-autoeq">
                                             <h4>AutoEQ &mdash; Headphone Correction</h4>
@@ -3934,6 +3934,7 @@
                                                 <input type="checkbox" id="autoeq-auto-preamp-toggle" checked />
                                                 <span class="slider"></span>
                                             </label>
+                                        </div>
                                     </div>
 
                                     <!-- AutoEQ Controls -->
@@ -3944,7 +3945,7 @@
                                                 <select id="autoeq-headphone-select">
                                                     <option value="">Select a headphone...</option>
                                                 </select>
-                                                <button id="autoeq-import-measurement-btn" class="autoeq-settings-btn" title="Import measurement file">
+                                                <button id="autoeq-import-measurement-btn" class="autoeq-settings-btn" title="Import measurement file" aria-label="Import measurement file">
                                                     <use svg="!lucide/file-input.svg" size="16" />
                                                 </button>
                                             </div>
@@ -3965,7 +3966,7 @@
                                                     <option value="peqdb_ultra">PEQdB Ultra</option>
                                                     <option value="flat">Flat (Calibration)</option>
                                                 </select>
-                                                <button id="autoeq-import-target-btn" class="autoeq-settings-btn" title="Import target curve">
+                                                <button id="autoeq-import-target-btn" class="autoeq-settings-btn" title="Import target curve" aria-label="Import target curve">
                                                     <use svg="!lucide/file-up.svg" size="16" />
                                                 </button>
                                                 <input type="file" id="autoeq-import-target-file" accept=".txt,.csv" style="display:none" />
@@ -4005,7 +4006,7 @@
                                         </div>
 
                                         <div class="autoeq-actions-row">
-                                            <button id="autoeq-download-btn" class="autoeq-download-btn" title="Export EQ settings">
+                                            <button id="autoeq-download-btn" class="autoeq-download-btn" title="Export EQ settings" aria-label="Export EQ settings">
                                                 <use svg="!lucide/download.svg" size="20" />
                                             </button>
                                             <button id="autoeq-run-btn" class="autoeq-run-btn" disabled>
@@ -4031,7 +4032,7 @@
                                                     maxlength="50"
                                                 />
                                                 <button id="autoeq-save-btn" class="btn-primary autoeq-save-btn">Save</button>
-                                                <button class="autoeq-collapse-btn" id="autoeq-saved-collapse">
+                                                <button class="autoeq-collapse-btn" id="autoeq-saved-collapse" aria-label="Collapse EQ section" aria-expanded="true">
                                                     <use svg="!lucide/chevron-up.svg" size="18" />
                                                 </button>
                                             </div>
@@ -4099,13 +4100,13 @@
                                                     <label class="autoeq-control-label">MEASUREMENT</label>
                                                     <div class="autoeq-select-wrapper">
                                                         <span id="speaker-measurement-status" class="speaker-measurement-status">No measurement</span>
-                                                        <button id="speaker-measure-btn" class="autoeq-settings-btn speaker-measure-btn" title="Measure room with pink noise">
+                                                        <button id="speaker-measure-btn" class="autoeq-settings-btn speaker-measure-btn" title="Measure room with pink noise" aria-label="Measure room with pink noise">
                                                             <use svg="!lucide/mic.svg" size="16" />
                                                         </button>
-                                                        <button id="speaker-import-measurement-btn" class="autoeq-settings-btn" title="Import measurement file">
+                                                        <button id="speaker-import-measurement-btn" class="autoeq-settings-btn" title="Import measurement file" aria-label="Import measurement file">
                                                             <use svg="!lucide/file-up.svg" size="16" />
                                                         </button>
-                                                        <button id="speaker-clear-measurement-btn" class="autoeq-settings-btn" title="Clear measurement" style="display:none">
+                                                        <button id="speaker-clear-measurement-btn" class="autoeq-settings-btn" title="Clear measurement" aria-label="Clear measurement" style="display:none">
                                                             <use svg="!lucide/x.svg" size="16" />
                                                         </button>
                                                     </div>
@@ -4119,7 +4120,7 @@
                                                             <option value="seap_bass">SEAP Bass (Room)</option>
                                                             <option value="flat">Flat</option>
                                                         </select>
-                                                        <button id="speaker-import-target-btn" class="autoeq-settings-btn" title="Import target curve">
+                                                        <button id="speaker-import-target-btn" class="autoeq-settings-btn" title="Import target curve" aria-label="Import target curve">
                                                             <use svg="!lucide/file-up.svg" size="16" />
                                                         </button>
                                                         <input type="file" id="speaker-import-target-file" accept=".txt,.csv" style="display:none" />
@@ -4188,7 +4189,7 @@
                                                     maxlength="50"
                                                 />
                                                 <button id="speaker-save-btn" class="btn-primary autoeq-save-btn">Save</button>
-                                                <button class="autoeq-collapse-btn" id="speaker-saved-collapse">
+                                                <button class="autoeq-collapse-btn" id="speaker-saved-collapse" aria-label="Collapse EQ section" aria-expanded="true">
                                                     <use svg="!lucide/chevron-up.svg" size="18" />
                                                 </button>
                                             </div>
@@ -4202,7 +4203,7 @@
                                     <div class="autoeq-filters-section" id="autoeq-filters-section">
                                         <div class="autoeq-filters-header" id="autoeq-filters-toggle">
                                             <span>PARAMETRIC EQ FILTERS</span>
-                                            <button class="autoeq-collapse-btn" id="autoeq-filters-collapse">
+                                            <button class="autoeq-collapse-btn" id="autoeq-filters-collapse" aria-label="Collapse EQ filters" aria-expanded="true">
                                                 <use svg="!lucide/chevron-up.svg" size="18" />
                                             </button>
                                         </div>
@@ -4297,7 +4298,6 @@
 
                                     <!-- Hidden file inputs -->
                                     <input type="file" id="autoeq-import-measurement-file" accept=".txt,.csv" style="display: none" />
-                                    <input type="file" id="eq-import-file" accept=".txt" style="display: none" />
                                 </div>
                             </div>
                         </div>

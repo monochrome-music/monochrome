@@ -7756,12 +7756,19 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     background: rgb(var(--highlight-rgb), 0.03);
     padding: var(--spacing-md);
     position: relative;
-    animation: fadeSlideIn 0.2s ease;
+    animation: fade-slide-in 0.2s ease;
 }
 
-@keyframes fadeSlideIn {
-    from { opacity: 0; transform: translateY(-6px); }
-    to { opacity: 1; transform: translateY(0); }
+@keyframes fade-slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .eq-howto-close {
@@ -7781,7 +7788,10 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     justify-content: center;
 }
 
-.eq-howto-close:hover { color: var(--foreground); background: rgb(var(--highlight-rgb), 0.1); }
+.eq-howto-close:hover {
+    color: var(--foreground);
+    background: rgb(var(--highlight-rgb), 0.1);
+}
 
 .eq-howto-tab h4 {
     font-size: 0.85rem;
@@ -7877,7 +7887,11 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 }
 
 .legend-original .legend-dot { background: #3b82f6; }
-.legend-target .legend-dot { background: rgba(255,255,255,0.5); border: 1px dashed rgba(255,255,255,0.3); }
+
+.legend-target .legend-dot {
+    background: rgb(255 255 255 / 0.5);
+    border: 1px dashed rgb(255 255 255 / 0.3);
+}
 .legend-corrected .legend-dot { background: #f472b6; }
 
 .autoeq-graph-wrapper {
@@ -8195,7 +8209,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     width: 100%;
     height: 80px;
     display: block;
-    background: rgba(0, 0, 0, 0.25);
+    background: rgb(0 0 0 / 0.25);
 }
 
 .autoeq-profile-info {
@@ -8457,10 +8471,22 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     color: var(--muted-foreground);
 }
 
-.autoeq-database-list::-webkit-scrollbar { width: 6px; }
-.autoeq-database-list::-webkit-scrollbar-track { background: transparent; }
-.autoeq-database-list::-webkit-scrollbar-thumb { background: rgb(var(--highlight-rgb), 0.2); border-radius: 3px; }
-.autoeq-database-list::-webkit-scrollbar-thumb:hover { background: rgb(var(--highlight-rgb), 0.4); }
+.autoeq-database-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.autoeq-database-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.autoeq-database-list::-webkit-scrollbar-thumb {
+    background: rgb(var(--highlight-rgb), 0.2);
+    border-radius: 3px;
+}
+
+.autoeq-database-list::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--highlight-rgb), 0.4);
+}
 
 /* --- Parametric EQ Filters Section --- */
 .autoeq-filters-section {
@@ -8517,8 +8543,15 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     transition: border-color var(--transition-fast);
 }
 
-.autoeq-preset-row select:hover { border-color: var(--primary); }
-.autoeq-preset-row select:focus { outline: none; border-color: var(--ring); box-shadow: 0 0 0 3px rgb(var(--highlight-rgb), 0.2); }
+.autoeq-preset-row select:hover {
+    border-color: var(--primary);
+}
+
+.autoeq-preset-row select:focus {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 3px rgb(var(--highlight-rgb), 0.2);
+}
 
 .autoeq-parametric-profiles {
     border: 1px solid var(--border);
@@ -8693,7 +8726,9 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     cursor: pointer;
 }
 
-.speaker-config-select:hover { border-color: var(--primary); }
+.speaker-config-select:hover {
+    border-color: var(--primary);
+}
 
 .speaker-channel-tabs {
     display: flex;
@@ -8776,7 +8811,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 
 .speaker-measurement-status.loaded {
     color: #4ade80;
-    border-color: rgba(74, 222, 128, 0.3);
+    border-color: rgb(74 222 128 / 0.3);
 }
 
 .speaker-eq-params-row {
@@ -8814,9 +8849,18 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 .speaker-eq-section .autoeq-control-label.bass { color: #22d3ee; }
 .speaker-eq-section .autoeq-control-label.room { color: #f59e0b; }
 
-.speaker-measure-btn { color: #f472b6; }
-.speaker-measure-btn:hover { background: rgba(244, 114, 182, 0.15); }
-.speaker-measure-btn:disabled { opacity: 0.5; pointer-events: none; }
+.speaker-measure-btn {
+    color: #f472b6;
+}
+
+.speaker-measure-btn:hover {
+    background: rgb(244 114 182 / 0.15);
+}
+
+.speaker-measure-btn:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
 
 .speaker-eq-actions-row {
     display: flex;
@@ -8834,6 +8878,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     flex: 0 0 auto;
     width: auto;
 }
+
 .speaker-all-btn:hover {
     background: var(--surface-3) !important;
     border-color: var(--primary);
