@@ -35,6 +35,11 @@ import { openEditProfile } from './profile.js';
 import { ThemeStore } from './themeStore.js';
 import './commandPalette.js';
 import { initTracker } from './tracker.js';
+import { initTauri } from './tauri-init.js';
+
+// Initialize Tauri Desktop Features
+initTauri();
+
 import {
     initAnalytics,
     trackSidebarNavigation,

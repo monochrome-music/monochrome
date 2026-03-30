@@ -15,3 +15,6 @@ export const isSafari =
     !lowerCaseOriginalUserAgent.includes('chrome') &&
     !lowerCaseOriginalUserAgent.includes('crios') &&
     !lowerCaseOriginalUserAgent.includes('android');
+
+/** If the app is running inside a Tauri desktop window. */
+export const isTauri = typeof window !== 'undefined' && '__TAURI__' in window;

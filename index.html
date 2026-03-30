@@ -30,9 +30,28 @@
             rel="stylesheet"
         />
         <link rel="stylesheet" href="/styles.css" />
+        <link rel="stylesheet" href="/tauri.css" />
     </head>
 
     <body>
+        <div id="tauri-titlebar" class="tauri-titlebar" style="display: none;">
+            <!-- Drag region fills the remaining space -->
+            <div class="tauri-drag-region" data-tauri-drag-region>
+                <img src="/assets/logo.svg" style="height: 16px; margin: 0 12px;" />
+                <span style="font-size: 11px; font-weight: 600; color: #a0a0a0;">MONOCHROME</span>
+            </div>
+            <div class="tauri-window-controls">
+                <div class="tauri-titlebar-button" id="tauri-titlebar-minimize">
+                    <svg viewBox="0 0 10.2 1"><rect x="0" y="0" width="10.2" height="1" fill="currentColor"></rect></svg>
+                </div>
+                <div class="tauri-titlebar-button" id="tauri-titlebar-maximize">
+                    <svg viewBox="0 0 10 10"><path d="M0,0v10h10V0H0z M9,9H1V1h8V9z" fill="currentColor"></path></svg>
+                </div>
+                <div class="tauri-titlebar-button" id="tauri-titlebar-close">
+                    <svg viewBox="0 0 10 10"><polygon points="10.2,0.7 9.5,0 5.1,4.4 0.7,0 0,0.7 4.4,5.1 0,9.5 0.7,10.2 5.1,5.8 9.5,10.2 10.2,9.5 5.8,5.1" fill="currentColor"></polygon></svg>
+                </div>
+            </div>
+        </div>
         <audio id="audio-player" crossorigin="anonymous" style="display: none"></audio>
         <video id="video-player" crossorigin="anonymous" style="display: none"></video>
         <div id="context-menu">

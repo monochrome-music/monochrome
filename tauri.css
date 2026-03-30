@@ -1,0 +1,58 @@
+/* Tauri Custom Title Bar Styling */
+body.is-tauri {
+    /* Push content down to avoid titlebar overlap */
+    padding-top: 32px; 
+}
+
+.tauri-titlebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    background: transparent;
+    display: flex;
+    justify-content: space-between;
+    align-items: stretch;
+    z-index: 100000;
+    /* macOS-style transparency behind titlebar */
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.tauri-drag-region {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    cursor: default;
+}
+
+.tauri-window-controls {
+    display: flex;
+    align-items: stretch;
+}
+
+.tauri-titlebar-button {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    width: 46px;
+    height: 100%;
+    color: var(--muted-foreground, #a0a0a0);
+    transition: background-color 0.1s, color 0.1s;
+}
+
+.tauri-titlebar-button svg {
+    width: 10px;
+    height: 10px;
+}
+
+.tauri-titlebar-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--foreground, #fff);
+}
+
+#tauri-titlebar-close:hover {
+    background-color: #e81123;
+    color: white;
+}

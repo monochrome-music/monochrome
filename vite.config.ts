@@ -40,7 +40,11 @@ export default defineConfig(({ mode }) => {
         optimizeDeps: {
             exclude: ['pocketbase', '@ffmpeg/ffmpeg', '@ffmpeg/util'],
         },
+        clearScreen: false,
         server: {
+            port: 5173,
+            strictPort: true,
+            host: process.env.TAURI_ENV_PLATFORM ? '127.0.0.1' : false,
             fs: {
                 allow: ['.', 'node_modules'],
                 // host: true,

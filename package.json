@@ -12,7 +12,10 @@
         "lint:css": "stylelint \"**/*.css\"",
         "lint:html": "htmlhint \"**/*.html\" --ignore=\"dist/**,legacy/**,node_modules/**\"",
         "lint": "bun run lint:js && bun run lint:css && bun run lint:html",
-        "format": "prettier --write ."
+        "format": "prettier --write .",
+        "tauri": "tauri",
+        "tauri:dev": "bunx tauri dev",
+        "tauri:build": "bunx tauri build"
     },
     "repository": {
         "type": "git",
@@ -28,6 +31,7 @@
     "devDependencies": {
         "@capacitor/assets": "^3.0.5",
         "@capacitor/cli": "^8.2.0",
+        "@tauri-apps/cli": "^2.10.1",
         "@types/node": "^25.3.5",
         "eslint": "^9.39.3",
         "eslint-config-prettier": "^10.1.8",
@@ -60,6 +64,8 @@
         "@ffmpeg/util": "^0.12.2",
         "@kawarp/core": "^1.1.1",
         "@svta/common-media-library": "^0.18.1",
+        "@tauri-apps/api": "^2.10.1",
+        "@tauri-apps/plugin-global-shortcut": "^2.3.1",
         "@uimaxbai/am-lyrics": "^1.1.4",
         "appwrite": "^23.0.0",
         "butterchurn": "^2.6.7",

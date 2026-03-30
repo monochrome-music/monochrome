@@ -1,0 +1,24 @@
+{
+  "identifier": "desktop-capability",
+  "platforms": [
+    "macOS",
+    "windows",
+    "linux"
+  ],
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "global-shortcut:default",
+    "global-shortcut:allow-register",
+    "global-shortcut:allow-is-registered",
+    "global-shortcut:allow-unregister",
+    "core:window:allow-minimize",
+    "core:window:allow-maximize",
+    "core:window:allow-hide",
+    "core:window:allow-close",
+    "core:window:allow-set-fullscreen",
+    "core:window:allow-is-fullscreen",
+    "core:window:allow-start-dragging"
+  ]
+}
