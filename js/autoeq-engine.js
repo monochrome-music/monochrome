@@ -101,7 +101,7 @@ function getNormalizationOffset(data) {
  * @param {number} maxQ - Maximum Q factor
  * @returns {Array<{id: number, type: string, freq: number, gain: number, q: number, enabled: boolean}>}
  */
-function runAutoEqAlgorithm(measurement, target, bandCount, maxFreq = 16000, minFreq = 20, maxQ = 5.0) {
+function runAutoEqAlgorithm(measurement, target, bandCount, maxFreq = 16000, minFreq = 20, maxQ = 5.0, sampleRate = _C[3]) {
     const off = getNormalizationOffset(target) - getNormalizationOffset(measurement);
     let err = measurement.map(p => ({ freq: p.freq, gain: (p.gain + off) - interpolate(p.freq, target) }));
     const out = [];
@@ -172,7 +172,7 @@ function runAutoEqAlgorithm(measurement, target, bandCount, maxFreq = 16000, min
         out.push(newBand);
 
         // Update error curve by applying the new band's response
-        err = err.map(p => ({ ...p, gain: p.gain + calculateBiquadResponse(p.freq, newBand) }));
+        err = err.map(p => ({ ...p, gain: p.gain + calculateBiquadResponse(p.freq, newBand, sampleRate) }));
     }
 
     return out.sort((a, b) => a.freq - b.freq).map((b, i) => ({ ...b, id: i }));

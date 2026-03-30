@@ -4,7 +4,7 @@
 
 import { parseRawData } from './autoeq-data.js';
 
-const CACHE_KEY = 'monochrome_autoeq_index_v2';
+const CACHE_KEY = 'monochrome_autoeq_index_v3';
 const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
 
 // Static fallback list in case GitHub API fails
@@ -59,30 +59,44 @@ async function fetchAutoEqIndex() {
         const entries = [];
 
         for (const item of data.tree) {
-            if (item.path.startsWith('results/') && (item.path.endsWith('.csv') || item.path.endsWith('.txt'))) {
-                const parts = item.path.split('/');
-                if (parts.length >= 4) {
-                    const fileName = parts.pop();
-                    const headphoneName = parts[parts.length - 1];
-                    const folderPath = parts.slice(1).join('/');
-                    const source = parts[1];
+            if (!item.path.startsWith('results/')) continue;
+            if (!item.path.endsWith('.csv') && !item.path.endsWith('.txt')) continue;
 
-                    let type = 'over-ear';
-                    const lowerPath = item.path.toLowerCase();
-                    if (lowerPath.includes('in-ear') || lowerPath.includes('iem')) {
-                        type = 'in-ear';
-                    } else if (lowerPath.includes('earbud')) {
-                        type = 'in-ear';
-                    }
+            const parts = item.path.split('/');
+            if (parts.length < 4) continue;
 
-                    entries.push({
-                        name: `${headphoneName} (${source})`,
-                        type,
-                        path: folderPath,
-                        fileName,
-                    });
-                }
+            const fileName = parts.pop();
+            const fileNameLower = fileName.toLowerCase();
+
+            // Skip non-measurement files (EQ presets, not raw frequency response)
+            if (fileNameLower.includes('parametriceq') ||
+                fileNameLower.includes('fixedbandeq') ||
+                fileNameLower.includes('graphiceq') ||
+                fileNameLower.includes('convolution') ||
+                fileNameLower.includes('fixed band eq') ||
+                fileNameLower.includes('parametric eq') ||
+                fileNameLower.includes('graphic eq')) {
+                continue;
             }
+
+            const headphoneName = parts[parts.length - 1];
+            const folderPath = parts.slice(1).join('/');
+            const source = parts[1];
+
+            let type = 'over-ear';
+            const lowerPath = item.path.toLowerCase();
+            if (lowerPath.includes('in-ear') || lowerPath.includes('iem')) {
+                type = 'in-ear';
+            } else if (lowerPath.includes('earbud')) {
+                type = 'in-ear';
+            }
+
+            entries.push({
+                name: `${headphoneName} (${source})`,
+                type,
+                path: folderPath,
+                fileName,
+            });
         }
 
         if (entries.length === 0) return FALLBACK_INDEX;

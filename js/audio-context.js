@@ -702,7 +702,7 @@ class AudioContextManager {
      * @param {Array<{id: number, type: string, freq: number, gain: number, q: number, enabled: boolean}>} bands
      * @returns {string} Exported text representation of the applied EQ
      */
-    applyAutoEQBands(bands) {
+    applyAutoEQBands(bands, skipPreamp = false) {
         if (!bands || bands.length === 0) return '';
 
         const enabledBands = bands.filter(b => b.enabled);
@@ -713,7 +713,7 @@ class AudioContextManager {
 
         // Calculate preamp: negative of max positive gain to prevent clipping
         const maxGain = Math.max(0, ...enabledBands.map(b => b.gain));
-        const preamp = maxGain > 0 ? -Math.round(maxGain * 10) / 10 : 0;
+        const preamp = skipPreamp ? equalizerSettings.getPreamp() : (maxGain > 0 ? -Math.round(maxGain * 10) / 10 : 0);
 
         // Update band count
         if (count !== this.bandCount) {
@@ -754,8 +754,10 @@ class AudioContextManager {
             }
         });
 
-        // Apply preamp
-        this.setPreamp(preamp);
+        // Apply preamp (skip if caller manages preamp externally)
+        if (!skipPreamp) {
+            this.setPreamp(preamp);
+        }
 
         // Save
         equalizerSettings.setGains(this.currentGains);

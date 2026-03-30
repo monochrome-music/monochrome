@@ -36,8 +36,8 @@ import {
     modalSettings,
     preferDolbyAtmosSettings,
 } from './storage.js';
-import { audioContextManager, EQ_PRESETS } from './audio-context.js';
-import { runAutoEqAlgorithm } from './autoeq-engine.js';
+import { audioContextManager, EQ_PRESETS, getPresetsForBandCount } from './audio-context.js';
+import { calculateBiquadResponse, interpolate, getNormalizationOffset, runAutoEqAlgorithm } from './autoeq-engine.js';
 import { parseRawData, TARGETS } from './autoeq-data.js';
 import { fetchAutoEqIndex, fetchHeadphoneData, searchHeadphones } from './autoeq-importer.js';
 import { db } from './db.js';
@@ -50,6 +50,9 @@ async function getButterchurnPresets(...args) {
     const butterchurnModule = await import('./visualizers/butterchurn.js');
     return butterchurnModule.getButterchurnPresets(...args);
 }
+
+// Module-level state for AutoEQ (persists across re-initializations)
+let _autoeqIndex = [];
 
 export async function initializeSettings(scrobbler, player, api, ui) {
     // Restore last active settings tab
@@ -1225,1203 +1228,1209 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     }
 
     // ========================================
-    // Parametric Equalizer Settings (3-32 bands with custom ranges)
+    // Precision AutoEQ — Redesigned Equalizer
     // ========================================
     const eqToggle = document.getElementById('equalizer-enabled-toggle');
     const eqContainer = document.getElementById('equalizer-container');
-    const eqPresetSelect = document.getElementById('equalizer-preset-select');
-    const eqResetBtn = document.getElementById('equalizer-reset-btn');
-    const eqBandsContainer = document.getElementById('equalizer-bands');
-    const customPresetsOptgroup = document.getElementById('custom-presets-optgroup');
-    const customPresetNameInput = document.getElementById('custom-preset-name');
-    const saveCustomPresetBtn = document.getElementById('save-custom-preset-btn');
-    const deleteCustomPresetBtn = document.getElementById('delete-custom-preset-btn');
-    const eqBandCountInput = document.getElementById('eq-band-count');
-    const eqRangeMinInput = document.getElementById('eq-range-min');
-    const eqRangeMaxInput = document.getElementById('eq-range-max');
-    const applyEqRangeBtn = document.getElementById('apply-eq-range-btn');
-    const eqFreqMinInput = document.getElementById('eq-freq-min');
-    const eqFreqMaxInput = document.getElementById('eq-freq-max');
-    const applyEqFreqBtn = document.getElementById('apply-eq-freq-btn');
-    const resetEqFreqBtn = document.getElementById('reset-eq-freq-btn');
-    const resetEqRangeBtn = document.getElementById('reset-eq-range-btn');
-    const eqScaleContainer = document.querySelector('.equalizer-scale');
     const eqPreampSlider = document.getElementById('eq-preamp-slider');
-    const eqPreampInput = document.getElementById('eq-preamp-input');
-    const eqExportBtn = document.getElementById('eq-export-btn');
-    const eqImportBtn = document.getElementById('eq-import-btn');
     const eqImportFile = document.getElementById('eq-import-file');
 
-    // Current settings
-    let currentBandCount = equalizerSettings.getBandCount();
-    let currentRange = equalizerSettings.getRange();
-    let currentFreqRange = equalizerSettings.getFreqRange();
+    // AutoEQ State (kept when switching modes)
+    let autoeqSelectedMeasurement = null;
+    let autoeqSelectedEntry = null;
+    let autoeqTypeFilter = 'all';
+    let autoeqSearchTimer = null;
+    let autoeqCurrentBands = null;   // AutoEQ-generated bands
+    let autoeqCorrectedCurve = null;
     let currentPreamp = equalizerSettings.getPreamp();
 
+    // Parametric EQ State (separate from AutoEQ, kept when switching modes)
+    let parametricBands = null;
+
+    // Interactive graph state
+    let draggedNode = null;
+    let hoveredNode = null;
+    let graphAnimFrame = null;
+
+    // dB zoom state (half-range values, user-adjustable via scroll on Y axis)
+    let graphDbHalfAutoEQ = 25;
+    let graphDbHalfParametric = 35;
+
+    /** Get the active bands for the current mode */
+    const getActiveBands = () => currentMode === 'parametric' ? parametricBands : autoeqCurrentBands;
+    /** Set the active bands for the current mode */
+    const setActiveBands = (bands) => {
+        if (currentMode === 'parametric') parametricBands = bands;
+        else autoeqCurrentBands = bands;
+    };
+
+    // DOM Elements
+    const autoeqCanvas = document.getElementById('autoeq-response-canvas');
+    const autoeqGraphWrapper = document.getElementById('autoeq-graph-wrapper');
+    const autoeqSearchInput = document.getElementById('autoeq-headphone-search');
+    const autoeqHeadphoneSelect = document.getElementById('autoeq-headphone-select');
+    const autoeqTargetSelect = document.getElementById('autoeq-target-select');
+    const autoeqBandCount = document.getElementById('autoeq-band-count');
+    const autoeqMaxFreq = document.getElementById('autoeq-max-freq');
+    const autoeqSampleRate = document.getElementById('autoeq-sample-rate');
+    const autoeqRunBtn = document.getElementById('autoeq-run-btn');
+    const autoeqDownloadBtn = document.getElementById('autoeq-download-btn');
+    const autoeqStatus = document.getElementById('autoeq-status');
+    const autoeqTypeButtons = document.querySelectorAll('.autoeq-type-btn');
+    const autoeqImportBtn = document.getElementById('autoeq-import-measurement-btn');
+    const autoeqImportFile = document.getElementById('autoeq-import-measurement-file');
+    const autoeqSavedGrid = document.getElementById('autoeq-saved-grid');
+    const autoeqSavedCount = document.getElementById('autoeq-saved-count');
+    const autoeqProfileNameInput = document.getElementById('autoeq-profile-name');
+    const autoeqSaveBtn = document.getElementById('autoeq-save-btn');
+    const autoeqSavedCollapse = document.getElementById('autoeq-saved-collapse');
+    const autoeqDatabaseList = document.getElementById('autoeq-database-list');
+    const autoeqDatabaseCount = document.getElementById('autoeq-database-count');
+    const autoeqFiltersToggle = document.getElementById('autoeq-filters-toggle');
+    const autoeqFiltersContent = document.getElementById('autoeq-filters-content');
+    const autoeqFiltersCollapse = document.getElementById('autoeq-filters-collapse');
+    const autoeqBandsList = document.getElementById('autoeq-bands-list');
+    const autoeqPreampValue = document.getElementById('autoeq-preamp-value');
+
+    // ========================================
+    // Frequency Response Graph Renderer
+    // ========================================
+    const FREQ_MIN = 20;
+    const FREQ_MAX = 20000;
+    const GRAPH_FREQS = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000];
+    const LOG_MIN = Math.log10(FREQ_MIN);
+    const LOG_MAX = Math.log10(FREQ_MAX);
+    const LOG_RANGE = LOG_MAX - LOG_MIN;
+
+    const freqToX = (freq, width) => ((Math.log10(Math.max(FREQ_MIN, freq)) - LOG_MIN) / LOG_RANGE) * width;
+    const xToFreq = (x, width) => Math.pow(10, (x / width) * LOG_RANGE + LOG_MIN);
+    const dbToY = (db, height, dbMin, dbMax) => height - ((db - dbMin) / (dbMax - dbMin)) * height;
+    const yToDb = (y, height, dbMin, dbMax) => dbMin + (1 - y / height) * (dbMax - dbMin);
+
+    const formatFreq = (freq) => {
+        if (freq >= 1000) return (freq / 1000).toFixed(freq % 1000 === 0 ? 0 : 1) + 'k';
+        return Math.round(freq).toString();
+
+    };
+
     /**
-     * Generate frequency labels for given band count and frequency range
+     * Draw the frequency response graph with Original, Target, and Corrected curves
      */
-    const generateFreqLabels = (count, minFreq = currentFreqRange.min, maxFreq = currentFreqRange.max) => {
-        const labels = [];
-        const safeMin = Math.max(10, minFreq);
-        const safeMax = Math.min(96000, maxFreq);
+    const drawAutoEQGraph = () => {
+        if (!autoeqCanvas) return;
+        const activeBands = getActiveBands();
+        const ctx = autoeqCanvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const rect = autoeqCanvas.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
 
-        for (let i = 0; i < count; i++) {
-            const t = i / (count - 1);
-            const freq = safeMin * Math.pow(safeMax / safeMin, t);
-            const rounded = Math.round(freq);
+        autoeqCanvas.width = rect.width * dpr;
+        autoeqCanvas.height = rect.height * dpr;
+        ctx.scale(dpr, dpr);
 
-            if (rounded < 1000) {
-                labels.push(rounded.toString());
-            } else if (rounded < 10000) {
-                labels.push((rounded / 1000).toFixed(rounded % 1000 === 0 ? 0 : 1) + 'K');
-            } else {
-                labels.push((rounded / 1000).toFixed(0) + 'K');
+        const padLeft = 40, padRight = 10, padTop = 10, padBottom = 30;
+        const w = rect.width - padLeft - padRight;
+        const h = rect.height - padTop - padBottom;
+
+        ctx.clearRect(0, 0, rect.width, rect.height);
+
+        // dB scale: fixed 75dB center for AutoEQ, 0dB center for Parametric
+        const isParametricMode = currentMode === 'parametric';
+        const dbCenter = isParametricMode ? 0 : 75;
+        const dbHalfRange = isParametricMode ? graphDbHalfParametric : graphDbHalfAutoEQ;
+        const dbMin = dbCenter - dbHalfRange;
+        const dbMax = dbCenter + dbHalfRange;
+        const dbRange = dbMax - dbMin;
+
+        // Helper mappings (local to graph area)
+        const gx = (freq) => padLeft + freqToX(freq, w);
+        const gy = (db) => padTop + dbToY(db, h, dbMin, dbMax);
+
+        // Fixed curve colors (work across all themes)
+        const gridColor = 'rgba(255,255,255,0.06)';
+        const textColor = 'rgba(255,255,255,0.4)';
+        const originalColor = '#3b82f6';       // Blue
+        const targetColor = 'rgba(255,255,255,0.5)'; // White/gray dashed
+        const correctedColor = '#f472b6';      // Pink
+
+        // Draw grid
+        ctx.strokeStyle = gridColor;
+        ctx.lineWidth = 1;
+        // Horizontal grid lines (dB)
+        for (let db = dbMin; db <= dbMax; db += 5) {
+            const y = gy(db);
+            ctx.beginPath();
+            ctx.moveTo(padLeft, y);
+            ctx.lineTo(padLeft + w, y);
+            ctx.stroke();
+        }
+        // Vertical grid lines (freq)
+        for (const freq of GRAPH_FREQS) {
+            const x = gx(freq);
+            ctx.beginPath();
+            ctx.moveTo(x, padTop);
+            ctx.lineTo(x, padTop + h);
+            ctx.stroke();
+        }
+
+        // Y axis labels
+        ctx.fillStyle = textColor;
+        ctx.font = '10px system-ui, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        for (let db = dbMin; db <= dbMax; db += 5) {
+            ctx.fillText(db.toString(), padLeft - 5, gy(db));
+        }
+
+        // X axis labels
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        for (const freq of GRAPH_FREQS) {
+            ctx.fillText(formatFreq(freq), gx(freq), padTop + h + 8);
+        }
+
+        // Draw curve helper
+        const drawCurve = (data, color, lineWidth, dashed = false) => {
+            if (!data || data.length < 2) return;
+            ctx.save();
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            if (dashed) ctx.setLineDash([6, 4]);
+            let started = false;
+            for (const p of data) {
+                if (p.freq < FREQ_MIN || p.freq > FREQ_MAX) continue;
+                const x = gx(p.freq);
+                const y = gy(p.gain);
+                if (!started) { ctx.moveTo(x, y); started = true; }
+                else ctx.lineTo(x, y);
             }
-        }
+            ctx.stroke();
+            ctx.restore();
+        };
 
-        return labels;
-    };
+        // Normalize all data to center around dbCenter
+        const targetId = autoeqTargetSelect ? autoeqTargetSelect.value : 'harman_oe_2018';
+        const targetEntry = TARGETS.find(t => t.id === targetId);
+        const targetData = targetEntry?.data;
 
-    /**
-     * Generate EQ bands HTML
-     */
-    const generateEQBands = (
-        count,
-        rangeMin = currentRange.min,
-        rangeMax = currentRange.max,
-        freqMin = currentFreqRange.min,
-        freqMax = currentFreqRange.max
-    ) => {
-        if (!eqBandsContainer) return;
+        let graphShift = 0;
 
-        const labels = generateFreqLabels(count, freqMin, freqMax);
-        eqBandsContainer.innerHTML = '';
+        if (isParametricMode) {
+            // Parametric mode: flat 0dB reference line
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padLeft, gy(0));
+            ctx.lineTo(padLeft + w, gy(0));
+            ctx.stroke();
 
-        for (let i = 0; i < count; i++) {
-            const bandEl = document.createElement('div');
-            bandEl.className = 'eq-band';
-            bandEl.dataset.band = i;
+            if (activeBands && activeBands.length > 0) {
+                const sampleRate = autoeqSampleRate ? parseInt(autoeqSampleRate.value, 10) : 48000;
+                const nodeColors = ['#f472b6','#fb923c','#facc15','#4ade80','#22d3ee','#818cf8','#c084fc','#f87171','#34d399','#60a5fa','#a78bfa','#fb7185','#fbbf24','#2dd4bf','#38bdf8','#a3e635'];
 
-            bandEl.innerHTML = `
-                <input
-                    type="range"
-                    class="eq-slider"
-                    min="${rangeMin}"
-                    max="${rangeMax}"
-                    step="0.5"
-                    value="0"
-                    orient="vertical"
-                />
-                <span class="eq-value">0</span>
-                <span class="eq-freq">${labels[i]}</span>
-            `;
+                // Draw individual band bell curves (filled)
+                activeBands.forEach((band, i) => {
+                    if (!band.enabled || Math.abs(band.gain) < 0.1) return;
+                    const color = nodeColors[i % nodeColors.length];
+                    const r = parseInt(color.slice(1,3), 16);
+                    const g2 = parseInt(color.slice(3,5), 16);
+                    const b2 = parseInt(color.slice(5,7), 16);
 
-            eqBandsContainer.appendChild(bandEl);
-        }
+                    // Draw filled bell shape
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(padLeft, gy(0));
+                    for (let f = FREQ_MIN; f <= FREQ_MAX; f *= 1.02) {
+                        const resp = calculateBiquadResponse(f, band, sampleRate);
+                        ctx.lineTo(gx(f), gy(resp));
+                    }
+                    ctx.lineTo(padLeft + w, gy(0));
+                    ctx.closePath();
+                    ctx.fillStyle = `rgba(${r},${g2},${b2},0.12)`;
+                    ctx.fill();
 
-        // Re-initialize band sliders
-        initializeBandSliders();
-    };
+                    // Draw bell curve outline
+                    ctx.beginPath();
+                    let started = false;
+                    for (let f = FREQ_MIN; f <= FREQ_MAX; f *= 1.02) {
+                        const resp = calculateBiquadResponse(f, band, sampleRate);
+                        const bx = gx(f);
+                        const by = gy(resp);
+                        if (!started) { ctx.moveTo(bx, by); started = true; }
+                        else ctx.lineTo(bx, by);
+                    }
+                    ctx.strokeStyle = `rgba(${r},${g2},${b2},0.5)`;
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    ctx.restore();
+                });
 
-    /**
-     * Update EQ scale display
-     */
-    const updateEQScale = (min, max) => {
-        if (!eqScaleContainer) return;
-        const spans = eqScaleContainer.querySelectorAll('span');
-        if (spans.length >= 3) {
-            spans[0].textContent = `+${max} dB`;
-            spans[1].textContent = '0 dB';
-            spans[2].textContent = `${min} dB`;
-        }
-    };
-
-    /**
-     * Update the visual display of a band value
-     */
-    const updateBandValueDisplay = (bandEl, value) => {
-        const valueEl = bandEl.querySelector('.eq-value');
-        if (!valueEl) return;
-
-        const displayValue = value > 0 ? `+${value}` : value.toString();
-        valueEl.textContent = displayValue;
-
-        // Add color classes based on value
-        valueEl.classList.remove('positive', 'negative');
-        if (value > 0) {
-            valueEl.classList.add('positive');
-        } else if (value < 0) {
-            valueEl.classList.add('negative');
-        }
-    };
-
-    /**
-     * Update all band sliders and displays from an array of gains
-     */
-    const updateAllBandUI = (gains) => {
-        const eqBands = eqBandsContainer?.querySelectorAll('.eq-band');
-        if (!eqBands) return;
-
-        eqBands.forEach((bandEl, index) => {
-            const slider = bandEl.querySelector('.eq-slider');
-            if (slider && gains[index] !== undefined) {
-                slider.value = gains[index];
-                updateBandValueDisplay(bandEl, gains[index]);
+                // Draw combined EQ response curve (sum of all bands)
+                const eqCurve = [];
+                for (let f = FREQ_MIN; f <= FREQ_MAX; f *= 1.02) {
+                    let totalGain = 0;
+                    for (const band of activeBands) {
+                        if (band.enabled) totalGain += calculateBiquadResponse(f, band, sampleRate);
+                    }
+                    eqCurve.push({ freq: f, gain: totalGain });
+                }
+                drawCurve(eqCurve, 'rgba(255,255,255,0.8)', 2);
             }
-        });
-
-        // Redraw the EQ curve after updating all bands
-        drawEQCurve();
-    };
-
-    /**
-     * Toggle EQ container visibility
-     */
-    const updateEQContainerVisibility = (enabled) => {
-        if (eqContainer) {
-            eqContainer.style.display = enabled ? 'block' : 'none';
-            if (enabled) {
-                // Redraw curve when container becomes visible
-                requestAnimationFrame(drawEQCurve);
-            }
-        }
-    };
-
-    /**
-     * Populate custom presets in the dropdown
-     */
-    const populateCustomPresets = () => {
-        if (!customPresetsOptgroup) return;
-
-        // Clear existing custom presets
-        customPresetsOptgroup.innerHTML = '';
-
-        const customPresets = equalizerSettings.getCustomPresets();
-        const presetIds = Object.keys(customPresets);
-
-        if (presetIds.length === 0) {
-            const emptyOption = document.createElement('option');
-            emptyOption.value = '';
-            emptyOption.textContent = 'No custom presets saved';
-            emptyOption.disabled = true;
-            customPresetsOptgroup.appendChild(emptyOption);
         } else {
-            presetIds.forEach((presetId) => {
-                const preset = customPresets[presetId];
-                const option = document.createElement('option');
-                option.value = presetId;
-                option.textContent = preset.name;
-                customPresetsOptgroup.appendChild(option);
+            // AutoEQ mode: draw measurement, target, corrected
+            if (targetData) {
+                const targetMidAvg = getNormalizationOffset(targetData);
+                graphShift = dbCenter - targetMidAvg;
+            } else if (autoeqSelectedMeasurement) {
+                const measMidAvg = getNormalizationOffset(autoeqSelectedMeasurement);
+                graphShift = dbCenter - measMidAvg;
+            }
+
+            // Draw Target curve (shifted)
+            if (targetData) {
+                const shiftedTarget = targetData.map(p => ({ freq: p.freq, gain: p.gain + graphShift }));
+                drawCurve(shiftedTarget, targetColor, 1.5, true);
+            }
+
+            // Draw Original measurement (normalized + shifted)
+            if (autoeqSelectedMeasurement) {
+                const normOff = targetData ? getNormalizationOffset(targetData) - getNormalizationOffset(autoeqSelectedMeasurement) : 0;
+                const normalized = autoeqSelectedMeasurement.map(p => ({ freq: p.freq, gain: p.gain + normOff + graphShift }));
+                drawCurve(normalized, originalColor, 1.5);
+            }
+
+            // Draw Corrected curve (shifted)
+            if (autoeqCorrectedCurve) {
+                const shiftedCorrected = autoeqCorrectedCurve.map(p => ({ freq: p.freq, gain: p.gain + graphShift }));
+                drawCurve(shiftedCorrected, correctedColor, 2);
+            }
+        }
+
+        // Draw interactive nodes
+        if (activeBands && activeBands.length > 0 && (autoeqCorrectedCurve || isParametricMode)) {
+            const sampleRate = autoeqSampleRate ? parseInt(autoeqSampleRate.value, 10) : 48000;
+            activeBands.forEach((band, i) => {
+                if (!band.enabled) return;
+                const x = gx(band.freq);
+                // In parametric mode: node Y = band's individual response at its freq (basically its gain)
+                // In AutoEQ mode: node Y = corrected curve value at band freq (shifted)
+                let nodeGain;
+                if (isParametricMode) {
+                    // Sum all bands' response at this frequency
+                    let totalGain = 0;
+                    for (const b of activeBands) {
+                        if (b.enabled) totalGain += calculateBiquadResponse(band.freq, b, sampleRate);
+                    }
+                    nodeGain = totalGain;
+                } else {
+                    nodeGain = interpolate(band.freq, autoeqCorrectedCurve) + graphShift;
+                }
+                const y = gy(nodeGain);
+
+                // Draw node circle with unique color per band
+                const nodeColors = ['#f472b6','#fb923c','#facc15','#4ade80','#22d3ee','#818cf8','#c084fc','#f87171','#34d399','#60a5fa','#a78bfa','#fb7185','#fbbf24','#2dd4bf','#38bdf8','#a3e635'];
+                const nodeColor = nodeColors[i % nodeColors.length];
+                const isHovered = i === hoveredNode;
+                const isDragged = i === draggedNode;
+                const radius = isDragged ? 9 : isHovered ? 7 : 5;
+
+                // Glow effect on hover/drag
+                if (isHovered || isDragged) {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius + 4, 0, Math.PI * 2);
+                    ctx.fillStyle = nodeColor.replace(')', ', 0.25)').replace('rgb', 'rgba').replace('#', '');
+                    // Use hex to rgba
+                    const r2 = parseInt(nodeColor.slice(1,3), 16);
+                    const g2 = parseInt(nodeColor.slice(3,5), 16);
+                    const b2 = parseInt(nodeColor.slice(5,7), 16);
+                    ctx.fillStyle = `rgba(${r2},${g2},${b2},0.25)`;
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fillStyle = isDragged ? '#fff' : nodeColor;
+                ctx.fill();
+                ctx.strokeStyle = isDragged ? nodeColor : 'rgba(0,0,0,0.5)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // Show tooltip on drag
+                if (isDragged) {
+                    ctx.save();
+                    ctx.fillStyle = 'rgba(0,0,0,0.8)';
+                    const txt = `${Math.round(band.freq)} Hz  ${band.gain > 0 ? '+' : ''}${band.gain.toFixed(1)} dB  Q${band.q.toFixed(2)}`;
+                    ctx.font = 'bold 11px system-ui, sans-serif';
+                    const tw = ctx.measureText(txt).width + 12;
+                    const tx = Math.min(x - tw / 2, rect.width - tw - 5);
+                    const ty = y - 28;
+                    ctx.fillRect(tx, ty, tw, 20);
+                    ctx.fillStyle = '#fff';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(txt, tx + tw / 2, ty + 10);
+                    ctx.restore();
+                }
             });
         }
     };
 
     /**
-     * Check if a preset ID is a custom preset
+     * Compute corrected curve from measurement + bands
      */
-    const isCustomPreset = (presetId) => {
-        return presetId && presetId.startsWith('custom_');
-    };
+    const computeCorrectedCurve = () => {
+        if (!autoeqSelectedMeasurement || !autoeqCurrentBands) {
+            autoeqCorrectedCurve = null;
+            return;
+        }
+        const targetId = autoeqTargetSelect ? autoeqTargetSelect.value : 'harman_oe_2018';
+        const targetEntry = TARGETS.find(t => t.id === targetId);
+        const targetData = targetEntry?.data;
+        const normOff = targetData ? getNormalizationOffset(targetData) - getNormalizationOffset(autoeqSelectedMeasurement) : 0;
+        const sampleRate = autoeqSampleRate ? parseInt(autoeqSampleRate.value, 10) : 48000;
 
-    /**
-     * Update delete button visibility based on selected preset
-     */
-    const updateDeleteButtonVisibility = () => {
-        if (!deleteCustomPresetBtn || !eqPresetSelect) return;
-        const isCustom = isCustomPreset(eqPresetSelect.value);
-        deleteCustomPresetBtn.style.display = isCustom ? 'flex' : 'none';
-    };
-
-    /**
-     * Draw smooth EQ response curve on canvas
-     */
-    const drawEQCurve = () => {
-        const canvas = document.getElementById('eq-response-canvas');
-        if (!canvas) return;
-
-        const ctx = canvas.getContext('2d');
-        const dpr = window.devicePixelRatio || 1;
-        const rect = canvas.getBoundingClientRect();
-
-        // Skip if canvas has no size (not visible yet)
-        if (rect.width === 0 || rect.height === 0) return;
-
-        // Set canvas size accounting for DPR
-        canvas.width = rect.width * dpr;
-        canvas.height = rect.height * dpr;
-        ctx.scale(dpr, dpr);
-
-        const width = rect.width;
-        const height = rect.height;
-
-        // Clear canvas
-        ctx.clearRect(0, 0, width, height);
-
-        // Get all current gain values
-        const eqBands = eqBandsContainer?.querySelectorAll('.eq-band');
-        if (!eqBands || eqBands.length === 0) return;
-
-        // Get the actual highlight color from CSS
-        const tempEl = document.createElement('div');
-        tempEl.style.color = 'rgb(var(--highlight-rgb))';
-        document.body.appendChild(tempEl);
-        const highlightColor = getComputedStyle(tempEl).color;
-        document.body.removeChild(tempEl);
-
-        const gains = [];
-        const positions = [];
-        const range = currentRange;
-        const rangeTotal = range.max - range.min;
-        const canvasRect = canvas.getBoundingClientRect();
-
-        eqBands.forEach((bandEl) => {
-            const slider = bandEl.querySelector('.eq-slider');
-            const gain = slider ? parseFloat(slider.value) : 0;
-            gains.push(gain);
-
-            // Get actual center position of the band element relative to canvas
-            const bandRect = bandEl.getBoundingClientRect();
-            const x = bandRect.left + bandRect.width / 2 - canvasRect.left;
-            positions.push(x);
+        autoeqCorrectedCurve = autoeqSelectedMeasurement.map(p => {
+            let correction = 0;
+            for (const band of autoeqCurrentBands) {
+                if (band.enabled) correction += calculateBiquadResponse(p.freq, band, sampleRate);
+            }
+            return { freq: p.freq, gain: p.gain + normOff + correction };
         });
+    };
 
-        // Calculate y positions - account for slider thumb size (18px)
-        // The track is 120px, but thumb center moves within (120 - 18) = 102px range
-        const trackHeight = height;
-        const thumbSize = 18;
-        const usableTrack = trackHeight - thumbSize;
-        const trackOffset = thumbSize / 2;
+    /**
+     * Get canvas coordinates from mouse event
+     */
+    const getCanvasCoords = (e) => {
+        const rect = autoeqCanvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    };
 
-        const getY = (gain) => {
-            const normalized = (gain - range.min) / rangeTotal;
-            // Invert because canvas Y=0 is at top, slider max is at top
-            return trackOffset + (1 - normalized) * usableTrack;
-        };
+    /**
+     * Find closest node to coordinates
+     */
+    const findClosestNode = (mx, my, threshold = 15) => {
+        const activeBands = getActiveBands();
+        if (!activeBands || !autoeqCanvas) return -1;
+        const isParam = currentMode === 'parametric';
+        if (!isParam && !autoeqCorrectedCurve) return -1;
 
-        // Create points array
-        const points = gains.map((gain, i) => ({
-            x: positions[i],
-            y: getY(gain),
-        }));
+        const rect = autoeqCanvas.getBoundingClientRect();
+        const padLeft = 40, padRight = 10, padTop = 10, padBottom = 30;
+        const w = rect.width - padLeft - padRight;
+        const h = rect.height - padTop - padBottom;
 
-        if (points.length < 2) return;
+        const dbCenter = isParam ? 0 : 75;
+        const dbHalfRange = isParam ? graphDbHalfParametric : graphDbHalfAutoEQ;
+        const dbMin = dbCenter - dbHalfRange;
+        const dbMax = dbCenter + dbHalfRange;
 
-        // Parse RGB values from color string
-        const rgbMatch = highlightColor.match(/\d+/g);
-        const r = rgbMatch ? parseInt(rgbMatch[0]) : 128;
-        const g = rgbMatch ? parseInt(rgbMatch[1]) : 128;
-        const b = rgbMatch ? parseInt(rgbMatch[2]) : 128;
-
-        // Calculate control points for smooth curve
-        const getControlPoints = (i) => {
-            const p0 = points[i === 0 ? i : i - 1];
-            const p1 = points[i];
-            const p2 = points[i + 1];
-            const p3 = points[i + 2] || p2;
-
-            const cp1x = p1.x + (p2.x - p0.x) / 6;
-            const cp1y = p1.y + (p2.y - p0.y) / 6;
-            const cp2x = p2.x - (p3.x - p1.x) / 6;
-            const cp2y = p2.y - (p3.y - p1.y) / 6;
-
-            return { cp1x, cp1y, cp2x, cp2y };
-        };
-
-        // Draw filled area from curve to bottom
-        const gradient = ctx.createLinearGradient(0, 0, 0, height);
-        gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.3)`);
-        gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.05)`);
-
-        ctx.beginPath();
-        ctx.moveTo(points[0].x, height);
-        ctx.lineTo(points[0].x, points[0].y);
-
-        for (let i = 0; i < points.length - 1; i++) {
-            const { cp1x, cp1y, cp2x, cp2y } = getControlPoints(i);
-            const p2 = points[i + 1];
-            ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+        let graphShift = 0;
+        if (!isParam) {
+            const targetId = autoeqTargetSelect ? autoeqTargetSelect.value : 'harman_oe_2018';
+            const targetEntry = TARGETS.find(t => t.id === targetId);
+            const targetData = targetEntry?.data;
+            if (targetData) graphShift = 75 - getNormalizationOffset(targetData);
+            else if (autoeqSelectedMeasurement) graphShift = 75 - getNormalizationOffset(autoeqSelectedMeasurement);
         }
 
-        ctx.lineTo(points[points.length - 1].x, height);
-        ctx.closePath();
-        ctx.fillStyle = gradient;
-        ctx.fill();
-
-        // Draw the curve line
-        ctx.beginPath();
-        ctx.moveTo(points[0].x, points[0].y);
-
-        for (let i = 0; i < points.length - 1; i++) {
-            const { cp1x, cp1y, cp2x, cp2y } = getControlPoints(i);
-            const p2 = points[i + 1];
-            ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
-        }
-
-        ctx.strokeStyle = `rgb(${r}, ${g}, ${b})`;
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-        ctx.stroke();
-
-        // Draw dots at each band point
-        points.forEach((point) => {
-            ctx.beginPath();
-            ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
-            ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-            ctx.fill();
-
-            // Add white center to dots for visibility
-            ctx.beginPath();
-            ctx.arc(point.x, point.y, 2, 0, Math.PI * 2);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx.fill();
+        const sampleRate = autoeqSampleRate ? parseInt(autoeqSampleRate.value, 10) : 48000;
+        let closest = -1, closestDist = Infinity;
+        activeBands.forEach((band, i) => {
+            if (!band.enabled) return;
+            const x = padLeft + freqToX(band.freq, w);
+            let nodeGain;
+            if (isParam) {
+                nodeGain = 0;
+                for (const b of activeBands) {
+                    if (b.enabled) nodeGain += calculateBiquadResponse(band.freq, b, sampleRate);
+                }
+            } else {
+                nodeGain = interpolate(band.freq, autoeqCorrectedCurve) + graphShift;
+            }
+            const y = padTop + dbToY(nodeGain, h, dbMin, dbMax);
+            const dist = Math.sqrt((mx - x) ** 2 + (my - y) ** 2);
+            if (dist < threshold && dist < closestDist) {
+                closest = i;
+                closestDist = dist;
+            }
         });
+        return closest;
     };
 
     /**
-     * Initialize band slider event listeners
+     * Auto preamp compensation state
      */
-    const initializeBandSliders = () => {
-        const eqBands = eqBandsContainer?.querySelectorAll('.eq-band');
-        if (!eqBands || eqBands.length === 0) return;
+    let autoPreampEnabled = true;
+    const autoPreampToggle = document.getElementById('autoeq-auto-preamp-toggle');
 
-        const savedGains = equalizerSettings.getGains(currentBandCount);
-
-        // FL Studio-style absolute position drag state
-        let isDragging = false;
-
-        eqBands.forEach((bandEl) => {
-            const bandIndex = parseInt(bandEl.dataset.band, 10);
-            const slider = bandEl.querySelector('.eq-slider');
-
-            if (slider && !isNaN(bandIndex)) {
-                // Set initial value from saved settings
-                const initialGain = savedGains[bandIndex] ?? 0;
-                slider.value = initialGain;
-                updateBandValueDisplay(bandEl, initialGain);
-
-                // Handle slider input
-                slider.addEventListener('input', (e) => {
-                    const gain = parseFloat(e.target.value);
-                    audioContextManager.setBandGain(bandIndex, gain);
-                    updateBandValueDisplay(bandEl, gain);
-                    drawEQCurve();
-
-                    // When manually adjusting, check if we should clear preset
-                    if (eqPresetSelect && eqPresetSelect.value !== 'flat') {
-                        const currentGains = audioContextManager.getGains();
-                        const builtInPresets = EQ_PRESETS;
-                        const currentPreset = builtInPresets[eqPresetSelect.value];
-                        if (currentPreset) {
-                            const matches = currentPreset.gains.every((g, i) => Math.abs(g - currentGains[i]) < 0.01);
-                            if (!matches) {
-                                // User has deviated from preset
-                            }
-                        }
-                    }
-                });
-
-                // Double-click to reset individual band to 0
-                slider.addEventListener('dblclick', () => {
-                    slider.value = 0;
-                    audioContextManager.setBandGain(bandIndex, 0);
-                    updateBandValueDisplay(bandEl, 0);
-                    drawEQCurve();
-                });
-
-                // FL Studio-style absolute drag: mousedown starts drag mode
-                bandEl.addEventListener('mousedown', (e) => {
-                    // Only handle left mouse button
-                    if (e.button !== 0) return;
-
-                    isDragging = true;
-                    document.body.style.cursor = 'ns-resize';
-                    e.preventDefault();
-                });
-            }
-        });
-
-        // Global mousemove: whichever band is under cursor, set slider to cursor Y position
-        document.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-
-            // Find which band is under the cursor
-            const elementUnderCursor = document.elementFromPoint(e.clientX, e.clientY);
-            const bandUnderCursor = elementUnderCursor?.closest('.eq-band');
-
-            if (bandUnderCursor) {
-                const slider = bandUnderCursor.querySelector('.eq-slider');
-
-                if (slider) {
-                    const rect = slider.getBoundingClientRect();
-                    const min = parseFloat(slider.min);
-                    const max = parseFloat(slider.max);
-                    const step = parseFloat(slider.step) || 0.5;
-
-                    // Calculate relative Y position within slider (0 = bottom, 1 = top)
-                    const relativeY = (rect.bottom - e.clientY) / rect.height;
-                    const clampedY = Math.max(0, Math.min(1, relativeY));
-
-                    // Map to slider value range
-                    let newValue = min + clampedY * (max - min);
-
-                    // Round to step
-                    newValue = Math.round(newValue / step) * step;
-
-                    // Only update if value changed
-                    if (parseFloat(slider.value) !== newValue) {
-                        slider.value = newValue;
-                        const bandIndex = parseInt(bandUnderCursor.dataset.band, 10);
-                        audioContextManager.setBandGain(bandIndex, newValue);
-                        updateBandValueDisplay(bandUnderCursor, newValue);
-                        drawEQCurve();
-                    }
-                }
-            }
-        });
-
-        // Global mouseup: stop dragging
-        document.addEventListener('mouseup', () => {
-            if (isDragging) {
-                isDragging = false;
-                document.body.style.cursor = '';
-            }
-        });
-
-        // Initial curve draw with delay to ensure canvas has proper dimensions
-        setTimeout(() => {
-            drawEQCurve();
-        }, 100);
+    /**
+     * Apply current bands to audio engine
+     */
+    const applyBandsToAudio = (bands) => {
+        if (bands && bands.length > 0) {
+            // Pass skipPreamp=true when auto preamp is off so the engine doesn't override manual preamp
+            audioContextManager.applyAutoEQBands(bands, !autoPreampEnabled);
+            currentPreamp = equalizerSettings.getPreamp();
+            if (eqPreampSlider) eqPreampSlider.value = currentPreamp;
+            if (autoeqPreampValue) autoeqPreampValue.textContent = `${currentPreamp} dB`;
+        }
     };
 
-    // Initialize EQ toggle
-    if (eqToggle) {
-        const isEnabled = equalizerSettings.isEnabled();
-        eqToggle.checked = isEnabled;
-        updateEQContainerVisibility(isEnabled);
-
-        eqToggle.addEventListener('change', (e) => {
-            const enabled = e.target.checked;
-            audioContextManager.toggleEQ(enabled);
-            updateEQContainerVisibility(enabled);
-
-            // Redraw curve after a brief delay to allow container to become visible
-            if (enabled) {
-                setTimeout(() => {
-                    drawEQCurve();
-                }, 50);
-            }
-        });
-    }
-
-    // Initialize band count input
-    if (eqBandCountInput) {
-        eqBandCountInput.value = currentBandCount;
-
-        eqBandCountInput.addEventListener('change', (e) => {
-            const newCount = parseInt(e.target.value, 10);
-            if (newCount >= equalizerSettings.MIN_BANDS && newCount <= equalizerSettings.MAX_BANDS) {
-                currentBandCount = newCount;
-
-                // Save new band count and update audio context (interpolates gains automatically)
-                equalizerSettings.setBandCount(newCount);
-                audioContextManager.setBandCount?.(newCount);
-
-                // Regenerate UI
-                generateEQBands(
-                    newCount,
-                    currentRange.min,
-                    currentRange.max,
-                    currentFreqRange.min,
-                    currentFreqRange.max
-                );
-
-                // Get interpolated gains from audio context
-                const interpolatedGains = audioContextManager.getGains?.() || equalizerSettings.getGains(newCount);
-                updateAllBandUI(interpolatedGains);
-
-                // Keep current preset or set to custom if modified
-                if (eqPresetSelect) {
-                    const currentPreset = eqPresetSelect.value;
-                    if (!currentPreset.startsWith('custom_')) {
-                        eqPresetSelect.value = 'custom';
-                    }
-                }
-                updateDeleteButtonVisibility();
-
-                // Show brief feedback
-                const originalText = eqBandCountInput.style.backgroundColor;
-                eqBandCountInput.style.backgroundColor = 'var(--highlight)';
-                setTimeout(() => {
-                    eqBandCountInput.style.backgroundColor = originalText;
-                }, 300);
-            }
-        });
-    }
-
-    // Initialize preset selector
-    if (eqPresetSelect) {
-        populateCustomPresets();
-        eqPresetSelect.value = equalizerSettings.getPreset();
-        updateDeleteButtonVisibility();
-
-        eqPresetSelect.addEventListener('change', (e) => {
-            const presetKey = e.target.value;
-
-            // Check if it's a custom preset
-            if (isCustomPreset(presetKey)) {
-                const customPresets = equalizerSettings.getCustomPresets();
-                const customPreset = customPresets[presetKey];
-                if (customPreset && customPreset.gains) {
-                    // Check if preset has different band count
-                    const presetBands = customPreset.bandCount || customPreset.gains.length;
-                    if (presetBands !== currentBandCount) {
-                        // Update band count to match preset
-                        currentBandCount = presetBands;
-                        equalizerSettings.setBandCount(presetBands);
-                        if (eqBandCountInput) eqBandCountInput.value = presetBands;
-                        generateEQBands(
-                            presetBands,
-                            currentRange.min,
-                            currentRange.max,
-                            currentFreqRange.min,
-                            currentFreqRange.max
-                        );
-                    }
-                    audioContextManager.setAllGains(customPreset.gains);
-                    updateAllBandUI(customPreset.gains);
-                    equalizerSettings.setPreset(presetKey);
-                }
-            } else {
-                // Built-in preset - use current band count
-                const presets = EQ_PRESETS;
-                const preset = presets[presetKey];
-                if (preset) {
-                    audioContextManager.applyPreset(presetKey);
-                    updateAllBandUI(preset.gains);
-                }
-            }
-            updateDeleteButtonVisibility();
-        });
-    }
-
-    // Initialize reset button
-    if (eqResetBtn) {
-        eqResetBtn.addEventListener('click', () => {
-            audioContextManager.reset();
-            updateAllBandUI(new Array(currentBandCount).fill(0));
-            if (eqPresetSelect) {
-                eqPresetSelect.value = 'flat';
-                updateDeleteButtonVisibility();
-            }
-        });
-    }
-
-    // Initialize save custom preset button
-    if (saveCustomPresetBtn && customPresetNameInput) {
-        saveCustomPresetBtn.addEventListener('click', () => {
-            const name = customPresetNameInput.value.trim();
-            if (!name) {
-                alert('Please enter a name for your preset');
-                return;
-            }
-
-            const currentGains = audioContextManager.getGains();
-            const presetId = equalizerSettings.saveCustomPreset(name, currentGains);
-
-            if (presetId) {
-                populateCustomPresets();
-                if (eqPresetSelect) {
-                    eqPresetSelect.value = presetId;
-                    equalizerSettings.setPreset(presetId);
-                    updateDeleteButtonVisibility();
-                }
-                customPresetNameInput.value = '';
-
-                // Show feedback
-                const originalText = saveCustomPresetBtn.textContent;
-                saveCustomPresetBtn.textContent = 'Saved!';
-                setTimeout(() => {
-                    saveCustomPresetBtn.textContent = originalText;
-                }, 1500);
-            } else {
-                alert('Failed to save preset. Please try again.');
+    // ========================================
+    // Interactive Graph Mouse/Touch Handlers
+    // ========================================
+    if (autoeqCanvas) {
+        autoeqCanvas.addEventListener('mousedown', (e) => {
+            const coords = getCanvasCoords(e);
+            const nodeIdx = findClosestNode(coords.x, coords.y, 18);
+            if (nodeIdx >= 0) {
+                draggedNode = nodeIdx;
+                autoeqCanvas.style.cursor = 'grabbing';
+                e.preventDefault();
             }
         });
 
-        // Allow saving with Enter key
-        customPresetNameInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                saveCustomPresetBtn.click();
-            }
-        });
-    }
+        autoeqCanvas.addEventListener('mousemove', (e) => {
+            const coords = getCanvasCoords(e);
+            const bands = getActiveBands();
+            if (draggedNode !== null && bands) {
+                const rect = autoeqCanvas.getBoundingClientRect();
+                const padLeft = 40, padRight = 10, padTop = 10, padBottom = 30;
+                const w = rect.width - padLeft - padRight;
+                const h = rect.height - padTop - padBottom;
 
-    // Initialize delete custom preset button
-    if (deleteCustomPresetBtn) {
-        deleteCustomPresetBtn.addEventListener('click', () => {
-            if (!eqPresetSelect) return;
+                const isParam = currentMode === 'parametric';
+                const dbCenter = isParam ? 0 : 75;
+                const dbHalf = isParam ? graphDbHalfParametric : graphDbHalfAutoEQ;
+                const dbMin = dbCenter - dbHalf;
+                const dbMax = dbCenter + dbHalf;
 
-            const presetId = eqPresetSelect.value;
-            if (!isCustomPreset(presetId)) return;
+                const freq = xToFreq(coords.x - padLeft, w);
+                bands[draggedNode].freq = Math.max(20, Math.min(20000, freq));
 
-            const customPresets = equalizerSettings.getCustomPresets();
-            const presetName = customPresets[presetId]?.name || 'this preset';
-
-            if (confirm(`Are you sure you want to delete "${presetName}"?`)) {
-                const success = equalizerSettings.deleteCustomPreset(presetId);
-                if (success) {
-                    populateCustomPresets();
-                    eqPresetSelect.value = 'flat';
-                    audioContextManager.reset();
-                    updateAllBandUI(new Array(currentBandCount).fill(0));
-                    equalizerSettings.setPreset('flat');
-                    updateDeleteButtonVisibility();
+                if (isParam) {
+                    const newGain = yToDb(coords.y - padTop, h, dbMin, dbMax);
+                    bands[draggedNode].gain = Math.max(-30, Math.min(30, Math.round(newGain * 10) / 10));
                 } else {
-                    alert('Failed to delete preset. Please try again.');
+                    const corrGain = interpolate(bands[draggedNode].freq, autoeqCorrectedCurve || []);
+                    const newDb = yToDb(coords.y - padTop, h, dbMin, dbMax);
+                    const gainDelta = newDb - corrGain;
+                    bands[draggedNode].gain = Math.max(-30, Math.min(30, bands[draggedNode].gain + gainDelta * 0.3));
                 }
-            }
-        });
-    }
 
-    // Initialize range inputs
-    if (eqRangeMinInput) {
-        eqRangeMinInput.value = currentRange.min;
-    }
-    if (eqRangeMaxInput) {
-        eqRangeMaxInput.value = currentRange.max;
-    }
-    updateEQScale(currentRange.min, currentRange.max);
-
-    // Initialize apply range button
-    if (applyEqRangeBtn && eqRangeMinInput && eqRangeMaxInput) {
-        applyEqRangeBtn.addEventListener('click', () => {
-            const newMin = parseInt(eqRangeMinInput.value, 10);
-            const newMax = parseInt(eqRangeMaxInput.value, 10);
-
-            // Validate range
-            if (isNaN(newMin) || isNaN(newMax)) {
-                alert('Please enter valid numbers for the range');
-                return;
-            }
-
-            if (newMin >= 0 || newMax <= 0) {
-                alert('Minimum must be negative and maximum must be positive');
-                return;
-            }
-
-            if (newMin < equalizerSettings.ABSOLUTE_MIN || newMax > equalizerSettings.ABSOLUTE_MAX) {
-                alert(
-                    `Range must be between ${equalizerSettings.ABSOLUTE_MIN} and ${equalizerSettings.ABSOLUTE_MAX} dB`
-                );
-                return;
-            }
-
-            // Save new range
-            equalizerSettings.setRange(newMin, newMax);
-            currentRange = { min: newMin, max: newMax };
-
-            // Regenerate bands with new range
-            generateEQBands(currentBandCount, newMin, newMax);
-
-            // Update scale display
-            updateEQScale(newMin, newMax);
-
-            // Reset gains to flat
-            const flatGains = new Array(currentBandCount).fill(0);
-            audioContextManager.setAllGains(flatGains);
-            updateAllBandUI(flatGains);
-
-            // Reset to flat preset
-            if (eqPresetSelect) {
-                eqPresetSelect.value = 'flat';
-                equalizerSettings.setPreset('flat');
-            }
-
-            // Show feedback
-            const originalText = applyEqRangeBtn.textContent;
-            applyEqRangeBtn.textContent = 'Applied!';
-            setTimeout(() => {
-                applyEqRangeBtn.textContent = originalText;
-            }, 1500);
-        });
-    }
-
-    // Initialize reset DB range button
-    if (resetEqRangeBtn) {
-        resetEqRangeBtn.addEventListener('click', () => {
-            // Reset to default values
-            const defaultMin = equalizerSettings.DEFAULT_RANGE_MIN;
-            const defaultMax = equalizerSettings.DEFAULT_RANGE_MAX;
-
-            // Update inputs
-            if (eqRangeMinInput) eqRangeMinInput.value = defaultMin;
-            if (eqRangeMaxInput) eqRangeMaxInput.value = defaultMax;
-
-            // Save new range
-            equalizerSettings.setRange(defaultMin, defaultMax);
-            currentRange = { min: defaultMin, max: defaultMax };
-
-            // Regenerate bands with new range
-            generateEQBands(currentBandCount, defaultMin, defaultMax, currentFreqRange.min, currentFreqRange.max);
-
-            // Update scale display
-            updateEQScale(defaultMin, defaultMax);
-
-            // Reset gains to flat
-            const flatGains = new Array(currentBandCount).fill(0);
-            audioContextManager.setAllGains(flatGains);
-            updateAllBandUI(flatGains);
-
-            // Reset to flat preset
-            if (eqPresetSelect) {
-                eqPresetSelect.value = 'flat';
-                equalizerSettings.setPreset('flat');
-            }
-
-            // Show feedback
-            const originalText = resetEqRangeBtn.textContent;
-            resetEqRangeBtn.textContent = 'Reset!';
-            setTimeout(() => {
-                resetEqRangeBtn.textContent = originalText;
-            }, 1500);
-        });
-    }
-
-    // Initialize frequency range inputs
-    if (eqFreqMinInput) {
-        eqFreqMinInput.value = currentFreqRange.min;
-    }
-    if (eqFreqMaxInput) {
-        eqFreqMaxInput.value = currentFreqRange.max;
-    }
-
-    // Initialize apply frequency range button
-    if (applyEqFreqBtn && eqFreqMinInput && eqFreqMaxInput) {
-        applyEqFreqBtn.addEventListener('click', () => {
-            const newMin = parseInt(eqFreqMinInput.value, 10);
-            const newMax = parseInt(eqFreqMaxInput.value, 10);
-
-            // Validate range
-            if (isNaN(newMin) || isNaN(newMax)) {
-                alert('Please enter valid numbers for the frequency range');
-                return;
-            }
-
-            if (newMin < equalizerSettings.ABSOLUTE_FREQ_MIN || newMax > equalizerSettings.ABSOLUTE_FREQ_MAX) {
-                alert(
-                    `Frequency range must be between ${equalizerSettings.ABSOLUTE_FREQ_MIN} Hz and ${equalizerSettings.ABSOLUTE_FREQ_MAX} Hz`
-                );
-                return;
-            }
-
-            if (newMin >= newMax) {
-                alert('Minimum frequency must be less than maximum frequency');
-                return;
-            }
-
-            // Save new frequency range
-            equalizerSettings.setFreqRange(newMin, newMax);
-            currentFreqRange = { min: newMin, max: newMax };
-
-            // Update audio context
-            audioContextManager.setFreqRange(newMin, newMax);
-
-            // Regenerate bands with new frequency range
-            generateEQBands(currentBandCount, currentRange.min, currentRange.max, newMin, newMax);
-
-            // Reset gains to flat
-            const flatGains = new Array(currentBandCount).fill(0);
-            audioContextManager.setAllGains(flatGains);
-            updateAllBandUI(flatGains);
-
-            // Reset to flat preset
-            if (eqPresetSelect) {
-                eqPresetSelect.value = 'flat';
-                equalizerSettings.setPreset('flat');
-            }
-
-            // Show feedback
-            const originalText = applyEqFreqBtn.textContent;
-            applyEqFreqBtn.textContent = 'Applied!';
-            setTimeout(() => {
-                applyEqFreqBtn.textContent = originalText;
-            }, 1500);
-        });
-    }
-
-    // Initialize reset frequency range button
-    if (resetEqFreqBtn) {
-        resetEqFreqBtn.addEventListener('click', () => {
-            // Reset to default values
-            const defaultMin = equalizerSettings.DEFAULT_FREQ_MIN;
-            const defaultMax = equalizerSettings.DEFAULT_FREQ_MAX;
-
-            // Update inputs
-            if (eqFreqMinInput) eqFreqMinInput.value = defaultMin;
-            if (eqFreqMaxInput) eqFreqMaxInput.value = defaultMax;
-
-            // Save new frequency range
-            equalizerSettings.setFreqRange(defaultMin, defaultMax);
-            currentFreqRange = { min: defaultMin, max: defaultMax };
-
-            // Update audio context
-            audioContextManager.setFreqRange(defaultMin, defaultMax);
-
-            // Regenerate bands with new frequency range
-            generateEQBands(currentBandCount, currentRange.min, currentRange.max, defaultMin, defaultMax);
-
-            // Reset gains to flat
-            const flatGains = new Array(currentBandCount).fill(0);
-            audioContextManager.setAllGains(flatGains);
-            updateAllBandUI(flatGains);
-
-            // Reset to flat preset
-            if (eqPresetSelect) {
-                eqPresetSelect.value = 'flat';
-                equalizerSettings.setPreset('flat');
-            }
-
-            // Show feedback
-            const originalText = resetEqFreqBtn.textContent;
-            resetEqFreqBtn.textContent = 'Reset!';
-            setTimeout(() => {
-                resetEqFreqBtn.textContent = originalText;
-            }, 1500);
-        });
-    }
-
-    // Initialize preamp control
-    const updatePreampUI = (value) => {
-        currentPreamp = value;
-        if (eqPreampSlider) eqPreampSlider.value = value;
-        if (eqPreampInput) eqPreampInput.value = value;
-        audioContextManager.setPreamp?.(value);
-    };
-
-    if (eqPreampSlider) {
-        // Set initial value
-        eqPreampSlider.value = currentPreamp;
-
-        // Handle slider input
-        eqPreampSlider.addEventListener('input', (e) => {
-            const value = parseFloat(e.target.value);
-            updatePreampUI(value);
-        });
-    }
-
-    if (eqPreampInput) {
-        // Set initial value
-        eqPreampInput.value = currentPreamp;
-
-        // Handle text input
-        eqPreampInput.addEventListener('change', (e) => {
-            let value = parseFloat(e.target.value);
-            // Clamp to valid range
-            value = Math.max(-20, Math.min(20, value || 0));
-            updatePreampUI(value);
-        });
-
-        // Handle enter key
-        eqPreampInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.target.blur();
-            }
-        });
-    }
-
-    // Initialize import/export controls
-    if (eqExportBtn) {
-        eqExportBtn.addEventListener('click', () => {
-            const text = audioContextManager.exportEQToText?.();
-            if (text) {
-                navigator.clipboard
-                    .writeText(text)
-                    .then(() => {
-                        eqExportBtn.textContent = 'Copied!';
-                        setTimeout(() => {
-                            eqExportBtn.textContent = 'Export';
-                        }, 1500);
-                    })
-                    .catch(() => {
-                        // Fallback: create and download file
-                        const blob = new Blob([text], { type: 'text/plain' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = 'equalizer-settings.txt';
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
+                computeCorrectedCurve();
+                applyBandsToAudio(bands);
+                if (!graphAnimFrame) {
+                    graphAnimFrame = requestAnimationFrame(() => {
+                        drawAutoEQGraph();
+                        renderBandControls(bands);
+                        graphAnimFrame = null;
                     });
+                }
+            } else {
+                const padLeft = 40;
+                if (coords.x <= padLeft + 10) {
+                    autoeqCanvas.style.cursor = 'ns-resize';
+                    if (hoveredNode !== null) { hoveredNode = null; drawAutoEQGraph(); }
+                } else {
+                    const newHovered = findClosestNode(coords.x, coords.y, 18);
+                    if (newHovered !== hoveredNode) {
+                        hoveredNode = newHovered;
+                        autoeqCanvas.style.cursor = hoveredNode >= 0 ? 'grab' : 'crosshair';
+                        drawAutoEQGraph();
+                    }
+                }
             }
         });
-    }
 
-    if (eqImportBtn && eqImportFile) {
-        eqImportBtn.addEventListener('click', () => {
-            eqImportFile.click();
+        autoeqCanvas.addEventListener('mouseup', () => {
+            draggedNode = null;
+            autoeqCanvas.style.cursor = hoveredNode >= 0 ? 'grab' : 'crosshair';
         });
 
-        eqImportFile.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+        autoeqCanvas.addEventListener('mouseleave', () => {
+            draggedNode = null;
+            hoveredNode = null;
+            autoeqCanvas.style.cursor = 'crosshair';
+            drawAutoEQGraph();
+        });
 
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                const text = event.target.result;
-                const success = audioContextManager.importEQFromText?.(text);
-                if (success) {
-                    // Update UI
-                    currentPreamp = equalizerSettings.getPreamp();
-                    updatePreampUI(currentPreamp);
+        autoeqCanvas.addEventListener('wheel', (e) => {
+            const coords = getCanvasCoords(e);
+            const padLeft = 40;
 
-                    // Update band count if changed
-                    currentBandCount = equalizerSettings.getBandCount();
-                    if (eqBandCountInput) eqBandCountInput.value = currentBandCount;
-
-                    // Regenerate bands and update UI
-                    generateEQBands(
-                        currentBandCount,
-                        currentRange.min,
-                        currentRange.max,
-                        currentFreqRange.min,
-                        currentFreqRange.max
-                    );
-                    const gains = audioContextManager.getGains?.() || equalizerSettings.getGains(currentBandCount);
-                    updateAllBandUI(gains);
-
-                    eqImportBtn.textContent = 'Imported!';
-                    setTimeout(() => {
-                        eqImportBtn.textContent = 'Import';
-                    }, 1500);
+            // Scroll on Y axis area (left edge) = dB zoom
+            if (coords.x <= padLeft + 10) {
+                e.preventDefault();
+                const zoomStep = e.deltaY > 0 ? 2 : -2; // scroll down = zoom out (wider range), scroll up = zoom in
+                if (currentMode === 'parametric') {
+                    graphDbHalfParametric = Math.max(5, Math.min(60, graphDbHalfParametric + zoomStep));
                 } else {
-                    eqImportBtn.textContent = 'Invalid!';
-                    setTimeout(() => {
-                        eqImportBtn.textContent = 'Import';
-                    }, 1500);
+                    graphDbHalfAutoEQ = Math.max(5, Math.min(60, graphDbHalfAutoEQ + zoomStep));
                 }
-            };
-            reader.readAsText(file);
+                drawAutoEQGraph();
+                return;
+            }
 
-            // Reset file input
-            e.target.value = '';
+            // Scroll on a node = Q adjust
+            const wBands = getActiveBands();
+            if (hoveredNode >= 0 && wBands) {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -0.15 : 0.15;
+                wBands[hoveredNode].q = Math.max(0.1, Math.min(10, wBands[hoveredNode].q + delta));
+                computeCorrectedCurve();
+                applyBandsToAudio(wBands);
+                drawAutoEQGraph();
+                renderBandControls(wBands);
+            }
+        }, { passive: false });
+
+        // Touch support
+        let touchNodeIdx = -1;
+        autoeqCanvas.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            const coords = { x: touch.clientX - autoeqCanvas.getBoundingClientRect().left, y: touch.clientY - autoeqCanvas.getBoundingClientRect().top };
+            touchNodeIdx = findClosestNode(coords.x, coords.y, 25);
+            if (touchNodeIdx >= 0) {
+                draggedNode = touchNodeIdx;
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        autoeqCanvas.addEventListener('touchmove', (e) => {
+            const tBands = getActiveBands();
+            if (draggedNode !== null && tBands) {
+                const touch = e.touches[0];
+                const rect = autoeqCanvas.getBoundingClientRect();
+                const coords = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+                const padLeft = 40, padRight = 10, padTop = 10, padBottom = 30;
+                const w = rect.width - padLeft - padRight;
+                const h = rect.height - padTop - padBottom;
+
+                const freq = xToFreq(coords.x - padLeft, w);
+                tBands[draggedNode].freq = Math.max(20, Math.min(20000, freq));
+
+                if (currentMode === 'parametric') {
+                    const newGain = yToDb(coords.y - padTop, h, -graphDbHalfParametric, graphDbHalfParametric);
+                    tBands[draggedNode].gain = Math.max(-30, Math.min(30, Math.round(newGain * 10) / 10));
+                }
+
+                computeCorrectedCurve();
+                applyBandsToAudio(tBands);
+                if (!graphAnimFrame) {
+                    graphAnimFrame = requestAnimationFrame(() => {
+                        drawAutoEQGraph();
+                        renderBandControls(tBands);
+                        graphAnimFrame = null;
+                    });
+                }
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        autoeqCanvas.addEventListener('touchend', () => {
+            draggedNode = null;
+            touchNodeIdx = -1;
+        });
+
+        // Resize observer for graph
+        if (autoeqGraphWrapper) {
+            const ro = new ResizeObserver(() => { drawAutoEQGraph(); });
+            ro.observe(autoeqGraphWrapper);
+        }
+    }
+
+    // ========================================
+    // Per-Band Parametric EQ Controls
+    // ========================================
+    const renderBandControls = (bands) => {
+        if (!autoeqBandsList) return;
+        autoeqBandsList.innerHTML = '';
+        if (!bands || bands.length === 0) return;
+
+        bands.forEach((band, i) => {
+            const control = document.createElement('div');
+            control.className = 'autoeq-band-control';
+            control.dataset.band = i;
+            control.innerHTML = `
+                <div class="autoeq-band-row">
+                    <span class="autoeq-band-label">Freq (${band.type ? band.type.toUpperCase() : 'PEAKING'})</span>
+                    <span class="autoeq-band-value autoeq-freq-val">${formatFreq(band.freq)} Hz</span>
+                </div>
+                <input type="range" class="autoeq-band-slider autoeq-freq-slider" min="20" max="20000" step="1" value="${Math.round(band.freq)}" />
+                <div class="autoeq-band-row">
+                    <span class="autoeq-band-label">Gain</span>
+                    <span class="autoeq-band-value autoeq-gain-val">${band.gain > 0 ? '+' : ''}${band.gain.toFixed(1)} dB</span>
+                </div>
+                <input type="range" class="autoeq-band-slider autoeq-gain-slider" min="-30" max="30" step="0.1" value="${band.gain.toFixed(1)}" />
+                <div class="autoeq-band-row">
+                    <span class="autoeq-band-label">Q-Factor</span>
+                    <span class="autoeq-band-value autoeq-q-val">${band.q.toFixed(2)}</span>
+                </div>
+                <input type="range" class="autoeq-band-slider autoeq-q-slider" min="0.1" max="10" step="0.01" value="${band.q.toFixed(2)}" />
+            `;
+            autoeqBandsList.appendChild(control);
+
+            // Attach slider event listeners
+            const freqSlider = control.querySelector('.autoeq-freq-slider');
+            const gainSlider = control.querySelector('.autoeq-gain-slider');
+            const qSlider = control.querySelector('.autoeq-q-slider');
+            const freqVal = control.querySelector('.autoeq-freq-val');
+            const gainVal = control.querySelector('.autoeq-gain-val');
+            const qVal = control.querySelector('.autoeq-q-val');
+
+            freqSlider.addEventListener('input', () => {
+                const bands = getActiveBands();
+                if (!bands || !bands[i]) return;
+                bands[i].freq = parseFloat(freqSlider.value);
+                freqVal.textContent = `${formatFreq(bands[i].freq)} Hz`;
+                computeCorrectedCurve();
+                applyBandsToAudio(bands);
+                drawAutoEQGraph();
+            });
+
+            gainSlider.addEventListener('input', () => {
+                const bands = getActiveBands();
+                if (!bands || !bands[i]) return;
+                bands[i].gain = parseFloat(gainSlider.value);
+                gainVal.textContent = `${bands[i].gain > 0 ? '+' : ''}${bands[i].gain.toFixed(1)} dB`;
+                computeCorrectedCurve();
+                applyBandsToAudio(bands);
+                drawAutoEQGraph();
+            });
+
+            qSlider.addEventListener('input', () => {
+                const bands = getActiveBands();
+                if (!bands || !bands[i]) return;
+                bands[i].q = parseFloat(qSlider.value);
+                qVal.textContent = bands[i].q.toFixed(2);
+                computeCorrectedCurve();
+                applyBandsToAudio(bands);
+                drawAutoEQGraph();
+            });
+        });
+    };
+
+    // ========================================
+    // EQ Toggle + Container Visibility
+    // ========================================
+    /**
+     * Ensure parametric bands exist - creates default 10 log-spaced bands if none
+     */
+    const ensureParametricBands = () => {
+        if (!parametricBands || parametricBands.length === 0) {
+            const defaultBands = [];
+            for (let i = 0; i < 10; i++) {
+                const freq = 20 * Math.pow(20000 / 20, i / 9);
+                defaultBands.push({ id: i, type: 'peaking', freq: Math.round(freq), gain: 0, q: 1.0, enabled: true });
+            }
+            parametricBands = defaultBands;
+            applyBandsToAudio(parametricBands);
+        }
+    };
+
+    const updateEQContainerVisibility = (enabled) => {
+        if (eqContainer) {
+            eqContainer.style.display = enabled ? 'flex' : 'none';
+            if (enabled) {
+                // Ensure bands exist when EQ is enabled (fixes parametric mode without AutoEQ)
+                if (currentMode === 'parametric') {
+                    ensureParametricBands();
+                    applyBandsToAudio(parametricBands);
+                    renderBandControls(parametricBands);
+                }
+                requestAnimationFrame(drawAutoEQGraph);
+            }
+        }
+    };
+
+    // ========================================
+    // Collapsible Sections
+    // ========================================
+    // Saved Profiles collapse
+    if (autoeqSavedCollapse) {
+        const savedGrid = document.getElementById('autoeq-saved-grid');
+        autoeqSavedCollapse.addEventListener('click', (e) => {
+            e.stopPropagation();
+            autoeqSavedCollapse.classList.toggle('collapsed');
+            if (savedGrid) savedGrid.style.display = autoeqSavedCollapse.classList.contains('collapsed') ? 'none' : 'flex';
         });
     }
 
-    // Generate initial EQ bands with current ranges
-    generateEQBands(currentBandCount, currentRange.min, currentRange.max, currentFreqRange.min, currentFreqRange.max);
-
-    // Listen for band count changes from other sources
-    window.addEventListener('equalizer-band-count-changed', (e) => {
-        if (e.detail && e.detail.bandCount) {
-            currentBandCount = e.detail.bandCount;
-            if (eqBandCountInput) eqBandCountInput.value = currentBandCount;
-            generateEQBands(
-                currentBandCount,
-                currentRange.min,
-                currentRange.max,
-                currentFreqRange.min,
-                currentFreqRange.max
-            );
-        }
-    });
-
-    // Listen for frequency range changes from other sources
-    window.addEventListener('equalizer-freq-range-changed', (e) => {
-        if (e.detail && e.detail.min !== undefined && e.detail.max !== undefined) {
-            currentFreqRange = { min: e.detail.min, max: e.detail.max };
-            if (eqFreqMinInput) eqFreqMinInput.value = currentFreqRange.min;
-            if (eqFreqMaxInput) eqFreqMaxInput.value = currentFreqRange.max;
-            generateEQBands(
-                currentBandCount,
-                currentRange.min,
-                currentRange.max,
-                currentFreqRange.min,
-                currentFreqRange.max
-            );
-        }
-    });
-
-    // Redraw EQ curve on window resize
-    window.addEventListener('resize', () => {
-        requestAnimationFrame(drawEQCurve);
-    });
-
-    // Redraw EQ curve when a new track loads (audio metadata loaded)
-    const audioPlayer = document.getElementById('audio-player');
-    if (audioPlayer) {
-        audioPlayer.addEventListener('loadedmetadata', () => {
-            // Small delay to ensure the visualizer and EQ are fully ready
-            setTimeout(() => {
-                drawEQCurve();
-            }, 100);
+    // Parametric EQ Filters collapse
+    if (autoeqFiltersToggle) {
+        autoeqFiltersToggle.addEventListener('click', () => {
+            if (autoeqFiltersCollapse) autoeqFiltersCollapse.classList.toggle('collapsed');
+            if (autoeqFiltersContent) autoeqFiltersContent.style.display = autoeqFiltersContent.style.display === 'none' ? 'flex' : 'none';
         });
     }
 
     // ========================================
-    // AutoEQ - Headphone Correction
+    // Set Status Message
     // ========================================
-    const autoeqToggleHeader = document.getElementById('autoeq-toggle-header');
-    const autoeqContent = document.getElementById('autoeq-content');
-    const autoeqToggleIcon = document.getElementById('autoeq-toggle-icon');
-    const autoeqSearchInput = document.getElementById('autoeq-headphone-search');
-    const autoeqResults = document.getElementById('autoeq-results');
-    const autoeqSelected = document.getElementById('autoeq-selected');
-    const autoeqSelectedName = document.getElementById('autoeq-selected-name');
-    const autoeqClearBtn = document.getElementById('autoeq-clear-btn');
-    const autoeqTargetSelect = document.getElementById('autoeq-target-select');
-    const autoeqBandCount = document.getElementById('autoeq-band-count');
-    const autoeqMaxFreq = document.getElementById('autoeq-max-freq');
-    const autoeqRunBtn = document.getElementById('autoeq-run-btn');
-    const autoeqStatus = document.getElementById('autoeq-status');
-    const autoeqImportBtn = document.getElementById('autoeq-import-measurement-btn');
-    const autoeqImportFile = document.getElementById('autoeq-import-measurement-file');
-    const autoeqTypeButtons = document.querySelectorAll('.autoeq-type-btn');
-
-    let autoeqIndex = [];
-    let autoeqSelectedMeasurement = null;
-    let autoeqSelectedEntry = null;
-    let autoeqTypeFilter = 'all';
-    let autoeqSearchTimer = null;
-
-    // Toggle AutoEQ section
-    if (autoeqToggleHeader) {
-        autoeqToggleHeader.addEventListener('click', () => {
-            const isVisible = autoeqContent.style.display !== 'none';
-            autoeqContent.style.display = isVisible ? 'none' : 'block';
-            if (autoeqToggleIcon) autoeqToggleIcon.textContent = isVisible ? '+' : '−';
-        });
-    }
-
-    // Set status message
     const setAutoEQStatus = (msg, type = '') => {
         if (!autoeqStatus) return;
         autoeqStatus.textContent = msg;
         autoeqStatus.className = 'autoeq-status' + (type ? ' ' + type : '');
     };
 
-    // Update run button state
-    const updateAutoEQRunBtn = () => {
-        if (autoeqRunBtn) {
-            autoeqRunBtn.disabled = !autoeqSelectedMeasurement;
+    // ========================================
+    // Downsample curve for profile storage
+    // ========================================
+    const downsampleCurve = (data, maxPoints = 80) => {
+        if (!data || data.length <= maxPoints) return data ? [...data] : [];
+        const result = [];
+        const step = data.length / maxPoints;
+        for (let i = 0; i < maxPoints; i++) {
+            result.push({ ...data[Math.floor(i * step)] });
         }
+        return result;
     };
 
-    // Render search results
-    const renderAutoEQResults = (entries) => {
-        if (!autoeqResults) return;
-        autoeqResults.innerHTML = '';
+    // ========================================
+    // Mini-Graph Renderer for Profile Cards
+    // ========================================
+    const drawMiniGraph = (canvas, measurementData, targetData, correctedData) => {
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        if (rect.width === 0) return;
 
-        if (entries.length === 0) {
-            autoeqResults.classList.remove('visible');
-            return;
-        }
+        canvas.width = rect.width * dpr;
+        canvas.height = (rect.height || 60) * dpr;
+        ctx.scale(dpr, dpr);
+        const w = rect.width;
+        const h = rect.height || 60;
 
-        entries.forEach(entry => {
-            const item = document.createElement('div');
-            item.className = 'autoeq-result-item';
-            item.innerHTML = `<span>${entry.name}</span><span class="autoeq-result-type">${entry.type}</span>`;
-            item.addEventListener('click', async () => {
-                setAutoEQStatus('Loading measurement...', '');
-                try {
-                    const data = await fetchHeadphoneData(entry);
-                    autoeqSelectedMeasurement = data;
-                    autoeqSelectedEntry = entry;
+        ctx.clearRect(0, 0, w, h);
 
-                    // Show selected, hide results
-                    if (autoeqSelected) {
-                        autoeqSelected.style.display = 'flex';
-                        if (autoeqSelectedName) autoeqSelectedName.textContent = entry.name;
-                    }
-                    autoeqResults.classList.remove('visible');
-                    if (autoeqSearchInput) autoeqSearchInput.value = '';
+        const drawMiniFill = (data, colors) => {
+            if (!data || data.length < 2) return;
+            const allGains = data.map(p => p.gain);
+            const dMin = Math.min(...allGains) - 2;
+            const dMax = Math.max(...allGains) + 2;
+            const dRange = dMax - dMin || 1;
 
-                    // Auto-select appropriate target based on headphone type
-                    if (autoeqTargetSelect) {
-                        if (entry.type === 'in-ear') {
-                            autoeqTargetSelect.value = 'harman_ie_2019';
-                        } else {
-                            autoeqTargetSelect.value = 'harman_oe_2018';
-                        }
-                    }
+            const gradient = ctx.createLinearGradient(0, 0, w, 0);
+            colors.forEach((c, i) => gradient.addColorStop(i / (colors.length - 1), c));
 
-                    updateAutoEQRunBtn();
-                    setAutoEQStatus(`Loaded ${data.length} points`, 'success');
-                } catch (err) {
-                    setAutoEQStatus('Failed to load: ' + err.message, 'error');
-                }
-            });
-            autoeqResults.appendChild(item);
-        });
-
-        autoeqResults.classList.add('visible');
-    };
-
-    // Search input with debounce
-    if (autoeqSearchInput) {
-        autoeqSearchInput.addEventListener('input', () => {
-            clearTimeout(autoeqSearchTimer);
-            autoeqSearchTimer = setTimeout(async () => {
-                const query = autoeqSearchInput.value.trim();
-                if (!query) {
-                    autoeqResults.classList.remove('visible');
-                    return;
-                }
-
-                // Load index if not yet loaded
-                if (autoeqIndex.length === 0) {
-                    setAutoEQStatus('Loading headphone database...', '');
-                    try {
-                        autoeqIndex = await fetchAutoEqIndex();
-                        setAutoEQStatus(`Loaded ${autoeqIndex.length} headphones`, 'success');
-                    } catch (err) {
-                        setAutoEQStatus('Failed to load database', 'error');
-                        return;
-                    }
-                }
-
-                const results = searchHeadphones(query, autoeqIndex, autoeqTypeFilter, 100);
-                renderAutoEQResults(results);
-            }, 300);
-        });
-
-        autoeqSearchInput.addEventListener('focus', () => {
-            if (autoeqSearchInput.value.trim() && autoeqResults.children.length > 0) {
-                autoeqResults.classList.add('visible');
+            ctx.beginPath();
+            ctx.moveTo(0, h);
+            for (let i = 0; i < data.length; i++) {
+                const x = freqToX(data[i].freq, w);
+                const y = h - ((data[i].gain - dMin) / dRange) * h * 0.8 - h * 0.1;
+                if (i === 0) ctx.lineTo(x, y);
+                else ctx.lineTo(x, y);
             }
+            ctx.lineTo(w, h);
+            ctx.closePath();
+            ctx.fillStyle = gradient;
+            ctx.globalAlpha = 0.4;
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            // Draw line
+            ctx.beginPath();
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 1.5;
+            for (let i = 0; i < data.length; i++) {
+                const x = freqToX(data[i].freq, w);
+                const y = h - ((data[i].gain - dMin) / dRange) * h * 0.8 - h * 0.1;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        };
+
+        if (measurementData) drawMiniFill(measurementData, ['#3b82f6', '#06b6d4', '#8b5cf6']);
+        if (targetData) drawMiniFill(targetData, ['#f472b6', '#a855f7', '#6366f1']);
+        if (correctedData) drawMiniFill(correctedData, ['#22c55e', '#06b6d4', '#3b82f6']);
+    };
+
+    // ========================================
+    // Saved Profiles Rendering
+    // ========================================
+    const renderSavedProfiles = () => {
+        if (!autoeqSavedGrid) return;
+        const profiles = equalizerSettings.getAutoEQProfiles();
+        const activeId = equalizerSettings.getActiveAutoEQProfile();
+        const keys = Object.keys(profiles);
+
+        if (autoeqSavedCount) autoeqSavedCount.textContent = keys.length;
+        autoeqSavedGrid.innerHTML = '';
+
+        if (keys.length === 0) return;
+
+        keys.forEach((id) => {
+            const profile = profiles[id];
+            const card = document.createElement('div');
+            card.className = 'autoeq-profile-card' + (id === activeId ? ' active' : '');
+            card.dataset.profileId = id;
+
+            const preview = document.createElement('canvas');
+            preview.className = 'autoeq-profile-preview';
+            preview.style.height = '60px';
+            card.appendChild(preview);
+
+            const info = document.createElement('div');
+            info.className = 'autoeq-profile-info';
+            info.innerHTML = `
+                <span class="autoeq-profile-active-icon">&#10003;</span>
+                <span class="autoeq-profile-name">${profile.name || 'Unnamed'}</span>
+                <span class="autoeq-profile-meta">${profile.bandCount || '?'} bands &middot; ${profile.targetLabel || ''}</span>
+            `;
+            card.appendChild(info);
+
+            const delBtn = document.createElement('button');
+            delBtn.className = 'autoeq-profile-delete';
+            delBtn.innerHTML = '&#128465;';
+            delBtn.title = 'Delete profile';
+            delBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                equalizerSettings.deleteAutoEQProfile(id);
+                renderSavedProfiles();
+            });
+            card.appendChild(delBtn);
+
+            // Click to load profile
+            card.addEventListener('click', () => {
+                loadAutoEQProfile(id);
+            });
+
+            autoeqSavedGrid.appendChild(card);
+
+            // Draw mini preview
+            requestAnimationFrame(() => {
+                drawMiniGraph(preview, profile.measurementData, profile.targetData, profile.correctedData);
+            });
+        });
+    };
+
+    // ========================================
+    // Profile Save/Load
+    // ========================================
+    const saveAutoEQProfile = (name) => {
+        if (!autoeqCurrentBands || !autoeqSelectedMeasurement) return;
+
+        const targetId = autoeqTargetSelect ? autoeqTargetSelect.value : 'harman_oe_2018';
+        const targetEntry = TARGETS.find(t => t.id === targetId);
+
+        const profile = {
+            id: 'autoeq_' + Date.now(),
+            name: name || (autoeqSelectedEntry ? autoeqSelectedEntry.name : 'Custom'),
+            headphoneName: autoeqSelectedEntry ? autoeqSelectedEntry.name : 'Custom',
+            headphoneType: autoeqSelectedEntry ? autoeqSelectedEntry.type : 'over-ear',
+            targetId,
+            targetLabel: targetEntry ? targetEntry.label : targetId,
+            bandCount: autoeqCurrentBands.length,
+            maxFreq: autoeqMaxFreq ? parseInt(autoeqMaxFreq.value, 10) : 16000,
+            sampleRate: autoeqSampleRate ? parseInt(autoeqSampleRate.value, 10) : 48000,
+            bands: autoeqCurrentBands.map(b => ({ ...b })),
+            gains: audioContextManager.getGains ? audioContextManager.getGains() : [],
+            preamp: equalizerSettings.getPreamp(),
+            measurementData: downsampleCurve(autoeqSelectedMeasurement),
+            targetData: downsampleCurve(targetEntry?.data),
+            correctedData: downsampleCurve(autoeqCorrectedCurve),
+            createdAt: Date.now(),
+        };
+
+        const id = equalizerSettings.saveAutoEQProfile(profile);
+        equalizerSettings.setActiveAutoEQProfile(id);
+        renderSavedProfiles();
+        setAutoEQStatus(`Profile "${name}" saved`, 'success');
+    };
+
+    const loadAutoEQProfile = (profileId) => {
+        const profiles = equalizerSettings.getAutoEQProfiles();
+        const profile = profiles[profileId];
+        if (!profile) return;
+
+        autoeqCurrentBands = profile.bands.map(b => ({ ...b }));
+        autoeqCorrectedCurve = profile.correctedData ? [...profile.correctedData] : null;
+        autoeqSelectedMeasurement = profile.measurementData ? [...profile.measurementData] : null;
+        autoeqSelectedEntry = { name: profile.headphoneName, type: profile.headphoneType };
+
+        // Update UI selects
+        if (autoeqTargetSelect) autoeqTargetSelect.value = profile.targetId || 'harman_oe_2018';
+        if (autoeqBandCount) autoeqBandCount.value = profile.bandCount || 10;
+        if (autoeqMaxFreq) autoeqMaxFreq.value = profile.maxFreq || 16000;
+        if (autoeqSampleRate) autoeqSampleRate.value = profile.sampleRate || 48000;
+
+        // Apply to audio
+        applyBandsToAudio(autoeqCurrentBands);
+
+        equalizerSettings.setActiveAutoEQProfile(profileId);
+        renderSavedProfiles();
+        renderBandControls(autoeqCurrentBands);
+        drawAutoEQGraph();
+        setAutoEQStatus(`Loaded "${profile.name}"`, 'success');
+    };
+
+    // Save button
+    if (autoeqSaveBtn) {
+        autoeqSaveBtn.addEventListener('click', () => {
+            const name = autoeqProfileNameInput ? autoeqProfileNameInput.value.trim() : '';
+            if (!name) {
+                setAutoEQStatus('Enter a profile name', 'error');
+                return;
+            }
+            saveAutoEQProfile(name);
+            if (autoeqProfileNameInput) autoeqProfileNameInput.value = '';
         });
     }
 
-    // Type filter buttons
+    // ========================================
+    // Type Filter Buttons
+    // ========================================
     autoeqTypeButtons.forEach(btn => {
         btn.addEventListener('click', () => {
             autoeqTypeButtons.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             autoeqTypeFilter = btn.dataset.type;
-
-            // Re-search if there's a query
-            if (autoeqSearchInput && autoeqSearchInput.value.trim() && autoeqIndex.length > 0) {
-                const results = searchHeadphones(autoeqSearchInput.value.trim(), autoeqIndex, autoeqTypeFilter, 100);
-                renderAutoEQResults(results);
+            // Re-filter
+            if (_autoeqIndex.length > 0) {
+                const query = autoeqSearchInput ? autoeqSearchInput.value.trim() : '';
+                const results = query
+                    ? searchHeadphones(query, _autoeqIndex, autoeqTypeFilter, 500)
+                    : (autoeqTypeFilter === 'all' ? _autoeqIndex : _autoeqIndex.filter(e => e.type === autoeqTypeFilter));
+                resetDatabaseList(results);
             }
         });
     });
 
-    // Clear selected headphone
-    if (autoeqClearBtn) {
-        autoeqClearBtn.addEventListener('click', () => {
-            autoeqSelectedMeasurement = null;
-            autoeqSelectedEntry = null;
-            if (autoeqSelected) autoeqSelected.style.display = 'none';
-            updateAutoEQRunBtn();
-            setAutoEQStatus('', '');
+    // ========================================
+    // Database Browser
+    // ========================================
+    /**
+     * Load a headphone measurement entry
+     */
+    const loadHeadphoneEntry = async (entry) => {
+        setAutoEQStatus('Loading measurement...', '');
+        try {
+            const data = await fetchHeadphoneData(entry);
+            autoeqSelectedMeasurement = data;
+            autoeqSelectedEntry = entry;
+
+            if (autoeqHeadphoneSelect) {
+                let opt = autoeqHeadphoneSelect.querySelector(`option[value="${entry.name}"]`);
+                if (!opt) {
+                    opt = document.createElement('option');
+                    opt.value = entry.name;
+                    opt.textContent = entry.name;
+                    autoeqHeadphoneSelect.appendChild(opt);
+                }
+                autoeqHeadphoneSelect.value = entry.name;
+            }
+
+            if (autoeqTargetSelect && entry.type === 'in-ear') {
+                autoeqTargetSelect.value = 'harman_ie_2019';
+            }
+
+            if (autoeqRunBtn) autoeqRunBtn.disabled = false;
+            drawAutoEQGraph();
+            setAutoEQStatus(`Loaded ${data.length} points for ${entry.name}`, 'success');
+        } catch (err) {
+            setAutoEQStatus('Failed: ' + err.message, 'error');
+        }
+    };
+
+    /**
+     * Render database list with expandable headphone groups
+     */
+    const renderDatabaseResults = (entries, append = false) => {
+        if (!autoeqDatabaseList) return;
+        if (!append) autoeqDatabaseList.innerHTML = '';
+
+        if (entries.length === 0 && !append) {
+            autoeqDatabaseList.innerHTML = '<div style="padding: 1rem; text-align: center; color: var(--muted-foreground); font-size: 0.8rem;">No results found</div>';
+            return;
+        }
+
+        // Group by base model name (strip source suffix like "(crinacle)")
+        const modelMap = new Map();
+        entries.forEach(entry => {
+            const baseName = entry.name.replace(/\s*\([^)]*\)\s*$/, '').trim() || entry.name;
+            if (!modelMap.has(baseName)) {
+                modelMap.set(baseName, []);
+            }
+            modelMap.get(baseName).push(entry);
+        });
+
+        modelMap.forEach((variants, name) => {
+            const wrapper = document.createElement('div');
+            const firstLetter = name[0]?.toUpperCase() || '?';
+            wrapper.dataset.letter = firstLetter;
+
+            const item = document.createElement('div');
+            item.className = 'autoeq-db-item';
+            item.dataset.name = name;
+
+            item.innerHTML = `
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg>
+                <div class="autoeq-db-item-info">
+                    <span class="autoeq-db-item-name">${name}</span>
+                    <span class="autoeq-db-item-meta">${variants.length} profile${variants.length > 1 ? 's' : ''}</span>
+                </div>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="autoeq-db-item-chevron"><path d="m9 18 6-6-6-6"/></svg>
+            `;
+
+            wrapper.appendChild(item);
+
+            // Sub-list for multiple profiles
+            if (variants.length > 1) {
+                const subList = document.createElement('div');
+                subList.className = 'autoeq-db-sub-list';
+
+                variants.forEach(entry => {
+                    const subItem = document.createElement('div');
+                    subItem.className = 'autoeq-db-sub-item';
+                    // Extract source from parentheses
+                    const sourceMatch = entry.name.match(/\(([^)]+)\)\s*$/);
+                    const source = sourceMatch ? sourceMatch[1] : entry.type;
+                    subItem.innerHTML = `<span>${entry.name}</span><span class="sub-source">${source}</span>`;
+                    subItem.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        loadHeadphoneEntry(entry);
+                    });
+                    subList.appendChild(subItem);
+                });
+
+                wrapper.appendChild(subList);
+
+                item.addEventListener('click', () => {
+                    item.classList.toggle('expanded');
+                    subList.classList.toggle('visible');
+                });
+            } else {
+                // Single profile - load directly
+                item.addEventListener('click', () => loadHeadphoneEntry(variants[0]));
+            }
+
+            autoeqDatabaseList.appendChild(wrapper);
+        });
+    };
+
+    /**
+     * Render the A-Z alphabet index
+     */
+    const renderAlphaIndex = () => {
+        const alphaContainer = document.getElementById('autoeq-alpha-index');
+        if (!alphaContainer) return;
+        alphaContainer.innerHTML = '';
+
+        const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#'.split('');
+        letters.forEach(letter => {
+            const btn = document.createElement('button');
+            btn.textContent = letter;
+            btn.addEventListener('click', () => {
+                // Find the index of the first entry starting with this letter
+                const targetIdx = _dbFilteredEntries.findIndex(e => {
+                    const first = e.name[0].toUpperCase();
+                    return letter === '#' ? !/[A-Z]/.test(first) : first === letter;
+                });
+
+                if (targetIdx < 0) return; // No entries for this letter
+
+                // Render all entries up to and past the target so the DOM element exists
+                while (_dbRenderedCount <= targetIdx + DB_BATCH_SIZE && _dbRenderedCount < _dbFilteredEntries.length) {
+                    renderNextDatabaseBatch();
+                }
+
+                // Now find and scroll to the element
+                requestAnimationFrame(() => {
+                    const target = autoeqDatabaseList?.querySelector(`[data-letter="${letter}"]`);
+                    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            });
+            alphaContainer.appendChild(btn);
+        });
+    };
+
+    /**
+     * Load and display the full headphone database
+     */
+    // Lazy-loading state for database list
+    let _dbFilteredEntries = [];
+    let _dbRenderedCount = 0;
+    const DB_BATCH_SIZE = 80;
+
+    const renderNextDatabaseBatch = () => {
+        if (_dbRenderedCount >= _dbFilteredEntries.length) return;
+        const end = Math.min(_dbRenderedCount + DB_BATCH_SIZE, _dbFilteredEntries.length);
+        const batch = _dbFilteredEntries.slice(_dbRenderedCount, end);
+        renderDatabaseResults(batch, true); // append mode
+        _dbRenderedCount = end;
+    };
+
+    const resetDatabaseList = (entries) => {
+        _dbFilteredEntries = entries;
+        _dbRenderedCount = 0;
+        if (autoeqDatabaseList) autoeqDatabaseList.innerHTML = '';
+        renderNextDatabaseBatch();
+    };
+
+    // Infinite scroll on database list
+    if (autoeqDatabaseList) {
+        autoeqDatabaseList.addEventListener('scroll', () => {
+            const el = autoeqDatabaseList;
+            if (el.scrollTop + el.clientHeight >= el.scrollHeight - 60) {
+                renderNextDatabaseBatch();
+            }
         });
     }
 
-    // Run AutoEQ
+    const loadFullDatabase = async () => {
+        if (_autoeqIndex.length === 0) {
+            setAutoEQStatus('Loading headphone database...', '');
+            try {
+                _autoeqIndex = await fetchAutoEqIndex();
+                setAutoEQStatus(`Loaded ${_autoeqIndex.length} headphones`, 'success');
+            } catch (err) {
+                setAutoEQStatus('Failed to load database', 'error');
+                return;
+            }
+        }
+        if (autoeqDatabaseCount) autoeqDatabaseCount.textContent = `${_autoeqIndex.length} models`;
+        resetDatabaseList(_autoeqIndex);
+        renderAlphaIndex();
+    };
+
+    // Search input with debounce
+    {
+        const searchEl = document.getElementById('autoeq-headphone-search');
+
+        if (searchEl && !searchEl._autoeqBound) {
+            searchEl._autoeqBound = true;
+            let timer = null;
+
+            const doSearch = async () => {
+                const query = searchEl.value.trim();
+                if (!query) {
+                    resetDatabaseList(_autoeqIndex);
+                    return;
+                }
+
+                if (_autoeqIndex.length === 0) await loadFullDatabase();
+
+                const results = searchHeadphones(query, _autoeqIndex, autoeqTypeFilter, 500);
+                resetDatabaseList(results);
+            };
+
+            searchEl.addEventListener('input', () => {
+                clearTimeout(timer);
+                timer = setTimeout(doSearch, 300);
+            });
+        }
+    }
+
+    // ========================================
+    // AutoEQ Run
+    // ========================================
     if (autoeqRunBtn) {
         autoeqRunBtn.addEventListener('click', () => {
             if (!autoeqSelectedMeasurement) return;
@@ -2429,74 +2438,49 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             setAutoEQStatus('Running AutoEQ...', '');
             autoeqRunBtn.disabled = true;
 
-            // Use setTimeout to allow UI to update before heavy computation
             setTimeout(() => {
                 try {
-                    // Get target curve
                     const targetId = autoeqTargetSelect ? autoeqTargetSelect.value : 'harman_oe_2018';
                     const targetEntry = TARGETS.find(t => t.id === targetId);
                     if (!targetEntry || !targetEntry.data || targetEntry.data.length === 0) {
                         setAutoEQStatus('Invalid target curve', 'error');
-                        updateAutoEQRunBtn();
+                        autoeqRunBtn.disabled = false;
                         return;
                     }
 
                     const bandCount = autoeqBandCount ? parseInt(autoeqBandCount.value, 10) : 10;
                     const maxFreq = autoeqMaxFreq ? parseInt(autoeqMaxFreq.value, 10) : 16000;
+                    const sampleRate = autoeqSampleRate ? parseInt(autoeqSampleRate.value, 10) : 48000;
 
-                    // Run algorithm
-                    const bands = runAutoEqAlgorithm(
-                        autoeqSelectedMeasurement,
-                        targetEntry.data,
-                        bandCount,
-                        maxFreq
-                    );
+                    const bands = runAutoEqAlgorithm(autoeqSelectedMeasurement, targetEntry.data, bandCount, maxFreq, 20, 5.0, sampleRate);
 
                     if (!bands || bands.length === 0) {
                         setAutoEQStatus('No correction needed', 'success');
-                        updateAutoEQRunBtn();
+                        autoeqRunBtn.disabled = false;
                         return;
                     }
 
-                    // Apply to equalizer
-                    const exportText = audioContextManager.applyAutoEQBands(bands);
-
-                    // Update UI to reflect new band count and gains
-                    currentBandCount = audioContextManager.getBandCount();
-                    if (eqBandCountInput) eqBandCountInput.value = currentBandCount;
-
-                    currentPreamp = equalizerSettings.getPreamp();
-                    updatePreampUI(currentPreamp);
-
-                    generateEQBands(
-                        currentBandCount,
-                        currentRange.min,
-                        currentRange.max,
-                        currentFreqRange.min,
-                        currentFreqRange.max
-                    );
-                    const gains = audioContextManager.getGains();
-                    updateAllBandUI(gains);
-                    drawEQCurve();
-
-                    // Update preset selector
-                    if (eqPresetSelect) {
-                        eqPresetSelect.value = 'flat'; // No built-in preset matches
-                    }
+                    autoeqCurrentBands = bands;
+                    computeCorrectedCurve();
+                    applyBandsToAudio(autoeqCurrentBands);
+                    drawAutoEQGraph();
+                    renderBandControls(autoeqCurrentBands);
 
                     const headphoneName = autoeqSelectedEntry ? autoeqSelectedEntry.name : 'Custom';
                     setAutoEQStatus(`Applied ${bands.length} bands for ${headphoneName}`, 'success');
-                    updateAutoEQRunBtn();
+                    autoeqRunBtn.disabled = false;
                 } catch (err) {
                     console.error('[AutoEQ] Algorithm failed:', err);
                     setAutoEQStatus('Error: ' + err.message, 'error');
-                    updateAutoEQRunBtn();
+                    autoeqRunBtn.disabled = false;
                 }
             }, 50);
         });
     }
 
-    // Import custom measurement file
+    // ========================================
+    // Import Measurement File
+    // ========================================
     if (autoeqImportBtn && autoeqImportFile) {
         autoeqImportBtn.addEventListener('click', () => {
             autoeqImportFile.click();
@@ -2514,16 +2498,10 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                         setAutoEQStatus('Invalid measurement file', 'error');
                         return;
                     }
-
                     autoeqSelectedMeasurement = data;
                     autoeqSelectedEntry = { name: file.name.replace(/\.(txt|csv)$/i, ''), type: 'over-ear' };
-
-                    if (autoeqSelected) {
-                        autoeqSelected.style.display = 'flex';
-                        if (autoeqSelectedName) autoeqSelectedName.textContent = autoeqSelectedEntry.name;
-                    }
-
-                    updateAutoEQRunBtn();
+                    if (autoeqRunBtn) autoeqRunBtn.disabled = false;
+                    drawAutoEQGraph();
                     setAutoEQStatus(`Imported ${data.length} points from ${file.name}`, 'success');
                 } catch (err) {
                     setAutoEQStatus('Failed to parse file', 'error');
@@ -2534,12 +2512,516 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
-    // Close results when clicking outside
-    document.addEventListener('click', (e) => {
-        if (autoeqResults && !autoeqResults.contains(e.target) && e.target !== autoeqSearchInput) {
-            autoeqResults.classList.remove('visible');
+    // ========================================
+    // Download/Export Button
+    // ========================================
+    if (autoeqDownloadBtn) {
+        autoeqDownloadBtn.addEventListener('click', () => {
+            if (!autoeqCurrentBands || autoeqCurrentBands.length === 0) {
+                setAutoEQStatus('No EQ to export', 'error');
+                return;
+            }
+            // Build EqualizerAPO / Peace format
+            let lines = [`Preamp: ${currentPreamp} dB`];
+            autoeqCurrentBands.forEach((band, i) => {
+                if (!band.enabled) return;
+                const type = band.type === 'peaking' ? 'PK' : band.type === 'lowshelf' ? 'LSC' : 'HSC';
+                lines.push(`Filter ${i + 1}: ON ${type} Fc ${Math.round(band.freq)} Hz Gain ${band.gain.toFixed(1)} dB Q ${band.q.toFixed(2)}`);
+            });
+            const exportText = lines.join('\n');
+            const blob = new Blob([exportText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `autoeq-${autoeqSelectedEntry?.name || 'custom'}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            setAutoEQStatus('Exported', 'success');
+        });
+    }
+
+    // ========================================
+    // Auto Preamp Compensation Toggle
+    // ========================================
+    if (autoPreampToggle) {
+        autoPreampToggle.addEventListener('change', () => {
+            autoPreampEnabled = autoPreampToggle.checked;
+            if (autoPreampEnabled) {
+                // Recalculate and apply auto preamp immediately
+                const bands = getActiveBands();
+                if (bands && bands.length > 0) {
+                    const maxGain = Math.max(0, ...bands.filter(b => b.enabled).map(b => b.gain));
+                    const autoPreamp = maxGain > 0 ? -Math.round(maxGain * 10) / 10 : 0;
+                    currentPreamp = autoPreamp;
+                    equalizerSettings.setPreamp(autoPreamp);
+                    if (audioContextManager.setPreamp) audioContextManager.setPreamp(autoPreamp);
+                    if (eqPreampSlider) eqPreampSlider.value = autoPreamp;
+                    if (autoeqPreampValue) autoeqPreampValue.textContent = `${autoPreamp} dB`;
+                }
+            }
+        });
+    }
+
+    // ========================================
+    // Preamp Slider
+    // ========================================
+    if (eqPreampSlider) {
+        eqPreampSlider.value = currentPreamp;
+        if (autoeqPreampValue) autoeqPreampValue.textContent = `${currentPreamp} dB`;
+
+        eqPreampSlider.addEventListener('input', () => {
+            // Manual preamp adjustment disables auto compensation
+            if (autoPreampEnabled) {
+                autoPreampEnabled = false;
+                if (autoPreampToggle) autoPreampToggle.checked = false;
+            }
+            const val = parseFloat(eqPreampSlider.value);
+            currentPreamp = val;
+            equalizerSettings.setPreamp(val);
+            if (autoeqPreampValue) autoeqPreampValue.textContent = `${val} dB`;
+            if (audioContextManager.setPreamp) audioContextManager.setPreamp(val);
+        });
+    }
+
+    // ========================================
+    // Mode Toggle: AutoEQ vs Parametric EQ
+    // ========================================
+    const modeButtons = document.querySelectorAll('.autoeq-mode-btn');
+    let currentMode = 'autoeq';
+
+    const setEQMode = (mode) => {
+        currentMode = mode;
+        modeButtons.forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+
+        const graphSection = document.querySelector('.autoeq-graph-section');
+        const controlsSection = document.querySelector('.autoeq-controls-section');
+        const savedSection = document.getElementById('autoeq-saved-section');
+        const databaseSection = document.getElementById('autoeq-database-section');
+        const filtersSection = document.getElementById('autoeq-filters-section');
+        const filtersContent = document.getElementById('autoeq-filters-content');
+        const presetRow = document.getElementById('autoeq-preset-row');
+        const parametricProfiles = document.getElementById('autoeq-parametric-profiles');
+
+        // Reset interactive state on switch
+        draggedNode = null;
+        hoveredNode = null;
+
+        // Graph always visible in both modes
+        if (graphSection) graphSection.style.display = '';
+
+        if (mode === 'autoeq') {
+            if (controlsSection) controlsSection.style.display = '';
+            if (savedSection) savedSection.style.display = '';
+            if (databaseSection) databaseSection.style.display = '';
+            if (filtersSection) filtersSection.style.display = '';
+            if (presetRow) presetRow.style.display = 'none';
+            if (parametricProfiles) parametricProfiles.style.display = 'none';
+
+            // Restore AutoEQ bands to audio engine
+            if (autoeqCurrentBands && autoeqCurrentBands.length > 0) {
+                applyBandsToAudio(autoeqCurrentBands);
+                renderBandControls(autoeqCurrentBands);
+            }
+            drawAutoEQGraph();
+        } else {
+            // Parametric EQ only
+            if (controlsSection) controlsSection.style.display = 'none';
+            if (savedSection) savedSection.style.display = 'none';
+            if (databaseSection) databaseSection.style.display = 'none';
+            if (filtersSection) filtersSection.style.display = '';
+            if (filtersContent) filtersContent.style.display = 'flex';
+            if (autoeqFiltersCollapse) autoeqFiltersCollapse.classList.remove('collapsed');
+            if (presetRow) presetRow.style.display = '';
+            if (parametricProfiles) parametricProfiles.style.display = '';
+
+            // Ensure parametric bands exist (separate from autoeq bands)
+            if (!parametricBands || parametricBands.length === 0) {
+                const defaultBands = [];
+                for (let i = 0; i < 10; i++) {
+                    const freq = 20 * Math.pow(20000 / 20, i / 9);
+                    defaultBands.push({ id: i, type: 'peaking', freq: Math.round(freq), gain: 0, q: 1.0, enabled: true });
+                }
+                parametricBands = defaultBands;
+            }
+            // Apply parametric bands to audio engine
+            applyBandsToAudio(parametricBands);
+            renderBandControls(parametricBands);
+            renderParametricProfiles();
+            drawAutoEQGraph();
         }
+    };
+
+    modeButtons.forEach(btn => {
+        btn.addEventListener('click', () => setEQMode(btn.dataset.mode));
     });
+
+    // ========================================
+    // Redraw graph when target/settings change
+    // ========================================
+    if (autoeqTargetSelect) {
+        autoeqTargetSelect.addEventListener('change', () => {
+            if (autoeqCurrentBands && autoeqSelectedMeasurement) {
+                computeCorrectedCurve();
+            }
+            drawAutoEQGraph();
+        });
+    }
+
+    if (autoeqBandCount) {
+        autoeqBandCount.addEventListener('change', () => drawAutoEQGraph());
+    }
+    if (autoeqMaxFreq) {
+        autoeqMaxFreq.addEventListener('change', () => drawAutoEQGraph());
+    }
+    if (autoeqSampleRate) {
+        autoeqSampleRate.addEventListener('change', () => {
+            if (autoeqCurrentBands && autoeqSelectedMeasurement) {
+                computeCorrectedCurve();
+            }
+            drawAutoEQGraph();
+        });
+    }
+
+    // ========================================
+    // Parametric EQ Preset Selector
+    // ========================================
+    const parametricPresetSelect = document.getElementById('parametric-preset-select');
+    if (parametricPresetSelect) {
+        parametricPresetSelect.addEventListener('change', () => {
+            const presetKey = parametricPresetSelect.value;
+            if (!presetKey) return; // "Custom" selected
+
+            ensureParametricBands();
+            const bandCount = parametricBands.length;
+            const presets = getPresetsForBandCount(bandCount);
+            const preset = presets[presetKey];
+            if (!preset) return;
+
+            parametricBands.forEach((band, i) => {
+                band.gain = preset.gains[i] || 0;
+            });
+
+            applyBandsToAudio(parametricBands);
+            renderBandControls(parametricBands);
+            computeCorrectedCurve();
+            drawAutoEQGraph();
+        });
+    }
+
+    // ========================================
+    // Parametric EQ Profile Save/Load/Render
+    // ========================================
+    const PARAMETRIC_PROFILES_KEY = 'parametric-eq-profiles';
+    const PARAMETRIC_ACTIVE_KEY = 'parametric-eq-active-profile';
+
+    const getParametricProfiles = () => {
+        try { return JSON.parse(localStorage.getItem(PARAMETRIC_PROFILES_KEY)) || {}; }
+        catch { return {}; }
+    };
+
+    const renderParametricProfiles = () => {
+        const grid = document.getElementById('parametric-saved-grid');
+        const countEl = document.getElementById('parametric-saved-count');
+        if (!grid) return;
+
+        const profiles = getParametricProfiles();
+        const activeId = localStorage.getItem(PARAMETRIC_ACTIVE_KEY);
+        const keys = Object.keys(profiles);
+        if (countEl) countEl.textContent = keys.length;
+        grid.innerHTML = '';
+
+        keys.forEach(id => {
+            const profile = profiles[id];
+            const card = document.createElement('div');
+            card.className = 'autoeq-profile-card' + (id === activeId ? ' active' : '');
+            card.dataset.profileId = id;
+
+            const preview = document.createElement('canvas');
+            preview.className = 'autoeq-profile-preview';
+            preview.style.height = '60px';
+            card.appendChild(preview);
+
+            const info = document.createElement('div');
+            info.className = 'autoeq-profile-info';
+            info.innerHTML = `
+                <span class="autoeq-profile-active-icon">&#10003;</span>
+                <span class="autoeq-profile-name">${profile.name || 'Unnamed'}</span>
+                <span class="autoeq-profile-meta">${profile.bandCount || '?'} bands</span>
+            `;
+            card.appendChild(info);
+
+            const delBtn = document.createElement('button');
+            delBtn.className = 'autoeq-profile-delete';
+            delBtn.innerHTML = '&#128465;';
+            delBtn.title = 'Delete profile';
+            delBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const all = getParametricProfiles();
+                delete all[id];
+                localStorage.setItem(PARAMETRIC_PROFILES_KEY, JSON.stringify(all));
+                if (localStorage.getItem(PARAMETRIC_ACTIVE_KEY) === id) localStorage.removeItem(PARAMETRIC_ACTIVE_KEY);
+                renderParametricProfiles();
+            });
+            card.appendChild(delBtn);
+
+            card.addEventListener('click', () => {
+                parametricBands = profile.bands.map(b => ({ ...b }));
+                applyBandsToAudio(parametricBands);
+                renderBandControls(parametricBands);
+                computeCorrectedCurve();
+                drawAutoEQGraph();
+                localStorage.setItem(PARAMETRIC_ACTIVE_KEY, id);
+                if (parametricPresetSelect) parametricPresetSelect.value = '';
+                renderParametricProfiles();
+            });
+
+            grid.appendChild(card);
+
+            // Draw mini graph
+            requestAnimationFrame(() => {
+                if (!preview || !profile.bands) return;
+                const ctx = preview.getContext('2d');
+                const dpr = window.devicePixelRatio || 1;
+                const rect = preview.getBoundingClientRect();
+                if (rect.width === 0) return;
+                preview.width = rect.width * dpr;
+                preview.height = 60 * dpr;
+                ctx.scale(dpr, dpr);
+                const pw = rect.width, ph = 60;
+                ctx.clearRect(0, 0, pw, ph);
+
+                const sampleRate = 48000;
+                const nodeColors = ['#f472b6','#fb923c','#facc15','#4ade80','#22d3ee','#818cf8','#c084fc','#f87171','#34d399','#60a5fa'];
+
+                profile.bands.forEach((band, bi) => {
+                    if (!band.enabled || Math.abs(band.gain) < 0.1) return;
+                    const color = nodeColors[bi % nodeColors.length];
+                    ctx.beginPath();
+                    for (let f = 20; f <= 20000; f *= 1.04) {
+                        const resp = calculateBiquadResponse(f, band, sampleRate);
+                        const x = freqToX(f, pw);
+                        const y = ph / 2 - (resp / 30) * (ph / 2) * 0.8;
+                        if (f <= 21) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                    }
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 1.5;
+                    ctx.globalAlpha = 0.6;
+                    ctx.stroke();
+                    ctx.globalAlpha = 1;
+                });
+
+                // Combined curve
+                ctx.beginPath();
+                for (let f = 20; f <= 20000; f *= 1.04) {
+                    let total = 0;
+                    for (const b of profile.bands) { if (b.enabled) total += calculateBiquadResponse(f, b, sampleRate); }
+                    const x = freqToX(f, pw);
+                    const y = ph / 2 - (total / 30) * (ph / 2) * 0.8;
+                    if (f <= 21) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                }
+                ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+        });
+    };
+
+    // Save parametric profile
+    const parametricSaveBtn = document.getElementById('parametric-save-btn');
+    const parametricProfileName = document.getElementById('parametric-profile-name');
+    if (parametricSaveBtn) {
+        parametricSaveBtn.addEventListener('click', () => {
+            if (!parametricBands || parametricBands.length === 0) return;
+            const name = parametricProfileName ? parametricProfileName.value.trim() : '';
+            if (!name) return;
+
+            const profiles = getParametricProfiles();
+            const id = 'peq_' + Date.now();
+            profiles[id] = {
+                name,
+                bands: parametricBands.map(b => ({ ...b })),
+                bandCount: parametricBands.length,
+                preamp: equalizerSettings.getPreamp(),
+                createdAt: Date.now(),
+            };
+            localStorage.setItem(PARAMETRIC_PROFILES_KEY, JSON.stringify(profiles));
+            localStorage.setItem(PARAMETRIC_ACTIVE_KEY, id);
+            if (parametricProfileName) parametricProfileName.value = '';
+            renderParametricProfiles();
+        });
+    }
+
+    // ========================================
+    // Parametric EQ Import/Export
+    // ========================================
+    const parametricExportBtn = document.getElementById('parametric-export-btn');
+    const parametricImportBtn = document.getElementById('parametric-import-btn');
+    const parametricImportFile = document.getElementById('parametric-import-file');
+
+    if (parametricExportBtn) {
+        parametricExportBtn.addEventListener('click', () => {
+            if (!parametricBands || parametricBands.length === 0) return;
+            const preamp = equalizerSettings.getPreamp();
+            const lines = [`Preamp: ${preamp.toFixed(1)} dB`];
+            parametricBands.forEach((band, i) => {
+                const ft = band.type === 'lowshelf' ? 'LS' : band.type === 'highshelf' ? 'HS' : 'PK';
+                lines.push(`Filter ${i + 1}: ON ${ft} Fc ${Math.round(band.freq)} Hz Gain ${band.gain.toFixed(1)} dB Q ${band.q.toFixed(2)}`);
+            });
+            const text = lines.join('\n');
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'parametric-eq.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+    }
+
+    if (parametricImportBtn && parametricImportFile) {
+        parametricImportBtn.addEventListener('click', () => parametricImportFile.click());
+        parametricImportFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const text = event.target.result;
+                    const bands = [];
+                    let preamp = 0;
+                    const lines = text.split('\n');
+                    for (const line of lines) {
+                        const preampMatch = line.match(/Preamp:\s*([-\d.]+)\s*dB/i);
+                        if (preampMatch) { preamp = parseFloat(preampMatch[1]); continue; }
+                        const filterMatch = line.match(/Filter\s+\d+:\s*ON\s+(\w+)\s+Fc\s+([\d.]+)\s*Hz\s+Gain\s+([-\d.]+)\s*dB\s+Q\s+([\d.]+)/i);
+                        if (filterMatch) {
+                            const typeMap = { PK: 'peaking', LS: 'lowshelf', HS: 'highshelf' };
+                            bands.push({
+                                id: bands.length,
+                                type: typeMap[filterMatch[1].toUpperCase()] || 'peaking',
+                                freq: parseFloat(filterMatch[2]),
+                                gain: parseFloat(filterMatch[3]),
+                                q: parseFloat(filterMatch[4]),
+                                enabled: true,
+                            });
+                        }
+                    }
+                    if (bands.length === 0) return;
+                    parametricBands = bands;
+                    applyBandsToAudio(parametricBands);
+                    equalizerSettings.setPreamp(preamp);
+                    if (eqPreampSlider) eqPreampSlider.value = preamp;
+                    if (autoeqPreampValue) autoeqPreampValue.textContent = `${preamp} dB`;
+                    renderBandControls(parametricBands);
+                    computeCorrectedCurve();
+                    drawAutoEQGraph();
+                    if (parametricPresetSelect) parametricPresetSelect.value = '';
+                } catch (err) {
+                    console.error('[PEQ Import] Failed:', err);
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        });
+    }
+
+    // ========================================
+    // Add/Remove/Reset Band Buttons
+    // ========================================
+    const addBandBtn = document.getElementById('autoeq-add-band-btn');
+    const removeBandBtn = document.getElementById('autoeq-remove-band-btn');
+    const resetBandsBtn = document.getElementById('autoeq-reset-bands-btn');
+
+    if (addBandBtn) {
+        addBandBtn.addEventListener('click', () => {
+            let bands = getActiveBands();
+            if (!bands) { bands = []; setActiveBands(bands); }
+            if (bands.length >= 32) return;
+            bands.push({ id: bands.length, type: 'peaking', freq: 1000, gain: 0, q: 1.0, enabled: true });
+            applyBandsToAudio(bands);
+            renderBandControls(bands);
+            computeCorrectedCurve();
+            drawAutoEQGraph();
+        });
+    }
+
+    if (removeBandBtn) {
+        removeBandBtn.addEventListener('click', () => {
+            const bands = getActiveBands();
+            if (!bands || bands.length <= 1) return;
+            bands.pop();
+            applyBandsToAudio(bands);
+            renderBandControls(bands);
+            computeCorrectedCurve();
+            drawAutoEQGraph();
+        });
+    }
+
+    if (resetBandsBtn) {
+        resetBandsBtn.addEventListener('click', () => {
+            const bands = getActiveBands();
+            if (!bands) return;
+            bands.forEach(b => { b.gain = 0; });
+            applyBandsToAudio(bands);
+            renderBandControls(bands);
+            computeCorrectedCurve();
+            drawAutoEQGraph();
+        });
+    }
+
+    // ========================================
+    // EQ Toggle (enable/disable)
+    // ========================================
+    if (eqToggle) {
+        eqToggle.checked = equalizerSettings.isEnabled();
+        updateEQContainerVisibility(eqToggle.checked);
+
+        eqToggle.addEventListener('change', (e) => {
+            const enabled = e.target.checked;
+            equalizerSettings.setEnabled(enabled);
+            updateEQContainerVisibility(enabled);
+
+            audioContextManager.toggleEQ(enabled);
+        });
+    }
+
+    // Initial render of saved profiles
+    renderSavedProfiles();
+
+    // Hide parametric-only elements on startup (default mode is autoeq)
+    const initPresetRow = document.getElementById('autoeq-preset-row');
+    const initParaProfiles = document.getElementById('autoeq-parametric-profiles');
+    if (initPresetRow) initPresetRow.style.display = 'none';
+    if (initParaProfiles) initParaProfiles.style.display = 'none';
+
+    // Auto-load headphone database
+    loadFullDatabase();
+
+    // Initial draw of graph (if EQ is enabled)
+    if (equalizerSettings.isEnabled()) {
+        requestAnimationFrame(drawAutoEQGraph);
+    }
+
+    // Load active profile on startup
+    const activeProfileId = equalizerSettings.getActiveAutoEQProfile();
+    if (activeProfileId) {
+        const profiles = equalizerSettings.getAutoEQProfiles();
+        if (profiles[activeProfileId]) {
+            // Restore state silently
+            const profile = profiles[activeProfileId];
+            autoeqCurrentBands = profile.bands?.map(b => ({ ...b })) || null;
+            autoeqCorrectedCurve = profile.correctedData ? [...profile.correctedData] : null;
+            autoeqSelectedMeasurement = profile.measurementData ? [...profile.measurementData] : null;
+            autoeqSelectedEntry = { name: profile.headphoneName, type: profile.headphoneType };
+            if (autoeqTargetSelect) autoeqTargetSelect.value = profile.targetId || 'harman_oe_2018';
+            if (autoeqBandCount) autoeqBandCount.value = profile.bandCount || 10;
+            if (autoeqMaxFreq) autoeqMaxFreq.value = profile.maxFreq || 16000;
+            if (autoeqSampleRate) autoeqSampleRate.value = profile.sampleRate || 48000;
+            if (autoeqRunBtn) autoeqRunBtn.disabled = false;
+            if (autoeqCurrentBands) renderBandControls(autoeqCurrentBands);
+            requestAnimationFrame(drawAutoEQGraph);
+        }
+    }
 
     // Now Playing Mode
     const nowPlayingMode = document.getElementById('now-playing-mode');
@@ -4001,8 +4483,6 @@ function initializeBlockedContentManager() {
                 e.stopPropagation();
                 const id = btn.dataset.id;
                 const type = btn.dataset.type;
-                const itemLi = btn.closest('li');
-                const itemName = itemLi ? itemLi.querySelector('.item-name').textContent : 'item';
 
                 if (type === 'artist') {
                     contentBlockingSettings.unblockArtist(id);
@@ -4010,10 +4490,6 @@ function initializeBlockedContentManager() {
                     contentBlockingSettings.unblockAlbum(id);
                 } else if (type === 'track') {
                     contentBlockingSettings.unblockTrack(id);
-                }
-
-                if (typeof showNotification === 'function') {
-                    showNotification(`Unblocked ${type}: ${itemName}`);
                 }
 
                 renderBlockedLists();

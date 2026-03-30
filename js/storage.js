@@ -1410,6 +1410,84 @@ export const equalizerSettings = {
             return false;
         }
     },
+
+    // ========================================
+    // AutoEQ Profile Storage
+    // ========================================
+    AUTOEQ_PROFILES_KEY: 'autoeq-saved-profiles',
+    AUTOEQ_ACTIVE_PROFILE_KEY: 'autoeq-active-profile',
+    AUTOEQ_SAMPLE_RATE_KEY: 'autoeq-sample-rate',
+
+    getAutoEQProfiles() {
+        try {
+            const stored = localStorage.getItem(this.AUTOEQ_PROFILES_KEY);
+            return stored ? JSON.parse(stored) : {};
+        } catch {
+            return {};
+        }
+    },
+
+    saveAutoEQProfile(profile) {
+        try {
+            const profiles = this.getAutoEQProfiles();
+            const id = profile.id || 'autoeq_' + Date.now();
+            profile.id = id;
+            profiles[id] = profile;
+            localStorage.setItem(this.AUTOEQ_PROFILES_KEY, JSON.stringify(profiles));
+            return id;
+        } catch (e) {
+            console.warn('[AutoEQ] Failed to save profile:', e);
+            return false;
+        }
+    },
+
+    deleteAutoEQProfile(profileId) {
+        try {
+            const profiles = this.getAutoEQProfiles();
+            if (profiles[profileId]) {
+                delete profiles[profileId];
+                localStorage.setItem(this.AUTOEQ_PROFILES_KEY, JSON.stringify(profiles));
+                if (this.getActiveAutoEQProfile() === profileId) {
+                    localStorage.removeItem(this.AUTOEQ_ACTIVE_PROFILE_KEY);
+                }
+                return true;
+            }
+            return false;
+        } catch (e) {
+            console.warn('[AutoEQ] Failed to delete profile:', e);
+            return false;
+        }
+    },
+
+    getActiveAutoEQProfile() {
+        try {
+            return localStorage.getItem(this.AUTOEQ_ACTIVE_PROFILE_KEY) || null;
+        } catch {
+            return null;
+        }
+    },
+
+    setActiveAutoEQProfile(profileId) {
+        if (profileId) {
+            localStorage.setItem(this.AUTOEQ_ACTIVE_PROFILE_KEY, profileId);
+        } else {
+            localStorage.removeItem(this.AUTOEQ_ACTIVE_PROFILE_KEY);
+        }
+    },
+
+    getSampleRate() {
+        try {
+            const stored = localStorage.getItem(this.AUTOEQ_SAMPLE_RATE_KEY);
+            const val = parseInt(stored, 10);
+            return [44100, 48000, 96000].includes(val) ? val : 48000;
+        } catch {
+            return 48000;
+        }
+    },
+
+    setSampleRate(rate) {
+        localStorage.setItem(this.AUTOEQ_SAMPLE_RATE_KEY, rate.toString());
+    },
 };
 
 export const monoAudioSettings = {
@@ -2543,7 +2621,7 @@ export const contentBlockingSettings = {
 
     isArtistBlocked(artistId) {
         if (!artistId) return false;
-        return this.getBlockedArtists().some((a) => a.id == artistId);
+        return this.getBlockedArtists().some((a) => a.id === artistId);
     },
 
     blockArtist(artist) {
@@ -2560,7 +2638,7 @@ export const contentBlockingSettings = {
     },
 
     unblockArtist(artistId) {
-        const blocked = this.getBlockedArtists().filter((a) => a.id != artistId);
+        const blocked = this.getBlockedArtists().filter((a) => a.id !== artistId);
         this.setBlockedArtists(blocked);
     },
 
@@ -2580,13 +2658,13 @@ export const contentBlockingSettings = {
 
     isTrackBlocked(trackId) {
         if (!trackId) return false;
-        return this.getBlockedTracks().some((t) => t.id == trackId);
+        return this.getBlockedTracks().some((t) => t.id === trackId);
     },
 
     blockTrack(track) {
         if (!track || !track.id) return;
         const blocked = this.getBlockedTracks();
-        if (!blocked.some((t) => t.id == track.id)) {
+        if (!blocked.some((t) => t.id === track.id)) {
             blocked.push({
                 id: track.id,
                 title: track.title || 'Unknown Track',
@@ -2598,7 +2676,7 @@ export const contentBlockingSettings = {
     },
 
     unblockTrack(trackId) {
-        const blocked = this.getBlockedTracks().filter((t) => t.id != trackId);
+        const blocked = this.getBlockedTracks().filter((t) => t.id !== trackId);
         this.setBlockedTracks(blocked);
     },
 
@@ -2618,13 +2696,13 @@ export const contentBlockingSettings = {
 
     isAlbumBlocked(albumId) {
         if (!albumId) return false;
-        return this.getBlockedAlbums().some((a) => a.id == albumId);
+        return this.getBlockedAlbums().some((a) => a.id === albumId);
     },
 
     blockAlbum(album) {
         if (!album || !album.id) return;
         const blocked = this.getBlockedAlbums();
-        if (!blocked.some((a) => a.id == album.id)) {
+        if (!blocked.some((a) => a.id === album.id)) {
             blocked.push({
                 id: album.id,
                 title: album.title || 'Unknown Album',
@@ -2636,7 +2714,7 @@ export const contentBlockingSettings = {
     },
 
     unblockAlbum(albumId) {
-        const blocked = this.getBlockedAlbums().filter((a) => a.id != albumId);
+        const blocked = this.getBlockedAlbums().filter((a) => a.id !== albumId);
         this.setBlockedAlbums(blocked);
     },
 
