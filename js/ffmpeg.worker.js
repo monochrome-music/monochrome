@@ -1,4 +1,4 @@
-import { FFmpeg } from '@ffmpeg/ffmpeg';
+import { FFmpeg } from '!/@ffmpeg/ffmpeg/dist/esm/classes.js';
 
 let ffmpeg = null;
 let loadingPromise = null;
@@ -99,6 +99,7 @@ self.onmessage = async (e) => {
     const {
         audioData,
         extraFiles = [],
+        rawArgs,
         args = [],
         output = {
             name: 'output',
@@ -123,7 +124,7 @@ self.onmessage = async (e) => {
                 await ffmpeg.writeFile(file.name, new Uint8Array(file.data));
             }
 
-            const ffmpegArgs = ['-i', 'input', ...args, ...(output.name ? [output.name] : [])];
+            const ffmpegArgs = rawArgs || ['-i', 'input', ...args, ...(output.name ? [output.name] : [])];
             self.postMessage({ type: 'command', command: ffmpegArgs });
 
             const exitCode = await ffmpeg.exec(ffmpegArgs);
