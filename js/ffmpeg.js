@@ -55,11 +55,13 @@ async function ffmpegWorker(
     const assets = loadFfmpeg();
 
     return new Promise((resolve, reject) => {
+        let endCategory = null;
         const worker = new FfmpegWorker();
 
         // Handle abort signal
         const abortHandler = () => {
             worker.terminate();
+            endCategory?.();
             reject(new FfmpegError('FFMPEG aborted'));
         };
 
@@ -72,20 +74,30 @@ async function ffmpegWorker(
         }
 
         worker.onmessage = (e) => {
-            const { type, blob, message, stage, progress } = e.data;
+            const { type, blob, message, stage, progress, command } = e.data;
 
             if (type === 'complete') {
                 if (signal) signal.removeEventListener('abort', abortHandler);
                 worker.terminate();
+                endCategory?.();
                 resolve(blob);
             } else if (type === 'error') {
                 if (signal) signal.removeEventListener('abort', abortHandler);
                 worker.terminate();
+                endCategory?.();
                 reject(new FfmpegError(message));
             } else if (type === 'progress' && message) {
                 onProgress?.(new FfmpegProgress(stage, progress || 0, message));
             } else if (type === 'progress' && stage != 'loading' && progress !== null) {
                 onProgress?.(new FfmpegProgress(stage, progress || 0, message));
+            } else if (type === 'command') {
+                if (logConsole) {
+                    const consoleCategory = `ffmpeg ${command?.join(' ')}`;
+                    // eslint-disable-next-line no-console
+                    console.groupCollapsed(consoleCategory);
+                    // eslint-disable-next-line no-console
+                    endCategory = () => console.groupEnd();
+                }
             } else if (type === 'log') {
                 onProgress?.(new FfmpegProgress('stdout', 0, message));
                 if (logConsole) {
@@ -97,6 +109,7 @@ async function ffmpegWorker(
         worker.onerror = (error) => {
             if (signal) signal.removeEventListener('abort', abortHandler);
             worker.terminate();
+            endCategory?.();
             reject(new FfmpegError('Worker failed: ' + error.message));
         };
 
