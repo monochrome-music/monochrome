@@ -7793,6 +7793,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     background: rgb(var(--highlight-rgb), 0.1);
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .eq-howto-tab h4 {
     font-size: 0.85rem;
     font-weight: 700;
@@ -8010,6 +8011,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     gap: var(--spacing-xs);
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .autoeq-control-mini select {
     padding: 0.6rem 0.5rem;
     background: var(--input);
@@ -8070,14 +8072,14 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     letter-spacing: 0.02em;
 }
 
-.autoeq-run-btn:hover:not(:disabled) {
-    filter: brightness(1.1);
-    box-shadow: 0 4px 16px rgb(var(--highlight-rgb), 0.3);
-}
-
 .autoeq-run-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.autoeq-run-btn:hover:not(:disabled) {
+    filter: brightness(1.1);
+    box-shadow: 0 4px 16px rgb(var(--highlight-rgb), 0.3);
 }
 
 .autoeq-status {
@@ -8267,13 +8269,13 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     transition: all var(--transition-fast);
 }
 
-.autoeq-profile-card:hover .autoeq-profile-delete {
-    opacity: 1;
-}
-
 .autoeq-profile-delete:hover {
     background: var(--destructive);
     color: var(--destructive-foreground);
+}
+
+.autoeq-profile-card:hover .autoeq-profile-delete {
+    opacity: 1;
 }
 
 /* --- Database Browser --- */
@@ -8316,11 +8318,13 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     padding: 0 var(--spacing-md) var(--spacing-md);
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .autoeq-database-search svg {
     color: var(--muted-foreground);
     flex-shrink: 0;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .autoeq-database-search input {
     flex: 1;
     padding: 0.5rem 0.75rem;
@@ -8332,6 +8336,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     transition: border-color var(--transition-fast);
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .autoeq-database-search input:focus {
     outline: none;
     border-color: var(--ring);
@@ -8363,6 +8368,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     overflow: hidden;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .autoeq-database-alpha-index button {
     width: 18px;
     height: 16px;
@@ -8380,6 +8386,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     line-height: 1;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .autoeq-database-alpha-index button:hover {
     color: var(--primary);
     background: rgb(var(--highlight-rgb), 0.1);
@@ -8399,6 +8406,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     background: rgb(var(--highlight-rgb), 0.08);
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .autoeq-db-item svg {
     color: var(--muted-foreground);
     flex-shrink: 0;
@@ -8531,6 +8539,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     flex: 1;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .autoeq-preset-row select {
     width: 100%;
     padding: 0.6rem 0.75rem;
@@ -8570,6 +8579,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     align-items: center;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .autoeq-filters-actions button {
     padding: 0.35rem 0.75rem;
     font-size: 0.75rem;
@@ -9237,6 +9247,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     gap: 0.25rem;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .theme-editor-toolbar select {
     height: 24px;
     padding: 0 4px;
