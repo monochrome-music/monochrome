@@ -238,6 +238,10 @@ export function updateDownloadProgress(trackId, progress) {
         progressFill.style.background = '#3b82f6'; // Blue for encoding
         statusEl.textContent = `Converting: ${percent}%`;
     } else if (progress instanceof ProgressMessage || progress.message) {
+        if (progress instanceof FfmpegProgress && (progress.stage == 'parsing' || progress.stage == 'stdout')) {
+            return;
+        }
+
         progressFill.style.width = '100%';
         progressFill.style.background = '#3b82f6';
         statusEl.textContent = progress.message;
@@ -961,7 +965,7 @@ function updateBulkDownloadProgress(notifEl, current, total, currentItem, progre
     }
 
     if (progress instanceof FfmpegProgress) {
-        if (progress.stage == 'stdout') {
+        if (progress.stage == 'stdout' || progress.stage == 'parsing') {
             return;
         }
 

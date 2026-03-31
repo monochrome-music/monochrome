@@ -99,6 +99,8 @@ export async function applyAudioPostProcessing(
         if (format) {
             try {
                 blob = await transcodeWithCustomFormat(blob, format, onProgress, signal);
+
+                return blob;
             } catch (encodingError) {
                 if (onProgress) {
                     onProgress({
