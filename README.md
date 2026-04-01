@@ -91,6 +91,7 @@
 
 - Account system for cross-device syncing
 - Customizable & Public Profiles
+- Real-time Listening Parties for synced playback with friends
 - Last.fm and ListenBrainz integration for scrobbling
 - OAuth support (Google, Discord, GitHub, Spotify)
 - Unreleased music from [ArtistGrid](https://artistgrid.cx)

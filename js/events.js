@@ -55,6 +55,7 @@ import {
     trackEvent,
 } from './analytics.js';
 import { SVG_BIN, SVG_MUTE, SVG_PAUSE, SVG_PLAY, SVG_VOLUME, SVG_CHECKBOX, SVG_CHECKBOX_CHECKED } from './icons.js';
+import { partyManager } from './listening-party.js';
 
 let currentTrackIdForWaveform = null;
 
@@ -1155,6 +1156,15 @@ export async function handleTrackAction(
         return;
     }
 
+    if (action === 'request-song') {
+        if (partyManager.currentParty) {
+            await partyManager.requestSong(item);
+        } else {
+            showNotification('You are not in a listening party');
+        }
+        return;
+    }
+
     if (action === 'start-radio' || action === 'start-infinite-radio') {
         let tracks = [];
         if (type === 'track') {
@@ -1969,6 +1979,11 @@ async function updateContextMenuLikeState(contextMenu, contextTrack) {
             item.style.display = types.includes(type) ? 'block' : 'none';
         } else {
             item.style.display = 'block';
+        }
+        if (item.dataset.action === 'request-song') {
+            if (!partyManager.currentParty) {
+                item.style.display = 'none';
+            }
         }
 
         // Update labels for Like/Save

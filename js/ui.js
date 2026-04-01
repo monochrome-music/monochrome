@@ -29,7 +29,9 @@ import {
 } from './storage.js';
 import { db } from './db.js';
 import { getVibrantColorFromImage } from './vibrant-color.js';
-import { syncManager } from './accounts/pocketbase.js';
+import { pb, syncManager } from './accounts/pocketbase.js';
+import { authManager } from './accounts/auth.js';
+import { partyManager } from './listening-party.js';
 import { Visualizer } from './visualizer.js';
 import { navigate } from './router.js';
 import { sidePanelManager } from './side-panel.js';
@@ -1776,6 +1778,27 @@ export class UIRenderer {
             document.querySelectorAll('.settings-tab').forEach((t) => t.classList.remove('active'));
             document.querySelectorAll('.settings-tab-content').forEach((c) => c.classList.remove('active'));
         }
+    }
+
+    async renderPartiesPage() {
+        this.showPage('parties');
+        const authRequired = document.getElementById('parties-auth-required');
+        const hostControls = document.getElementById('parties-host-controls');
+        const loginBtn = document.getElementById('parties-login-btn');
+
+        if (authManager.user) {
+            authRequired.style.display = 'none';
+            hostControls.style.display = 'block';
+        } else {
+            authRequired.style.display = 'block';
+            hostControls.style.display = 'none';
+            loginBtn.onclick = () => navigate('/account');
+        }
+    }
+
+    async renderPartyDetailPage(id) {
+        this.showPage('party-detail');
+        await partyManager.joinParty(id);
     }
 
     async renderLibraryPage() {
