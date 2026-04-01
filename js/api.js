@@ -1751,6 +1751,7 @@ export class LosslessAPI {
 
             const { lookup, enrichedTrack, isVideo } = await this.enrichTrack(track, { downloadQuality });
 
+            let postProcessingQuality = lookup.info?.audioQuality ?? null;
             let streamUrl;
             let blob;
 
@@ -1783,6 +1784,10 @@ export class LosslessAPI {
                         const manifest = await fetch(stream.url, { signal: options.signal });
                         const manifestText = await manifest.text();
                         streamUrl = this.extractStreamUrlFromManifest(btoa(manifestText));
+
+                        if (streamUrl) {
+                            postProcessingQuality = 'DOLBY_ATMOS';
+                        }
                     } catch (err) {
                         console.error('Failed to extract Dolby Atmos stream URL:', err);
                     }
@@ -1878,13 +1883,7 @@ export class LosslessAPI {
             }
 
             if (!isVideo) {
-                blob = await applyAudioPostProcessing(
-                    blob,
-                    quality,
-                    onProgress,
-                    options.signal,
-                    track?.audioQuality ?? null
-                );
+                blob = await applyAudioPostProcessing(blob, quality, onProgress, options.signal, postProcessingQuality);
             }
 
             // Add metadata if track information is provided

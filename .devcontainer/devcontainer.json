@@ -7,7 +7,7 @@
     "postCreateCommand": "git config --local core.editor \"code --wait\" && git config --local commit.gpgsign false && npm install && bun install",
     "customizations": {
         "vscode": {
-            "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"]
+            "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode", "anthropic.claude-code"]
         }
     },
     "mounts": ["source=${env:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached"]

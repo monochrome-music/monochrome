@@ -40,7 +40,7 @@ async function loadFFmpeg(loadOptions = {}) {
         ffmpeg = new FFmpeg();
 
         ffmpeg.on('log', ({ message }) => {
-            self.postMessage({ type: 'log', message });
+            self.postMessage({ type: 'log', stage: 'stdout', message });
 
             // Try to extract total duration from input log
             if (totalDurationSeconds === null) {
@@ -124,7 +124,7 @@ self.onmessage = async (e) => {
             }
 
             const ffmpegArgs = ['-i', 'input', ...args, ...(output.name ? [output.name] : [])];
-            self.postMessage({ type: 'log', message: `FFmpeg command: ffmpeg ${ffmpegArgs.join(' ')}` });
+            self.postMessage({ type: 'command', command: ffmpegArgs });
 
             const exitCode = await ffmpeg.exec(ffmpegArgs);
 

@@ -999,6 +999,36 @@ export const visualizerSettings = {
     },
 };
 
+export const playbackSettings = {
+    FULLSCREEN_TILT_KEY: 'playback-fullscreen-tilt',
+    PRELOAD_TIME_KEY: 'playback-preload-time',
+
+    isFullscreenTiltEnabled() {
+        try {
+            return localStorage.getItem(this.FULLSCREEN_TILT_KEY) !== 'false';
+        } catch {
+            return true;
+        }
+    },
+
+    setFullscreenTiltEnabled(enabled) {
+        localStorage.setItem(this.FULLSCREEN_TILT_KEY, enabled ? 'true' : 'false');
+    },
+
+    getPreloadTime() {
+        try {
+            const val = localStorage.getItem(this.PRELOAD_TIME_KEY);
+            return val ? parseInt(val, 10) : 15;
+        } catch {
+            return 15;
+        }
+    },
+
+    setPreloadTime(seconds) {
+        localStorage.setItem(this.PRELOAD_TIME_KEY, seconds.toString());
+    },
+};
+
 export const equalizerSettings = {
     ENABLED_KEY: 'equalizer-enabled',
     GAINS_KEY: 'equalizer-gains',
