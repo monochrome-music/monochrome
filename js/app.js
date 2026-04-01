@@ -33,6 +33,7 @@ import { authManager } from './accounts/auth.js';
 import { registerSW } from 'virtual:pwa-register';
 import { openEditProfile } from './profile.js';
 import { ThemeStore } from './themeStore.js';
+import { partyManager } from './listening-party.js';
 import './commandPalette.js';
 import { initTracker } from './tracker.js';
 import {
