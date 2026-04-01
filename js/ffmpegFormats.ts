@@ -151,7 +151,7 @@ if (import.meta.env.DEV) {
 export const containerFormats: Record<string, ContainerFormat> = {
     flac: {
         displayName: 'FLAC',
-        ffmpegArgs: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'flac'],
+        ffmpegArgs: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'copy'],
         outputFilename: 'output.flac',
         outputMime: 'audio/flac',
         extension: 'flac',
