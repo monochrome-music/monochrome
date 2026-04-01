@@ -2,7 +2,6 @@
 // Target Curves & Data Parser - Ported from Seap Engine
 // Contains target frequency response curves and raw data parser
 
-
 // Raw content synchronized with features/autoeq/Targets/ directory
 
 const RAW_HARMAN_OE_2018 = `
@@ -2713,7 +2712,6 @@ const RAW_HIFI_ENDGAME_2026_MKII = `
 20000.00 72.378
 `;
 
-
 const RAW_PEQDB_ULTRA = `
 20.00 83.153
 20.36 83.149
@@ -3486,7 +3484,6 @@ const RAW_PEQDB_DIAMOND_BETA = `
 19642.52 72.276
 20000.00 72.028
 `;
-
 
 const RAW_SEAP = `
 20.00 82.982
@@ -4301,7 +4298,6 @@ const RAW_FLAT_LINE = `
 20000.00 75.000
 `;
 
-
 // --- PARSER ---
 /**
  * Parse raw frequency/gain text data into [{freq, gain}] arrays
@@ -4331,15 +4327,17 @@ function parseRawData(raw) {
 
     const hasHeader = /[a-zA-Z]/.test(firstLine);
     if (hasHeader) {
-        const headers = firstLine.split(delimiter).map(h => h.trim().toLowerCase().replace(/['"]+/g, ''));
-        const fIdx = headers.findIndex(h => h.includes('freq') || h === 'f');
+        const headers = firstLine.split(delimiter).map((h) => h.trim().toLowerCase().replace(/['"]+/g, ''));
+        const fIdx = headers.findIndex((h) => h.includes('freq') || h === 'f');
         if (fIdx > -1) freqIdx = fIdx;
 
-        const rIdx = headers.findIndex(h => h === 'raw');
+        const rIdx = headers.findIndex((h) => h === 'raw');
         if (rIdx > -1) {
             gainIdx = rIdx;
         } else {
-            const splIdx = headers.findIndex(h => h.includes('spl') || h.includes('gain') || h.includes('db') || h.includes('mag'));
+            const splIdx = headers.findIndex(
+                (h) => h.includes('spl') || h.includes('gain') || h.includes('db') || h.includes('mag')
+            );
             if (splIdx > -1 && splIdx !== freqIdx) gainIdx = splIdx;
         }
     }

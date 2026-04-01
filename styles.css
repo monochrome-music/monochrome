@@ -7910,6 +7910,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     background: rgb(255 255 255 / 0.5);
     border: 1px dashed rgb(255 255 255 / 0.3);
 }
+
 .legend-corrected .legend-dot {
     background: #f472b6;
 }
@@ -8109,6 +8110,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 .autoeq-status.error {
     color: var(--destructive);
 }
+
 .autoeq-status.success {
     color: var(--primary);
 }
@@ -8941,12 +8943,15 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 .speaker-eq-slider-value.bass {
     color: #22d3ee;
 }
+
 .speaker-eq-slider-value.room {
     color: #f59e0b;
 }
+
 .speaker-eq-section .autoeq-control-label.bass {
     color: #22d3ee;
 }
+
 .speaker-eq-section .autoeq-control-label.room {
     color: #f59e0b;
 }
