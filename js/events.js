@@ -1868,8 +1868,9 @@ export async function handleTrackAction(
     } else if (action === 'block-album') {
         const { contentBlockingSettings } = await import('./storage.js');
         const albumId = type === 'album' ? item.id : item.album?.id;
-        const albumTitle = type === 'album' ? (item.title || item.name) : (item.album?.title || item.album?.name);
-        const albumArtist = type === 'album' ? (item.artist?.name || item.artist) : (item.album?.artist?.name || item.album?.artist);
+        const albumTitle = type === 'album' ? item.title || item.name : item.album?.title || item.album?.name;
+        const albumArtist =
+            type === 'album' ? item.artist?.name || item.artist : item.album?.artist?.name || item.album?.artist;
 
         if (!albumId) {
             showNotification('No album information available');

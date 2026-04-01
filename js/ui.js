@@ -26,6 +26,7 @@ import {
     fontSettings,
     contentBlockingSettings,
     settingsUiState,
+    playbackSettings,
 } from './storage.js';
 import { db } from './db.js';
 import { getVibrantColorFromImage } from './vibrant-color.js';
@@ -149,6 +150,9 @@ export class UIRenderer {
         this.renderLock = false;
         this.lastRecommendedTracks = [];
         this.currentArtistId = null;
+
+        this._handleTiltMove = this._handleTiltMove.bind(this);
+        this._handleTiltLeave = this._handleTiltLeave.bind(this);
 
         // Listen for dynamic color reset events
         window.addEventListener('reset-dynamic-color', () => {
@@ -708,7 +712,7 @@ export class UIRenderer {
         return this.createBaseCardHTML({
             type: 'album',
             id: album.id,
-            href: `/album/${album.id}`,
+            href: album._href || `/album/${album.id}`,
             title: `${escapeHtml(album.title)} ${explicitBadge} ${qualityBadge}`,
             subtitle: `${escapeHtml(artistName)} • ${yearDisplay}${typeLabel}`,
             imageHTML: this.getCoverHTML(
@@ -1227,6 +1231,14 @@ export class UIRenderer {
 
         overlay.style.display = 'flex';
 
+        // Apply vanilla-tilt effect to fullscreen cover if enabled
+        this._applyFullscreenTilt(overlay);
+
+        // Listen for tilt setting changes
+        window.addEventListener('fullscreen-tilt-toggle', (e) => {
+            this._applyFullscreenTilt(overlay, e.detail.enabled);
+        });
+
         const startVisualizer = async () => {
             if (!visualizerSettings.isEnabled()) {
                 if (this.visualizer) this.visualizer.stop();
@@ -1320,6 +1332,46 @@ export class UIRenderer {
             clearTimeout(this.uiToggleMouseTimer);
             this.uiToggleMouseTimer = null;
         }
+
+        // Clean up vanilla-tilt if applied
+        this._removeFullscreenTilt();
+    }
+
+    _applyFullscreenTilt(overlay, enabled = playbackSettings.isFullscreenTiltEnabled()) {
+        const image = document.getElementById('fullscreen-cover-image');
+        if (!image) return;
+
+        this._removeFullscreenTilt();
+
+        if (!enabled) return;
+
+        image.addEventListener('mousemove', this._handleTiltMove);
+        image.addEventListener('mouseleave', this._handleTiltLeave);
+    }
+
+    _handleTiltMove(e) {
+        const image = e.target;
+        const rect = image.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        const rotateX = ((y - centerY) / centerY) * -10;
+        const rotateY = ((x - centerX) / centerX) * 10;
+
+        image.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`;
+    }
+
+    _handleTiltLeave(e) {
+        e.target.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale(1)';
+    }
+
+    _removeFullscreenTilt() {
+        const image = document.getElementById('fullscreen-cover-image');
+        if (!image) return;
+        image.removeEventListener('mousemove', this._handleTiltMove);
+        image.removeEventListener('mouseleave', this._handleTiltLeave);
+        image.style.transform = '';
     }
 
     setupUIToggleButton(overlay) {
@@ -2568,6 +2620,28 @@ export class UIRenderer {
                                     cardsHTML.push(this.createAlbumCardHTML(result.album));
                                     itemsToStore.push({ el: null, data: result.album, type: 'album' });
                                 }
+                            }
+                        } else if (item.type === 'userplaylist') {
+                            if (item.id && item.title) {
+                                const playlist = {
+                                    id: item.id,
+                                    name: item.title,
+                                    cover: item.cover,
+                                    numberOfTracks: item.numberOfTracks || 0,
+                                };
+                                cardsHTML.push(
+                                    this.createAlbumCardHTML({
+                                        ...playlist,
+                                        title: item.title,
+                                        artist: item.artist,
+                                        cover: item.cover,
+                                        explicit: item.explicit,
+                                        releaseDate: item.releaseDate,
+                                        type: 'ALBUM',
+                                        _href: `/userplaylist/${item.id}`,
+                                    })
+                                );
+                                itemsToStore.push({ el: null, data: playlist, type: 'user-playlist' });
                             }
                         } else if (item.type === 'artist') {
                             if (item.name && item.picture) {
