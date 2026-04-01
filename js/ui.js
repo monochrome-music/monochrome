@@ -26,7 +26,6 @@ import {
     fontSettings,
     contentBlockingSettings,
     settingsUiState,
-    playbackSettings,
 } from './storage.js';
 import { db } from './db.js';
 import { getVibrantColorFromImage } from './vibrant-color.js';
@@ -148,9 +147,6 @@ export class UIRenderer {
         this.renderLock = false;
         this.lastRecommendedTracks = [];
         this.currentArtistId = null;
-
-        this._handleTiltMove = this._handleTiltMove.bind(this);
-        this._handleTiltLeave = this._handleTiltLeave.bind(this);
 
         // Listen for dynamic color reset events
         window.addEventListener('reset-dynamic-color', () => {
@@ -1229,14 +1225,6 @@ export class UIRenderer {
 
         overlay.style.display = 'flex';
 
-        // Apply vanilla-tilt effect to fullscreen cover if enabled
-        this._applyFullscreenTilt(overlay);
-
-        // Listen for tilt setting changes
-        window.addEventListener('fullscreen-tilt-toggle', (e) => {
-            this._applyFullscreenTilt(overlay, e.detail.enabled);
-        });
-
         const startVisualizer = async () => {
             if (!visualizerSettings.isEnabled()) {
                 if (this.visualizer) this.visualizer.stop();
@@ -1330,46 +1318,6 @@ export class UIRenderer {
             clearTimeout(this.uiToggleMouseTimer);
             this.uiToggleMouseTimer = null;
         }
-
-        // Clean up vanilla-tilt if applied
-        this._removeFullscreenTilt();
-    }
-
-    _applyFullscreenTilt(overlay, enabled = playbackSettings.isFullscreenTiltEnabled()) {
-        const image = document.getElementById('fullscreen-cover-image');
-        if (!image) return;
-
-        this._removeFullscreenTilt();
-
-        if (!enabled) return;
-
-        image.addEventListener('mousemove', this._handleTiltMove);
-        image.addEventListener('mouseleave', this._handleTiltLeave);
-    }
-
-    _handleTiltMove(e) {
-        const image = e.target;
-        const rect = image.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        const centerX = rect.width / 2;
-        const centerY = rect.height / 2;
-        const rotateX = ((y - centerY) / centerY) * -10;
-        const rotateY = ((x - centerX) / centerX) * 10;
-
-        image.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(1.02)`;
-    }
-
-    _handleTiltLeave(e) {
-        e.target.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale(1)';
-    }
-
-    _removeFullscreenTilt() {
-        const image = document.getElementById('fullscreen-cover-image');
-        if (!image) return;
-        image.removeEventListener('mousemove', this._handleTiltMove);
-        image.removeEventListener('mouseleave', this._handleTiltLeave);
-        image.style.transform = '';
     }
 
     setupUIToggleButton(overlay) {
