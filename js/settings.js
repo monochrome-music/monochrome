@@ -18,6 +18,7 @@ import {
     visualizerSettings,
     playlistSettings,
     equalizerSettings,
+    playbackSettings,
     listenBrainzSettings,
     malojaSettings,
     libreFmSettings,
@@ -1108,6 +1109,27 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         gaplessPlaybackToggle.checked = gaplessPlaybackSettings.isEnabled();
         gaplessPlaybackToggle.addEventListener('change', (e) => {
             gaplessPlaybackSettings.setEnabled(e.target.checked);
+        });
+    }
+
+    // Fullscreen Cover Tilt Toggle
+    const fullscreenTiltToggle = document.getElementById('fullscreen-tilt-toggle');
+    if (fullscreenTiltToggle) {
+        fullscreenTiltToggle.checked = playbackSettings.isFullscreenTiltEnabled();
+        fullscreenTiltToggle.addEventListener('change', (e) => {
+            playbackSettings.setFullscreenTiltEnabled(e.target.checked);
+            window.dispatchEvent(new CustomEvent('fullscreen-tilt-toggle', { detail: { enabled: e.target.checked } }));
+        });
+    }
+
+    // Preload Time Input
+    const preloadTimeInput = document.getElementById('preload-time-input');
+    if (preloadTimeInput) {
+        preloadTimeInput.value = playbackSettings.getPreloadTime();
+        preloadTimeInput.addEventListener('change', (e) => {
+            const val = Math.max(5, Math.min(60, parseInt(e.target.value, 10) || 15));
+            playbackSettings.setPreloadTime(val);
+            window.dispatchEvent(new CustomEvent('preload-time-change', { detail: { seconds: val } }));
         });
     }
 
