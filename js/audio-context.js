@@ -728,7 +728,8 @@ class AudioContextManager {
         this.isEQEnabled = equalizerSettings.isEnabled();
         this.bandCount = equalizerSettings.getBandCount();
         this.freqRange = equalizerSettings.getFreqRange();
-        this.frequencies = generateFrequencies(this.bandCount, this.freqRange.min, this.freqRange.max);
+        const customFreqs = equalizerSettings.getCustomFrequencies(this.bandCount);
+        this.frequencies = customFreqs || generateFrequencies(this.bandCount, this.freqRange.min, this.freqRange.max);
         this.currentGains = equalizerSettings.getGains(this.bandCount);
         this.currentTypes = equalizerSettings.getBandTypes(this.bandCount);
         this.currentQs = equalizerSettings.getBandQs(this.bandCount);
@@ -827,12 +828,13 @@ class AudioContextManager {
         }
 
         // Persist normalized band descriptors to settings store
+        equalizerSettings.setCustomFrequencies(this.frequencies);
         equalizerSettings.setGains(this.currentGains);
         equalizerSettings.setBandTypes(this.currentTypes);
         equalizerSettings.setBandQs(this.currentQs);
 
-        // Generate export text using clamped gain values
-        const lines = [`Preamp: ${preamp.toFixed(1)} dB`];
+        // Generate export text using the actual applied preamp value
+        const lines = [`Preamp: ${this.preamp.toFixed(1)} dB`];
         sortedBands.forEach((band, index) => {
             if (index >= count) return;
             const filterType = band.type === 'lowshelf' ? 'LS' : band.type === 'highshelf' ? 'HS' : 'PK';

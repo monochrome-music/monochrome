@@ -1012,6 +1012,7 @@ export const equalizerSettings = {
     FREQ_MIN_KEY: 'equalizer-freq-min',
     FREQ_MAX_KEY: 'equalizer-freq-max',
     PREAMP_KEY: 'equalizer-preamp',
+    CUSTOM_FREQUENCIES_KEY: 'equalizer-custom-frequencies',
     DEFAULT_BAND_COUNT: 16,
     MIN_BANDS: 3,
     MAX_BANDS: 32,
@@ -1277,6 +1278,40 @@ export const equalizerSettings = {
             }
         } catch (e) {
             console.warn('[EQ] Failed to save gains:', e);
+        }
+    },
+
+    getCustomFrequencies(bandCount) {
+        const count = bandCount || this.getBandCount();
+        try {
+            const stored = localStorage.getItem(this.CUSTOM_FREQUENCIES_KEY);
+            if (stored) {
+                const freqs = JSON.parse(stored);
+                if (Array.isArray(freqs) && freqs.length === count) {
+                    return freqs;
+                }
+            }
+        } catch {
+            /* ignore */
+        }
+        return null;
+    },
+
+    setCustomFrequencies(frequencies) {
+        try {
+            if (Array.isArray(frequencies) && frequencies.length >= this.MIN_BANDS && frequencies.length <= this.MAX_BANDS) {
+                localStorage.setItem(this.CUSTOM_FREQUENCIES_KEY, JSON.stringify(frequencies));
+            }
+        } catch (e) {
+            console.warn('[EQ] Failed to save custom frequencies:', e);
+        }
+    },
+
+    clearCustomFrequencies() {
+        try {
+            localStorage.removeItem(this.CUSTOM_FREQUENCIES_KEY);
+        } catch {
+            /* ignore */
         }
     },
 
@@ -2731,7 +2766,7 @@ export const contentBlockingSettings = {
     blockArtist(artist) {
         if (!artist || !artist.id) return;
         const blocked = this.getBlockedArtists();
-        if (!blocked.some((a) => a.id === artist.id)) {
+        if (!blocked.some((a) => String(a.id) === String(artist.id))) {
             blocked.push({
                 id: artist.id,
                 name: artist.name || 'Unknown Artist',
@@ -2742,7 +2777,7 @@ export const contentBlockingSettings = {
     },
 
     unblockArtist(artistId) {
-        const blocked = this.getBlockedArtists().filter((a) => a.id !== artistId);
+        const blocked = this.getBlockedArtists().filter((a) => String(a.id) !== String(artistId));
         this.setBlockedArtists(blocked);
     },
 

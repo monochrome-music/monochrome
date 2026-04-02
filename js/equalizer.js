@@ -696,9 +696,37 @@ export class Equalizer {
                 });
             }
 
-            // Extract and apply gains
+            // Extract and apply gains, types, and Qs
             const gains = sliced.map((f) => f.gain);
             this.setAllGains(gains);
+
+            // Apply filter types (PK/LS/HS -> peaking/lowshelf/highshelf)
+            const typeMap = { PK: 'peaking', LS: 'lowshelf', HS: 'highshelf', LSC: 'lowshelf', HSC: 'highshelf' };
+            const types = sliced.map((f) => typeMap[f.type] || 'peaking');
+            this.currentTypes = types;
+            if (this.filters.length === types.length) {
+                types.forEach((type, i) => {
+                    if (this.filters[i]) this.filters[i].type = type;
+                });
+            }
+            equalizerSettings.setBandTypes(types);
+
+            // Apply Q values
+            const qs = sliced.map((f) => f.q);
+            this.currentQs = qs;
+            if (this.filters.length === qs.length) {
+                qs.forEach((q, i) => {
+                    if (this.filters[i]) this.filters[i].Q.value = q;
+                });
+            }
+            equalizerSettings.setBandQs(qs);
+
+            // Persist custom frequencies and update freqRange
+            equalizerSettings.setCustomFrequencies(newFreqs);
+            const minFreq = Math.min(...newFreqs);
+            const maxFreq = Math.max(...newFreqs);
+            this.freqRange = { min: minFreq, max: maxFreq };
+            equalizerSettings.setFreqRange(minFreq, maxFreq);
 
             return true;
         } catch (e) {

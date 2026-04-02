@@ -1500,7 +1500,9 @@ export class LosslessAPI {
                         a.canPlayType('audio/mp4; codecs="ec-3"') || a.canPlayType('audio/mp4; codecs="eac3"')
                     );
                 }
-            } catch (e) {}
+            } catch {
+                // Atmos codec probe — intentionally swallowed; canPlayAtmos stays false
+            }
 
             const paramsArray = [];
 
@@ -1888,7 +1890,7 @@ export class LosslessAPI {
                     quality,
                     onProgress,
                     options.signal,
-                    lookup.info?.audioQuality ?? null
+                    postProcessingQuality
                 );
             }
 
