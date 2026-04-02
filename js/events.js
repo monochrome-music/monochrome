@@ -655,14 +655,30 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
             progressBar.style.maskImage = '';
 
             try {
-                let streamResult = await player.api.getStreamUrl(player.currentTrack.id, 'LOW');
-                let waveformData = await waveformGenerator.getWaveform(streamResult?.url ?? streamResult, player.currentTrack.id);
+                // Use getTrack directly to get a non-manifest (direct) audio URL.
+                // getStreamUrl always hits the manifest endpoint which returns .mpd DASH URLs
+                // that cannot be decoded by decodeAudioData.
+                const getDirectUrl = async (quality) => {
+                    try {
+                        const lookup = await player.api.getTrack(player.currentTrack.id, quality);
+                        if (lookup?.originalTrackUrl) return lookup.originalTrackUrl;
+                        if (lookup?.info?.manifest) {
+                            const decoded = (() => { try { return atob(lookup.info.manifest); } catch { return lookup.info.manifest; } })();
+                            if (!decoded.includes('<MPD') && !decoded.includes('m3u8')) {
+                                try {
+                                    const parsed = JSON.parse(decoded);
+                                    if (parsed?.urls?.[0]) return parsed.urls[0];
+                                } catch { /* not JSON */ }
+                            }
+                        }
+                    } catch { /* fall through */ }
+                    return null;
+                };
 
-                if (!waveformData) {
-                    // Try HIGH quality if LOW failed (proxy might not support it)
-                    streamResult = await player.api.getStreamUrl(player.currentTrack.id, 'HIGH');
-                    waveformData = await waveformGenerator.getWaveform(streamResult?.url ?? streamResult, player.currentTrack.id);
-                }
+                let directUrl = await getDirectUrl('LOW');
+                if (!directUrl) directUrl = await getDirectUrl('HIGH');
+
+                let waveformData = directUrl ? await waveformGenerator.getWaveform(directUrl, player.currentTrack.id) : null;
 
                 if (waveformData && currentTrackIdForWaveform === player.currentTrack.id) {
                     let { peaks, duration } = waveformData;
