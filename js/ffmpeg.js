@@ -49,7 +49,8 @@ async function ffmpegWorker(
     onProgress = null,
     signal = null,
     extraFiles = [],
-    logConsole = true
+    logConsole = true,
+    rawArgs = false
 ) {
     const audioData = audioBlob ? await audioBlob.arrayBuffer() : null;
     const assets = loadFfmpeg();
@@ -128,7 +129,7 @@ async function ffmpegWorker(
                 {
                     audioData,
                     extraFiles,
-                    args,
+                    ...(rawArgs ? { rawArgs: args } : { args }),
                     output: {
                         name: outputName,
                         mime: outputMime,
@@ -153,6 +154,7 @@ async function ffmpegWorker(
  * @param {AbortSignal|null} [opts.signal=null] - Optional abort signal to cancel encoding
  * @param {Array} [opts.extraFiles=[]] - Additional files to provide to FFmpeg
  * @param {Boolean} [opts.logConsole=true] - Whether to log FFmpeg output to the console
+ * @param {string[]} [opts.rawArgs=[]] - Whether to pass args as raw command line (without default input/output)
  * @returns {Promise<Blob>} Encoded audio blob
  * @throws {FfmpegError} If Web Workers are not available
  * @throws {Error} If FFmpeg encoding fails
@@ -167,6 +169,7 @@ export async function ffmpeg(
         signal = null,
         extraFiles = [],
         logConsole = true,
+        rawArgs = null,
     } = {}
 ) {
     try {
@@ -174,13 +177,14 @@ export async function ffmpeg(
         if (typeof Worker !== 'undefined') {
             return await ffmpegWorker(
                 audioBlob,
-                args,
+                rawArgs || args,
                 outputName,
                 outputMime,
                 onProgress,
                 signal,
                 extraFiles,
-                logConsole
+                logConsole,
+                !!rawArgs
             );
         }
 

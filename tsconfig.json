@@ -4,7 +4,7 @@
         "module": "ESNext",
         "moduleResolution": "Bundler",
         "lib": ["ESNext", "DOM", "DOM.Iterable", "webworker"],
-        "types": ["vite/client", "node"],
+        "types": ["vite/client", "node", "./js/global.d.ts"],
         "baseUrl": ".",
         "paths": {
             "!/*": ["node_modules/*"]
