@@ -14,14 +14,12 @@ export async function onRequest(context) {
             <meta property="og:site_name" content="Monochrome">
             <meta property="og:title" content="Monochrome Music | Recent">
             <meta property="og:description" content="A minimalist music streaming application">
-            <meta property="og:image" content="https://monochrome.tf/assets/appicon.png">
             <meta property="og:type" content="website">
             <meta property="og:url" content="${pageUrl}">
 
-            <meta name="twitter:card" content="summary_large_image">
+            <meta name="twitter:card" content="summary">
             <meta name="twitter:title" content="Monochrome Music | Recent">
             <meta name="twitter:description" content="A minimalist music streaming application">
-            <meta name="twitter:image" content="https://monochrome.tf/assets/appicon.png">
         </head>
         <body>
             <h1>Monochrome Music | Recent</h1>
