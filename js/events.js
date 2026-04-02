@@ -1336,7 +1336,7 @@ export async function handleTrackAction(
     // Individual Track Actions
     // Check if track/artist is blocked
     const { contentBlockingSettings } = await import('./storage.js');
-    if (type === 'track' && contentBlockingSettings.shouldHideTrack(item)) {
+    if (type === 'track' && action !== 'block-track' && contentBlockingSettings.shouldHideTrack(item)) {
         showNotification('This track is blocked');
         return;
     }
