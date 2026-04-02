@@ -178,8 +178,8 @@ export class Player {
                                 this.audio.currentTime = this.video.currentTime;
                             }
                         } catch {
-                        // Video-to-audio time sync may fail if readyState is stale
-                    }
+                            // Video-to-audio time sync may fail if readyState is stale
+                        }
                     }
 
                     const syncedEvent = new Event(eventName, { bubbles: e.bubbles, cancelable: e.cancelable });
