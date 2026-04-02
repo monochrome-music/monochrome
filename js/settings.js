@@ -1232,7 +1232,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     }
 
     // ========================================
-    // Precision AutoEQ — Redesigned Equalizer
+    // Precision AutoEQ - Redesigned Equalizer
     // ========================================
     const eqToggle = document.getElementById('equalizer-enabled-toggle');
     const eqContainer = document.getElementById('equalizer-container');
@@ -1943,7 +1943,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             const coords = getCanvasCoords(e);
             const isParam = currentMode === 'parametric';
 
-            // getActiveBands() returns null in autoeq mode before first run — init to empty array
+            // getActiveBands() returns null in autoeq mode before first run - init to empty array
             let bands = getActiveBands();
             if (!bands) {
                 if (currentMode === 'autoeq') {
@@ -2288,7 +2288,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         const dpr = window.devicePixelRatio || 1;
         const rect = canvas.getBoundingClientRect();
         if (rect.width === 0) {
-            // Canvas not laid out yet — retry when it becomes visible
+            // Canvas not laid out yet - retry when it becomes visible
             const obs = new IntersectionObserver((entries, observer) => {
                 if (entries[0].isIntersecting) {
                     observer.disconnect();
@@ -3738,7 +3738,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
-    // Measure All — plays pink noise once, assigns averaged measurement to all active channels
+    // Measure All - plays pink noise once, assigns averaged measurement to all active channels
     const speakerMeasureAllBtn = document.getElementById('speaker-measure-all-btn');
     if (speakerMeasureAllBtn) {
         speakerMeasureAllBtn.addEventListener('click', async () => {
@@ -3882,7 +3882,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
-    // AutoEQ All — runs AutoEQ on every active channel that has a measurement
+    // AutoEQ All - runs AutoEQ on every active channel that has a measurement
     const speakerAutoEqAllBtn = document.getElementById('speaker-autoeq-all-btn');
     if (speakerAutoEqAllBtn) {
         speakerAutoEqAllBtn.addEventListener('click', () => {
