@@ -10,6 +10,11 @@ const config: CapacitorConfig = {
         splashBackgroundColor: '#000000',
         splashBackgroundColorDark: '#000000',
     },
+    // Uncomment for live reload during development (requires `npm run dev` running on PC)
+    // server: {
+    //     url: 'http://192.168.1.7:5173',
+    //     cleartext: true,
+    // },
 };
 
 export default config;
