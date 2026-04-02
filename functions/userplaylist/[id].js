@@ -3,6 +3,54 @@
 const POCKETBASE_URL = 'https://data.samidy.xyz';
 const PUBLIC_COLLECTION = 'public_playlists';
 
+function safeParseTracks(tracksData) {
+    if (!tracksData) return [];
+    if (Array.isArray(tracksData)) return tracksData;
+    if (typeof tracksData === 'string') {
+        try {
+            return JSON.parse(tracksData);
+        } catch {
+            return [];
+        }
+    }
+    return [];
+}
+
+function parseDuration(durationStr) {
+    if (!durationStr || durationStr === 'N/A' || typeof durationStr !== 'string') return 0;
+    const parts = durationStr.split(':');
+    if (parts.length === 2) {
+        return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    }
+    if (parts.length === 3) {
+        return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
+    }
+    return 0;
+}
+
+function calculatePlaylistDuration(tracks) {
+    let totalSeconds = 0;
+    for (const track of tracks) {
+        const duration = track.duration || track.durationSeconds || 0;
+        if (typeof duration === 'number') {
+            totalSeconds += duration;
+        } else if (typeof duration === 'string') {
+            totalSeconds += parseDuration(duration);
+        }
+    }
+    return totalSeconds;
+}
+
+function formatDuration(seconds) {
+    if (!seconds || seconds <= 0) return '0 min';
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (hours > 0) {
+        return `${hours} hr ${minutes} min`;
+    }
+    return `${minutes} min`;
+}
+
 export async function onRequest(context) {
     const { request, params, env } = context;
     const userAgent = request.headers.get('User-Agent') || '';
@@ -37,14 +85,10 @@ export async function onRequest(context) {
                     (extraData && (extraData.title || extraData.name)) ||
                     'Untitled Playlist';
 
-                let tracks = [];
-                try {
-                    tracks = record.tracks ? JSON.parse(record.tracks) : [];
-                } catch {
-                    tracks = [];
-                }
-
+                let tracks = safeParseTracks(record.tracks);
                 const trackCount = tracks.length;
+                const totalDuration = calculatePlaylistDuration(tracks);
+                const durationStr = formatDuration(totalDuration);
 
                 let rawCover = record.image || record.cover || record.playlist_cover || '';
                 if (!rawCover && extraData && typeof extraData === 'object') {
@@ -70,7 +114,7 @@ export async function onRequest(context) {
                     imageUrl = 'https://monochrome.tf/assets/appicon.png';
                 }
 
-                const description = `Playlist • ${trackCount} Tracks\nListen on Monochrome`;
+                const description = `Playlist • ${trackCount} Tracks • ${durationStr}\nListen on Monochrome`;
                 const pageUrl = new URL(request.url).href;
 
                 const metaHtml = `
