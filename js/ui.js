@@ -5349,13 +5349,7 @@ export class UIRenderer {
 
         try {
             let track;
-            try {
-                const result = await this.api.getTrack(trackId, provider);
-                track = result.track;
-            } catch (e) {
-                console.warn('getTrack failed, trying getTrackMetadata', e);
-                track = await this.api.getTrackMetadata(trackId, provider);
-            }
+            track = await this.api.getTrackMetadata(trackId);
             this.currentTrackPageId = track.id;
 
             let videoCoverUrl = track.videoUrl || track.videoCoverUrl || track.album?.videoCoverUrl || null;
