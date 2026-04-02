@@ -26,6 +26,8 @@ import {
     fontSettings,
     contentBlockingSettings,
     settingsUiState,
+    fullscreenCoverNoRoundSettings,
+    fullscreenCoverVanillaTiltSettings,
 } from './storage.js';
 import { db } from './db.js';
 import { getVibrantColorFromImage } from './vibrant-color.js';
@@ -163,6 +165,30 @@ export class UIRenderer {
         window.addEventListener('visualizer-dim-change', () => {
             if (this.visualizer) {
                 this.visualizer.updateDimming();
+            }
+        });
+
+        window.addEventListener('fullscreen-cover-settings-changed', () => {
+            const overlay = document.getElementById('fullscreen-cover-overlay');
+            const coverImage = document.getElementById('fullscreen-cover-image');
+            if (overlay && overlay.style.display === 'flex') {
+                if (fullscreenCoverNoRoundSettings.isEnabled()) {
+                    overlay.classList.add('fullscreen-cover-no-round');
+                } else {
+                    overlay.classList.remove('fullscreen-cover-no-round');
+                }
+                if (coverImage) {
+                    if (fullscreenCoverVanillaTiltSettings.isEnabled() && window.VanillaTilt) {
+                        window.VanillaTilt.init(coverImage, {
+                            max: 15,
+                            speed: 400,
+                            glare: true,
+                            'max-glare': 0.3,
+                        });
+                    } else if (coverImage.vanillaTilt) {
+                        coverImage.vanillaTilt.destroy();
+                    }
+                }
             }
         });
 
@@ -1232,6 +1258,22 @@ export class UIRenderer {
 
         overlay.style.display = 'flex';
 
+        if (fullscreenCoverNoRoundSettings.isEnabled()) {
+            overlay.classList.add('fullscreen-cover-no-round');
+        } else {
+            overlay.classList.remove('fullscreen-cover-no-round');
+        }
+
+        const coverImage = document.getElementById('fullscreen-cover-image');
+        if (fullscreenCoverVanillaTiltSettings.isEnabled() && coverImage && window.VanillaTilt) {
+            window.VanillaTilt.init(coverImage, {
+                max: 15,
+                speed: 400,
+                glare: true,
+                'max-glare': 0.3,
+            });
+        }
+
         const startVisualizer = async () => {
             if (!visualizerSettings.isEnabled()) {
                 if (this.visualizer) this.visualizer.stop();
@@ -1283,8 +1325,12 @@ export class UIRenderer {
 
     closeFullscreenCover() {
         const overlay = document.getElementById('fullscreen-cover-overlay');
+        const coverImage = document.getElementById('fullscreen-cover-image');
+        if (coverImage && coverImage.vanillaTilt) {
+            coverImage.vanillaTilt.destroy();
+        }
         overlay.style.display = 'none';
-        overlay.classList.remove('visualizer-active', 'ui-hidden');
+        overlay.classList.remove('visualizer-active', 'ui-hidden', 'fullscreen-cover-no-round');
 
         const playerBar = document.querySelector('.now-playing-bar');
         if (playerBar) playerBar.style.removeProperty('display');

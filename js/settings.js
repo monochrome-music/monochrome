@@ -35,6 +35,8 @@ import {
     analyticsSettings,
     modalSettings,
     preferDolbyAtmosSettings,
+    fullscreenCoverNoRoundSettings,
+    fullscreenCoverVanillaTiltSettings,
 } from './storage.js';
 import { audioContextManager, getPresetsForBandCount } from './audio-context.js';
 import { calculateBiquadResponse, interpolate, getNormalizationOffset, runAutoEqAlgorithm } from './autoeq-engine.js';
@@ -4601,6 +4603,26 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 // Reset colors immediately when disabled
                 window.dispatchEvent(new CustomEvent('reset-dynamic-color'));
             }
+        });
+    }
+
+    // Fullscreen Cover No Round Toggle
+    const fullscreenCoverNoRoundToggle = document.getElementById('fullscreen-cover-no-round-toggle');
+    if (fullscreenCoverNoRoundToggle) {
+        fullscreenCoverNoRoundToggle.checked = fullscreenCoverNoRoundSettings.isEnabled();
+        fullscreenCoverNoRoundToggle.addEventListener('change', (e) => {
+            fullscreenCoverNoRoundSettings.setEnabled(e.target.checked);
+            window.dispatchEvent(new CustomEvent('fullscreen-cover-settings-changed'));
+        });
+    }
+
+    // Fullscreen Cover Vanilla Tilt Toggle
+    const fullscreenCoverVanillaTiltToggle = document.getElementById('fullscreen-cover-vanilla-tilt-toggle');
+    if (fullscreenCoverVanillaTiltToggle) {
+        fullscreenCoverVanillaTiltToggle.checked = fullscreenCoverVanillaTiltSettings.isEnabled();
+        fullscreenCoverVanillaTiltToggle.addEventListener('change', (e) => {
+            fullscreenCoverVanillaTiltSettings.setEnabled(e.target.checked);
+            window.dispatchEvent(new CustomEvent('fullscreen-cover-settings-changed'));
         });
     }
 

@@ -4094,6 +4094,10 @@ input:checked + .slider::before {
     z-index: 1;
 }
 
+#fullscreen-cover-overlay.fullscreen-cover-no-round #fullscreen-cover-image {
+    border-radius: 0;
+}
+
 /* Enhanced drop shadow for album cover in visualizer mode */
 #fullscreen-cover-overlay.visualizer-active #fullscreen-cover-image {
     box-shadow:

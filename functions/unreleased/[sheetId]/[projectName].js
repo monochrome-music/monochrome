@@ -2,7 +2,11 @@
 
 const ARTISTS_NDJSON_URL = 'https://assets.artistgrid.cx/artists.ndjson';
 const ASSETS_BASE_URL = 'https://assets.artistgrid.cx';
-const TRACKER_API_ENDPOINTS = ['https://trackerapi-1.artistgrid.cx/get/', 'https://trackerapi-2.artistgrid.cx/get/'];
+const TRACKER_API_ENDPOINTS = [
+    'https://trackerapi-1.artistgrid.cx/get/',
+    'https://trackerapi-2.artistgrid.cx/get/',
+    'https://trackerapi-3.artistgrid.cx/get/',
+];
 
 function getSheetId(url) {
     if (!url) return null;
