@@ -261,6 +261,7 @@ export const modernSettings = new ModernSettings()
             transformer: String,
         },
     })
+    .addProperty('writeArtistsSeparately', false)
     .finalize() as ModernSettings & {
     /** The last used directory handle for bulk downloads */
     bulkDownloadFolder: FileSystemDirectoryHandle | null;
@@ -286,4 +287,7 @@ export const modernSettings = new ModernSettings()
 
     /** Filename template for downloads */
     filenameTemplate: string;
+
+    /** Whether to write multiple artists to downloaded files */
+    writeArtistsSeparately: boolean;
 };

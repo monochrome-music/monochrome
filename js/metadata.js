@@ -1,7 +1,15 @@
-import { getCoverBlob, getTrackTitle, getFullArtistString, getMimeType, getTrackCoverId } from './utils.js';
+import {
+    getCoverBlob,
+    getTrackTitle,
+    getFullArtistString,
+    getMimeType,
+    getTrackCoverId,
+    getFullArtistArray,
+} from './utils.js';
 import { addMetadataWithTagLib, getMetadataWithTagLib } from './taglib.ts';
 import { LyricsManager } from './lyrics.js';
 import { Mp4Stik } from './taglib.types.ts';
+import { modernSettings } from './ModernSettings.js';
 
 /**
  * @typedef {import('./container-classes.ts').Track} Track
@@ -35,13 +43,15 @@ export async function addMetadataToAudio(audioBlob, track, api, _quality, prefet
     /**
      * @type {TagLibMetadata}
      */
-    const data = {};
+    const data = {
+        writeArtistsSeparately: modernSettings.writeArtistsSeparately,
+    };
 
     try {
         data.title = getTrackTitle(track);
-        data.artist = getFullArtistString(track);
+        data.artist = getFullArtistArray(track);
         data.albumTitle = track.album?.title;
-        data.albumArtist = track.album?.artist?.name || track.artist?.name;
+        data.albumArtist = track.album?.artist?.name || getFullArtistString(track) || '';
         data.trackNumber = track.trackNumber;
         data.discNumber = track.volumeNumber ?? track.discNumber;
         data.totalTracks = track.album?.numberOfTracksOnDisc ?? track.album?.numberOfTracks;

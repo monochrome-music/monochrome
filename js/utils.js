@@ -616,10 +616,10 @@ export const getShareUrl = (path) => {
 };
 
 /**
- * Builds a full artist string by combining the track's listed artists
+ * Builds a full artist array by combining the track's listed artists
  * with any featured artists parsed from the title (feat./with).
  */
-export function getFullArtistString(track) {
+export function getFullArtistArray(track) {
     const knownArtists =
         Array.isArray(track.artists) && track.artists.length > 0
             ? track.artists.map((a) => (typeof a === 'string' ? a : a.name) || '').filter(Boolean)
@@ -645,6 +645,16 @@ export function getFullArtistString(track) {
             }
         }
     }
+
+    return knownArtists;
+}
+
+/**
+ * Builds a full artist string by combining the track's listed artists
+ * with any featured artists parsed from the title (feat./with).
+ */
+export function getFullArtistString(track) {
+    const knownArtists = getFullArtistArray(track);
 
     return knownArtists.join('; ') || null;
 }
