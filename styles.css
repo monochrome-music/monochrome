@@ -9184,6 +9184,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
         opacity: 0;
         transform: translateY(5px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
