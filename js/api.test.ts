@@ -430,7 +430,7 @@ suite('Track Downloads', async () => {
                 expect(file.file()).toBeInstanceOf(OggFile);
                 const ogg = file.file() as OggFile;
                 expect(ogg.audioProperties().sampleRate).toBe(44100);
-                //expect(ogg.audioProperties().bitrate).toBe(320);
+                expect(ogg.audioProperties().bitrate).toBe(314);
                 break;
             }
 
@@ -438,7 +438,7 @@ suite('Track Downloads', async () => {
                 expect(file.file()).toBeInstanceOf(OggFile);
                 const ogg = file.file() as OggFile;
                 expect(ogg.audioProperties().sampleRate).toBe(44100);
-                //expect(ogg.audioProperties().bitrate).toBe(256);
+                expect(ogg.audioProperties().bitrate).toBe(253);
                 break;
             }
 
@@ -446,7 +446,7 @@ suite('Track Downloads', async () => {
                 expect(file.file()).toBeInstanceOf(OggFile);
                 const ogg = file.file() as OggFile;
                 expect(ogg.audioProperties().sampleRate).toBe(44100);
-                //expect(ogg.audioProperties().bitrate).toBe(128);
+                expect(ogg.audioProperties().bitrate).toBe(130);
                 break;
             }
 
