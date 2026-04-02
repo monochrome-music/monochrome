@@ -211,15 +211,13 @@ async function fetchAutoEqIndex() {
     } catch (err) {
         if (err.name === 'AbortError') {
             console.warn('[AutoEQ] GitHub API request timed out. Falling back to cache or fallback index.');
-            try {
-                const cached = await db.getSetting(CACHE_KEY);
-                if (cached?.data) return cached.data;
-            } catch {
-                /* ignore */
-            }
         } else {
             console.error('[AutoEQ] Failed to fetch index:', err);
         }
+        try {
+            const cached = await db.getSetting(CACHE_KEY);
+            if (cached?.data) return cached.data;
+        } catch { /* ignore */ }
         return FALLBACK_INDEX;
     }
 }
