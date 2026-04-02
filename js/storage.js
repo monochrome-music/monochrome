@@ -590,6 +590,38 @@ export const dynamicColorSettings = {
     },
 };
 
+export const fullscreenCoverNoRoundSettings = {
+    STORAGE_KEY: 'fullscreen-cover-no-round',
+
+    isEnabled() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) !== 'false';
+        } catch {
+            return true;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+};
+
+export const fullscreenCoverVanillaTiltSettings = {
+    STORAGE_KEY: 'fullscreen-cover-vanilla-tilt',
+
+    isEnabled() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) !== 'false';
+        } catch {
+            return true;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+};
+
 export const cardSettings = {
     COMPACT_ARTIST_KEY: 'card-compact-artist',
     COMPACT_ALBUM_KEY: 'card-compact-album',
