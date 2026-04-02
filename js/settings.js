@@ -1570,9 +1570,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
             // Draw Original measurement (normalized + shifted)
             if (graphMeasurement) {
-                const normOff = targetData
-                    ? getNormalizationOffset(graphMeasurement, targetData)
-                    : 0;
+                const normOff = targetData ? getNormalizationOffset(graphMeasurement, targetData) : 0;
                 const normalized = graphMeasurement.map((p) => ({ freq: p.freq, gain: p.gain + normOff + graphShift }));
                 drawCurve(normalized, originalColor, 1.5);
             }

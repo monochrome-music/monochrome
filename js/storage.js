@@ -1299,7 +1299,11 @@ export const equalizerSettings = {
 
     setCustomFrequencies(frequencies) {
         try {
-            if (Array.isArray(frequencies) && frequencies.length >= this.MIN_BANDS && frequencies.length <= this.MAX_BANDS) {
+            if (
+                Array.isArray(frequencies) &&
+                frequencies.length >= this.MIN_BANDS &&
+                frequencies.length <= this.MAX_BANDS
+            ) {
                 localStorage.setItem(this.CUSTOM_FREQUENCIES_KEY, JSON.stringify(frequencies));
             }
         } catch (e) {
