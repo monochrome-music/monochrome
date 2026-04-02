@@ -2,9 +2,9 @@
 
 export class WaveformGenerator {
     constructor() {
-        // Use OfflineAudioContext to prevent creating unnecessary OS audio streams
-        // decodeAudioData doesn't require a real-time AudioContext
-        this.audioContext = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 44100, 44100);
+        // AudioContext is reused across decodeAudioData calls — OfflineAudioContext
+        // becomes closed after rendering and cannot be reused for decoding.
+        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
         this.cache = new Map();
     }
 

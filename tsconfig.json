@@ -15,7 +15,7 @@
         "isolatedModules": true,
         "verbatimModuleSyntax": true,
         "skipLibCheck": true,
-        "ignoreDeprecations": "5.0",
+        "ignoreDeprecations": "6.0",
         "noEmit": true
     },
     "include": ["js/**/*.ts", "js/**/*.d.ts"]
