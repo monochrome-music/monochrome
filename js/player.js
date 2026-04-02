@@ -177,7 +177,9 @@ export class Player {
                             if (this.video.readyState >= 2 && (this.audio.readyState > 0 || this.audio.src)) {
                                 this.audio.currentTime = this.video.currentTime;
                             }
-                        } catch (err) {}
+                        } catch {
+                        // Video-to-audio time sync may fail if readyState is stale
+                    }
                     }
 
                     const syncedEvent = new Event(eventName, { bubbles: e.bubbles, cancelable: e.cancelable });
@@ -1032,12 +1034,12 @@ export class Player {
                 try {
                     await this.playTrackFromQueue(startTime, recursiveCount, true);
                     return;
-                } catch (retryError) {
+                } catch {
+                    // LOSSLESS fallback also failed — fall through to error handling below
                 } finally {
                     this.quality = originalQuality;
                     this.isFallbackRetry = false;
                     this.isFallbackInProgress = false;
-                    return;
                 }
             }
 
@@ -1746,7 +1748,9 @@ export class Player {
                             a.canPlayType('audio/mp4; codecs="ec-3"') || a.canPlayType('audio/mp4; codecs="eac3"')
                         );
                     }
-                } catch (e) {}
+                } catch {
+                    // Atmos codec detection may fail on some browsers
+                }
 
                 let isAtmosPlaying = isTrackAtmos && deviceSupportsAtmos;
                 const q = this.quality || localStorage.getItem('adaptive-playback-quality') || 'auto';
@@ -1814,7 +1818,7 @@ export class Player {
                 // Re-enable ABR so it can dynamically downgrade within that new codec family if needed
                 this.shakaPlayer.configure({ abr: { enabled: true } });
             }
-        } catch (e) {
+        } catch {
             // fail silently on abr checks
         }
     }

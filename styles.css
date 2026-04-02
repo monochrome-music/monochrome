@@ -7894,8 +7894,8 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 }
 
 .legend-target .legend-dot {
-    background: rgb(255 255 255 / 0.5);
-    border: 1px dashed rgb(255 255 255 / 0.3);
+    background: color-mix(in srgb, var(--foreground) 50%, transparent);
+    border: 1px dashed color-mix(in srgb, var(--foreground) 30%, transparent);
 }
 
 .legend-corrected .legend-dot {
@@ -8291,6 +8291,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     color: var(--muted-foreground);
     cursor: pointer;
     opacity: 0;
+    pointer-events: none;
     transition: all var(--transition-fast);
     font-size: 1rem;
 }
@@ -8300,8 +8301,10 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     color: var(--destructive-foreground);
 }
 
-.autoeq-profile-card:hover .autoeq-profile-delete {
+.autoeq-profile-card:hover .autoeq-profile-delete,
+.autoeq-profile-card:focus-within .autoeq-profile-delete {
     opacity: 1;
+    pointer-events: auto;
 }
 
 /* --- Database Browser --- */

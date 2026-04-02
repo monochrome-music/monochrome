@@ -3923,8 +3923,8 @@
                                             <h4>Parametric EQ &mdash; Manual Control</h4>
                                             <ol>
                                                 <li>
-                                                    Each band is a <b>peaking filter</b> with frequency, gain, and Q
-                                                    (width).
+                                                    Each band supports <b>peaking, low-shelf, and high-shelf</b> filter
+                                                    types with frequency, gain, and Q (width).
                                                 </li>
                                                 <li>
                                                     <b>Drag nodes</b> on the graph to adjust frequency and gain
@@ -4039,6 +4039,7 @@
                                                 <span class="slider"></span>
                                             </label>
                                         </div>
+                                        <button id="autoeq-run-btn" class="autoeq-run-btn" disabled>AutoEq</button>
                                     </div>
 
                                     <!-- Database Browser -->
@@ -4057,6 +4058,7 @@
                                                 id="autoeq-headphone-search"
                                                 placeholder="Search model (e.g. HD 600)..."
                                                 autocomplete="off"
+                                                aria-label="Search headphone model"
                                             />
                                         </div>
                                         <div class="autoeq-database-content">
@@ -4071,11 +4073,10 @@
 
                                     <!-- AutoEQ Controls -->
                                     <div class="autoeq-controls-section">
-                                        <button id="autoeq-run-btn" class="autoeq-run-btn" disabled>AutoEq</button>
                                         <div class="autoeq-control-group">
-                                            <label class="autoeq-control-label">HEADPHONE MODEL</label>
+                                            <label class="autoeq-control-label" for="autoeq-headphone-select">HEADPHONE MODEL</label>
                                             <div class="autoeq-select-wrapper">
-                                                <select id="autoeq-headphone-select">
+                                                <select id="autoeq-headphone-select" aria-label="Headphone model">
                                                     <option value="">Select a headphone...</option>
                                                 </select>
                                                 <button
@@ -4134,8 +4135,8 @@
 
                                         <div class="autoeq-controls-row">
                                             <div class="autoeq-control-mini">
-                                                <label class="autoeq-control-label">FILTER BANDS</label>
-                                                <select id="autoeq-band-count">
+                                                <label class="autoeq-control-label" for="autoeq-band-count">FILTER BANDS</label>
+                                                <select id="autoeq-band-count" aria-label="Filter bands">
                                                     <option value="5">5</option>
                                                     <option value="10" selected>10</option>
                                                     <option value="15">15</option>
@@ -4144,8 +4145,8 @@
                                                 </select>
                                             </div>
                                             <div class="autoeq-control-mini">
-                                                <label class="autoeq-control-label">MAX HZ</label>
-                                                <select id="autoeq-max-freq">
+                                                <label class="autoeq-control-label" for="autoeq-max-freq">MAX HZ</label>
+                                                <select id="autoeq-max-freq" aria-label="Maximum frequency">
                                                     <option value="6000">6k</option>
                                                     <option value="8000">8k</option>
                                                     <option value="10000">10k</option>
@@ -4155,8 +4156,8 @@
                                                 </select>
                                             </div>
                                             <div class="autoeq-control-mini">
-                                                <label class="autoeq-control-label">SAMPLE RATE</label>
-                                                <select id="autoeq-sample-rate">
+                                                <label class="autoeq-control-label" for="autoeq-sample-rate">SAMPLE RATE</label>
+                                                <select id="autoeq-sample-rate" aria-label="Sample rate">
                                                     <option value="44100">44.1k</option>
                                                     <option value="48000" selected>48k</option>
                                                     <option value="96000">96k</option>
@@ -4174,7 +4175,7 @@
                                                 <use svg="!lucide/download.svg" size="20" />
                                             </button>
                                         </div>
-                                        <span id="autoeq-status" class="autoeq-status"></span>
+                                        <span id="autoeq-status" class="autoeq-status" role="status" aria-live="polite"></span>
                                     </div>
 
                                     <!-- Saved Profiles -->
@@ -4190,6 +4191,7 @@
                                                     id="autoeq-profile-name"
                                                     class="autoeq-profile-name-input"
                                                     placeholder="Profile name..."
+                                                    aria-label="AutoEQ profile name"
                                                     maxlength="50"
                                                 />
                                                 <button id="autoeq-save-btn" class="btn-primary autoeq-save-btn">
@@ -4401,7 +4403,7 @@
                                                 >
                                                     Measure All
                                                 </button>
-                                                <span id="speaker-eq-status" class="autoeq-status"></span>
+                                                <span id="speaker-eq-status" class="autoeq-status" role="status" aria-live="polite"></span>
                                             </div>
                                         </div>
                                     </div>
@@ -4419,6 +4421,7 @@
                                                     id="speaker-profile-name"
                                                     class="autoeq-profile-name-input"
                                                     placeholder="Profile name..."
+                                                    aria-label="Speaker EQ profile name"
                                                     maxlength="50"
                                                 />
                                                 <button id="speaker-save-btn" class="btn-primary autoeq-save-btn">
@@ -4454,7 +4457,7 @@
                                         </div>
                                         <div class="autoeq-filters-content" id="autoeq-filters-content">
                                             <!-- Preset Selector (visible in parametric mode) -->
-                                            <div class="autoeq-preset-row" id="autoeq-preset-row">
+                                            <div class="autoeq-preset-row" id="autoeq-preset-row" style="display: none">
                                                 <div class="autoeq-control-group">
                                                     <label class="autoeq-control-label">PRESET</label>
                                                     <select id="parametric-preset-select">
@@ -4480,7 +4483,7 @@
                                             </div>
 
                                             <!-- Saved Profiles for Parametric EQ -->
-                                            <div class="autoeq-parametric-profiles" id="autoeq-parametric-profiles">
+                                            <div class="autoeq-parametric-profiles" id="autoeq-parametric-profiles" style="display: none">
                                                 <div class="autoeq-saved-header">
                                                     <div class="autoeq-saved-header-left">
                                                         <span class="autoeq-saved-title">SAVED PROFILES</span>
@@ -4494,6 +4497,7 @@
                                                             id="parametric-profile-name"
                                                             class="autoeq-profile-name-input"
                                                             placeholder="Profile name..."
+                                                            aria-label="Parametric EQ profile name"
                                                             maxlength="50"
                                                         />
                                                         <button
