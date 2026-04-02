@@ -178,7 +178,9 @@ export class Player {
                             if (this.video.readyState >= 2 && (this.audio.readyState > 0 || this.audio.src)) {
                                 this.audio.currentTime = this.video.currentTime;
                             }
-                        } catch (err) {}
+                        } catch {
+                            // Video-to-audio time sync may fail if readyState is stale
+                        }
                     }
 
                     const syncedEvent = new Event(eventName, { bubbles: e.bubbles, cancelable: e.cancelable });
@@ -494,7 +496,10 @@ export class Player {
             const isPodcast = track.isPodcast || (track.id && String(track.id).startsWith('podcast_'));
             if (track.isLocal || isTracker || isPodcast || (track.audioUrl && !track.isLocal)) continue;
             try {
-                const streamInfo = await this.api.getStreamUrl(track.id, this.quality);
+                const streamInfo =
+                    track.type == 'video'
+                        ? await this.api.getVideoStreamUrl(track.id)
+                        : await this.api.getStreamUrl(track.id, this.quality);
 
                 if (this.preloadAbortController.signal.aborted) break;
 
@@ -802,7 +807,6 @@ export class Player {
         this.updatePlayingTrackIndicator();
         this.updateMediaSession(track);
         this.updateMediaSessionPlaybackState();
-        this.updateNativeWindow(track);
 
         try {
             let streamUrl;
@@ -944,51 +948,36 @@ export class Player {
 
                 await this.safePlay(activeElement);
             } else {
-                const isQobuz = String(track.id).startsWith('q:');
+                // Tidal: Try to get ReplayGain from manifest first, supplement with track info if needed
+                const streamInfoPromise = this.preloadCache.has(track.id)
+                    ? Promise.resolve(this.preloadCache.get(track.id))
+                    : this.api.getStreamUrl(track.id, this.quality);
 
-                if (isQobuz) {
-                    // Qobuz: skip getTrack call, directly fetch stream URL
-                    this.currentRgValues = null;
+                // We only need the legacy track info if we missed getting ReplayGain from the manifest endpoint
+                const resolvedStreamInfo = await streamInfoPromise;
+                if (this.playbackSequence !== currentSequence) return;
+
+                streamUrl = resolvedStreamInfo.url;
+
+                if (resolvedStreamInfo.rgInfo) {
+                    this.currentRgValues = resolvedStreamInfo.rgInfo;
                     this.applyReplayGain();
-
-                    if (this.preloadCache.has(track.id)) {
-                        streamUrl = this.preloadCache.get(track.id).url;
-                    } else {
-                        const streamInfo = await this.api.getStreamUrl(track.id, this.quality);
-                        streamUrl = streamInfo.url;
-                    }
                 } else {
-                    // Tidal: Try to get ReplayGain from manifest first, supplement with track info if needed
-                    const streamInfoPromise = this.preloadCache.has(track.id)
-                        ? Promise.resolve(this.preloadCache.get(track.id))
-                        : this.api.getStreamUrl(track.id, this.quality);
-
-                    // We only need the legacy track info if we missed getting ReplayGain from the manifest endpoint
-                    const resolvedStreamInfo = await streamInfoPromise;
+                    // Fallback to legacy metadata if manifest lacked normalization data
+                    const trackData = await this.api.getTrack(track.id, this.quality).catch(() => null);
                     if (this.playbackSequence !== currentSequence) return;
 
-                    streamUrl = resolvedStreamInfo.url;
-
-                    if (resolvedStreamInfo.rgInfo) {
-                        this.currentRgValues = resolvedStreamInfo.rgInfo;
-                        this.applyReplayGain();
+                    if (trackData && trackData.info) {
+                        this.currentRgValues = {
+                            trackReplayGain: trackData.info.trackReplayGain,
+                            trackPeakAmplitude: trackData.info.trackPeakAmplitude,
+                            albumReplayGain: trackData.info.albumReplayGain,
+                            albumPeakAmplitude: trackData.info.albumPeakAmplitude,
+                        };
                     } else {
-                        // Fallback to legacy metadata if manifest lacked normalization data
-                        const trackData = await this.api.getTrack(track.id, this.quality).catch(() => null);
-                        if (this.playbackSequence !== currentSequence) return;
-
-                        if (trackData && trackData.info) {
-                            this.currentRgValues = {
-                                trackReplayGain: trackData.info.trackReplayGain,
-                                trackPeakAmplitude: trackData.info.trackPeakAmplitude,
-                                albumReplayGain: trackData.info.albumReplayGain,
-                                albumPeakAmplitude: trackData.info.albumPeakAmplitude,
-                            };
-                        } else {
-                            this.currentRgValues = null;
-                        }
-                        this.applyReplayGain();
+                        this.currentRgValues = null;
                     }
+                    this.applyReplayGain();
                 }
 
                 if (this.playbackSequence !== currentSequence) return;
@@ -1046,12 +1035,12 @@ export class Player {
                 try {
                     await this.playTrackFromQueue(startTime, recursiveCount, true);
                     return;
-                } catch (retryError) {
+                } catch {
+                    // LOSSLESS fallback also failed — fall through to error handling below
                 } finally {
                     this.quality = originalQuality;
                     this.isFallbackRetry = false;
                     this.isFallbackInProgress = false;
-                    return;
                 }
             }
 
@@ -1767,7 +1756,9 @@ export class Player {
                             a.canPlayType('audio/mp4; codecs="ec-3"') || a.canPlayType('audio/mp4; codecs="eac3"')
                         );
                     }
-                } catch (e) {}
+                } catch {
+                    // Atmos codec detection may fail on some browsers
+                }
 
                 let isAtmosPlaying = isTrackAtmos && deviceSupportsAtmos;
                 const q = this.quality || localStorage.getItem('adaptive-playback-quality') || 'auto';
@@ -1835,7 +1826,7 @@ export class Player {
                 // Re-enable ABR so it can dynamically downgrade within that new codec family if needed
                 this.shakaPlayer.configure({ abr: { enabled: true } });
             }
-        } catch (e) {
+        } catch {
             // fail silently on abr checks
         }
     }
@@ -2092,17 +2083,5 @@ export class Player {
 
         updateBtn(timerBtn);
         updateBtn(timerBtnDesktop);
-    }
-
-    async updateNativeWindow(track) {
-        if (!window.Neutralino) return;
-
-        const trackTitle = getTrackTitle(track);
-        const artist = getTrackArtists(track);
-        try {
-            await Neutralino.window.setTitle(`${trackTitle} • ${artist}`);
-        } catch (e) {
-            console.error('Failed to set window title:', e);
-        }
     }
 }

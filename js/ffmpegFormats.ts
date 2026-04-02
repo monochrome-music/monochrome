@@ -151,7 +151,7 @@ if (import.meta.env.DEV) {
 export const containerFormats: Record<string, ContainerFormat> = {
     flac: {
         displayName: 'FLAC',
-        ffmpegArgs: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'flac'],
+        ffmpegArgs: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'copy'],
         outputFilename: 'output.flac',
         outputMime: 'audio/flac',
         extension: 'flac',
@@ -194,15 +194,14 @@ export async function transcodeWithCustomFormat(
     signal: AbortSignal | null = null,
     extraFiles: any[] = []
 ): Promise<Blob> {
-    return ffmpeg(
-        audioBlob,
-        format.ffmpegArgs,
-        format.outputFilename,
-        format.outputMime,
+    return ffmpeg(audioBlob, {
+        args: format.ffmpegArgs,
+        outputName: format.outputFilename,
+        outputMime: format.outputMime,
         onProgress,
         signal,
-        extraFiles
-    );
+        extraFiles,
+    });
 }
 
 /**
@@ -216,13 +215,12 @@ export async function transcodeWithContainerFormat(
     signal: AbortSignal | null = null,
     extraFiles: any[] = []
 ): Promise<Blob> {
-    return ffmpeg(
-        audioBlob,
-        format.ffmpegArgs,
-        format.outputFilename,
-        format.outputMime,
+    return ffmpeg(audioBlob, {
+        args: format.ffmpegArgs,
+        outputName: format.outputFilename,
+        outputMime: format.outputMime,
         onProgress,
         signal,
-        extraFiles
-    );
+        extraFiles,
+    });
 }

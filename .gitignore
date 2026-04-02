@@ -5,11 +5,13 @@ dist
 *.local
 .vite
 .vscode
-
+.claude
 # Docker
 .env
 # Neutralino
 .tmp/
+.vitest-attachments/
+**/__screenshots__/*
 bin/
 *.log
 .storage/

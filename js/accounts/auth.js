@@ -87,6 +87,45 @@ export class AuthManager {
         }
     }
 
+    async signInWithGitHub() {
+        try {
+            auth.createOAuth2Session(
+                'github',
+                window.location.origin + '/index.html?oauth=1',
+                window.location.origin + '/login.html'
+            );
+        } catch (error) {
+            console.error('Login failed:', error);
+            alert(`Login failed: ${error.message}`);
+        }
+    }
+
+    async signInWithSpotify() {
+        try {
+            auth.createOAuth2Session(
+                'spotify',
+                window.location.origin + '/index.html?oauth=1',
+                window.location.origin + '/login.html'
+            );
+        } catch (error) {
+            console.error('Login failed:', error);
+            alert(`Login failed: ${error.message}`);
+        }
+    }
+
+    async signInWithDiscord() {
+        try {
+            auth.createOAuth2Session(
+                'discord',
+                window.location.origin + '/index.html?oauth=1',
+                window.location.origin + '/login.html'
+            );
+        } catch (error) {
+            console.error('Login failed:', error);
+            alert(`Login failed: ${error.message}`);
+        }
+    }
+
     async signInWithEmail(email, password) {
         try {
             const authData = await pb.collection('users').authWithPassword(email, password);
@@ -152,6 +191,41 @@ export class AuthManager {
         const discordBtn = document.getElementById('auth-discord-btn');
 
         if (!connectBtn) return;
+
+        if (window.__AUTH_GATE__) {
+            connectBtn.textContent = 'Sign Out';
+            connectBtn.classList.add('danger');
+            connectBtn.onclick = () => this.signOut();
+            if (clearDataBtn) clearDataBtn.style.display = 'none';
+            if (emailContainer) emailContainer.style.display = 'none';
+            if (emailToggleBtn) emailToggleBtn.style.display = 'none';
+            if (githubBtn) githubBtn.style.display = 'none';
+            if (discordBtn) discordBtn.style.display = 'none';
+            if (statusText) statusText.textContent = user ? `Signed in as ${user.email}` : 'Signed in';
+
+            const accountPage = document.getElementById('page-account');
+            if (accountPage) {
+                const title = accountPage.querySelector('.section-title');
+                if (title) title.textContent = 'Account';
+                accountPage.querySelectorAll('.account-content > p, .account-content > div').forEach((el) => {
+                    if (el.id !== 'auth-status' && el.id !== 'auth-buttons-container') {
+                        el.style.display = 'none';
+                    }
+                });
+            }
+
+            const customDbBtn = document.getElementById('custom-db-btn');
+            if (customDbBtn) {
+                const pbFromEnv = !!window.__POCKETBASE_URL__;
+                if (pbFromEnv) {
+                    const settingItem = customDbBtn.closest('.setting-item');
+                    if (settingItem) settingItem.style.display = 'none';
+                }
+            }
+
+            return;
+        }
+
 
         if (user) {
             connectBtn.textContent = 'Sign Out';

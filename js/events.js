@@ -15,7 +15,7 @@ import {
     waveformSettings,
     keyboardShortcuts,
 } from './storage.js';
-import { showNotification, downloadTrackWithMetadata, downloadAlbumAsZip, downloadPlaylistAsZip } from './downloads.js';
+import { showNotification, downloadTrackWithMetadata, downloadAlbum, downloadPlaylist } from './downloads.js';
 import { downloadQualitySettings } from './storage.js';
 import { updateTabTitle, navigate } from './router.js';
 import { db } from './db.js';
@@ -55,6 +55,7 @@ import {
     trackEvent,
 } from './analytics.js';
 import { SVG_BIN, SVG_MUTE, SVG_PAUSE, SVG_PLAY, SVG_VOLUME, SVG_CHECKBOX, SVG_CHECKBOX_CHECKED } from './icons.js';
+import { partyManager } from './listening-party.js';
 
 let currentTrackIdForWaveform = null;
 
@@ -1161,6 +1162,15 @@ export async function handleTrackAction(
         return;
     }
 
+    if (action === 'request-song') {
+        if (partyManager.currentParty) {
+            await partyManager.requestSong(item);
+        } else {
+            showNotification('You are not in a listening party');
+        }
+        return;
+    }
+
     if (action === 'start-radio' || action === 'start-infinite-radio') {
         let tracks = [];
         if (type === 'track') {
@@ -1244,7 +1254,7 @@ export async function handleTrackAction(
 
             if (action === 'download') {
                 if (type === 'album') {
-                    await downloadAlbumAsZip(
+                    await downloadAlbum(
                         collectionItem,
                         tracks,
                         api,
@@ -1252,7 +1262,7 @@ export async function handleTrackAction(
                         lyricsManager
                     );
                 } else {
-                    await downloadPlaylistAsZip(
+                    await downloadPlaylist(
                         collectionItem,
                         tracks,
                         api,
@@ -1430,10 +1440,10 @@ export async function handleTrackAction(
         });
 
         // Handle Library Page Update
-        if (window.location.hash === '#library') {
+        if (window.location.pathname.split('/').filter(Boolean)[0] === 'library') {
             const itemSelector =
                 type === 'track'
-                    ? `.track-item[data-track-id="${id}"]`
+                    ? `.track-item[data-track-id="${id}"], .card[data-track-id="${id}"]`
                     : type === 'video'
                       ? `.video-card[data-video-id="${id}"]`
                       : `.card[data-${type}-id="${id}"], .card[data-playlist-id="${id}"]`;
@@ -1461,17 +1471,31 @@ export async function handleTrackAction(
                         const placeholder = tracksContainer.querySelector('.placeholder-text');
                         if (placeholder) placeholder.remove();
 
-                        const index = tracksContainer.children.length;
-                        const trackHTML = ui.createTrackItemHTML(item, index, true, false);
-
+                        const layout = localStorage.getItem('libraryLikedTracksView') || 'list';
                         const tempDiv = document.createElement('div');
-                        tempDiv.innerHTML = trackHTML;
+                        if (layout === 'grid') {
+                            tracksContainer.classList.remove('track-list');
+                            tracksContainer.classList.add('card-grid');
+                            tempDiv.innerHTML = ui.createTrackCardHTML(item);
+                        } else {
+                            tracksContainer.classList.remove('card-grid');
+                            tracksContainer.classList.add('track-list');
+                            const index = tracksContainer.children.length;
+                            tempDiv.innerHTML = ui.createTrackItemHTML(item, index, true, false, false, true);
+                        }
                         const newEl = tempDiv.firstElementChild;
 
                         if (newEl) {
                             tracksContainer.appendChild(newEl);
                             trackDataStore.set(newEl, item);
                             ui.updateLikeState(newEl, 'track', item.id);
+                            const likedToolbar = document.getElementById('library-liked-tracks-toolbar');
+                            if (likedToolbar) likedToolbar.style.display = 'flex';
+                            const shuffleBtn = document.getElementById('shuffle-liked-tracks-btn');
+                            const downloadBtn = document.getElementById('download-liked-tracks-btn');
+                            if (shuffleBtn) shuffleBtn.style.display = 'flex';
+                            if (downloadBtn) downloadBtn.style.display = 'flex';
+                            ui.setupLibraryLikedTracksSearch(tracksContainer);
                         }
                     }
                 } else if (type === 'video') {
@@ -1647,7 +1671,8 @@ export async function handleTrackAction(
         // Use stored href from card if available, otherwise construct URL
         const contextMenu = document.getElementById('context-menu');
         const storedHref = contextMenu?._contextHref;
-        const url = getShareUrl(storedHref ? storedHref : `/${type}/${item.id || item.uuid}`);
+        const typeForUrl = type === 'user-playlist' ? 'userplaylist' : type;
+        const url = getShareUrl(storedHref ? storedHref : `/${typeForUrl}/${item.id || item.uuid}`);
 
         trackCopyLink(type, item.id || item.uuid);
         navigator.clipboard.writeText(url).then(() => {
@@ -1849,8 +1874,9 @@ export async function handleTrackAction(
     } else if (action === 'block-album') {
         const { contentBlockingSettings } = await import('./storage.js');
         const albumId = type === 'album' ? item.id : item.album?.id;
-        const albumTitle = type === 'album' ? item.title : item.album?.title;
-        const albumArtist = type === 'album' ? item.artist : item.album?.artist;
+        const albumTitle = type === 'album' ? item.title || item.name : item.album?.title || item.album?.name;
+        const albumArtist =
+            type === 'album' ? item.artist?.name || item.artist : item.album?.artist?.name || item.album?.artist;
 
         if (!albumId) {
             showNotification('No album information available');
@@ -1960,6 +1986,11 @@ async function updateContextMenuLikeState(contextMenu, contextTrack) {
             item.style.display = types.includes(type) ? 'block' : 'none';
         } else {
             item.style.display = 'block';
+        }
+        if (item.dataset.action === 'request-song') {
+            if (!partyManager.currentParty) {
+                item.style.display = 'none';
+            }
         }
 
         // Update labels for Like/Save
@@ -2150,7 +2181,8 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             trackItem &&
             !trackItem.dataset.queueIndex &&
             !e.target.closest('.remove-from-playlist-btn') &&
-            !e.target.closest('.artist-link')
+            !e.target.closest('.artist-link') &&
+            !e.target.closest('.like-btn')
         ) {
             const clickedTrackId = trackItem.dataset.trackId;
             const isSearch = window.location.pathname.startsWith('/search/');
@@ -2236,6 +2268,32 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
             }
 
             if (e.target.closest('.edit-playlist-btn') || e.target.closest('.delete-playlist-btn')) {
+                return;
+            }
+
+            const libraryTracksContainer = card.closest('#library-tracks-container');
+            if (libraryTracksContainer && card.dataset.trackId) {
+                if (
+                    e.target.closest('.like-btn') ||
+                    e.target.closest('.card-play-btn') ||
+                    e.target.closest('.card-menu-btn')
+                ) {
+                    return;
+                }
+                e.preventDefault();
+                const clickedTrackId = card.dataset.trackId;
+                const clickedTrack = trackDataStore.get(card);
+                if (!clickedTrack) return;
+                const allTrackElements = Array.from(libraryTracksContainer.querySelectorAll('.card[data-track-id]'));
+                const trackList = allTrackElements.map((el) => trackDataStore.get(el)).filter(Boolean);
+                if (trackList.length === 0) return;
+                const startIndex = trackList.findIndex((t) => t.id == clickedTrackId);
+                player.setQueue(trackList, startIndex);
+                if (ui.currentPage === 'artist' && ui.currentArtistId) {
+                    player.setArtistPopularTracksContext(ui.currentArtistId, trackList, trackList.length, true);
+                }
+                document.getElementById('shuffle-btn').classList.remove('active');
+                player.playTrackFromQueue();
                 return;
             }
 

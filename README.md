@@ -74,6 +74,7 @@
 - Recently Played tracking for easy history access
 - Comprehensive Personal Library for favorites
 - Queue management with shuffle and repeat modes
+- Native Podcast support & organization
 - Playlist import from other platforms
 - Public playlists for social sharing
 - Smart recommendations for new songs, albums & artists
@@ -90,7 +91,9 @@
 
 - Account system for cross-device syncing
 - Customizable & Public Profiles
+- Real-time Listening Parties for synced playback with friends
 - Last.fm and ListenBrainz integration for scrobbling
+- OAuth support (Google, Discord, GitHub, Spotify)
 - Unreleased music from [ArtistGrid](https://artistgrid.cx)
 - Dynamic Discord Embeds
 - Artist Biography + Social Links for learning more about your favorite artists

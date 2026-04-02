@@ -8,6 +8,7 @@ export class ListenBrainzScrobbler {
         this.scrobbleThreshold = 0;
         this.hasScrobbled = false;
         this.isScrobbling = false;
+        this.lovingTracks = new Set();
     }
 
     getApiUrl() {
@@ -69,34 +70,39 @@ export class ListenBrainzScrobbler {
             payload.additional_info.is_local = true;
         }
 
+        if (track.mbids) {
+            if (track.mbids.recording_mbid) {
+                payload.additional_info.recording_mbid = track.mbids.recording_mbid;
+            }
+            if (track.mbids.release_mbid) {
+                payload.additional_info.release_mbid = track.mbids.release_mbid;
+            }
+            if (track.mbids.artist_mbids) {
+                payload.additional_info.artist_mbids = track.mbids.artist_mbids;
+            }
+        }
+
         return payload;
     }
 
-    async _lookupRecordingMbid(track) {
-        let artistName = 'Unknown Artist';
-        if (track.artist?.name) {
-            artistName = track.artist.name;
-        } else if (typeof track.artist === 'string') {
-            artistName = track.artist;
-        } else if (track.artists && track.artists.length > 0) {
-            const first = track.artists[0];
-            artistName = typeof first === 'string' ? first : first.name || 'Unknown Artist';
-        }
-        artistName = artistName
-            .split(/\s*[&]\s*|\s+feat\.?\s*|\s+ft\.?\s*|\s+featuring\s+|\s+with\s+|\s+x\s+/i)[0]
-            .trim();
-
-        const trackName = track.cleanTitle || track.title;
-        if (!artistName || !trackName) return null;
+    async _lookupMbids(track) {
+        if (track.mbids?.recording_mbid) return track.mbids;
+        let with_album = true;
+        const metadata = this._getMetadata(track);
+        if (!metadata || !metadata.artist_name || !metadata.track_name) return null;
 
         try {
             const apiUrl = this.getApiUrl();
             const params = new URLSearchParams({
-                recording_name: trackName,
-                artist_name: artistName,
+                recording_name: metadata.track_name,
+                artist_name: metadata.artist_name,
             });
 
-            const response = await fetch(`${apiUrl}/1/metadata/lookup/?${params}`, {
+            if (track.album?.title) {
+                params.append('release_name', track.album.title);
+            }
+
+            let response = await fetch(`${apiUrl}/1/metadata/lookup/?${params}`, {
                 method: 'GET',
                 headers: {
                     Authorization: `Token ${this.getToken()}`,
@@ -104,14 +110,35 @@ export class ListenBrainzScrobbler {
             });
 
             if (!response.ok) {
-                console.warn(`[ListenBrainz] MBID lookup failed: ${response.status}`);
-                return null;
+                console.warn(`[ListenBrainz] MBID lookup failed, trying without album`);
+                with_album = false;
+                const params = new URLSearchParams({
+                    recording_name: metadata.track_name,
+                    artist_name: metadata.artist_name,
+                });
+                response = await fetch(`${apiUrl}/1/metadata/lookup/?${params}`, {
+                    method: 'GET',
+                    headers: {
+                        Authorization: `Token ${this.getToken()}`,
+                    },
+                });
+                if (!response.ok) {
+                    console.warn(`[ListenBrainz] MBID lookup failed: ${response.status}`);
+                    return null;
+                }
             }
 
             const data = await response.json();
             if (data?.recording_mbid) {
+                track.mbids = {
+                    recording_mbid: data.recording_mbid,
+                    artist_mbids: data.artist_mbids,
+                };
+                if (with_album) {
+                    track.mbids.release_mbid = data.release_mbid;
+                }
                 console.log(`[ListenBrainz] Found MBID: ${data.recording_mbid}`);
-                return data.recording_mbid;
+                return track.mbids;
             }
             console.warn('[ListenBrainz] No recording_mbid found in lookup response');
         } catch (error) {
@@ -122,7 +149,7 @@ export class ListenBrainzScrobbler {
 
     async submitListen(listenType, track, timestamp = null) {
         if (!this.isEnabled()) return;
-
+        await this._lookupMbids(track);
         const metadata = this._getMetadata(track);
         if (!metadata) return;
 
@@ -157,7 +184,9 @@ export class ListenBrainzScrobbler {
                 throw new Error(`ListenBrainz API Error ${response.status}: ${text}`);
             }
 
-            console.log(`[ListenBrainz] Submitted ${listenType}: ${metadata.track_name}`);
+            console.log(
+                `[ListenBrainz] Submitted ${listenType}: ${metadata.track_name} ${metadata.artist_name} ${metadata.release_name}`
+            );
         } catch (error) {
             console.error('[ListenBrainz] Submission failed:', error);
         }
@@ -171,7 +200,6 @@ export class ListenBrainzScrobbler {
             this.hasScrobbled = false;
         }
         this.clearScrobbleTimer();
-
         await this.submitListen('playing_now', track);
 
         const scrobblePercentage = lastFMStorage.getScrobblePercentage() / 100;
@@ -221,11 +249,15 @@ export class ListenBrainzScrobbler {
     }
 
     async loveTrack(track) {
-        if (!this.isEnabled()) return;
+        if (!track.artist?.name || !track.title) return;
+        const trackKey = `${track.artist.name}-${track.title}`;
+        if (!this.isEnabled() || this.lovingTracks.has(trackKey)) return;
+        this.lovingTracks.add(trackKey);
 
         try {
             const apiUrl = this.getApiUrl();
-            const mbid = await this._lookupRecordingMbid(track);
+            const mbids = await this._lookupMbids(track);
+            const mbid = mbids?.recording_mbid;
 
             if (mbid) {
                 const response = await fetch(`${apiUrl}/1/feedback/recording-feedback`, {
@@ -251,6 +283,8 @@ export class ListenBrainzScrobbler {
             }
         } catch (error) {
             console.error('[ListenBrainz] Failed to love track:', error);
+        } finally {
+            this.lovingTracks.delete(trackKey);
         }
     }
 }

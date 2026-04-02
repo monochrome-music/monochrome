@@ -1,244 +1,194 @@
 [
     {
         "type": "album",
-        "id": 18083938,
-        "title": "The Glow, Pt. 2",
-        "artist": { "id": 3941394, "name": "The Microphones" },
-        "releaseDate": "2001-09-25",
-        "cover": "ec648c22-9140-41d3-a7ae-0ba69ef0420e",
-        "explicit": false,
-        "audioQuality": "LOSSLESS",
-        "mediaMetadata": { "tags": ["LOSSLESS"] }
-    },
-    {
-        "type": "album",
-        "id": 382839956,
-        "title": "my anti-aircraft friend",
-        "artist": { "id": 19359095, "name": "julie" },
-        "releaseDate": "2024-09-13",
-        "cover": "ac790b52-61cc-460c-9277-bdac88722cc3",
-        "explicit": false,
-        "audioQuality": "LOSSLESS",
-        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
-    },
-    {
-        "type": "album",
-        "id": 456475370,
-        "title": "It Aint Nun",
-        "artist": { "id": 9981740, "name": "CHRIST DILLINGER" },
-        "releaseDate": "2024-09-12",
-        "cover": "3ffc27f6-a77c-4e68-ba44-e04f034783be",
-        "explicit": true,
-        "audioQuality": "LOSSLESS",
-        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
-    },
-    {
-        "type": "album",
-        "id": 112547160,
-        "title": "R F Y",
-        "artist": { "id": 36042731, "name": "RFY" },
-        "releaseDate": "2019-06-27",
-        "cover": "ffe3f6f9-5bc8-4b53-99c3-9b83676c099a",
-        "explicit": true,
-        "audioQuality": "LOSSLESS",
-        "mediaMetadata": { "tags": ["LOSSLESS"] }
-    },
-    {
-        "type": "album",
-        "id": 18658568,
-        "title": "100% Ghetto 4",
-        "artist": { "id": 4191963, "name": "DJ Clent" },
-        "releaseDate": "2010-10-02",
-        "cover": "82b839bd-7cf6-4650-bade-192f47301ffd",
-        "explicit": true,
-        "audioQuality": "LOSSLESS",
-        "mediaMetadata": { "tags": ["LOSSLESS"] }
-    },
-    {
-        "type": "album",
-        "id": 504004321,
-        "title": "Half Blood (BloodLuxe)",
-        "artist": { "id": 50799233, "name": "slayr" },
-        "releaseDate": "2025-11-05",
-        "cover": "2767cc63-7e92-4a48-aa4b-806a3ea7ec1c",
-        "explicit": true,
-        "audioQuality": "LOSSLESS",
-        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
-    },
-    {
-        "type": "album",
-        "id": 89313048,
-        "title": "DAYTONA",
-        "artist": { "id": 3972883, "name": "Pusha T" },
-        "releaseDate": "2018-05-25",
-        "cover": "30288caf-2bdd-4511-a95c-57117936b2b6",
-        "explicit": true,
-        "audioQuality": "LOSSLESS",
-        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
-    },
-    {
-        "type": "album",
         "id": 324660713,
         "title": "JOECHILLWORLD",
-        "artist": { "id": 3972883, "name": "Devon Hendryx" },
-        "releaseDate": "2010-08-10",
+        "artist": {
+            "id": 40978758,
+            "name": "Devon Hendryx"
+        },
+        "releaseDate": "2010-07-10",
         "cover": "25d45544-3e82-4184-b8c2-2c2c6f0f152a",
         "explicit": true,
         "audioQuality": "LOSSLESS",
-        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
+        "mediaMetadata": {
+            "tags": ["LOSSLESS", "HIRES_LOSSLESS"]
+        }
+    },
+    {
+        "type": "album",
+        "id": 15427733,
+        "title": "Mysterious Phonk: The Chronicles of SpaceGhostPurrp",
+        "artist": {
+            "id": 4611745,
+            "name": "Spaceghostpurrp"
+        },
+        "releaseDate": "2012-06-12",
+        "cover": "c78b7543-1cd8-4921-9155-e81d421353a0",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": {
+            "tags": ["LOSSLESS"]
+        }
+    },
+    {
+        "type": "album",
+        "id": 464178301,
+        "title": "Never Forget",
+        "artist": {
+            "id": 5516508,
+            "name": "Chris Travis"
+        },
+        "releaseDate": "2014-05-14",
+        "cover": "4ab11f0d-0768-4cce-8de5-1894134d5994",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": {
+            "tags": ["LOSSLESS"]
+        }
+    },
+    {
+        "type": "album",
+        "id": 75115890,
+        "title": "Blood Shore Season 2",
+        "artist": {
+            "id": 6332342,
+            "name": "Xavier Wulf"
+        },
+        "releaseDate": "2014-10-30",
+        "cover": "517303e5-d541-4704-b552-026427e05fcb",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": {
+            "tags": ["LOSSLESS"]
+        }
+    },
+    {
+        "type": "album",
+        "id": 410197513,
+        "title": "THE PEAK",
+        "artist": {
+            "id": 33481052,
+            "name": "smokedope2016"
+        },
+        "releaseDate": "2025-01-17",
+        "cover": "ea18084d-36ec-4cea-98a7-fe4684246986",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": {
+            "tags": ["LOSSLESS"]
+        }
     },
     {
         "type": "album",
         "id": 418729278,
         "title": "I LAY DOWN MY LIFE FOR YOU: DIRECTOR'S CUT",
-        "artist": { "id": 7958797, "name": "JPEGMAFIA" },
+        "artist": {
+            "id": 7958797,
+            "name": "JPEGMAFIA"
+        },
         "releaseDate": "2025-02-03",
         "cover": "9c84302b-2584-4c0a-9db7-e648542f459f",
         "explicit": true,
         "audioQuality": "LOSSLESS",
-        "mediaMetadata": { "tags": ["LOSSLESS"] }
+        "mediaMetadata": {
+            "tags": ["LOSSLESS", "HIRES_LOSSLESS"]
+        }
     },
     {
         "type": "album",
-        "id": 118353565,
-        "title": "Dyn-O-Mite",
-        "artist": { "id": 5755811, "name": "ZelooperZ" },
-        "releaseDate": "2019-05-18",
-        "cover": "c42f0025-9839-4dd2-b5de-9fd05ed5e917",
+        "id": 504004321,
+        "title": "Half Blood (BloodLuxe)",
+        "artist": {
+            "id": 50799233,
+            "name": "slayr"
+        },
+        "releaseDate": "2025-11-05",
+        "cover": "2767cc63-7e92-4a48-aa4b-806a3ea7ec1c",
         "explicit": true,
         "audioQuality": "LOSSLESS",
-        "mediaMetadata": { "tags": ["LOSSLESS"] }
+        "mediaMetadata": {
+            "tags": ["LOSSLESS", "HIRES_LOSSLESS"]
+        }
     },
     {
         "type": "album",
-        "id": 4527433,
-        "title": "Flockaveli",
-        "artist": { "id": 3654061, "name": "Waka Flocka Flame" },
-        "releaseDate": "2010-10-05",
-        "cover": "05702b51-45cf-4157-b9ed-dd7ca7e7b7b3",
+        "id": 510893864,
+        "title": "BULLY",
+        "artist": {
+            "id": 25022,
+            "name": "Kanye West"
+        },
+        "releaseDate": "2026-03-28",
+        "cover": "cf2f2c9c-ff67-44f6-83aa-a7622f8c6b64",
         "explicit": true,
         "audioQuality": "LOSSLESS",
-        "mediaMetadata": { "tags": ["LOSSLESS"] }
+        "mediaMetadata": {
+            "tags": ["LOSSLESS", "HIRES_LOSSLESS"]
+        }
     },
     {
         "type": "album",
-        "id": 90502209,
-        "title": "NASIR",
-        "artist": { "id": 1003, "name": "Nas" },
-        "releaseDate": "2018-06-15",
-        "cover": "503ea6b2-0829-438e-8e4e-9a988154b3bc",
-        "explicit": true,
-        "audioQuality": "LOSSLESS",
-        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
-    },
-    {
-        "type": "album",
-        "id": 413189044,
-        "title": "Jump Out",
-        "artist": { "id": 27836827, "name": "OsamaSon" },
-        "releaseDate": "2025-01-24",
-        "cover": "ec4a4ef2-69fe-4d3c-aaba-05dc2d546e84",
-        "explicit": true,
-        "audioQuality": "LOSSLESS",
-        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
-    },
-    {
-        "type": "album",
-        "id": 209061256,
-        "title": "Super Tecmo Bo",
-        "artist": { "id": 4839917, "name": "Boldy James" },
-        "releaseDate": "2021-12-17",
-        "cover": "f58ca804-1da7-4953-a26d-2b3258310db5",
-        "explicit": true,
-        "audioQuality": "LOSSLESS",
-        "mediaMetadata": { "tags": ["LOSSLESS"] }
-    },
-    {
-        "type": "album",
-        "id": 488297983,
-        "title": "So Much Country 'Till We Get There",
-        "artist": { "id": 51427239, "name": "Westside Cowboy" },
-        "releaseDate": "2026-01-23",
-        "cover": "dd9d4f23-1517-4a76-8e3f-31e341dcd525",
+        "id": 325723583,
+        "title": "Replica",
+        "artist": {
+            "id": 3715530,
+            "name": "Oneohtrix Point Never"
+        },
+        "releaseDate": "2011-11-05",
+        "cover": "95ceeae9-cac7-42dc-ae37-7c93c223f809",
         "explicit": false,
         "audioQuality": "LOSSLESS",
-        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
+        "mediaMetadata": {
+            "tags": ["LOSSLESS"]
+        }
     },
     {
         "type": "album",
-        "id": 447277344,
-        "title": "REST IN BASS",
-        "artist": { "id": 50418386, "name": "Che" },
-        "releaseDate": "2025-07-18",
-        "cover": "d1397066-72ed-4481-b508-77f7c7a03073",
+        "id": 336178142,
+        "title": "Pirate This Album",
+        "artist": {
+            "id": 8622751,
+            "name": "Shamana"
+        },
+        "releaseDate": "2023-12-25",
+        "cover": "a8a647be-0331-4779-9a6e-31645a9abdab",
         "explicit": true,
         "audioQuality": "LOSSLESS",
-        "mediaMetadata": { "tags": ["LOSSLESS"] }
+        "mediaMetadata": {
+            "tags": ["LOSSLESS", "HIRES_LOSSLESS"]
+        }
     },
     {
         "type": "album",
-        "id": 490209783,
-        "title": "My Ghosts Go Ghost",
-        "artist": { "id": 39920098, "name": "By Storm" },
-        "releaseDate": "2026-01-30",
-        "cover": "bc470b88-3583-4853-976e-593855672322",
+        "id": 106369871,
+        "title": "Organic Thoughts from the Synthetic Mind",
+        "artist": {
+            "id": 6436013,
+            "name": "Shinjuku Mad"
+        },
+        "releaseDate": "2009-07-01",
+        "cover": "3acc888e-35da-40a8-a4b7-7ffd00576cc9",
         "explicit": true,
         "audioQuality": "LOSSLESS",
-        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
+        "mediaMetadata": {
+            "tags": ["LOSSLESS"]
+        }
     },
     {
         "type": "album",
-        "id": 279082597,
-        "title": "Noktifer's Symphony",
-        "artist": { "id": 22055243, "name": "axxturel" },
-        "releaseDate": "2020-11-17",
-        "cover": "a886acd8-b915-4a77-9c1f-eecf7fa6091c",
+        "id": 423471869,
+        "title": "pain",
+        "artist": {
+            "id": 44257324,
+            "name": "bleood"
+        },
+        "releaseDate": "2025-03-11",
+        "cover": "711b23ba-c473-44e6-a2f0-010fefa9c5b8",
         "explicit": true,
         "audioQuality": "LOSSLESS",
-        "mediaMetadata": { "tags": ["LOSSLESS"] }
-    },
-    {
-        "type": "album",
-        "id": 380211863,
-        "title": "Sayso Says",
-        "artist": { "id": 50418386, "name": "Che" },
-        "releaseDate": "2024-08-30",
-        "cover": "917c7e0f-3ebb-471e-9c88-fcdf6a9f21a5",
-        "explicit": true,
-        "audioQuality": "LOSSLESS",
-        "mediaMetadata": { "tags": ["LOSSLESS"] }
-    },
-    {
-        "type": "album",
-        "id": 464463900,
-        "title": "A-Rhythm Absolute",
-        "artist": { "id": 30049790, "name": "Sunday Mourners" },
-        "releaseDate": "2026-01-16",
-        "cover": "d04e2ed8-f6d7-43c0-bcb2-fb99d3de0d5d",
-        "explicit": false,
-        "audioQuality": "LOSSLESS",
-        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
-    },
-    {
-        "type": "album",
-        "id": "344201347",
-        "title": "Flex Musix (FLXTRA)",
-        "artist": { "id": 27836827, "name": "OsamaSon" },
-        "releaseDate": "2024-02-16",
-        "cover": "5d1812fc-b9f9-4467-ac78-90d78ea542e4",
-        "explicit": true,
-        "audioQuality": "LOSSLESS",
-        "mediaMetadata": { "tags": ["LOSSLESS", "HIRES_LOSSLESS"] }
-    },
-    {
-        "type": "album",
-        "id": 365819314,
-        "title": "One Life",
-        "artist": { "id": "17300439", "name": "1oneam" },
-        "releaseDate": "2024-05-30",
-        "cover": "eb5d74f6-7403-4404-8452-9b68713445fe",
-        "explicit": true,
-        "audioQuality": "LOSSLESS",
-        "mediaMetadata": { "tags": ["LOSSLESS"] }
+        "mediaMetadata": {
+            "tags": ["LOSSLESS"]
+        }
     }
 ]

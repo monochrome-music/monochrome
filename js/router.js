@@ -31,18 +31,21 @@ export function createRouter(ui) {
         const param = parts.slice(1).join('/');
 
         // Helper to extract provider prefix and ID from params
-        // Supports formats like: /track/t/123 (Tidal), /track/q/123 (Qobuz), /track/123 (default)
+        // Supports formats like: /track/t/123 (Tidal), /track/123 (default)
         const extractProviderAndId = (p) => {
             if (p.startsWith('t/')) {
                 return { provider: 'tidal', id: p.slice(2) };
-            }
-            if (p.startsWith('q/')) {
-                return { provider: 'qobuz', id: p.slice(2) };
             }
             return { provider: null, id: p };
         };
 
         switch (page) {
+            case 'parties':
+                await ui.renderPartiesPage();
+                break;
+            case 'party':
+                await ui.renderPartyDetailPage(param);
+                break;
             case 'search':
                 await ui.renderSearchPage(decodeURIComponent(param));
                 break;

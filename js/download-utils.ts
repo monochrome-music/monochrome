@@ -9,7 +9,7 @@ import {
     getContainerFormat,
     transcodeWithContainerFormat,
 } from './ffmpegFormats';
-import { ffmpegNewContainer } from './ffmpeg';
+import { ffmpegInfo, ffmpegNewContainer } from './ffmpeg';
 
 /**
  * Triggers a browser file download for the given blob.
@@ -72,14 +72,21 @@ export async function applyAudioPostProcessing(
     trackAudioQuality: string | null = null
 ): Promise<Blob> {
     const extension = await getExtensionFromBlob(blob);
+    const statedLossless = (trackAudioQuality || quality).endsWith('LOSSLESS');
 
     // Determine whether the downloaded source is lossless.
     // FLAC is always lossless. m4a is lossless only when the track's
     // audio quality from the API is LOSSLESS or HI_RES_LOSSLESS; otherwise
     // it is AAC (lossy).
-    const sourceIsLossless =
+    let sourceIsLossless =
         extension === 'flac' ||
         (extension === 'm4a' && (trackAudioQuality === 'LOSSLESS' || trackAudioQuality === 'HI_RES_LOSSLESS'));
+
+    if (statedLossless && !sourceIsLossless) {
+        // Basic checks say the file isn't lossless, but we'll use ffmpegInfo to check the codec.
+        const ffmpegLog: string[] = await ffmpegInfo(blob);
+        sourceIsLossless = ffmpegLog.some((line) => line.match(/Stream #\d:\d -> #\d:\d \(flac/));
+    }
 
     // Transcode to custom lossy format if requested
     if (isCustomFormat(quality)) {
@@ -92,6 +99,8 @@ export async function applyAudioPostProcessing(
         if (format) {
             try {
                 blob = await transcodeWithCustomFormat(blob, format, onProgress, signal);
+
+                return blob;
             } catch (encodingError) {
                 if (onProgress) {
                     onProgress({
@@ -104,7 +113,7 @@ export async function applyAudioPostProcessing(
         }
     }
 
-    if (quality.endsWith('LOSSLESS')) {
+    if (statedLossless) {
         try {
             const containerName = losslessContainerSettings.getContainer();
             const containerFmt = getContainerFormat(containerName);

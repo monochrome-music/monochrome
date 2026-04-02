@@ -1,0 +1,189 @@
+[
+    {
+        "type": "album",
+        "id": 510893864,
+        "title": "BULLY",
+        "artist": { "id": 25022, "name": "Kanye West" },
+        "releaseDate": "2026-03-28",
+        "cover": "cf2f2c9c-ff67-44f6-83aa-a7622f8c6b64",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 403172104,
+        "title": "From A Man's Perspective",
+        "artist": { "id": 3561564, "name": "Dax" },
+        "releaseDate": "2024-12-06",
+        "cover": "c52a53ea-f021-44bf-8cef-fb31d3b82940",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 341529881,
+        "title": "FACTS",
+        "artist": { "id": 5691796, "name": "Tom MacDonald" },
+        "releaseDate": "2024-01-26",
+        "cover": "34198718-cc7d-47eb-9bf1-1dc5c26fc8a1",
+        "explicit": false,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 452163300,
+        "title": "Tackle Box",
+        "artist": { "id": 44771714, "name": "JamWayne" },
+        "releaseDate": "2025-09-01",
+        "cover": "bf7d2e55-52dc-4e41-9f53-1db31918798e",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 106210035,
+        "title": "Supermarket (Soundtrack)",
+        "artist": { "id": 3533999, "name": "LOGIC" },
+        "releaseDate": "2019-03-26",
+        "cover": "bdd39738-7177-4836-bd7f-cd4fe4ccf535",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 138458381,
+        "title": "JOKER",
+        "artist": { "id": 39109746, "name": "Dax" },
+        "releaseDate": "2020-05-06",
+        "cover": "d6a39491-fece-4594-a538-9cfbce7c6c68",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 318467376,
+        "title": "The Draco Tape 2",
+        "artist": { "id": 22467779, "name": "60PERCENTHOMO" },
+        "releaseDate": "2023-09-30",
+        "cover": "9169e8ab-fdb0-49d1-a14f-82a2b541223c",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 456582219,
+        "title": "bbno$",
+        "artist": { "id": 8173944, "name": "bbno$" },
+        "releaseDate": "2025-10-17",
+        "cover": "8162c739-4bb2-4218-8915-93cb1f0d9eea",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 506216548,
+        "title": "Declassified",
+        "artist": { "id": 5691796, "name": "Tom MacDonald" },
+        "releaseDate": "2026-03-13",
+        "cover": "5cf188e5-1660-4a01-bacc-10ca81e7af73",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 486673299,
+        "title": "Novelty",
+        "artist": { "id": 3589848, "name": "Goofy" },
+        "releaseDate": "2026-01-23",
+        "cover": "dd543595-e604-440e-a24c-e2eaccda3804",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 440469641,
+        "title": "Tha Carter VI",
+        "artist": { "id": 27518, "name": "Lil Wayne" },
+        "releaseDate": "2025-06-06",
+        "cover": "f2807cfe-6df8-4ea0-ab32-fd0ad9e91072",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 384057608,
+        "title": "FREE VIPER!",
+        "artist": { "id": 10285483, "name": "Viper" },
+        "releaseDate": "2024-08-28",
+        "cover": "642d73d9-2a45-4598-bec3-033a09181bdf",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 460015533,
+        "title": "CHARLIE",
+        "artist": { "id": 5691796, "name": "Tom MacDonald" },
+        "releaseDate": "2025-09-11",
+        "cover": "18180e3d-e178-4bd3-aada-e26ca32bc8f4",
+        "explicit": false,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 123319314,
+        "title": "BABY G.O.A.T.",
+        "artist": { "id": 9160626, "name": "Kevo Muney" },
+        "releaseDate": "2019-12-12",
+        "cover": "6c87aee6-76da-413e-a639-79b670b3e3d1",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 510493672,
+        "title": "ADL",
+        "artist": { "id": 9318056, "name": "Yeat" },
+        "releaseDate": "2026-03-27",
+        "cover": "b799025a-7ff6-494c-aa11-5e0461bbca40",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 440096189,
+        "title": "Rebel",
+        "artist": { "id": 52081927, "name": "EsDeeKid" },
+        "releaseDate": "2025-06-20",
+        "cover": "3433b56c-6386-4e21-90ee-f2369d4bfde7",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    },
+    {
+        "type": "album",
+        "id": 85287313,
+        "title": "Toilet",
+        "artist": { "id": 9598562, "name": "Clown Core" },
+        "releaseDate": "2018-03-03",
+        "cover": "d6d32464-864e-422f-b8c3-0c30baa563b1",
+        "explicit": false,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": { "tags": ["LOSSLESS"] }
+    }
+]

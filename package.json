@@ -6,6 +6,11 @@
     "scripts": {
         "dev": "vite",
         "dev:desktop": "start bun run dev & node scripts/dev-runner.js",
+        "test": "vitest run --config=vite.config.ts",
+        "test:headless": "HEADLESS=true vitest run --config=vite.config.ts",
+        "test:watch": "vitest --config=vite.config.ts",
+        "test:watch:headless": "HEADLESS=true vitest --config=vite.config.ts",
+        "install:playwright": "playwright install chromium",
         "build": "vite build --mode neutralino && bun x neu build",
         "build:netlify": "vite build",
         "postbuild": "node -e \"const fs = require('fs'); const path = require('path'); const src = 'extensions'; const dest = path.join('dist', 'Monochrome', 'extensions'); if (fs.existsSync(src)) { fs.mkdirSync(dest, { recursive: true }); fs.cpSync(src, dest, { recursive: true }); console.log('Extensions manually copied to ' + dest); }\"",
@@ -30,21 +35,22 @@
     "devDependencies": {
         "@capacitor/assets": "^3.0.5",
         "@capacitor/cli": "^8.2.0",
-        "@neutralinojs/neu": "^11.7.0",
+        "@testing-library/dom": "^10.4.1",
         "@types/node": "^25.3.5",
+        "@vitest/browser-playwright": "^4.1.2",
         "eslint": "^9.39.3",
         "eslint-config-prettier": "^10.1.8",
         "formidable": "^3.5.4",
         "globals": "^17.4.0",
         "htmlhint": "^1.9.2",
         "miniflare": "^4.20260301.1",
+        "playwright": "^1.58.2",
         "prettier": "^3.8.1",
         "stylelint": "^16.26.1",
         "stylelint-config-standard": "^39.0.1",
         "stylelint-config-standard-scss": "^16.0.0",
         "typescript": "^5.9.3",
         "vite": "^7.3.1",
-        "vite-plugin-neutralino": "^1.0.3",
         "vite-plugin-pwa": "^1.2.0"
     },
     "overrides": {
@@ -63,9 +69,9 @@
         "@ffmpeg/ffmpeg": "^0.12.15",
         "@ffmpeg/util": "^0.12.2",
         "@kawarp/core": "^1.1.1",
-        "@neutralinojs/lib": "^6.5.0",
         "@svta/common-media-library": "^0.18.1",
         "@uimaxbai/am-lyrics": "^1.1.4",
+        "@vitest/web-worker": "^4.1.2",
         "appwrite": "^23.0.0",
         "butterchurn": "^2.6.7",
         "butterchurn-presets": "^2.4.7",
@@ -84,6 +90,7 @@
         "simple-icons": "^16.12.0",
         "svgo": "^4.0.1",
         "url-toolkit": "^2.2.5",
-        "uuid": "^13.0.0"
+        "uuid": "^13.0.0",
+        "vitest": "^4.1.2"
     }
 }
