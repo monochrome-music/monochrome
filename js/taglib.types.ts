@@ -16,7 +16,8 @@ export interface TagLibWorkerResponse<T> {
 
 export interface TagLibMetadata {
     title?: string;
-    artist?: string;
+    artist?: string | string[];
+    writeArtistsSeparately?: boolean;
     albumTitle?: string;
     albumArtist?: string;
     trackNumber?: number;

@@ -4568,6 +4568,15 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
+    // Write multiple artists toggle
+    const writeArtistsSeparatelyToggle = document.getElementById('write-artists-separately-toggle');
+    if (writeArtistsSeparatelyToggle) {
+        writeArtistsSeparatelyToggle.checked = modernSettings.writeArtistsSeparately;
+        writeArtistsSeparatelyToggle.addEventListener('change', (e) => {
+            modernSettings.writeArtistsSeparately = e.target.checked;
+        });
+    }
+
     // Download Lyrics Toggle
     const downloadLyricsToggle = document.getElementById('download-lyrics-toggle');
     if (downloadLyricsToggle) {
