@@ -37,6 +37,8 @@ import {
     preferDolbyAtmosSettings,
     fullscreenCoverNoRoundSettings,
     fullscreenCoverVanillaTiltSettings,
+    fullscreenCoverTiltDistanceSettings,
+    fullscreenCoverTiltSpeedSettings,
 } from './storage.js';
 import { audioContextManager, getPresetsForBandCount } from './audio-context.js';
 import { calculateBiquadResponse, interpolate, getNormalizationOffset, runAutoEqAlgorithm } from './autoeq-engine.js';
@@ -4622,6 +4624,26 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         fullscreenCoverVanillaTiltToggle.checked = fullscreenCoverVanillaTiltSettings.isEnabled();
         fullscreenCoverVanillaTiltToggle.addEventListener('change', (e) => {
             fullscreenCoverVanillaTiltSettings.setEnabled(e.target.checked);
+            window.dispatchEvent(new CustomEvent('fullscreen-cover-settings-changed'));
+        });
+    }
+
+    // Fullscreen Cover Tilt Distance
+    const fullscreenCoverTiltDistanceSlider = document.getElementById('fullscreen-cover-tilt-distance');
+    if (fullscreenCoverTiltDistanceSlider) {
+        fullscreenCoverTiltDistanceSlider.value = fullscreenCoverTiltDistanceSettings.getValue();
+        fullscreenCoverTiltDistanceSlider.addEventListener('input', (e) => {
+            fullscreenCoverTiltDistanceSettings.setValue(parseInt(e.target.value));
+            window.dispatchEvent(new CustomEvent('fullscreen-cover-settings-changed'));
+        });
+    }
+
+    // Fullscreen Cover Tilt Speed
+    const fullscreenCoverTiltSpeedSlider = document.getElementById('fullscreen-cover-tilt-speed');
+    if (fullscreenCoverTiltSpeedSlider) {
+        fullscreenCoverTiltSpeedSlider.value = fullscreenCoverTiltSpeedSettings.getValue();
+        fullscreenCoverTiltSpeedSlider.addEventListener('input', (e) => {
+            fullscreenCoverTiltSpeedSettings.setValue(parseInt(e.target.value));
             window.dispatchEvent(new CustomEvent('fullscreen-cover-settings-changed'));
         });
     }
