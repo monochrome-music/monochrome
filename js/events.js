@@ -2380,6 +2380,38 @@ export function initializeTrackInteractions(player, api, mainContent, contextMen
         }
     });
 
+    document.querySelector('.now-playing-bar')?.addEventListener('contextmenu', async (e) => {
+        if (!player.currentTrack) return;
+        const track = player.currentTrack;
+        if (track.isLocal) return;
+
+        const target = e.target.closest('.cover, .title, .album, .artist');
+        if (!target) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (contextMenu._originalHTML) {
+            contextMenu.innerHTML = contextMenu._originalHTML;
+            contextMenu._originalHTML = null;
+        }
+
+        contextTrack = track;
+        contextMenu._contextTrack = track;
+        contextMenu._contextType = track.type || 'track';
+        contextMenu._selectedTracks = [];
+
+        const unavailableActions = ['play-next', 'add-to-queue', 'download', 'track-mix'];
+        contextMenu.querySelectorAll('[data-action]').forEach((btn) => {
+            if (unavailableActions.includes(btn.dataset.action)) {
+                btn.style.display = track.isUnavailable ? 'none' : 'block';
+            }
+        });
+
+        await updateContextMenuLikeState(contextMenu, track);
+        positionMenu(contextMenu, e.clientX, e.clientY);
+    });
+
     document.addEventListener('click', (e) => {
         if (contextMenu.style.display === 'block') {
             if (contextMenu._originalHTML) {
