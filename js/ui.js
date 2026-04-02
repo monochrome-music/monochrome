@@ -165,6 +165,11 @@ export class UIRenderer {
                 this.visualizer.updateDimming();
             }
         });
+
+        window.addEventListener('refresh-home-editors-picks', () => {
+            this.renderHomeEditorsPicks(true, 'home-editors-picks');
+            this.renderHomeEditorsPicks(true, 'home-editors-picks-empty');
+        });
     }
 
     static async initialize(api, player) {
@@ -2510,7 +2515,9 @@ export class UIRenderer {
             else if (picksContainer.children.length > 0 && !picksContainer.querySelector('.skeleton')) return;
 
             try {
-                const response = await fetch('/editors-picks.json');
+                const source = homePageSettings.getEditorsPicksSource();
+                const picksPath = source === 'current' ? '/editors-picks.json' : `/editors-picks-old/${source}`;
+                const response = await fetch(picksPath);
                 if (!response.ok) throw new Error("Failed to load editor's picks");
 
                 let items = await response.json();

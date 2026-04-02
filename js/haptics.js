@@ -5,7 +5,7 @@ let _Haptics = null;
 let _ImpactStyle = null;
 let _NotificationStyle = null;
 
-// Single stored promise — subsequent calls reuse the same one
+// Single stored promise - subsequent calls reuse the same one
 const _ready = import('@capacitor/haptics')
     .then((mod) => {
         _Haptics = mod.Haptics;
@@ -13,14 +13,14 @@ const _ready = import('@capacitor/haptics')
         _NotificationStyle = mod.NotificationStyle;
     })
     .catch(() => {
-        // Not in Capacitor or haptics not available — fall back to navigator.vibrate
+        // Not in Capacitor or haptics not available - fall back to navigator.vibrate
     });
 
 function vibrateFallback(ms) {
     if (navigator.vibrate) navigator.vibrate(ms);
 }
 
-/** Light tap — for toggles, menu opens */
+/** Light tap - for toggles, menu opens */
 export async function hapticLight() {
     await _ready;
     try {
@@ -32,7 +32,7 @@ export async function hapticLight() {
     vibrateFallback(30);
 }
 
-/** Medium impact — for play/pause, skip */
+/** Medium impact - for play/pause, skip */
 export async function hapticMedium() {
     await _ready;
     try {
@@ -44,7 +44,7 @@ export async function hapticMedium() {
     vibrateFallback(50);
 }
 
-/** Success notification — for like/unlike, add to queue */
+/** Success notification - for like/unlike, add to queue */
 export async function hapticSuccess() {
     await _ready;
     try {
@@ -56,7 +56,7 @@ export async function hapticSuccess() {
     vibrateFallback(40);
 }
 
-/** Long press — replaces navigator.vibrate(50) for track selection */
+/** Long press - replaces navigator.vibrate(50) for track selection */
 export async function hapticLongPress() {
     await _ready;
     try {

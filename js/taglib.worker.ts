@@ -135,7 +135,7 @@ export async function addMetadataToAudio(message: _AddMetadataMessage): Promise<
 
         if (explicit !== undefined) {
             if (isMp4) {
-                // rtng is a byte item — must be set directly on the Mp4Tag
+                // rtng is a byte item - must be set directly on the Mp4Tag
                 const mp4Tag = (underlying as Mp4File).tag() as Mp4Tag;
                 mp4Tag.setItem('rtng', Mp4Item.fromByte(explicit ? 1 : 0));
             } else {
