@@ -10,7 +10,6 @@
         "@capacitor/core": "^8.2.0",
         "@capacitor/haptics": "^8.0.1",
         "@capacitor/ios": "^8.2.0",
-        "@dantheman827/taglib-ts": "https://github.com/DanTheMan827/taglib-ts/archive/b4238b2627aceb97f58813258046f1259f68cab7.tar.gz",
         "@ffmpeg/core": "^0.12.10",
         "@ffmpeg/ffmpeg": "^0.12.15",
         "@ffmpeg/util": "^0.12.2",
@@ -27,6 +26,7 @@
         "events": "^3.3.0",
         "fuse.js": "^7.1.0",
         "hls.js": "^1.6.15",
+        "@dantheman827/taglib-ts": "https://github.com/DanTheMan827/taglib-ts/archive/ebd0e369b706c127a280d4ad631977f8d12ff88f.tar.gz",
         "jose": "^6.2.0",
         "lucide-static": "^0.577.0",
         "mime": "^4.1.0",
@@ -292,7 +292,7 @@
 
     "@csstools/selector-specificity": ["@csstools/selector-specificity@5.0.0", "", { "peerDependencies": { "postcss-selector-parser": "^7.0.0" } }, "sha512-PCqQV3c4CoVm3kdPhyeZ07VmBRdH2EpMFA/pd9OASpOEC3aXNGoqPDAZ80D0cLpMBxnmk0+yNhGsEx31hq7Gtw=="],
 
-    "@dantheman827/taglib-ts": ["@dantheman827/taglib-ts@https://github.com/DanTheMan827/taglib-ts/archive/b4238b2627aceb97f58813258046f1259f68cab7.tar.gz", {}, "sha512-rvQOn9GDEj2sH4yV6oUTMMG9+rJbFG7tQkiP6/bhGJARg1Vmdy283j4YFCl+ubkqsMQ+UfAhEWSw5d5lfPVfwQ=="],
+    "@dantheman827/taglib-ts": ["@dantheman827/taglib-ts@https://github.com/DanTheMan827/taglib-ts/archive/ebd0e369b706c127a280d4ad631977f8d12ff88f.tar.gz", {}, "sha512-QPl5eWhFqP716VKIX5t7x39eRswRHG+5RpQ9wW6cNbDh1QSa/gWpPyvwP55O+/qCV7VjLepZI1/XFoxMO8jK7w=="],
 
     "@dual-bundle/import-meta-resolve": ["@dual-bundle/import-meta-resolve@4.2.1", "", {}, "sha512-id+7YRUgoUX6CgV0DtuhirQWodeeA7Lf4i2x71JS/vtA5pRb/hIGWlw+G6MeXvsM+MXrz0VAydTGElX1rAfgPg=="],
 
