@@ -622,6 +622,40 @@ export const fullscreenCoverVanillaTiltSettings = {
     },
 };
 
+export const fullscreenCoverTiltDistanceSettings = {
+    STORAGE_KEY: 'fullscreen-cover-tilt-distance',
+
+    getValue() {
+        try {
+            const val = parseInt(localStorage.getItem(this.STORAGE_KEY));
+            return val !== null && !isNaN(val) ? val : 10;
+        } catch {
+            return 10;
+        }
+    },
+
+    setValue(value) {
+        localStorage.setItem(this.STORAGE_KEY, value);
+    },
+};
+
+export const fullscreenCoverTiltSpeedSettings = {
+    STORAGE_KEY: 'fullscreen-cover-tilt-speed',
+
+    getValue() {
+        try {
+            const val = parseInt(localStorage.getItem(this.STORAGE_KEY));
+            return val !== null && !isNaN(val) ? val : 240;
+        } catch {
+            return 240;
+        }
+    },
+
+    setValue(value) {
+        localStorage.setItem(this.STORAGE_KEY, value);
+    },
+};
+
 export const cardSettings = {
     COMPACT_ARTIST_KEY: 'card-compact-artist',
     COMPACT_ALBUM_KEY: 'card-compact-album',

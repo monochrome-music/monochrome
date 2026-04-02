@@ -2950,6 +2950,30 @@ body.multi-select-mode .track-item:hover {
     width: 100px;
 }
 
+.setting-item input[type='range'] {
+    width: 120px;
+    accent-color: var(--accent);
+    appearance: none;
+    height: 6px;
+    background: var(--border);
+    border-radius: var(--radius-full);
+    outline: none;
+}
+
+.setting-item input[type='range']::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--primary);
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: background-color var(--transition-fast);
+}
+
+.setting-item input[type='range']::-webkit-slider-thumb:hover {
+    background: var(--highlight);
+}
+
 .playback-speed-control {
     display: flex;
     align-items: center;
