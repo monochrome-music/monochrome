@@ -2009,6 +2009,20 @@ export const homePageSettings = {
     setShuffleEditorsPicks(enabled) {
         localStorage.setItem(this.SHUFFLE_EDITORS_PICKS_KEY, enabled ? 'true' : 'false');
     },
+
+    EDITORS_PICKS_SOURCE_KEY: 'home-editors-picks-source',
+
+    getEditorsPicksSource() {
+        try {
+            return localStorage.getItem(this.EDITORS_PICKS_SOURCE_KEY) || 'current';
+        } catch {
+            return 'current';
+        }
+    },
+
+    setEditorsPicksSource(source) {
+        localStorage.setItem(this.EDITORS_PICKS_SOURCE_KEY, source);
+    },
 };
 
 export const radioSettings = {

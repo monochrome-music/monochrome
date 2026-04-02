@@ -550,8 +550,8 @@ document.addEventListener('DOMContentLoaded', async () => {
      * having to manually re-scan.
      *
      * When called with a `blob` and `filename` (single-track download case) it
-     * performs a cheap partial update — reading metadata only from that one file
-     * and inserting it into the existing cache — so the full folder does not need
+     * performs a cheap partial update - reading metadata only from that one file
+     * and inserting it into the existing cache - so the full folder does not need
      * to be re-walked.  When called with no arguments (bulk download case, or when
      * `localFilesCache` has never been populated) it falls back to a full rescan.
      */
