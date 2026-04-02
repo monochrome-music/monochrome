@@ -747,7 +747,7 @@ export class UIRenderer {
             id: artist.id,
             href: `/artist/${artist.id}`,
             title: escapeHtml(artist.name),
-            subtitle: '',
+            subtitle: [artist.type || 'Artist', artist.popularity ? `${artist.popularity}% popularity` : ''].filter(Boolean).join(' • '),
             imageHTML: `<img src="${this.api.getArtistPictureUrl(artist.picture)}" alt="${escapeHtml(artist.name)}" class="card-image" loading="lazy">`,
             actionButtonsHTML: `
                 <button class="like-btn card-like-btn" data-action="toggle-like" data-type="artist" title="Add to Liked">
@@ -2879,6 +2879,7 @@ export class UIRenderer {
                 });
             }
 
+            finalArtists.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
             artistsContainer.innerHTML = finalArtists.length
                 ? finalArtists.map((artist) => this.createArtistCardHTML(artist)).join('')
                 : createPlaceholder('No artists found.');
