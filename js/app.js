@@ -256,7 +256,7 @@ function initializeKeyboardShortcuts(player, _audioPlayer) {
         },
         lyrics: () => {
             trackKeyboardShortcut('L');
-            document.querySelector('.now-playing-bar .cover')?.click();
+            document.getElementById('toggle-lyrics-btn')?.click();
         },
         search: () => {
             trackKeyboardShortcut('/');

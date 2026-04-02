@@ -655,7 +655,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
             progressBar.style.maskImage = '';
 
             try {
-                const streamUrl = await player.api.getStreamUrl(player.currentTrack.id, 'LOW');
+                const { url: streamUrl } = await player.api.getStreamUrl(player.currentTrack.id, 'LOW');
                 const waveformData = await waveformGenerator.getWaveform(streamUrl, player.currentTrack.id);
 
                 if (waveformData && currentTrackIdForWaveform === player.currentTrack.id) {
