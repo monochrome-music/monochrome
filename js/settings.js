@@ -1571,7 +1571,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             // Draw Original measurement (normalized + shifted)
             if (graphMeasurement) {
                 const normOff = targetData
-                    ? getNormalizationOffset(targetData) - getNormalizationOffset(graphMeasurement)
+                    ? getNormalizationOffset(graphMeasurement, targetData)
                     : 0;
                 const normalized = graphMeasurement.map((p) => ({ freq: p.freq, gain: p.gain + normOff + graphShift }));
                 drawCurve(normalized, originalColor, 1.5);
@@ -1746,7 +1746,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         }
         const targetEntry = tList.find((t) => t.id === tId);
         const targetData = targetEntry?.data;
-        const normOff = targetData ? getNormalizationOffset(targetData) - getNormalizationOffset(measurement) : 0;
+        const normOff = targetData ? getNormalizationOffset(measurement, targetData) : 0;
         const sampleRate = autoeqSampleRate ? parseInt(autoeqSampleRate.value, 10) : 48000;
 
         autoeqCorrectedCurve = measurement.map((p) => {
@@ -3113,6 +3113,8 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
         // Graph always visible in all modes
         if (graphSection) graphSection.style.display = '';
+        // Only show shared AutoEq button in AutoEQ mode
+        if (autoeqRunBtn) autoeqRunBtn.style.display = mode === 'autoeq' ? '' : 'none';
 
         // Hide all mode-specific sections first
         if (controlsSection) controlsSection.style.display = 'none';

@@ -23,7 +23,10 @@ function calculateBiquadResponse(f, band, sr = DEFAULT_SR) {
     if (!band.type || band.type.length === 0) return 0;
     const w = (2 * PI * band.freq) / sr;
     const p = (2 * PI * f) / sr;
-    const s = Math.sin(w) / (2 * band.q);
+    const t = band.type[0];
+    // WebAudio ignores Q for shelf filters; use 1/√2 (slope = 1) to match
+    const effectiveQ = t === 'l' || t === 'h' ? Math.SQRT1_2 : band.q;
+    const s = Math.sin(w) / (2 * effectiveQ);
     const A = Math.pow(DB_BASE, band.gain / DB_DIVISOR);
     const c = Math.cos(w);
     let b0 = 0,
@@ -32,8 +35,6 @@ function calculateBiquadResponse(f, band, sr = DEFAULT_SR) {
         a0 = 0,
         a1 = 0,
         a2 = 0;
-
-    const t = band.type[0];
 
     if (t === 'p') {
         b0 = 1 + s * A;
@@ -98,19 +99,37 @@ function interpolate(freq, data) {
 
 /**
  * Calculate normalization offset based on midrange average (250-2500 Hz)
- * @param {Array<{freq: number, gain: number}>} data - Frequency response data
- * @returns {number} Average gain in midrange
+ * With one argument: returns the midrange average of that curve (for graph centering).
+ * With two arguments: evaluates both curves on the measurement frequency grid
+ * to avoid sampling-density bias, returning (avgTarget - avgMeasurement).
+ * @param {Array<{freq: number, gain: number}>} measurement - Measurement/data curve
+ * @param {Array<{freq: number, gain: number}>} [target] - Optional target curve
+ * @returns {number} Midrange average, or alignment offset when target is provided
  */
-function getNormalizationOffset(data) {
-    let sum = 0,
+function getNormalizationOffset(measurement, target) {
+    if (!target) {
+        let sum = 0,
+            count = 0;
+        for (const p of measurement) {
+            if (p.freq >= 250 && p.freq <= 2500) {
+                sum += p.gain;
+                count++;
+            }
+        }
+        return count > 0 ? sum / count : interpolate(1000, measurement);
+    }
+    let sumTarget = 0,
+        sumMeasurement = 0,
         count = 0;
-    for (const p of data) {
+    for (const p of measurement) {
         if (p.freq >= 250 && p.freq <= 2500) {
-            sum += p.gain;
+            sumTarget += interpolate(p.freq, target);
+            sumMeasurement += p.gain;
             count++;
         }
     }
-    return count > 0 ? sum / count : interpolate(1000, data);
+    if (count > 0) return sumTarget / count - sumMeasurement / count;
+    return interpolate(1000, target) - interpolate(1000, measurement);
 }
 
 /**
@@ -135,7 +154,7 @@ function runAutoEqAlgorithm(
     sampleRate = DEFAULT_SR
 ) {
     if (minFreq > maxFreq) return [];
-    const off = getNormalizationOffset(target) - getNormalizationOffset(measurement);
+    const off = getNormalizationOffset(measurement, target);
     let err = measurement.map((p) => ({ freq: p.freq, gain: p.gain + off - interpolate(p.freq, target) }));
 
     const hasInRangePoints = err.some((p) => p.freq >= minFreq && p.freq <= maxFreq);
