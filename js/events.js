@@ -655,13 +655,13 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
             progressBar.style.maskImage = '';
 
             try {
-                let streamUrl = await player.api.getStreamUrl(player.currentTrack.id, 'LOW');
-                let waveformData = await waveformGenerator.getWaveform(streamUrl, player.currentTrack.id);
+                let streamResult = await player.api.getStreamUrl(player.currentTrack.id, 'LOW');
+                let waveformData = await waveformGenerator.getWaveform(streamResult?.url ?? streamResult, player.currentTrack.id);
 
                 if (!waveformData) {
                     // Try HIGH quality if LOW failed (proxy might not support it)
-                    streamUrl = await player.api.getStreamUrl(player.currentTrack.id, 'HIGH');
-                    waveformData = await waveformGenerator.getWaveform(streamUrl, player.currentTrack.id);
+                    streamResult = await player.api.getStreamUrl(player.currentTrack.id, 'HIGH');
+                    waveformData = await waveformGenerator.getWaveform(streamResult?.url ?? streamResult, player.currentTrack.id);
                 }
 
                 if (waveformData && currentTrackIdForWaveform === player.currentTrack.id) {
