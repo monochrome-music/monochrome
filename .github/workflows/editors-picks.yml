@@ -91,5 +91,5 @@ jobs:
                   git config user.email "github-actions[bot]@users.noreply.github.com"
                   git add public/editors-picks.json public/editors-picks-old/
                   git diff --staged --quiet && echo "No changes to commit." && exit 0
-                  git commit -m "chore: update editors picks [skip ci]"
+                  git commit -m "chore: update editors picks"
                   git push
