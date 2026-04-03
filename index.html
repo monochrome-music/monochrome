@@ -3861,6 +3861,7 @@
                                     <!-- Mode Toggle + How To -->
                                     <div class="autoeq-mode-row">
                                         <div class="autoeq-mode-toggle">
+                                            <button class="autoeq-mode-btn" data-mode="legacy">Legacy EQ</button>
                                             <button class="autoeq-mode-btn active" data-mode="autoeq">AutoEQ</button>
                                             <button class="autoeq-mode-btn" data-mode="parametric">
                                                 Parametric EQ
@@ -3996,6 +3997,32 @@
                                                 separately for best results.
                                             </p>
                                         </div>
+                                    </div>
+
+                                    <!-- Legacy EQ Section -->
+                                    <div class="legacy-eq-section" id="legacy-eq-section" style="display: none">
+                                        <div class="legacy-eq-preset-row">
+                                            <label for="legacy-eq-preset">Preset</label>
+                                            <select id="legacy-eq-preset">
+                                                <option value="flat">Flat</option>
+                                                <option value="bass_boost">Bass Boost</option>
+                                                <option value="bass_reducer">Bass Reducer</option>
+                                                <option value="treble_boost">Treble Boost</option>
+                                                <option value="treble_reducer">Treble Reducer</option>
+                                                <option value="vocal_boost">Vocal Boost</option>
+                                                <option value="loudness">Loudness</option>
+                                                <option value="rock">Rock</option>
+                                                <option value="pop">Pop</option>
+                                                <option value="classical">Classical</option>
+                                                <option value="jazz">Jazz</option>
+                                                <option value="electronic">Electronic</option>
+                                                <option value="hip_hop">Hip-Hop</option>
+                                                <option value="r_and_b">R&B</option>
+                                                <option value="acoustic">Acoustic</option>
+                                                <option value="podcast">Podcast / Speech</option>
+                                            </select>
+                                        </div>
+                                        <div class="legacy-eq-sliders" id="legacy-eq-sliders"></div>
                                     </div>
 
                                     <!-- Frequency Response Graph -->
