@@ -8782,6 +8782,110 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     border: none;
 }
 
+/* --- Legacy EQ (16-band graphic) --- */
+.legacy-eq-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.legacy-eq-preset-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.legacy-eq-preset-row label {
+    font-size: 0.8rem;
+    color: var(--muted-foreground);
+}
+
+.legacy-eq-preset-row select {
+    flex: 1;
+    padding: 0.4rem 0.6rem;
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-size: 0.8rem;
+}
+
+.legacy-eq-sliders {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 2px;
+    padding: 0.75rem 0.25rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow-x: auto;
+}
+
+.legacy-eq-band {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 32px;
+    flex: 1;
+}
+
+.legacy-eq-gain-label {
+    font-size: 0.6rem;
+    color: var(--muted-foreground);
+    white-space: nowrap;
+    min-height: 1em;
+}
+
+.legacy-eq-freq-label {
+    font-size: 0.6rem;
+    color: var(--muted-foreground);
+    white-space: nowrap;
+}
+
+.legacy-eq-slider {
+    -webkit-appearance: slider-vertical;
+    appearance: slider-vertical;
+    writing-mode: vertical-lr;
+    direction: rtl;
+    width: 20px;
+    height: 140px;
+    background: transparent;
+    cursor: pointer;
+}
+
+.legacy-eq-slider::-webkit-slider-runnable-track {
+    width: 4px;
+    background: var(--border);
+    border-radius: 2px;
+}
+
+.legacy-eq-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    border: none;
+}
+
+.legacy-eq-slider::-moz-range-track {
+    width: 4px;
+    background: var(--border);
+    border-radius: 2px;
+}
+
+.legacy-eq-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    border: none;
+}
+
 /* --- Speaker EQ --- */
 .speaker-eq-section {
     display: flex;
