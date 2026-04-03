@@ -4,4 +4,10 @@
     <string name="title_activity_main">monochrome</string>
     <string name="package_name">tf.monochrome.music</string>
     <string name="custom_url_scheme">tf.monochrome.music</string>
+    <string name="notification_channel_name">Monochrome Playback</string>
+    <string name="notification_channel_description">Shows what is currently playing</string>
+    <string name="action_play">Play</string>
+    <string name="action_pause">Pause</string>
+    <string name="action_previous">Previous</string>
+    <string name="action_next">Next</string>
 </resources>
