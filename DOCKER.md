@@ -139,7 +139,7 @@ Portainer can deploy directly from your GitHub fork with auto-updates on push.
 
 > **Tip:** `COMPOSE_PROFILES` is a built-in Docker Compose variable. Setting it to `pocketbase` is equivalent to passing `--profile pocketbase` on the command line.
 
-> **Warning:** The `dev` profile is for **local development only**. It uses volume mounts to enable hot-reload, which requires the source code to be present on the host machine. Do **not** include `dev` in `COMPOSE_PROFILES` on Portainer deployments from GitHub — it will fail because there's no local source code to mount.
+> **Warning:** The `dev` profile is for **local development only**. It uses volume mounts to enable hot-reload, which requires the source code to be present on the host machine. Do **not** include `dev` in `COMPOSE_PROFILES` on Portainer deployments from GitHub - it will fail because there's no local source code to mount.
 
 ### Fork Workflow
 

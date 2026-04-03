@@ -33,6 +33,7 @@ import { authManager } from './accounts/auth.js';
 import { registerSW } from 'virtual:pwa-register';
 import { openEditProfile } from './profile.js';
 import { ThemeStore } from './themeStore.js';
+import { partyManager } from './listening-party.js';
 import './commandPalette.js';
 import { initTracker } from './tracker.js';
 import {
@@ -255,7 +256,7 @@ function initializeKeyboardShortcuts(player, _audioPlayer) {
         },
         lyrics: () => {
             trackKeyboardShortcut('L');
-            document.querySelector('.now-playing-bar .cover')?.click();
+            document.getElementById('toggle-lyrics-btn')?.click();
         },
         search: () => {
             trackKeyboardShortcut('/');
@@ -549,8 +550,8 @@ document.addEventListener('DOMContentLoaded', async () => {
      * having to manually re-scan.
      *
      * When called with a `blob` and `filename` (single-track download case) it
-     * performs a cheap partial update — reading metadata only from that one file
-     * and inserting it into the existing cache — so the full folder does not need
+     * performs a cheap partial update - reading metadata only from that one file
+     * and inserting it into the existing cache - so the full folder does not need
      * to be re-walked.  When called with no arguments (bulk download case, or when
      * `localFilesCache` has never been populated) it falls back to a full rescan.
      */

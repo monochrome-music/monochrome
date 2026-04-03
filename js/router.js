@@ -40,6 +40,12 @@ export function createRouter(ui) {
         };
 
         switch (page) {
+            case 'parties':
+                await ui.renderPartiesPage();
+                break;
+            case 'party':
+                await ui.renderPartyDetailPage(param);
+                break;
             case 'search':
                 await ui.renderSearchPage(decodeURIComponent(param));
                 break;

@@ -1,9 +1,5 @@
 import { EventEmitter } from 'events';
 
-const API_VERSION = '2.7';
-const BROWSER_CLIENT_ID = 'txNoH4kkV41MfH25';
-const BROWSER_CLIENT_SECRET = 'dQjy0MinCEvxi1O4UmxvxWnDjt4cgHBPw8ll6nYBk98=';
-
 type Params = Record<string, string | number | undefined | null>;
 
 class ResponseError extends Error {
@@ -37,6 +33,10 @@ export enum HiFiClientEvents {
 }
 
 class HiFiClient {
+    static readonly API_VERSION = '2.7';
+    static readonly BROWSER_CLIENT_ID = 'txNoH4kkV41MfH25';
+    static readonly BROWSER_CLIENT_SECRET = 'dQjy0MinCEvxi1O4UmxvxWnDjt4cgHBPw8ll6nYBk98=';
+
     static #instance: HiFiClient | null = null;
     static get instance() {
         if (!HiFiClient.#instance) {
@@ -158,8 +158,8 @@ class HiFiClient {
     }
 
     async #fetchAppToken({
-        clientId = BROWSER_CLIENT_ID,
-        clientSecret = BROWSER_CLIENT_SECRET,
+        clientId = HiFiClient.BROWSER_CLIENT_ID,
+        clientSecret = HiFiClient.BROWSER_CLIENT_SECRET,
         refreshToken,
         scope = 'r_usr+w_usr+w_sub',
         signal = new AbortController().signal,
@@ -218,14 +218,24 @@ class HiFiClient {
     static #getOptions({
         countryCode = 'US',
         baseUrl = null,
-        clientId = BROWSER_CLIENT_ID,
-        clientSecret = BROWSER_CLIENT_SECRET,
+        clientId = HiFiClient.BROWSER_CLIENT_ID,
+        clientSecret = HiFiClient.BROWSER_CLIENT_SECRET,
         token,
         tokenExpiry,
         refreshToken: tokenRefresh,
         storage = [],
     }: HiFiClient.ConstructorOptions = {}) {
         return { countryCode, baseUrl, clientId, clientSecret, token, tokenExpiry, tokenRefresh, storage };
+    }
+
+    async fetchToken(force: boolean = false, signal: AbortSignal | undefined = undefined) {
+        return await this.#fetchAppToken({
+            clientId: this.#clientId,
+            clientSecret: this.#clientSecret,
+            signal,
+            refreshToken: this.refreshToken || undefined,
+            force: !!force,
+        });
     }
 
     async #fetchAuthenticated(
@@ -334,7 +344,7 @@ class HiFiClient {
     async getInfo(id: number, signal?: AbortSignal) {
         const url = `https://api.tidal.com/v1/tracks/${id}/`;
         const data = await this.#fetchJson(url, { countryCode: this.#countryCode }, signal);
-        return HiFiClient.#jsonResponse({ version: API_VERSION, data });
+        return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data });
     }
 
     async getTrack(id: number, quality = 'HI_RES_LOSSLESS', immersiveAudio: boolean = false, signal?: AbortSignal) {
@@ -347,7 +357,7 @@ class HiFiClient {
             immersiveAudio: String(immersiveAudio),
         };
         const data = await this.#fetchJson(url, params, signal);
-        return HiFiClient.#jsonResponse({ version: API_VERSION, data });
+        return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data });
     }
 
     async getTrackManifest(
@@ -382,7 +392,7 @@ class HiFiClient {
             drmData.certificateUrl = url;
         }
 
-        return HiFiClient.#jsonResponse({ version: API_VERSION, data: res });
+        return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data: res });
     }
 
     async getWidevine() {
@@ -392,7 +402,7 @@ class HiFiClient {
     async getRecommendations(id: number, signal?: AbortSignal) {
         const url = `https://api.tidal.com/v1/tracks/${id}/recommendations`;
         const data = await this.#fetchJson(url, { limit: '20', countryCode: this.#countryCode }, signal);
-        return HiFiClient.#jsonResponse({ version: API_VERSION, data });
+        return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data });
     }
 
     async getSimilarArtists(id: number, cursor?: string | number | null, signal?: AbortSignal) {
@@ -436,7 +446,10 @@ class HiFiClient {
             };
         };
 
-        return HiFiClient.#jsonResponse({ version: API_VERSION, artists: (payload?.data || []).map(resolveArtist) });
+        return HiFiClient.#jsonResponse({
+            version: HiFiClient.API_VERSION,
+            artists: (payload?.data || []).map(resolveArtist),
+        });
     }
 
     async getSimilarAlbums(id: number, cursor?: string | number | null, signal?: AbortSignal) {
@@ -497,7 +510,10 @@ class HiFiClient {
             };
         };
 
-        return HiFiClient.#jsonResponse({ version: API_VERSION, albums: (payload?.data || []).map(resolveAlbum) });
+        return HiFiClient.#jsonResponse({
+            version: HiFiClient.API_VERSION,
+            albums: (payload?.data || []).map(resolveAlbum),
+        });
     }
 
     async getArtist(
@@ -530,7 +546,7 @@ class HiFiClient {
                 };
             }
 
-            return HiFiClient.#jsonResponse({ version: API_VERSION, artist: artist_data, cover });
+            return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, artist: artist_data, cover });
         }
 
         // f provided -> gather albums and optionally tracks
@@ -584,10 +600,11 @@ class HiFiClient {
                 }
             }
 
-            return HiFiClient.#jsonResponse({ version: API_VERSION, albums: page_data, tracks: top_tracks });
+            return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, albums: page_data, tracks: top_tracks });
         }
 
-        if (!album_ids.length) return HiFiClient.#jsonResponse({ version: API_VERSION, albums: page_data, tracks: [] });
+        if (!album_ids.length)
+            return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, albums: page_data, tracks: [] });
 
         const fetchAlbumTracks = async (album_id: number) => {
             return await this.#withAlbumTrackSlot(async () => {
@@ -613,7 +630,7 @@ class HiFiClient {
             if (Array.isArray(t)) tracks.push(...t);
         }
 
-        return HiFiClient.#jsonResponse({ version: API_VERSION, albums: page_data, tracks });
+        return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, albums: page_data, tracks });
     }
 
     #buildCoverEntry(cover_slug: string, name?: string | null, track_id?: number | null) {
@@ -640,7 +657,7 @@ class HiFiClient {
             const cover_slug = album.cover;
             if (!cover_slug) throw new ResponseError(404, 'Cover not found');
             const entry = this.#buildCoverEntry(cover_slug, album.title || track_data.title, album.id || id);
-            return HiFiClient.#jsonResponse({ version: API_VERSION, covers: [entry] });
+            return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, covers: [entry] });
         }
 
         const search_data = await this.#fetchJson(
@@ -658,7 +675,7 @@ class HiFiClient {
             covers.push(this.#buildCoverEntry(cover_slug, track.title, track.id));
         }
         if (!covers.length) throw new ResponseError(404, 'Cover not found');
-        return HiFiClient.#jsonResponse({ version: API_VERSION, covers });
+        return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, covers });
     }
 
     async search(
@@ -690,7 +707,7 @@ class HiFiClient {
                     },
                     signal
                 );
-                return HiFiClient.#jsonResponse({ version: API_VERSION, data: res });
+                return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data: res });
             } catch (err: any) {
                 if (err.status && ![400, 404].includes(err.status)) throw err;
                 // fallback to text search
@@ -705,7 +722,7 @@ class HiFiClient {
                 },
                 signal
             );
-            return HiFiClient.#jsonResponse({ version: API_VERSION, data: fallback });
+            return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data: fallback });
         }
 
         const mapping: Array<[string | undefined, string, Params]> = [
@@ -746,7 +763,7 @@ class HiFiClient {
         for (const [val, url, params] of mapping) {
             if (val) {
                 const data = await this.#fetchJson(url, params, signal);
-                return HiFiClient.#jsonResponse({ version: API_VERSION, data });
+                return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data });
             }
         }
 
@@ -783,7 +800,7 @@ class HiFiClient {
             if (Array.isArray(pageItems)) allItems.push(...pageItems);
         }
         albumData.items = allItems;
-        return HiFiClient.#jsonResponse({ version: API_VERSION, data: albumData });
+        return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data: albumData });
     }
 
     async getMix(id: string, signal?: AbortSignal) {
@@ -803,7 +820,7 @@ class HiFiClient {
             }
         }
         return HiFiClient.#jsonResponse({
-            version: API_VERSION,
+            version: HiFiClient.API_VERSION,
             mix: header,
             items: items.map((it: any) => (it.item ? it.item : it)),
         });
@@ -817,7 +834,7 @@ class HiFiClient {
             this.#fetchJson(itemsUrl, { countryCode: this.#countryCode, limit, offset }, signal),
         ]);
         const items = (itemsData && itemsData.items) || itemsData;
-        return HiFiClient.#jsonResponse({ version: API_VERSION, playlist: playlistData, items });
+        return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, playlist: playlistData, items });
     }
 
     // simplified artist/cover/lyrics/video/topvideos/similar methods (same pattern)
@@ -833,7 +850,7 @@ class HiFiClient {
             err.status = 404;
             throw err;
         }
-        return HiFiClient.#jsonResponse({ version: API_VERSION, lyrics: data });
+        return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, lyrics: data });
     }
 
     async getVideo(id: number, quality = 'HIGH', mode = 'STREAM', presentation = 'FULL', signal?: AbortSignal) {
@@ -843,7 +860,7 @@ class HiFiClient {
             { videoquality: quality, playbackmode: mode, assetpresentation: presentation },
             signal
         );
-        return HiFiClient.#jsonResponse({ version: API_VERSION, video: data });
+        return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, video: data });
     }
 
     async getTopVideos(
@@ -867,7 +884,7 @@ class HiFiClient {
             }
         }
         return HiFiClient.#jsonResponse({
-            version: API_VERSION,
+            version: HiFiClient.API_VERSION,
             videos: videos.slice(offset, offset + limit),
             total: videos.length,
         });
@@ -886,7 +903,10 @@ class HiFiClient {
             switch (pathname) {
                 case '/':
                     return new TidalResponse(
-                        HiFiClient.#jsonResponse({ version: API_VERSION, Repo: 'https://github.com/binimum/hifi-api' })
+                        HiFiClient.#jsonResponse({
+                            version: HiFiClient.API_VERSION,
+                            Repo: 'https://github.com/binimum/hifi-api',
+                        })
                     );
                 case '/info':
                     return new TidalResponse(await this.getInfo(Number(qp.id)));

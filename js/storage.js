@@ -590,6 +590,72 @@ export const dynamicColorSettings = {
     },
 };
 
+export const fullscreenCoverNoRoundSettings = {
+    STORAGE_KEY: 'fullscreen-cover-no-round',
+
+    isEnabled() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) !== 'false';
+        } catch {
+            return true;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+};
+
+export const fullscreenCoverVanillaTiltSettings = {
+    STORAGE_KEY: 'fullscreen-cover-vanilla-tilt',
+
+    isEnabled() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) !== 'false';
+        } catch {
+            return true;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+};
+
+export const fullscreenCoverTiltDistanceSettings = {
+    STORAGE_KEY: 'fullscreen-cover-tilt-distance',
+
+    getValue() {
+        try {
+            const val = parseInt(localStorage.getItem(this.STORAGE_KEY));
+            return val !== null && !isNaN(val) ? val : 10;
+        } catch {
+            return 10;
+        }
+    },
+
+    setValue(value) {
+        localStorage.setItem(this.STORAGE_KEY, value);
+    },
+};
+
+export const fullscreenCoverTiltSpeedSettings = {
+    STORAGE_KEY: 'fullscreen-cover-tilt-speed',
+
+    getValue() {
+        try {
+            const val = parseInt(localStorage.getItem(this.STORAGE_KEY));
+            return val !== null && !isNaN(val) ? val : 240;
+        } catch {
+            return 240;
+        }
+    },
+
+    setValue(value) {
+        localStorage.setItem(this.STORAGE_KEY, value);
+    },
+};
+
 export const cardSettings = {
     COMPACT_ARTIST_KEY: 'card-compact-artist',
     COMPACT_ALBUM_KEY: 'card-compact-album',
@@ -2009,6 +2075,20 @@ export const homePageSettings = {
     setShuffleEditorsPicks(enabled) {
         localStorage.setItem(this.SHUFFLE_EDITORS_PICKS_KEY, enabled ? 'true' : 'false');
     },
+
+    EDITORS_PICKS_SOURCE_KEY: 'home-editors-picks-source',
+
+    getEditorsPicksSource() {
+        try {
+            return localStorage.getItem(this.EDITORS_PICKS_SOURCE_KEY) || 'current';
+        } catch {
+            return 'current';
+        }
+    },
+
+    setEditorsPicksSource(source) {
+        localStorage.setItem(this.EDITORS_PICKS_SOURCE_KEY, source);
+    },
 };
 
 export const radioSettings = {
@@ -2801,13 +2881,13 @@ export const contentBlockingSettings = {
 
     isTrackBlocked(trackId) {
         if (!trackId) return false;
-        return this.getBlockedTracks().some((t) => t.id === trackId);
+        return this.getBlockedTracks().some((t) => String(t.id) === String(trackId));
     },
 
     blockTrack(track) {
         if (!track || !track.id) return;
         const blocked = this.getBlockedTracks();
-        if (!blocked.some((t) => t.id === track.id)) {
+        if (!blocked.some((t) => String(t.id) === String(track.id))) {
             blocked.push({
                 id: track.id,
                 title: track.title || 'Unknown Track',
@@ -2819,7 +2899,7 @@ export const contentBlockingSettings = {
     },
 
     unblockTrack(trackId) {
-        const blocked = this.getBlockedTracks().filter((t) => t.id !== trackId);
+        const blocked = this.getBlockedTracks().filter((t) => String(t.id) !== String(trackId));
         this.setBlockedTracks(blocked);
     },
 
@@ -2839,13 +2919,13 @@ export const contentBlockingSettings = {
 
     isAlbumBlocked(albumId) {
         if (!albumId) return false;
-        return this.getBlockedAlbums().some((a) => a.id === albumId);
+        return this.getBlockedAlbums().some((a) => String(a.id) === String(albumId));
     },
 
     blockAlbum(album) {
         if (!album || !album.id) return;
         const blocked = this.getBlockedAlbums();
-        if (!blocked.some((a) => a.id === album.id)) {
+        if (!blocked.some((a) => String(a.id) === String(album.id))) {
             blocked.push({
                 id: album.id,
                 title: album.title || 'Unknown Album',
@@ -2857,7 +2937,7 @@ export const contentBlockingSettings = {
     },
 
     unblockAlbum(albumId) {
-        const blocked = this.getBlockedAlbums().filter((a) => a.id !== albumId);
+        const blocked = this.getBlockedAlbums().filter((a) => String(a.id) !== String(albumId));
         this.setBlockedAlbums(blocked);
     },
 

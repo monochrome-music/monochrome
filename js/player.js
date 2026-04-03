@@ -1036,6 +1036,7 @@ export class Player {
                     return;
                 } catch {
                     // LOSSLESS fallback also failed — fall through to error handling below
+                    // LOSSLESS fallback also failed - fall through to error handling below
                 } finally {
                     this.quality = originalQuality;
                     this.isFallbackRetry = false;

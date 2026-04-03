@@ -10,6 +10,7 @@ const OLD_LS_CACHE_KEY = 'monochrome_autoeq_index_v4';
 const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
 
 // 5 most popular headphones — pre-loaded as defaults and shown in the headphone select
+// 5 most popular headphones - pre-loaded as defaults and shown in the headphone select
 // All measured on Rtings B&K 5128 rig for consistency
 const POPULAR_HEADPHONES = [
     {
@@ -45,6 +46,7 @@ const POPULAR_HEADPHONES = [
 ];
 
 // Static fallback list in case GitHub API fails — popular picks + additional well-known models
+// Static fallback list in case GitHub API fails - popular picks + additional well-known models
 const FALLBACK_INDEX = [
     ...POPULAR_HEADPHONES,
     {

@@ -26,10 +26,16 @@ import {
     fontSettings,
     contentBlockingSettings,
     settingsUiState,
+    fullscreenCoverNoRoundSettings,
+    fullscreenCoverVanillaTiltSettings,
+    fullscreenCoverTiltDistanceSettings,
+    fullscreenCoverTiltSpeedSettings,
 } from './storage.js';
 import { db } from './db.js';
 import { getVibrantColorFromImage } from './vibrant-color.js';
-import { syncManager } from './accounts/pocketbase.js';
+import { pb, syncManager } from './accounts/pocketbase.js';
+import { authManager } from './accounts/auth.js';
+import { partyManager } from './listening-party.js';
 import { Visualizer } from './visualizer.js';
 import { navigate } from './router.js';
 import { sidePanelManager } from './side-panel.js';
@@ -162,6 +168,38 @@ export class UIRenderer {
             if (this.visualizer) {
                 this.visualizer.updateDimming();
             }
+        });
+
+        window.addEventListener('fullscreen-cover-settings-changed', () => {
+            const overlay = document.getElementById('fullscreen-cover-overlay');
+            const coverImage = document.getElementById('fullscreen-cover-image');
+            if (overlay && overlay.style.display === 'flex') {
+                if (fullscreenCoverNoRoundSettings.isEnabled()) {
+                    overlay.classList.add('fullscreen-cover-no-round');
+                } else {
+                    overlay.classList.remove('fullscreen-cover-no-round');
+                }
+                if (coverImage) {
+                    if (fullscreenCoverVanillaTiltSettings.isEnabled() && window.VanillaTilt) {
+                        if (coverImage.vanillaTilt) {
+                            coverImage.vanillaTilt.destroy();
+                        }
+                        window.VanillaTilt.init(coverImage, {
+                            max: fullscreenCoverTiltDistanceSettings.getValue(),
+                            speed: fullscreenCoverTiltSpeedSettings.getValue(),
+                            glare: true,
+                            'max-glare': 0.3,
+                        });
+                    } else if (coverImage.vanillaTilt) {
+                        coverImage.vanillaTilt.destroy();
+                    }
+                }
+            }
+        });
+
+        window.addEventListener('refresh-home-editors-picks', () => {
+            this.renderHomeEditorsPicks(true, 'home-editors-picks');
+            this.renderHomeEditorsPicks(true, 'home-editors-picks-empty');
         });
     }
 
@@ -1225,6 +1263,22 @@ export class UIRenderer {
 
         overlay.style.display = 'flex';
 
+        if (fullscreenCoverNoRoundSettings.isEnabled()) {
+            overlay.classList.add('fullscreen-cover-no-round');
+        } else {
+            overlay.classList.remove('fullscreen-cover-no-round');
+        }
+
+        const coverImage = document.getElementById('fullscreen-cover-image');
+        if (fullscreenCoverVanillaTiltSettings.isEnabled() && coverImage && window.VanillaTilt) {
+            window.VanillaTilt.init(coverImage, {
+                max: fullscreenCoverTiltDistanceSettings.getValue(),
+                speed: fullscreenCoverTiltSpeedSettings.getValue(),
+                glare: true,
+                'max-glare': 0.3,
+            });
+        }
+
         const startVisualizer = async () => {
             if (!visualizerSettings.isEnabled()) {
                 if (this.visualizer) this.visualizer.stop();
@@ -1276,8 +1330,12 @@ export class UIRenderer {
 
     closeFullscreenCover() {
         const overlay = document.getElementById('fullscreen-cover-overlay');
+        const coverImage = document.getElementById('fullscreen-cover-image');
+        if (coverImage && coverImage.vanillaTilt) {
+            coverImage.vanillaTilt.destroy();
+        }
         overlay.style.display = 'none';
-        overlay.classList.remove('visualizer-active', 'ui-hidden');
+        overlay.classList.remove('visualizer-active', 'ui-hidden', 'fullscreen-cover-no-round');
 
         const playerBar = document.querySelector('.now-playing-bar');
         if (playerBar) playerBar.style.removeProperty('display');
@@ -1776,6 +1834,27 @@ export class UIRenderer {
             document.querySelectorAll('.settings-tab').forEach((t) => t.classList.remove('active'));
             document.querySelectorAll('.settings-tab-content').forEach((c) => c.classList.remove('active'));
         }
+    }
+
+    async renderPartiesPage() {
+        this.showPage('parties');
+        const authRequired = document.getElementById('parties-auth-required');
+        const hostControls = document.getElementById('parties-host-controls');
+        const loginBtn = document.getElementById('parties-login-btn');
+
+        if (authManager.user) {
+            authRequired.style.display = 'none';
+            hostControls.style.display = 'block';
+        } else {
+            authRequired.style.display = 'block';
+            hostControls.style.display = 'none';
+            loginBtn.onclick = () => navigate('/account');
+        }
+    }
+
+    async renderPartyDetailPage(id) {
+        this.showPage('party-detail');
+        await partyManager.joinParty(id);
     }
 
     async renderLibraryPage() {
@@ -2487,7 +2566,9 @@ export class UIRenderer {
             else if (picksContainer.children.length > 0 && !picksContainer.querySelector('.skeleton')) return;
 
             try {
-                const response = await fetch('/editors-picks.json');
+                const source = homePageSettings.getEditorsPicksSource();
+                const picksPath = source === 'current' ? '/editors-picks.json' : `/editors-picks-old/${source}`;
+                const response = await fetch(picksPath);
                 if (!response.ok) throw new Error("Failed to load editor's picks");
 
                 let items = await response.json();
@@ -5268,13 +5349,7 @@ export class UIRenderer {
 
         try {
             let track;
-            try {
-                const result = await this.api.getTrack(trackId, provider);
-                track = result.track;
-            } catch (e) {
-                console.warn('getTrack failed, trying getTrackMetadata', e);
-                track = await this.api.getTrackMetadata(trackId, provider);
-            }
+            track = await this.api.getTrackMetadata(trackId);
             this.currentTrackPageId = track.id;
 
             let videoCoverUrl = track.videoUrl || track.videoCoverUrl || track.album?.videoCoverUrl || null;
