@@ -8812,78 +8812,79 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 
 .legacy-eq-sliders {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    gap: 2px;
-    padding: 0.75rem 0.25rem;
+    justify-content: space-around;
+    align-items: stretch;
+    gap: 0;
+    padding: 1rem 0.5rem 0.75rem;
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    overflow-x: auto;
 }
 
 .legacy-eq-band {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    min-width: 32px;
+    gap: 6px;
     flex: 1;
+    min-width: 0;
 }
 
 .legacy-eq-gain-label {
-    font-size: 0.6rem;
-    color: var(--muted-foreground);
+    font-size: 0.65rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--foreground);
     white-space: nowrap;
-    min-height: 1em;
+    opacity: 0.7;
 }
 
 .legacy-eq-freq-label {
     font-size: 0.6rem;
     color: var(--muted-foreground);
     white-space: nowrap;
+    opacity: 0.6;
 }
 
 .legacy-eq-slider {
     -webkit-appearance: slider-vertical;
     appearance: slider-vertical;
-    writing-mode: vertical-lr;
-    direction: rtl;
-    width: 20px;
-    height: 140px;
+    width: 24px;
+    height: 120px;
     background: transparent;
     cursor: pointer;
 }
 
 .legacy-eq-slider::-webkit-slider-runnable-track {
-    width: 4px;
+    width: 3px;
     background: var(--border);
     border-radius: 2px;
 }
 
 .legacy-eq-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     background: var(--primary);
     cursor: pointer;
-    border: none;
+    border: 2px solid var(--card);
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.4);
 }
 
 .legacy-eq-slider::-moz-range-track {
-    width: 4px;
+    width: 3px;
     background: var(--border);
     border-radius: 2px;
 }
 
 .legacy-eq-slider::-moz-range-thumb {
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     background: var(--primary);
     cursor: pointer;
-    border: none;
+    border: 2px solid var(--card);
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.4);
 }
 
 /* --- Speaker EQ --- */
