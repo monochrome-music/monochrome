@@ -1073,11 +1073,11 @@ export class LosslessAPI {
         entries.forEach((entry) => scan(entry, visited));
         scan(primaryData, visited);
 
+        const numericArtistId = Number(artistId);
         if (!options.lightweight) {
             try {
                 const videoSearch = await this.searchVideos(artist.name);
                 if (videoSearch && videoSearch.items) {
-                    const numericArtistId = Number(artistId);
                     for (const item of videoSearch.items) {
                         const itemArtistId = item.artist?.id;
                         const matchesArtist =
@@ -1094,7 +1094,11 @@ export class LosslessAPI {
             }
         }
 
-        const rawReleases = Array.from(albumMap.values());
+        const rawReleases = Array.from(albumMap.values()).filter((album) => {
+            const albumArtistId = album.artist?.id;
+            return albumArtistId === numericArtistId ||
+                (Array.isArray(album.artists) && album.artists.some((a) => a.id === numericArtistId));
+        });
         const allReleases = this.deduplicateAlbums(rawReleases).sort(
             (a, b) => new Date(b.releaseDate || 0) - new Date(a.releaseDate || 0)
         );
@@ -1103,6 +1107,11 @@ export class LosslessAPI {
         const albums = allReleases.filter((a) => !eps.includes(a));
 
         const topTracks = Array.from(trackMap.values())
+            .filter((track) => {
+                const trackArtistId = track.artist?.id;
+                return trackArtistId === numericArtistId ||
+                    (Array.isArray(track.artists) && track.artists.some((a) => a.id === numericArtistId));
+            })
             .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
             .slice(0, 15);
 
