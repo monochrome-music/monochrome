@@ -12,10 +12,7 @@
         "explicit": true,
         "audioQuality": "LOSSLESS",
         "mediaMetadata": {
-            "tags": [
-                "LOSSLESS",
-                "HIRES_LOSSLESS"
-            ]
+            "tags": ["LOSSLESS", "HIRES_LOSSLESS"]
         }
     },
     {
@@ -31,9 +28,7 @@
         "explicit": true,
         "audioQuality": "LOSSLESS",
         "mediaMetadata": {
-            "tags": [
-                "LOSSLESS"
-            ]
+            "tags": ["LOSSLESS"]
         }
     },
     {
@@ -49,9 +44,7 @@
         "explicit": true,
         "audioQuality": "LOSSLESS",
         "mediaMetadata": {
-            "tags": [
-                "LOSSLESS"
-            ]
+            "tags": ["LOSSLESS"]
         }
     },
     {
@@ -67,9 +60,7 @@
         "explicit": true,
         "audioQuality": "LOSSLESS",
         "mediaMetadata": {
-            "tags": [
-                "LOSSLESS"
-            ]
+            "tags": ["LOSSLESS"]
         }
     },
     {
@@ -85,9 +76,7 @@
         "explicit": true,
         "audioQuality": "LOSSLESS",
         "mediaMetadata": {
-            "tags": [
-                "LOSSLESS"
-            ]
+            "tags": ["LOSSLESS"]
         }
     },
     {
@@ -103,10 +92,7 @@
         "explicit": true,
         "audioQuality": "LOSSLESS",
         "mediaMetadata": {
-            "tags": [
-                "LOSSLESS",
-                "HIRES_LOSSLESS"
-            ]
+            "tags": ["LOSSLESS", "HIRES_LOSSLESS"]
         }
     },
     {
@@ -122,10 +108,7 @@
         "explicit": true,
         "audioQuality": "LOSSLESS",
         "mediaMetadata": {
-            "tags": [
-                "LOSSLESS",
-                "HIRES_LOSSLESS"
-            ]
+            "tags": ["LOSSLESS", "HIRES_LOSSLESS"]
         }
     },
     {
@@ -141,10 +124,7 @@
         "explicit": true,
         "audioQuality": "LOSSLESS",
         "mediaMetadata": {
-            "tags": [
-                "LOSSLESS",
-                "HIRES_LOSSLESS"
-            ]
+            "tags": ["LOSSLESS", "HIRES_LOSSLESS"]
         }
     },
     {
@@ -160,9 +140,7 @@
         "explicit": false,
         "audioQuality": "LOSSLESS",
         "mediaMetadata": {
-            "tags": [
-                "LOSSLESS"
-            ]
+            "tags": ["LOSSLESS"]
         }
     },
     {
@@ -178,10 +156,7 @@
         "explicit": true,
         "audioQuality": "LOSSLESS",
         "mediaMetadata": {
-            "tags": [
-                "LOSSLESS",
-                "HIRES_LOSSLESS"
-            ]
+            "tags": ["LOSSLESS", "HIRES_LOSSLESS"]
         }
     },
     {
@@ -197,9 +172,7 @@
         "explicit": true,
         "audioQuality": "LOSSLESS",
         "mediaMetadata": {
-            "tags": [
-                "LOSSLESS"
-            ]
+            "tags": ["LOSSLESS"]
         }
     },
     {
@@ -215,9 +188,7 @@
         "explicit": true,
         "audioQuality": "LOSSLESS",
         "mediaMetadata": {
-            "tags": [
-                "LOSSLESS"
-            ]
+            "tags": ["LOSSLESS"]
         }
     }
 ]
