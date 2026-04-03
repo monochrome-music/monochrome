@@ -468,6 +468,32 @@ export class Player {
         } else {
             setHandlers();
         }
+
+        // Android Auto bridge: allows MusicService.kt to trigger media actions via JS
+        window.androidTriggerMediaAction = (action, detailsJson) => {
+            const details = detailsJson ? JSON.parse(detailsJson) : null;
+            const handler = navigator.mediaSession._actionHandlers?.[action];
+            // Re-use the same action handlers already registered above
+            switch (action) {
+                case 'play': this.activeElement.play().catch(() => this.handlePlayPause()); break;
+                case 'pause': this.activeElement.pause(); break;
+                case 'stop': this.activeElement.pause(); this.activeElement.currentTime = 0; break;
+                case 'nexttrack': this.playNext(); break;
+                case 'previoustrack': this.playPrev(); break;
+                case 'seekto': if (details?.seekTime !== undefined) this.activeElement.currentTime = details.seekTime; break;
+                case 'seekforward': this.seekForward(details?.seekOffset || 10); break;
+                case 'seekbackward': this.seekBackward(details?.seekOffset || 10); break;
+            }
+        };
+
+        // Push playback state/metadata to AndroidBridge so MusicService can update Android Auto UI
+        const notifyAndroid = () => {
+            if (!window.AndroidBridge) return;
+            const el = this.activeElement;
+            window.AndroidBridge.onPlaybackStateChanged(el.paused ? 'paused' : 'playing');
+        };
+        this.audio.addEventListener('play', notifyAndroid);
+        this.audio.addEventListener('pause', notifyAndroid);
     }
 
     setQuality(quality) {
@@ -1930,6 +1956,17 @@ export class Player {
 
         this.updateMediaSessionPlaybackState();
         this.updateMediaSessionPositionState();
+
+        // Push metadata to Android Auto via native bridge
+        if (window.AndroidBridge) {
+            const artworkUrl = coverId ? this.api.getCoverUrl(coverId, '1280') : '';
+            window.AndroidBridge.onMetadataChanged(JSON.stringify({
+                title: trackTitle || 'Unknown Title',
+                artist: getTrackArtists(track) || 'Unknown Artist',
+                album: track.album?.title || 'Unknown Album',
+                artworkUrl,
+            }));
+        }
     }
 
     updateMediaSessionPlaybackState() {

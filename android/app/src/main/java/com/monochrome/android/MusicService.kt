@@ -101,6 +101,7 @@ class MusicService : MediaBrowserServiceCompat(), JavaScriptBridge.Listener {
 
     fun attachWebView(webView: WebView) {
         webViewRef = WeakReference(webView)
+        webView.addJavascriptInterface(JavaScriptBridge(this), "AndroidBridge")
     }
 
     fun detachWebView() {
