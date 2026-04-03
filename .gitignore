@@ -17,3 +17,4 @@ bin/
 auth_storage/
 www
 neutralino.js
+package-lock.json
