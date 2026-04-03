@@ -183,6 +183,11 @@ export function getContainerFormat(internalName: string): ContainerFormat | unde
     return containerFormats[internalName];
 }
 
+export interface ExtraFile {
+    name: string;
+    data: ArrayBuffer | Uint8Array;
+}
+
 /**
  * Transcodes an audio blob using the specified custom format via ffmpeg.
  * Throws if ffmpeg fails during transcoding.
@@ -192,7 +197,7 @@ export async function transcodeWithCustomFormat(
     format: CustomFormat,
     onProgress: ((progress: ProgressEvent) => void) | null = null,
     signal: AbortSignal | null = null,
-    extraFiles: any[] = []
+    extraFiles: ExtraFile[] = []
 ): Promise<Blob> {
     return ffmpeg(audioBlob, {
         args: format.ffmpegArgs,
@@ -213,7 +218,7 @@ export async function transcodeWithContainerFormat(
     format: ContainerFormat,
     onProgress: ((progress: ProgressEvent) => void) | null = null,
     signal: AbortSignal | null = null,
-    extraFiles: any[] = []
+    extraFiles: ExtraFile[] = []
 ): Promise<Blob> {
     return ffmpeg(audioBlob, {
         args: format.ffmpegArgs,

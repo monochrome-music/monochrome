@@ -1,9 +1,9 @@
-import { expect, test, suite } from 'vitest';
+import { expect, test } from 'vitest';
 import { ffmpeg } from './ffmpeg';
 
 test('Run `ffmpeg --help`', async () => {
     const lines: string[] = [];
-    const info = await ffmpeg(null, {
+    await ffmpeg(null, {
         rawArgs: ['--help'],
         logConsole: false,
         outputName: null,

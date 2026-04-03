@@ -16,7 +16,7 @@ function getGitCommitHash() {
     }
 }
 
-export default defineConfig(({ mode }) => {
+export default defineConfig((_options) => {
     const commitHash = getGitCommitHash();
 
     return {

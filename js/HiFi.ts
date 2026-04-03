@@ -1,3 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+
 import { EventEmitter } from 'events';
 
 type Params = Record<string, string | number | undefined | null>;
@@ -170,7 +177,7 @@ class HiFiClient {
             scope?: string;
             signal?: AbortSignal;
             force?: boolean;
-        }) {
+        }): Promise<string | null> {
         if (!force && this.token && (this.appTokenExpiry < 0 || Date.now() < this.appTokenExpiry)) return this.token;
 
         return await (this.#tokenPromise ??= (async () => {
@@ -654,7 +661,7 @@ class HiFiClient {
         };
         const data = await this.#fetchJson(url, params, signal);
 
-        return HiFiClient.#jsonResponse({ version: API_VERSION, data: data });
+        return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data: data });
     }
 
     #buildCoverEntry(cover_slug: string, name?: string | null, track_id?: number | null) {

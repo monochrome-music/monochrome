@@ -96,7 +96,7 @@ export class ListeningPartyManager {
         document.getElementById('copy-party-link-btn')?.addEventListener('click', () => this.copyInviteLink());
         document.getElementById('party-chat-send-btn')?.addEventListener('click', () => this.sendChatMessage());
         document.getElementById('party-chat-input')?.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.sendChatMessage();
+            if (e.key === 'Enter') this.sendChatMessage().catch(console.error);
         });
     }
 
@@ -104,13 +104,13 @@ export class ListeningPartyManager {
         const nameInput = document.getElementById('party-name-input');
         const user = authManager.user;
         if (!user) {
-            Modal.alert('Login Required', 'You must be logged in to host a listening party.');
+            await Modal.alert('Login Required', 'You must be logged in to host a listening party.');
             return;
         }
 
         const pbUser = await syncManager._getUserRecord(user.$id);
         if (!pbUser) {
-            Modal.alert('Sync Error', 'Failed to sync user data. Please try again.');
+            await Modal.alert('Sync Error', 'Failed to sync user data. Please try again.');
             return;
         }
 
@@ -171,19 +171,19 @@ export class ListeningPartyManager {
             this.setupSubscriptions(partyId);
             this.startHeartbeat();
             this.renderPartyUI();
-            this.loadInitialData(partyId);
+            await this.loadInitialData(partyId);
 
             if (!this.isHost) {
                 this.lockControls();
                 this.setupGuestSyncInterception();
                 if (party.current_track) {
                     await audioContextManager.resume();
-                    this.syncWithHost(party);
+                    await this.syncWithHost(party);
                 }
             }
         } catch (error) {
             console.error('Join error:', error);
-            Modal.alert('Error', 'Failed to join the party. It may have ended.');
+            await Modal.alert('Error', 'Failed to join the party. It may have ended.');
             navigate('/parties');
         } finally {
             this.isJoining = false;
@@ -199,7 +199,7 @@ export class ListeningPartyManager {
             );
             return confirmed ? { profile: null } : false;
         } else {
-            return new Promise((resolve) => {
+            return new Promise((resolve, reject) => {
                 const cached = localStorage.getItem('party_guest_profile');
                 const defaultName = cached ? JSON.parse(cached).name : '';
 
@@ -225,7 +225,9 @@ export class ListeningPartyManager {
                         },
                         { label: 'Cancel', type: 'secondary', callback: () => false },
                     ],
-                }).then(resolve);
+                })
+                    .then(resolve)
+                    .catch(reject);
             });
         }
     }
@@ -262,29 +264,31 @@ export class ListeningPartyManager {
         pb.collection('parties')
             .subscribe(
                 partyId,
-                (e) => {
+                async (e) => {
                     if (e.action === 'update') {
                         this.currentParty = e.record;
-                        if (!this.isHost) this.syncWithHost(e.record);
+                        if (!this.isHost) await this.syncWithHost(e.record);
                         this.updatePartyHeader();
                     } else if (e.action === 'delete') {
-                        Modal.alert('Party Ended', 'The host has ended the listening party.');
-                        this.leaveParty(false);
+                        await Modal.alert('Party Ended', 'The host has ended the listening party.');
+                        await this.leaveParty(false);
                     }
                 },
                 { f_id }
             )
-            .then((unsub) => this.unsubscribeFunctions.push(unsub));
+            .then((unsub) => this.unsubscribeFunctions.push(unsub))
+            .catch(console.error);
 
         pb.collection('party_members')
             .subscribe(
                 '*',
-                (e) => {
-                    if (e.record.party === partyId) this.loadMembers();
+                async (e) => {
+                    if (e.record.party === partyId) await this.loadMembers();
                 },
                 { f_id }
             )
-            .then((unsub) => this.unsubscribeFunctions.push(unsub));
+            .then((unsub) => this.unsubscribeFunctions.push(unsub))
+            .catch(console.error);
 
         pb.collection('party_messages')
             .subscribe(
@@ -294,23 +298,25 @@ export class ListeningPartyManager {
                 },
                 { f_id }
             )
-            .then((unsub) => this.unsubscribeFunctions.push(unsub));
+            .then((unsub) => this.unsubscribeFunctions.push(unsub))
+            .catch(console.error);
 
         pb.collection('party_requests')
             .subscribe(
                 '*',
-                (e) => {
-                    if (e.record.party === partyId) this.loadRequests();
+                async (e) => {
+                    if (e.record.party === partyId) await this.loadRequests();
                 },
                 { f_id }
             )
-            .then((unsub) => this.unsubscribeFunctions.push(unsub));
+            .then((unsub) => this.unsubscribeFunctions.push(unsub))
+            .catch(console.error);
     }
 
-    async loadInitialData(partyId) {
-        this.loadMembers();
-        this.loadMessages();
-        this.loadRequests();
+    async loadInitialData(_partyId) {
+        await this.loadMembers();
+        await this.loadMessages();
+        await this.loadRequests();
     }
 
     async loadMembers() {
@@ -439,7 +445,7 @@ export class ListeningPartyManager {
                     </div>
                     ${this.isHost ? `<button class="btn-primary btn-sm add-request-btn" data-req-id="${r.id}" style="padding: 0.4rem 1rem; font-size: 0.8rem; flex-shrink: 0; white-space: nowrap;">Add to Queue</button>` : ''}
                 </div>`;
-                } catch (e) {
+                } catch (_e) {
                     return '';
                 }
             })
@@ -510,7 +516,7 @@ export class ListeningPartyManager {
             await pb
                 .collection('party_messages')
                 .create({ party: this.currentParty.id, sender_name: profile.name, content }, { f_id });
-        } catch (e) {}
+        } catch (_e) {}
     }
 
     async requestSong(track) {
@@ -560,7 +566,7 @@ export class ListeningPartyManager {
 
             if (party.is_playing) {
                 if (el.paused) {
-                    const success = await player.safePlay(el);
+                    const _success = await player.safePlay(el);
                 }
                 const latency = (Date.now() - party.playback_timestamp) / 1000;
                 const targetTime = party.is_playing ? party.playback_time + latency : party.playback_time;
@@ -640,7 +646,7 @@ export class ListeningPartyManager {
                     },
                     { f_id: authManager.user?.$id }
                 );
-            } catch (e) {}
+            } catch (_e) {}
         };
         ['play', 'pause', 'seeked'].forEach((ev) => {
             player.audio.addEventListener(ev, updateParty);
@@ -667,7 +673,7 @@ export class ListeningPartyManager {
                     'danger'
                 );
                 if (!leave) return;
-                this.leaveParty();
+                await this.leaveParty();
             }
             return await originalPlayTrackFromQueue(...args);
         };
@@ -680,7 +686,7 @@ export class ListeningPartyManager {
                 await pb
                     .collection('party_members')
                     .update(this.memberId, { last_seen: Date.now() }, { f_id: authManager.user?.$id || 'guest' });
-            } catch (e) {}
+            } catch (_e) {}
         }, 30000);
     }
 
@@ -705,11 +711,11 @@ export class ListeningPartyManager {
                 await cleanup('party_messages');
                 await cleanup('party_requests');
                 await pb.collection('parties').delete(this.currentParty.id, { f_id });
-            } catch (e) {}
+            } catch (_e) {}
         } else if (this.memberId) {
             try {
                 await pb.collection('party_members').delete(this.memberId, { f_id });
-            } catch (e) {}
+            } catch (_e) {}
         }
         this.restorePlayerMethods();
         this.unlockControls();
@@ -733,7 +739,7 @@ export class ListeningPartyManager {
     }
 
     copyInviteLink() {
-        navigator.clipboard.writeText(`${window.location.origin}/party/${this.currentParty.id}`);
+        navigator.clipboard.writeText(`${window.location.origin}/party/${this.currentParty.id}`).catch(console.error);
         showNotification('Invite link copied!');
     }
 

@@ -133,14 +133,14 @@ export class Visualizer {
         this._currentContextType = type;
     }
 
-    start() {
+    async start() {
         if (this.isActive) return;
 
         if (!this.ctx) {
             this.initContext();
         }
         if (!this.audioContext) {
-            this.init();
+            await this.init();
         }
 
         if (!this.analyser) {

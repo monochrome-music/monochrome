@@ -1,5 +1,5 @@
 export async function onRequest(context) {
-    const { request, env } = context;
+    const { request } = context;
     const pageUrl = request.url;
 
     const metaHtml = `

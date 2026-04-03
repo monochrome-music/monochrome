@@ -31,3 +31,7 @@ declare module 'https://cdn.jsdelivr.net/npm/client-zip@2.4.5/+esm' {
 type WithRequiredKeys<T> = {
     [K in keyof T]-?: T[K] | undefined;
 };
+
+declare global {
+    const __COMMIT_HASH__: string | undefined;
+}

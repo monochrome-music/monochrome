@@ -2,7 +2,6 @@ import { expect, test, suite, vi } from 'vitest';
 import { apiSettings, preferDolbyAtmosSettings, losslessContainerSettings } from './storage.js';
 import { MusicAPI } from './music-api.js';
 import { LyricsManager } from './lyrics.js';
-import type { LosslessAPI } from './api.js';
 import { HiFiClient } from './HiFi.js';
 import { FileRef } from '!/@dantheman827/taglib-ts/src/fileRef.js';
 import { Mp4File } from '!/@dantheman827/taglib-ts/src/mp4/mp4File.js';
@@ -13,6 +12,7 @@ import { ByteVector, StringType } from '!/@dantheman827/taglib-ts/src/byteVector
 import { Mp4Codec } from '!/@dantheman827/taglib-ts/src/mp4/mp4Properties.js';
 import { OggFile } from '!/@dantheman827/taglib-ts/src/ogg/oggFile.js';
 import { ffmpeg } from './ffmpeg.js';
+import type { Track } from './container-classes.js';
 
 vi.mock(import('./storage.js'), async (importOriginal) => {
     const mod = await importOriginal();
@@ -46,26 +46,25 @@ vi.mock(import('./doTimed.js'), async (importOriginal) => {
 
     return {
         ...mod,
-        doTimed: (label: string, fn: () => any) => {
-            return fn() as any;
+        doTimed: function <T>(_label: string, fn: () => T): T {
+            return fn();
         },
         doTimedAsync<T, R = T extends Promise<T> ? Promise<T> : T>(
-            message: string,
+            _message: string,
             callback: () => R,
             throwError: boolean = false
         ): R {
-            return new Promise<R>(async (resolve, reject) => {
-                try {
-                    const ret = await callback();
-                    resolve(ret);
-                } catch (err) {
-                    if (throwError) {
-                        reject(err);
-                        return;
-                    }
-
-                    resolve(undefined);
-                }
+            return new Promise<R>((resolve, reject) => {
+                Promise.resolve()
+                    .then(callback)
+                    .then(resolve)
+                    .catch((err) => {
+                        if (throwError) {
+                            reject(err as Error);
+                        } else {
+                            resolve(undefined);
+                        }
+                    });
             }) as R;
         },
     } satisfies typeof import('./doTimed.js');
@@ -99,15 +98,14 @@ suite('Track Downloads', async () => {
     const TRACK_ATMOS = 463900720; // Taylor Swift - The Fate of Ophelia
     const TRACK_NO_LOSSLESS = 31097959; // deadmau5 - while(1<2)
 
-    const { LosslessAPI } = await import('./api.js');
     await MusicAPI.initialize(apiSettings);
     await LyricsManager.initialize(apiSettings);
     await HiFiClient.initialize();
 
-    const api: LosslessAPI = MusicAPI.instance.tidalAPI;
+    const api = MusicAPI.instance.tidalAPI;
 
     async function downloadTrack(trackId: number, quality: string) {
-        const track = await (await HiFiClient.instance.getInfo(trackId)).json();
+        const track = (await (await HiFiClient.instance.getInfo(trackId)).json()) as { data: Track };
         return await api.downloadTrack(trackId.toString(), quality, undefined, {
             track: track.data,
             triggerDownload: false,
@@ -276,7 +274,9 @@ suite('Track Downloads', async () => {
             ffmpegCalls: 1,
         },
     ])('$display_quality', async ({ quality, container, preferDolbyAtmos, trackId, detection, ffmpegCalls }) => {
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         vi.mocked(preferDolbyAtmosSettings.isEnabled).mockReturnValue(preferDolbyAtmos);
+        // eslint-disable-next-line @typescript-eslint/unbound-method
         vi.mocked(losslessContainerSettings.getContainer).mockReturnValue(container);
 
         const blob = await downloadTrack(trackId, quality);
@@ -286,7 +286,6 @@ suite('Track Downloads', async () => {
 
         expect(file.isValid).toBe(true);
 
-        let trak: Mp4Atom | null = null;
         let stsd: Mp4Atom | null = null;
         let stsdData: ByteVector | null = null;
 
@@ -313,13 +312,13 @@ suite('Track Downloads', async () => {
                 trak = null;
             }
             expect(trak).toBeInstanceOf(Mp4Atom);
-            stsd = trak!.find('mdia', 'minf', 'stbl', 'stsd');
+            stsd = trak.find('mdia', 'minf', 'stbl', 'stsd');
             expect(stsd).toBeInstanceOf(Mp4Atom);
             await stream.seek(stsd.offset);
             stsdData = await stream.readBlock(stsd.length);
         }
 
-        stream.seek(streamPosition);
+        await stream.seek(streamPosition);
 
         switch (detection) {
             case Detection.DolbyAtmos: {
