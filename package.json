@@ -10,7 +10,7 @@
         "test:watch": "vitest --config=vite.config.ts",
         "test:watch:headless": "HEADLESS=true vitest --config=vite.config.ts",
         "install:playwright": "playwright install chromium",
-        "build": "vite build",
+        "build": "vite build && vite-bundle-visualizer -o dist/assets/bundle-stats.html --open false",
         "postbuild": "node -e \"const fs = require('fs'); const path = require('path'); const src = 'extensions'; const dest = path.join('dist', 'Monochrome', 'extensions'); if (fs.existsSync(src)) { fs.mkdirSync(dest, { recursive: true }); fs.cpSync(src, dest, { recursive: true }); console.log('Extensions manually copied to ' + dest); }\"",
         "preview": "vite preview",
         "lint:js": "eslint .",
@@ -49,6 +49,7 @@
         "stylelint-config-standard-scss": "^16.0.0",
         "typescript": "^5.9.3",
         "vite": "^7.3.1",
+        "vite-bundle-visualizer": "^1.2.1",
         "vite-plugin-pwa": "^1.2.0"
     },
     "overrides": {
