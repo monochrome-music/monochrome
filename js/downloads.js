@@ -17,10 +17,10 @@ import { ZipStreamWriter, ZipBlobWriter, FolderPickerWriter, SequentialFileWrite
 import { FfmpegProgress } from './ffmpeg.types.js';
 import { DownloadProgress, ProgressMessage, SegmentedDownloadProgress } from './progressEvents.js';
 import { db } from './db.js';
-import { modernSettings } from './ModernSettings.js';
+import { BulkDownloadMethod, modernSettings } from './ModernSettings.js';
 import { SVG_CLOSE } from './icons.ts';
-import { LyricsManager } from './lyrics.js';
 import { MusicAPI } from './music-api.js';
+import { LyricsManager } from './lyrics.js';
 
 const downloadTasks = new Map();
 const bulkDownloadTasks = new Map();
@@ -167,7 +167,7 @@ export function showNotification(message) {
     }, 1500);
 }
 
-export function addDownloadTask(trackId, track, filename, api, abortController) {
+export function addDownloadTask(trackId, track, _filename, api, abortController) {
     const container = createDownloadNotification();
 
     const taskEl = document.createElement('div');
@@ -508,7 +508,7 @@ async function createSingleTrackFolderWriter() {
     const method = modernSettings.bulkDownloadMethod;
     const hasFolderPicker = 'showDirectoryPicker' in window;
 
-    if (method === 'local') {
+    if (method === BulkDownloadMethod.LocalMedia) {
         const localHandle = await db.getSetting('local_folder_handle');
         if (hasFolderPicker && localHandle && typeof localHandle.requestPermission === 'function') {
             try {
@@ -521,7 +521,7 @@ async function createSingleTrackFolderWriter() {
         return null;
     }
 
-    if (method === 'folder' && hasFolderPicker) {
+    if (method === BulkDownloadMethod.Folder && hasFolderPicker) {
         const rememberFolder = modernSettings.rememberBulkDownloadFolder;
         const savedHandle = rememberFolder ? await db.getSetting('bulk_download_folder_handle') : null;
         // Try to reuse the saved handle silently first.
@@ -564,7 +564,7 @@ async function createBulkWriter(folderName) {
     const hasFolderPicker = 'showDirectoryPicker' in window;
 
     // ── Local Media Folder method ────────────────────────────────────────────
-    if (method === 'local') {
+    if (method === BulkDownloadMethod.LocalMedia) {
         const localHandle = await db.getSetting('local_folder_handle');
         if (hasFolderPicker) {
             // Browser mode: try to reuse the stored handle with write permission
@@ -594,7 +594,7 @@ async function createBulkWriter(folderName) {
     }
 
     // ── Folder Picker method ─────────────────────────────────────────────────
-    if (method === 'folder' && hasFolderPicker) {
+    if (method === BulkDownloadMethod.Folder && hasFolderPicker) {
         const rememberFolder = modernSettings.rememberBulkDownloadFolder;
         const savedHandle = rememberFolder ? await db.getSetting('bulk_download_folder_handle') : null;
         try {
@@ -614,7 +614,7 @@ async function createBulkWriter(folderName) {
         }
     }
 
-    if (method === 'individual') {
+    if (method === BulkDownloadMethod.Individual) {
         return SequentialFileWriter;
     }
     // method === 'zip' (or folder picker unavailable as fallback)
@@ -659,7 +659,7 @@ async function startBulkDownload({
         completeBulkDownload(notification, true);
 
         // If the download went to the local media folder, refresh the local library.
-        if (modernSettings.bulkDownloadMethod === 'local') {
+        if (modernSettings.bulkDownloadMethod === BulkDownloadMethod.LocalMedia) {
             window.refreshLocalMediaFolder?.();
         }
     } catch (error) {
@@ -672,7 +672,7 @@ async function startBulkDownload({
     }
 }
 
-export async function downloadTracks(tracks, api, quality, lyricsManager = null) {
+export async function downloadTracks(tracks, api, quality, _lyricsManager = null) {
     const folderName = `Queue - ${new Date().toISOString().slice(0, 10)}`;
     await startBulkDownload({
         tracks,
@@ -687,7 +687,7 @@ export async function downloadTracks(tracks, api, quality, lyricsManager = null)
     });
 }
 
-export async function downloadAlbum(album, tracks, api, quality, lyricsManager = null) {
+export async function downloadAlbum(album, tracks, api, quality, _lyricsManager = null) {
     const releaseDateStr =
         album.releaseDate || (tracks[0]?.streamStartDate ? tracks[0].streamStartDate.split('T')[0] : '');
     const releaseDate = releaseDateStr ? new Date(releaseDateStr) : null;
@@ -712,7 +712,7 @@ export async function downloadAlbum(album, tracks, api, quality, lyricsManager =
     });
 }
 
-export async function downloadPlaylist(playlist, tracks, api, quality, lyricsManager = null) {
+export async function downloadPlaylist(playlist, tracks, api, quality, _lyricsManager = null) {
     const folderName = formatPathTemplate(modernSettings.folderTemplate, {
         albumTitle: playlist.title,
         albumArtist: 'Playlist',
@@ -1120,7 +1120,7 @@ export async function downloadTrackWithMetadata(
         // If the target is the local media folder, do a cheap partial update:
         // pass the downloaded blob and base filename so only this one track's metadata
         // is read and inserted into localFilesCache instead of re-walking the whole folder.
-        if (modernSettings.bulkDownloadMethod === 'local') {
+        if (modernSettings.bulkDownloadMethod === BulkDownloadMethod.LocalMedia) {
             window.refreshLocalMediaFolder?.(blob, finalFilename);
         }
 
@@ -1136,7 +1136,7 @@ export async function downloadTrackWithMetadata(
     }
 }
 
-export async function downloadLikedTracks(tracks, api, quality, lyricsManager = null) {
+export async function downloadLikedTracks(tracks, api, quality, _lyricsManager = null) {
     const folderName = `Liked Tracks - ${new Date().toISOString().slice(0, 10)}`;
     await startBulkDownload({
         tracks,

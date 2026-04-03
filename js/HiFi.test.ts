@@ -1,11 +1,12 @@
-import { expect, suite, test } from 'vitest';
+import { expect, test } from 'vitest';
 import { HiFiClient, TidalResponse } from './HiFi';
+import type { Album, PlaybackInfo, Track } from './container-classes';
 
 const ARTIST_ID = 3523908; // deadmau5
 const ALBUM_ID = 433360012; // deadmau5 - 4x4=12
-const ALBUM_ATMOS = 463900719; // Taylor Swift - The Life of a Showgirl
+const _ALBUM_ATMOS = 463900719; // Taylor Swift - The Life of a Showgirl
 const TRACK_ATMOS = 463900720; // Taylor Swift - The Fate of Ophelia
-const TRACK_NO_LOSSLESS = 31097959; // deadmau5 - while(1<2)
+const _TRACK_NO_LOSSLESS = 31097959; // deadmau5 - while(1<2)
 const TRACK_VIDEO = 466464180; // Taylow Swift - The Fate of Ophelia
 const TRACK_LOSSLESS = 31097949; // deadmau5 - Avaritia
 const PLAYLIST_ID = '36ea71a8-445e-41a4-82ab-6628c581535d'; // Pop Hits
@@ -19,25 +20,25 @@ function checkVersion({ version }: { version?: string }) {
     expect(version).equals(HiFiClient.API_VERSION);
 }
 
-async function getJson(res: Response | Promise<Response>) {
+async function _getJson(res: Response | Promise<Response>) {
     res = await res;
     expect(res).toBeInstanceOf(Response);
     expect(res.ok).toBeTruthy();
-    return await res.json();
+    return (await res.json()) as object;
 }
 
 async function checkRoute(
     route: string,
-    routeResult: () => Promise<any>,
-    checks: (data: any) => Promise<void>,
+    routeResult: () => Promise<Response>,
+    checks: (data: object) => Promise<void>,
     mainKey: string | null = 'data'
 ) {
     const routeData = await instance.query(route);
-    const routeRes = await routeResult();
+    const routeRes = (await routeResult()) as unknown;
     expect(routeData).toBeInstanceOf(TidalResponse);
     expect(routeData).toEqual(routeRes);
 
-    const json = await routeData.json();
+    const json = (await routeData.json()) as object;
     checkVersion(json);
 
     if (mainKey != null) {
@@ -71,7 +72,7 @@ test('Fetch atmos track info', async () => {
     await checkRoute(
         `/info/?id=${TRACK_ATMOS}`,
         () => instance.getInfo(TRACK_ATMOS),
-        async (info) => {
+        async (info: { data: Track }) => {
             expect(info.data.audioModes).toContain('DOLBY_ATMOS');
         }
     );
@@ -81,8 +82,8 @@ test('Fetch track', async () => {
     await checkRoute(
         `/track/?id=${TRACK_LOSSLESS}`,
         () => instance.getTrack(TRACK_LOSSLESS),
-        async (track) => {
-            expect(track.data.trackId).toBe(TRACK_LOSSLESS);
+        async (track: { data: PlaybackInfo }) => {
+            expect(track?.data?.trackId).toBe(TRACK_LOSSLESS);
             expect(track.data.assetPresentation).toBeTypeOf('string');
             expect(track.data.audioQuality).toBeTypeOf('string');
             expect(track.data.manifestMimeType).toBeTypeOf('string');
@@ -102,7 +103,7 @@ test.skipIf(!instance.refreshToken)('Fetch recommendations', async () => {
     await checkRoute(
         `/recommendations/?id=${ARTIST_ID}`,
         () => instance.getRecommendations(ARTIST_ID),
-        async (rec) => {}
+        async (_data) => {}
     );
 });
 
@@ -110,7 +111,7 @@ test('Fetch similar artists', async () => {
     await checkRoute(
         `/artist/similar/?id=${ARTIST_ID}`,
         () => instance.getSimilarArtists(ARTIST_ID),
-        async (rec) => {},
+        async (_data) => {},
         'artists'
     );
 });
@@ -119,7 +120,7 @@ test('Fetch similar albums', async () => {
     await checkRoute(
         `/album/similar/?id=${ALBUM_ID}`,
         () => instance.getSimilarAlbums(ALBUM_ID),
-        async (rec) => {},
+        async (_data) => {},
         'albums'
     );
 });
@@ -128,7 +129,7 @@ test('Fetch artist info', async () => {
     await checkRoute(
         `/artist/?id=${ARTIST_ID}`,
         () => instance.getArtist(ARTIST_ID),
-        async (info) => {
+        async (info: { cover: string }) => {
             expect(info).toHaveProperty('cover');
             expect(info.cover).not.toBeUndefined();
         },
@@ -144,7 +145,7 @@ test('Search', async () => {
             instance.search({
                 q: query,
             }),
-        async (res) => {}
+        async (_res) => {}
     );
 });
 
@@ -152,7 +153,7 @@ test('Fetch album info', async () => {
     await checkRoute(
         `/album/?id=${ALBUM_ID}`,
         () => instance.getAlbum(ALBUM_ID),
-        async (info) => {
+        async (info: { data: Album }) => {
             expect(info.data).toHaveProperty('cover');
             expect(info.data.cover).not.toBeUndefined();
         }
@@ -163,7 +164,7 @@ test('Fetch playlist info', async () => {
     await checkRoute(
         `/playlist/?id=${PLAYLIST_ID}`,
         () => instance.getPlaylist(PLAYLIST_ID),
-        async (info) => {
+        async (info: { playlist: { image: string } }) => {
             expect(info.playlist).toHaveProperty('image');
             expect(info.playlist.image).not.toBeUndefined();
         },
@@ -175,7 +176,7 @@ test.skipIf(!instance.refreshToken)('Fetch lyrics ', async () => {
     await checkRoute(
         `/lyrics/?id=${TRACK_ATMOS}`,
         () => instance.getLyrics(TRACK_ATMOS),
-        async (info) => {},
+        async (_info) => {},
         'lyrics'
     );
 });
@@ -184,7 +185,7 @@ test('Fetch video ', async () => {
     await checkRoute(
         `/video/?id=${TRACK_VIDEO}`,
         () => instance.getVideo(TRACK_VIDEO),
-        async (info) => {},
+        async (_info) => {},
         'video'
     );
 });
@@ -193,7 +194,7 @@ test('Fetch track manifests ', async () => {
     await checkRoute(
         `/trackManifests/?id=${TRACK_LOSSLESS}`,
         () => instance.getTrackManifest(TRACK_LOSSLESS),
-        async (info) => {},
+        async (_info) => {},
         'data'
     );
 });

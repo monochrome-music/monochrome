@@ -2653,18 +2653,18 @@ export const fontSettings = {
         document.documentElement.style.setProperty('--font-family', "'SF Pro Display', sans-serif");
     },
 
-    applyFont() {
+    async applyFont() {
         const config = this.getConfig();
 
         switch (config.type) {
             case 'google':
-                this.loadGoogleFont(config.family);
+                await this.loadGoogleFont(config.family);
                 break;
             case 'url':
-                this.loadFontFromUrl(config.url, config.family);
+                await this.loadFontFromUrl(config.url, config.family);
                 break;
             case 'uploaded':
-                this.loadUploadedFont(config.fontId);
+                await this.loadUploadedFont(config.fontId);
                 break;
             case 'preset':
             default:

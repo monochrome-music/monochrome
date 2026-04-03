@@ -125,7 +125,7 @@ export class KawarpPreset {
         if (this.kawarp) this.kawarp.resize();
     }
 
-    draw(ctx, canvas, analyser, dataArray, stats) {
+    draw(_ctx, canvas, analyser, _dataArray, stats) {
         if (!this.kawarp || !this.isInitialized) return;
 
         this._ensureStarted();

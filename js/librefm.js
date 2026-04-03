@@ -216,8 +216,8 @@ export class LibreFmScrobbler {
     scheduleScrobble(delay) {
         this.clearScrobbleTimer();
 
-        this.scrobbleTimer = setTimeout(() => {
-            this.scrobbleCurrentTrack();
+        this.scrobbleTimer = setTimeout(async () => {
+            await this.scrobbleCurrentTrack();
         }, delay);
     }
 
@@ -282,9 +282,9 @@ export class LibreFmScrobbler {
         }
     }
 
-    onTrackChange(track) {
+    async onTrackChange(track) {
         if (!this.isAuthenticated()) return;
-        this.updateNowPlaying(track);
+        await this.updateNowPlaying(track);
     }
 
     onPlaybackStop() {

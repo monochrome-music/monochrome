@@ -280,7 +280,7 @@ function renderTrackerTracks(container, tracks) {
 }
 
 // Create project card HTML - EXACTLY like album cards
-export function createProjectCardHTML(era, artist, sheetId, trackCount) {
+export function createProjectCardHTML(era, _artist, sheetId, trackCount) {
     const playBtnHTML = `
         <button class="play-btn card-play-btn" data-action="play-card" data-type="tracker-project" data-id="${encodeURIComponent(era.name)}" title="Play">
             ${SVG_PLAY(20)}
