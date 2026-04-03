@@ -1,0 +1,17 @@
+# Editors Picks — album IDs (one per line)
+# Optional: add a label for this set with "# label: ..."
+# Lines starting with # are ignored.
+# label: Spring 2026
+
+324660713
+15427733
+464178301
+75115890
+410197513
+418729278
+504004321
+510893864
+325723583
+336178142
+106369871
+423471869

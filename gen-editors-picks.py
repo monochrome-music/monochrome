@@ -2,22 +2,10 @@
 
 import urllib.request
 import json
+import re
 import sys
 
-ALBUMS = [
-    324660713,
-    15427733,
-    464178301,
-    75115890,
-    410197513,
-    418729278,
-    504004321,
-    510893864,
-    325723583,
-    336178142,
-    106369871,
-    423471869,
-]
+INPUT_FILE = "editors-picks-input.txt"
 
 TOKEN = "eyJraWQiOiJ2OU1GbFhqWSIsImFsZyI6IkVTMjU2In0.eyJ0eXBlIjoibzJfYWNjZXNzIiwic2NvcGUiOiIiLCJnVmVyIjowLCJzVmVyIjowLCJjaWQiOjEzNTU3LCJhdCI6IklOVEVSTkFMIiwiZXhwIjoxNzc1MTI4ODUzLCJpc3MiOiJodHRwczovL2F1dGgudGlkYWwuY29tL3YxIn0.qRoN8BRLM3R5WAXM3kS2hkWyaGk5tWF0FaHWJmkrWNvI48hKyS9lhVOTSnP1XkFEfdXv6aTzGUNUewyp-O_d3w"
 
@@ -25,6 +13,19 @@ HEADERS = {
     "accept": "*/*",
     "authorization": f"Bearer {TOKEN}",
 }
+
+def read_album_ids(path):
+    ids = []
+    with open(path) as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            try:
+                ids.append(int(line))
+            except ValueError:
+                print(f"Skipping invalid ID: {line!r}", file=sys.stderr)
+    return ids
 
 def fetch_album(album_id):
     url = f"https://api.tidal.com/v1/albums/{album_id}?countryCode=US"
@@ -52,8 +53,10 @@ def transform_album(api_data):
         "mediaMetadata": api_data.get("mediaMetadata"),
     }
 
+albums = read_album_ids(INPUT_FILE)
+
 picks = []
-for album_id in ALBUMS:
+for album_id in albums:
     data = fetch_album(album_id)
     if data:
         picks.append(transform_album(data))
