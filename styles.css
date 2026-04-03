@@ -8847,7 +8847,6 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 
 .legacy-eq-slider {
     appearance: none;
-    appearance: none;
     writing-mode: vertical-lr;
     direction: rtl;
     background: transparent;
@@ -8867,7 +8866,6 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 }
 
 .legacy-eq-slider::-webkit-slider-thumb {
-    appearance: none;
     appearance: none;
     width: 14px;
     height: 14px;
