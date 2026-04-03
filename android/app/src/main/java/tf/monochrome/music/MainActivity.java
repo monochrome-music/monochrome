@@ -8,7 +8,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import com.getcapacitor.BridgeActivity;
-import com.monochrome.android.MusicService;
 
 public class MainActivity extends BridgeActivity {
 
@@ -47,7 +46,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
-    protected void onDestroy() {
+    public void onDestroy() {
         if (serviceBound) {
             if (musicService != null) musicService.detachWebView();
             unbindService(serviceConnection);

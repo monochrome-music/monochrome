@@ -25,7 +25,7 @@
             </intent-filter>
         </activity>
 
-        <service android:name="com.monochrome.android.MusicService"
+        <service android:name=".MusicService"
             android:foregroundServiceType="mediaPlayback"
             android:exported="true">
             <intent-filter>
