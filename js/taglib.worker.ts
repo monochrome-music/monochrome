@@ -90,9 +90,11 @@ export async function addMetadataToAudio(message: _AddMetadataMessage): Promise<
         const props = ref.properties();
 
         if (title) props.replace('TITLE', [title]);
-        if (artistArray.length) props.replace('ARTIST', supportsMultiValuedArtist ? artistArray : [artistArray.join('; ')]);
+        if (artistArray.length)
+            props.replace('ARTIST', supportsMultiValuedArtist ? artistArray : [artistArray.join('; ')]);
         if (albumTitle) props.replace('ALBUM', [albumTitle]);
-        if (albumArtist || artistArray.length) props.replace('ALBUMARTIST', albumArtist ? [albumArtist] : [artistArray.join('; ')]);
+        if (albumArtist || artistArray.length)
+            props.replace('ALBUMARTIST', albumArtist ? [albumArtist] : [artistArray.join('; ')]);
 
         if (trackNumber) {
             const trackStr =
