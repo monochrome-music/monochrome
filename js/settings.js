@@ -36,7 +36,7 @@ import {
     modalSettings,
     preferDolbyAtmosSettings,
 } from './storage.js';
-import { audioContextManager, getPresetsForBandCount } from './audio-context.js';
+import { audioContextManager, getPresetsForBandCount, EQ_PRESETS_16 } from './audio-context.js';
 import { calculateBiquadResponse, interpolate, getNormalizationOffset, runAutoEqAlgorithm } from './autoeq-engine.js';
 import { parseRawData, TARGETS, SPEAKER_TARGETS } from './autoeq-data.js';
 import { fetchAutoEqIndex, fetchHeadphoneData, searchHeadphones, POPULAR_HEADPHONES } from './autoeq-importer.js';
@@ -1244,6 +1244,28 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     // Parametric EQ State (separate from AutoEQ, kept when switching modes)
     let parametricBands = null;
 
+    // Legacy EQ State (16 fixed bands)
+    const LEGACY_FREQUENCIES = [25, 40, 63, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000, 16000, 20000];
+    const LEGACY_LABELS = [
+        '25',
+        '40',
+        '63',
+        '100',
+        '160',
+        '250',
+        '400',
+        '630',
+        '1K',
+        '1.6K',
+        '2.5K',
+        '4K',
+        '6.3K',
+        '10K',
+        '16K',
+        '20K',
+    ];
+    let legacyGains = new Array(16).fill(0);
+
     // Interactive graph state
     let draggedNode = null;
     let hoveredNode = null;
@@ -1853,17 +1875,8 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     // Interactive Graph Mouse/Touch Handlers
     // ========================================
     if (autoeqCanvas) {
-        autoeqCanvas.addEventListener('mousedown', (e) => {
-            const coords = getCanvasCoords(e);
-            const nodeIdx = findClosestNode(coords.x, coords.y, 18);
-            if (nodeIdx >= 0) {
-                draggedNode = nodeIdx;
-                autoeqCanvas.style.cursor = 'grabbing';
-                e.preventDefault();
-            }
-        });
-
-        autoeqCanvas.addEventListener('mousemove', (e) => {
+        // Shared drag-move logic used by both canvas mousemove and document mousemove
+        const handleDragMove = (e) => {
             const coords = getCanvasCoords(e);
             const bands = getActiveBands();
             if (draggedNode !== null && bands) {
@@ -1903,21 +1916,56 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                         graphAnimFrame = null;
                     });
                 }
+                return true; // drag was handled
+            }
+            return false;
+        };
+
+        // Document-level handlers for dragging outside the canvas
+        const onDocumentMouseMove = (e) => {
+            handleDragMove(e);
+        };
+        const onDocumentMouseUp = () => {
+            draggedNode = null;
+            autoeqCanvas.style.cursor = hoveredNode >= 0 ? 'grab' : 'crosshair';
+            document.removeEventListener('mousemove', onDocumentMouseMove);
+            document.removeEventListener('mouseup', onDocumentMouseUp);
+        };
+
+        autoeqCanvas.addEventListener('mousedown', (e) => {
+            const coords = getCanvasCoords(e);
+            let nodeIdx = findClosestNode(coords.x, coords.y, 18);
+            // If no node within threshold, snap the nearest node (any distance) to the click
+            if (nodeIdx < 0) {
+                nodeIdx = findClosestNode(coords.x, coords.y, Infinity);
+            }
+            if (nodeIdx >= 0) {
+                draggedNode = nodeIdx;
+                autoeqCanvas.style.cursor = 'grabbing';
+                // Attach document-level listeners so drag continues outside canvas
+                document.addEventListener('mousemove', onDocumentMouseMove);
+                document.addEventListener('mouseup', onDocumentMouseUp);
+                e.preventDefault();
+            }
+        });
+
+        autoeqCanvas.addEventListener('mousemove', (e) => {
+            if (handleDragMove(e)) return;
+            // Hover logic (only when not dragging)
+            const coords = getCanvasCoords(e);
+            const padLeft = 40;
+            if (coords.x <= padLeft + 10) {
+                autoeqCanvas.style.cursor = 'ns-resize';
+                if (hoveredNode !== null) {
+                    hoveredNode = null;
+                    drawAutoEQGraph();
+                }
             } else {
-                const padLeft = 40;
-                if (coords.x <= padLeft + 10) {
-                    autoeqCanvas.style.cursor = 'ns-resize';
-                    if (hoveredNode !== null) {
-                        hoveredNode = null;
-                        drawAutoEQGraph();
-                    }
-                } else {
-                    const newHovered = findClosestNode(coords.x, coords.y, 18);
-                    if (newHovered !== hoveredNode) {
-                        hoveredNode = newHovered;
-                        autoeqCanvas.style.cursor = hoveredNode >= 0 ? 'grab' : 'crosshair';
-                        drawAutoEQGraph();
-                    }
+                const newHovered = findClosestNode(coords.x, coords.y, 18);
+                if (newHovered !== hoveredNode) {
+                    hoveredNode = newHovered;
+                    autoeqCanvas.style.cursor = hoveredNode >= 0 ? 'grab' : 'crosshair';
+                    drawAutoEQGraph();
                 }
             }
         });
@@ -1928,10 +1976,12 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         });
 
         autoeqCanvas.addEventListener('mouseleave', () => {
-            draggedNode = null;
-            hoveredNode = null;
-            autoeqCanvas.style.cursor = 'crosshair';
-            drawAutoEQGraph();
+            // Only clear hover state on leave; drag continues via document listeners
+            if (draggedNode === null) {
+                hoveredNode = null;
+                autoeqCanvas.style.cursor = 'crosshair';
+                drawAutoEQGraph();
+            }
         });
 
         autoeqCanvas.addEventListener('dblclick', (e) => {
@@ -2196,6 +2246,54 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             });
         });
     };
+
+    // ========================================
+    // Legacy EQ Renderer (16-band graphic EQ)
+    // ========================================
+    const renderLegacyEQ = () => {
+        const container = document.getElementById('legacy-eq-sliders');
+        if (!container) return;
+        container.innerHTML = '';
+
+        LEGACY_FREQUENCIES.forEach((freq, i) => {
+            const band = document.createElement('div');
+            band.className = 'legacy-eq-band';
+            band.innerHTML = `
+                <span class="legacy-eq-gain-label" id="legacy-gain-label-${i}">${legacyGains[i] > 0 ? '+' : ''}${legacyGains[i].toFixed(1)}</span>
+                <input type="range" class="legacy-eq-slider" id="legacy-slider-${i}"
+                    min="-12" max="12" step="0.1" value="${legacyGains[i]}"
+                    orient="vertical" />
+                <span class="legacy-eq-freq-label">${LEGACY_LABELS[i]}</span>
+            `;
+            container.appendChild(band);
+
+            const slider = band.querySelector('.legacy-eq-slider');
+            const label = band.querySelector('.legacy-eq-gain-label');
+            slider.addEventListener('input', () => {
+                const val = parseFloat(slider.value);
+                legacyGains[i] = val;
+                label.textContent = `${val > 0 ? '+' : ''}${val.toFixed(1)}`;
+                audioContextManager.setBandGain(i, val);
+                // Reset preset dropdown to indicate custom
+                const presetSelect = document.getElementById('legacy-eq-preset');
+                if (presetSelect) presetSelect.value = '';
+            });
+        });
+    };
+
+    // Legacy EQ preset handler
+    const legacyPresetSelect = document.getElementById('legacy-eq-preset');
+    if (legacyPresetSelect) {
+        legacyPresetSelect.addEventListener('change', () => {
+            const key = legacyPresetSelect.value;
+            if (!key) return;
+            const preset = EQ_PRESETS_16[key];
+            if (!preset) return;
+            legacyGains = [...preset.gains];
+            audioContextManager.setAllGains(legacyGains);
+            renderLegacyEQ();
+        });
+    }
 
     // ========================================
     // EQ Toggle + Container Visibility
@@ -3090,6 +3188,8 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
     const speakerSection = document.getElementById('speaker-eq-section');
 
+    const legacyEqSection = document.getElementById('legacy-eq-section');
+
     const setEQMode = (mode) => {
         currentMode = mode;
         localStorage.setItem(EQ_MODE_KEY, mode);
@@ -3109,8 +3209,8 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         draggedNode = null;
         hoveredNode = null;
 
-        // Graph always visible in all modes
-        if (graphSection) graphSection.style.display = '';
+        // Graph visible in all modes except legacy
+        if (graphSection) graphSection.style.display = mode === 'legacy' ? 'none' : '';
         // Only show shared AutoEq button in AutoEQ mode
         if (autoeqRunBtn) autoeqRunBtn.style.display = mode === 'autoeq' ? '' : 'none';
 
@@ -3123,8 +3223,16 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         if (parametricProfiles) parametricProfiles.style.display = 'none';
         if (speakerSection) speakerSection.style.display = 'none';
         if (speakerSavedSection) speakerSavedSection.style.display = 'none';
+        if (legacyEqSection) legacyEqSection.style.display = 'none';
 
-        if (mode === 'autoeq') {
+        if (mode === 'legacy') {
+            if (legacyEqSection) legacyEqSection.style.display = '';
+            renderLegacyEQ();
+            // Apply legacy EQ gains via the audioContextManager fixed-band system
+            audioContextManager.setBandCount(16);
+            const savedGains = legacyGains;
+            audioContextManager.setAllGains(savedGains);
+        } else if (mode === 'autoeq') {
             if (controlsSection) controlsSection.style.display = '';
             if (savedSection) savedSection.style.display = '';
             if (databaseSection) databaseSection.style.display = '';
@@ -4506,7 +4614,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
     // Restore EQ mode on startup
     const savedEQMode = localStorage.getItem(EQ_MODE_KEY);
-    if (savedEQMode && ['autoeq', 'parametric', 'speaker'].includes(savedEQMode)) {
+    if (savedEQMode && ['legacy', 'autoeq', 'parametric', 'speaker'].includes(savedEQMode)) {
         setEQMode(savedEQMode);
     }
 
