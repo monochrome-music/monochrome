@@ -1,7 +1,7 @@
 // functions/unreleased/[sheetId]/[projectName].js
 
 const ARTISTS_NDJSON_URL = 'https://assets.artistgrid.cx/artists.ndjson';
-const ASSETS_BASE_URL = 'https://assets.artistgrid.cx';
+const _ASSETS_BASE_URL = 'https://assets.artistgrid.cx';
 const TRACKER_API_ENDPOINTS = [
     'https://trackerapi-1.artistgrid.cx/get/',
     'https://trackerapi-2.artistgrid.cx/get/',
@@ -14,7 +14,7 @@ function getSheetId(url) {
     return match ? match[1] : null;
 }
 
-function normalizeArtistName(name) {
+function _normalizeArtistName(name) {
     return name.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
@@ -62,7 +62,7 @@ async function fetchTrackerData(sheetId) {
             }
             return data;
         } catch (e) {
-            console.warn(`Failed to fetch from ${baseUrl}, trying next...`);
+            console.warn(`Failed to fetch from ${baseUrl}, trying next...`, e);
         }
     }
     return null;

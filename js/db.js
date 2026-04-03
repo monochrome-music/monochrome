@@ -783,7 +783,6 @@ export class MusicDatabase {
                     }
 
                     // Return lightweight copy without tracks
-                    // eslint-disable-next-line no-unused-vars
                     const { tracks, ...minified } = playlist;
                     return minified;
                 });

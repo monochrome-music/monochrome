@@ -5,10 +5,7 @@ import {
     delay,
     isTrackUnavailable,
     getExtensionFromBlob,
-    getTrackTitle,
-    getFullArtistString,
     getTrackDiscNumber,
-    getMimeType,
 } from './utils.js';
 import { preferDolbyAtmosSettings, trackDateSettings } from './storage.js';
 import { APICache } from './cache.js';
@@ -36,7 +33,6 @@ import {
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 export { resolveDownloadTotalBytes };
-const TIDAL_V2_TOKEN = 'txNoH4kkV41MfH25';
 
 export class LosslessAPI {
     constructor(settings) {
@@ -48,8 +44,8 @@ export class LosslessAPI {
         this.streamCache = new Map();
 
         setInterval(
-            () => {
-                this.cache.clearExpired();
+            async () => {
+                await this.cache.clearExpired();
                 this.pruneStreamCache();
             },
             1000 * 60 * 5
@@ -492,7 +488,7 @@ export class LosslessAPI {
             await this.cache.set('search_all', query, results);
 
             return results;
-        } catch (error) {
+        } catch (_error) {
             // Fallback to individual searches if the backend proxy doesn't support ?q= or throws
             const [tracks, videos, artists, albums, playlists] = await Promise.all([
                 this.searchTracks(query, options).catch(() => ({ items: [] })),
@@ -1558,7 +1554,7 @@ export class LosslessAPI {
             } else {
                 throw new Error('No URI in trackManifests response');
             }
-        } catch (err) {
+        } catch (_err) {
             // Fallback to /track endpoint
         }
 

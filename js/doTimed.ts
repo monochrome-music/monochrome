@@ -24,24 +24,30 @@ export function doTimedAsync<T, R = T extends Promise<T> ? Promise<T> : T>(
     throwError: boolean = false
 ): R {
     if (import.meta.env.DEV) {
-        return new Promise(async (resolve, reject) => {
-            const hiddenId = InvisibleCodec.encode(v7());
-            console.time(message + hiddenId);
-            try {
-                const output = await callback();
-                resolve(output);
-            } catch (err) {
-                console.error(`Error in timed operation "${message}":`, err);
-                if (throwError) {
-                    reject(err);
-                } else {
-                    resolve(undefined as R);
+        return new Promise((resolve, reject) => {
+            (async () => {
+                const hiddenId = InvisibleCodec.encode(v7());
+                console.time(message + hiddenId);
+                try {
+                    const output = await callback();
+                    resolve(output);
+                } catch (err) {
+                    console.error(`Error in timed operation "${message}":`, err);
+                    if (throwError) {
+                        if (err instanceof Error) {
+                            reject(err);
+                        } else {
+                            reject(new Error(String(err)));
+                        }
+                    } else {
+                        resolve(undefined as R);
+                    }
+                } finally {
+                    console.timeEnd(message + hiddenId);
                 }
-            } finally {
-                console.timeEnd(message + hiddenId);
-            }
+            })().catch(reject);
         }) as R;
     } else {
-        return callback() as R;
+        return callback();
     }
 }
