@@ -8846,7 +8846,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 }
 
 .legacy-eq-slider {
-    -webkit-appearance: none;
+    appearance: none;
     appearance: none;
     writing-mode: vertical-lr;
     direction: rtl;
@@ -8867,7 +8867,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 }
 
 .legacy-eq-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
+    appearance: none;
     appearance: none;
     width: 14px;
     height: 14px;
@@ -8875,7 +8875,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     background: var(--primary);
     cursor: pointer;
     border: none;
-    box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 4px rgb(0, 0, 0, 0.5);
     margin-left: -5px;
 }
 
@@ -8894,7 +8894,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     background: var(--primary);
     cursor: pointer;
     border: none;
-    box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 4px rgb(0, 0, 0, 0.5);
 }
 
 /* --- Speaker EQ --- */
