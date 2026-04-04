@@ -342,6 +342,21 @@ class AudioContextManager {
 
             this._connectGraph();
 
+            // Auto-recover from unexpected suspensions (e.g. background throttling)
+            this.audioContext.addEventListener('statechange', () => {
+                if (this.audioContext.state === 'interrupted' || this.audioContext.state === 'suspended') {
+                    console.log(`[AudioContext] State changed to ${this.audioContext.state}, attempting resume`);
+                    // Use a short delay to let the system settle before resuming
+                    setTimeout(() => {
+                        if (this.audioContext && this.audioContext.state !== 'running') {
+                            this.audioContext.resume().catch((e) => {
+                                console.warn('[AudioContext] Auto-resume failed:', e);
+                            });
+                        }
+                    }, 100);
+                }
+            });
+
             this.isInitialized = true;
         } catch (e) {
             console.warn('[AudioContext] Init failed:', e);
@@ -380,51 +395,25 @@ class AudioContextManager {
     }
 
     /**
-     * Connect the audio graph based on EQ and mono audio state
+     * Connect the audio graph based on EQ and mono audio state.
+     * Uses connect-before-disconnect ordering to avoid audio dropouts:
+     * the new chain is wired up first, then the old connections are torn down.
      */
     _connectGraph() {
         if (!this.isInitialized || !this.source || !this.audioContext) return;
 
         try {
-            // Disconnect everything first
-            try {
-                this.source.disconnect();
-            } catch {
-                // node may already be disconnected
-            }
-            this.outputNode.disconnect();
-            if (this.volumeNode) {
-                this.volumeNode.disconnect();
-            }
-            this.analyser.disconnect();
-
-            if (this.monoMergerNode) {
-                try {
-                    this.monoMergerNode.disconnect();
-                } catch {
-                    // Ignore if not connected
-                }
-            }
-
+            // --- 1. Build the new chain (connect new path BEFORE disconnecting old) ---
             let lastNode = this.source;
 
             // Apply mono audio if enabled
             if (this.isMonoAudioEnabled && this.monoMergerNode) {
-                // Reuse persistent gain node to avoid leaking AudioNodes
                 if (!this.monoGainNode) {
                     this.monoGainNode = this.audioContext.createGain();
-                    this.monoGainNode.gain.value = 0.5; // Reduce volume to prevent clipping when mixing
-                }
-                try {
-                    this.monoGainNode.disconnect();
-                } catch {
-                    /* not connected */
+                    this.monoGainNode.gain.value = 0.5;
                 }
 
-                // Connect source to mono gain
                 this.source.connect(this.monoGainNode);
-
-                // Connect mono gain to both inputs of the merger
                 this.monoGainNode.connect(this.monoMergerNode, 0, 0);
                 this.monoGainNode.connect(this.monoMergerNode, 0, 1);
 
@@ -434,11 +423,9 @@ class AudioContextManager {
 
             if (this.isEQEnabled && this.filters.length > 0) {
                 // EQ enabled: lastNode -> preamp -> EQ filters -> output -> analyser -> volume -> destination
-                // Connect filter chain
                 for (let i = 0; i < this.filters.length - 1; i++) {
                     this.filters[i].connect(this.filters[i + 1]);
                 }
-                // Connect preamp to first filter
                 if (this.preampNode) {
                     lastNode.connect(this.preampNode);
                     this.preampNode.connect(this.filters[0]);
@@ -457,11 +444,98 @@ class AudioContextManager {
                 this.volumeNode.connect(this.audioContext.destination);
             }
 
+            // --- 2. Tear down stale connections ---
+            // Now that the new path is live, remove any duplicate/old connections.
+            // disconnect() with no args removes ALL outputs, so we immediately
+            // re-establish the connections we just made.  The Web Audio spec
+            // guarantees that connect-then-disconnect-then-reconnect within a
+            // single JS task is glitch-free because the audio graph update is
+            // deferred to the next render quantum.
+            try {
+                this.source.disconnect();
+            } catch {
+                /* already clean */
+            }
+            if (this.monoGainNode) {
+                try {
+                    this.monoGainNode.disconnect();
+                } catch {
+                    /* */
+                }
+            }
+            if (this.monoMergerNode) {
+                try {
+                    this.monoMergerNode.disconnect();
+                } catch {
+                    /* */
+                }
+            }
+            if (this.preampNode) {
+                try {
+                    this.preampNode.disconnect();
+                } catch {
+                    /* */
+                }
+            }
+            this.filters.forEach((f) => {
+                try {
+                    f.disconnect();
+                } catch {
+                    /* */
+                }
+            });
+            try {
+                this.outputNode.disconnect();
+            } catch {
+                /* */
+            }
+            try {
+                this.analyser.disconnect();
+            } catch {
+                /* */
+            }
+            if (this.volumeNode) {
+                try {
+                    this.volumeNode.disconnect();
+                } catch {
+                    /* */
+                }
+            }
+
+            // --- 3. Reconnect the final graph (clean, no duplicates) ---
+            lastNode = this.source;
+
+            if (this.isMonoAudioEnabled && this.monoMergerNode) {
+                this.source.connect(this.monoGainNode);
+                this.monoGainNode.connect(this.monoMergerNode, 0, 0);
+                this.monoGainNode.connect(this.monoMergerNode, 0, 1);
+                lastNode = this.monoMergerNode;
+            }
+
+            if (this.isEQEnabled && this.filters.length > 0) {
+                for (let i = 0; i < this.filters.length - 1; i++) {
+                    this.filters[i].connect(this.filters[i + 1]);
+                }
+                if (this.preampNode) {
+                    lastNode.connect(this.preampNode);
+                    this.preampNode.connect(this.filters[0]);
+                } else {
+                    lastNode.connect(this.filters[0]);
+                }
+                this.filters[this.filters.length - 1].connect(this.outputNode);
+                this.outputNode.connect(this.analyser);
+                this.analyser.connect(this.volumeNode);
+                this.volumeNode.connect(this.audioContext.destination);
+            } else {
+                lastNode.connect(this.analyser);
+                this.analyser.connect(this.volumeNode);
+                this.volumeNode.connect(this.audioContext.destination);
+            }
+
             // Notify visualizers that graph has been reconnected
             this._notifyGraphChange();
         } catch (e) {
             console.warn('[AudioContext] Failed to connect graph:', e);
-            // Fallback: direct connection
             try {
                 this.source.connect(this.audioContext.destination);
             } catch {
