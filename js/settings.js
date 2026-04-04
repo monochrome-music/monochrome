@@ -1250,7 +1250,24 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
     // Legacy EQ State (16 fixed bands)
     const LEGACY_FREQUENCIES = [25, 40, 63, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000, 16000, 20000];
-    const LEGACY_LABELS = ['25', '40', '63', '100', '160', '250', '400', '630', '1K', '1.6K', '2.5K', '4K', '6.3K', '10K', '16K', '20K'];
+    const LEGACY_LABELS = [
+        '25',
+        '40',
+        '63',
+        '100',
+        '160',
+        '250',
+        '400',
+        '630',
+        '1K',
+        '1.6K',
+        '2.5K',
+        '4K',
+        '6.3K',
+        '10K',
+        '16K',
+        '20K',
+    ];
     let legacyGains = new Array(16).fill(0);
 
     // Interactive graph state
