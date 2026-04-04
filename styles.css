@@ -9913,3 +9913,33 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 .member-item:hover {
     transform: scale(1.02);
 }
+
+/* FUCK FLEX FUCK CSS FUCKKKKK */
+.about-contributors {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.about-contributors div {
+    width: calc(20% - 8px);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 30px;
+    text-align: center;
+    overflow: hidden;
+}
+
+.about-contributors img {
+    display: block;
+    margin: 0 auto 8px;
+}
+
+.about-contributors span {
+    color: var(--muted-foreground);
+    text-align: center;
+}
+
+.contrib {
+    font-size: 10px;
+}
