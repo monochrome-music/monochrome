@@ -127,6 +127,28 @@ async function loadDownloadsModule() {
     return downloadsModule;
 }
 
+async function fetchcontributors() {
+    const response = await fetch('https://api.samidy.com/api/contributors');
+    const data1 = await response.json();
+
+    const data = data1.filter(user => user.type !== 'Bot');
+
+    const con = document.querySelector(".about-contributors");
+
+    data.forEach(user => {
+        const userDIV = document.createElement("div");
+        userDIV.innerHTML = `
+        <a href="${user.html_url}" target="_blank">
+        <img src="${user.avatar_url}" alt="${user.login}" width="50" style="border-radius: 50%;">
+        <span>${user.login}</span>
+        <span class="contrib">Contributions: ${user.contributions}</span>
+        </a>
+        `;
+        con.appendChild(userDIV);
+    });
+}
+
+
 async function loadMetadataModule() {
     if (!metadataModule) {
         metadataModule = await import('./metadata.js');
@@ -470,6 +492,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Initialize tracker
     initTracker();
+
+    // Initialize Contributor List
+    fetchcontributors();
 
     const castBtn = document.getElementById('cast-btn');
     initializeCasting(audioPlayer, castBtn);
