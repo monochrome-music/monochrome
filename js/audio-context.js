@@ -451,14 +451,56 @@ class AudioContextManager {
             // guarantees that connect-then-disconnect-then-reconnect within a
             // single JS task is glitch-free because the audio graph update is
             // deferred to the next render quantum.
-            try { this.source.disconnect(); } catch { /* already clean */ }
-            if (this.monoGainNode) { try { this.monoGainNode.disconnect(); } catch { /* */ } }
-            if (this.monoMergerNode) { try { this.monoMergerNode.disconnect(); } catch { /* */ } }
-            if (this.preampNode) { try { this.preampNode.disconnect(); } catch { /* */ } }
-            this.filters.forEach((f) => { try { f.disconnect(); } catch { /* */ } });
-            try { this.outputNode.disconnect(); } catch { /* */ }
-            try { this.analyser.disconnect(); } catch { /* */ }
-            if (this.volumeNode) { try { this.volumeNode.disconnect(); } catch { /* */ } }
+            try {
+                this.source.disconnect();
+            } catch {
+                /* already clean */
+            }
+            if (this.monoGainNode) {
+                try {
+                    this.monoGainNode.disconnect();
+                } catch {
+                    /* */
+                }
+            }
+            if (this.monoMergerNode) {
+                try {
+                    this.monoMergerNode.disconnect();
+                } catch {
+                    /* */
+                }
+            }
+            if (this.preampNode) {
+                try {
+                    this.preampNode.disconnect();
+                } catch {
+                    /* */
+                }
+            }
+            this.filters.forEach((f) => {
+                try {
+                    f.disconnect();
+                } catch {
+                    /* */
+                }
+            });
+            try {
+                this.outputNode.disconnect();
+            } catch {
+                /* */
+            }
+            try {
+                this.analyser.disconnect();
+            } catch {
+                /* */
+            }
+            if (this.volumeNode) {
+                try {
+                    this.volumeNode.disconnect();
+                } catch {
+                    /* */
+                }
+            }
 
             // --- 3. Reconnect the final graph (clean, no duplicates) ---
             lastNode = this.source;
