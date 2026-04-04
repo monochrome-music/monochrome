@@ -7,7 +7,7 @@ export class APICache {
         this.dbName = 'monochrome-cache';
         this.dbVersion = 1;
         this.db = null;
-        this.initDB();
+        this.initDB().catch(console.error);
     }
 
     async initDB() {

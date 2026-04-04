@@ -1,0 +1,22 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
+        "lib": ["ESNext", "DOM", "DOM.Iterable", "webworker"],
+        "types": ["vite/client", "node", "@types/wicg-file-system-access"],
+        "baseUrl": ".",
+        "paths": {
+            "!/*": ["node_modules/*"]
+        },
+        "allowJs": true,
+        "checkJs": true,
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "verbatimModuleSyntax": true,
+        "skipLibCheck": true,
+        "noEmit": true
+    },
+    "include": ["**/*.ts", "*.ts", "**/*.js", "*.js"],
+    "exclude": ["**/node_modules/*"]
+}

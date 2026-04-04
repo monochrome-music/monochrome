@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { gzipSync, constants as zlibConstants } from 'zlib';
-import type { Plugin } from 'vite';
+import type { Plugin, ResolvedConfig } from 'vite';
 import mime from 'mime';
 import { createHash } from 'crypto';
 
@@ -26,10 +26,14 @@ function hashString(input: string, algorithm = 'sha256'): string {
  */
 export default function blobAssetPlugin(): Plugin {
     const devAssets = new Map<string, Buffer>();
+    let resolvedConfig: ResolvedConfig | null = null;
 
     return {
         name: 'vite-blob-asset',
 
+        async configResolved(config: ResolvedConfig) {
+            resolvedConfig = config;
+        },
         async load(id) {
             if (!id.includes('?blob-url')) return;
 
@@ -45,7 +49,7 @@ export default function blobAssetPlugin(): Plugin {
 
             let assetUrl: string;
 
-            if (this.meta.watchMode) {
+            if (resolvedConfig?.command === 'serve') {
                 /** dev server path */
                 assetUrl = `/@blob/${hashString(absPath)}/${path.basename(filepath)}.gz`;
                 devAssets.set(assetUrl, compressed);
@@ -106,7 +110,7 @@ export default function getBlobUrl() {
 
                 chunk.code = chunk.code.replace(
                     /"__BLOB_ASSET_(.*?)__"/g,
-                    (_, refId) => `"${this.getFileName(refId)}"`
+                    (_, refId: string) => `"${this.getFileName(refId)}"`
                 );
             }
         },

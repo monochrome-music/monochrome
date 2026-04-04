@@ -12,9 +12,9 @@ import { db } from './db';
  *
  * @template C The accumulated shape of the settings object.
  */
-class ModernSettings<C extends object = {}> {
+class ModernSettings<C extends object = object> {
     /** Internal map of pending async operations keyed by unique symbols. */
-    #pending: Record<symbol, Promise<any>> = {};
+    #pending: Record<symbol, Promise<void>> = {};
 
     /** Whether new properties are prevented from being added. */
     #finalized: boolean = false;
@@ -51,7 +51,7 @@ class ModernSettings<C extends object = {}> {
      * @param callback Function producing the promise to track.
      * @returns The created promise.
      */
-    #addPending<C extends Promise<any>>(callback: () => C): C {
+    #addPending<C extends Promise<void>>(callback: () => C): C {
         const sym = Symbol();
 
         return (this.#pending[sym] = callback().finally(() => {
@@ -145,14 +145,14 @@ class ModernSettings<C extends object = {}> {
                     const legacyValue = localStorage.getItem(legacy?.key ?? backingKey ?? key);
 
                     if (legacyValue !== null) {
-                        db.saveSetting(backingKey ?? key, legacy.transformer!(legacyValue));
+                        await db.saveSetting(backingKey ?? key, legacy.transformer(legacyValue));
                         localStorage.removeItem(legacy?.key ?? backingKey ?? key);
                     }
                 }
             }
 
             try {
-                value = (await db.getSetting(backingKey ?? key)) ?? defaultValue;
+                value = ((await db.getSetting(backingKey ?? key)) as T) ?? defaultValue;
             } catch {
                 value = defaultValue;
             }
@@ -162,7 +162,7 @@ class ModernSettings<C extends object = {}> {
             get: () => (getter ? getter(value, typed as ModernSettings<C> & C & Record<K, T>) : value),
             set: (newValue: T) => {
                 value = setter ? setter(newValue, typed as ModernSettings<C> & C & Record<K, T>) : newValue;
-                this.#addPending(() => db.saveSetting(backingKey ?? key, value));
+                void this.#addPending(() => db.saveSetting(backingKey ?? key, value));
             },
             enumerable: true,
         });
@@ -261,6 +261,7 @@ export const modernSettings = new ModernSettings()
             transformer: String,
         },
     })
+    .addProperty('writeArtistsSeparately', false)
     .finalize() as ModernSettings & {
     /** The last used directory handle for bulk downloads */
     bulkDownloadFolder: FileSystemDirectoryHandle | null;
@@ -286,4 +287,7 @@ export const modernSettings = new ModernSettings()
 
     /** Filename template for downloads */
     filenameTemplate: string;
+
+    /** Whether to write multiple artists to downloaded files */
+    writeArtistsSeparately: boolean;
 };

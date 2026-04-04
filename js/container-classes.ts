@@ -85,7 +85,7 @@ export class MediaMetadata extends BaseContainer {
 }
 
 export class Artist extends BaseContainer {
-    handle: any;
+    handle: unknown;
     id: number;
     name: string;
     picture: string;
@@ -99,6 +99,7 @@ export class Artist extends BaseContainer {
 
 export class EnrichedTrack extends Track {
     declare album: TrackAlbum | EnrichedAlbum;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-redundant-type-constituents
     declare replayGain: any | ReplayGain;
 
     constructor(data: object) {

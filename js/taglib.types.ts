@@ -16,7 +16,8 @@ export interface TagLibWorkerResponse<T> {
 
 export interface TagLibMetadata {
     title?: string;
-    artist?: string;
+    artist?: string | string[];
+    writeArtistsSeparately?: boolean;
     albumTitle?: string;
     albumArtist?: string;
     trackNumber?: number;
@@ -51,7 +52,6 @@ export enum Mp4Stik {
     WhackedBookmark = 5,
     MusicVideo = 6,
     Movie = 9,
-    ShortFilm = 9,
     TVShow = 10,
     Booklet = 11,
 }

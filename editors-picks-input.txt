@@ -1,0 +1,23 @@
+# Editors Picks
+# One item per line. Format: type:id
+# Supported types: album, artist, track, playlist, userplaylist, podcast
+# Bare numbers (no prefix) are treated as albums for backwards compatibility.
+# Optional: set a label for this archived set with "# label: ..."
+# label: Spring 2026
+
+album:324660713
+album:15427733
+album:464178301
+album:75115890
+album:410197513
+album:418729278
+album:504004321
+album:510893864
+album:325723583
+album:336178142
+album:106369871
+album:423471869
+album:250986538
+album:509761344
+album:15621057
+album:103897783

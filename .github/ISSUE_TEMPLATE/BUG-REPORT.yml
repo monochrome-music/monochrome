@@ -1,0 +1,62 @@
+name: 'Bug Report'
+description: Create a bug report.
+title: '[BUG] <title>'
+labels: ['bug']
+body:
+    - type: textarea
+      attributes:
+          label: 'Description'
+          description: Please enter an explicit description of your issue
+          placeholder: Short and explicit description of your bug...
+      validations:
+          required: true
+    - type: textarea
+      attributes:
+          label: 'Reproduction steps'
+          description: Please enter steps to reproduce your issue.
+          placeholder: |
+              1. Go to '...'
+              2. Click on '....'
+              3. Scroll down to '....'
+              4. See error
+          render: bash
+      validations:
+          required: true
+    - type: textarea
+      attributes:
+          label: Expected Behavior
+          description: Write what you expected to happen.
+          placeholder: |
+              The app should do this when I do that...
+      validations:
+          required: true
+    - type: textarea
+      id: screenshot
+      attributes:
+          label: 'Screenshots'
+          description: If applicable, add screenshots to help explain your problem.
+          placeholder: Paste screenshot here.
+      validations:
+          required: false
+    - type: textarea
+      attributes:
+          label: 'Logs (Desktop only)'
+          description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
+          placeholder: Accessible via F12, select only Errors and Warnings, then right-click the Console and select "save to file"
+          render: bash
+      validations:
+          required: false
+    - type: textarea
+      attributes:
+          label: 'Browser'
+          description: What browser are you seeing the problem on ?
+          placeholder: Firefox 149.0
+      validations:
+          required: true
+    - type: textarea
+      attributes:
+          label: 'Device'
+          description: What device are you seeing the problem on ?
+          placeholder: PC Running Windows 11
+      validations:
+          required: true

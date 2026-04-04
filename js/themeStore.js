@@ -48,9 +48,9 @@ export class ThemeStore {
     }
 
     init() {
-        document.getElementById('open-theme-store-btn')?.addEventListener('click', () => {
+        document.getElementById('open-theme-store-btn')?.addEventListener('click', async () => {
             this.modal.classList.add('active');
-            this.loadThemes();
+            await this.loadThemes();
         });
 
         this.modal?.querySelector('.close-modal-btn')?.addEventListener('click', () => {
@@ -59,14 +59,14 @@ export class ThemeStore {
 
         const tabs = this.modal?.querySelectorAll('.search-tab');
         tabs?.forEach((tab) => {
-            tab.addEventListener('click', () => {
+            tab.addEventListener('click', async () => {
                 tabs.forEach((t) => t.classList.remove('active'));
                 this.modal.querySelectorAll('.search-tab-content').forEach((c) => c.classList.remove('active'));
                 tab.classList.add('active');
                 const contentId = tab.dataset.tab === 'browse' ? 'theme-store-browse' : 'theme-store-upload';
                 document.getElementById(contentId)?.classList.add('active');
                 if (tab.dataset.tab === 'upload') {
-                    this.checkAuth();
+                    await this.checkAuth();
                 } else {
                     this.resetEditState();
                 }
@@ -82,9 +82,9 @@ export class ThemeStore {
         this.uploadForm?.addEventListener('submit', (e) => this.handleUpload(e));
 
         if (authManager) {
-            authManager.onAuthStateChanged(() => {
+            authManager.onAuthStateChanged(async () => {
                 if (this.modal.classList.contains('active')) {
-                    this.checkAuth();
+                    await this.checkAuth();
                 }
             });
         }
@@ -231,10 +231,10 @@ export class ThemeStore {
             </div>
         `;
 
-        div.addEventListener('click', (e) => {
+        div.addEventListener('click', async (e) => {
             if (e.target.closest('.delete-theme-btn')) {
                 e.stopPropagation();
-                this.deleteTheme(theme.id);
+                await this.deleteTheme(theme.id);
                 return;
             }
             if (e.target.closest('.edit-theme-btn')) {
@@ -266,7 +266,7 @@ export class ThemeStore {
 
             await this.pb.collection('themes').delete(themeId, { f_id: fbUser.$id });
             alert('Theme deleted successfully.');
-            this.loadThemes();
+            await this.loadThemes();
         } catch (err) {
             console.error('Failed to delete theme:', err);
             alert('Failed to delete theme. You might not have permission.');
@@ -467,6 +467,7 @@ export class ThemeStore {
 
         // Force reflow to ensure theme changes are applied immediately
         document.documentElement.style.display = 'none';
+        // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         document.documentElement.offsetHeight;
         document.documentElement.style.display = '';
 
@@ -572,7 +573,7 @@ export class ThemeStore {
             }
 
             this.modal.querySelector('[data-tab="browse"]').click();
-            this.loadThemes();
+            await this.loadThemes();
         } catch (err) {
             console.error('Upload failed:', err);
             console.error('Response data:', err.data);

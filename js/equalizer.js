@@ -621,8 +621,9 @@ export class Equalizer {
 
         this.frequencies.forEach((freq, index) => {
             const gain = this.currentGains[index] || 0;
+            const q = this.filters[index] ? this.filters[index].Q.value : this._calculateQ(index);
             const filterNum = index + 1;
-            lines.push(`Filter ${filterNum}: ON PK Fc ${freq} Hz Gain ${gain.toFixed(1)} dB Q 0.71`);
+            lines.push(`Filter ${filterNum}: ON PK Fc ${freq} Hz Gain ${gain.toFixed(1)} dB Q ${q.toFixed(2)}`);
         });
 
         return lines.join('\n');
@@ -680,15 +681,52 @@ export class Equalizer {
                 this.setBandCount(newCount);
             }
 
-            // Extract gains from filters
-            const gains = filters.slice(0, this.bandCount).map((f) => f.gain);
+            // Apply imported filter frequencies directly instead of regenerating
+            const sliced = filters.slice(0, this.bandCount);
+            const newFreqs = sliced.map((f) => f.freq);
+            this.frequencies = newFreqs;
+            this.frequencyLabels = generateFrequencyLabels(newFreqs);
+
+            // Update filter frequencies on the actual biquad nodes
+            if (this.filters.length === newFreqs.length) {
+                newFreqs.forEach((freq, i) => {
+                    if (this.filters[i]) {
+                        this.filters[i].frequency.value = freq;
+                    }
+                });
+            }
+
+            // Extract and apply gains, types, and Qs
+            const gains = sliced.map((f) => f.gain);
             this.setAllGains(gains);
 
-            // Store filter frequencies if different
-            const newFreqs = filters.slice(0, this.bandCount).map((f) => f.freq);
-            if (JSON.stringify(newFreqs) !== JSON.stringify(this.frequencies)) {
-                equalizerSettings.setFreqRange(newFreqs[0], newFreqs[newFreqs.length - 1]);
+            // Apply filter types (PK/LS/HS -> peaking/lowshelf/highshelf)
+            const typeMap = { PK: 'peaking', LS: 'lowshelf', HS: 'highshelf', LSC: 'lowshelf', HSC: 'highshelf' };
+            const types = sliced.map((f) => typeMap[f.type] || 'peaking');
+            this.currentTypes = types;
+            if (this.filters.length === types.length) {
+                types.forEach((type, i) => {
+                    if (this.filters[i]) this.filters[i].type = type;
+                });
             }
+            equalizerSettings.setBandTypes(types);
+
+            // Apply Q values
+            const qs = sliced.map((f) => f.q);
+            this.currentQs = qs;
+            if (this.filters.length === qs.length) {
+                qs.forEach((q, i) => {
+                    if (this.filters[i]) this.filters[i].Q.value = q;
+                });
+            }
+            equalizerSettings.setBandQs(qs);
+
+            // Persist custom frequencies and update freqRange
+            equalizerSettings.setCustomFrequencies(newFreqs);
+            const minFreq = Math.min(...newFreqs);
+            const maxFreq = Math.max(...newFreqs);
+            this.freqRange = { min: minFreq, max: maxFreq };
+            equalizerSettings.setFreqRange(minFreq, maxFreq);
 
             return true;
         } catch (e) {

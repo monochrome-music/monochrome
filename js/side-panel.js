@@ -118,25 +118,25 @@ export class SidePanelManager {
         return this.currentView === view && this.panel.classList.contains('active');
     }
 
-    refresh(view, renderControlsCallback, renderContentCallback, options = {}) {
+    async refresh(view, renderControlsCallback, renderContentCallback, options = {}) {
         if (this.isActive(view)) {
             if (renderControlsCallback) {
                 this.controlsElement.innerHTML = '';
-                renderControlsCallback(this.controlsElement);
+                await renderControlsCallback(this.controlsElement);
             }
             if (renderContentCallback) {
                 if (!options.noClear) {
                     this.contentElement.innerHTML = '';
                 }
-                renderContentCallback(this.contentElement);
+                await renderContentCallback(this.contentElement);
             }
         }
     }
 
-    updateContent(view, renderContentCallback) {
+    async updateContent(view, renderContentCallback) {
         if (this.isActive(view)) {
             this.contentElement.innerHTML = '';
-            renderContentCallback(this.contentElement);
+            await renderContentCallback(this.contentElement);
         }
     }
 }

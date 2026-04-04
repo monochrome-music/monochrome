@@ -209,8 +209,8 @@ export class ListenBrainzScrobbler {
 
     scheduleScrobble(delay) {
         this.clearScrobbleTimer();
-        this.scrobbleTimer = setTimeout(() => {
-            this.scrobbleCurrentTrack();
+        this.scrobbleTimer = setTimeout(async () => {
+            await this.scrobbleCurrentTrack();
         }, delay);
     }
 
@@ -235,8 +235,8 @@ export class ListenBrainzScrobbler {
         }
     }
 
-    onTrackChange(track) {
-        this.updateNowPlaying(track);
+    async onTrackChange(track) {
+        await this.updateNowPlaying(track);
     }
 
     onPlaybackStop() {

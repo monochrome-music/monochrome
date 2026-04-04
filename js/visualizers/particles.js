@@ -14,7 +14,7 @@ export class ParticlesPreset {
         // No cleanup needed
     }
 
-    draw(ctx, canvas, analyser, dataArray, params) {
+    draw(ctx, canvas, _analyser, _dataArray, params) {
         const { width, height } = canvas;
         const { kick, intensity, primaryColor, mode } = params;
         const sensitivity = params.sensitivity || 1.0;

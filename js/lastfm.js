@@ -284,8 +284,8 @@ export class LastFMScrobbler {
     scheduleScrobble(delay) {
         this.clearScrobbleTimer();
 
-        this.scrobbleTimer = setTimeout(() => {
-            this.scrobbleCurrentTrack();
+        this.scrobbleTimer = setTimeout(async () => {
+            await this.scrobbleCurrentTrack();
         }, delay);
     }
 
@@ -350,9 +350,9 @@ export class LastFMScrobbler {
         }
     }
 
-    onTrackChange(track) {
+    async onTrackChange(track) {
         if (!this.isAuthenticated()) return;
-        this.updateNowPlaying(track);
+        await this.updateNowPlaying(track);
     }
 
     onPlaybackStop() {
