@@ -24,7 +24,7 @@ export class MusicDatabase {
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
 
-                // v10 introduced track_ratings (bad PR) — remove it
+                // v10 introduced track_ratings (bad PR) - remove it
                 if (db.objectStoreNames.contains('track_ratings')) {
                     db.deleteObjectStore('track_ratings');
                 }
@@ -783,7 +783,6 @@ export class MusicDatabase {
                     }
 
                     // Return lightweight copy without tracks
-                    // eslint-disable-next-line no-unused-vars
                     const { tracks, ...minified } = playlist;
                     return minified;
                 });

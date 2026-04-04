@@ -41,11 +41,11 @@ function getTrackArtists(track) {
 
 /**
  * Generates CSV playlist export
- * @param {Object} playlist - Playlist metadata
+ * @param {Object} _playlist - Playlist metadata
  * @param {Array} tracks - Array of track objects
  * @returns {string} CSV content
  */
-export function generateCSV(playlist, tracks) {
+export function generateCSV(_playlist, tracks) {
     const headers = ['Track Name', 'Artist Name(s)', 'Album', 'Duration'];
     let content = headers.map((h) => `"${h}"`).join(',') + '\n';
 

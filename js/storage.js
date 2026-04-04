@@ -590,6 +590,72 @@ export const dynamicColorSettings = {
     },
 };
 
+export const fullscreenCoverNoRoundSettings = {
+    STORAGE_KEY: 'fullscreen-cover-no-round',
+
+    isEnabled() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) !== 'false';
+        } catch {
+            return true;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+};
+
+export const fullscreenCoverVanillaTiltSettings = {
+    STORAGE_KEY: 'fullscreen-cover-vanilla-tilt',
+
+    isEnabled() {
+        try {
+            return localStorage.getItem(this.STORAGE_KEY) !== 'false';
+        } catch {
+            return true;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+};
+
+export const fullscreenCoverTiltDistanceSettings = {
+    STORAGE_KEY: 'fullscreen-cover-tilt-distance',
+
+    getValue() {
+        try {
+            const val = parseInt(localStorage.getItem(this.STORAGE_KEY));
+            return val !== null && !isNaN(val) ? val : 10;
+        } catch {
+            return 10;
+        }
+    },
+
+    setValue(value) {
+        localStorage.setItem(this.STORAGE_KEY, value);
+    },
+};
+
+export const fullscreenCoverTiltSpeedSettings = {
+    STORAGE_KEY: 'fullscreen-cover-tilt-speed',
+
+    getValue() {
+        try {
+            const val = parseInt(localStorage.getItem(this.STORAGE_KEY));
+            return val !== null && !isNaN(val) ? val : 240;
+        } catch {
+            return 240;
+        }
+    },
+
+    setValue(value) {
+        localStorage.setItem(this.STORAGE_KEY, value);
+    },
+};
+
 export const cardSettings = {
     COMPACT_ARTIST_KEY: 'card-compact-artist',
     COMPACT_ALBUM_KEY: 'card-compact-album',
@@ -999,39 +1065,11 @@ export const visualizerSettings = {
     },
 };
 
-export const playbackSettings = {
-    FULLSCREEN_TILT_KEY: 'playback-fullscreen-tilt',
-    PRELOAD_TIME_KEY: 'playback-preload-time',
-
-    isFullscreenTiltEnabled() {
-        try {
-            return localStorage.getItem(this.FULLSCREEN_TILT_KEY) !== 'false';
-        } catch {
-            return true;
-        }
-    },
-
-    setFullscreenTiltEnabled(enabled) {
-        localStorage.setItem(this.FULLSCREEN_TILT_KEY, enabled ? 'true' : 'false');
-    },
-
-    getPreloadTime() {
-        try {
-            const val = localStorage.getItem(this.PRELOAD_TIME_KEY);
-            return val ? parseInt(val, 10) : 15;
-        } catch {
-            return 15;
-        }
-    },
-
-    setPreloadTime(seconds) {
-        localStorage.setItem(this.PRELOAD_TIME_KEY, seconds.toString());
-    },
-};
-
 export const equalizerSettings = {
     ENABLED_KEY: 'equalizer-enabled',
     GAINS_KEY: 'equalizer-gains',
+    BAND_TYPES_KEY: 'equalizer-band-types',
+    BAND_QS_KEY: 'equalizer-band-qs',
     PRESET_KEY: 'equalizer-preset',
     CUSTOM_PRESETS_KEY: 'equalizer-custom-presets',
     BAND_COUNT_KEY: 'equalizer-band-count',
@@ -1040,6 +1078,7 @@ export const equalizerSettings = {
     FREQ_MIN_KEY: 'equalizer-freq-min',
     FREQ_MAX_KEY: 'equalizer-freq-max',
     PREAMP_KEY: 'equalizer-preamp',
+    CUSTOM_FREQUENCIES_KEY: 'equalizer-custom-frequencies',
     DEFAULT_BAND_COUNT: 16,
     MIN_BANDS: 3,
     MAX_BANDS: 32,
@@ -1308,6 +1347,100 @@ export const equalizerSettings = {
         }
     },
 
+    getCustomFrequencies(bandCount) {
+        const count = bandCount || this.getBandCount();
+        try {
+            const stored = localStorage.getItem(this.CUSTOM_FREQUENCIES_KEY);
+            if (stored) {
+                const freqs = JSON.parse(stored);
+                if (Array.isArray(freqs) && freqs.length === count) {
+                    return freqs;
+                }
+            }
+        } catch {
+            /* ignore */
+        }
+        return null;
+    },
+
+    setCustomFrequencies(frequencies) {
+        try {
+            if (
+                Array.isArray(frequencies) &&
+                frequencies.length >= this.MIN_BANDS &&
+                frequencies.length <= this.MAX_BANDS
+            ) {
+                localStorage.setItem(this.CUSTOM_FREQUENCIES_KEY, JSON.stringify(frequencies));
+            }
+        } catch (e) {
+            console.warn('[EQ] Failed to save custom frequencies:', e);
+        }
+    },
+
+    clearCustomFrequencies() {
+        try {
+            localStorage.removeItem(this.CUSTOM_FREQUENCIES_KEY);
+        } catch {
+            /* ignore */
+        }
+    },
+
+    getBandTypes(bandCount) {
+        const count = bandCount || this.getBandCount();
+        try {
+            const stored = localStorage.getItem(this.BAND_TYPES_KEY);
+            if (stored) {
+                const types = JSON.parse(stored);
+                if (Array.isArray(types) && types.length === count) {
+                    return types;
+                }
+            }
+        } catch {
+            /* ignore */
+        }
+        return new Array(count).fill('peaking');
+    },
+
+    setBandTypes(types) {
+        try {
+            if (Array.isArray(types) && types.length >= this.MIN_BANDS && types.length <= this.MAX_BANDS) {
+                localStorage.setItem(this.BAND_TYPES_KEY, JSON.stringify(types));
+            }
+        } catch (e) {
+            console.warn('[EQ] Failed to save band types:', e);
+        }
+    },
+
+    getBandQs(bandCount) {
+        const count = bandCount || this.getBandCount();
+        try {
+            const stored = localStorage.getItem(this.BAND_QS_KEY);
+            if (stored) {
+                const qs = JSON.parse(stored);
+                if (Array.isArray(qs) && qs.length === count) {
+                    return qs;
+                }
+                // Interpolate stored Qs to match requested band count instead of discarding
+                if (Array.isArray(qs) && qs.length >= this.MIN_BANDS) {
+                    return this._interpolateGains(qs, count);
+                }
+            }
+        } catch {
+            /* ignore */
+        }
+        return null;
+    },
+
+    setBandQs(qs) {
+        try {
+            if (Array.isArray(qs) && qs.length >= this.MIN_BANDS && qs.length <= this.MAX_BANDS) {
+                localStorage.setItem(this.BAND_QS_KEY, JSON.stringify(qs));
+            }
+        } catch (e) {
+            console.warn('[EQ] Failed to save band Qs:', e);
+        }
+    },
+
     /**
      * Interpolate gains array to match target band count
      */
@@ -1439,6 +1572,130 @@ export const equalizerSettings = {
             console.warn('[EQ] Failed to update custom preset:', e);
             return false;
         }
+    },
+
+    // ========================================
+    // AutoEQ Profile Storage
+    // ========================================
+    AUTOEQ_PROFILES_KEY: 'autoeq-saved-profiles',
+    AUTOEQ_ACTIVE_PROFILE_KEY: 'autoeq-active-profile',
+    AUTOEQ_SAMPLE_RATE_KEY: 'autoeq-sample-rate',
+
+    getAutoEQProfiles() {
+        try {
+            const stored = localStorage.getItem(this.AUTOEQ_PROFILES_KEY);
+            return stored ? JSON.parse(stored) : {};
+        } catch {
+            return {};
+        }
+    },
+
+    saveAutoEQProfile(profile) {
+        try {
+            const profiles = this.getAutoEQProfiles();
+            const id = profile.id || 'autoeq_' + Date.now();
+            const profileCopy = { ...profile, id };
+            profiles[id] = profileCopy;
+            localStorage.setItem(this.AUTOEQ_PROFILES_KEY, JSON.stringify(profiles));
+            return id;
+        } catch (e) {
+            console.warn('[AutoEQ] Failed to save profile:', e);
+            return false;
+        }
+    },
+
+    deleteAutoEQProfile(profileId) {
+        try {
+            const profiles = this.getAutoEQProfiles();
+            if (profiles[profileId]) {
+                delete profiles[profileId];
+                localStorage.setItem(this.AUTOEQ_PROFILES_KEY, JSON.stringify(profiles));
+                if (this.getActiveAutoEQProfile() === profileId) {
+                    localStorage.removeItem(this.AUTOEQ_ACTIVE_PROFILE_KEY);
+                }
+                return true;
+            }
+            return false;
+        } catch (e) {
+            console.warn('[AutoEQ] Failed to delete profile:', e);
+            return false;
+        }
+    },
+
+    getActiveAutoEQProfile() {
+        try {
+            return localStorage.getItem(this.AUTOEQ_ACTIVE_PROFILE_KEY) || null;
+        } catch {
+            return null;
+        }
+    },
+
+    setActiveAutoEQProfile(profileId) {
+        if (profileId) {
+            localStorage.setItem(this.AUTOEQ_ACTIVE_PROFILE_KEY, profileId);
+        } else {
+            localStorage.removeItem(this.AUTOEQ_ACTIVE_PROFILE_KEY);
+        }
+    },
+
+    getSampleRate() {
+        try {
+            const stored = localStorage.getItem(this.AUTOEQ_SAMPLE_RATE_KEY);
+            const val = parseInt(stored, 10);
+            return [44100, 48000, 96000].includes(val) ? val : 48000;
+        } catch {
+            return 48000;
+        }
+    },
+
+    setSampleRate(rate) {
+        localStorage.setItem(this.AUTOEQ_SAMPLE_RATE_KEY, rate.toString());
+    },
+
+    // ========================================
+    // Last Selected Headphone Persistence
+    // ========================================
+    AUTOEQ_LAST_HEADPHONE_KEY: 'autoeq-last-headphone',
+
+    /**
+     * Save the last selected headphone entry + its measurement data
+     * so it persists across page reloads without re-fetching from GitHub
+     * @param {object} entry - {name, type, path, fileName}
+     * @param {Array} measurementData - [{freq, gain}, ...]
+     */
+    setLastHeadphone(entry, measurementData) {
+        try {
+            localStorage.setItem(
+                this.AUTOEQ_LAST_HEADPHONE_KEY,
+                JSON.stringify({
+                    entry,
+                    measurementData,
+                    savedAt: Date.now(),
+                })
+            );
+        } catch (e) {
+            console.warn('[AutoEQ] Failed to save last headphone:', e);
+        }
+    },
+
+    /**
+     * Retrieve the last selected headphone entry + cached measurement data
+     * @returns {{entry: object, measurementData: Array}|null}
+     */
+    getLastHeadphone() {
+        try {
+            const stored = localStorage.getItem(this.AUTOEQ_LAST_HEADPHONE_KEY);
+            if (!stored) return null;
+            const parsed = JSON.parse(stored);
+            if (parsed && parsed.entry && parsed.measurementData) return parsed;
+            return null;
+        } catch {
+            return null;
+        }
+    },
+
+    clearLastHeadphone() {
+        localStorage.removeItem(this.AUTOEQ_LAST_HEADPHONE_KEY);
     },
 };
 
@@ -1817,6 +2074,20 @@ export const homePageSettings = {
 
     setShuffleEditorsPicks(enabled) {
         localStorage.setItem(this.SHUFFLE_EDITORS_PICKS_KEY, enabled ? 'true' : 'false');
+    },
+
+    EDITORS_PICKS_SOURCE_KEY: 'home-editors-picks-source',
+
+    getEditorsPicksSource() {
+        try {
+            return localStorage.getItem(this.EDITORS_PICKS_SOURCE_KEY) || 'current';
+        } catch {
+            return 'current';
+        }
+    },
+
+    setEditorsPicksSource(source) {
+        localStorage.setItem(this.EDITORS_PICKS_SOURCE_KEY, source);
     },
 };
 
@@ -2382,18 +2653,18 @@ export const fontSettings = {
         document.documentElement.style.setProperty('--font-family', "'SF Pro Display', sans-serif");
     },
 
-    applyFont() {
+    async applyFont() {
         const config = this.getConfig();
 
         switch (config.type) {
             case 'google':
-                this.loadGoogleFont(config.family);
+                await this.loadGoogleFont(config.family);
                 break;
             case 'url':
-                this.loadFontFromUrl(config.url, config.family);
+                await this.loadFontFromUrl(config.url, config.family);
                 break;
             case 'uploaded':
-                this.loadUploadedFont(config.fontId);
+                await this.loadUploadedFont(config.fontId);
                 break;
             case 'preset':
             default:
@@ -2573,13 +2844,13 @@ export const contentBlockingSettings = {
 
     isArtistBlocked(artistId) {
         if (!artistId) return false;
-        return this.getBlockedArtists().some((a) => a.id == artistId);
+        return this.getBlockedArtists().some((a) => String(a.id) === String(artistId));
     },
 
     blockArtist(artist) {
         if (!artist || !artist.id) return;
         const blocked = this.getBlockedArtists();
-        if (!blocked.some((a) => a.id === artist.id)) {
+        if (!blocked.some((a) => String(a.id) === String(artist.id))) {
             blocked.push({
                 id: artist.id,
                 name: artist.name || 'Unknown Artist',
@@ -2590,7 +2861,7 @@ export const contentBlockingSettings = {
     },
 
     unblockArtist(artistId) {
-        const blocked = this.getBlockedArtists().filter((a) => a.id != artistId);
+        const blocked = this.getBlockedArtists().filter((a) => String(a.id) !== String(artistId));
         this.setBlockedArtists(blocked);
     },
 
@@ -2610,13 +2881,13 @@ export const contentBlockingSettings = {
 
     isTrackBlocked(trackId) {
         if (!trackId) return false;
-        return this.getBlockedTracks().some((t) => t.id == trackId);
+        return this.getBlockedTracks().some((t) => String(t.id) === String(trackId));
     },
 
     blockTrack(track) {
         if (!track || !track.id) return;
         const blocked = this.getBlockedTracks();
-        if (!blocked.some((t) => t.id == track.id)) {
+        if (!blocked.some((t) => String(t.id) === String(track.id))) {
             blocked.push({
                 id: track.id,
                 title: track.title || 'Unknown Track',
@@ -2628,7 +2899,7 @@ export const contentBlockingSettings = {
     },
 
     unblockTrack(trackId) {
-        const blocked = this.getBlockedTracks().filter((t) => t.id != trackId);
+        const blocked = this.getBlockedTracks().filter((t) => String(t.id) !== String(trackId));
         this.setBlockedTracks(blocked);
     },
 
@@ -2648,13 +2919,13 @@ export const contentBlockingSettings = {
 
     isAlbumBlocked(albumId) {
         if (!albumId) return false;
-        return this.getBlockedAlbums().some((a) => a.id == albumId);
+        return this.getBlockedAlbums().some((a) => String(a.id) === String(albumId));
     },
 
     blockAlbum(album) {
         if (!album || !album.id) return;
         const blocked = this.getBlockedAlbums();
-        if (!blocked.some((a) => a.id == album.id)) {
+        if (!blocked.some((a) => String(a.id) === String(album.id))) {
             blocked.push({
                 id: album.id,
                 title: album.title || 'Unknown Album',
@@ -2666,7 +2937,7 @@ export const contentBlockingSettings = {
     },
 
     unblockAlbum(albumId) {
-        const blocked = this.getBlockedAlbums().filter((a) => a.id != albumId);
+        const blocked = this.getBlockedAlbums().filter((a) => String(a.id) !== String(albumId));
         this.setBlockedAlbums(blocked);
     },
 

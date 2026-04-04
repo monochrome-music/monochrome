@@ -1,9 +1,9 @@
 declare global {
-    type MonochromeProgress<T = {}> = {
+    type MonochromeProgress<T = object> = {
         stage: string;
     } & T;
 
-    type MonochromeProgressMessage<T = MonochromeProgress> = {
+    type MonochromeProgressMessage<_T = MonochromeProgress> = {
         message: string;
     };
 
