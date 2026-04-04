@@ -53,7 +53,7 @@
         "vite-plugin-pwa": "^1.2.0"
     },
     "overrides": {
-        "sourcemap-codec": "npm:@jridgewell/sourcemap-codec@^1.4.14",
+        "sourcemap-codec": "^1.4.14",
         "source-map": "^0.7.4",
         "serialize-javascript": "^7.0.3"
     },
@@ -63,7 +63,7 @@
         "@capacitor/core": "^8.2.0",
         "@capacitor/haptics": "^8.0.1",
         "@capacitor/ios": "^8.2.0",
-        "@dantheman827/taglib-ts": "https://github.com/DanTheMan827/taglib-ts/archive/ebd0e369b706c127a280d4ad631977f8d12ff88f.tar.gz",
+        "@dantheman827/taglib-ts": "^0.1.5",
         "@ffmpeg/core": "^0.12.10",
         "@ffmpeg/ffmpeg": "^0.12.15",
         "@ffmpeg/util": "^0.12.2",

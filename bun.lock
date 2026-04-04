@@ -10,7 +10,7 @@
         "@capacitor/core": "^8.2.0",
         "@capacitor/haptics": "^8.0.1",
         "@capacitor/ios": "^8.2.0",
-        "@dantheman827/taglib-ts": "https://github.com/DanTheMan827/taglib-ts/archive/ebd0e369b706c127a280d4ad631977f8d12ff88f.tar.gz",
+        "@dantheman827/taglib-ts": "^0.1.5",
         "@ffmpeg/core": "^0.12.10",
         "@ffmpeg/ffmpeg": "^0.12.15",
         "@ffmpeg/util": "^0.12.2",
@@ -69,7 +69,7 @@
   "overrides": {
     "serialize-javascript": "^7.0.3",
     "source-map": "^0.7.4",
-    "sourcemap-codec": "npm:@jridgewell/sourcemap-codec@^1.4.14",
+    "sourcemap-codec": "^1.4.14",
   },
   "packages": {
     "@apideck/better-ajv-errors": ["@apideck/better-ajv-errors@0.3.7", "", { "dependencies": { "jsonpointer": "^5.0.1", "leven": "^3.1.0" }, "peerDependencies": { "ajv": ">=8" } }, "sha512-TajUJwGWbDwkCx/CZi7tRE8PVB7simCvKJfHUsSdvps+aTM/PDPP4gkLmKnc+x3CE//y9i/nj74GqdL/hwk7Iw=="],
@@ -300,7 +300,7 @@
 
     "@csstools/selector-specificity": ["@csstools/selector-specificity@6.0.0", "", { "peerDependencies": { "postcss-selector-parser": "^7.1.1" } }, "sha512-4sSgl78OtOXEX/2d++8A83zHNTgwCJMaR24FvsYL7Uf/VS8HZk9PTwR51elTbGqMuwH3szLvvOXEaVnqn0Z3zA=="],
 
-    "@dantheman827/taglib-ts": ["@dantheman827/taglib-ts@https://github.com/DanTheMan827/taglib-ts/archive/ebd0e369b706c127a280d4ad631977f8d12ff88f.tar.gz", {}, "sha512-QPl5eWhFqP716VKIX5t7x39eRswRHG+5RpQ9wW6cNbDh1QSa/gWpPyvwP55O+/qCV7VjLepZI1/XFoxMO8jK7w=="],
+    "@dantheman827/taglib-ts": ["@dantheman827/taglib-ts@0.1.5", "", {}, "sha512-uOMzKccEE0AUsMZ6rTPSUB0ZqAvuRxih9ECn8N62lMNi0UsXQumuKN86F3CxNaF4y3LOkvtp45vplTjwEEUOlQ=="],
 
     "@emnapi/runtime": ["@emnapi/runtime@1.9.2", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-3U4+MIWHImeyu1wnmVygh5WlgfYDtyf0k8AbLhMFxOipihf6nrWC4syIm/SwEeec0mNSafiiNnMJwbza/Is6Lw=="],
 
