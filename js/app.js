@@ -500,7 +500,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize tracker
     initTracker().catch(console.error);
 
-    fetchcontributors();
+    await fetchcontributors();
     const castBtn = document.getElementById('cast-btn');
     initializeCasting(audioPlayer, castBtn);
 
