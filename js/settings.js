@@ -1232,6 +1232,136 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     }
 
     // ========================================
+    // 16-Band Graphic Equalizer
+    // ========================================
+    {
+        const GEQ_FREQUENCIES = [25, 40, 63, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000, 16000, 20000];
+        const GEQ_LABELS = ['25', '40', '63', '100', '160', '250', '400', '630', '1K', '1.6K', '2.5K', '4K', '6.3K', '10K', '16K', '20K'];
+        const geqToggle = document.getElementById('graphic-eq-enabled-toggle');
+        const geqContainer = document.getElementById('graphic-eq-container');
+        const geqBandsContainer = document.getElementById('graphic-eq-bands');
+        const geqPreampSlider = document.getElementById('graphic-eq-preamp-slider');
+        const geqPreampValue = document.getElementById('graphic-eq-preamp-value');
+        const geqPresetSelect = document.getElementById('graphic-eq-preset-select');
+        const geqResetBtn = document.getElementById('graphic-eq-reset-btn');
+
+        // Load saved graphic EQ gains (stored separately under 'graphicEq' key)
+        let geqGains = equalizerSettings.getGraphicEqGains() || new Array(16).fill(0);
+        let geqPreamp = equalizerSettings.getGraphicEqPreamp() || 0;
+
+        const geqRange = equalizerSettings.getRange();
+
+        // Build 16 vertical slider bands
+        if (geqBandsContainer) {
+            GEQ_FREQUENCIES.forEach((_freq, i) => {
+                const band = document.createElement('div');
+                band.className = 'graphic-eq-band';
+
+                const valueLabel = document.createElement('span');
+                valueLabel.className = 'graphic-eq-band-value';
+                valueLabel.textContent = `${geqGains[i] > 0 ? '+' : ''}${geqGains[i].toFixed(1)}`;
+                valueLabel.id = `geq-value-${i}`;
+
+                const sliderWrap = document.createElement('div');
+                sliderWrap.className = 'graphic-eq-band-slider-wrap';
+
+                const slider = document.createElement('input');
+                slider.type = 'range';
+                slider.min = geqRange.min;
+                slider.max = geqRange.max;
+                slider.step = '0.1';
+                slider.value = geqGains[i];
+                slider.id = `geq-slider-${i}`;
+                slider.setAttribute('aria-label', `${GEQ_LABELS[i]} Hz`);
+
+                slider.addEventListener('input', () => {
+                    const gain = parseFloat(slider.value);
+                    geqGains[i] = gain;
+                    valueLabel.textContent = `${gain > 0 ? '+' : ''}${gain.toFixed(1)}`;
+                    equalizerSettings.setGraphicEqGains(geqGains);
+                    audioContextManager.setGraphicEqBandGain(i, gain);
+                    if (geqPresetSelect) geqPresetSelect.value = '';
+                });
+
+                sliderWrap.appendChild(slider);
+
+                const freqLabel = document.createElement('span');
+                freqLabel.className = 'graphic-eq-band-label';
+                freqLabel.textContent = GEQ_LABELS[i];
+
+                band.appendChild(valueLabel);
+                band.appendChild(sliderWrap);
+                band.appendChild(freqLabel);
+                geqBandsContainer.appendChild(band);
+            });
+        }
+
+        // Preamp slider
+        if (geqPreampSlider) {
+            geqPreampSlider.value = geqPreamp;
+            if (geqPreampValue) geqPreampValue.textContent = `${geqPreamp} dB`;
+
+            geqPreampSlider.addEventListener('input', () => {
+                geqPreamp = parseFloat(geqPreampSlider.value);
+                if (geqPreampValue) geqPreampValue.textContent = `${geqPreamp.toFixed(1)} dB`;
+                equalizerSettings.setGraphicEqPreamp(geqPreamp);
+                audioContextManager.setGraphicEqPreamp(geqPreamp);
+            });
+        }
+
+        // Preset select
+        if (geqPresetSelect) {
+            geqPresetSelect.addEventListener('change', () => {
+                const key = geqPresetSelect.value;
+                if (!key) return;
+                const presets = getPresetsForBandCount(16);
+                const preset = presets[key];
+                if (!preset) return;
+                geqGains = [...preset.gains];
+                equalizerSettings.setGraphicEqGains(geqGains);
+                audioContextManager.setGraphicEqAllGains(geqGains);
+                // Update sliders
+                geqGains.forEach((g, i) => {
+                    const sl = document.getElementById(`geq-slider-${i}`);
+                    const vl = document.getElementById(`geq-value-${i}`);
+                    if (sl) sl.value = g;
+                    if (vl) vl.textContent = `${g > 0 ? '+' : ''}${g.toFixed(1)}`;
+                });
+            });
+        }
+
+        // Reset button
+        if (geqResetBtn) {
+            geqResetBtn.addEventListener('click', () => {
+                geqGains = new Array(16).fill(0);
+                equalizerSettings.setGraphicEqGains(geqGains);
+                audioContextManager.setGraphicEqAllGains(geqGains);
+                geqGains.forEach((_g, i) => {
+                    const sl = document.getElementById(`geq-slider-${i}`);
+                    const vl = document.getElementById(`geq-value-${i}`);
+                    if (sl) sl.value = 0;
+                    if (vl) vl.textContent = '0.0';
+                });
+                if (geqPresetSelect) geqPresetSelect.value = 'flat';
+            });
+        }
+
+        // Toggle visibility
+        if (geqToggle) {
+            const geqEnabled = equalizerSettings.isGraphicEqEnabled();
+            geqToggle.checked = geqEnabled;
+            if (geqContainer) geqContainer.style.display = geqEnabled ? 'flex' : 'none';
+
+            geqToggle.addEventListener('change', (e) => {
+                const enabled = e.target.checked;
+                equalizerSettings.setGraphicEqEnabled(enabled);
+                if (geqContainer) geqContainer.style.display = enabled ? 'flex' : 'none';
+                audioContextManager.toggleGraphicEQ(enabled);
+            });
+        }
+    }
+
+    // ========================================
     // Precision AutoEQ - Redesigned Equalizer
     // ========================================
     const eqToggle = document.getElementById('equalizer-enabled-toggle');
@@ -1859,82 +1989,141 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     if (autoeqCanvas) {
         autoeqCanvas.addEventListener('mousedown', (e) => {
             const coords = getCanvasCoords(e);
-            const nodeIdx = findClosestNode(coords.x, coords.y, 18);
+            let nodeIdx = findClosestNode(coords.x, coords.y, 18);
             if (nodeIdx >= 0) {
+                // Clicked directly on a node - start dragging
                 draggedNode = nodeIdx;
                 autoeqCanvas.style.cursor = 'grabbing';
                 e.preventDefault();
-            }
-        });
+            } else {
+                // Clicked empty space - find nearest node (no threshold) and snap it
+                nodeIdx = findClosestNode(coords.x, coords.y, Infinity);
+                if (nodeIdx >= 0) {
+                    const bands = getActiveBands();
+                    if (bands && bands[nodeIdx]) {
+                        const rect = autoeqCanvas.getBoundingClientRect();
+                        const padLeft = 40, padRight = 10, padTop = 10, padBottom = 30;
+                        const w = rect.width - padLeft - padRight;
+                        const h = rect.height - padTop - padBottom;
+                        const isParam = currentMode === 'parametric';
+                        const dbCenter = isParam ? 0 : 75;
+                        const dbHalf = isParam ? graphDbHalfParametric : graphDbHalfAutoEQ;
+                        const dbMin = dbCenter - dbHalf;
+                        const dbMax = dbCenter + dbHalf;
 
-        autoeqCanvas.addEventListener('mousemove', (e) => {
-            const coords = getCanvasCoords(e);
-            const bands = getActiveBands();
-            if (draggedNode !== null && bands) {
-                const rect = autoeqCanvas.getBoundingClientRect();
-                const padLeft = 40,
-                    padRight = 10,
-                    padTop = 10,
-                    padBottom = 30;
-                const w = rect.width - padLeft - padRight;
-                const h = rect.height - padTop - padBottom;
+                        // Snap frequency to click position
+                        const freq = xToFreq(coords.x - padLeft, w);
+                        bands[nodeIdx].freq = Math.max(20, Math.min(20000, freq));
 
-                const isParam = currentMode === 'parametric';
-                const dbCenter = isParam ? 0 : 75;
-                const dbHalf = isParam ? graphDbHalfParametric : graphDbHalfAutoEQ;
-                const dbMin = dbCenter - dbHalf;
-                const dbMax = dbCenter + dbHalf;
+                        // Snap gain to click position
+                        if (isParam) {
+                            const newGain = yToDb(coords.y - padTop, h, dbMin, dbMax);
+                            bands[nodeIdx].gain = Math.max(-30, Math.min(30, Math.round(newGain * 10) / 10));
+                        } else {
+                            const corrGain = interpolate(bands[nodeIdx].freq, autoeqCorrectedCurve || []);
+                            const newDb = yToDb(coords.y - padTop, h, dbMin, dbMax);
+                            const gainDelta = newDb - corrGain;
+                            bands[nodeIdx].gain = Math.max(-30, Math.min(30, bands[nodeIdx].gain + gainDelta * 0.3));
+                        }
 
-                const freq = xToFreq(coords.x - padLeft, w);
-                bands[draggedNode].freq = Math.max(20, Math.min(20000, freq));
-
-                if (isParam) {
-                    const newGain = yToDb(coords.y - padTop, h, dbMin, dbMax);
-                    bands[draggedNode].gain = Math.max(-30, Math.min(30, Math.round(newGain * 10) / 10));
-                } else {
-                    const corrGain = interpolate(bands[draggedNode].freq, autoeqCorrectedCurve || []);
-                    const newDb = yToDb(coords.y - padTop, h, dbMin, dbMax);
-                    const gainDelta = newDb - corrGain;
-                    bands[draggedNode].gain = Math.max(-30, Math.min(30, bands[draggedNode].gain + gainDelta * 0.3));
-                }
-
-                if (!graphAnimFrame) {
-                    graphAnimFrame = requestAnimationFrame(() => {
+                        draggedNode = nodeIdx;
+                        autoeqCanvas.style.cursor = 'grabbing';
                         computeCorrectedCurve();
                         applyBandsToAudio(bands);
                         drawAutoEQGraph();
                         renderBandControls(bands);
-                        graphAnimFrame = null;
-                    });
-                }
-            } else {
-                const padLeft = 40;
-                if (coords.x <= padLeft + 10) {
-                    autoeqCanvas.style.cursor = 'ns-resize';
-                    if (hoveredNode !== null) {
-                        hoveredNode = null;
-                        drawAutoEQGraph();
-                    }
-                } else {
-                    const newHovered = findClosestNode(coords.x, coords.y, 18);
-                    if (newHovered !== hoveredNode) {
-                        hoveredNode = newHovered;
-                        autoeqCanvas.style.cursor = hoveredNode >= 0 ? 'grab' : 'crosshair';
-                        drawAutoEQGraph();
+                        e.preventDefault();
                     }
                 }
             }
         });
 
-        autoeqCanvas.addEventListener('mouseup', () => {
-            draggedNode = null;
-            autoeqCanvas.style.cursor = hoveredNode >= 0 ? 'grab' : 'crosshair';
+        // Helper to compute canvas-relative coords from any mouse event (even outside the canvas)
+        const getCanvasCoordsFromEvent = (e) => {
+            const rect = autoeqCanvas.getBoundingClientRect();
+            return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        };
+
+        // Document-level mousemove so dragging continues outside the canvas
+        document.addEventListener('mousemove', (e) => {
+            if (draggedNode === null) return;
+            const bands = getActiveBands();
+            if (!bands) return;
+
+            const coords = getCanvasCoordsFromEvent(e);
+            const rect = autoeqCanvas.getBoundingClientRect();
+            const padLeft = 40,
+                padRight = 10,
+                padTop = 10,
+                padBottom = 30;
+            const w = rect.width - padLeft - padRight;
+            const h = rect.height - padTop - padBottom;
+
+            const isParam = currentMode === 'parametric';
+            const dbCenter = isParam ? 0 : 75;
+            const dbHalf = isParam ? graphDbHalfParametric : graphDbHalfAutoEQ;
+            const dbMin = dbCenter - dbHalf;
+            const dbMax = dbCenter + dbHalf;
+
+            const freq = xToFreq(coords.x - padLeft, w);
+            bands[draggedNode].freq = Math.max(20, Math.min(20000, freq));
+
+            if (isParam) {
+                const newGain = yToDb(coords.y - padTop, h, dbMin, dbMax);
+                bands[draggedNode].gain = Math.max(-30, Math.min(30, Math.round(newGain * 10) / 10));
+            } else {
+                const corrGain = interpolate(bands[draggedNode].freq, autoeqCorrectedCurve || []);
+                const newDb = yToDb(coords.y - padTop, h, dbMin, dbMax);
+                const gainDelta = newDb - corrGain;
+                bands[draggedNode].gain = Math.max(-30, Math.min(30, bands[draggedNode].gain + gainDelta * 0.3));
+            }
+
+            if (!graphAnimFrame) {
+                graphAnimFrame = requestAnimationFrame(() => {
+                    computeCorrectedCurve();
+                    applyBandsToAudio(bands);
+                    drawAutoEQGraph();
+                    renderBandControls(bands);
+                    graphAnimFrame = null;
+                });
+            }
+        });
+
+        // Canvas-only mousemove for hover cursor changes (when not dragging)
+        autoeqCanvas.addEventListener('mousemove', (e) => {
+            if (draggedNode !== null) return; // dragging is handled by document listener
+            const coords = getCanvasCoords(e);
+            const padLeft = 40;
+            if (coords.x <= padLeft + 10) {
+                autoeqCanvas.style.cursor = 'ns-resize';
+                if (hoveredNode !== null) {
+                    hoveredNode = null;
+                    drawAutoEQGraph();
+                }
+            } else {
+                const newHovered = findClosestNode(coords.x, coords.y, 18);
+                if (newHovered !== hoveredNode) {
+                    hoveredNode = newHovered;
+                    autoeqCanvas.style.cursor = hoveredNode >= 0 ? 'grab' : 'crosshair';
+                    drawAutoEQGraph();
+                }
+            }
+        });
+
+        // Document-level mouseup so drag ends even if cursor is outside the canvas
+        document.addEventListener('mouseup', () => {
+            if (draggedNode !== null) {
+                draggedNode = null;
+                autoeqCanvas.style.cursor = hoveredNode >= 0 ? 'grab' : 'crosshair';
+            }
         });
 
         autoeqCanvas.addEventListener('mouseleave', () => {
-            draggedNode = null;
+            // Only reset hover state, NOT drag state (drag continues outside canvas)
             hoveredNode = null;
-            autoeqCanvas.style.cursor = 'crosshair';
+            if (draggedNode === null) {
+                autoeqCanvas.style.cursor = 'crosshair';
+            }
             drawAutoEQGraph();
         });
 
@@ -2038,66 +2227,108 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             { passive: false }
         );
 
-        // Touch support
+        // Touch support - snap nearest node on empty space touch, continue drag outside canvas
         let touchNodeIdx = -1;
         autoeqCanvas.addEventListener(
             'touchstart',
             (e) => {
                 const touch = e.touches[0];
-                const coords = {
-                    x: touch.clientX - autoeqCanvas.getBoundingClientRect().left,
-                    y: touch.clientY - autoeqCanvas.getBoundingClientRect().top,
-                };
+                const rect = autoeqCanvas.getBoundingClientRect();
+                const coords = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
                 touchNodeIdx = findClosestNode(coords.x, coords.y, 25);
                 if (touchNodeIdx >= 0) {
                     draggedNode = touchNodeIdx;
                     e.preventDefault();
+                } else {
+                    // Snap nearest node to touch position
+                    touchNodeIdx = findClosestNode(coords.x, coords.y, Infinity);
+                    if (touchNodeIdx >= 0) {
+                        const bands = getActiveBands();
+                        if (bands && bands[touchNodeIdx]) {
+                            const padLeft = 40, padRight = 10, padTop = 10, padBottom = 30;
+                            const w = rect.width - padLeft - padRight;
+                            const h = rect.height - padTop - padBottom;
+                            const isParam = currentMode === 'parametric';
+                            const dbCenter = isParam ? 0 : 75;
+                            const dbHalf = isParam ? graphDbHalfParametric : graphDbHalfAutoEQ;
+                            const dbMin = dbCenter - dbHalf;
+                            const dbMax = dbCenter + dbHalf;
+
+                            const freq = xToFreq(coords.x - padLeft, w);
+                            bands[touchNodeIdx].freq = Math.max(20, Math.min(20000, freq));
+                            if (isParam) {
+                                const newGain = yToDb(coords.y - padTop, h, dbMin, dbMax);
+                                bands[touchNodeIdx].gain = Math.max(-30, Math.min(30, Math.round(newGain * 10) / 10));
+                            }
+                            draggedNode = touchNodeIdx;
+                            computeCorrectedCurve();
+                            applyBandsToAudio(bands);
+                            drawAutoEQGraph();
+                            renderBandControls(bands);
+                            e.preventDefault();
+                        }
+                    }
                 }
             },
             { passive: false }
         );
 
-        autoeqCanvas.addEventListener(
+        // Document-level touchmove so dragging continues outside canvas
+        document.addEventListener(
             'touchmove',
             (e) => {
+                if (draggedNode === null) return;
                 const tBands = getActiveBands();
-                if (draggedNode !== null && tBands) {
-                    const touch = e.touches[0];
-                    const rect = autoeqCanvas.getBoundingClientRect();
-                    const coords = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
-                    const padLeft = 40,
-                        padRight = 10,
-                        padTop = 10,
-                        padBottom = 30;
-                    const w = rect.width - padLeft - padRight;
-                    const h = rect.height - padTop - padBottom;
+                if (!tBands) return;
 
-                    const freq = xToFreq(coords.x - padLeft, w);
-                    tBands[draggedNode].freq = Math.max(20, Math.min(20000, freq));
+                const touch = e.touches[0];
+                const rect = autoeqCanvas.getBoundingClientRect();
+                const coords = { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+                const padLeft = 40,
+                    padRight = 10,
+                    padTop = 10,
+                    padBottom = 30;
+                const w = rect.width - padLeft - padRight;
+                const h = rect.height - padTop - padBottom;
 
-                    if (currentMode === 'parametric') {
-                        const newGain = yToDb(coords.y - padTop, h, -graphDbHalfParametric, graphDbHalfParametric);
-                        tBands[draggedNode].gain = Math.max(-30, Math.min(30, Math.round(newGain * 10) / 10));
-                    }
+                const isParam = currentMode === 'parametric';
+                const dbCenter = isParam ? 0 : 75;
+                const dbHalf = isParam ? graphDbHalfParametric : graphDbHalfAutoEQ;
+                const dbMin = dbCenter - dbHalf;
+                const dbMax = dbCenter + dbHalf;
 
-                    computeCorrectedCurve();
-                    applyBandsToAudio(tBands);
-                    if (!graphAnimFrame) {
-                        graphAnimFrame = requestAnimationFrame(() => {
-                            drawAutoEQGraph();
-                            renderBandControls(tBands);
-                            graphAnimFrame = null;
-                        });
-                    }
-                    e.preventDefault();
+                const freq = xToFreq(coords.x - padLeft, w);
+                tBands[draggedNode].freq = Math.max(20, Math.min(20000, freq));
+
+                if (isParam) {
+                    const newGain = yToDb(coords.y - padTop, h, dbMin, dbMax);
+                    tBands[draggedNode].gain = Math.max(-30, Math.min(30, Math.round(newGain * 10) / 10));
+                } else {
+                    const corrGain = interpolate(tBands[draggedNode].freq, autoeqCorrectedCurve || []);
+                    const newDb = yToDb(coords.y - padTop, h, dbMin, dbMax);
+                    const gainDelta = newDb - corrGain;
+                    tBands[draggedNode].gain = Math.max(-30, Math.min(30, tBands[draggedNode].gain + gainDelta * 0.3));
                 }
+
+                computeCorrectedCurve();
+                applyBandsToAudio(tBands);
+                if (!graphAnimFrame) {
+                    graphAnimFrame = requestAnimationFrame(() => {
+                        drawAutoEQGraph();
+                        renderBandControls(tBands);
+                        graphAnimFrame = null;
+                    });
+                }
+                e.preventDefault();
             },
             { passive: false }
         );
 
-        autoeqCanvas.addEventListener('touchend', () => {
-            draggedNode = null;
-            touchNodeIdx = -1;
+        document.addEventListener('touchend', () => {
+            if (draggedNode !== null) {
+                draggedNode = null;
+                touchNodeIdx = -1;
+            }
         });
 
         // Resize observer for graph

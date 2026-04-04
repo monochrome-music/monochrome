@@ -113,6 +113,15 @@ class AudioContextManager {
         // Callbacks for audio graph changes (for visualizers like Butterchurn)
         this._graphChangeCallbacks = [];
 
+        // --- Graphic EQ (16-band, separate chain) ---
+        this.geqFilters = [];
+        this.geqPreampNode = null;
+        this.geqOutputNode = null;
+        this.isGraphicEQEnabled = equalizerSettings.isGraphicEqEnabled();
+        this.geqFrequencies = [25, 40, 63, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000, 16000, 20000];
+        this.geqGains = equalizerSettings.getGraphicEqGains();
+        this.geqPreamp = equalizerSettings.getGraphicEqPreamp();
+
         // Load saved settings
         this._loadSettings();
     }
@@ -331,6 +340,7 @@ class AudioContextManager {
             this.analyser.smoothingTimeConstant = 0.7;
 
             this._createEQ();
+            this._createGraphicEQ();
 
             this.outputNode = this.audioContext.createGain();
             this.outputNode.gain.value = 1;
@@ -402,6 +412,28 @@ class AudioContextManager {
     _connectGraph() {
         if (!this.isInitialized || !this.source || !this.audioContext) return;
 
+        // Ensure graphic EQ nodes exist
+        if (this.geqFilters.length === 0 && this.isGraphicEQEnabled) {
+            this._createGraphicEQ();
+        }
+
+        // Helper: connect a chain segment from lastNode through graphic EQ (if enabled) to analyser -> volume -> dest
+        const connectTail = (lastNode) => {
+            if (this.isGraphicEQEnabled && this.geqFilters.length > 0) {
+                lastNode.connect(this.geqPreampNode);
+                this.geqPreampNode.connect(this.geqFilters[0]);
+                for (let i = 0; i < this.geqFilters.length - 1; i++) {
+                    this.geqFilters[i].connect(this.geqFilters[i + 1]);
+                }
+                this.geqFilters[this.geqFilters.length - 1].connect(this.geqOutputNode);
+                this.geqOutputNode.connect(this.analyser);
+            } else {
+                lastNode.connect(this.analyser);
+            }
+            this.analyser.connect(this.volumeNode);
+            this.volumeNode.connect(this.audioContext.destination);
+        };
+
         try {
             // --- 1. Build the new chain (connect new path BEFORE disconnecting old) ---
             let lastNode = this.source;
@@ -418,11 +450,9 @@ class AudioContextManager {
                 this.monoGainNode.connect(this.monoMergerNode, 0, 1);
 
                 lastNode = this.monoMergerNode;
-                console.log('[AudioContext] Mono audio enabled');
             }
 
             if (this.isEQEnabled && this.filters.length > 0) {
-                // EQ enabled: lastNode -> preamp -> EQ filters -> output -> analyser -> volume -> destination
                 for (let i = 0; i < this.filters.length - 1; i++) {
                     this.filters[i].connect(this.filters[i + 1]);
                 }
@@ -433,74 +463,24 @@ class AudioContextManager {
                     lastNode.connect(this.filters[0]);
                 }
                 this.filters[this.filters.length - 1].connect(this.outputNode);
-                this.outputNode.connect(this.analyser);
-                this.analyser.connect(this.volumeNode);
-                this.volumeNode.connect(this.audioContext.destination);
-                console.log('[AudioContext] EQ connected');
+                connectTail(this.outputNode);
             } else {
-                // EQ disabled: lastNode -> analyser -> volume -> destination
-                lastNode.connect(this.analyser);
-                this.analyser.connect(this.volumeNode);
-                this.volumeNode.connect(this.audioContext.destination);
+                connectTail(lastNode);
             }
 
             // --- 2. Tear down stale connections ---
-            // Now that the new path is live, remove any duplicate/old connections.
-            // disconnect() with no args removes ALL outputs, so we immediately
-            // re-establish the connections we just made.  The Web Audio spec
-            // guarantees that connect-then-disconnect-then-reconnect within a
-            // single JS task is glitch-free because the audio graph update is
-            // deferred to the next render quantum.
-            try {
-                this.source.disconnect();
-            } catch {
-                /* already clean */
-            }
-            if (this.monoGainNode) {
-                try {
-                    this.monoGainNode.disconnect();
-                } catch {
-                    /* */
-                }
-            }
-            if (this.monoMergerNode) {
-                try {
-                    this.monoMergerNode.disconnect();
-                } catch {
-                    /* */
-                }
-            }
-            if (this.preampNode) {
-                try {
-                    this.preampNode.disconnect();
-                } catch {
-                    /* */
-                }
-            }
-            this.filters.forEach((f) => {
-                try {
-                    f.disconnect();
-                } catch {
-                    /* */
-                }
-            });
-            try {
-                this.outputNode.disconnect();
-            } catch {
-                /* */
-            }
-            try {
-                this.analyser.disconnect();
-            } catch {
-                /* */
-            }
-            if (this.volumeNode) {
-                try {
-                    this.volumeNode.disconnect();
-                } catch {
-                    /* */
-                }
-            }
+            try { this.source.disconnect(); } catch { /* */ }
+            if (this.monoGainNode) { try { this.monoGainNode.disconnect(); } catch { /* */ } }
+            if (this.monoMergerNode) { try { this.monoMergerNode.disconnect(); } catch { /* */ } }
+            if (this.preampNode) { try { this.preampNode.disconnect(); } catch { /* */ } }
+            this.filters.forEach((f) => { try { f.disconnect(); } catch { /* */ } });
+            try { this.outputNode.disconnect(); } catch { /* */ }
+            // Graphic EQ teardown
+            if (this.geqPreampNode) { try { this.geqPreampNode.disconnect(); } catch { /* */ } }
+            this.geqFilters.forEach((f) => { try { f.disconnect(); } catch { /* */ } });
+            if (this.geqOutputNode) { try { this.geqOutputNode.disconnect(); } catch { /* */ } }
+            try { this.analyser.disconnect(); } catch { /* */ }
+            if (this.volumeNode) { try { this.volumeNode.disconnect(); } catch { /* */ } }
 
             // --- 3. Reconnect the final graph (clean, no duplicates) ---
             lastNode = this.source;
@@ -523,13 +503,9 @@ class AudioContextManager {
                     lastNode.connect(this.filters[0]);
                 }
                 this.filters[this.filters.length - 1].connect(this.outputNode);
-                this.outputNode.connect(this.analyser);
-                this.analyser.connect(this.volumeNode);
-                this.volumeNode.connect(this.audioContext.destination);
+                connectTail(this.outputNode);
             } else {
-                lastNode.connect(this.analyser);
-                this.analyser.connect(this.volumeNode);
-                this.volumeNode.connect(this.audioContext.destination);
+                connectTail(lastNode);
             }
 
             // Notify visualizers that graph has been reconnected
@@ -1027,6 +1003,74 @@ class AudioContextManager {
         } catch (e) {
             console.warn('[AudioContext] Failed to import EQ settings:', e);
             return false;
+        }
+    }
+
+    // ========================================
+    // Graphic EQ (16-band, independent chain)
+    // ========================================
+
+    _createGraphicEQ() {
+        if (!this.audioContext) return;
+        this.geqPreampNode = this.audioContext.createGain();
+        const gainValue = Math.pow(10, (this.geqPreamp || 0) / 20);
+        this.geqPreampNode.gain.value = gainValue;
+
+        this.geqOutputNode = this.audioContext.createGain();
+        this.geqOutputNode.gain.value = 1;
+
+        this.geqFilters = this.geqFrequencies.map((freq, i) => {
+            const filter = this.audioContext.createBiquadFilter();
+            filter.type = 'peaking';
+            filter.frequency.value = freq;
+            filter.Q.value = 2.5; // constant Q for 16-band
+            filter.gain.value = this.geqGains[i] || 0;
+            return filter;
+        });
+    }
+
+    _destroyGraphicEQ() {
+        this.geqFilters.forEach((f) => { try { f.disconnect(); } catch { /* */ } });
+        this.geqFilters = [];
+        if (this.geqPreampNode) { try { this.geqPreampNode.disconnect(); } catch { /* */ } this.geqPreampNode = null; }
+        if (this.geqOutputNode) { try { this.geqOutputNode.disconnect(); } catch { /* */ } this.geqOutputNode = null; }
+    }
+
+    toggleGraphicEQ(enabled) {
+        this.isGraphicEQEnabled = enabled;
+        equalizerSettings.setGraphicEqEnabled(enabled);
+        if (this.isInitialized) {
+            this._connectGraph();
+        }
+    }
+
+    setGraphicEqBandGain(bandIndex, gainDb) {
+        if (bandIndex < 0 || bandIndex >= 16) return;
+        this.geqGains[bandIndex] = Math.max(-30, Math.min(30, gainDb));
+        if (this.geqFilters[bandIndex] && this.audioContext) {
+            const now = this.audioContext.currentTime;
+            this.geqFilters[bandIndex].gain.setTargetAtTime(this.geqGains[bandIndex], now, 0.01);
+        }
+    }
+
+    setGraphicEqAllGains(gains) {
+        if (!Array.isArray(gains)) return;
+        const now = this.audioContext?.currentTime || 0;
+        gains.forEach((g, i) => {
+            if (i >= 16) return;
+            this.geqGains[i] = Math.max(-30, Math.min(30, g));
+            if (this.geqFilters[i]) {
+                this.geqFilters[i].gain.setTargetAtTime(this.geqGains[i], now, 0.01);
+            }
+        });
+    }
+
+    setGraphicEqPreamp(db) {
+        this.geqPreamp = Math.max(-20, Math.min(20, parseFloat(db) || 0));
+        if (this.geqPreampNode && this.audioContext) {
+            const gainValue = Math.pow(10, this.geqPreamp / 20);
+            const now = this.audioContext.currentTime;
+            this.geqPreampNode.gain.setTargetAtTime(gainValue, now, 0.01);
         }
     }
 }
