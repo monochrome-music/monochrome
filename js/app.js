@@ -130,7 +130,15 @@ async function fetchcontributors() {
     const response = await fetch('https://api.samidy.com/api/contributors');
     const data1 = await response.json();
 
-    const data = data1.filter((user) => user.type !== 'Bot');
+    const data = data1.filter(
+        (user) => user.type !== 'Bot' && user.login !== 'edidealt' && user.login !== 'satanyahoo'
+    );
+
+    const edideaur = data.find((user) => user.login === 'edideaur');
+    if (edideaur) {
+        edideaur.contributions += data1.find((u) => u.login === 'edidealt')?.contributions || 0;
+        edideaur.contributions += data1.find((u) => u.login === 'satanyahoo')?.contributions || 0;
+    }
 
     const con = document.querySelector('.about-contributors');
 
