@@ -1,0 +1,95 @@
+name: Update Editors Picks
+
+on:
+    push:
+        branches: [main]
+        paths:
+            - 'editors-picks-input.txt'
+
+jobs:
+    update:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 1
+
+            - name: Check for backoff condition
+              id: backoff
+              run: |
+                  CHANGED=$(git diff-tree --no-commit-id -r --name-only HEAD)
+                  echo "Files changed in this commit:"
+                  echo "$CHANGED"
+                  if echo "$CHANGED" | grep -qE '^public/editors-picks\.json$|^public/editors-picks-old/'; then
+                    echo "Detected changes to generated files in this commit — backing off to avoid overwriting manual edits."
+                    echo "skip=true" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "skip=false" >> "$GITHUB_OUTPUT"
+                  fi
+
+            - name: Setup Python
+              if: steps.backoff.outputs.skip == 'false'
+              uses: actions/setup-python@v5
+              with:
+                  python-version: '3.x'
+
+            - name: Archive current editors picks
+              if: steps.backoff.outputs.skip == 'false'
+              run: |
+                  python3 - << 'EOF'
+                  import json, re
+                  from datetime import date
+
+                  today = date.today()
+                  # Filename uses non-padded month/day to match existing convention
+                  filename = f"{today.year}-{today.month}-{today.day}.json"
+                  # Date field uses ISO format (zero-padded)
+                  iso_date = today.strftime("%Y-%m-%d")
+                  archive_path = f"public/editors-picks-old/{filename}"
+
+                  # Read optional label from input file
+                  label = iso_date
+                  with open("editors-picks-input.txt") as f:
+                      for line in f:
+                          m = re.match(r"^#\s*label:\s*(.+)", line.strip())
+                          if m:
+                              label = m.group(1).strip()
+                              break
+
+                  # Copy current picks to archive
+                  with open("public/editors-picks.json") as f:
+                      current = json.load(f)
+                  with open(archive_path, "w") as f:
+                      json.dump(current, f, indent=4)
+
+                  # Prepend to index so newest archived version appears first
+                  with open("public/editors-picks-old/index.json") as f:
+                      index = json.load(f)
+                  index.insert(0, {
+                      "file": filename,
+                      "label": label,
+                      "date": iso_date,
+                  })
+                  with open("public/editors-picks-old/index.json", "w") as f:
+                      json.dump(index, f, indent=4)
+
+                  print(f"Archived to {archive_path} with label '{label}'")
+                  EOF
+
+            - name: Generate new editors picks
+              if: steps.backoff.outputs.skip == 'false'
+              run: python3 gen-editors-picks.py
+
+            - name: Commit and push
+              if: steps.backoff.outputs.skip == 'false'
+              run: |
+                  git config user.name "github-actions[bot]"
+                  git config user.email "github-actions[bot]@users.noreply.github.com"
+                  git add public/editors-picks.json public/editors-picks-old/
+                  git diff --staged --quiet && echo "No changes to commit." && exit 0
+                  git commit -m "chore: update editors picks"
+                  git push

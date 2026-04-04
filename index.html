@@ -58,6 +58,7 @@
                 </li>
                 <li data-action="toggle-pin" data-type-filter="album,artist,playlist,user-playlist">Pin</li>
                 <li data-action="add-to-playlist" data-type-filter="track,video">Add to playlist</li>
+                <li data-action="request-song" data-type-filter="track,video">Request song</li>
                 <li data-action="go-to-artist" data-type-filter="track,album,video">Go to artist</li>
                 <li data-action="go-to-album" data-type-filter="track,video">Go to album</li>
                 <li data-action="copy-link">Copy link</li>
@@ -138,12 +139,12 @@
                     "
                 ></div>
                 <button id="toggle-ui-btn" class="fullscreen-ui-toggle" title="Toggle UI">
-                    <use svg="!lucide/x.svg" size="24" />
+                    <use svg="!lucide/eye-off.svg" size="24" />
                 </button>
                 <button id="toggle-fullscreen-lyrics-btn" class="fullscreen-lyrics-toggle" title="Toggle Lyrics">
                     <use svg="!lucide/mic-vocal.svg" size="24" />
                 </button>
-                <button id="close-fullscreen-cover-btn" title="Close">&times;</button>
+                <button id="close-fullscreen-cover-btn" title="Close"><use svg="!lucide/x.svg" size="24" /></button>
                 <div class="fullscreen-main-view">
                     <img
                         id="fullscreen-cover-image"
@@ -1600,6 +1601,12 @@
                                             <span>Discord</span>
                                         </a>
                                     </li>
+                                    <li class="nav-item" id="sidebar-nav-party">
+                                        <a href="/parties" id="sidebar-party-btn">
+                                            <use svg="!lucide/users.svg" size="24" />
+                                            <span>Parties</span>
+                                        </a>
+                                    </li>
                                     <li class="nav-item" id="sidebar-nav-githubbtn" style="display: none">
                                         <a href="https://github.com/monochrome-music/monochrome" target="_blank">
                                             <use svg="./images/github.svg" size="24" />
@@ -1817,6 +1824,122 @@
                     <div id="home-view-explore" class="home-view" style="display: none">
                         <div id="explore-content">
                             <div class="card-grid" id="explore-grid"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="page-parties" class="page">
+                    <div style="text-align: center; padding: 4rem 2rem; max-width: 600px; margin: 0 auto">
+                        <h2 class="section-title">Listening Parties</h2>
+                        <p style="color: var(--muted-foreground); margin-bottom: 2rem">
+                            Listen to music together with your friends in real-time. Host controls the music, everyone
+                            enjoys it.
+                        </p>
+                        <div id="parties-auth-required" style="display: none">
+                            <p style="margin-bottom: 1rem">You need an account to host a listening party.</p>
+                            <button id="parties-login-btn" class="btn-primary">Sign In / Sign Up</button>
+                        </div>
+                        <div id="parties-host-controls" style="display: none">
+                            <input
+                                type="text"
+                                id="party-name-input"
+                                class="template-input"
+                                placeholder="Party Name"
+                                style="margin-bottom: 1rem"
+                            />
+                            <button id="create-party-btn" class="btn-primary" style="width: 100%">
+                                Create Listening Party
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="page-party-detail" class="page">
+                    <div class="party-container">
+                        <header class="detail-header">
+                            <div class="detail-header-info">
+                                <div class="type">Listening Party</div>
+                                <h1 class="title" id="party-title">Party Name</h1>
+                                <div class="meta" id="party-meta">Host: ...</div>
+                                <div class="detail-header-actions">
+                                    <button id="leave-party-btn" class="btn-secondary danger">Leave Party</button>
+                                    <button id="copy-party-link-btn" class="btn-secondary">Copy Invite Link</button>
+                                </div>
+                            </div>
+                        </header>
+
+                        <div
+                            class="party-content-layout"
+                            style="display: grid; grid-template-columns: 1fr 350px; gap: 2rem; margin-top: 2rem"
+                        >
+                            <div class="party-main-section">
+                                <section class="content-section">
+                                    <h2 class="section-title">Currently Playing</h2>
+                                    <div id="party-current-track-display"></div>
+                                </section>
+
+                                <section class="content-section">
+                                    <h2 class="section-title">Participants (<span id="party-member-count">0</span>)</h2>
+                                    <div id="party-members-list" class="card-grid compact"></div>
+                                </section>
+
+                                <section class="content-section" id="party-requests-section">
+                                    <h2 class="section-title">Song Requests</h2>
+                                    <div id="party-requests-list" class="track-list"></div>
+                                </section>
+                            </div>
+
+                            <div class="party-sidebar-section">
+                                <div
+                                    class="party-chat-container"
+                                    style="
+                                        display: flex;
+                                        flex-direction: column;
+                                        height: 600px;
+                                        background: var(--background-secondary);
+                                        border-radius: var(--radius);
+                                        border: 1px solid var(--border);
+                                    "
+                                >
+                                    <div
+                                        class="chat-header"
+                                        style="padding: 1rem; border-bottom: 1px solid var(--border); font-weight: 600"
+                                    >
+                                        Chat
+                                    </div>
+                                    <div
+                                        id="party-chat-messages"
+                                        style="
+                                            flex: 1;
+                                            overflow-y: auto;
+                                            padding: 1rem;
+                                            display: flex;
+                                            flex-direction: column;
+                                            gap: 0.5rem;
+                                        "
+                                    ></div>
+                                    <div
+                                        class="chat-input-container"
+                                        style="
+                                            padding: 1rem;
+                                            border-top: 1px solid var(--border);
+                                            display: flex;
+                                            gap: 0.5rem;
+                                        "
+                                    >
+                                        <input
+                                            type="text"
+                                            id="party-chat-input"
+                                            class="template-input"
+                                            placeholder="Say something..."
+                                            style="flex: 1"
+                                        />
+                                        <button id="party-chat-send-btn" class="btn-primary" style="padding: 0 1rem">
+                                            Send
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2833,6 +2956,54 @@
                                         <span class="slider"></span>
                                     </label>
                                 </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">No Round Album Cover</span>
+                                        <span class="description">Do not round the album cover in fullscreen view</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="fullscreen-cover-no-round-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Vanilla Tilt Album Cover</span>
+                                        <span class="description"
+                                            >Enable 3D tilt effect on the album cover in fullscreen view</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="fullscreen-cover-vanilla-tilt-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Tilt Distance</span>
+                                        <span class="description">Max tilt distance (default: 10)</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        id="fullscreen-cover-tilt-distance"
+                                        min="0"
+                                        max="30"
+                                        value="10"
+                                    />
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Tilt Speed</span>
+                                        <span class="description">Tilt animation speed in ms (default: 240)</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        id="fullscreen-cover-tilt-speed"
+                                        min="50"
+                                        max="1000"
+                                        value="240"
+                                    />
+                                </div>
                             </div>
 
                             <div class="settings-group">
@@ -3061,6 +3232,18 @@
                                         <input type="checkbox" id="shuffle-editors-picks-toggle" checked />
                                         <span class="slider"></span>
                                     </label>
+                                </div>
+                            </div>
+
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Editor's Picks Source</span>
+                                        <span class="description">Choose which editor's picks file to display</span>
+                                    </div>
+                                    <select id="editors-picks-source-select" class="select-dropdown">
+                                        <option value="current">Current</option>
+                                    </select>
                                 </div>
                             </div>
 
@@ -3879,6 +4062,7 @@
 
                                         <div class="eq-howto-tab autoeq" id="eq-howto-autoeq">
                                             <h4>AutoEQ &mdash; Headphone Correction</h4>
+                                            <h4>AutoEQ - Headphone Correction</h4>
                                             <ol>
                                                 <li>
                                                     <b>Select your headphone</b> from the dropdown or search the
@@ -3887,6 +4071,8 @@
                                                 <li>
                                                     <b>Pick a target curve</b> &mdash; Harman is the most popular. You
                                                     can also import a custom target.
+                                                    <b>Pick a target curve</b> - Harman is the most popular. You can
+                                                    also import a custom target.
                                                 </li>
                                                 <li>
                                                     Adjust <b>filter bands</b> (more = finer correction, 10 is a good
@@ -3895,6 +4081,8 @@
                                                 <li>
                                                     Click <b>AutoEQ</b> &mdash; the algorithm generates parametric
                                                     filters that shape your headphone's response toward the target.
+                                                    Click <b>AutoEQ</b> - the algorithm generates parametric filters
+                                                    that shape your headphone's response toward the target.
                                                 </li>
                                                 <li>
                                                     The <b>pink corrected curve</b> on the graph shows the predicted
@@ -3922,6 +4110,7 @@
                                             style="display: none"
                                         >
                                             <h4>Parametric EQ &mdash; Manual Control</h4>
+                                            <h4>Parametric EQ - Manual Control</h4>
                                             <ol>
                                                 <li>
                                                     Each band supports <b>peaking, low-shelf, and high-shelf</b> filter
@@ -3960,6 +4149,7 @@
 
                                         <div class="eq-howto-tab speaker" id="eq-howto-speaker" style="display: none">
                                             <h4>Speaker EQ &mdash; Room Correction</h4>
+                                            <h4>Speaker EQ - Room Correction</h4>
                                             <ol>
                                                 <li>Select your <b>speaker config</b> (2.0, 5.1, or 7.1).</li>
                                                 <li>
@@ -3968,6 +4158,7 @@
                                                 </li>
                                                 <li>
                                                     <b>Measure</b>: click the mic button &mdash; pink noise plays for 5
+                                                    <b>Measure</b>: click the mic button - pink noise plays for 5
                                                     seconds while your microphone captures the room response. Or
                                                     <b>import</b> a measurement file from REW or similar.
                                                 </li>
@@ -3979,6 +4170,12 @@
                                                     Set <b>Bass Limit</b> (don't EQ below this) and
                                                     <b>Room Limit</b> (don't EQ above this) &mdash; the colored lines on
                                                     the graph show the active range.
+                                                    Pick a <b>target</b> - Harman In-Room is recommended for speakers.
+                                                </li>
+                                                <li>
+                                                    Set <b>Bass Limit</b> (don't EQ below this) and
+                                                    <b>Room Limit</b> (don't EQ above this) - the colored lines on the
+                                                    graph show the active range.
                                                 </li>
                                                 <li>
                                                     Click <b>AutoEQ</b> to generate correction filters for that channel.
@@ -4733,6 +4930,20 @@
                             <div class="settings-group">
                                 <div class="setting-item">
                                     <div class="info">
+                                        <span class="label">Write Artists Separately</span>
+                                        <span class="description"
+                                            >Write artists separately to metadata. Requires player support.</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="write-artists-separately-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
                                         <span class="label">Download Lyrics</span>
                                         <span class="description"
                                             >Include .lrc files when downloading tracks/albums</span
@@ -5052,6 +5263,58 @@
                                         </button>
                                     </div>
                                 </div>
+                                <div id="blocked-content-list" style="display: none">
+                                    <p
+                                        id="blocked-empty-message"
+                                        style="
+                                            display: none;
+                                            color: var(--muted-foreground);
+                                            font-size: 0.875rem;
+                                            padding: 0.5rem 0;
+                                        "
+                                    >
+                                        Nothing blocked yet.
+                                    </p>
+                                    <div id="blocked-artists-section" style="display: none">
+                                        <h4
+                                            style="
+                                                font-size: 0.75rem;
+                                                text-transform: uppercase;
+                                                color: var(--muted-foreground);
+                                                margin: 0.75rem 0 0.25rem;
+                                            "
+                                        >
+                                            Artists
+                                        </h4>
+                                        <ul id="blocked-artists-list" class="blocked-items-list"></ul>
+                                    </div>
+                                    <div id="blocked-albums-section" style="display: none">
+                                        <h4
+                                            style="
+                                                font-size: 0.75rem;
+                                                text-transform: uppercase;
+                                                color: var(--muted-foreground);
+                                                margin: 0.75rem 0 0.25rem;
+                                            "
+                                        >
+                                            Albums
+                                        </h4>
+                                        <ul id="blocked-albums-list" class="blocked-items-list"></ul>
+                                    </div>
+                                    <div id="blocked-tracks-section" style="display: none">
+                                        <h4
+                                            style="
+                                                font-size: 0.75rem;
+                                                text-transform: uppercase;
+                                                color: var(--muted-foreground);
+                                                margin: 0.75rem 0 0.25rem;
+                                            "
+                                        >
+                                            Tracks
+                                        </h4>
+                                        <ul id="blocked-tracks-list" class="blocked-items-list"></ul>
+                                    </div>
+                                </div>
                             </div>
                             <p
                                 id="settings-commit-info"
@@ -5349,6 +5612,7 @@
                 </div>
             </footer>
         </div>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/pocketbase@0.21.3/dist/pocketbase.umd.js"></script>
         <script type="module" src="/js/app.js"></script>
     </body>

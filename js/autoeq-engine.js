@@ -233,6 +233,7 @@ function runAutoEqAlgorithm(
             upperFreq = (peakFreq * peakFreq) / lowerFreq;
         } else if (!foundLower && !foundUpper) {
             // Neither boundary found — use 1 octave default
+            // Neither boundary found - use 1 octave default
             lowerFreq = peakFreq / Math.SQRT2;
             upperFreq = peakFreq * Math.SQRT2;
         }

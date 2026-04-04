@@ -29,8 +29,8 @@ import { FileSystemFileHandleStream } from '!/@dantheman827/taglib-ts/src/toolki
 import { FlacFile } from '!/@dantheman827/taglib-ts/src/flac/flacFile.js';
 import { MpegFile } from '!/@dantheman827/taglib-ts/src/mpeg/mpegFile.js';
 import { Mp4File } from '!/@dantheman827/taglib-ts/src/mp4/mp4File.js';
-import { OggFile } from '!/@dantheman827/taglib-ts/src/ogg/oggFile.js';
 import { OggVorbisFile } from '!/@dantheman827/taglib-ts/src/ogg/vorbis/vorbisFile.js';
+import { WavFile } from '!/@dantheman827/taglib-ts/src/riff/wav/wavFile';
 
 export const isWorker = typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope;
 
@@ -41,6 +41,7 @@ export async function addMetadataToAudio(message: _AddMetadataMessage): Promise<
         filename,
         title,
         artist,
+        writeArtistsSeparately = false,
         albumTitle,
         albumArtist,
         trackNumber,
@@ -74,17 +75,26 @@ export async function addMetadataToAudio(message: _AddMetadataMessage): Promise<
     }
 
     const underlying = ref.file();
+    const isFlac = underlying instanceof FlacFile;
     const isMp4 = underlying instanceof Mp4File;
     const isMpeg = underlying instanceof MpegFile;
+    const isOgg = underlying instanceof OggVorbisFile;
+    const isWav = underlying instanceof WavFile;
+
     const needsCombinedTrackDisc = isMp4 || isMpeg;
+
+    const artistArray = Array.isArray(artist) ? artist : artist ? [artist] : [];
+    const supportsMultiValuedArtist = writeArtistsSeparately && (isFlac || isOgg || isMp4);
 
     doTimed('Tagging file', () => {
         const props = ref.properties();
 
         if (title) props.replace('TITLE', [title]);
-        if (artist) props.replace('ARTIST', [artist]);
+        if (artistArray.length)
+            props.replace('ARTIST', supportsMultiValuedArtist ? artistArray : [artistArray.join('; ')]);
         if (albumTitle) props.replace('ALBUM', [albumTitle]);
-        if (albumArtist || artist) props.replace('ALBUMARTIST', [albumArtist || artist!]);
+        if (albumArtist || artistArray.length)
+            props.replace('ALBUMARTIST', albumArtist ? [albumArtist] : [artistArray.join('; ')]);
 
         if (trackNumber) {
             const trackStr =
@@ -135,7 +145,7 @@ export async function addMetadataToAudio(message: _AddMetadataMessage): Promise<
 
         if (explicit !== undefined) {
             if (isMp4) {
-                // rtng is a byte item — must be set directly on the Mp4Tag
+                // rtng is a byte item - must be set directly on the Mp4Tag
                 const mp4Tag = (underlying as Mp4File).tag() as Mp4Tag;
                 mp4Tag.setItem('rtng', Mp4Item.fromByte(explicit ? 1 : 0));
             } else {
