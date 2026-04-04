@@ -1936,7 +1936,41 @@ export class Player {
 
     updateMediaSessionPlaybackState() {
         if (!('mediaSession' in navigator)) return;
-        navigator.mediaSession.playbackState = this.activeElement.paused ? 'paused' : 'playing';
+        const isPlaying = !this.activeElement.paused;
+        navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+
+        // Start/stop Android foreground service to prevent background audio throttling
+        this._updateBackgroundAudioService(isPlaying);
+    }
+
+    /**
+     * On Android (Capacitor), start or stop the foreground service that keeps
+     * the WebView alive so Web Audio EQ processing isn't throttled.
+     */
+    _updateBackgroundAudioService(isPlaying) {
+        if (this._bgAudioPending) return;
+        this._bgAudioPending = true;
+
+        // Lazy-load Capacitor core; no-op on web/iOS
+        (async () => {
+            try {
+                const { Capacitor } = await import('@capacitor/core');
+                if (Capacitor.getPlatform() !== 'android') return;
+                const { registerPlugin } = await import('@capacitor/core');
+                if (!this._bgAudioPlugin) {
+                    this._bgAudioPlugin = registerPlugin('BackgroundAudio');
+                }
+                if (isPlaying) {
+                    await this._bgAudioPlugin.start();
+                } else {
+                    await this._bgAudioPlugin.stop();
+                }
+            } catch {
+                // Not running in Capacitor or plugin unavailable — ignore
+            } finally {
+                this._bgAudioPending = false;
+            }
+        })();
     }
 
     updateMediaSessionPositionState() {
