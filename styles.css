@@ -9914,8 +9914,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     transform: scale(1.02);
 }
 
-
-/* FUCK FLEX FUCK CSS FUCKKKKK*/
+/* FUCK FLEX FUCK CSS FUCKKKKK */
 .about-contributors {
     display: flex;
     flex-wrap: wrap;
@@ -9940,7 +9939,6 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     color: var(--muted-foreground);
     text-align: center;
 }
-
 
 .contrib {
     font-size: 10px;
