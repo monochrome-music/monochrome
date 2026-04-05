@@ -144,77 +144,99 @@
                 <button id="toggle-fullscreen-lyrics-btn" class="fullscreen-lyrics-toggle" title="Toggle Lyrics">
                     <use svg="!lucide/mic-vocal.svg" size="24" />
                 </button>
-                <button id="close-fullscreen-cover-btn" title="Close"><use svg="!lucide/x.svg" size="24" /></button>
-                <div class="fullscreen-main-view">
-                    <img
-                        id="fullscreen-cover-image"
-                        src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-                        alt="Album Cover"
-                    />
+                <div class="fullscreen-top-actions">
+                    <button id="fs-visualizer-btn" class="fs-visualizer-btn" title="Disable Visualizer">
+                        <use svg="!lucide/audio-lines.svg" size="20" />
+                    </button>
+                    <button id="close-fullscreen-cover-btn" title="Close"><use svg="!lucide/x.svg" size="24" /></button>
+                </div>
+                <div class="fullscreen-shell">
+                    <div class="fullscreen-main-view">
+                        <div class="fullscreen-media-column">
+                            <div class="fullscreen-artwork-card">
+                                <img
+                                    id="fullscreen-cover-image"
+                                    src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                                    alt="Album Cover"
+                                />
+                            </div>
 
-                    <div class="fullscreen-track-info">
-                        <h2 id="fullscreen-track-title"></h2>
-                        <h3 id="fullscreen-track-artist"></h3>
-                        <div class="fullscreen-actions">
-                            <button id="fs-like-btn" class="btn-icon like-btn" title="Like">
-                                <use svg="!lucide/heart.svg" class="heart-icon" size="24" />
-                            </button>
-                            <button id="fs-add-playlist-btn" class="btn-icon" title="Add to Playlist">
-                                <use svg="!lucide/square-pen.svg" size="24" />
-                            </button>
-                            <button id="fs-download-btn" class="btn-icon" title="Download">
-                                <use svg="!lucide/download.svg" size="24" />
-                            </button>
-                            <button id="fs-cast-btn" class="btn-icon" title="Cast">
-                                <use svg="!lucide/cast.svg" size="24" />
-                            </button>
-                            <button id="fs-queue-btn" class="btn-icon" title="Queue">
-                                <use svg="!lucide/list.svg" size="24" />
-                            </button>
-                        </div>
-                        <div id="fullscreen-next-track" style="display: none">
-                            <span class="label">Up Next: </span>
-                            <span class="value"></span>
-                        </div>
-                    </div>
-                    <div class="fullscreen-controls">
-                        <div class="fullscreen-progress-container">
-                            <span id="fs-current-time">0:00</span>
-                            <div id="fs-progress-bar" class="progress-bar">
-                                <div id="fs-progress-fill" class="progress-fill"></div>
+                            <div class="fullscreen-track-info">
+                                <div class="fullscreen-track-text">
+                                    <h2 id="fullscreen-track-title"></h2>
+                                    <h3 id="fullscreen-track-artist"></h3>
+                                </div>
+                                <div class="fullscreen-actions">
+                                    <button id="fs-like-btn" class="btn-icon like-btn" title="Like">
+                                        <use svg="!lucide/heart.svg" class="heart-icon" size="24" />
+                                    </button>
+                                    <button id="fs-add-playlist-btn" class="btn-icon" title="Add to Playlist">
+                                        <use svg="!lucide/square-pen.svg" size="24" />
+                                    </button>
+                                    <button id="fs-download-btn" class="btn-icon" title="Download">
+                                        <use svg="!lucide/download.svg" size="24" />
+                                    </button>
+                                    <button id="fs-cast-btn" class="btn-icon" title="Cast">
+                                        <use svg="!lucide/cast.svg" size="24" />
+                                    </button>
+                                    <button id="fs-queue-btn" class="btn-icon" title="Queue">
+                                        <use svg="!lucide/list.svg" size="24" />
+                                    </button>
+                                </div>
+                                <div id="fullscreen-next-track" style="display: none">
+                                    <span class="label">Up Next</span>
+                                    <span class="value"></span>
+                                </div>
                             </div>
-                            <span id="fs-total-duration">0:00</span>
-                        </div>
-                        <div class="fullscreen-buttons">
-                            <button id="fs-shuffle-btn" title="Shuffle">
-                                <use svg="!lucide/shuffle.svg" size="24" />
-                            </button>
-                            <button id="fs-prev-btn" title="Previous">
-                                <use svg="!lucide/arrow-left-to-line.svg" size="24" />
-                            </button>
-                            <button id="fs-play-pause-btn" class="play-pause-btn" title="Play">
-                                <use svg="./images/play-large.svg" size="32" />
-                            </button>
-                            <button id="fs-next-btn" title="Next">
-                                <use svg="!lucide/arrow-right-to-line.svg" size="24" />
-                            </button>
-                            <button id="fs-repeat-btn" title="Repeat">
-                                <use svg="!lucide/repeat.svg" size="24" />
-                            </button>
-                            <button id="fs-quality-btn" class="fs-quality-btn" title="Quality" style="display: none">
-                                <use svg="!lucide/pencil-line.svg" size="20" />
-                                <span class="fs-quality-label">Auto</span>
-                            </button>
-                            <div id="fs-quality-menu" class="fs-quality-menu" style="display: none"></div>
-                        </div>
-                        <div class="fullscreen-volume-container">
-                            <button id="fs-volume-btn" class="fs-volume-btn" title="Mute">
-                                <use svg="!lucide/volume-1.svg" size="24" />
-                            </button>
-                            <div id="fs-volume-bar" class="fs-volume-bar">
-                                <div id="fs-volume-fill" class="fs-volume-fill"></div>
+
+                            <div class="fullscreen-controls">
+                                <div class="fullscreen-progress-container">
+                                    <span id="fs-current-time">0:00</span>
+                                    <div id="fs-progress-bar" class="progress-bar">
+                                        <div id="fs-progress-fill" class="progress-fill"></div>
+                                    </div>
+                                    <span id="fs-total-duration">0:00</span>
+                                </div>
+                                <div class="fullscreen-buttons">
+                                    <button id="fs-shuffle-btn" title="Shuffle">
+                                        <use svg="!lucide/shuffle.svg" size="24" />
+                                    </button>
+                                    <button id="fs-prev-btn" title="Previous">
+                                        <use svg="!lucide/arrow-left-to-line.svg" size="24" />
+                                    </button>
+                                    <button id="fs-play-pause-btn" class="play-pause-btn" title="Play">
+                                        <use svg="./images/play-large.svg" size="32" />
+                                    </button>
+                                    <button id="fs-next-btn" title="Next">
+                                        <use svg="!lucide/arrow-right-to-line.svg" size="24" />
+                                    </button>
+                                    <button id="fs-repeat-btn" title="Repeat">
+                                        <use svg="!lucide/repeat.svg" size="24" />
+                                    </button>
+                                    <button id="fs-quality-btn" class="fs-quality-btn" title="Quality" style="display: none">
+                                        <use svg="!lucide/pencil-line.svg" size="20" />
+                                        <span class="fs-quality-label">Auto</span>
+                                    </button>
+                                    <div id="fs-quality-menu" class="fs-quality-menu" style="display: none"></div>
+                                </div>
+                                <div class="fullscreen-volume-container">
+                                    <button id="fs-volume-btn" class="fs-volume-btn" title="Mute">
+                                        <use svg="!lucide/volume-1.svg" size="24" />
+                                    </button>
+                                    <div id="fs-volume-bar" class="fs-volume-bar">
+                                        <div id="fs-volume-fill" class="fs-volume-fill"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
+                        <aside id="fullscreen-lyrics-pane" class="fullscreen-lyrics-pane">
+                            <div class="fullscreen-lyrics-shell">
+                                <div id="fullscreen-lyrics-content" class="fullscreen-lyrics-content">
+                                    <div class="fullscreen-lyrics-empty">Lyrics appear here.</div>
+                                </div>
+                            </div>
+                        </aside>
                     </div>
                 </div>
             </div>
