@@ -1953,10 +1953,13 @@ export class LosslessAPI {
     }
 
     getCoverSrcset(id) {
-        if (!id || (typeof id === 'string' && (id.startsWith('http') || id.startsWith('blob:') || id.startsWith('assets/')))) {
+        if (
+            !id ||
+            (typeof id === 'string' && (id.startsWith('http') || id.startsWith('blob:') || id.startsWith('assets/')))
+        ) {
             return '';
         }
-        
+
         const formattedId = String(id).replace(/-/g, '/');
         const baseUrl = `https://resources.tidal.com/images/${formattedId}`;
         return `${baseUrl}/160x160.jpg 160w, ${baseUrl}/320x320.jpg 320w, ${baseUrl}/640x640.jpg 640w`;
@@ -1979,7 +1982,7 @@ export class LosslessAPI {
         if (!id || (typeof id === 'string' && (id.startsWith('blob:') || id.startsWith('assets/')))) {
             return '';
         }
-        
+
         const formattedId = String(id).replace(/-/g, '/');
         const baseUrl = `https://resources.tidal.com/images/${formattedId}`;
         return `${baseUrl}/160x160.jpg 160w, ${baseUrl}/320x320.jpg 320w, ${baseUrl}/640x640.jpg 640w`;
