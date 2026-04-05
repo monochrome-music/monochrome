@@ -3414,11 +3414,11 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             if (legacySection) legacySection.style.display = '';
             // Disable parametric EQ entirely - only graphic EQ active to save resources
             audioContextManager.isEQEnabled = false;
-            audioContextManager.toggleGraphicEQ(true);
+            audioContextManager.toggleGraphicEQ(equalizerSettings.isEnabled());
             equalizerSettings.setGraphicEqEnabled(true);
         } else {
             // Disable graphic EQ entirely - only parametric EQ active to save resources
-            audioContextManager.isEQEnabled = true;
+            audioContextManager.isEQEnabled = equalizerSettings.isEnabled();
             audioContextManager.toggleGraphicEQ(false);
             equalizerSettings.setGraphicEqEnabled(false);
         }
@@ -4690,7 +4690,15 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             equalizerSettings.setEnabled(enabled);
             updateEQContainerVisibility(enabled);
 
-            audioContextManager.toggleEQ(enabled);
+            if (currentMode === 'legacy') {
+                // Legacy mode uses graphic EQ chain
+                audioContextManager.isEQEnabled = false;
+                audioContextManager.toggleGraphicEQ(enabled);
+            } else {
+                // AutoEQ/Parametric/Speaker modes use parametric EQ chain
+                audioContextManager.toggleEQ(enabled);
+                audioContextManager.toggleGraphicEQ(false);
+            }
         });
     }
 
