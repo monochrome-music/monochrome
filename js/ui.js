@@ -543,11 +543,27 @@ export class UIRenderer {
         `;
     }
 
-    getCoverHTML(cover, alt, className = 'card-image', loading = 'lazy', videoCoverUrl = null) {
-        const imageUrl = this.api.getCoverUrl(cover);
+    getCoverHTML(cover, alt, className = 'card-image', loading = 'lazy', videoCoverUrl = null, isEditorsPick = false, type = 'album') {
+        let size = '320';
+        if (this.currentPage === 'search' || className === 'track-item-cover') {
+            size = '80';
+        } else if (type === 'artist') {
+            size = '160';
+        }
+        
+        const imageUrl = type === 'artist' ? this.api.getArtistPictureUrl(cover, size) : this.api.getCoverUrl(cover, size);
+        
         if (videoCoverUrl) {
             return `<video src="${videoCoverUrl}" poster="${imageUrl}" class="${className}" alt="${alt}" preload="metadata" playsinline muted></video>`;
         }
+        
+        if (isEditorsPick && cover && typeof cover === 'string' && !cover.startsWith('http') && !cover.startsWith('blob:') && !cover.startsWith('assets/')) {
+            const formattedId = String(cover).replace(/-/g, '/');
+            const tidalUrl = `https://resources.tidal.com/images/${formattedId}/320x320.jpg`;
+            const wsrvUrl = `https://wsrv.nl/?url=${encodeURIComponent(tidalUrl)}&w=250&h=250&output=webp`;
+            return `<img src="${wsrvUrl}" class="${className}" alt="${alt}" loading="${loading}">`;
+        }
+        
         return `<img src="${imageUrl}" class="${className}" alt="${alt}" loading="${loading}">`;
     }
 
@@ -658,7 +674,15 @@ export class UIRenderer {
     createUserPlaylistCardHTML(playlist, customSubtitle = null) {
         let imageHTML = '';
         if (playlist.cover) {
-            imageHTML = `<img src="${playlist.cover}" alt="${playlist.name}" class="card-image" loading="lazy">`;
+            imageHTML = this.getCoverHTML(
+                playlist.cover,
+                escapeHtml(playlist.name),
+                'card-image',
+                playlist._lazy === false ? 'eager' : 'lazy',
+                null,
+                playlist._isEditorsPick || false,
+                'album'
+            );
         } else {
             const tracks = playlist.tracks || [];
             let uniqueCovers = playlist.images || [];
@@ -750,7 +774,9 @@ export class UIRenderer {
                 escapeHtml(album.title),
                 'card-image',
                 album._lazy === false ? 'eager' : 'lazy',
-                album.videoCoverUrl
+                album.videoCoverUrl,
+                album._isEditorsPick || false,
+                'album'
             ),
             actionButtonsHTML: `
                 <button class="like-btn card-like-btn" data-action="toggle-like" data-type="album" title="Add to Liked">
@@ -821,7 +847,15 @@ export class UIRenderer {
             href: `/artist/${artist.id}`,
             title: escapeHtml(artist.name),
             subtitle: '',
-            imageHTML: `<img src="${this.api.getArtistPictureUrl(artist.picture)}" alt="${escapeHtml(artist.name)}" class="card-image" loading="${artist._lazy === false ? 'eager' : 'lazy'}">`,
+            imageHTML: this.getCoverHTML(
+                artist.picture,
+                escapeHtml(artist.name),
+                'card-image',
+                artist._lazy === false ? 'eager' : 'lazy',
+                null,
+                artist._isEditorsPick || false,
+                'artist'
+            ),
             actionButtonsHTML: `
                 <button class="like-btn card-like-btn" data-action="toggle-like" data-type="artist" title="Add to Liked">
                     ${this.createHeartIcon(false)}
@@ -2622,6 +2656,7 @@ export class UIRenderer {
                                     mediaMetadata: item.mediaMetadata,
                                     type: 'ALBUM',
                                     _lazy: cardsHTML.length >= 6,
+                                    _isEditorsPick: true,
                                 };
                                 cardsHTML.push(this.createAlbumCardHTML(album));
                                 itemsToStore.push({ el: null, data: album, type: 'album' });
@@ -2630,6 +2665,7 @@ export class UIRenderer {
                                 const result = await this.api.getAlbum(item.id);
                                 if (result && result.album) {
                                     result.album._lazy = cardsHTML.length >= 6;
+                                    result.album._isEditorsPick = true;
                                     cardsHTML.push(this.createAlbumCardHTML(result.album));
                                     itemsToStore.push({ el: null, data: result.album, type: 'album' });
                                 }
@@ -2653,6 +2689,7 @@ export class UIRenderer {
                                         type: 'ALBUM',
                                         _href: `/userplaylist/${item.id}`,
                                         _lazy: cardsHTML.length >= 6,
+                                        _isEditorsPick: true,
                                     })
                                 );
                                 itemsToStore.push({ el: null, data: playlist, type: 'user-playlist' });
@@ -2665,6 +2702,7 @@ export class UIRenderer {
                                     name: item.name,
                                     picture: item.picture,
                                     _lazy: cardsHTML.length >= 6,
+                                    _isEditorsPick: true,
                                 };
                                 cardsHTML.push(this.createArtistCardHTML(artist));
                                 itemsToStore.push({ el: null, data: artist, type: 'artist' });
@@ -2673,6 +2711,7 @@ export class UIRenderer {
                                 const artist = await this.api.getArtist(item.id);
                                 if (artist) {
                                     artist._lazy = cardsHTML.length >= 6;
+                                    artist._isEditorsPick = true;
                                     cardsHTML.push(this.createArtistCardHTML(artist));
                                     itemsToStore.push({ el: null, data: artist, type: 'artist' });
                                 }
@@ -2689,6 +2728,8 @@ export class UIRenderer {
                                     audioQuality: item.audioQuality,
                                     mediaMetadata: item.mediaMetadata,
                                     duration: item.duration,
+                                    _lazy: cardsHTML.length >= 6,
+                                    _isEditorsPick: true,
                                 };
                                 cardsHTML.push(this.createTrackCardHTML(track));
                                 itemsToStore.push({ el: null, data: track, type: 'track' });
@@ -2696,6 +2737,8 @@ export class UIRenderer {
                                 // Fall back to API call
                                 const track = await this.api.getTrackMetadata(item.id);
                                 if (track) {
+                                    track._lazy = cardsHTML.length >= 6;
+                                    track._isEditorsPick = true;
                                     cardsHTML.push(this.createTrackCardHTML(track));
                                     itemsToStore.push({ el: null, data: track, type: 'track' });
                                 }
@@ -2708,6 +2751,8 @@ export class UIRenderer {
                                     cover: item.cover,
                                     tracks: item.tracks || [],
                                     numberOfTracks: item.numberOfTracks || (item.tracks ? item.tracks.length : 0),
+                                    _lazy: cardsHTML.length >= 6,
+                                    _isEditorsPick: true,
                                 };
                                 const subtitle = item.username ? `by ${item.username}` : null;
                                 cardsHTML.push(this.createUserPlaylistCardHTML(playlist, subtitle));
@@ -2715,6 +2760,8 @@ export class UIRenderer {
                             } else {
                                 const playlist = await syncManager.getPublicPlaylist(item.id);
                                 if (playlist) {
+                                    playlist._lazy = cardsHTML.length >= 6;
+                                    playlist._isEditorsPick = true;
                                     const subtitle = item.username ? `by ${item.username}` : null;
                                     cardsHTML.push(this.createUserPlaylistCardHTML(playlist, subtitle));
                                     itemsToStore.push({ el: null, data: playlist, type: 'user-playlist' });
