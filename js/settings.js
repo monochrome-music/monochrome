@@ -2086,49 +2086,53 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         }
 
         // Document-level mousemove so dragging continues outside the canvas
-        document.addEventListener('mousemove', (e) => {
-            if (draggedNode === null) return;
-            const bands = getActiveBands();
-            if (!bands) return;
+        document.addEventListener(
+            'mousemove',
+            (e) => {
+                if (draggedNode === null) return;
+                const bands = getActiveBands();
+                if (!bands) return;
 
-            const coords = getCanvasCoordsFromEvent(e);
-            const rect = autoeqCanvas.getBoundingClientRect();
-            const padLeft = 40,
-                padRight = 10,
-                padTop = 10,
-                padBottom = 30;
-            const w = rect.width - padLeft - padRight;
-            const h = rect.height - padTop - padBottom;
+                const coords = getCanvasCoordsFromEvent(e);
+                const rect = autoeqCanvas.getBoundingClientRect();
+                const padLeft = 40,
+                    padRight = 10,
+                    padTop = 10,
+                    padBottom = 30;
+                const w = rect.width - padLeft - padRight;
+                const h = rect.height - padTop - padBottom;
 
-            const isParam = currentMode === 'parametric';
-            const dbCenter = isParam ? 0 : 75;
-            const dbHalf = isParam ? graphDbHalfParametric : graphDbHalfAutoEQ;
-            const dbMin = dbCenter - dbHalf;
-            const dbMax = dbCenter + dbHalf;
+                const isParam = currentMode === 'parametric';
+                const dbCenter = isParam ? 0 : 75;
+                const dbHalf = isParam ? graphDbHalfParametric : graphDbHalfAutoEQ;
+                const dbMin = dbCenter - dbHalf;
+                const dbMax = dbCenter + dbHalf;
 
-            const freq = xToFreq(coords.x - padLeft, w);
-            bands[draggedNode].freq = Math.max(20, Math.min(20000, freq));
+                const freq = xToFreq(coords.x - padLeft, w);
+                bands[draggedNode].freq = Math.max(20, Math.min(20000, freq));
 
-            if (isParam) {
-                const newGain = yToDb(coords.y - padTop, h, dbMin, dbMax);
-                bands[draggedNode].gain = Math.max(-30, Math.min(30, Math.round(newGain * 10) / 10));
-            } else {
-                const corrGain = interpolate(bands[draggedNode].freq, autoeqCorrectedCurve || []);
-                const newDb = yToDb(coords.y - padTop, h, dbMin, dbMax);
-                const gainDelta = newDb - corrGain;
-                bands[draggedNode].gain = Math.max(-30, Math.min(30, bands[draggedNode].gain + gainDelta * 0.3));
-            }
+                if (isParam) {
+                    const newGain = yToDb(coords.y - padTop, h, dbMin, dbMax);
+                    bands[draggedNode].gain = Math.max(-30, Math.min(30, Math.round(newGain * 10) / 10));
+                } else {
+                    const corrGain = interpolate(bands[draggedNode].freq, autoeqCorrectedCurve || []);
+                    const newDb = yToDb(coords.y - padTop, h, dbMin, dbMax);
+                    const gainDelta = newDb - corrGain;
+                    bands[draggedNode].gain = Math.max(-30, Math.min(30, bands[draggedNode].gain + gainDelta * 0.3));
+                }
 
-            if (!graphAnimFrame) {
-                graphAnimFrame = requestAnimationFrame(() => {
-                    computeCorrectedCurve();
-                    applyBandsToAudio(bands);
-                    drawAutoEQGraph();
-                    renderBandControls(bands);
-                    graphAnimFrame = null;
-                });
-            }
-        }, { signal: graphSignal });
+                if (!graphAnimFrame) {
+                    graphAnimFrame = requestAnimationFrame(() => {
+                        computeCorrectedCurve();
+                        applyBandsToAudio(bands);
+                        drawAutoEQGraph();
+                        renderBandControls(bands);
+                        graphAnimFrame = null;
+                    });
+                }
+            },
+            { signal: graphSignal }
+        );
 
         // Canvas-only mousemove for hover cursor changes (when not dragging)
         autoeqCanvas.addEventListener('mousemove', (e) => {
@@ -2152,12 +2156,16 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         });
 
         // Document-level mouseup so drag ends even if cursor is outside the canvas
-        document.addEventListener('mouseup', () => {
-            if (draggedNode !== null) {
-                draggedNode = null;
-                autoeqCanvas.style.cursor = hoveredNode >= 0 ? 'grab' : 'crosshair';
-            }
-        }, { signal: graphSignal });
+        document.addEventListener(
+            'mouseup',
+            () => {
+                if (draggedNode !== null) {
+                    draggedNode = null;
+                    autoeqCanvas.style.cursor = hoveredNode >= 0 ? 'grab' : 'crosshair';
+                }
+            },
+            { signal: graphSignal }
+        );
 
         autoeqCanvas.addEventListener('mouseleave', () => {
             // Only reset hover state, NOT drag state (drag continues outside canvas)
@@ -2307,7 +2315,10 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                                 const corrGain = interpolate(bands[touchNodeIdx].freq, autoeqCorrectedCurve || []);
                                 const newDb = yToDb(coords.y - padTop, h, dbMin, dbMax);
                                 const gainDelta = newDb - corrGain;
-                                bands[touchNodeIdx].gain = Math.max(-30, Math.min(30, bands[touchNodeIdx].gain + gainDelta * 0.3));
+                                bands[touchNodeIdx].gain = Math.max(
+                                    -30,
+                                    Math.min(30, bands[touchNodeIdx].gain + gainDelta * 0.3)
+                                );
                             }
                             draggedNode = touchNodeIdx;
                             computeCorrectedCurve();
@@ -2373,12 +2384,16 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             { passive: false, signal: graphSignal }
         );
 
-        document.addEventListener('touchend', () => {
-            if (draggedNode !== null) {
-                draggedNode = null;
-                touchNodeIdx = -1;
-            }
-        }, { signal: graphSignal });
+        document.addEventListener(
+            'touchend',
+            () => {
+                if (draggedNode !== null) {
+                    draggedNode = null;
+                    touchNodeIdx = -1;
+                }
+            },
+            { signal: graphSignal }
+        );
 
         // Resize observer for graph
         if (autoeqGraphWrapper) {
