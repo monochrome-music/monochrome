@@ -7794,7 +7794,6 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 .graphic-eq-band-slider-wrap input[type='range'] {
     writing-mode: vertical-lr;
     direction: rtl;
-    appearance: slider-vertical;
     width: 28px;
     height: 100%;
     accent-color: var(--foreground);

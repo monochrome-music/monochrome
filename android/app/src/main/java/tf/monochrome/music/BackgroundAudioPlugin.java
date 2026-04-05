@@ -18,18 +18,24 @@ public class BackgroundAudioPlugin extends Plugin {
 
     @PluginMethod
     public void start(PluginCall call) {
-        Intent intent = new Intent(getContext(), AudioPlaybackService.class);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            getContext().startForegroundService(intent);
-        } else {
-            getContext().startService(intent);
+        try {
+            Intent intent = new Intent(getContext(), AudioPlaybackService.class);
+            intent.setAction("START");
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                getContext().startForegroundService(intent);
+            } else {
+                getContext().startService(intent);
+            }
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to start audio service: " + e.getMessage(), e);
         }
-        call.resolve();
     }
 
     @PluginMethod
     public void stop(PluginCall call) {
         Intent intent = new Intent(getContext(), AudioPlaybackService.class);
+        intent.setAction("STOP");
         getContext().stopService(intent);
         call.resolve();
     }

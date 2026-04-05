@@ -57,6 +57,8 @@ async function getButterchurnPresets(...args) {
 
 // Module-level state for AutoEQ (persists across re-initializations)
 let _autoeqIndex = [];
+let _graphAbortController = null;
+let _graphResizeObserver = null;
 
 export async function initializeSettings(scrobbler, player, api, ui) {
     // Restore last active settings tab
@@ -1287,6 +1289,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     // Build 16 vertical slider bands into a container
     const buildGeqBands = (container, idPrefix) => {
         if (!container) return;
+        container.innerHTML = '';
         GEQ_LABELS.forEach((_label, i) => {
             const band = document.createElement('div');
             band.className = 'graphic-eq-band';
@@ -2073,6 +2076,15 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             return { x: e.clientX - rect.left, y: e.clientY - rect.top };
         };
 
+        // Clean up previous document-level listeners and observer on re-initialization
+        if (_graphAbortController) _graphAbortController.abort();
+        _graphAbortController = new AbortController();
+        const graphSignal = _graphAbortController.signal;
+        if (_graphResizeObserver) {
+            _graphResizeObserver.disconnect();
+            _graphResizeObserver = null;
+        }
+
         // Document-level mousemove so dragging continues outside the canvas
         document.addEventListener('mousemove', (e) => {
             if (draggedNode === null) return;
@@ -2116,7 +2128,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                     graphAnimFrame = null;
                 });
             }
-        });
+        }, { signal: graphSignal });
 
         // Canvas-only mousemove for hover cursor changes (when not dragging)
         autoeqCanvas.addEventListener('mousemove', (e) => {
@@ -2145,7 +2157,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 draggedNode = null;
                 autoeqCanvas.style.cursor = hoveredNode >= 0 ? 'grab' : 'crosshair';
             }
-        });
+        }, { signal: graphSignal });
 
         autoeqCanvas.addEventListener('mouseleave', () => {
             // Only reset hover state, NOT drag state (drag continues outside canvas)
@@ -2291,6 +2303,11 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                             if (isParam) {
                                 const newGain = yToDb(coords.y - padTop, h, dbMin, dbMax);
                                 bands[touchNodeIdx].gain = Math.max(-30, Math.min(30, Math.round(newGain * 10) / 10));
+                            } else {
+                                const corrGain = interpolate(bands[touchNodeIdx].freq, autoeqCorrectedCurve || []);
+                                const newDb = yToDb(coords.y - padTop, h, dbMin, dbMax);
+                                const gainDelta = newDb - corrGain;
+                                bands[touchNodeIdx].gain = Math.max(-30, Math.min(30, bands[touchNodeIdx].gain + gainDelta * 0.3));
                             }
                             draggedNode = touchNodeIdx;
                             computeCorrectedCurve();
@@ -2353,7 +2370,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 }
                 e.preventDefault();
             },
-            { passive: false }
+            { passive: false, signal: graphSignal }
         );
 
         document.addEventListener('touchend', () => {
@@ -2361,14 +2378,14 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 draggedNode = null;
                 touchNodeIdx = -1;
             }
-        });
+        }, { signal: graphSignal });
 
         // Resize observer for graph
         if (autoeqGraphWrapper) {
-            const ro = new ResizeObserver(() => {
+            _graphResizeObserver = new ResizeObserver(() => {
                 scheduleDrawAutoEQGraph();
             });
-            ro.observe(autoeqGraphWrapper);
+            _graphResizeObserver.observe(autoeqGraphWrapper);
         }
     }
 
@@ -2529,6 +2546,10 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             if (autoeqDatabaseCollapse) autoeqDatabaseCollapse.classList.toggle('collapsed');
             if (autoeqDatabaseBody)
                 autoeqDatabaseBody.style.display = autoeqDatabaseBody.style.display === 'none' ? '' : 'none';
+            if (autoeqDatabaseCollapse) {
+                const isExpanded = !autoeqDatabaseCollapse.classList.contains('collapsed');
+                autoeqDatabaseCollapse.setAttribute('aria-expanded', String(isExpanded));
+            }
         });
     }
 
@@ -4813,7 +4834,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
     // Restore EQ mode on startup
     const savedEQMode = localStorage.getItem(EQ_MODE_KEY);
-    if (savedEQMode && ['autoeq', 'parametric', 'speaker'].includes(savedEQMode)) {
+    if (savedEQMode && ['autoeq', 'parametric', 'speaker', 'legacy'].includes(savedEQMode)) {
         setEQMode(savedEQMode);
     }
 

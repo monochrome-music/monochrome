@@ -353,7 +353,7 @@ class AudioContextManager {
                     console.log(`[AudioContext] State changed to ${this.audioContext.state}, attempting resume`);
                     // Use a short delay to let the system settle before resuming
                     setTimeout(() => {
-                        if (this.audioContext && this.audioContext.state !== 'running') {
+                        if (this.audioContext && this.audioContext.state !== 'running' && this.source) {
                             this.audioContext.resume().catch((e) => {
                                 console.warn('[AudioContext] Auto-resume failed:', e);
                             });
@@ -847,7 +847,7 @@ class AudioContextManager {
                     filter.type = newTypes[i] || 'peaking';
                     filter.frequency.setTargetAtTime(newFrequencies[i], now, 0.005);
                     filter.gain.setTargetAtTime(newGains[i], now, 0.005);
-                    filter.Q.setTargetAtTime(newQs[i], now, 0.005);
+                    filter.Q.setTargetAtTime(newQs[i] > 0 ? newQs[i] : this._calculateQ(i), now, 0.005);
                 });
             } else {
                 // Band count changed — must rebuild
@@ -1056,6 +1056,7 @@ class AudioContextManager {
             const now = this.audioContext.currentTime;
             this.geqFilters[bandIndex].gain.setTargetAtTime(this.geqGains[bandIndex], now, 0.01);
         }
+        equalizerSettings.setGraphicEqGains([...this.geqGains]);
     }
 
     setGraphicEqAllGains(gains) {
@@ -1068,6 +1069,7 @@ class AudioContextManager {
                 this.geqFilters[i].gain.setTargetAtTime(this.geqGains[i], now, 0.01);
             }
         });
+        equalizerSettings.setGraphicEqGains([...this.geqGains]);
     }
 
     setGraphicEqPreamp(db) {
@@ -1077,6 +1079,7 @@ class AudioContextManager {
             const now = this.audioContext.currentTime;
             this.geqPreampNode.gain.setTargetAtTime(gainValue, now, 0.01);
         }
+        equalizerSettings.setGraphicEqPreamp(this.geqPreamp);
     }
 }
 
