@@ -66,6 +66,9 @@ public class AudioPlaybackService extends Service {
     }
 
     private void createNotificationChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            return;
+        }
         NotificationChannel channel = new NotificationChannel(
                 CHANNEL_ID,
                 "Audio Playback",
