@@ -127,32 +127,36 @@ async function loadDownloadsModule() {
 }
 
 async function fetchcontributors() {
-    const response = await fetch('https://api.samidy.com/api/contributors');
-    const data1 = await response.json();
+    try {
+        const response = await fetch('https://api.samidy.com/api/contributors');
+        if (!response.ok) return;
+        const data1 = await response.json();
 
-    const data = data1.filter(
-        (user) => user.type !== 'Bot' && user.login !== 'edidealt' && user.login !== 'satanyahoo'
-    );
+        const data = data1.filter(
+            (user) => user.type !== 'Bot' && user.login !== 'edidealt' && user.login !== 'satanyahoo'
+        );
 
-    const edideaur = data.find((user) => user.login === 'edideaur');
-    if (edideaur) {
-        edideaur.contributions += data1.find((u) => u.login === 'edidealt')?.contributions || 0;
-        edideaur.contributions += data1.find((u) => u.login === 'satanyahoo')?.contributions || 0;
-    }
+        const edideaur = data.find((user) => user.login === 'edideaur');
+        if (edideaur) {
+            edideaur.contributions += data1.find((u) => u.login === 'edidealt')?.contributions || 0;
+            edideaur.contributions += data1.find((u) => u.login === 'satanyahoo')?.contributions || 0;
+        }
 
-    const con = document.querySelector('.about-contributors');
+        const con = document.querySelector('.about-contributors');
+        if (!con) return;
 
-    data.forEach((user) => {
-        const userDIV = document.createElement('div');
-        userDIV.innerHTML = `
-        <a href="${user.html_url}" target="_blank">
-        <img src="${user.avatar_url}" alt="${user.login}" width="50" style="border-radius: 50%;">
-        <span>${user.login}</span>
-        <span class="contrib">Contributions: ${user.contributions}</span>
-        </a>
-        `;
-        con.appendChild(userDIV);
-    });
+        data.forEach((user) => {
+            const userDIV = document.createElement('div');
+            userDIV.innerHTML = `
+            <a href="${user.html_url}" target="_blank">
+            <img src="${user.avatar_url}" alt="${user.login}" width="50" style="border-radius: 50%;">
+            <span>${user.login}</span>
+            <span class="contrib">Contributions: ${user.contributions}</span>
+            </a>
+            `;
+            con.appendChild(userDIV);
+        });
+    } catch (e) {}
 }
 
 async function loadMetadataModule() {
@@ -500,7 +504,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize tracker
     initTracker().catch(console.error);
 
-    fetchcontributors();
+    await fetchcontributors();
     const castBtn = document.getElementById('cast-btn');
     initializeCasting(audioPlayer, castBtn);
 
