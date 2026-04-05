@@ -3,9 +3,10 @@
 export async function onRequest(context) {
     const { request, params, env } = context;
     const userAgent = request.headers.get('User-Agent') || '';
-    const isBot = /discordbot|twitterbot|facebookexternalhit|bingbot|googlebot|slurp|whatsapp|pinterest|slackbot/i.test(
-        userAgent
-    );
+    const isBot =
+        /discordbot|twitterbot|facebookexternalhit|bingbot|googlebot|slurp|whatsapp|pinterest|slackbot|telegrambot|linkedinbot|mastodon|signal|snapchat|redditbot|skypeuripreview|viberbot|linebot|embedly|quora|outbrain|tumblr|duckduckbot|yandexbot|rogerbot|showyoubot|kakaotalk|naverbot|seznambot|mediapartners|adsbot|petalbot|applebot|ia_archiver/i.test(
+            userAgent
+        );
     const username = params.username;
 
     if (isBot && username) {
@@ -13,10 +14,10 @@ export async function onRequest(context) {
             const POCKETBASE_URL = 'https://data.samidy.xyz';
             const filter = `username="${username}"`;
             const profileUrl = `${POCKETBASE_URL}/api/collections/DB_users/records?filter=${encodeURIComponent(filter)}&fields=username,display_name,avatar_url,banner,about,status`;
-            
+
             const response = await fetch(profileUrl);
             if (!response.ok) throw new Error(`PocketBase error: ${response.status}`);
-            
+
             const data = await response.json();
             const profile = data.items && data.items.length > 0 ? data.items[0] : null;
 
@@ -24,7 +25,7 @@ export async function onRequest(context) {
                 const displayName = profile.display_name || profile.username;
                 const title = `${displayName} (@${profile.username})`;
                 let description = profile.about || `View ${displayName}'s profile on Monochrome.`;
-                
+
                 if (profile.status) {
                     try {
                         const statusObj = JSON.parse(profile.status);

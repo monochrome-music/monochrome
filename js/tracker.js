@@ -2,10 +2,10 @@
 import { escapeHtml, trackDataStore, formatTime } from './utils.js';
 import { navigate } from './router.js';
 import { SVG_MENU, SVG_PLAY, SVG_HEART } from './icons.js';
+import { Player } from './player.js';
 
 let artistsData = [];
 let artistsPopularity = new Map(); // name -> popularity score
-let globalPlayer = null;
 
 // Map to store artist info keyed by sheetId for quick lookup
 const artistBySheetId = new Map();
@@ -108,9 +108,9 @@ function transformErasImages(eras) {
 
 async function fetchTrackerData(sheetId) {
     const endpoints = [
-        'https://tracker.israeli.ovh/get/',
-        'https://tracker.thug.surf/get/',
+        'https://trackerapi-1.artistgrid.cx/get/',
         'https://trackerapi-2.artistgrid.cx/get/',
+        'https://trackerapi-3.artistgrid.cx/get/',
     ];
 
     let lastError = null;
@@ -280,7 +280,7 @@ function renderTrackerTracks(container, tracks) {
 }
 
 // Create project card HTML - EXACTLY like album cards
-export function createProjectCardHTML(era, artist, sheetId, trackCount) {
+export function createProjectCardHTML(era, _artist, sheetId, trackCount) {
     const playBtnHTML = `
         <button class="play-btn card-play-btn" data-action="play-card" data-type="tracker-project" data-id="${encodeURIComponent(era.name)}" title="Play">
             ${SVG_PLAY(20)}
@@ -372,8 +372,8 @@ export async function renderTrackerArtistPage(sheetId, container) {
             const availableTracks = allTracks.filter((t) => !t.unavailable);
             if (availableTracks.length > 0) {
                 const shuffled = [...availableTracks].sort(() => Math.random() - 0.5);
-                globalPlayer.setQueue(shuffled, 0);
-                globalPlayer.playTrackFromQueue();
+                Player.instance.setQueue(shuffled, 0);
+                Player.instance.playTrackFromQueue();
             }
         };
     }
@@ -450,8 +450,8 @@ export async function renderTrackerArtistPage(sheetId, container) {
                 }
                 const availableTracks = eraTracks.filter((t) => !t.unavailable);
                 if (availableTracks.length > 0) {
-                    globalPlayer.setQueue(availableTracks, 0);
-                    globalPlayer.playTrackFromQueue();
+                    Player.instance.setQueue(availableTracks, 0);
+                    Player.instance.playTrackFromQueue();
                 }
             } else if (e.target.closest('.card-menu-btn')) {
                 e.stopPropagation();
@@ -521,8 +521,8 @@ export async function renderTrackerArtistPage(sheetId, container) {
                     const availableTracks = searchTracks.filter((t) => !t.unavailable);
                     const trackIndex = availableTracks.findIndex((t) => t.id === track.id);
                     if (trackIndex >= 0 && availableTracks.length > 0) {
-                        globalPlayer.setQueue(availableTracks, trackIndex);
-                        globalPlayer.playTrackFromQueue();
+                        Player.instance.setQueue(availableTracks, trackIndex);
+                        Player.instance.playTrackFromQueue();
                     }
                 };
             });
@@ -601,8 +601,8 @@ export async function renderTrackerProjectPage(sheetId, projectName, container, 
         playBtn.onclick = () => {
             const availableTracks = eraTracks.filter((t) => !t.unavailable);
             if (availableTracks.length > 0) {
-                globalPlayer.setQueue(availableTracks, 0);
-                globalPlayer.playTrackFromQueue();
+                Player.instance.setQueue(availableTracks, 0);
+                Player.instance.playTrackFromQueue();
             }
         };
     }
@@ -612,8 +612,8 @@ export async function renderTrackerProjectPage(sheetId, projectName, container, 
             const availableTracks = eraTracks.filter((t) => !t.unavailable);
             if (availableTracks.length > 0) {
                 const shuffled = [...availableTracks].sort(() => Math.random() - 0.5);
-                globalPlayer.setQueue(shuffled, 0);
-                globalPlayer.playTrackFromQueue();
+                Player.instance.setQueue(shuffled, 0);
+                Player.instance.playTrackFromQueue();
             }
         };
     }
@@ -643,8 +643,8 @@ export async function renderTrackerProjectPage(sheetId, projectName, container, 
             const availableTracks = eraTracks.filter((t) => !t.unavailable);
             const trackIndex = availableTracks.findIndex((t) => t.id === track.id);
             if (trackIndex >= 0 && availableTracks.length > 0) {
-                globalPlayer.setQueue(availableTracks, trackIndex);
-                globalPlayer.playTrackFromQueue();
+                Player.instance.setQueue(availableTracks, trackIndex);
+                Player.instance.playTrackFromQueue();
             }
         };
     });
@@ -702,8 +702,8 @@ export async function renderTrackerProjectPage(sheetId, projectName, container, 
                         }
                         const availableTracks = otherEraTracks.filter((t) => !t.unavailable);
                         if (availableTracks.length > 0) {
-                            globalPlayer.setQueue(availableTracks, 0);
-                            globalPlayer.playTrackFromQueue();
+                            Player.instance.setQueue(availableTracks, 0);
+                            Player.instance.playTrackFromQueue();
                         }
                     } else if (e.target.closest('.card-menu-btn')) {
                         e.stopPropagation();
@@ -907,8 +907,8 @@ export async function renderTrackerTrackPage(trackId, container, _ui) {
             const availableTracks = allTracks.filter((t) => !t.unavailable);
             const trackPos = availableTracks.findIndex((t) => t.id === currentTrack.id);
             if (trackPos >= 0 && availableTracks.length > 0) {
-                globalPlayer.setQueue(availableTracks, trackPos);
-                globalPlayer.playTrackFromQueue();
+                Player.instance.setQueue(availableTracks, trackPos);
+                Player.instance.playTrackFromQueue();
             }
         };
     }
@@ -938,8 +938,8 @@ export async function renderTrackerTrackPage(trackId, container, _ui) {
             const availableTracks = allTracks.filter((t) => !t.unavailable);
             const trackPos = availableTracks.findIndex((t) => t.id === currentTrack.id);
             if (trackPos >= 0 && availableTracks.length > 0) {
-                globalPlayer.setQueue(availableTracks, trackPos);
-                globalPlayer.playTrackFromQueue();
+                Player.instance.setQueue(availableTracks, trackPos);
+                Player.instance.playTrackFromQueue();
             }
         };
     }
@@ -982,8 +982,7 @@ export async function renderTrackerTrackPage(trackId, container, _ui) {
     document.title = `${currentTrack.title} - ${artist.name}`;
 }
 
-export async function initTracker(player) {
-    globalPlayer = player;
+export async function initTracker() {
     await Promise.all([loadArtistsPopularity(), loadArtistsData()]);
 }
 

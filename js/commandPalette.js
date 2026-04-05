@@ -44,6 +44,8 @@ import {
     SVG_MIC,
     SVG_RADIO,
 } from './icons.js';
+import { Player } from './player.js';
+import { UIRenderer } from './ui.js';
 
 const ICON_SIZE = 16;
 
@@ -214,7 +216,7 @@ class CommandPalette {
                 keywords: ['play', 'pause', 'toggle', 'resume', 'stop'],
                 shortcut: 'Space',
                 action: () => {
-                    window.monochromePlayer?.handlePlayPause();
+                    Player.instance.handlePlayPause();
                 },
             },
             {
@@ -225,7 +227,7 @@ class CommandPalette {
                 keywords: ['next', 'skip', 'forward'],
                 shortcut: 'Shift+\u2192',
                 action: () => {
-                    window.monochromePlayer?.playNext();
+                    Player.instance.playNext();
                 },
             },
             {
@@ -236,7 +238,7 @@ class CommandPalette {
                 keywords: ['previous', 'back', 'rewind'],
                 shortcut: 'Shift+\u2190',
                 action: () => {
-                    window.monochromePlayer?.playPrev();
+                    Player.instance.playPrev();
                 },
             },
             {
@@ -269,7 +271,7 @@ class CommandPalette {
                 keywords: ['mute', 'unmute', 'sound', 'volume', 'silent'],
                 shortcut: 'M',
                 action: () => {
-                    const el = window.monochromePlayer?.activeElement;
+                    const el = Player.instance.activeElement;
                     if (el) el.muted = !el.muted;
                 },
             },
@@ -281,7 +283,7 @@ class CommandPalette {
                 keywords: ['volume', 'louder'],
                 shortcut: '\u2191',
                 action: () => {
-                    const p = window.monochromePlayer;
+                    const p = Player.instance;
                     if (p) p.setVolume(p.userVolume + 0.1);
                 },
             },
@@ -293,7 +295,7 @@ class CommandPalette {
                 keywords: ['volume', 'quieter', 'softer'],
                 shortcut: '\u2193',
                 action: () => {
-                    const p = window.monochromePlayer;
+                    const p = Player.instance;
                     if (p) p.setVolume(p.userVolume - 0.1);
                 },
             },
@@ -336,9 +338,9 @@ class CommandPalette {
                 icon: 'trash',
                 label: 'Clear Queue',
                 keywords: ['wipe', 'clear', 'empty', 'queue'],
-                action: () => {
-                    window.monochromePlayer?.wipeQueue();
-                    this.notify('Queue cleared');
+                action: async () => {
+                    Player.instance.wipeQueue();
+                    await this.notify('Queue cleared');
                 },
             },
             {
@@ -529,6 +531,14 @@ class CommandPalette {
             },
 
             {
+                id: 'quality-auto',
+                group: 'Audio',
+                icon: 'sliders',
+                label: 'Quality: Auto (Adaptive)',
+                keywords: ['quality', 'auto', 'adaptive', 'streaming', 'bitrate'],
+                action: () => this.setQuality('auto'),
+            },
+            {
                 id: 'quality-low',
                 group: 'Audio',
                 icon: 'sliders',
@@ -664,7 +674,7 @@ class CommandPalette {
                 keywords: ['edit', 'profile', 'username', 'avatar', 'display name'],
                 action: async () => {
                     const { openEditProfile } = await import('./profile.js');
-                    openEditProfile();
+                    await openEditProfile();
                 },
             },
             {
@@ -770,7 +780,7 @@ class CommandPalette {
             this.updateSelection();
         } else if (e.key === 'Enter') {
             e.preventDefault();
-            this.executeSelected();
+            this.executeSelected().catch(console.error);
         } else if (e.key === 'Escape') {
             if (this.settingsMode) {
                 this.settingsMode = false;
@@ -827,7 +837,7 @@ class CommandPalette {
     async searchMusic(query) {
         if (!query || query.length < 2) return;
 
-        const api = window.monochromeUi?.api;
+        const api = UIRenderer.instance.api;
         if (!api) return;
 
         this.cancelMusicSearch();
@@ -837,11 +847,10 @@ class CommandPalette {
         this.showMusicLoading();
 
         try {
-            const [tracks, albums, artists] = await Promise.all([
-                api.searchTracks(query, { limit: 4 }),
-                api.searchAlbums(query, { limit: 3 }),
-                api.searchArtists(query, { limit: 3 }),
-            ]);
+            const results = await api.search(query, { limit: 4 });
+            const tracks = results.tracks || { items: [] };
+            const albums = results.albums || { items: [] };
+            const artists = results.artists || { items: [] };
 
             if (controller.signal.aborted || !this.isOpen) return;
 
@@ -856,8 +865,8 @@ class CommandPalette {
                     label: track.title,
                     description: `${track.artist?.name || 'Unknown'} \u2022 ${track.album?.title || ''}`,
                     action: async () => {
-                        window.monochromePlayer.setQueue([track], 0);
-                        await window.monochromePlayer.playTrackFromQueue();
+                        Player.instance.setQueue([track], 0);
+                        await Player.instance.playTrackFromQueue();
                     },
                 }));
             }
@@ -1027,9 +1036,9 @@ class CommandPalette {
 
         el.innerHTML = `${iconHtml}<div class="cmdk-item-content"><span class="cmdk-item-label">${escapeHtml(item.label)}</span>${descHtml}</div>${shortcutHtml}`;
 
-        el.addEventListener('click', () => {
+        el.addEventListener('click', async () => {
             this.selectedIndex = index;
-            this.executeSelected();
+            await this.executeSelected();
         });
 
         el.addEventListener('mouseenter', () => {
@@ -1162,63 +1171,78 @@ class CommandPalette {
             if (opt.dataset.theme === theme) opt.classList.add('active');
             else opt.classList.remove('active');
         });
-        this.notify(`Theme set to ${theme}`);
+        await this.notify(`Theme set to ${theme}`);
     }
 
     async toggleVisualizer() {
         const { visualizerSettings } = await import('./storage.js');
         const current = visualizerSettings.isEnabled();
         visualizerSettings.setEnabled(!current);
-        this.notify(`Visualizer ${!current ? 'enabled' : 'disabled'}`);
+        await this.notify(`Visualizer ${!current ? 'enabled' : 'disabled'}`);
 
         const overlay = document.getElementById('fullscreen-cover-overlay');
         if (overlay && getComputedStyle(overlay).display !== 'none') {
-            window.monochromeUi?.closeFullscreenCover();
+            UIRenderer.instance.closeFullscreenCover();
         }
     }
 
     async setVisualizerPreset(preset) {
         const { visualizerSettings } = await import('./storage.js');
         visualizerSettings.setPreset(preset);
-        if (window.monochromeUi?.visualizer) {
-            window.monochromeUi.visualizer.setPreset(preset);
+        if (UIRenderer.instance.visualizer) {
+            UIRenderer.instance.visualizer.setPreset(preset);
         }
-        this.notify(`Visualizer preset: ${preset}`);
+        await this.notify(`Visualizer preset: ${preset}`);
     }
 
     async setQuality(quality) {
-        const qualityNames = { LOW: 'Low', HIGH: 'High', LOSSLESS: 'Lossless', HI_RES_LOSSLESS: 'Hi-Res' };
+        const qualityNames = {
+            auto: 'Auto',
+            LOW: 'Low',
+            HIGH: 'High',
+            LOSSLESS: 'Lossless',
+            HI_RES_LOSSLESS: 'Hi-Res',
+        };
 
-        if (window.monochromePlayer) {
-            window.monochromePlayer.setQuality(quality);
-            localStorage.setItem('playback-quality', quality);
+        if (Player.instance) {
+            // Set fallback API quality (Auto maps back to Hi-Res)
+            const apiQuality = quality === 'auto' ? 'HI_RES_LOSSLESS' : quality;
+            Player.instance.setQuality(apiQuality);
+            localStorage.setItem('playback-quality', apiQuality);
+
+            // Set adaptive streaming quality
+            localStorage.setItem('adaptive-playback-quality', quality);
+            if (Player.instance.forceQuality) Player.instance.forceQuality(quality);
+
             const streamingSelect = document.getElementById('streaming-quality-setting');
             if (streamingSelect) streamingSelect.value = quality;
         }
 
         const { downloadQualitySettings } = await import('./storage.js');
-        downloadQualitySettings.setQuality(quality);
+        // Do not pass auto to download quality, resolve it to original fallback
+        const dlQuality = quality === 'auto' ? 'HI_RES_LOSSLESS' : quality;
+        downloadQualitySettings.setQuality(dlQuality);
         const downloadSelect = document.getElementById('download-quality-setting');
-        if (downloadSelect) downloadSelect.value = quality;
+        if (downloadSelect) downloadSelect.value = dlQuality;
 
-        this.notify(`Quality set to ${qualityNames[quality] || quality}`);
+        await this.notify(`Quality set to ${qualityNames[quality] || quality}`);
     }
 
-    setSleepTimer(minutes) {
-        if (window.monochromePlayer) {
-            window.monochromePlayer.setSleepTimer(minutes);
-            this.notify(`Sleep timer: ${minutes} minutes`);
+    async setSleepTimer(minutes) {
+        if (Player.instance) {
+            Player.instance.setSleepTimer(minutes);
+            await this.notify(`Sleep timer: ${minutes} minutes`);
         }
     }
 
     async likeAllInQueue() {
-        const player = window.monochromePlayer;
-        const ui = window.monochromeUi;
+        const player = Player.instance;
+        const ui = UIRenderer.instance;
         if (!player || !ui) return;
 
         const queue = player.getCurrentQueue();
         if (queue.length === 0) {
-            this.notify('Queue is empty');
+            await this.notify('Queue is empty');
             return;
         }
 
@@ -1226,7 +1250,7 @@ class CommandPalette {
         const scrobbler = window.monochromeScrobbler;
 
         let likedCount = 0;
-        this.notify('Liking all tracks in queue...');
+        await this.notify('Liking all tracks in queue...');
         for (const track of queue) {
             const isLiked = await db.isFavorite('track', track.id);
             if (!isLiked) {
@@ -1234,50 +1258,49 @@ class CommandPalette {
                 likedCount++;
             }
         }
-        this.notify(`Liked ${likedCount} new track(s)`);
+        await this.notify(`Liked ${likedCount} new track(s)`);
     }
 
     async downloadQueue() {
-        const player = window.monochromePlayer;
-        const ui = window.monochromeUi;
+        const player = Player.instance;
+        const ui = UIRenderer.instance;
         if (!player || !ui) return;
 
         const queue = player.getCurrentQueue();
         if (queue.length === 0) {
-            this.notify('Queue is empty');
+            await this.notify('Queue is empty');
             return;
         }
 
         const { downloadTracks } = await import('./downloads.js');
         const { downloadQualitySettings } = await import('./storage.js');
-        downloadTracks(queue, ui.api, downloadQualitySettings.getQuality(), ui.lyricsManager);
+        await downloadTracks(queue, ui.api, downloadQualitySettings.getQuality(), ui.lyricsManager);
     }
 
     async createPlaylist() {
         const name = `New Playlist ${new Date().toLocaleDateString()}`;
         await db.createPlaylist(name);
         navigate('/library');
-        this.notify('Playlist created');
+        await this.notify('Playlist created');
     }
 
     async createFolder() {
         const name = `New Folder ${new Date().toLocaleDateString()}`;
         await db.createFolder(name);
         navigate('/library');
-        this.notify('Folder created');
+        await this.notify('Folder created');
     }
 
     async clearCache() {
-        const api = window.monochromeUi?.api;
+        const api = UIRenderer.instance.api;
         if (api) {
             await api.clearCache();
-            this.notify('Cache cleared');
+            await this.notify('Cache cleared');
         }
     }
 
     async notify(message) {
-        const { showNotification } = await import('./downloads.js');
-        showNotification(message);
+        await import('./downloads.js').then((m) => m.showNotification(message)).catch(console.error);
     }
 }
 

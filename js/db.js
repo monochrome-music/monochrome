@@ -1,7 +1,7 @@
 export class MusicDatabase {
     constructor() {
         this.dbName = 'MonochromeDB';
-        this.version = 9;
+        this.version = 11;
         this.db = null;
     }
 
@@ -23,6 +23,11 @@ export class MusicDatabase {
 
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
+
+                // v10 introduced track_ratings (bad PR) - remove it
+                if (db.objectStoreNames.contains('track_ratings')) {
+                    db.deleteObjectStore('track_ratings');
+                }
 
                 // Favorites stores
                 if (!db.objectStoreNames.contains('favorites_tracks')) {
@@ -257,6 +262,10 @@ export class MusicDatabase {
                 mixes: item.mixes || null,
                 isTracker: item.isTracker || (item.id && String(item.id).startsWith('tracker-')),
                 trackerInfo: item.trackerInfo || null,
+                isPodcast: item.isPodcast || (item.id && String(item.id).startsWith('podcast_')) || null,
+                enclosureUrl: item.enclosureUrl || null,
+                enclosureType: item.enclosureType || null,
+                enclosureLength: item.enclosureLength || null,
                 audioUrl: item.remoteUrl || item.audioUrl || null,
                 remoteUrl: item.remoteUrl || null,
                 audioQuality: item.audioQuality || null,
@@ -774,7 +783,6 @@ export class MusicDatabase {
                     }
 
                     // Return lightweight copy without tracks
-                    // eslint-disable-next-line no-unused-vars
                     const { tracks, ...minified } = playlist;
                     return minified;
                 });

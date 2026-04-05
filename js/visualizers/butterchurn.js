@@ -92,7 +92,7 @@ export function onButterchurnPresetsLoaded(callback) {
 }
 
 // Start loading presets immediately when module is imported (lazy loaded)
-loadPresetsModule();
+loadPresetsModule().catch(console.error);
 
 export class ButterchurnPreset {
     constructor() {
@@ -191,7 +191,7 @@ export class ButterchurnPreset {
     /**
      * Initialize Butterchurn with the given WebGL context
      */
-    init(canvas, gl, audioContext, sourceNode) {
+    init(canvas, _gl, audioContext, sourceNode) {
         if (this.isInitialized) return;
 
         try {
@@ -418,7 +418,7 @@ export class ButterchurnPreset {
     /**
      * Main draw function called each animation frame
      */
-    draw(ctx, canvas, analyser, dataArray, params) {
+    draw(_ctx, canvas, _analyser, _dataArray, params) {
         if (!this.isInitialized) {
             return;
         }

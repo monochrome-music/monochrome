@@ -1,0 +1,123 @@
+name: Desktop Build
+
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: write
+
+jobs:
+    build:
+        runs-on: ${{ matrix.os }}
+
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - os: windows-latest
+                      platform: windows
+                      binary_source: Monochrome-win_x64.exe
+                      binary_dest: Monochrome.exe
+                      archive_name: monochrome-windows.zip
+                    - os: ubuntu-latest
+                      platform: linux
+                      binary_source: Monochrome-linux_x64
+                      binary_dest: Monochrome
+                      archive_name: monochrome-linux.zip
+                    - os: macos-latest
+                      platform: macos
+                      binary_source: Monochrome-mac_universal
+                      binary_dest: Monochrome
+                      archive_name: monochrome-mac.zip
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 1
+
+            - name: Setup Bun
+              uses: oven-sh/setup-bun@v2
+              with:
+                  bun-version: latest
+
+            - name: Install dependencies
+              run: bun install
+
+            - name: Download Neutralino binaries
+              run: bun x neu update
+
+            - name: Auto-Bump Version
+              run: |
+                  $json = Get-Content neutralino.config.json -Raw | ConvertFrom-Json
+                  $v = $json.version.Split('.')
+                  if ($v.Count -lt 2) { $v += "0" }
+                  $newVersion = "{0}.{1}.{2}" -f $v[0], $v[1], ${{ github.run_number }}
+                  $json.version = $newVersion
+                  $json | ConvertTo-Json -Depth 5 | Set-Content neutralino.config.json
+              shell: pwsh
+
+            - name: Build application
+              run: bun run build
+
+            - name: Prepare Release Folder
+              run: |
+                  mkdir release
+                  cp dist/Monochrome/resources.neu release/
+                  cp neutralino.config.json release/
+                  cp -r dist/Monochrome/extensions release/
+                  cp dist/Monochrome/${{ matrix.binary_source }} release/${{ matrix.binary_dest }}
+              shell: bash
+
+            - name: Set Permissions (Linux/macOS)
+              if: matrix.platform != 'windows'
+              run: chmod +x release/${{ matrix.binary_dest }}
+
+            - name: Zip for R2 (Windows)
+              if: matrix.platform == 'windows'
+              run: Compress-Archive -Path release/* -DestinationPath ${{ matrix.archive_name }} -Force
+              shell: pwsh
+
+            - name: Zip for R2 (Linux/macOS)
+              if: matrix.platform != 'windows'
+              run: |
+                  cd release
+                  zip -r ../${{ matrix.archive_name }} .
+              shell: bash
+
+            - name: Isolate Zip File
+              run: |
+                  mkdir out_delivery
+                  mv ${{ matrix.archive_name }} out_delivery/
+              shell: bash
+
+            - name: Generate Update Manifest
+              run: |
+                  $config = Get-Content neutralino.config.json | ConvertFrom-Json
+                  $version = $config.version
+                  $platform = "${{ matrix.platform }}"
+                  $archive = "${{ matrix.archive_name }}"
+                  $json = @{
+                    version = $version
+                    url = "https://downloads.samidy.com/out_delivery/$archive"
+                    notes = "Update $version is available."
+                  }
+                  $json | ConvertTo-Json | Set-Content "out_delivery/update-$platform.json"
+              shell: pwsh
+
+            - name: Upload to R2
+              uses: ryand56/r2-upload-action@latest
+              with:
+                  r2-account-id: ${{ secrets.R2_ACCOUNT_ID }}
+                  r2-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
+                  r2-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+                  r2-bucket: ${{ secrets.R2_BUCKET }}
+                  source-dir: 'out_delivery'
+                  destination-dir: 'out_delivery'
+
+            - name: Upload Artifact (GH Internal)
+              uses: actions/upload-artifact@v4
+              with:
+                  name: Monochrome-${{ matrix.platform }}
+                  path: release/
+                  retention-days: 30

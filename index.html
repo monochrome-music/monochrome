@@ -2,7 +2,7 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
         <title>Monochrome Music</title>
         <link rel="canonical" href="https://monochrome.tf/" />
         <meta name="theme-color" content="#000000" />
@@ -48,19 +48,17 @@
                 <li data-action="add-to-queue">Add to queue</li>
                 <li
                     data-action="toggle-like"
-                    data-label-track="Like"
-                    data-label-unlike-track="Unlike"
+                    data-type-filter="album,artist,playlist,mix,user-playlist"
                     data-label-album="Save album to library"
                     data-label-unlike-album="Remove album from library"
                     data-label-playlist="Save playlist to library"
                     data-label-unlike-playlist="Remove playlist from library"
-                    data-label-video="Like"
-                    data-label-unlike-video="Unlike"
                 >
                     Like
                 </li>
                 <li data-action="toggle-pin" data-type-filter="album,artist,playlist,user-playlist">Pin</li>
                 <li data-action="add-to-playlist" data-type-filter="track,video">Add to playlist</li>
+                <li data-action="request-song" data-type-filter="track,video">Request song</li>
                 <li data-action="go-to-artist" data-type-filter="track,album,video">Go to artist</li>
                 <li data-action="go-to-album" data-type-filter="track,video">Go to album</li>
                 <li data-action="copy-link">Copy link</li>
@@ -109,6 +107,7 @@
         </div>
 
         <div id="side-panel" class="side-panel">
+            <div id="side-panel-resizer" class="side-panel-resizer"></div>
             <div class="panel-header">
                 <h3 id="side-panel-title">Panel</h3>
                 <div class="panel-controls" id="side-panel-controls">
@@ -121,10 +120,10 @@
         </div>
 
         <div id="fullscreen-cover-overlay" style="display: none">
+            <div id="visualizer-container">
+                <canvas id="visualizer-canvas"></canvas>
+            </div>
             <div class="fullscreen-cover-content">
-                <div id="visualizer-container">
-                    <canvas id="visualizer-canvas"></canvas>
-                </div>
                 <div
                     id="fullscreen-video-container"
                     style="
@@ -139,15 +138,13 @@
                         z-index: 0;
                     "
                 ></div>
-                <button id="toggle-ui-btn" class="fullscreen-ui-toggle" title="Hide UI">
+                <button id="toggle-ui-btn" class="fullscreen-ui-toggle" title="Toggle UI">
                     <use svg="!lucide/eye-off.svg" size="24" />
                 </button>
                 <button id="toggle-fullscreen-lyrics-btn" class="fullscreen-lyrics-toggle" title="Toggle Lyrics">
-                    <use svg="./images/mic.svg" size="24" />
+                    <use svg="!lucide/mic-vocal.svg" size="24" />
                 </button>
-                <button id="close-fullscreen-cover-btn" title="Close">
-                    <use svg="!lucide/x.svg" size="24" />
-                </button>
+                <button id="close-fullscreen-cover-btn" title="Close"><use svg="!lucide/x.svg" size="24" /></button>
                 <div class="fullscreen-main-view">
                     <img
                         id="fullscreen-cover-image"
@@ -478,12 +475,8 @@
                     <div id="jspf-import-panel" class="import-panel" style="display: none">
                         <p style="margin-bottom: 0.5rem; font-size: 0.9rem">Import from JSPF</p>
                         <p style="font-size: 0.8rem; margin: 0">
-                            JSPF (JSON Shareable Playlist Format) is supported by const replayGainPreamp =
-                            document.getElementById('replay-gain-preamp'); if (replayGainPreamp) {
-                            replayGainPreamp.value = replayGainSettings.getPreamp();
-                            replayGainPreamp.addEventListener('change', (e) => { const val = parseFloat(e.target.value);
-                            replayGainSettings.setPreamp(isNaN(val) ? 3 : val); player.applyReplayGain(); }); } Import
-                            playlists with rich metadata including MusicBrainz identifiers.
+                            JSPF (JSON Shareable Playlist Format) is supported by many media players. Import playlists
+                            with rich metadata including MusicBrainz identifiers.
                         </p>
                         <br />
                         <input
@@ -855,36 +848,39 @@
 
         <div id="email-auth-modal" class="modal">
             <div class="modal-overlay"></div>
-            <div class="modal-content">
-                <h3 style="text-align: center; margin-bottom: 10px">Email Authentication</h3>
+            <div class="modal-content email-auth-modal-content">
+                <div class="email-auth-modal-header">
+                    <h3>Email Authentication</h3>
+                    <button
+                        type="button"
+                        class="btn-icon email-auth-modal-close"
+                        id="email-auth-modal-close"
+                        title="Close"
+                    >
+                        <use svg="!lucide/x.svg" size="20" />
+                    </button>
+                </div>
                 <input
                     type="email"
                     id="auth-email"
-                    class="template-input"
+                    class="template-input email-auth-input"
                     placeholder="Email Address"
-                    style="margin-bottom: 0.5rem"
                 />
-                <input
-                    type="password"
-                    id="auth-password"
-                    class="template-input"
-                    placeholder="Password"
-                    style="margin-bottom: 1rem"
-                />
-                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px">
-                    <button id="email-signin-btn" class="btn-primary" style="flex: 1">Sign In</button>
-                    <button id="email-signup-btn" class="btn-secondary" style="flex: 1">Sign Up</button>
+                <div class="email-auth-password-block">
+                    <input
+                        type="password"
+                        id="auth-password"
+                        class="template-input email-auth-input"
+                        placeholder="Password"
+                    />
+                    <button type="button" id="reset-password-btn" class="email-auth-forgot-link">
+                        Forgot password?
+                    </button>
                 </div>
-                <button
-                    id="reset-password-btn"
-                    class="btn-secondary"
-                    style="width: 100%; margin-top: 10px; font-size: 0.9rem"
-                >
-                    Forgot Password?
-                </button>
-                <button id="cancel-email-auth-btn" class="btn-secondary" style="width: 100%; margin-top: 10px">
-                    Cancel
-                </button>
+                <div class="email-auth-actions">
+                    <button type="button" id="email-signin-btn" class="btn-primary email-auth-submit">Sign In</button>
+                    <button type="button" id="email-signup-btn" class="btn-secondary email-auth-submit">Sign Up</button>
+                </div>
             </div>
         </div>
 
@@ -1437,28 +1433,6 @@
             </div>
         </div>
 
-        <div id="maintenance-modal" class="modal">
-            <div class="modal-overlay"></div>
-            <div class="modal-content" style="text-align: center">
-                <h3 style="color: #ef4444; display: flex; align-items: center; gap: 0.5rem; justify-content: center">
-                    <use svg="!lucide/wrench.svg" size="24" />
-                    Maintenance Notice
-                </h3>
-                <p style="margin: 1.5rem 0; line-height: 1.6; font-size: 1.1rem">
-                    The desktop version of Monochrome is currently undergoing essential maintenance to address critical
-                    issues.
-                </p>
-                <p style="margin-bottom: 2rem; color: var(--muted-foreground); line-height: 1.5">
-                    Downloads are temporarily disabled while we work on fixing these issues. Please check back later.
-                </p>
-                <div class="modal-actions" style="justify-content: center">
-                    <button id="maintenance-home-btn" class="btn-primary" style="padding: 0.75rem 2rem">
-                        Back to Home
-                    </button>
-                </div>
-            </div>
-        </div>
-
         <div id="desktop-update-modal" class="modal">
             <div class="modal-overlay"></div>
             <div class="modal-content">
@@ -1627,16 +1601,16 @@
                                             <span>Discord</span>
                                         </a>
                                     </li>
+                                    <li class="nav-item" id="sidebar-nav-party">
+                                        <a href="/parties" id="sidebar-party-btn">
+                                            <use svg="!lucide/users.svg" size="24" />
+                                            <span>Parties</span>
+                                        </a>
+                                    </li>
                                     <li class="nav-item" id="sidebar-nav-githubbtn" style="display: none">
                                         <a href="https://github.com/monochrome-music/monochrome" target="_blank">
                                             <use svg="./images/github.svg" size="24" />
                                             <span>GitHub</span>
-                                        </a>
-                                    </li>
-                                    <li class="nav-item" id="sidebar-nav-download-bottom">
-                                        <a href="/download">
-                                            <use svg="!lucide/download.svg" size="24" />
-                                            <span>Download</span>
                                         </a>
                                     </li>
                                 </ul>
@@ -1660,29 +1634,6 @@
                     <button class="hamburger-menu" id="hamburger-btn" title="Open navigation">
                         <use svg="!lucide/menu.svg" size="24" />
                     </button>
-                    <div class="header-account-control" style="position: relative; margin-right: 1rem">
-                        <button
-                            id="header-account-btn"
-                            class="btn-icon"
-                            title="Account"
-                            style="
-                                width: 36px;
-                                height: 36px;
-                                border-radius: 50%;
-                                overflow: hidden;
-                                padding: 0;
-                                border: 1px solid var(--border);
-                            "
-                        >
-                            <use svg="!lucide/user.svg" size="20" />
-                            <img
-                                id="header-account-img"
-                                alt="Account avatar"
-                                style="width: 100%; height: 100%; object-fit: cover; display: none"
-                            />
-                        </button>
-                        <div id="header-account-dropdown" class="dropdown-menu"></div>
-                    </div>
                     <form class="search-bar" id="search-form">
                         <use svg="!lucide/search.svg" class="search-icon" size="24" />
                         <input
@@ -1704,6 +1655,31 @@
                         </button>
                         <div id="search-history" class="search-history" style="display: none"></div>
                     </form>
+                    <div class="header-account-control">
+                        <button
+                            id="header-account-btn"
+                            class="btn-icon"
+                            title="Account"
+                            style="
+                                width: 36px;
+                                height: 36px;
+                                border-radius: 50%;
+                                overflow: hidden;
+                                padding: 0;
+                                border: 1px solid var(--border);
+                            "
+                        >
+                            <span id="header-account-icon" class="header-account-icon-wrap">
+                                <use svg="!lucide/user.svg" size="20" />
+                            </span>
+                            <img
+                                id="header-account-img"
+                                alt="Account avatar"
+                                style="width: 100%; height: 100%; object-fit: cover; display: none"
+                            />
+                        </button>
+                        <div id="header-account-dropdown" class="dropdown-menu"></div>
+                    </div>
                 </header>
 
                 <div id="page-home" class="page">
@@ -1852,6 +1828,122 @@
                     </div>
                 </div>
 
+                <div id="page-parties" class="page">
+                    <div style="text-align: center; padding: 4rem 2rem; max-width: 600px; margin: 0 auto">
+                        <h2 class="section-title">Listening Parties</h2>
+                        <p style="color: var(--muted-foreground); margin-bottom: 2rem">
+                            Listen to music together with your friends in real-time. Host controls the music, everyone
+                            enjoys it.
+                        </p>
+                        <div id="parties-auth-required" style="display: none">
+                            <p style="margin-bottom: 1rem">You need an account to host a listening party.</p>
+                            <button id="parties-login-btn" class="btn-primary">Sign In / Sign Up</button>
+                        </div>
+                        <div id="parties-host-controls" style="display: none">
+                            <input
+                                type="text"
+                                id="party-name-input"
+                                class="template-input"
+                                placeholder="Party Name"
+                                style="margin-bottom: 1rem"
+                            />
+                            <button id="create-party-btn" class="btn-primary" style="width: 100%">
+                                Create Listening Party
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="page-party-detail" class="page">
+                    <div class="party-container">
+                        <header class="detail-header">
+                            <div class="detail-header-info">
+                                <div class="type">Listening Party</div>
+                                <h1 class="title" id="party-title">Party Name</h1>
+                                <div class="meta" id="party-meta">Host: ...</div>
+                                <div class="detail-header-actions">
+                                    <button id="leave-party-btn" class="btn-secondary danger">Leave Party</button>
+                                    <button id="copy-party-link-btn" class="btn-secondary">Copy Invite Link</button>
+                                </div>
+                            </div>
+                        </header>
+
+                        <div
+                            class="party-content-layout"
+                            style="display: grid; grid-template-columns: 1fr 350px; gap: 2rem; margin-top: 2rem"
+                        >
+                            <div class="party-main-section">
+                                <section class="content-section">
+                                    <h2 class="section-title">Currently Playing</h2>
+                                    <div id="party-current-track-display"></div>
+                                </section>
+
+                                <section class="content-section">
+                                    <h2 class="section-title">Participants (<span id="party-member-count">0</span>)</h2>
+                                    <div id="party-members-list" class="card-grid compact"></div>
+                                </section>
+
+                                <section class="content-section" id="party-requests-section">
+                                    <h2 class="section-title">Song Requests</h2>
+                                    <div id="party-requests-list" class="track-list"></div>
+                                </section>
+                            </div>
+
+                            <div class="party-sidebar-section">
+                                <div
+                                    class="party-chat-container"
+                                    style="
+                                        display: flex;
+                                        flex-direction: column;
+                                        height: 600px;
+                                        background: var(--background-secondary);
+                                        border-radius: var(--radius);
+                                        border: 1px solid var(--border);
+                                    "
+                                >
+                                    <div
+                                        class="chat-header"
+                                        style="padding: 1rem; border-bottom: 1px solid var(--border); font-weight: 600"
+                                    >
+                                        Chat
+                                    </div>
+                                    <div
+                                        id="party-chat-messages"
+                                        style="
+                                            flex: 1;
+                                            overflow-y: auto;
+                                            padding: 1rem;
+                                            display: flex;
+                                            flex-direction: column;
+                                            gap: 0.5rem;
+                                        "
+                                    ></div>
+                                    <div
+                                        class="chat-input-container"
+                                        style="
+                                            padding: 1rem;
+                                            border-top: 1px solid var(--border);
+                                            display: flex;
+                                            gap: 0.5rem;
+                                        "
+                                    >
+                                        <input
+                                            type="text"
+                                            id="party-chat-input"
+                                            class="template-input"
+                                            placeholder="Say something..."
+                                            style="flex: 1"
+                                        />
+                                        <button id="party-chat-send-btn" class="btn-primary" style="padding: 0 1rem">
+                                            Send
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="page-search" class="page">
                     <h2 class="section-title" id="search-results-title">Search Results</h2>
                     <div class="search-tabs">
@@ -1860,6 +1952,7 @@
                         <button class="search-tab" data-tab="albums">Albums</button>
                         <button class="search-tab" data-tab="artists">Artists</button>
                         <button class="search-tab" data-tab="playlists">Playlists</button>
+                        <button class="search-tab" data-tab="podcasts">Podcasts</button>
                     </div>
                     <div class="search-tab-content active" id="search-tab-tracks">
                         <div class="track-list" id="search-tracks-container"></div>
@@ -1876,29 +1969,43 @@
                     <div class="search-tab-content" id="search-tab-playlists">
                         <div class="card-grid" id="search-playlists-container"></div>
                     </div>
+                    <div class="search-tab-content" id="search-tab-podcasts">
+                        <div class="card-grid" id="search-podcasts-container"></div>
+                    </div>
                 </div>
 
                 <div id="page-library" class="page">
                     <section class="content-section">
                         <div class="library-header">
                             <h2>My Playlists</h2>
-                            <button id="create-playlist-btn" class="btn-primary" style="margin: 10px 0">
-                                Create Playlist
-                            </button>
-                            <button
-                                id="create-folder-btn"
-                                class="btn-primary"
-                                style="
-                                    margin: 10px 0 10px 10px;
-                                    background-color: var(--secondary);
-                                    color: var(--foreground);
-                                "
-                            >
-                                Create Folder
-                            </button>
                         </div>
                         <div class="card-grid" id="my-folders-container"></div>
-                        <div class="card-grid" id="my-playlists-container"></div>
+                        <div class="card-grid" id="my-playlists-container">
+                            <button
+                                type="button"
+                                class="card library-create-dashed-card"
+                                id="library-create-playlist-card"
+                            >
+                                <div class="library-create-dashed-art">
+                                    <use svg="!lucide/list-music.svg" size="28" />
+                                </div>
+                                <div class="card-info">
+                                    <h4 class="card-title">Create playlist</h4>
+                                </div>
+                            </button>
+                            <button
+                                type="button"
+                                class="card library-create-dashed-card"
+                                id="library-create-folder-card"
+                            >
+                                <div class="library-create-dashed-art">
+                                    <use svg="!lucide/folder-plus.svg" size="28" />
+                                </div>
+                                <div class="card-info">
+                                    <h4 class="card-title">Create folder</h4>
+                                </div>
+                            </button>
+                        </div>
                     </section>
 
                     <section class="content-section">
@@ -1912,39 +2019,80 @@
                             <button class="search-tab" data-tab="local">Local Files</button>
                         </div>
                         <div class="search-tab-content active" id="library-tab-tracks">
-                            <div style="display: flex; justify-content: flex-start; gap: 0.5rem; margin-bottom: 0.5rem">
-                                <button
-                                    id="shuffle-liked-tracks-btn"
-                                    class="btn-secondary"
-                                    style="
-                                        display: none;
-                                        width: 32px;
-                                        height: 32px;
-                                        padding: 0;
-                                        align-items: center;
-                                        justify-content: center;
-                                        border-radius: 50%;
-                                    "
-                                    title="Shuffle Liked Tracks"
-                                >
-                                    <use svg="!lucide/shuffle.svg" size="16" />
-                                </button>
-                                <button
-                                    id="download-liked-tracks-btn"
-                                    class="btn-secondary"
-                                    style="
-                                        display: none;
-                                        width: 32px;
-                                        height: 32px;
-                                        padding: 0;
-                                        align-items: center;
-                                        justify-content: center;
-                                        border-radius: 50%;
-                                    "
-                                    title="Download Liked Tracks"
-                                >
-                                    <use svg="!lucide/download.svg" size="16" />
-                                </button>
+                            <div
+                                id="library-liked-tracks-toolbar"
+                                class="library-liked-tracks-toolbar"
+                                style="display: none"
+                            >
+                                <form class="library-liked-search track-list-search-container" onsubmit="return false;">
+                                    <use svg="!lucide/search.svg" class="search-icon" size="18" />
+                                    <input
+                                        type="search"
+                                        id="library-liked-tracks-search"
+                                        class="track-list-search-input"
+                                        placeholder="Search liked tracks..."
+                                        autocomplete="off"
+                                        autocorrect="off"
+                                        autocapitalize="off"
+                                        spellcheck="false"
+                                    />
+                                    <button
+                                        type="button"
+                                        class="search-clear-btn btn-icon"
+                                        title="Clear search"
+                                        style="display: none"
+                                    >
+                                        &times;
+                                    </button>
+                                </form>
+                                <div class="library-liked-tracks-toolbar-actions">
+                                    <button
+                                        type="button"
+                                        id="library-liked-tracks-view-list"
+                                        class="btn-icon library-liked-view-btn"
+                                        title="List view"
+                                    >
+                                        <use svg="!lucide/layout-list.svg" size="18" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        id="library-liked-tracks-view-grid"
+                                        class="btn-icon library-liked-view-btn"
+                                        title="Card view"
+                                    >
+                                        <use svg="!lucide/layout-grid.svg" size="18" />
+                                    </button>
+                                    <button
+                                        id="shuffle-liked-tracks-btn"
+                                        class="btn-secondary"
+                                        style="
+                                            width: 32px;
+                                            height: 32px;
+                                            padding: 0;
+                                            align-items: center;
+                                            justify-content: center;
+                                            border-radius: 50%;
+                                        "
+                                        title="Shuffle Liked Tracks"
+                                    >
+                                        <use svg="!lucide/shuffle.svg" size="16" />
+                                    </button>
+                                    <button
+                                        id="download-liked-tracks-btn"
+                                        class="btn-secondary"
+                                        style="
+                                            width: 32px;
+                                            height: 32px;
+                                            padding: 0;
+                                            align-items: center;
+                                            justify-content: center;
+                                            border-radius: 50%;
+                                        "
+                                        title="Download Liked Tracks"
+                                    >
+                                        <use svg="!lucide/download.svg" size="16" />
+                                    </button>
+                                </div>
                             </div>
                             <div class="track-list" id="library-tracks-container"></div>
                         </div>
@@ -2017,6 +2165,46 @@
 
                 <div id="page-unreleased" class="page">
                     <div id="unreleased-content" style="padding: 1rem 0"></div>
+                </div>
+
+                <div id="page-podcasts" class="page">
+                    <header class="detail-header">
+                        <img
+                            id="podcasts-detail-image"
+                            src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                            alt=""
+                            class="detail-header-image artist"
+                        />
+                        <div class="detail-header-info">
+                            <div class="type">Podcast</div>
+                            <h1 class="title" id="podcasts-detail-name"></h1>
+                            <div class="meta" id="podcasts-detail-meta"></div>
+                            <div class="detail-header-actions">
+                                <button id="play-podcasts-btn" class="btn-primary" title="Play Latest Episode">
+                                    <use svg="./images/play.svg" size="20" />
+                                    <span>Play Latest</span>
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+                    <div class="content-section">
+                        <h2 class="section-title">Episodes</h2>
+                        <div class="track-list" id="podcasts-episodes-container"></div>
+                    </div>
+                </div>
+
+                <div id="page-podcasts-browse" class="page">
+                    <h2 class="section-title">Browse Podcasts</h2>
+                    <div class="search-tabs">
+                        <button class="search-tab active" data-tab="trending">Trending</button>
+                        <button class="search-tab" data-tab="recent">Recent</button>
+                    </div>
+                    <div class="search-tab-content active" id="podcasts-tab-trending">
+                        <div class="card-grid" id="podcasts-trending-container"></div>
+                    </div>
+                    <div class="search-tab-content" id="podcasts-tab-recent">
+                        <div class="card-grid" id="podcasts-recent-container"></div>
+                    </div>
                 </div>
 
                 <div id="page-tracker-artist" class="page">
@@ -2768,6 +2956,54 @@
                                         <span class="slider"></span>
                                     </label>
                                 </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">No Round Album Cover</span>
+                                        <span class="description">Do not round the album cover in fullscreen view</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="fullscreen-cover-no-round-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Vanilla Tilt Album Cover</span>
+                                        <span class="description"
+                                            >Enable 3D tilt effect on the album cover in fullscreen view</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="fullscreen-cover-vanilla-tilt-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Tilt Distance</span>
+                                        <span class="description">Max tilt distance (default: 10)</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        id="fullscreen-cover-tilt-distance"
+                                        min="0"
+                                        max="30"
+                                        value="10"
+                                    />
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Tilt Speed</span>
+                                        <span class="description">Tilt animation speed in ms (default: 240)</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        id="fullscreen-cover-tilt-speed"
+                                        min="50"
+                                        max="1000"
+                                        value="240"
+                                    />
+                                </div>
                             </div>
 
                             <div class="settings-group">
@@ -3002,6 +3238,18 @@
                             <div class="settings-group">
                                 <div class="setting-item">
                                     <div class="info">
+                                        <span class="label">Editor's Picks Source</span>
+                                        <span class="description">Choose which editor's picks file to display</span>
+                                    </div>
+                                    <select id="editors-picks-source-select" class="select-dropdown">
+                                        <option value="current">Current</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
                                         <span class="label">Compact Artists</span>
                                         <span class="description"
                                             >Show artist cards in a compact, horizontal layout</span
@@ -3113,18 +3361,6 @@
                                         </div>
                                         <label class="toggle-switch">
                                             <input type="checkbox" id="sidebar-show-about-bottom-toggle" checked />
-                                            <span class="slider"></span>
-                                        </label>
-                                    </div>
-                                    <div class="setting-item">
-                                        <div class="info">
-                                            <span class="label">Show Download in Sidebar</span>
-                                            <span class="description"
-                                                >Display the Download link in the sidebar navigation</span
-                                            >
-                                        </div>
-                                        <label class="toggle-switch">
-                                            <input type="checkbox" id="sidebar-show-download-bottom-toggle" checked />
                                             <span class="slider"></span>
                                         </label>
                                     </div>
@@ -3652,21 +3888,12 @@
                             <div class="settings-group">
                                 <div class="setting-item">
                                     <div class="info">
-                                        <span class="label">Music Provider</span>
-                                        <span class="description">Default service for searching and streaming</span>
-                                    </div>
-                                    <select id="music-provider-setting">
-                                        <option value="tidal">Tidal</option>
-                                        <option value="qobuz">Qobuz</option>
-                                    </select>
-                                </div>
-                                <div class="setting-item">
-                                    <div class="info">
                                         <span class="label">Streaming Quality</span>
-                                        <span class="description">Quality for streaming playback</span>
+                                        <span class="description">Default playback quality for streams</span>
                                     </div>
                                     <select id="streaming-quality-setting">
-                                        <option value="HI_RES_LOSSLESS">Hi-Res Lossless (24-bit)</option>
+                                        <option value="auto">Auto (Adaptive)</option>
+                                        <option value="HI_RES_LOSSLESS">Hi-Res Lossless (up to 24-bit/192kHz)</option>
                                         <option value="LOSSLESS">Lossless (16-bit)</option>
                                         <option value="HIGH">AAC 320kbps</option>
                                         <option value="LOW">AAC 96kbps</option>
@@ -3802,9 +4029,9 @@
 
                                 <div class="setting-item">
                                     <div class="info">
-                                        <span class="label">Equalizer</span>
+                                        <span class="label">AutoEQ</span>
                                         <span class="description"
-                                            >16-band parametric equalizer for fine audio control</span
+                                            >Precision headphone correction &amp; parametric equalizer</span
                                         >
                                     </div>
                                     <label class="toggle-switch">
@@ -3814,223 +4041,789 @@
                                 </div>
 
                                 <div class="equalizer-container" id="equalizer-container" style="display: none">
-                                    <div class="equalizer-header">
-                                        <div class="equalizer-preset-row">
-                                            <label for="equalizer-preset-select">Preset</label>
-                                            <select id="equalizer-preset-select">
-                                                <optgroup label="Built-in Presets">
-                                                    <option value="flat">Flat</option>
-                                                    <option value="bass_boost">Bass Boost</option>
-                                                    <option value="bass_reducer">Bass Reducer</option>
-                                                    <option value="treble_boost">Treble Boost</option>
-                                                    <option value="treble_reducer">Treble Reducer</option>
-                                                    <option value="vocal_boost">Vocal Boost</option>
-                                                    <option value="loudness">Loudness</option>
-                                                    <option value="rock">Rock</option>
-                                                    <option value="pop">Pop</option>
-                                                    <option value="classical">Classical</option>
-                                                    <option value="jazz">Jazz</option>
-                                                    <option value="electronic">Electronic</option>
-                                                    <option value="hip_hop">Hip-Hop</option>
-                                                    <option value="r_and_b">R&B</option>
-                                                    <option value="acoustic">Acoustic</option>
-                                                    <option value="podcast">Podcast / Speech</option>
-                                                </optgroup>
-                                                <optgroup label="Custom Presets" id="custom-presets-optgroup">
-                                                    <!-- Custom presets will be populated by JavaScript -->
-                                                </optgroup>
-                                            </select>
-                                            <label for="eq-band-count">Bands</label>
-                                            <input
-                                                type="number"
-                                                id="eq-band-count"
-                                                class="eq-band-count-input"
-                                                min="3"
-                                                max="32"
-                                                value="16"
-                                                title="Number of EQ bands (3-32)"
-                                            />
-                                            <button
-                                                id="equalizer-reset-btn"
-                                                class="btn-secondary"
-                                                title="Reset to Flat"
-                                            >
-                                                <use svg="!lucide/rotate-ccw.svg" size="16" />
+                                    <!-- Mode Toggle + How To -->
+                                    <div class="autoeq-mode-row">
+                                        <div class="autoeq-mode-toggle">
+                                            <button class="autoeq-mode-btn active" data-mode="autoeq">AutoEQ</button>
+                                            <button class="autoeq-mode-btn" data-mode="parametric">
+                                                Parametric EQ
                                             </button>
-                                            <button
-                                                id="eq-export-btn"
-                                                class="btn-secondary"
-                                                title="Export EQ settings to text"
-                                                style="font-size: 0.75rem; padding: 0.25rem 0.5rem"
-                                            >
-                                                Export
-                                            </button>
-                                            <button
-                                                id="eq-import-btn"
-                                                class="btn-secondary"
-                                                title="Import EQ settings from text or file"
-                                                style="font-size: 0.75rem; padding: 0.25rem 0.5rem"
-                                            >
-                                                Import
-                                            </button>
-                                            <input
-                                                type="file"
-                                                id="eq-import-file"
-                                                accept=".txt"
-                                                style="display: none"
-                                            />
+                                            <button class="autoeq-mode-btn" data-mode="speaker">Speaker EQ</button>
                                         </div>
+                                        <button class="eq-howto-btn" id="eq-howto-btn" title="How to use">?</button>
+                                    </div>
 
-                                        <div class="custom-preset-controls">
-                                            <div class="custom-preset-input-row">
-                                                <input
-                                                    type="text"
-                                                    id="custom-preset-name"
-                                                    placeholder="Preset name (e.g., Home, Car, Work)"
-                                                    maxlength="50"
-                                                />
-                                                <button
-                                                    id="save-custom-preset-btn"
-                                                    class="btn-primary"
-                                                    title="Save current EQ as custom preset"
-                                                >
-                                                    Save
-                                                </button>
-                                            </div>
-                                            <button
-                                                id="delete-custom-preset-btn"
-                                                class="btn-secondary delete-preset-btn"
-                                                style="display: none"
-                                                title="Delete selected custom preset"
-                                            >
-                                                <use svg="!lucide/trash.svg" size="16" />
-                                                Delete Preset
-                                            </button>
-                                        </div>
+                                    <!-- Tutorial Panel -->
+                                    <div class="eq-howto-panel" id="eq-howto-panel" style="display: none">
+                                        <button class="eq-howto-close" id="eq-howto-close" aria-label="Close tutorial">
+                                            &times;
+                                        </button>
 
-                                        <div class="eq-range-controls">
-                                            <label>DB Range:</label>
-                                            <input
-                                                type="number"
-                                                id="eq-range-min"
-                                                class="eq-range-input"
-                                                min="-60"
-                                                max="0"
-                                                value="-30"
-                                                title="Minimum gain in dB"
-                                            />
-                                            <span>to</span>
-                                            <input
-                                                type="number"
-                                                id="eq-range-max"
-                                                class="eq-range-input"
-                                                min="0"
-                                                max="60"
-                                                value="30"
-                                                title="Maximum gain in dB"
-                                            />
-                                            <span>dB</span>
-                                            <button
-                                                id="apply-eq-range-btn"
-                                                class="btn-secondary"
-                                                title="Apply new range to all bands"
-                                            >
-                                                Apply
-                                            </button>
-                                            <button
-                                                id="reset-eq-range-btn"
-                                                class="btn-secondary"
-                                                title="Reset to default (-30 to +30 dB)"
-                                            >
-                                                Reset
-                                            </button>
-                                        </div>
-
-                                        <div class="eq-freq-controls">
-                                            <label>Freq Range:</label>
-                                            <input
-                                                type="number"
-                                                id="eq-freq-min"
-                                                class="eq-freq-input"
-                                                min="10"
-                                                max="20000"
-                                                value="20"
-                                                title="Minimum frequency in Hz"
-                                            />
-                                            <span>Hz to</span>
-                                            <input
-                                                type="number"
-                                                id="eq-freq-max"
-                                                class="eq-freq-input"
-                                                min="20"
-                                                max="96000"
-                                                value="20000"
-                                                title="Maximum frequency in Hz"
-                                            />
-                                            <span>Hz</span>
-                                            <button
-                                                id="apply-eq-freq-btn"
-                                                class="btn-secondary"
-                                                title="Apply new frequency range"
-                                            >
-                                                Apply
-                                            </button>
-                                            <button
-                                                id="reset-eq-freq-btn"
-                                                class="btn-secondary"
-                                                title="Reset to default (20 Hz to 20 kHz)"
-                                            >
-                                                Reset
-                                            </button>
+                                        <div class="eq-howto-tab autoeq" id="eq-howto-autoeq">
+                                            <h4>AutoEQ - Headphone Correction</h4>
+                                            <ol>
+                                                <li>
+                                                    <b>Select your headphone</b> from the dropdown or search the
+                                                    database below.
+                                                </li>
+                                                <li>
+                                                    <b>Pick a target curve</b> - Harman is the most popular. You can
+                                                    also import a custom target.
+                                                </li>
+                                                <li>
+                                                    Adjust <b>filter bands</b> (more = finer correction, 10 is a good
+                                                    default).
+                                                </li>
+                                                <li>
+                                                    Click <b>AutoEQ</b> - the algorithm generates parametric filters
+                                                    that shape your headphone's response toward the target.
+                                                </li>
+                                                <li>
+                                                    The <b>pink corrected curve</b> on the graph shows the predicted
+                                                    result.
+                                                </li>
+                                                <li>
+                                                    <b>Double-click an empty area</b> on the graph to add a new filter
+                                                    band at that frequency. <b>Double-click an existing node</b> to
+                                                    remove it.
+                                                </li>
+                                                <li>
+                                                    <b>Save</b> the profile so you can switch between headphones
+                                                    instantly.
+                                                </li>
+                                            </ol>
+                                            <p class="eq-howto-tip">
+                                                Tip: Use "Auto Preamp Compensation" to prevent clipping from positive EQ
+                                                gains.
+                                            </p>
                                         </div>
 
                                         <div
-                                            class="eq-preamp-controls"
-                                            style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem"
+                                            class="eq-howto-tab parametric"
+                                            id="eq-howto-parametric"
+                                            style="display: none"
                                         >
-                                            <label style="font-size: 0.75rem; opacity: 0.8">Preamp:</label>
-                                            <input
-                                                type="range"
-                                                id="eq-preamp-slider"
-                                                min="-20"
-                                                max="20"
-                                                step="0.1"
-                                                value="0"
-                                                style="flex: 1; max-width: 120px"
-                                                title="Preamp gain in dB"
-                                            />
-                                            <input
-                                                type="number"
-                                                id="eq-preamp-input"
-                                                min="-20"
-                                                max="20"
-                                                step="0.1"
-                                                value="0"
-                                                style="width: 60px; padding: 0.25rem; font-size: 0.75rem"
-                                                title="Preamp value in dB"
-                                            />
-                                            <span style="font-size: 0.75rem">dB</span>
+                                            <h4>Parametric EQ - Manual Control</h4>
+                                            <ol>
+                                                <li>
+                                                    Each band supports <b>peaking, low-shelf, and high-shelf</b> filter
+                                                    types with frequency, gain, and Q (width).
+                                                </li>
+                                                <li>
+                                                    <b>Drag nodes</b> on the graph to adjust frequency and gain
+                                                    visually.
+                                                </li>
+                                                <li>
+                                                    <b>Double-click an empty area</b> on the graph to add a new band at
+                                                    that exact frequency and gain.
+                                                    <b>Double-click an existing node</b> to delete it.
+                                                </li>
+                                                <li>
+                                                    Use <b>+ Add Band / - Remove Band</b> to change the number of
+                                                    filters.
+                                                </li>
+                                                <li>
+                                                    Pick a <b>preset</b> (Bass Boost, Vocal, etc.) as a starting point,
+                                                    then fine-tune.
+                                                </li>
+                                                <li>
+                                                    <b>Import/Export</b> settings in EqualizerAPO format for use in
+                                                    other apps.
+                                                </li>
+                                                <li>
+                                                    <b>Save</b> profiles with custom names to keep your favorite EQ
+                                                    curves.
+                                                </li>
+                                            </ol>
+                                            <p class="eq-howto-tip">
+                                                Tip: Lower Q = wider curve. Higher Q = narrower surgical cut.
+                                            </p>
+                                        </div>
+
+                                        <div class="eq-howto-tab speaker" id="eq-howto-speaker" style="display: none">
+                                            <h4>Speaker EQ - Room Correction</h4>
+                                            <ol>
+                                                <li>Select your <b>speaker config</b> (2.0, 5.1, or 7.1).</li>
+                                                <li>
+                                                    Click a <b>channel tab</b> (FL, FR, etc.) to work on one speaker at
+                                                    a time.
+                                                </li>
+                                                <li>
+                                                    <b>Measure</b>: click the mic button - pink noise plays for 5
+                                                    seconds while your microphone captures the room response. Or
+                                                    <b>import</b> a measurement file from REW or similar.
+                                                </li>
+                                                <li>
+                                                    Pick a <b>target</b> - Harman In-Room is recommended for speakers.
+                                                </li>
+                                                <li>
+                                                    Set <b>Bass Limit</b> (don't EQ below this) and
+                                                    <b>Room Limit</b> (don't EQ above this) - the colored lines on the
+                                                    graph show the active range.
+                                                </li>
+                                                <li>
+                                                    Click <b>AutoEQ</b> to generate correction filters for that channel.
+                                                </li>
+                                                <li>
+                                                    <b>Double-click an empty area</b> on the graph to add a filter band
+                                                    at that frequency. <b>Double-click an existing node</b> to remove
+                                                    it.
+                                                </li>
+                                                <li>
+                                                    Repeat for each channel, then <b>Export JSON</b> with all channels.
+                                                </li>
+                                            </ol>
+                                            <p class="eq-howto-tip">
+                                                Tip: Place your mic at the listening position. Measure each speaker
+                                                separately for best results.
+                                            </p>
                                         </div>
                                     </div>
 
-                                    <div class="equalizer-bands-wrapper">
-                                        <canvas id="eq-response-canvas" class="eq-response-canvas"></canvas>
-                                        <div class="equalizer-bands" id="equalizer-bands">
-                                            <!-- Bands will be dynamically generated by JavaScript -->
+                                    <!-- Frequency Response Graph -->
+                                    <div class="autoeq-graph-section">
+                                        <div class="autoeq-graph-header">
+                                            <span class="autoeq-graph-title">Frequency Response</span>
+                                            <div class="autoeq-graph-legend">
+                                                <span class="legend-item legend-original"
+                                                    ><span class="legend-dot"></span>Original</span
+                                                >
+                                                <span class="legend-item legend-target"
+                                                    ><span class="legend-dot"></span>Target (Primary)</span
+                                                >
+                                                <span class="legend-item legend-corrected"
+                                                    ><span class="legend-dot"></span>Corrected</span
+                                                >
+                                            </div>
+                                        </div>
+                                        <div class="autoeq-graph-wrapper" id="autoeq-graph-wrapper">
+                                            <canvas id="autoeq-response-canvas" class="autoeq-response-canvas"></canvas>
+                                        </div>
+                                        <div class="autoeq-auto-preamp">
+                                            <div class="autoeq-preamp-row">
+                                                <span class="autoeq-preamp-label">Preamp</span>
+                                                <input
+                                                    type="range"
+                                                    id="eq-preamp-slider"
+                                                    class="autoeq-preamp-slider"
+                                                    min="-20"
+                                                    max="20"
+                                                    step="0.1"
+                                                    value="0"
+                                                />
+                                                <span class="autoeq-preamp-value" id="autoeq-preamp-value">0 dB</span>
+                                            </div>
+                                            <label class="autoeq-auto-preamp-label" for="autoeq-auto-preamp-toggle">
+                                                Auto Preamp Compensation
+                                            </label>
+                                            <label class="toggle-switch toggle-switch-sm">
+                                                <input type="checkbox" id="autoeq-auto-preamp-toggle" />
+                                                <span class="slider"></span>
+                                            </label>
+                                        </div>
+                                        <button id="autoeq-run-btn" class="autoeq-run-btn" disabled>AutoEq</button>
+                                    </div>
+
+                                    <!-- Database Browser -->
+                                    <div class="autoeq-database-section" id="autoeq-database-section">
+                                        <div class="autoeq-database-header">
+                                            <div>
+                                                <h4 class="autoeq-database-title">Database</h4>
+                                                <span class="autoeq-database-subtitle">AutoEq Repo</span>
+                                            </div>
+                                            <span class="autoeq-database-count" id="autoeq-database-count"></span>
+                                        </div>
+                                        <div class="autoeq-database-search">
+                                            <use svg="!lucide/search.svg" size="16" />
+                                            <input
+                                                type="text"
+                                                id="autoeq-headphone-search"
+                                                placeholder="Search model (e.g. HD 600)..."
+                                                autocomplete="off"
+                                                aria-label="Search headphone model"
+                                            />
+                                        </div>
+                                        <div class="autoeq-database-content">
+                                            <div class="autoeq-database-list" id="autoeq-database-list">
+                                                <!-- Dynamically populated -->
+                                            </div>
+                                            <div class="autoeq-database-alpha-index" id="autoeq-alpha-index">
+                                                <!-- A-Z generated by JS -->
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div class="equalizer-scale">
-                                        <span>+30 dB</span>
-                                        <span>0 dB</span>
-                                        <span>-30 dB</span>
+                                    <!-- AutoEQ Controls -->
+                                    <div class="autoeq-controls-section">
+                                        <div class="autoeq-control-group">
+                                            <label class="autoeq-control-label" for="autoeq-headphone-select"
+                                                >HEADPHONE MODEL</label
+                                            >
+                                            <div class="autoeq-select-wrapper">
+                                                <select id="autoeq-headphone-select" aria-label="Headphone model">
+                                                    <option value="">Select a headphone...</option>
+                                                </select>
+                                                <button
+                                                    id="autoeq-import-measurement-btn"
+                                                    class="autoeq-settings-btn"
+                                                    title="Import measurement file"
+                                                    aria-label="Import measurement file"
+                                                >
+                                                    <use svg="!lucide/file-input.svg" size="16" />
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div class="autoeq-control-group">
+                                            <label class="autoeq-control-label"
+                                                >TARGET
+                                                <span
+                                                    style="
+                                                        font-weight: 400;
+                                                        color: var(--muted-foreground);
+                                                        text-transform: none;
+                                                        letter-spacing: 0;
+                                                    "
+                                                    >· import custom ↑</span
+                                                ></label
+                                            >
+                                            <div class="autoeq-select-wrapper">
+                                                <select id="autoeq-target-select">
+                                                    <option value="harman_oe_2018">Harman Over-Ear 2018</option>
+                                                    <option value="harman_ie_2019">Harman In-Ear 2019</option>
+                                                    <option value="seap">SEAP</option>
+                                                    <option value="seap_bass">SEAP Bass Boost</option>
+                                                    <option value="diffuse_field">Diffuse Field</option>
+                                                    <option value="knowles">Knowles</option>
+                                                    <option value="moondrop">Moondrop VDSF</option>
+                                                    <option value="hifi_endgame">HiFi Endgame 2026</option>
+                                                    <option value="peqdb_ultra">PEQdB Ultra</option>
+                                                    <option value="flat">Flat (Calibration)</option>
+                                                </select>
+                                                <button
+                                                    id="autoeq-import-target-btn"
+                                                    class="autoeq-settings-btn"
+                                                    title="Import target curve"
+                                                    aria-label="Import target curve"
+                                                >
+                                                    <use svg="!lucide/file-up.svg" size="16" />
+                                                </button>
+                                                <input
+                                                    type="file"
+                                                    id="autoeq-import-target-file"
+                                                    accept=".txt,.csv"
+                                                    style="display: none"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div class="autoeq-controls-row">
+                                            <div class="autoeq-control-mini">
+                                                <label class="autoeq-control-label" for="autoeq-band-count"
+                                                    >FILTER BANDS</label
+                                                >
+                                                <select id="autoeq-band-count" aria-label="Filter bands">
+                                                    <option value="5">5</option>
+                                                    <option value="10" selected>10</option>
+                                                    <option value="15">15</option>
+                                                    <option value="20">20</option>
+                                                    <option value="32">32</option>
+                                                </select>
+                                            </div>
+                                            <div class="autoeq-control-mini">
+                                                <label class="autoeq-control-label" for="autoeq-max-freq">MAX HZ</label>
+                                                <select id="autoeq-max-freq" aria-label="Maximum frequency">
+                                                    <option value="6000">6k</option>
+                                                    <option value="8000">8k</option>
+                                                    <option value="10000">10k</option>
+                                                    <option value="16000" selected>16k</option>
+                                                    <option value="20000">20k</option>
+                                                    <option value="22000">22k</option>
+                                                </select>
+                                            </div>
+                                            <div class="autoeq-control-mini">
+                                                <label class="autoeq-control-label" for="autoeq-sample-rate"
+                                                    >SAMPLE RATE</label
+                                                >
+                                                <select id="autoeq-sample-rate" aria-label="Sample rate">
+                                                    <option value="44100">44.1k</option>
+                                                    <option value="48000" selected>48k</option>
+                                                    <option value="96000">96k</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="autoeq-actions-row">
+                                            <button
+                                                id="autoeq-download-btn"
+                                                class="autoeq-download-btn"
+                                                title="Export EQ settings"
+                                                aria-label="Export EQ settings"
+                                            >
+                                                <use svg="!lucide/download.svg" size="20" />
+                                            </button>
+                                        </div>
+                                        <span
+                                            id="autoeq-status"
+                                            class="autoeq-status"
+                                            role="status"
+                                            aria-live="polite"
+                                        ></span>
                                     </div>
+
+                                    <!-- Saved Profiles -->
+                                    <div class="autoeq-saved-section" id="autoeq-saved-section">
+                                        <div class="autoeq-saved-header" id="autoeq-saved-toggle">
+                                            <div class="autoeq-saved-header-left">
+                                                <span class="autoeq-saved-title">SAVED PROFILES</span>
+                                                <span class="autoeq-saved-count" id="autoeq-saved-count">0</span>
+                                            </div>
+                                            <div class="autoeq-saved-header-right">
+                                                <input
+                                                    type="text"
+                                                    id="autoeq-profile-name"
+                                                    class="autoeq-profile-name-input"
+                                                    placeholder="Profile name..."
+                                                    aria-label="AutoEQ profile name"
+                                                    maxlength="50"
+                                                />
+                                                <button id="autoeq-save-btn" class="btn-primary autoeq-save-btn">
+                                                    Save
+                                                </button>
+                                                <button
+                                                    class="autoeq-collapse-btn"
+                                                    id="autoeq-saved-collapse"
+                                                    aria-label="Collapse EQ section"
+                                                    aria-expanded="true"
+                                                >
+                                                    <use svg="!lucide/chevron-up.svg" size="18" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="autoeq-saved-grid" id="autoeq-saved-grid">
+                                            <!-- Dynamically populated profile cards -->
+                                        </div>
+                                    </div>
+
+                                    <!-- Speaker EQ Section -->
+                                    <div class="speaker-eq-section" id="speaker-eq-section" style="display: none">
+                                        <!-- Config + Channel Tabs -->
+                                        <div class="speaker-eq-header">
+                                            <div class="speaker-eq-config-row">
+                                                <select id="speaker-config-select" class="speaker-config-select">
+                                                    <option value="2.0">2.0 Stereo</option>
+                                                    <option value="5.1">5.1 Surround</option>
+                                                    <option value="7.1">7.1 Surround</option>
+                                                </select>
+                                                <button
+                                                    id="speaker-export-btn"
+                                                    class="btn-secondary"
+                                                    title="Export all channels as JSON"
+                                                >
+                                                    Export JSON
+                                                </button>
+                                                <button
+                                                    id="speaker-import-btn"
+                                                    class="btn-secondary"
+                                                    title="Import EQ settings from JSON"
+                                                >
+                                                    Import JSON
+                                                </button>
+                                                <input
+                                                    type="file"
+                                                    id="speaker-import-file"
+                                                    accept=".json"
+                                                    style="display: none"
+                                                />
+                                            </div>
+                                            <div class="speaker-channel-tabs" id="speaker-channel-tabs">
+                                                <!-- Populated by JS -->
+                                            </div>
+                                        </div>
+
+                                        <!-- Per-Channel Controls -->
+                                        <div class="speaker-eq-controls">
+                                            <div class="speaker-eq-measurement-row">
+                                                <div class="autoeq-control-group" style="flex: 1">
+                                                    <label class="autoeq-control-label">MEASUREMENT</label>
+                                                    <div class="autoeq-select-wrapper">
+                                                        <span
+                                                            id="speaker-measurement-status"
+                                                            class="speaker-measurement-status"
+                                                            role="status"
+                                                            aria-live="polite"
+                                                            >No measurement</span
+                                                        >
+                                                        <button
+                                                            id="speaker-measure-btn"
+                                                            class="autoeq-settings-btn speaker-measure-btn"
+                                                            title="Measure room with pink noise"
+                                                            aria-label="Measure room with pink noise"
+                                                        >
+                                                            <use svg="!lucide/mic.svg" size="16" />
+                                                        </button>
+                                                        <button
+                                                            id="speaker-import-measurement-btn"
+                                                            class="autoeq-settings-btn"
+                                                            title="Import measurement file"
+                                                            aria-label="Import measurement file"
+                                                        >
+                                                            <use svg="!lucide/file-up.svg" size="16" />
+                                                        </button>
+                                                        <button
+                                                            id="speaker-clear-measurement-btn"
+                                                            class="autoeq-settings-btn"
+                                                            title="Clear measurement"
+                                                            aria-label="Clear measurement"
+                                                            style="display: none"
+                                                        >
+                                                            <use svg="!lucide/x.svg" size="16" />
+                                                        </button>
+                                                    </div>
+                                                    <input
+                                                        type="file"
+                                                        id="speaker-import-measurement-file"
+                                                        accept=".txt,.csv"
+                                                        style="display: none"
+                                                    />
+                                                </div>
+                                                <div
+                                                    class="autoeq-control-group"
+                                                    style="min-width: 150px; flex: 0 1 auto"
+                                                >
+                                                    <label class="autoeq-control-label">TARGET</label>
+                                                    <div class="autoeq-select-wrapper">
+                                                        <select id="speaker-target-select">
+                                                            <option value="harman_room">Harman In-Room (2013)</option>
+                                                            <option value="seap_bass">SEAP Bass (Room)</option>
+                                                            <option value="flat">Flat</option>
+                                                        </select>
+                                                        <button
+                                                            id="speaker-import-target-btn"
+                                                            class="autoeq-settings-btn"
+                                                            title="Import target curve"
+                                                            aria-label="Import target curve"
+                                                        >
+                                                            <use svg="!lucide/file-up.svg" size="16" />
+                                                        </button>
+                                                        <input
+                                                            type="file"
+                                                            id="speaker-import-target-file"
+                                                            accept=".txt,.csv"
+                                                            style="display: none"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="speaker-eq-params-row">
+                                                <div class="autoeq-control-mini">
+                                                    <label class="autoeq-control-label">BANDS</label>
+                                                    <select id="speaker-band-count">
+                                                        <option value="5">5</option>
+                                                        <option value="10" selected>10</option>
+                                                        <option value="15">15</option>
+                                                    </select>
+                                                </div>
+                                                <div class="autoeq-control-mini speaker-eq-slider-control">
+                                                    <label class="autoeq-control-label bass">BASS LIMIT</label>
+                                                    <div class="speaker-eq-slider-row">
+                                                        <input
+                                                            type="range"
+                                                            id="speaker-bass-cutoff"
+                                                            min="20"
+                                                            max="100"
+                                                            step="5"
+                                                            value="40"
+                                                            class="autoeq-preamp-slider"
+                                                        />
+                                                        <span
+                                                            id="speaker-bass-cutoff-value"
+                                                            class="speaker-eq-slider-value bass"
+                                                            >40 Hz</span
+                                                        >
+                                                    </div>
+                                                </div>
+                                                <div class="autoeq-control-mini speaker-eq-slider-control">
+                                                    <label class="autoeq-control-label room">ROOM LIMIT</label>
+                                                    <div class="speaker-eq-slider-row">
+                                                        <input
+                                                            type="range"
+                                                            id="speaker-room-limit"
+                                                            min="100"
+                                                            max="1000"
+                                                            step="10"
+                                                            value="500"
+                                                            class="autoeq-preamp-slider"
+                                                        />
+                                                        <span
+                                                            id="speaker-room-limit-value"
+                                                            class="speaker-eq-slider-value room"
+                                                            >500 Hz</span
+                                                        >
+                                                    </div>
+                                                </div>
+                                                <div class="autoeq-control-mini speaker-eq-slider-control">
+                                                    <label class="autoeq-control-label">PREAMP</label>
+                                                    <div class="speaker-eq-slider-row">
+                                                        <input
+                                                            type="range"
+                                                            id="speaker-preamp-slider"
+                                                            min="-20"
+                                                            max="20"
+                                                            step="0.1"
+                                                            value="0"
+                                                            class="autoeq-preamp-slider"
+                                                        />
+                                                        <span id="speaker-preamp-value" class="speaker-eq-slider-value"
+                                                            >0 dB</span
+                                                        >
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="speaker-eq-actions-row">
+                                                <button id="speaker-autoeq-btn" class="autoeq-run-btn" disabled>
+                                                    AutoEQ
+                                                </button>
+                                                <button
+                                                    id="speaker-autoeq-all-btn"
+                                                    class="autoeq-run-btn speaker-all-btn"
+                                                    title="Run AutoEQ on all channels that have measurements"
+                                                >
+                                                    AutoEQ All
+                                                </button>
+                                                <button
+                                                    id="speaker-measure-all-btn"
+                                                    class="autoeq-run-btn speaker-all-btn"
+                                                    title="Measure once and apply averaged result to all channels"
+                                                >
+                                                    Measure All
+                                                </button>
+                                                <span
+                                                    id="speaker-eq-status"
+                                                    class="autoeq-status"
+                                                    role="status"
+                                                    aria-live="polite"
+                                                ></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Speaker Saved Profiles -->
+                                    <div class="speaker-saved-section" id="speaker-saved-section" style="display: none">
+                                        <div class="autoeq-saved-header" id="speaker-saved-toggle">
+                                            <div class="autoeq-saved-header-left">
+                                                <span class="autoeq-saved-title">SPEAKER PROFILES</span>
+                                                <span class="autoeq-saved-count" id="speaker-saved-count">0</span>
+                                            </div>
+                                            <div class="autoeq-saved-header-right">
+                                                <input
+                                                    type="text"
+                                                    id="speaker-profile-name"
+                                                    class="autoeq-profile-name-input"
+                                                    placeholder="Profile name..."
+                                                    aria-label="Speaker EQ profile name"
+                                                    maxlength="50"
+                                                />
+                                                <button id="speaker-save-btn" class="btn-primary autoeq-save-btn">
+                                                    Save
+                                                </button>
+                                                <button
+                                                    class="autoeq-collapse-btn"
+                                                    id="speaker-saved-collapse"
+                                                    aria-label="Collapse EQ section"
+                                                    aria-expanded="true"
+                                                >
+                                                    <use svg="!lucide/chevron-up.svg" size="18" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="autoeq-saved-grid" id="speaker-saved-grid">
+                                            <!-- Dynamically populated speaker profile cards -->
+                                        </div>
+                                    </div>
+
+                                    <!-- Parametric EQ Filters (collapsible) -->
+                                    <div class="autoeq-filters-section" id="autoeq-filters-section">
+                                        <div class="autoeq-filters-header" id="autoeq-filters-toggle">
+                                            <span>PARAMETRIC EQ FILTERS</span>
+                                            <button
+                                                class="autoeq-collapse-btn"
+                                                id="autoeq-filters-collapse"
+                                                aria-label="Collapse EQ filters"
+                                                aria-expanded="true"
+                                            >
+                                                <use svg="!lucide/chevron-up.svg" size="18" />
+                                            </button>
+                                        </div>
+                                        <div class="autoeq-filters-content" id="autoeq-filters-content">
+                                            <!-- Preset Selector (visible in parametric mode) -->
+                                            <div class="autoeq-preset-row" id="autoeq-preset-row" style="display: none">
+                                                <div class="autoeq-control-group">
+                                                    <label class="autoeq-control-label">PRESET</label>
+                                                    <select id="parametric-preset-select">
+                                                        <option value="">Custom</option>
+                                                        <option value="flat">Flat</option>
+                                                        <option value="bass_boost">Bass Boost</option>
+                                                        <option value="bass_reducer">Bass Reducer</option>
+                                                        <option value="treble_boost">Treble Boost</option>
+                                                        <option value="treble_reducer">Treble Reducer</option>
+                                                        <option value="vocal_boost">Vocal Boost</option>
+                                                        <option value="loudness">Loudness</option>
+                                                        <option value="rock">Rock</option>
+                                                        <option value="pop">Pop</option>
+                                                        <option value="classical">Classical</option>
+                                                        <option value="jazz">Jazz</option>
+                                                        <option value="electronic">Electronic</option>
+                                                        <option value="hip_hop">Hip-Hop</option>
+                                                        <option value="r_and_b">R&amp;B</option>
+                                                        <option value="acoustic">Acoustic</option>
+                                                        <option value="podcast">Speech</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <!-- Saved Profiles for Parametric EQ -->
+                                            <div
+                                                class="autoeq-parametric-profiles"
+                                                id="autoeq-parametric-profiles"
+                                                style="display: none"
+                                            >
+                                                <div class="autoeq-saved-header">
+                                                    <div class="autoeq-saved-header-left">
+                                                        <span class="autoeq-saved-title">SAVED PROFILES</span>
+                                                        <span class="autoeq-saved-count" id="parametric-saved-count"
+                                                            >0</span
+                                                        >
+                                                    </div>
+                                                    <div class="autoeq-saved-header-right">
+                                                        <input
+                                                            type="text"
+                                                            id="parametric-profile-name"
+                                                            class="autoeq-profile-name-input"
+                                                            placeholder="Profile name..."
+                                                            aria-label="Parametric EQ profile name"
+                                                            maxlength="50"
+                                                        />
+                                                        <button
+                                                            id="parametric-save-btn"
+                                                            class="btn-primary autoeq-save-btn"
+                                                        >
+                                                            Save
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div class="autoeq-saved-grid" id="parametric-saved-grid">
+                                                    <!-- Dynamically populated -->
+                                                </div>
+                                            </div>
+
+                                            <!-- Import/Export + Band Controls -->
+                                            <div class="autoeq-filters-actions">
+                                                <button
+                                                    id="parametric-import-btn"
+                                                    class="btn-secondary"
+                                                    title="Import EQ from text file"
+                                                >
+                                                    Import
+                                                </button>
+                                                <button
+                                                    id="parametric-export-btn"
+                                                    class="btn-secondary"
+                                                    title="Export EQ to text file"
+                                                >
+                                                    Export
+                                                </button>
+                                                <span style="flex: 1"></span>
+                                                <button
+                                                    id="autoeq-add-band-btn"
+                                                    class="btn-secondary"
+                                                    title="Add a new EQ band"
+                                                >
+                                                    + Add Band
+                                                </button>
+                                                <button
+                                                    id="autoeq-remove-band-btn"
+                                                    class="btn-secondary"
+                                                    title="Remove last EQ band"
+                                                >
+                                                    - Remove Band
+                                                </button>
+                                                <button
+                                                    id="autoeq-reset-bands-btn"
+                                                    class="btn-secondary"
+                                                    title="Reset all bands to flat"
+                                                >
+                                                    Reset
+                                                </button>
+                                            </div>
+                                            <input
+                                                type="file"
+                                                id="parametric-import-file"
+                                                accept=".txt"
+                                                style="display: none"
+                                            />
+                                            <div class="autoeq-bands-list" id="autoeq-bands-list">
+                                                <!-- Dynamically generated per-band controls -->
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Hidden file inputs -->
+                                    <input
+                                        type="file"
+                                        id="autoeq-import-measurement-file"
+                                        accept=".txt,.csv"
+                                        style="display: none"
+                                    />
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="settings-tab-content" id="settings-tab-downloads">
                         <div class="settings-list">
+                            <div class="settings-group">
+                                <div>
+                                    <div class="setting-item">
+                                        <div class="info">
+                                            <span class="label">Download Quality</span>
+                                            <span class="description">Quality for track downloads</span>
+                                        </div>
+                                        <select id="download-quality-setting">
+                                            <option value="HI_RES_LOSSLESS">Hi-Res Lossless (24-bit)</option>
+                                            <option value="LOSSLESS">Lossless (16-bit)</option>
+                                            <option value="HIGH">AAC 320kbps</option>
+                                            <option value="LOW">AAC 96kbps</option>
+                                        </select>
+                                    </div>
+                                    <div class="setting-item" id="hi-res-download-warning" style="display: none">
+                                        <div class="info setting-details">
+                                            <span class="description">
+                                                24-bit downloads may crash the browser on some devices, or be missing
+                                                metadata.
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Dolby Atmos</span>
+                                        <span class="description">Prefer Dolby Atmos tracks when available</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="dolby-atmos-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Lossless Container</span>
+                                        <span class="description">Container format for lossless downloads</span>
+                                    </div>
+                                    <select id="lossless-container-setting">
+                                        <option value="nochange">Don't change</option>
+                                    </select>
+                                </div>
+                            </div>
                             <div class="settings-group">
                                 <div class="setting-item">
                                     <div class="info">
@@ -4091,6 +4884,22 @@
                                         <span class="slider"></span>
                                     </label>
                                 </div>
+                            </div>
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Write Artists Separately</span>
+                                        <span class="description"
+                                            >Write artists separately to metadata. Requires player support.</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="write-artists-separately-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="settings-group">
                                 <div class="setting-item">
                                     <div class="info">
                                         <span class="label">Download Lyrics</span>
@@ -4114,37 +4923,6 @@
                                         <input type="checkbox" id="romaji-lyrics-toggle" />
                                         <span class="slider"></span>
                                     </label>
-                                </div>
-                                <div>
-                                    <div class="setting-item">
-                                        <div class="info">
-                                            <span class="label">Download Quality</span>
-                                            <span class="description">Quality for track downloads</span>
-                                        </div>
-                                        <select id="download-quality-setting">
-                                            <option value="HI_RES_LOSSLESS">Hi-Res Lossless (24-bit)</option>
-                                            <option value="LOSSLESS">Lossless (16-bit)</option>
-                                            <option value="HIGH">AAC 320kbps</option>
-                                            <option value="LOW">AAC 96kbps</option>
-                                        </select>
-                                    </div>
-                                    <div class="setting-item" id="hi-res-download-warning" style="display: none">
-                                        <div class="info setting-details">
-                                            <span class="description">
-                                                24-bit downloads may crash the browser on some devices, or be missing
-                                                metadata.
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="setting-item">
-                                    <div class="info">
-                                        <span class="label">Lossless Container</span>
-                                        <span class="description">Container format for lossless downloads</span>
-                                    </div>
-                                    <select id="lossless-container-setting">
-                                        <option value="nochange">Don't change</option>
-                                    </select>
                                 </div>
                                 <div class="setting-item">
                                     <div class="info">
@@ -4349,15 +5127,6 @@
                                         <span class="slider"></span>
                                     </label>
                                 </div>
-                                <div class="setting-item" id="desktop-update-container" style="display: none">
-                                    <div class="info">
-                                        <span class="label">Desktop Update</span>
-                                        <span class="description">Check for updates to the desktop application</span>
-                                    </div>
-                                    <button id="check-desktop-updates-btn" class="btn-secondary">
-                                        Check for Updates
-                                    </button>
-                                </div>
                                 <div class="setting-item">
                                     <div class="info">
                                         <span class="label">Analytics</span>
@@ -4452,7 +5221,68 @@
                                         </button>
                                     </div>
                                 </div>
+                                <div id="blocked-content-list" style="display: none">
+                                    <p
+                                        id="blocked-empty-message"
+                                        style="
+                                            display: none;
+                                            color: var(--muted-foreground);
+                                            font-size: 0.875rem;
+                                            padding: 0.5rem 0;
+                                        "
+                                    >
+                                        Nothing blocked yet.
+                                    </p>
+                                    <div id="blocked-artists-section" style="display: none">
+                                        <h4
+                                            style="
+                                                font-size: 0.75rem;
+                                                text-transform: uppercase;
+                                                color: var(--muted-foreground);
+                                                margin: 0.75rem 0 0.25rem;
+                                            "
+                                        >
+                                            Artists
+                                        </h4>
+                                        <ul id="blocked-artists-list" class="blocked-items-list"></ul>
+                                    </div>
+                                    <div id="blocked-albums-section" style="display: none">
+                                        <h4
+                                            style="
+                                                font-size: 0.75rem;
+                                                text-transform: uppercase;
+                                                color: var(--muted-foreground);
+                                                margin: 0.75rem 0 0.25rem;
+                                            "
+                                        >
+                                            Albums
+                                        </h4>
+                                        <ul id="blocked-albums-list" class="blocked-items-list"></ul>
+                                    </div>
+                                    <div id="blocked-tracks-section" style="display: none">
+                                        <h4
+                                            style="
+                                                font-size: 0.75rem;
+                                                text-transform: uppercase;
+                                                color: var(--muted-foreground);
+                                                margin: 0.75rem 0 0.25rem;
+                                            "
+                                        >
+                                            Tracks
+                                        </h4>
+                                        <ul id="blocked-tracks-list" class="blocked-items-list"></ul>
+                                    </div>
+                                </div>
                             </div>
+                            <p
+                                id="settings-commit-info"
+                                style="
+                                    text-align: center;
+                                    color: var(--muted-foreground);
+                                    font-size: 0.75rem;
+                                    padding: 1rem 0 0.5rem;
+                                "
+                            ></p>
                         </div>
                     </div>
                 </div>
@@ -4522,8 +5352,13 @@
                             <a href="https://prigoana.com/" style="text-decoration: underline">Edideaur</a> &
                             <a href="https://samidy.com" style="text-decoration: underline">Samidy</a>
                         </p>
+                        <br />
+                        <h3 style="text-align: center">Contributors List:</h3>
+                        <br />
+                        <div class="about-contributors"></div>
                         <div class="about-footer">
                             <p class="version">Version 2.5.0</p>
+                            <p class="version" id="about-commit-info"></p>
                             <p class="disclaimer">
                                 This is an independent client and is not affiliated with or endorsed by TIDAL or any
                                 music streaming service.
@@ -4560,6 +5395,8 @@
                             "
                         >
                             <button id="auth-connect-btn" class="btn-secondary">Connect with Google</button>
+                            <button id="auth-github-btn" class="btn-secondary">Connect with GitHub</button>
+                            <button id="auth-discord-btn" class="btn-secondary">Connect with Discord</button>
                             <button id="toggle-email-auth-btn" class="btn-secondary">Connect with Email</button>
                             <button id="view-my-profile-btn" class="btn-secondary" style="display: none">
                                 View My Profile
@@ -4593,49 +5430,6 @@
                                 >Advanced: Custom Configuration</a
                             >
                         </div>
-                    </div>
-                </div>
-                <div id="page-download" class="page">
-                    <h2 class="section-title" style="text-align: center">Monochrome Official App</h2>
-                    <div class="download-content">
-                        <p style="text-align: center" class="account-description">
-                            Install the Monochrome Desktop App for a refined & improved music listening experience.
-                        </p>
-                        <br /><br />
-
-                        <div class="download-buttons-icons">
-                            <div class="download-buttons-icons-windows" style="display: flex; justify-content: center">
-                                <use svg="./images/windows.svg" size="96" />
-                            </div>
-                            <br />
-                            <div style="display: flex; justify-content: center">
-                                <a
-                                    id="download-windows-btn"
-                                    class="btn-secondary"
-                                    href="https://downloads.samidy.com/out_delivery/monochrome-windows.zip"
-                                    >Download Windows Version</a
-                                >
-                            </div>
-                            <br />
-                            <div class="download-buttons-icons-linux" style="display: flex; justify-content: center">
-                                <use svg="./images/linux.svg" size="96" />
-                            </div>
-                            <br />
-                            <div style="display: flex; justify-content: center">
-                                <a
-                                    id="download-linux-btn"
-                                    class="btn-secondary"
-                                    href="https://downloads.samidy.com/out_delivery/monochrome-linux.zip"
-                                    >Download Linux Version</a
-                                >
-                            </div>
-                            <br />
-                        </div>
-                        <br />
-                        <h4 style="text-align: center; padding-top: 15px; color: #8b8b93">
-                            The App is still in Beta. Please report any issues in our
-                            <a href="discord.html" style="text-decoration: underline">Discord server.</a>
-                        </h4>
                     </div>
                 </div>
                 <div id="page-donate" class="page">
@@ -4725,8 +5519,13 @@
                             title="Save to Favorites"
                             style="display: none"
                         ></button>
-                        <button id="now-playing-add-playlist-btn" title="Add to Playlist" class="desktop-only">
-                            <use svg="!lucide/square-pen.svg" size="20" />
+                        <button
+                            id="now-playing-add-playlist-btn"
+                            title="Add to playlist"
+                            class="desktop-only"
+                            aria-label="Add to playlist"
+                        >
+                            <use svg="!lucide/list-plus.svg" size="20" />
                         </button>
 
                         <button
@@ -4738,8 +5537,8 @@
                         >
                             <use svg="./images/mix.svg" size="20" />
                         </button>
-                        <button id="toggle-lyrics-btn" title="Lyrics" style="display: none">
-                            <use svg="./images/mic.svg" size="20" />
+                        <button id="toggle-lyrics-btn" title="Lyrics" style="display: none" aria-label="Lyrics">
+                            <use svg="!lucide/mic-vocal.svg" size="20" />
                         </button>
                         <button id="download-current-btn" title="Download current track" class="desktop-only">
                             <use svg="!lucide/download.svg" size="20" />
@@ -4748,8 +5547,13 @@
                             <use svg="!lucide/cast.svg" size="20" />
                         </button>
 
-                        <button id="mobile-add-playlist-btn" class="mobile-only">
-                            <use svg="!lucide/square-pen.svg" size="20" />
+                        <button
+                            id="mobile-add-playlist-btn"
+                            class="mobile-only"
+                            title="Add to playlist"
+                            aria-label="Add to playlist"
+                        >
+                            <use svg="!lucide/list-plus.svg" size="20" />
                         </button>
                         <button id="sleep-timer-btn" title="Sleep Timer" class="mobile-only">
                             <use svg="!lucide/clock.svg" size="20" />
@@ -4770,6 +5574,7 @@
                 </div>
             </footer>
         </div>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/pocketbase@0.21.3/dist/pocketbase.umd.js"></script>
         <script type="module" src="/js/app.js"></script>
     </body>

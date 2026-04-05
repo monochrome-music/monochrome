@@ -4,6 +4,7 @@ import { navigate } from './router.js';
 import { MusicAPI } from './music-api.js';
 import { apiSettings } from './storage.js';
 import { debounce, escapeHtml } from './utils.js';
+import { Player } from './player.js';
 
 // objects execution february 29th 2027
 
@@ -38,7 +39,8 @@ const api = new MusicAPI(apiSettings);
 
 async function uploadImage(file) {
     try {
-        const response = await fetch(`https://worker.uploads.monochrome.qzz.io/${file.name}`, {
+        const fileNameWithoutSpace = file.name.replace(/\s/g, '_');
+        const response = await fetch(`https://worker.uploads.monochrome.qzz.io/${fileNameWithoutSpace}`, {
             method: 'PUT',
             headers: {
                 'x-api-key': 'if_youre_reading_this_fuck_off',
@@ -246,30 +248,31 @@ export async function loadProfile(username) {
     }
 
     if (profile.lastfm_username && profile.privacy?.lastfm !== 'private') {
-        fetchLastFmRecentTracks(profile.lastfm_username).then(async (tracks) => {
-            if (tracks.length > 0) {
-                recentSection.style.display = 'block';
-                recentContainer.innerHTML = tracks
-                    .map((track, index) => {
-                        const isNowPlaying = track['@attr']?.nowplaying === 'true';
-                        let image = getLastFmImage(track.image);
-                        const hasImage = !!image;
-                        if (!image) image = '/assets/appicon.png';
+        fetchLastFmRecentTracks(profile.lastfm_username)
+            .then(async (tracks) => {
+                if (tracks.length > 0) {
+                    recentSection.style.display = 'block';
+                    recentContainer.innerHTML = tracks
+                        .map((track, index) => {
+                            const isNowPlaying = track['@attr']?.nowplaying === 'true';
+                            let image = getLastFmImage(track.image);
+                            const hasImage = !!image;
+                            if (!image) image = '/assets/appicon.png';
 
-                        track._imgId = `scrobble-img-${index}`;
-                        track._needsCover = !hasImage;
+                            track._imgId = `scrobble-img-${index}`;
+                            track._needsCover = !hasImage;
 
-                        let dateDisplay = '';
-                        if (isNowPlaying) dateDisplay = 'Scrobbling now';
-                        else if (track.date) {
-                            const date = new Date(track.date.uts * 1000);
-                            dateDisplay =
-                                date.toLocaleDateString() +
-                                ' ' +
-                                date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        }
+                            let dateDisplay = '';
+                            if (isNowPlaying) dateDisplay = 'Scrobbling now';
+                            else if (track.date) {
+                                const date = new Date(track.date.uts * 1000);
+                                dateDisplay =
+                                    date.toLocaleDateString() +
+                                    ' ' +
+                                    date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                            }
 
-                        return `
+                            return `
                         <div class="track-item lastfm-track" data-title="${escapeHtml(track.name)}" data-artist="${escapeHtml(track.artist?.['#text'] || track.artist?.name || '')}" style="grid-template-columns: 40px 1fr auto; cursor: pointer;">
                             <img id="${track._imgId}" src="${image}" class="track-item-cover" style="width: 40px; height: 40px; border-radius: 4px;" loading="lazy" onerror="this.src='/assets/appicon.png'">
                             <div class="track-item-info">
@@ -281,39 +284,45 @@ export async function loadProfile(username) {
                             <div class="track-item-duration" style="font-size: 0.8rem; min-width: auto;">${dateDisplay}</div>
                         </div>
                     `;
-                    })
-                    .join('');
+                        })
+                        .join('');
 
-                recentContainer.querySelectorAll('.track-item').forEach((item) => {
-                    item.addEventListener('click', () => handleTrackClick(item.dataset.title, item.dataset.artist));
-                    item.addEventListener('contextmenu', (e) => {
-                        e.preventDefault();
-                        return false;
+                    recentContainer.querySelectorAll('.track-item').forEach((item) => {
+                        item.addEventListener('click', () => handleTrackClick(item.dataset.title, item.dataset.artist));
+                        item.addEventListener('contextmenu', (e) => {
+                            e.preventDefault();
+                            return false;
+                        });
                     });
-                });
 
-                for (const track of tracks) {
-                    if (track._needsCover) {
-                        fetchFallbackCover(track.name, track.artist?.['#text'] || track.artist?.name, track._imgId);
+                    for (const track of tracks) {
+                        if (track._needsCover) {
+                            await fetchFallbackCover(
+                                track.name,
+                                track.artist?.['#text'] || track.artist?.name,
+                                track._imgId
+                            );
+                        }
                     }
                 }
-            }
-        });
+            })
+            .catch(console.error);
 
-        fetchLastFmTopArtists(profile.lastfm_username).then(async (artists) => {
-            if (artists.length > 0 && topArtistsSection && topArtistsContainer) {
-                topArtistsSection.style.display = 'block';
-                topArtistsContainer.innerHTML = artists
-                    .map((artist, index) => {
-                        let image = getLastFmImage(artist.image);
-                        const hasImage = !!image;
-                        if (!image) image = '/assets/appicon.png';
+        fetchLastFmTopArtists(profile.lastfm_username)
+            .then(async (artists) => {
+                if (artists.length > 0 && topArtistsSection && topArtistsContainer) {
+                    topArtistsSection.style.display = 'block';
+                    topArtistsContainer.innerHTML = artists
+                        .map((artist, index) => {
+                            let image = getLastFmImage(artist.image);
+                            const hasImage = !!image;
+                            if (!image) image = '/assets/appicon.png';
 
-                        const imgId = `top-artist-img-${index}`;
-                        artist._imgId = imgId;
-                        artist._needsCover = !hasImage;
+                            const imgId = `top-artist-img-${index}`;
+                            artist._imgId = imgId;
+                            artist._needsCover = !hasImage;
 
-                        return `
+                            return `
                         <div class="card artist lastfm-card" data-name="${escapeHtml(artist.name)}" style="cursor: pointer;">
                             <div class="card-image-wrapper">
                                 <img id="${imgId}" src="${image}" class="card-image" loading="lazy" onerror="this.src='/assets/appicon.png'">
@@ -324,45 +333,47 @@ export async function loadProfile(username) {
                             </div>
                         </div>
                     `;
-                    })
-                    .join('');
+                        })
+                        .join('');
 
-                topArtistsContainer.querySelectorAll('.card').forEach((card) => {
-                    card.addEventListener('click', () => handleArtistClick(card.dataset.name));
-                    card.addEventListener('contextmenu', (e) => {
-                        e.preventDefault();
-                        return false;
+                    topArtistsContainer.querySelectorAll('.card').forEach((card) => {
+                        card.addEventListener('click', () => handleArtistClick(card.dataset.name));
+                        card.addEventListener('contextmenu', (e) => {
+                            e.preventDefault();
+                            return false;
+                        });
                     });
-                });
 
-                for (const artist of artists) {
-                    if (artist._needsCover) {
-                        fetchFallbackArtistImage(artist.name, artist._imgId);
+                    for (const artist of artists) {
+                        if (artist._needsCover) {
+                            await fetchFallbackArtistImage(artist.name, artist._imgId);
+                        }
                     }
                 }
-            }
-        });
+            })
+            .catch(console.error);
 
-        fetchLastFmTopAlbums(profile.lastfm_username).then(async (albums) => {
-            if (albums.length > 0 && topAlbumsSection && topAlbumsContainer) {
-                topAlbumsSection.style.display = 'block';
-                topAlbumsContainer.innerHTML = albums
-                    .map((album, index) => {
-                        let image = getLastFmImage(album.image);
-                        const hasImage = !!image;
-                        if (!image) image = '/assets/appicon.png';
+        fetchLastFmTopAlbums(profile.lastfm_username)
+            .then(async (albums) => {
+                if (albums.length > 0 && topAlbumsSection && topAlbumsContainer) {
+                    topAlbumsSection.style.display = 'block';
+                    topAlbumsContainer.innerHTML = albums
+                        .map((album, index) => {
+                            let image = getLastFmImage(album.image);
+                            const hasImage = !!image;
+                            if (!image) image = '/assets/appicon.png';
 
-                        const imgId = `top-album-img-${index}`;
-                        album._imgId = imgId;
-                        album._needsCover = !hasImage;
+                            const imgId = `top-album-img-${index}`;
+                            album._imgId = imgId;
+                            album._needsCover = !hasImage;
 
-                        const artistName =
-                            album.artist?.name ||
-                            album.artist?.['#text'] ||
-                            (typeof album.artist === 'string' ? album.artist : 'Unknown Artist');
-                        album._artistName = artistName;
+                            const artistName =
+                                album.artist?.name ||
+                                album.artist?.['#text'] ||
+                                (typeof album.artist === 'string' ? album.artist : 'Unknown Artist');
+                            album._artistName = artistName;
 
-                        return `
+                            return `
                         <div class="card lastfm-card" data-name="${escapeHtml(album.name)}" data-artist="${escapeHtml(artistName)}" style="cursor: pointer;">
                             <div class="card-image-wrapper">
                                 <img id="${imgId}" src="${image}" class="card-image" loading="lazy" onerror="this.src='/assets/appicon.png'">
@@ -373,45 +384,47 @@ export async function loadProfile(username) {
                             </div>
                         </div>
                     `;
-                    })
-                    .join('');
+                        })
+                        .join('');
 
-                topAlbumsContainer.querySelectorAll('.card').forEach((card) => {
-                    card.addEventListener('click', () => handleAlbumClick(card.dataset.name, card.dataset.artist));
-                    card.addEventListener('contextmenu', (e) => {
-                        e.preventDefault();
-                        return false;
+                    topAlbumsContainer.querySelectorAll('.card').forEach((card) => {
+                        card.addEventListener('click', () => handleAlbumClick(card.dataset.name, card.dataset.artist));
+                        card.addEventListener('contextmenu', (e) => {
+                            e.preventDefault();
+                            return false;
+                        });
                     });
-                });
 
-                for (const album of albums) {
-                    if (album._needsCover) {
-                        fetchFallbackAlbumCover(album.name, album._artistName, album._imgId);
+                    for (const album of albums) {
+                        if (album._needsCover) {
+                            await fetchFallbackAlbumCover(album.name, album._artistName, album._imgId);
+                        }
                     }
                 }
-            }
-        });
+            })
+            .catch(console.error);
 
-        fetchLastFmTopTracks(profile.lastfm_username).then(async (tracks) => {
-            if (tracks.length > 0 && topTracksSection && topTracksContainer) {
-                topTracksSection.style.display = 'block';
-                topTracksContainer.innerHTML = tracks
-                    .map((track, index) => {
-                        let image = getLastFmImage(track.image);
-                        const hasImage = !!image;
-                        if (!image) image = '/assets/appicon.png';
+        fetchLastFmTopTracks(profile.lastfm_username)
+            .then(async (tracks) => {
+                if (tracks.length > 0 && topTracksSection && topTracksContainer) {
+                    topTracksSection.style.display = 'block';
+                    topTracksContainer.innerHTML = tracks
+                        .map((track, index) => {
+                            let image = getLastFmImage(track.image);
+                            const hasImage = !!image;
+                            if (!image) image = '/assets/appicon.png';
 
-                        const imgId = `top-track-img-${index}`;
-                        track._imgId = imgId;
-                        track._needsCover = !hasImage;
+                            const imgId = `top-track-img-${index}`;
+                            track._imgId = imgId;
+                            track._needsCover = !hasImage;
 
-                        const artistName =
-                            track.artist?.name ||
-                            track.artist?.['#text'] ||
-                            (typeof track.artist === 'string' ? track.artist : 'Unknown Artist');
-                        track._artistName = artistName;
+                            const artistName =
+                                track.artist?.name ||
+                                track.artist?.['#text'] ||
+                                (typeof track.artist === 'string' ? track.artist : 'Unknown Artist');
+                            track._artistName = artistName;
 
-                        return `
+                            return `
                         <div class="track-item lastfm-track" data-title="${escapeHtml(track.name)}" data-artist="${escapeHtml(artistName)}" style="grid-template-columns: 40px 1fr auto; cursor: pointer;">
                             <img id="${imgId}" src="${image}" class="track-item-cover" style="width: 40px; height: 40px; border-radius: 4px;" loading="lazy" onerror="this.src='/assets/appicon.png'">
                             <div class="track-item-info">
@@ -423,24 +436,25 @@ export async function loadProfile(username) {
                             <div class="track-item-duration" style="font-size: 0.8rem; min-width: auto;">${parseInt(track.playcount).toLocaleString()} plays</div>
                         </div>
                     `;
-                    })
-                    .join('');
+                        })
+                        .join('');
 
-                topTracksContainer.querySelectorAll('.track-item').forEach((item) => {
-                    item.addEventListener('click', () => handleTrackClick(item.dataset.title, item.dataset.artist));
-                    item.addEventListener('contextmenu', (e) => {
-                        e.preventDefault();
-                        return false;
+                    topTracksContainer.querySelectorAll('.track-item').forEach((item) => {
+                        item.addEventListener('click', () => handleTrackClick(item.dataset.title, item.dataset.artist));
+                        item.addEventListener('contextmenu', (e) => {
+                            e.preventDefault();
+                            return false;
+                        });
                     });
-                });
 
-                for (const track of tracks) {
-                    if (track._needsCover) {
-                        fetchFallbackCover(track.name, track._artistName, track._imgId);
+                    for (const track of tracks) {
+                        if (track._needsCover) {
+                            await fetchFallbackCover(track.name, track._artistName, track._imgId);
+                        }
                     }
                 }
-            }
-        });
+            })
+            .catch(console.error);
     }
 
     const currentUser = await syncManager.getUserData();
@@ -481,8 +495,8 @@ export async function loadProfile(username) {
     }
 }
 
-export function openEditProfile() {
-    syncManager.getUserData().then((data) => {
+export async function openEditProfile() {
+    await syncManager.getUserData().then((data) => {
         if (!data || !data.profile) return;
         const p = data.profile;
 
@@ -564,7 +578,7 @@ async function saveProfile() {
     try {
         await syncManager.updateProfile(data);
         editProfileModal.classList.remove('active');
-        loadProfile(newUsername);
+        await loadProfile(newUsername);
 
         if (window.location.pathname.includes('/user/@')) {
             window.history.replaceState(null, '', `/user/@${newUsername}`);
@@ -587,7 +601,7 @@ viewMyProfileBtn.addEventListener('click', async () => {
     if (data && data.profile && data.profile.username) {
         navigate(`/user/@${data.profile.username}`);
     } else {
-        openEditProfile();
+        await openEditProfile();
     }
 });
 
@@ -826,9 +840,9 @@ async function handleTrackClick(title, artist) {
         const results = await api.searchTracks(query, { limit: 1 });
         if (results.items.length > 0) {
             const track = results.items[0];
-            if (window.monochromePlayer) {
-                window.monochromePlayer.setQueue([track], 0);
-                window.monochromePlayer.playTrackFromQueue();
+            if (Player.instance) {
+                Player.instance.setQueue([track], 0);
+                Player.instance.playTrackFromQueue();
             }
         } else {
             alert('Track not found');

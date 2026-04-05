@@ -5,16 +5,12 @@ import {
     delay,
     isTrackUnavailable,
     getExtensionFromBlob,
-    getTrackTitle,
-    getFullArtistString,
     getTrackDiscNumber,
-    getMimeType,
 } from './utils.js';
-import { trackDateSettings } from './storage.js';
+import { preferDolbyAtmosSettings, trackDateSettings } from './storage.js';
 import { APICache } from './cache.js';
 import { DashDownloader } from './dash-downloader.ts';
 import { HlsDownloader } from './hls-downloader.js';
-import { MP3EncodingError } from './mp3-encoder.js';
 import { loadFfmpeg, FfmpegError, ffmpeg } from './ffmpeg.js';
 import { triggerDownload, applyAudioPostProcessing } from './download-utils.ts';
 import { isCustomFormat } from './ffmpegFormats.ts';
@@ -22,11 +18,21 @@ import { DownloadProgress } from './progressEvents.js';
 import { resolveDownloadTotalBytes } from './downloadProgressUtils.js';
 import { readableStreamIterator } from './readableStreamIterator.js';
 import { HiFiClient, TidalResponse } from './HiFi.ts';
+import { isIos, isSafari } from './platform-detection.js';
+import {
+    TrackAlbum,
+    EnrichedAlbum,
+    EnrichedTrack,
+    ReplayGain,
+    PlaybackInfo,
+    Track,
+    Album,
+    PreparedVideo,
+    PreparedTrack,
+} from './container-classes.js';
 
 export const DASH_MANIFEST_UNAVAILABLE_CODE = 'DASH_MANIFEST_UNAVAILABLE';
 export { resolveDownloadTotalBytes };
-const TIDAL_V2_TOKEN = 'txNoH4kkV41MfH25';
-const client = new HiFiClient();
 
 export class LosslessAPI {
     constructor(settings) {
@@ -38,8 +44,8 @@ export class LosslessAPI {
         this.streamCache = new Map();
 
         setInterval(
-            () => {
-                this.cache.clearExpired();
+            async () => {
+                await this.cache.clearExpired();
                 this.pruneStreamCache();
             },
             1000 * 60 * 5
@@ -56,7 +62,14 @@ export class LosslessAPI {
 
     async fetchWithRetry(relativePath, options = {}) {
         const type = options.type || 'api';
-        const instanceRoutes = ['/track', '/album/similar', '/artist/similar', '/video', '/recommendations'];
+        const instanceRoutes = [
+            '/track',
+            '/album/similar',
+            '/artist/similar',
+            '/video',
+            '/recommendations',
+            '/trackManifests',
+        ];
 
         if (window.allTidal == true || !instanceRoutes.some((route) => relativePath.startsWith(route))) {
             try {
@@ -64,7 +77,7 @@ export class LosslessAPI {
                     console.log(relativePath);
                 }
 
-                return await client.queryResponse(relativePath);
+                return await HiFiClient.instance.query(relativePath);
             } catch (err) {
                 console.warn(
                     `Direct fetch failed for ${relativePath}. Falling back to configured API instances...`,
@@ -199,7 +212,11 @@ export class LosslessAPI {
 
         if (track.type && typeof track.type === 'string') {
             const lowType = track.type.toLowerCase();
-            if (lowType === 'video' || lowType === 'track') {
+            if (lowType.includes('video')) {
+                normalized = { ...track, type: 'video' };
+            } else if (lowType.includes('track')) {
+                normalized = { ...track, type: 'track' };
+            } else {
                 normalized = { ...track, type: lowType };
             }
         }
@@ -215,7 +232,7 @@ export class LosslessAPI {
 
         normalized.isUnavailable = isTrackUnavailable(normalized);
 
-        return normalized;
+        return normalized.type == 'video' ? new PreparedVideo(normalized) : new PreparedTrack(normalized);
     }
 
     prepareAlbum(album) {
@@ -422,6 +439,75 @@ export class LosslessAPI {
         return Array.from(unique.values());
     }
 
+    async search(query, options = {}) {
+        const cached = await this.cache.get('search_all', query);
+        if (cached) return cached;
+
+        try {
+            const response = await this.fetchWithRetry(`/search/?q=${encodeURIComponent(query)}`, options);
+            const data = await response.json();
+
+            // Check if backend returned an error or if this looks like individual fallback
+            if (data.error || (!data.tracks && !data.artists && !data.albums && (!data.data || !data.data.tracks))) {
+                throw new Error('Fallback to individual searches');
+            }
+
+            const extractSection = (key) => this.normalizeSearchResponse(data, key);
+
+            const tracksData = extractSection('tracks');
+            const artistsData = extractSection('artists');
+            const albumsData = extractSection('albums');
+            const playlistsData = extractSection('playlists');
+            const videosData = extractSection('videos');
+
+            const results = {
+                tracks: {
+                    ...tracksData,
+                    items: tracksData.items.map((t) => this.prepareTrack(t)),
+                },
+                artists: {
+                    ...artistsData,
+                    items: artistsData.items.map((a) => this.prepareArtist(a)),
+                },
+                albums: {
+                    ...albumsData,
+                    items: albumsData.items.map((a) => this.prepareAlbum(a)),
+                },
+                playlists: playlistsData
+                    ? {
+                          ...playlistsData,
+                          items: playlistsData.items.map((p) => this.preparePlaylist(p)),
+                      }
+                    : { items: [], limit: 0, offset: 0, totalNumberOfItems: 0 },
+                videos: {
+                    ...videosData,
+                    items: videosData.items.map((v) => this.prepareTrack(v)),
+                },
+            };
+
+            await this.cache.set('search_all', query, results);
+
+            return results;
+        } catch (_error) {
+            // Fallback to individual searches if the backend proxy doesn't support ?q= or throws
+            const [tracks, videos, artists, albums, playlists] = await Promise.all([
+                this.searchTracks(query, options).catch(() => ({ items: [] })),
+                this.searchVideos(query, options).catch(() => ({ items: [] })),
+                this.searchArtists(query, options).catch(() => ({ items: [] })),
+                this.searchAlbums(query, options).catch(() => ({ items: [] })),
+                this.searchPlaylists(query, options).catch(() => ({ items: [] })),
+            ]);
+
+            return {
+                tracks,
+                videos,
+                artists,
+                albums,
+                playlists,
+            };
+        }
+    }
+
     async searchTracks(query, options = {}) {
         const cached = await this.cache.get('search_tracks', query);
         if (cached) return cached;
@@ -554,7 +640,6 @@ export class LosslessAPI {
 
         const response = await this.fetchWithRetry(`/video/?id=${id}`, {
             type: 'streaming',
-            allowedDomains: ['api.monochrome.tf', 'arran.monochrome.tf'],
         });
         const jsonResponse = await response.json();
 
@@ -695,6 +780,16 @@ export class LosslessAPI {
             });
         }
 
+        tracks = tracks.map((t) => {
+            if (t.album) {
+                t.album = new TrackAlbum(t.album);
+            }
+
+            return new Track(t);
+        });
+
+        album = new Album(album);
+
         const result = { album, tracks };
 
         if (!(response instanceof TidalResponse)) {
@@ -807,6 +902,14 @@ export class LosslessAPI {
         // Removed to reduce API load. Playlists can be very large.
         // tracks = await this.enrichTracksWithAlbumDates(tracks);
 
+        tracks = tracks.map((t) => {
+            if (t.album) {
+                t.album = new TrackAlbum(t.album);
+            }
+
+            return new Track(t);
+        });
+
         const result = { playlist, tracks };
 
         if (!(response instanceof TidalResponse)) {
@@ -834,6 +937,14 @@ export class LosslessAPI {
         // Enrich tracks with album release dates
         // Limited to reduce API load
         tracks = await this.enrichTracksWithAlbumDates(tracks, 10);
+
+        tracks = tracks.map((t) => {
+            if (t.album) {
+                t.album = new TrackAlbum(t.album);
+            }
+
+            return new Track(t);
+        });
 
         const mix = {
             id: mixData.id,
@@ -937,7 +1048,7 @@ export class LosslessAPI {
 
         const isTrack = (v) => v?.id && v.duration;
         const isAlbum = (v) => v?.id && 'numberOfTracks' in v;
-        const isVideo = (v) => v?.id && v.type === 'VIDEO';
+        const isVideo = (v) => v?.id && !!v.type?.toLowerCase().includes('video');
 
         const scan = (value, visited) => {
             if (!value || typeof value !== 'object' || visited.has(value)) return;
@@ -1010,6 +1121,89 @@ export class LosslessAPI {
         return result;
     }
 
+    async getArtistTopTracks(artistId, options = {}) {
+        const offset = options.offset || 0;
+        const limit = options.limit || 15;
+        console.log('[getArtistTopTracks] Called:', { artistId, offset, limit, options });
+
+        const cacheKey = `artist_tracks_${artistId}_${offset}_${limit}`;
+        if (!options.skipCache) {
+            const cached = await this.cache.get('artist', cacheKey);
+            if (cached) return cached;
+        }
+
+        try {
+            // Use f parameter with skip_tracks=true to get toptracks from the dedicated endpoint
+            const response = await this.fetchWithRetry(
+                `/artist/?f=${artistId}&skip_tracks=true&offset=${offset}&limit=${limit}`
+            );
+            const jsonData = await response.json();
+
+            let data = jsonData.data || jsonData;
+            console.log(
+                '[getArtistTopTracks] Raw response data keys:',
+                Object.keys(data),
+                'tracks:',
+                data.tracks?.length
+            );
+
+            // Extract tracks from the response
+            let tracks = [];
+
+            // Check for tracks array directly (from toptracks endpoint)
+            if (Array.isArray(data.tracks)) {
+                tracks = data.tracks;
+            }
+
+            // Also scan for tracks in the data structure
+            if (tracks.length === 0) {
+                const trackMap = new Map();
+                const isTrack = (v) => v?.id && v.duration;
+
+                const scan = (value, visited) => {
+                    if (!value || typeof value !== 'object' || visited.has(value)) return;
+                    visited.add(value);
+
+                    if (Array.isArray(value)) {
+                        value.forEach((item) => scan(item, visited));
+                        return;
+                    }
+
+                    const item = value.item || value;
+                    if (isTrack(item)) {
+                        trackMap.set(item.id, this.prepareTrack(item));
+                    }
+
+                    Object.values(value).forEach((nested) => scan(nested, visited));
+                };
+
+                const visited = new Set();
+                scan(data, visited);
+                tracks = Array.from(trackMap.values());
+            }
+
+            tracks = tracks.map((t) => this.prepareTrack(t)).sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+            tracks = await this.enrichTracksWithAlbumDates(tracks);
+
+            // Safeguard: If API ignores offset, it returns the same first tracks
+            const hasMore = tracks.length === limit && (offset === 0 || tracks[0]?.id !== options.firstTrackId);
+            const result = {
+                tracks,
+                offset,
+                limit,
+                hasMore,
+            };
+
+            if (!(response instanceof TidalResponse)) {
+                await this.cache.set('artist', cacheKey, result);
+            }
+            return result;
+        } catch (e) {
+            console.warn('Failed to fetch artist top tracks:', e);
+            return { tracks: [], offset, limit, hasMore: false };
+        }
+    }
+
     async getSimilarArtists(artistId) {
         const cached = await this.cache.get('similar_artists', artistId);
         if (cached) return cached;
@@ -1042,15 +1236,10 @@ export class LosslessAPI {
         if (cached) return cached;
 
         try {
-            const url = `https://api.tidal.com/v1/artists/${artistId}/bio?locale=en_US&countryCode=GB`;
-            const response = await fetch(url, {
-                headers: {
-                    'X-Tidal-Token': TIDAL_V2_TOKEN,
-                },
-            });
+            const response = await HiFiClient.instance.query(`/artist/bio/?id=${artistId}`);
 
             if (response.ok) {
-                const data = await response.json();
+                const { data } = await response.json();
                 if (data && data.text) {
                     const bio = {
                         text: data.text,
@@ -1227,9 +1416,7 @@ export class LosslessAPI {
 
         if (found) {
             track = this.prepareTrack(found.item || found);
-            if (!(response instanceof TidalResponse)) {
-                await this.cache.set('track', cacheKey, track);
-            }
+            await this.cache.set('track', cacheKey, track);
             return track;
         }
 
@@ -1276,29 +1463,126 @@ export class LosslessAPI {
         return result;
     }
 
-    async getStreamUrl(id, quality = 'HI_RES_LOSSLESS') {
-        const cacheKey = `stream_${id}_${quality}`;
+    async getStreamUrl(id, quality = 'HI_RES_LOSSLESS', download = false) {
+        const cacheKey = `stream_info_${id}_${quality}`;
 
         if (this.streamCache.has(cacheKey)) {
             return this.streamCache.get(cacheKey);
         }
 
-        const lookup = await this.getTrack(id, quality);
-
         let streamUrl;
-        if (lookup.originalTrackUrl) {
-            streamUrl = lookup.originalTrackUrl;
-        } else {
-            streamUrl = this.extractStreamUrlFromManifest(lookup.info.manifest);
-            if (!streamUrl) {
-                throw new Error('Could not resolve stream URL');
+        let manifestRgInfo = null;
+        let isUsingManifestEndpoint = false;
+
+        try {
+            const manifestType = isIos || isSafari ? 'HLS' : 'MPEG_DASH';
+            const isApple = isIos || isSafari;
+
+            let canPlayAtmos = false;
+            try {
+                if (window.MediaSource && typeof window.MediaSource.isTypeSupported === 'function') {
+                    canPlayAtmos =
+                        MediaSource.isTypeSupported('audio/mp4; codecs="ec-3"') ||
+                        MediaSource.isTypeSupported('audio/mp4; codecs="eac3"');
+                }
+                if (!canPlayAtmos && typeof document !== 'undefined') {
+                    const a = document.createElement('audio');
+                    canPlayAtmos = !!(
+                        a.canPlayType('audio/mp4; codecs="ec-3"') || a.canPlayType('audio/mp4; codecs="eac3"')
+                    );
+                }
+            } catch {
+                // Atmos codec probe - intentionally swallowed; canPlayAtmos stays false
+            }
+
+            const paramsArray = [];
+
+            if (quality === 'LOW') {
+                paramsArray.push(['formats', 'HEAACV1']);
+            } else if (quality === 'HIGH') {
+                if (!isApple) paramsArray.push(['formats', 'HEAACV1']);
+                paramsArray.push(['formats', 'AACLC']);
+            } else if (quality === 'LOSSLESS') {
+                // For Safari to not auto-downgrade to AAC, only request FLAC
+                paramsArray.push(['formats', 'HEAACV1']);
+                paramsArray.push(['formats', 'AACLC']);
+                paramsArray.push(['formats', 'FLAC']);
+            } else if (quality === 'HI_RES_LOSSLESS') {
+                paramsArray.push(['formats', 'HEAACV1']);
+                paramsArray.push(['formats', 'AACLC']);
+                paramsArray.push(['formats', 'FLAC_HIRES']);
+                paramsArray.push(['formats', 'FLAC']);
+            } else if (quality === 'DOLBY_ATMOS' && (canPlayAtmos || download)) {
+                paramsArray.push(['formats', 'EAC3_JOC']);
+            } else {
+                // Default fallback or "auto" behavior
+                paramsArray.push(['formats', 'HEAACV1']);
+                paramsArray.push(['formats', 'AACLC']);
+                paramsArray.push(['formats', 'FLAC']);
+                paramsArray.push(['formats', 'FLAC_HIRES']);
+                if (canPlayAtmos || download) {
+                    paramsArray.push(['formats', 'EAC3_JOC']);
+                }
+            }
+
+            paramsArray.push(
+                ['adaptive', 'true'],
+                ['manifestType', manifestType],
+                ['uriScheme', 'HTTPS'],
+                ['usage', 'PLAYBACK']
+            );
+
+            const params = new URLSearchParams(paramsArray);
+
+            const response = await this.fetchWithRetry(`/trackManifests/?id=${id}&${params.toString()}`, {
+                type: 'streaming',
+                minVersion: '2.7',
+            });
+            const jsonResponse = await response.json();
+            const url = jsonResponse?.data?.data?.attributes?.uri;
+            if (url) {
+                streamUrl = url;
+                manifestRgInfo = {
+                    trackReplayGain: jsonResponse?.data?.data?.attributes?.trackAudioNormalizationData?.replayGain,
+                    trackPeakAmplitude:
+                        jsonResponse?.data?.data?.attributes?.trackAudioNormalizationData?.peakAmplitude,
+                    albumReplayGain: jsonResponse?.data?.data?.attributes?.albumAudioNormalizationData?.replayGain,
+                    albumPeakAmplitude:
+                        jsonResponse?.data?.data?.attributes?.albumAudioNormalizationData?.peakAmplitude,
+                };
+                isUsingManifestEndpoint = true;
+            } else {
+                throw new Error('No URI in trackManifests response');
+            }
+        } catch (_err) {
+            // Fallback to /track endpoint
+        }
+
+        if (!isUsingManifestEndpoint) {
+            const lookup = await this.getTrack(id, quality);
+
+            if (lookup.originalTrackUrl) {
+                streamUrl = lookup.originalTrackUrl;
+            } else {
+                streamUrl = this.extractStreamUrlFromManifest(lookup.info.manifest);
+                if (!streamUrl) {
+                    throw new Error('Could not resolve stream URL');
+                }
+            }
+            if (lookup.info) {
+                manifestRgInfo = {
+                    trackReplayGain: lookup.info.trackReplayGain || lookup.info.replayGain,
+                    trackPeakAmplitude: lookup.info.trackPeakAmplitude || lookup.info.peakAmplitude,
+                    albumReplayGain: lookup.info.albumReplayGain,
+                    albumPeakAmplitude: lookup.info.albumPeakAmplitude,
+                };
             }
         }
 
-        if (!(lookup instanceof TidalResponse)) {
-            this.streamCache.set(cacheKey, streamUrl);
-        }
-        return streamUrl;
+        const result = { url: streamUrl, rgInfo: manifestRgInfo };
+        this.streamCache.set(cacheKey, result);
+
+        return result;
     }
 
     async getVideoStreamUrl(id) {
@@ -1348,6 +1632,78 @@ export class LosslessAPI {
         return streamUrl;
     }
 
+    async enrichTrack(input, { downloadQuality = 'HI_RES_LOSSLESS' }) {
+        if (downloadQuality == 'DOLBY_ATMOS' && !input?.audioModes?.includes('DOLBY_ATMOS')) {
+            downloadQuality = 'LOSSLESS';
+        }
+
+        const id = input?.id || input;
+        const track = typeof input === 'object' ? input : await this.getTrack(id, downloadQuality);
+        const isVideo = track?.type?.toLowerCase().includes('video');
+        downloadQuality = isCustomFormat(downloadQuality) ? 'LOSSLESS' : downloadQuality;
+
+        let lookup;
+        if (isVideo) {
+            lookup = await this.getVideo(id);
+        } else {
+            lookup = new PlaybackInfo(await this.getTrack(id, downloadQuality));
+        }
+
+        if (input instanceof EnrichedTrack) {
+            return {
+                lookup,
+                enrichedTrack: input,
+                isVideo,
+            };
+        }
+
+        const enrichedTrack = { ...this.prepareTrack(track) };
+        if (lookup.info) {
+            enrichedTrack.replayGain = new ReplayGain({
+                trackReplayGain: lookup.info.trackReplayGain,
+                trackPeakAmplitude: lookup.info.trackPeakAmplitude,
+                albumReplayGain: lookup.info.albumReplayGain,
+                albumPeakAmplitude: lookup.info.albumPeakAmplitude,
+            });
+        }
+
+        if (track.album?.id && (track.album?.totalDiscs == null || track.album?.numberOfTracksOnDisc == null)) {
+            try {
+                const albumData = await this.getAlbum(track.album.id);
+                enrichedTrack.album = new EnrichedAlbum({
+                    ...albumData.album,
+                    ...enrichedTrack.album,
+                });
+
+                if (albumData.tracks?.length > 0) {
+                    const discTrackCounts = new Map();
+                    let maxDiscNumber = 0;
+                    for (const t of albumData.tracks) {
+                        const dn = getTrackDiscNumber(t);
+                        discTrackCounts.set(dn, (discTrackCounts.get(dn) || 0) + 1);
+                        if (dn > maxDiscNumber) maxDiscNumber = dn;
+                    }
+                    const totalDiscs = maxDiscNumber || 1;
+                    const discNumber = getTrackDiscNumber(track);
+                    enrichedTrack.album = new EnrichedAlbum({
+                        ...(enrichedTrack.album || {}),
+
+                        totalDiscs: track.album?.totalDiscs ?? totalDiscs,
+                        numberOfTracksOnDisc: track.album?.numberOfTracksOnDisc ?? discTrackCounts.get(discNumber),
+                    });
+                }
+            } catch (e) {
+                console.warn('Failed to fetch album for disc info:', e);
+            }
+        }
+
+        if (!(enrichedTrack.album instanceof EnrichedAlbum)) {
+            enrichedTrack.album = new TrackAlbum(enrichedTrack.album);
+        }
+
+        return { lookup, enrichedTrack: new EnrichedTrack(enrichedTrack), isVideo };
+    }
+
     /**
      * Downloads a track or video from TIDAL in the specified quality.
      *
@@ -1371,7 +1727,7 @@ export class LosslessAPI {
      *
      * @throws {Error} If stream URL cannot be resolved, manifest is missing, or download fails
      * @throws {AbortError} If the download is aborted via the signal
-     * @throws {MP3EncodingError|FfmpegError} If audio transcoding fails
+     * @throws {FfmpegError} If audio transcoding fails
      */
     async downloadTrack(id, quality = 'HI_RES_LOSSLESS', filename, options = {}) {
         // Load ffmpeg in the background.
@@ -1381,19 +1737,14 @@ export class LosslessAPI {
 
         const { onProgress, track, calculateDashBytes = true } = options;
         const prefetchPromises = prefetchMetadataObjects(track, this);
-        const isVideo = track?.type === 'video';
 
         try {
             // Custom FFMPEG formats are not native TIDAL qualities; download LOSSLESS and transcode
-            const downloadQuality = isCustomFormat(quality) ? 'LOSSLESS' : quality;
+            let downloadQuality = isCustomFormat(quality) ? 'LOSSLESS' : quality;
 
-            let lookup;
-            if (isVideo) {
-                lookup = await this.getVideo(id);
-            } else {
-                lookup = await this.getTrack(id, downloadQuality);
-            }
+            const { lookup, enrichedTrack, isVideo } = await this.enrichTrack(track, { downloadQuality });
 
+            let postProcessingQuality = lookup.info?.audioQuality ?? null;
             let streamUrl;
             let blob;
 
@@ -1420,9 +1771,26 @@ export class LosslessAPI {
                     throw new Error('Could not resolve manifest');
                 }
 
-                streamUrl = this.extractStreamUrlFromManifest(manifest);
+                if (preferDolbyAtmosSettings.isEnabled() && track.audioModes?.includes('DOLBY_ATMOS')) {
+                    try {
+                        const stream = await this.getStreamUrl(id, 'DOLBY_ATMOS', true);
+                        const manifest = await fetch(stream.url, { signal: options.signal });
+                        const manifestText = await manifest.text();
+                        streamUrl = this.extractStreamUrlFromManifest(btoa(manifestText));
+
+                        if (streamUrl) {
+                            postProcessingQuality = 'DOLBY_ATMOS';
+                        }
+                    } catch (err) {
+                        console.error('Failed to extract Dolby Atmos stream URL:', err);
+                    }
+                }
+
                 if (!streamUrl) {
-                    throw new Error('Could not resolve stream URL');
+                    streamUrl = this.extractStreamUrlFromManifest(manifest);
+                    if (!streamUrl) {
+                        throw new Error('Could not resolve stream URL');
+                    }
                 }
             }
 
@@ -1508,13 +1876,7 @@ export class LosslessAPI {
             }
 
             if (!isVideo) {
-                blob = await applyAudioPostProcessing(
-                    blob,
-                    quality,
-                    onProgress,
-                    options.signal,
-                    track?.audioQuality ?? null
-                );
+                blob = await applyAudioPostProcessing(blob, quality, onProgress, options.signal, postProcessingQuality);
             }
 
             // Add metadata if track information is provided
@@ -1524,46 +1886,19 @@ export class LosslessAPI {
                     message: 'Adding metadata...',
                 });
 
-                const enrichedTrack = { ...track };
-                if (lookup.info) {
-                    enrichedTrack.replayGain = {
-                        trackReplayGain: lookup.info.trackReplayGain,
-                        trackPeakAmplitude: lookup.info.trackPeakAmplitude,
-                        albumReplayGain: lookup.info.albumReplayGain,
-                        albumPeakAmplitude: lookup.info.albumPeakAmplitude,
-                    };
-                }
-
-                if (track.album?.id && (track.album?.totalDiscs == null || track.album?.numberOfTracksOnDisc == null)) {
-                    try {
-                        const albumData = await this.getAlbum(track.album.id);
-                        if (albumData.tracks?.length > 0) {
-                            const discTrackCounts = new Map();
-                            let maxDiscNumber = 0;
-                            for (const t of albumData.tracks) {
-                                const dn = getTrackDiscNumber(t);
-                                discTrackCounts.set(dn, (discTrackCounts.get(dn) || 0) + 1);
-                                if (dn > maxDiscNumber) maxDiscNumber = dn;
-                            }
-                            const totalDiscs = maxDiscNumber || 1;
-                            const discNumber = getTrackDiscNumber(track);
-                            enrichedTrack.album = {
-                                ...(enrichedTrack.album || {}),
-                                totalDiscs: track.album?.totalDiscs ?? totalDiscs,
-                                numberOfTracksOnDisc:
-                                    track.album?.numberOfTracksOnDisc ?? discTrackCounts.get(discNumber),
-                            };
-                        }
-                    } catch (e) {
-                        console.warn('Failed to fetch album for disc info:', e);
-                    }
-                }
-
                 onProgress?.(new DownloadProgress('Adding metadata'));
                 try {
                     if (isVideo) {
                         blob = new File(
-                            [await ffmpeg(blob, ['-c', 'copy'], 'output.mp4', 'video/mp4', onProgress, options.signal)],
+                            [
+                                await ffmpeg(blob, {
+                                    args: ['-c', 'copy'],
+                                    outputName: 'output.mp4',
+                                    outputMime: 'video/mp4',
+                                    onProgress,
+                                    signal: options.signal,
+                                }),
+                            ],
                             'output.mp4',
                             { type: 'video/mp4' }
                         );
@@ -1594,11 +1929,7 @@ export class LosslessAPI {
                 throw error;
             }
             console.error('Download failed:', error);
-            if (
-                error instanceof MP3EncodingError ||
-                error instanceof FfmpegError ||
-                error.code === 'MP3_ENCODING_FAILED'
-            ) {
+            if (error instanceof FfmpegError || error.code === 'MP3_ENCODING_FAILED') {
                 throw error;
             }
             if (error.message === RATE_LIMIT_ERROR_MESSAGE) {

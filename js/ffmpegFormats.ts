@@ -151,7 +151,7 @@ if (import.meta.env.DEV) {
 export const containerFormats: Record<string, ContainerFormat> = {
     flac: {
         displayName: 'FLAC',
-        ffmpegArgs: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'flac'],
+        ffmpegArgs: ['-vn', '-map_metadata', '-1', '-map', '0:a', '-c:a', 'copy'],
         outputFilename: 'output.flac',
         outputMime: 'audio/flac',
         extension: 'flac',
@@ -183,6 +183,11 @@ export function getContainerFormat(internalName: string): ContainerFormat | unde
     return containerFormats[internalName];
 }
 
+export interface ExtraFile {
+    name: string;
+    data: ArrayBuffer | Uint8Array;
+}
+
 /**
  * Transcodes an audio blob using the specified custom format via ffmpeg.
  * Throws if ffmpeg fails during transcoding.
@@ -192,17 +197,16 @@ export async function transcodeWithCustomFormat(
     format: CustomFormat,
     onProgress: ((progress: ProgressEvent) => void) | null = null,
     signal: AbortSignal | null = null,
-    extraFiles: any[] = []
+    extraFiles: ExtraFile[] = []
 ): Promise<Blob> {
-    return ffmpeg(
-        audioBlob,
-        format.ffmpegArgs,
-        format.outputFilename,
-        format.outputMime,
+    return ffmpeg(audioBlob, {
+        args: format.ffmpegArgs,
+        outputName: format.outputFilename,
+        outputMime: format.outputMime,
         onProgress,
         signal,
-        extraFiles
-    );
+        extraFiles,
+    });
 }
 
 /**
@@ -214,15 +218,14 @@ export async function transcodeWithContainerFormat(
     format: ContainerFormat,
     onProgress: ((progress: ProgressEvent) => void) | null = null,
     signal: AbortSignal | null = null,
-    extraFiles: any[] = []
+    extraFiles: ExtraFile[] = []
 ): Promise<Blob> {
-    return ffmpeg(
-        audioBlob,
-        format.ffmpegArgs,
-        format.outputFilename,
-        format.outputMime,
+    return ffmpeg(audioBlob, {
+        args: format.ffmpegArgs,
+        outputName: format.outputFilename,
+        outputMime: format.outputMime,
         onProgress,
         signal,
-        extraFiles
-    );
+        extraFiles,
+    });
 }

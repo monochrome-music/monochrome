@@ -74,6 +74,7 @@
 - Recently Played tracking for easy history access
 - Comprehensive Personal Library for favorites
 - Queue management with shuffle and repeat modes
+- Native Podcast support & organization
 - Playlist import from other platforms
 - Public playlists for social sharing
 - Smart recommendations for new songs, albums & artists
@@ -90,7 +91,9 @@
 
 - Account system for cross-device syncing
 - Customizable & Public Profiles
+- Real-time Listening Parties for synced playback with friends
 - Last.fm and ListenBrainz integration for scrobbling
+- OAuth support (Google, Discord, GitHub, Spotify)
 - Unreleased music from [ArtistGrid](https://artistgrid.cx)
 - Dynamic Discord Embeds
 - Artist Biography + Social Links for learning more about your favorite artists
@@ -109,7 +112,6 @@
 Our Recommended way to use monochrome is through our official instance:
 
 **[monochrome.tf](https://monochrome.tf)** / **[monochrome.samidy.com](https://monochrome.samidy.com)**
-
 
 For alternative instances, check [INSTANCES.md](INSTANCES.md).
 
@@ -282,4 +284,3 @@ We welcome contributions from the community! Please see our [Contributing Guide]
    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=monochrome-music/monochrome&type=date&logscale&legend=top-left" />
  </picture>
 </a>
-

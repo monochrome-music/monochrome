@@ -1,5 +1,6 @@
 //js/utils.js
 import { modernSettings } from './ModernSettings.js';
+import { SVG_ATMOS } from './icons.js';
 import { qualityBadgeSettings, coverArtSizeSettings, trackDateSettings } from './storage.js';
 
 export const QUALITY = 'HI_RES_LOSSLESS';
@@ -11,15 +12,17 @@ export const REPEAT_MODE = {
 };
 
 export const AUDIO_QUALITIES = {
+    DOLBY_ATMOS: 'DOLBY_ATMOS',
     HI_RES_LOSSLESS: 'HI_RES_LOSSLESS',
     LOSSLESS: 'LOSSLESS',
     HIGH: 'HIGH',
     LOW: 'LOW',
 };
 
-export const QUALITY_PRIORITY = ['HI_RES_LOSSLESS', 'LOSSLESS', 'HIGH', 'LOW'];
+export const QUALITY_PRIORITY = ['DOLBY_ATMOS', 'HI_RES_LOSSLESS', 'LOSSLESS', 'HIGH', 'LOW'];
 
 export const QUALITY_TOKENS = {
+    DOLBY_ATMOS: ['DOLBY_ATMOS', 'ATMOS'],
     HI_RES_LOSSLESS: [
         'HI_RES_LOSSLESS',
         'HIRES_LOSSLESS',
@@ -41,8 +44,12 @@ export const RATE_LIMIT_ERROR_MESSAGE = 'Too Many Requests. Please wait a moment
 
 export const formatTime = (seconds) => {
     if (isNaN(seconds)) return '0:00';
-    const m = Math.floor(seconds / 60);
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
     const s = Math.floor(seconds % 60);
+    if (h > 0) {
+        return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
     return `${m}:${String(s).padStart(2, '0')}`;
 };
 
@@ -236,6 +243,7 @@ export const getExtensionForQuality = (quality) => {
     switch (quality) {
         case 'LOW':
         case 'HIGH':
+        case 'DOLBY_ATMOS':
             return 'm4a';
         default:
             return 'flac';
@@ -284,7 +292,9 @@ export const createQualityBadgeHTML = (track) => {
     if (!qualityBadgeSettings.isEnabled()) return '';
 
     const quality = deriveTrackQuality(track);
-    if (quality === 'HI_RES_LOSSLESS') {
+    if (quality === 'DOLBY_ATMOS') {
+        return `<span class="quality-badge quality-atmos" title="Dolby Atmos">${SVG_ATMOS(20)}</span>`;
+    } else if (quality === 'HI_RES_LOSSLESS') {
         return '<span class="quality-badge quality-hires" title="Hi-Res Lossless">HD</span>';
     }
     return '';
@@ -606,10 +616,10 @@ export const getShareUrl = (path) => {
 };
 
 /**
- * Builds a full artist string by combining the track's listed artists
+ * Builds a full artist array by combining the track's listed artists
  * with any featured artists parsed from the title (feat./with).
  */
-export function getFullArtistString(track) {
+export function getFullArtistArray(track) {
     const knownArtists =
         Array.isArray(track.artists) && track.artists.length > 0
             ? track.artists.map((a) => (typeof a === 'string' ? a : a.name) || '').filter(Boolean)
@@ -636,6 +646,16 @@ export function getFullArtistString(track) {
         }
     }
 
+    return knownArtists;
+}
+
+/**
+ * Builds a full artist string by combining the track's listed artists
+ * with any featured artists parsed from the title (feat./with).
+ */
+export function getFullArtistString(track) {
+    const knownArtists = getFullArtistArray(track);
+
     return knownArtists.join('; ') || null;
 }
 
@@ -644,7 +664,7 @@ export function fetchBlob(url) {
 }
 
 export async function fetchBlobURL(url) {
-    return await URL.createObjectURL(await fetchBlob(url));
+    return URL.createObjectURL(await fetchBlob(url));
 }
 
 export function getMimeType(data) {

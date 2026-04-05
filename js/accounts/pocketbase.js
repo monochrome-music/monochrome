@@ -5,7 +5,8 @@ import { authManager } from './auth.js';
 
 const PUBLIC_COLLECTION = 'public_playlists';
 const DEFAULT_POCKETBASE_URL = 'https://data.samidy.xyz';
-const POCKETBASE_URL = window.__POCKETBASE_URL__ || localStorage.getItem('monochrome-pocketbase-url') || DEFAULT_POCKETBASE_URL;
+const POCKETBASE_URL =
+    window.__POCKETBASE_URL__ || localStorage.getItem('monochrome-pocketbase-url') || DEFAULT_POCKETBASE_URL;
 
 console.log('[PocketBase] Using URL:', POCKETBASE_URL);
 
@@ -127,7 +128,7 @@ const syncManager = {
         }
     },
 
-    safeParseInternal(str, fieldName, fallback) {
+    safeParseInternal(str, _fieldName, fallback) {
         if (!str) return fallback;
         if (typeof str !== 'string') return str;
         try {
@@ -135,7 +136,7 @@ const syncManager = {
         } catch {
             try {
                 // Recovery attempt: replace illegal internal quotes in name/title fields
-                const recovered = str.replace(/(:\s*")(.+?)("(?=\s*[,}\n\r]))/g, (match, p1, p2, p3) => {
+                const recovered = str.replace(/(:\s*")(.+?)("(?=\s*[,}\n\r]))/g, (_match, p1, p2, p3) => {
                     const escapedContent = p2.replace(/(?<!\\)"/g, '\\"');
                     return p1 + escapedContent + p3;
                 });
@@ -155,6 +156,8 @@ const syncManager = {
                             (jsFriendly.trim().startsWith('[') || jsFriendly.trim().startsWith('{')) &&
                             !jsFriendly.match(/function|=>|window|document|alert|eval/)
                         ) {
+                            // TODO: maybe this could be parsed as json5?
+                            // eslint-disable-next-line @typescript-eslint/no-implied-eval
                             return new Function('return ' + jsFriendly)();
                         }
                     }
@@ -224,6 +227,10 @@ const syncManager = {
                 streamStartDate: item.streamStartDate || null,
                 version: item.version || null,
                 mixes: item.mixes || null,
+                isPodcast: item.isPodcast || (item.id && String(item.id).startsWith('podcast_')) || null,
+                enclosureUrl: item.enclosureUrl || null,
+                enclosureType: item.enclosureType || null,
+                enclosureLength: item.enclosureLength || null,
             };
         }
 
@@ -560,11 +567,6 @@ const syncManager = {
 
                 if (cloudData) {
                     let database = db;
-                    if (typeof database === 'function') {
-                        database = await database();
-                    } else {
-                        database = await database;
-                    }
 
                     const localData = {
                         tracks: (await database.getAll('favorites_tracks')) || [],

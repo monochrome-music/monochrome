@@ -1,4 +1,3 @@
-//js/player.js
 import {
     REPEAT_MODE,
     formatTime,
@@ -8,6 +7,7 @@ import {
     getTrackYearDisplay,
     createQualityBadgeHTML,
     escapeHtml,
+    deriveTrackQuality,
 } from './utils.js';
 import {
     queueManager,
@@ -18,12 +18,23 @@ import {
     radioSettings,
 } from './storage.js';
 import { audioContextManager } from './audio-context.js';
-import { isIos } from './platform-detection.js';
+import { isIos, isSafari } from './platform-detection.js';
 import { db } from './db.js';
 
-import('./dash-media-player.js');
-import { SVG_CLOCK } from './icons.js';
+import { SVG_CLOCK, SVG_ATMOS } from './icons.js';
+import { UIRenderer } from './ui.js';
+
 export class Player {
+    static #instance = null;
+
+    static get instance() {
+        if (!Player.#instance) {
+            throw new Error('Player is not initialized. Call Player.initialize(audioElement, api) first.');
+        }
+        return Player.#instance;
+    }
+
+    /** @private */
     constructor(audioElement, api, quality = 'HI_RES_LOSSLESS') {
         this.audio = audioElement;
         this.video = document.getElementById('video-player');
@@ -36,6 +47,8 @@ export class Player {
         this.shuffleActive = false;
         this.repeatMode = REPEAT_MODE.OFF;
         this.preloadCache = new Map();
+        this._pendingPreload = false;
+        setInterval(this.checkPreloadConditions.bind(this), 2000);
         this.preloadAbortController = null;
         this.currentTrack = null;
         this.currentRgValues = null;
@@ -53,6 +66,25 @@ export class Player {
         this.sleepTimer = null;
         this.sleepTimerEndTime = null;
         this.sleepTimerInterval = null;
+        // Artist popular tracks state
+        this.artistPopularTracksState = {
+            artistId: null,
+            offset: 0,
+            initialTracks: [],
+            isFetching: false,
+            hasMore: true,
+        };
+    }
+
+    static async initialize(audioElement, api, quality) {
+        if (Player.#instance) {
+            throw new Error('Player is already initialized');
+        }
+
+        const player = new Player(audioElement, api, quality);
+        await player.init();
+        Player.#instance = player;
+        return player;
     }
 
     async init() {
@@ -66,20 +98,44 @@ export class Player {
             });
         }
 
-        // Initialize dash.js player
-        const { MediaPlayer } = await import('./dash-media-player.js');
-        this.dashPlayer = MediaPlayer().create();
-        this.dashPlayer.updateSettings({
-            streaming: {
-                buffer: {
-                    fastSwitchEnabled: true,
+        // Initialize Shaka player
+        const shaka = await import('shaka-player');
+        shaka.polyfill.installAll();
+        if (shaka.Player.isBrowserSupported()) {
+            this.shakaPlayer = new shaka.Player();
+            this.shakaPlayer.configure({
+                streaming: {
+                    bufferingGoal: 30,
+                    rebufferingGoal: 2,
+                    bufferBehind: 30,
+                    jumpLargeGaps: true,
                 },
-            },
-        });
-        this.dashInitialized = false;
+                abr: {
+                    enabled: true,
+                    // Start with a low bandwidth estimate (200kbps) so it plays instantly
+                    // on slow connections and smoothly scales UP to Hi-Fi if the connection allows.
+                    defaultBandwidthEstimate: 100000,
+                    switchInterval: 1, // Check more frequently
+                    bandwidthDowngradeTarget: 0.8, // Downgrade more aggressively if bandwidth drops
+                    restrictToElementSize: false,
+                },
+                mediaSource: {
+                    codecSwitchingStrategy: 'smooth',
+                },
+            });
+            this.shakaPlayer.addEventListener('adaptation', this.updateAdaptiveQualityBadge.bind(this));
+            this.shakaPlayer.addEventListener('variantchanged', this.updateAdaptiveQualityBadge.bind(this));
+
+            this.shakaInitialized = false;
+
+            // Monitor and bridge different codec groups (e.g. AAC to FLAC) since native ABR isolates them
+            setInterval(this.evaluateCrossCodecAbr.bind(this), 3000);
+        } else {
+            console.error('Browser not supported for Shaka Player');
+        }
 
         this.loadQueueState();
-        this.setupMediaSession();
+        await this.setupMediaSession();
 
         this.radioEnabled = radioSettings.isEnabled();
         this.radioSeeds = [];
@@ -88,19 +144,19 @@ export class Player {
 
         this.playbackSequence = 0;
 
-        window.addEventListener('beforeunload', () => {
-            this.saveQueueState();
+        window.addEventListener('beforeunload', async () => {
+            await this.saveQueueState();
         });
 
         // Handle visibility change for iOS - AudioContext gets suspended when screen locks
-        document.addEventListener('visibilitychange', () => {
+        document.addEventListener('visibilitychange', async () => {
             const el = this.activeElement;
             if (document.visibilityState === 'visible' && !el.paused) {
                 // Ensure audio context is resumed when user returns to the app
                 if (!audioContextManager.isReady()) {
                     audioContextManager.init(el);
                 }
-                audioContextManager.resume();
+                await audioContextManager.resume();
             }
             if (document.visibilityState === 'visible' && this.autoplayBlocked) {
                 this.autoplayBlocked = false;
@@ -123,7 +179,9 @@ export class Player {
                             if (this.video.readyState >= 2 && (this.audio.readyState > 0 || this.audio.src)) {
                                 this.audio.currentTime = this.video.currentTime;
                             }
-                        } catch (err) {}
+                        } catch {
+                            // Video-to-audio time sync may fail if readyState is stale
+                        }
                     }
 
                     const syncedEvent = new Event(eventName, { bubbles: e.bubbles, cancelable: e.cancelable });
@@ -176,12 +234,18 @@ export class Player {
         const el = this.activeElement;
 
         // Apply to audio element and/or Web Audio graph
-        if (audioContextManager.isReady()) {
+        const isApple = isIos || isSafari;
+
+        if (audioContextManager.isReady() && !isApple) {
             // If Web Audio is active, we apply volume there for better compatibility
             // Especially on Linux where audio.volume might not affect the Web Audio graph
             el.volume = 1.0;
             audioContextManager.setVolume(effectiveVolume);
         } else {
+            // Safari bypasses WebAudio for HLS, so we MUST set el.volume directly to reflect ReplayGain
+            if (audioContextManager.isReady()) {
+                audioContextManager.setVolume(1.0); // Reset graph gain if it somehow routes
+            }
             el.volume = Math.max(0, Math.min(1, effectiveVolume));
         }
     }
@@ -190,14 +254,8 @@ export class Player {
         const speed = audioEffectsSettings.getSpeed();
         const el = this.activeElement;
 
-        if (this.dashInitialized && this.dashPlayer) {
-            if (this.dashPlayer.getPlaybackRate() !== speed) {
-                this.dashPlayer.setPlaybackRate(speed);
-            }
-        } else {
-            if (el.playbackRate !== speed) {
-                el.playbackRate = speed;
-            }
+        if (el.playbackRate !== speed) {
+            el.playbackRate = speed;
         }
 
         const preservePitch = audioEffectsSettings.isPreservePitchEnabled();
@@ -314,7 +372,7 @@ export class Player {
         }
     }
 
-    saveQueueState() {
+    async saveQueueState() {
         queueManager.saveQueue({
             queue: this.queue,
             shuffledQueue: this.shuffledQueue,
@@ -325,14 +383,14 @@ export class Player {
         });
 
         if (window.renderQueueFunction) {
-            window.renderQueueFunction();
+            await window.renderQueueFunction();
         }
     }
 
-    setupMediaSession() {
+    async setupMediaSession() {
         if (!('mediaSession' in navigator)) return;
 
-        const setHandlers = () => {
+        const setHandlers = async () => {
             navigator.mediaSession.setActionHandler('play', async () => {
                 const el = this.activeElement;
                 // Initialize and resume audio context first (required for iOS lock screen)
@@ -348,7 +406,7 @@ export class Player {
                 } catch (e) {
                     console.error('MediaSession play failed:', e);
                     // If play fails, try to handle it like a regular play/pause
-                    this.handlePlayPause();
+                    await this.handlePlayPause();
                 }
             });
 
@@ -373,7 +431,7 @@ export class Player {
                     this.applyReplayGain();
                 }
                 await audioContextManager.resume();
-                this.playNext();
+                await this.playNext();
             });
 
             if (!this.isIOS) {
@@ -409,7 +467,7 @@ export class Player {
                 this.video.addEventListener('playing', () => setHandlers(), { once: true });
             }
         } else {
-            setHandlers();
+            await setHandlers();
         }
     }
 
@@ -417,7 +475,27 @@ export class Player {
         this.quality = quality;
     }
 
-    async preloadNextTracks() {
+    preloadNextTracks() {
+        this._pendingPreload = true;
+    }
+
+    async checkPreloadConditions() {
+        if (!this._pendingPreload || !this.activeElement || this.activeElement.paused) return;
+
+        const currentTime = this.activeElement.currentTime || 0;
+        const duration = this.activeElement.duration || 0;
+        const timeRemaining = duration - currentTime;
+
+        // Preload if we are in last 30 seconds of song
+        const shouldPreload = duration > 0 && timeRemaining <= 30;
+
+        if (shouldPreload) {
+            this._pendingPreload = false;
+            void this._executePreloadNextTracks().catch(console.error);
+        }
+    }
+
+    async _executePreloadNextTracks() {
         if (this.preloadAbortController) {
             this.preloadAbortController.abort();
         }
@@ -426,7 +504,8 @@ export class Player {
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
         const tracksToPreload = [];
 
-        for (let i = 1; i <= 2; i++) {
+        // Only preload the next 1 song to prevent data waste
+        for (let i = 1; i <= 1; i++) {
             const nextIndex = this.currentQueueIndex + i;
             if (nextIndex < currentQueue.length) {
                 tracksToPreload.push({ track: currentQueue[nextIndex], index: nextIndex });
@@ -436,17 +515,96 @@ export class Player {
         for (const { track } of tracksToPreload) {
             if (this.preloadCache.has(track.id)) continue;
             const isTracker = track.isTracker || (track.id && String(track.id).startsWith('tracker-'));
-            if (track.isLocal || isTracker || (track.audioUrl && !track.isLocal)) continue;
+            const isPodcast = track.isPodcast || (track.id && String(track.id).startsWith('podcast_'));
+            if (track.isLocal || isTracker || isPodcast || (track.audioUrl && !track.isLocal)) continue;
             try {
-                const streamUrl = await this.api.getStreamUrl(track.id, this.quality);
+                const streamInfo =
+                    track.type == 'video'
+                        ? await this.api.getVideoStreamUrl(track.id)
+                        : await this.api.getStreamUrl(track.id, this.quality);
 
                 if (this.preloadAbortController.signal.aborted) break;
 
-                this.preloadCache.set(track.id, streamUrl);
-                // Warm connection/cache
-                // For Blob URLs (DASH), this head request is not needed and can cause errors.
+                // Also preload ReplayGain legacy metadata if the fast manifest endpoint failed to provide it
+                if (track.type !== 'video' && !streamInfo.rgInfo) {
+                    try {
+                        const trackData = await this.api.getTrack(track.id, this.quality);
+                        if (trackData && trackData.info) {
+                            streamInfo.rgInfoFallback = {
+                                trackReplayGain: trackData.info.trackReplayGain,
+                                trackPeakAmplitude: trackData.info.trackPeakAmplitude,
+                                albumReplayGain: trackData.info.albumReplayGain,
+                                albumPeakAmplitude: trackData.info.albumPeakAmplitude,
+                            };
+                        }
+                    } catch (_e) {} // Fail silently
+                }
+
+                this.preloadCache.set(track.id, streamInfo);
+                const streamUrl = streamInfo.url;
+
+                // Warm connection and pre-fetch
                 if (!streamUrl.startsWith('blob:')) {
-                    fetch(streamUrl, { method: 'HEAD', signal: this.preloadAbortController.signal }).catch(() => {});
+                    if (streamUrl.includes('.mpd') || streamUrl.includes('.m3u8')) {
+                        if (
+                            this.shakaInitialized &&
+                            this.shakaPlayer &&
+                            typeof this.shakaPlayer.preload === 'function'
+                        ) {
+                            try {
+                                let preloadConfig = undefined;
+                                if (typeof this.shakaPlayer.getConfiguration === 'function') {
+                                    preloadConfig = this.shakaPlayer.getConfiguration();
+                                    const stats =
+                                        typeof this.shakaPlayer.getStats === 'function'
+                                            ? this.shakaPlayer.getStats()
+                                            : null;
+                                    if (stats && stats.estimatedBandwidth) {
+                                        preloadConfig.abr.defaultBandwidthEstimate = stats.estimatedBandwidth;
+                                    }
+
+                                    // Lock the preload to the exact current audio codec to prevent ABR mismatch,
+                                    // which forces the player to discard and re-fetch chunks on slow connections.
+                                    preloadConfig.abr.enabled = false;
+                                    try {
+                                        const variants =
+                                            typeof this.shakaPlayer.getVariantTracks === 'function'
+                                                ? this.shakaPlayer.getVariantTracks()
+                                                : [];
+                                        const activeVariant = variants.find((v) => v.active);
+                                        if (activeVariant && activeVariant.audioCodec) {
+                                            preloadConfig.preferredAudioCodecs = [activeVariant.audioCodec];
+                                        }
+                                    } catch (_e) {}
+                                }
+                                const preloadManager = await this.shakaPlayer.preload(
+                                    streamUrl,
+                                    null,
+                                    null,
+                                    preloadConfig
+                                );
+                                streamInfo.preloadManager = preloadManager;
+                            } catch (_e) {
+                                // Ignore preload errors, will just load fresh
+                            }
+                        } else {
+                            fetch(streamUrl, { method: 'GET', signal: this.preloadAbortController.signal }).catch(
+                                () => {}
+                            );
+                        }
+                    } else {
+                        // For static files (FLAC, MP3), standard fetch of the first ~5MB completely primes the cache.
+                        const preloader = new Audio();
+                        preloader.preload = 'auto';
+                        preloader.muted = true;
+                        preloader.src = streamUrl;
+                        streamInfo.preloader = preloader; // Hold reference
+
+                        fetch(streamUrl, {
+                            headers: { Range: 'bytes=0-5242880' },
+                            signal: this.preloadAbortController.signal,
+                        }).catch(() => {});
+                    }
                 }
             } catch (error) {
                 if (error.name !== 'AbortError') {
@@ -480,7 +638,7 @@ export class Player {
                     video.play().catch(() => {});
                     await this.setupVideoQualitySelector();
                 });
-                this.hls.on(Hls.Events.ERROR, (event, data) => {
+                this.hls.on(Hls.Events.ERROR, (_event, data) => {
                     if (data.fatal) {
                         console.warn('HLS fatal error:', data.type);
                         if (fallbackImg) video.replaceWith(fallbackImg);
@@ -516,7 +674,7 @@ export class Player {
         const levels = this.hls.levels;
         const qualityLabels = [
             'Auto',
-            ...levels.map((level, i) => {
+            ...levels.map((level) => {
                 const height = level.height || 0;
                 const bandwidth = level.bitrate || 0;
                 if (height >= 1080) return '1080p';
@@ -583,7 +741,7 @@ export class Player {
             artist: video.artist || (video.artists && video.artists[0]) || 'Unknown Artist',
             album: video.album || { title: 'Video', cover: video.image || video.cover },
         };
-        this.setQueue([videoTrack], 0);
+        await this.setQueue([videoTrack], 0);
         await this.playTrackFromQueue();
     }
 
@@ -601,7 +759,7 @@ export class Player {
         const track = currentQueue[this.currentQueueIndex];
         if (track.isUnavailable) {
             console.warn(`Attempted to play unavailable track: ${track.title}. Skipping...`);
-            this.playNext();
+            await this.playNext();
             return;
         }
 
@@ -609,11 +767,38 @@ export class Player {
         const { contentBlockingSettings } = await import('./storage.js');
         if (contentBlockingSettings.shouldHideTrack(track)) {
             console.warn(`Attempted to play blocked track: ${track.title}. Skipping...`);
-            this.playNext();
+            await this.playNext();
             return;
         }
 
-        this.saveQueueState();
+        // Proactively fetch more artist tracks when the last track starts playing
+        console.log('[playTrackFromQueue] Check for fetch:', {
+            radioEnabled: this.radioEnabled,
+            artistId: this.artistPopularTracksState.artistId,
+            hasMore: this.artistPopularTracksState.hasMore,
+            isFetching: this.artistPopularTracksState.isFetching,
+            currentIndex: this.currentQueueIndex,
+            queueLength: currentQueue.length,
+            isLastTrack: this.currentQueueIndex >= currentQueue.length - 1,
+        });
+
+        if (
+            !this.radioEnabled &&
+            this.artistPopularTracksState.artistId &&
+            this.artistPopularTracksState.hasMore &&
+            !this.artistPopularTracksState.isFetching &&
+            this.currentQueueIndex >= currentQueue.length - 1
+        ) {
+            console.log('[playTrackFromQueue] Fetching more tracks!');
+            await this.fetchMoreArtistPopularTracks().then(async (newTracks) => {
+                console.log('[playTrackFromQueue] Got tracks:', newTracks?.length);
+                if (newTracks && newTracks.length > 0) {
+                    await this.addToQueue(newTracks);
+                }
+            });
+        }
+
+        await this.saveQueueState();
 
         this.currentTrack = track;
 
@@ -631,9 +816,13 @@ export class Player {
             this.hls.destroy();
             this.hls = null;
         }
-        if (this.dashInitialized) {
-            this.dashPlayer.reset();
-            this.dashInitialized = false;
+
+        // Retain the initialized Shaka player if we are remaining on the same HTMLMediaElement
+        if (this.shakaInitialized && this.shakaPlayer) {
+            if (this.shakaPlayer.getMediaElement() !== activeElement) {
+                this.shakaPlayer.unload();
+                this.shakaInitialized = false;
+            }
         }
 
         if (inactiveElement) {
@@ -647,9 +836,13 @@ export class Player {
         }
 
         if (activeElement) {
-            activeElement.pause();
-            activeElement.src = '';
-            activeElement.removeAttribute('src');
+            // Let Shaka overwrite the activeElement's decoder pipeline gracefully if we're carrying it over.
+            // It manages its own buffering teardown implicitly when `load()` is executed.
+            if (!this.shakaInitialized) {
+                activeElement.pause();
+                activeElement.src = '';
+                activeElement.removeAttribute('src');
+            }
         }
 
         audioContextManager.changeSource(activeElement);
@@ -717,14 +910,39 @@ export class Player {
         this.updatePlayingTrackIndicator();
         this.updateMediaSession(track);
         this.updateMediaSessionPlaybackState();
-        this.updateNativeWindow(track);
 
         try {
             let streamUrl;
 
             const isTracker = track.isTracker || (track.id && String(track.id).startsWith('tracker-'));
+            const isPodcast = track.isPodcast || (track.id && String(track.id).startsWith('podcast_'));
 
-            if (isTracker || (track.audioUrl && !track.isLocal)) {
+            if (isPodcast) {
+                streamUrl = track.enclosureUrl;
+                if (!streamUrl) {
+                    console.warn(`Podcast episode ${trackTitle} audio URL is missing. Skipping.`);
+                    track.isUnavailable = true;
+                    await this.playNext();
+                    return;
+                }
+
+                if (this.playbackSequence !== currentSequence) return;
+
+                this.currentRgValues = null;
+                this.applyReplayGain();
+
+                activeElement.src = streamUrl;
+                this.applyAudioEffects();
+
+                const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
+                if (!canPlay || this.playbackSequence !== currentSequence) return;
+
+                if (startTime > 0) {
+                    activeElement.currentTime = startTime;
+                }
+                const played = await this.safePlay(activeElement);
+                if (!played) return;
+            } else if (isTracker || (track.audioUrl && !track.isLocal)) {
                 streamUrl = track.audioUrl;
 
                 if (
@@ -737,7 +955,7 @@ export class Player {
                 if (!streamUrl) {
                     console.warn(`Track ${trackTitle} audio URL is missing. Skipping.`);
                     track.isUnavailable = true;
-                    this.playNext();
+                    await this.playNext();
                     return;
                 }
 
@@ -790,12 +1008,12 @@ export class Player {
                 const played = await this.safePlay(activeElement);
                 if (!played) return;
             } else if (track.type === 'video') {
-                if (window.monochromeUi) {
+                if (UIRenderer.instance) {
                     const isInFullscreen =
                         document.getElementById('fullscreen-cover-overlay')?.style.display === 'flex';
                     if (!isInFullscreen) {
-                        const lyricsManager = window.monochromeUi.lyricsManager;
-                        window.monochromeUi.showFullscreenCover(
+                        const lyricsManager = UIRenderer.instance.lyricsManager;
+                        UIRenderer.instance.showFullscreenCover(
                             track,
                             this.getNextTrack(),
                             lyricsManager,
@@ -810,16 +1028,32 @@ export class Player {
                 if (streamUrl.includes('.m3u8') || streamUrl.includes('application/vnd.apple.mpegurl')) {
                     await this.setupHlsVideo(activeElement, streamUrl, null);
                 } else if (streamUrl.startsWith('blob:') || streamUrl.includes('.mpd')) {
-                    this.dashPlayer.initialize(activeElement, streamUrl, false);
-                    this.dashInitialized = true;
+                    await this.shakaPlayer.attach(activeElement);
+
+                    const loadTarget =
+                        track.type == 'video' && this.preloadCache.has(track.id)
+                            ? this.preloadCache.get(track.id).preloadManager || streamUrl
+                            : streamUrl;
+
+                    try {
+                        await this.shakaPlayer.load(loadTarget);
+                    } catch (e) {
+                        console.error('PreloadManager load Error:', e);
+                        if (loadTarget !== streamUrl) await this.shakaPlayer.load(streamUrl);
+                        else throw e;
+                    }
+
+                    this.shakaInitialized = true;
+
+                    const savedAdaptiveQuality = localStorage.getItem('adaptive-playback-quality') || 'auto';
+                    this.forceQuality(savedAdaptiveQuality);
+
+                    this.updateAdaptiveQualityBadge();
                 } else {
                     activeElement.src = streamUrl;
                 }
 
                 this.applyAudioEffects();
-
-                const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
-                if (!canPlay || this.playbackSequence !== currentSequence) return;
 
                 if (startTime > 0) {
                     activeElement.currentTime = startTime;
@@ -827,21 +1061,26 @@ export class Player {
 
                 await this.safePlay(activeElement);
             } else {
-                const isQobuz = String(track.id).startsWith('q:');
+                // Tidal: Try to get ReplayGain from manifest first, supplement with track info if needed
+                const streamInfoPromise = this.preloadCache.has(track.id)
+                    ? Promise.resolve(this.preloadCache.get(track.id))
+                    : this.api.getStreamUrl(track.id, this.quality);
 
-                if (isQobuz) {
-                    // Qobuz: skip getTrack call, directly fetch stream URL
-                    this.currentRgValues = null;
+                // We only need the legacy track info if we missed getting ReplayGain from the manifest endpoint
+                const resolvedStreamInfo = await streamInfoPromise;
+                if (this.playbackSequence !== currentSequence) return;
+
+                streamUrl = resolvedStreamInfo.url;
+
+                if (resolvedStreamInfo.rgInfo) {
+                    this.currentRgValues = resolvedStreamInfo.rgInfo;
                     this.applyReplayGain();
-
-                    if (this.preloadCache.has(track.id)) {
-                        streamUrl = this.preloadCache.get(track.id);
-                    } else {
-                        streamUrl = await this.api.getStreamUrl(track.id, this.quality);
-                    }
+                } else if (resolvedStreamInfo.rgInfoFallback) {
+                    this.currentRgValues = resolvedStreamInfo.rgInfoFallback;
+                    this.applyReplayGain();
                 } else {
-                    // Tidal: Get track data for ReplayGain (should be cached by API)
-                    const trackData = await this.api.getTrack(track.id, this.quality);
+                    // Fallback to legacy metadata if manifest lacked normalization data
+                    const trackData = await this.api.getTrack(track.id, this.quality).catch(() => null);
                     if (this.playbackSequence !== currentSequence) return;
 
                     if (trackData && trackData.info) {
@@ -855,41 +1094,47 @@ export class Player {
                         this.currentRgValues = null;
                     }
                     this.applyReplayGain();
-
-                    if (this.preloadCache.has(track.id)) {
-                        streamUrl = this.preloadCache.get(track.id);
-                    } else if (trackData.originalTrackUrl) {
-                        streamUrl = trackData.originalTrackUrl;
-                    } else if (trackData.info?.manifest) {
-                        streamUrl = this.api.extractStreamUrlFromManifest(trackData.info.manifest);
-                    } else {
-                        streamUrl = await this.api.getStreamUrl(track.id, this.quality);
-                    }
                 }
 
                 if (this.playbackSequence !== currentSequence) return;
 
                 // Handle playback
-                if (streamUrl && streamUrl.startsWith('blob:') && !track.isLocal) {
-                    // It's likely a DASH manifest blob URL
-                    this.dashPlayer.initialize(activeElement, streamUrl, false);
-                    this.dashInitialized = true;
-                    this.applyAudioEffects();
-
-                    if (startTime > 0) {
-                        this.dashPlayer.seek(startTime);
+                if (streamUrl && (streamUrl.startsWith('blob:') || streamUrl.includes('.mpd')) && !track.isLocal) {
+                    // It's likely a DASH manifest URL
+                    if (this.shakaPlayer.getMediaElement() !== activeElement) {
+                        await this.shakaPlayer.attach(activeElement);
+                        this.shakaInitialized = true;
                     }
 
-                    const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
-                    if (!canPlay || this.playbackSequence !== currentSequence) return;
+                    const loadTarget = resolvedStreamInfo.preloadManager || streamUrl;
+
+                    try {
+                        if (startTime > 0) {
+                            await this.shakaPlayer.load(loadTarget, startTime);
+                        } else {
+                            await this.shakaPlayer.load(loadTarget);
+                        }
+                    } catch (e) {
+                        console.error('PreloadManager load Error:', e);
+                        if (loadTarget !== streamUrl) await this.shakaPlayer.load(streamUrl);
+                        else throw e;
+                    }
+
+                    this.shakaInitialized = true;
+                    this.applyAudioEffects();
+
+                    const savedAdaptiveQuality = localStorage.getItem('adaptive-playback-quality') || 'auto';
+                    this.forceQuality(savedAdaptiveQuality);
+
+                    this.updateAdaptiveQualityBadge();
+
+                    // Instantly trigger playback rather than explicitly waiting for 'canplay'
+                    // which delays the event loop and natively adds gap/latency
                     await this.safePlay(activeElement);
                 } else {
                     activeElement.src = streamUrl;
                     this.applyAudioEffects();
-
-                    // Wait for audio to be ready before playing
-                    const canPlay = await this.waitForCanPlayOrTimeout(activeElement);
-                    if (!canPlay || this.playbackSequence !== currentSequence) return;
+                    this.updateAdaptiveQualityBadge();
 
                     if (startTime > 0) {
                         activeElement.currentTime = startTime;
@@ -915,93 +1160,106 @@ export class Player {
                 try {
                     await this.playTrackFromQueue(startTime, recursiveCount, true);
                     return;
-                } catch (retryError) {
+                } catch {
+                    // LOSSLESS fallback also failed - fall through to error handling below
                 } finally {
                     this.quality = originalQuality;
                     this.isFallbackRetry = false;
                     this.isFallbackInProgress = false;
-                    return;
                 }
+
+                return;
             }
 
             console.error(`Could not play track: ${trackTitle}`, error);
-            // Skip to next track on unexpected error
-            if (recursiveCount < currentQueue.length) {
-                setTimeout(() => this.playNext(recursiveCount + 1), 1000);
-            }
         }
     }
 
-    playAtIndex(index) {
+    async playAtIndex(index) {
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
         if (index >= 0 && index < currentQueue.length) {
             this.currentQueueIndex = index;
-            this.playTrackFromQueue(0, 0);
+            await this.playTrackFromQueue(0, 0);
         }
     }
 
-    playNext(recursiveCount = 0) {
+    async playNext(recursiveCount = 0) {
         const currentQueue = this.getCurrentQueue();
         const isLastTrack = this.currentQueueIndex >= currentQueue.length - 1;
 
-        if (this.radioEnabled && this.currentQueueIndex >= currentQueue.length - 3) {
-            this.fetchRadioRecommendations();
-        }
-
         if (recursiveCount > currentQueue.length) {
             if (this.radioEnabled && isLastTrack) {
-                this.fetchRadioRecommendations().then(() => {
+                this.fetchRadioRecommendations().then(async () => {
                     const updatedQueue = this.getCurrentQueue();
                     if (this.currentQueueIndex < updatedQueue.length - 1) {
-                        this.playNext(0);
+                        await this.playNext(0);
                     }
                 });
                 return;
             }
-            console.error('All tracks in queue are unavailable or blocked.');
+            if (this.artistPopularTracksState.artistId && this.artistPopularTracksState.hasMore) {
+                await this.fetchMoreArtistPopularTracks().then(async (newTracks) => {
+                    if (newTracks && newTracks.length > 0) {
+                        await this.addToQueue(newTracks);
+                        await this.playNext(0);
+                    } else {
+                        this.activeElement.pause();
+                    }
+                });
+                return;
+            }
             this.activeElement.pause();
             return;
         }
 
-        // Import blocking settings dynamically
-        import('./storage.js').then(({ contentBlockingSettings }) => {
-            if (
-                this.repeatMode === REPEAT_MODE.ONE &&
-                !currentQueue[this.currentQueueIndex]?.isUnavailable &&
-                !contentBlockingSettings.shouldHideTrack(currentQueue[this.currentQueueIndex])
-            ) {
-                this.playTrackFromQueue(0, recursiveCount);
-                return;
-            }
-
-            if (!isLastTrack) {
-                this.currentQueueIndex++;
-                const track = currentQueue[this.currentQueueIndex];
-                // Skip unavailable and blocked tracks
-                if (track?.isUnavailable || contentBlockingSettings.shouldHideTrack(track)) {
-                    return this.playNext(recursiveCount + 1);
+        import('./storage.js')
+            .then(async ({ contentBlockingSettings }) => {
+                if (
+                    this.repeatMode === REPEAT_MODE.ONE &&
+                    !currentQueue[this.currentQueueIndex]?.isUnavailable &&
+                    !contentBlockingSettings.shouldHideTrack(currentQueue[this.currentQueueIndex])
+                ) {
+                    await this.playTrackFromQueue(0, recursiveCount);
+                    return;
                 }
-            } else if (this.radioEnabled) {
-                this.fetchRadioRecommendations().then(() => {
-                    const updatedQueue = this.getCurrentQueue();
-                    if (this.currentQueueIndex < updatedQueue.length - 1) {
-                        this.playNext(0);
+
+                if (!isLastTrack) {
+                    this.currentQueueIndex++;
+                    const track = currentQueue[this.currentQueueIndex];
+                    if (track?.isUnavailable || contentBlockingSettings.shouldHideTrack(track)) {
+                        return this.playNext(recursiveCount + 1);
                     }
-                });
-                return;
-            } else if (this.repeatMode === REPEAT_MODE.ALL) {
-                this.currentQueueIndex = 0;
-                const track = currentQueue[this.currentQueueIndex];
-                // Skip unavailable and blocked tracks
-                if (track?.isUnavailable || contentBlockingSettings.shouldHideTrack(track)) {
-                    return this.playNext(recursiveCount + 1);
+                } else if (this.radioEnabled) {
+                    this.fetchRadioRecommendations().then(async () => {
+                        const updatedQueue = this.getCurrentQueue();
+                        if (this.currentQueueIndex < updatedQueue.length - 1) {
+                            await this.playNext(0);
+                        }
+                    });
+                    return;
+                } else if (this.artistPopularTracksState.artistId && this.artistPopularTracksState.hasMore) {
+                    await this.fetchMoreArtistPopularTracks().then(async (newTracks) => {
+                        if (newTracks && newTracks.length > 0) {
+                            await this.addToQueue(newTracks);
+                        }
+                        // Now play the next track (which is now at currentQueueIndex + 1 if tracks were added)
+                        this.currentQueueIndex++;
+                        await this.playTrackFromQueue(0, recursiveCount);
+                    });
+                    return;
+                } else if (this.repeatMode === REPEAT_MODE.ALL) {
+                    this.currentQueueIndex = 0;
+                    const track = currentQueue[this.currentQueueIndex];
+                    if (track?.isUnavailable || contentBlockingSettings.shouldHideTrack(track)) {
+                        return this.playNext(recursiveCount + 1);
+                    }
+                } else {
+                    return;
                 }
-            } else {
-                return;
-            }
 
-            this.playTrackFromQueue(0, recursiveCount);
-        });
+                await this.playTrackFromQueue(0, recursiveCount);
+            })
+            .catch(console.error);
     }
 
     async enableRadio(seeds = []) {
@@ -1009,20 +1267,20 @@ export class Player {
         radioSettings.setEnabled(true);
 
         if (seeds.length === 0) {
-            this.wipeQueue();
+            await this.wipeQueue();
             const pickedSeeds = await this.pickRadioSeeds();
             if (pickedSeeds.length > 0) {
                 this.radioSeeds = pickedSeeds;
                 const initialQueue = [...pickedSeeds].sort(() => 0.5 - Math.random()).slice(0, 5);
-                this.setQueue(initialQueue, 0, true);
-                this.playAtIndex(0);
+                await this.setQueue(initialQueue, 0, true);
+                await this.playAtIndex(0);
             }
         } else {
             this.radioSeeds = Array.isArray(seeds) ? seeds : [seeds];
-            this.wipeQueue();
+            await this.wipeQueue();
             const initialQueue = Array.isArray(seeds) ? seeds.slice(0, 5) : [seeds];
-            this.setQueue(initialQueue, 0, true);
-            this.playAtIndex(0);
+            await this.setQueue(initialQueue, 0, true);
+            await this.playAtIndex(0);
         }
 
         const currentQueue = this.getCurrentQueue();
@@ -1085,7 +1343,7 @@ export class Player {
 
                     if (newTracks.length > 0) {
                         const tracksToAdd = newTracks.sort(() => 0.5 - Math.random()).slice(0, 5);
-                        this.addToQueue(tracksToAdd);
+                        await this.addToQueue(tracksToAdd);
                     }
                 }
             } catch (error) {
@@ -1172,13 +1430,15 @@ export class Player {
                 return;
             }
 
-            import('./storage.js').then(({ contentBlockingSettings }) => {
-                const track = currentQueue[this.currentQueueIndex];
-                if (track?.isUnavailable || contentBlockingSettings.shouldHideTrack(track)) {
-                    return this.playPrev(recursiveCount + 1);
-                }
-                this.playTrackFromQueue(0, recursiveCount);
-            });
+            import('./storage.js')
+                .then(async ({ contentBlockingSettings }) => {
+                    const track = currentQueue[this.currentQueueIndex];
+                    if (track?.isUnavailable || contentBlockingSettings.shouldHideTrack(track)) {
+                        return this.playPrev(recursiveCount + 1);
+                    }
+                    await this.playTrackFromQueue(0, recursiveCount);
+                })
+                .catch(console.error);
         }
     }
 
@@ -1186,26 +1446,28 @@ export class Player {
         return this.currentTrack?.type === 'video' ? this.video : this.audio;
     }
 
-    handlePlayPause() {
+    async handlePlayPause() {
         const el = this.activeElement;
-        if (!el.src || el.error) {
+        const hasSource = el.src || el.currentSrc || el.srcObject || this.shakaInitialized;
+
+        if (!hasSource || el.error) {
             if (this.currentTrack) {
-                this.playTrackFromQueue(0, 0);
+                await this.playTrackFromQueue(0, 0);
             }
             return;
         }
 
         if (el.paused) {
-            this.safePlay(el).catch((e) => {
+            this.safePlay(el).catch(async (e) => {
                 if (e.name === 'NotAllowedError' || e.name === 'AbortError') return;
                 console.error('Play failed, reloading track:', e);
                 if (this.currentTrack) {
-                    this.playTrackFromQueue(0, 0);
+                    await this.playTrackFromQueue(0, 0);
                 }
             });
         } else {
             el.pause();
-            this.saveQueueState();
+            await this.saveQueueState();
         }
     }
 
@@ -1224,7 +1486,7 @@ export class Player {
         this.updateMediaSessionPositionState();
     }
 
-    toggleShuffle() {
+    async toggleShuffle() {
         this.shuffleActive = !this.shuffleActive;
 
         if (this.shuffleActive) {
@@ -1256,16 +1518,16 @@ export class Player {
 
         this.preloadCache.clear();
         this.preloadNextTracks();
-        this.saveQueueState();
+        await this.saveQueueState();
     }
 
-    toggleRepeat() {
+    async toggleRepeat() {
         this.repeatMode = (this.repeatMode + 1) % 3;
-        this.saveQueueState();
+        await this.saveQueueState();
         return this.repeatMode;
     }
 
-    setQueue(tracks, startIndex = 0, isRadio = false) {
+    async setQueue(tracks, startIndex = 0, isRadio = false) {
         if (!isRadio) {
             this.disableRadio();
         }
@@ -1273,10 +1535,74 @@ export class Player {
         this.currentQueueIndex = startIndex;
         this.shuffleActive = false;
         this.preloadCache.clear();
-        this.saveQueueState();
+        await this.saveQueueState();
     }
 
-    addToQueue(trackOrTracks) {
+    setArtistPopularTracksContext(artistId, initialTracks, offset = 15, hasMore = true) {
+        this.artistPopularTracksState = {
+            artistId,
+            offset,
+            initialTracks,
+            isFetching: false,
+            hasMore,
+        };
+    }
+
+    clearArtistPopularTracksContext() {
+        this.artistPopularTracksState = {
+            artistId: null,
+            offset: 0,
+            initialTracks: [],
+            isFetching: false,
+            hasMore: false,
+        };
+    }
+
+    async fetchMoreArtistPopularTracks() {
+        const state = this.artistPopularTracksState;
+        console.log('[fetchMoreArtistPopularTracks] Called:', {
+            artistId: state.artistId,
+            offset: state.offset,
+            isFetching: state.isFetching,
+            hasMore: state.hasMore,
+        });
+
+        if (!state.artistId || state.isFetching || !state.hasMore) {
+            console.log('[fetchMoreArtistPopularTracks] Early return');
+            return [];
+        }
+
+        state.isFetching = true;
+
+        try {
+            console.log('[fetchMoreArtistPopularTracks] Fetching with offset:', state.offset);
+            const result = await this.api.getArtistTopTracks(state.artistId, {
+                offset: state.offset,
+                limit: 15,
+                firstTrackId: state.initialTracks[0]?.id,
+            });
+
+            console.log('[fetchMoreArtistPopularTracks] Result:', result);
+
+            if (result.tracks && result.tracks.length > 0) {
+                state.offset += result.tracks.length;
+                state.hasMore = result.hasMore;
+
+                return result.tracks;
+            } else {
+                state.hasMore = false;
+                return [];
+            }
+        } catch (error) {
+            console.warn('Failed to fetch more artist popular tracks:', error);
+            state.hasMore = false;
+            return [];
+        } finally {
+            state.isFetching = false;
+        }
+    }
+
+    async addToQueue(trackOrTracks) {
         const tracks = Array.isArray(trackOrTracks) ? trackOrTracks : [trackOrTracks];
         this.queue.push(...tracks);
 
@@ -1287,12 +1613,12 @@ export class Player {
 
         if (!this.currentTrack || this.currentQueueIndex === -1) {
             this.currentQueueIndex = this.getCurrentQueue().length - tracks.length;
-            this.playTrackFromQueue(0, 0);
+            await this.playTrackFromQueue(0, 0);
         }
-        this.saveQueueState();
+        await this.saveQueueState();
     }
 
-    addNextToQueue(trackOrTracks) {
+    async addNextToQueue(trackOrTracks) {
         const tracks = Array.isArray(trackOrTracks) ? trackOrTracks : [trackOrTracks];
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
         const insertIndex = this.currentQueueIndex + 1;
@@ -1306,11 +1632,11 @@ export class Player {
             this.originalQueueBeforeShuffle.push(...tracks); // Sync original queue
         }
 
-        this.saveQueueState();
+        await this.saveQueueState();
         this.preloadNextTracks(); // Update preload since next track changed
     }
 
-    removeFromQueue(index) {
+    async removeFromQueue(index) {
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
 
         // If removing current track
@@ -1334,11 +1660,11 @@ export class Player {
             }
         }
 
-        this.saveQueueState();
+        await this.saveQueueState();
         this.preloadNextTracks();
     }
 
-    clearQueue() {
+    async clearQueue() {
         if (this.currentTrack) {
             this.queue = [this.currentTrack];
 
@@ -1358,10 +1684,10 @@ export class Player {
         }
 
         this.preloadCache.clear();
-        this.saveQueueState();
+        await this.saveQueueState();
     }
 
-    wipeQueue() {
+    async wipeQueue() {
         const el = this.activeElement;
         el.pause();
         el.src = '';
@@ -1370,16 +1696,16 @@ export class Player {
         this.shuffledQueue = [];
         this.originalQueueBeforeShuffle = [];
         this.currentQueueIndex = -1;
-        this.saveQueueState();
-        if (window.monochromeUi) {
-            window.monochromeUi.setCurrentTrack(null);
+        await this.saveQueueState();
+        if (UIRenderer.instance) {
+            UIRenderer.instance.setCurrentTrack(null);
         }
         if (window.renderQueueFunction) {
-            window.renderQueueFunction();
+            await window.renderQueueFunction();
         }
     }
 
-    moveInQueue(fromIndex, toIndex) {
+    async moveInQueue(fromIndex, toIndex) {
         const currentQueue = this.shuffleActive ? this.shuffledQueue : this.queue;
 
         if (fromIndex < 0 || fromIndex >= currentQueue.length) return;
@@ -1395,7 +1721,7 @@ export class Player {
         } else if (fromIndex > this.currentQueueIndex && toIndex <= this.currentQueueIndex) {
             this.currentQueueIndex++;
         }
-        this.saveQueueState();
+        await this.saveQueueState();
     }
 
     getCurrentQueue() {
@@ -1442,6 +1768,260 @@ export class Player {
             const index = parseInt(item.dataset.queueIndex);
             item.classList.toggle('playing', index === this.currentQueueIndex);
         });
+    }
+
+    updateAdaptiveQualityBadge() {
+        if (!this.currentTrack) return;
+
+        try {
+            const titleEl = document.querySelector('.now-playing-bar .title');
+            if (!titleEl) return;
+
+            let badgeEl = titleEl.querySelector('.shaka-quality-badge');
+
+            // Determine if the track is inherently an Atmos track based on metadata
+            const trackBaseQuality = deriveTrackQuality(this.currentTrack);
+            const isTrackAtmos =
+                trackBaseQuality === 'DOLBY_ATMOS' || this.currentTrack?.audioQuality === 'DOLBY_ATMOS';
+
+            if (this.shakaInitialized) {
+                const variants = this.shakaPlayer.getVariantTracks();
+                const activeVariant = variants.find((t) => t.active);
+                if (activeVariant) {
+                    if (!badgeEl) {
+                        badgeEl = document.createElement('span');
+                        badgeEl.className = 'quality-badge quality-hires shaka-quality-badge';
+                        badgeEl.title = 'Adaptive Stream Quality';
+                        titleEl.appendChild(badgeEl);
+                        const staticBadge = titleEl.querySelector('.quality-badge:not(.shaka-quality-badge)');
+                        if (staticBadge) staticBadge.style.display = 'none';
+                    }
+
+                    let text = '';
+                    let isAtmosPlaying = false;
+
+                    if (activeVariant.videoBandwidth && activeVariant.height) {
+                        text = `${activeVariant.height}p`;
+                    } else if (activeVariant.audioCodec) {
+                        const codec = activeVariant.audioCodec.toLowerCase();
+                        if (codec.includes('flac')) {
+                            const sampleRate = activeVariant.audioSamplingRate
+                                ? activeVariant.audioSamplingRate / 1000
+                                : 44.1;
+                            if (sampleRate > 48 || activeVariant.audioBandwidth > 1200000) {
+                                text = `HD 24/${sampleRate}`;
+                            } else {
+                                text = 'FLAC';
+                            }
+                        } else if (codec.includes('mp4a')) {
+                            text = 'AAC';
+                        } else if (codec.includes('ec-3') || codec.includes('ac-3')) {
+                            if (codec.includes('joc') || codec === 'ec-3') {
+                                isAtmosPlaying = true;
+                            } else {
+                                text = 'Dolby';
+                            }
+                        } else {
+                            text = activeVariant.audioCodec;
+                        }
+                        if (
+                            activeVariant.audioBandwidth &&
+                            !text.includes('FLAC') &&
+                            !text.includes('HD') &&
+                            !isAtmosPlaying
+                        ) {
+                            text += ` ${Math.round(activeVariant.audioBandwidth / 1000)}k`;
+                        }
+                    } else {
+                        text = 'Auto';
+                    }
+
+                    if (isAtmosPlaying) {
+                        badgeEl.className = 'quality-badge quality-atmos shaka-quality-badge';
+                        badgeEl.innerHTML = SVG_ATMOS(20);
+                    } else {
+                        badgeEl.className = 'quality-badge quality-hires shaka-quality-badge';
+                        badgeEl.textContent = text;
+                    }
+                    badgeEl.style.display = text || isAtmosPlaying ? 'inline-flex' : 'none';
+                }
+            } else if (
+                (isIos || isSafari) &&
+                this.activeElement &&
+                this.activeElement.src &&
+                (this.activeElement.src.includes('.m3u8') || this.currentTrack)
+            ) {
+                if (!badgeEl) {
+                    badgeEl = document.createElement('span');
+                    badgeEl.className = 'quality-badge quality-hires shaka-quality-badge';
+                    badgeEl.title = 'HLS Stream Quality';
+                    titleEl.appendChild(badgeEl);
+                    const staticBadge = titleEl.querySelector('.quality-badge:not(.shaka-quality-badge)');
+                    if (staticBadge) staticBadge.style.display = 'none';
+                }
+
+                let text = '';
+
+                // Ensure device can actually decode Atmos before rendering logo for HLS
+                let deviceSupportsAtmos = false;
+                try {
+                    if (window.MediaSource && typeof window.MediaSource.isTypeSupported === 'function') {
+                        deviceSupportsAtmos =
+                            MediaSource.isTypeSupported('audio/mp4; codecs="ec-3"') ||
+                            MediaSource.isTypeSupported('audio/mp4; codecs="eac3"');
+                    }
+                    if (!deviceSupportsAtmos && typeof document !== 'undefined') {
+                        const a = document.createElement('audio');
+                        deviceSupportsAtmos = !!(
+                            a.canPlayType('audio/mp4; codecs="ec-3"') || a.canPlayType('audio/mp4; codecs="eac3"')
+                        );
+                    }
+                } catch {
+                    // Atmos codec detection may fail on some browsers
+                }
+
+                let isAtmosPlaying = isTrackAtmos && deviceSupportsAtmos;
+                const q = this.quality || localStorage.getItem('adaptive-playback-quality') || 'auto';
+
+                if (!isAtmosPlaying) {
+                    if (q === 'HI_RES_LOSSLESS') text = 'HD FLAC';
+                    else if (q === 'LOSSLESS') text = 'FLAC';
+                    else if (q === 'HIGH') text = 'AAC';
+                    else if (q === 'LOW') text = 'AAC Low';
+                    else if (q === 'auto') text = 'HLS Auto';
+                    else text = 'HLS';
+                }
+
+                if (isAtmosPlaying) {
+                    badgeEl.innerHTML = SVG_ATMOS(20);
+                    badgeEl.className = 'quality-badge quality-atmos shaka-quality-badge';
+                } else {
+                    badgeEl.textContent = text;
+                    badgeEl.className = 'quality-badge quality-hires shaka-quality-badge';
+                }
+                badgeEl.style.display = 'inline-flex';
+            } else {
+                if (badgeEl) badgeEl.style.display = 'none';
+            }
+        } catch (e) {
+            console.error('Failed to update adaptive quality badge', e);
+        }
+    }
+
+    evaluateCrossCodecAbr() {
+        if (!this.shakaInitialized || !this.shakaPlayer || this.shakaPlayer.isBuffering() || this.activeElement.paused)
+            return;
+
+        try {
+            const stats = this.shakaPlayer.getStats();
+            const estimatedBandwidth = stats.estimatedBandwidth;
+            if (!estimatedBandwidth) return;
+
+            const variants = this.shakaPlayer.getVariantTracks();
+            if (variants.length < 2) return;
+
+            const activeVariant = variants.find((v) => v.active);
+            if (!activeVariant) return;
+
+            // Sort variants by bandwidth descending
+            const sortedVariants = [...variants].sort((a, b) => b.bandwidth - a.bandwidth);
+            const safeUpBandwidth = estimatedBandwidth * 0.85;
+
+            let bestVariant = sortedVariants[0];
+            for (const variant of sortedVariants) {
+                if (variant.bandwidth <= safeUpBandwidth) {
+                    bestVariant = variant;
+                    break;
+                }
+            }
+
+            if (sortedVariants[sortedVariants.length - 1].bandwidth > safeUpBandwidth) {
+                bestVariant = sortedVariants[sortedVariants.length - 1];
+            }
+
+            if (bestVariant.audioCodec !== activeVariant.audioCodec && bestVariant.id !== activeVariant.id) {
+                // To safely cross AdaptationSet boundaries in Shaka, explicitly select the track
+                this.shakaPlayer.configure({ preferredAudioCodecs: [bestVariant.audioCodec] });
+                this.shakaPlayer.selectVariantTrack(bestVariant, false, 0); // false = don't clear buffer, smooth transition
+                // Re-enable ABR so it can dynamically downgrade within that new codec family if needed
+                this.shakaPlayer.configure({ abr: { enabled: true } });
+            }
+        } catch {
+            // fail silently on abr checks
+        }
+    }
+
+    forceQuality(quality) {
+        if (!this.shakaInitialized || !this.shakaPlayer) return;
+
+        try {
+            if (quality === 'auto') {
+                this.shakaPlayer.configure({
+                    abr: { enabled: true },
+                    preferredAudioCodecs: [],
+                });
+                return;
+            }
+
+            const variants = this.shakaPlayer.getVariantTracks();
+            if (variants.length === 0) return;
+
+            let bestVariant = variants[0];
+
+            if (quality === 'LOW' || quality === 'HIGH') {
+                const targetBandwidth = quality === 'LOW' ? 96000 : 320000;
+                const aacVariants = variants.filter((v) => v.audioCodec && v.audioCodec.toLowerCase().includes('mp4a'));
+                const searchVariants = aacVariants.length > 0 ? aacVariants : variants;
+
+                let minDiff = Infinity;
+                for (const variant of searchVariants) {
+                    const bw = variant.audioBandwidth || variant.bandwidth;
+                    const diff = Math.abs(bw - targetBandwidth);
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        bestVariant = variant;
+                    }
+                }
+            } else if (quality === 'LOSSLESS' || quality === 'HI_RES_LOSSLESS') {
+                const flacVariants = variants.filter(
+                    (v) => v.audioCodec && v.audioCodec.toLowerCase().includes('flac')
+                );
+
+                if (flacVariants.length > 0) {
+                    if (quality === 'HI_RES_LOSSLESS') {
+                        // Find highest quality FLAC
+                        bestVariant = flacVariants.reduce((prev, current) => {
+                            const prevBw = prev.audioBandwidth || prev.bandwidth || 0;
+                            const currBw = current.audioBandwidth || current.bandwidth || 0;
+                            return currBw > prevBw ? current : prev;
+                        }, flacVariants[0]);
+                    } else {
+                        // Find standard lossless (lowest bandwidth FLAC, usually 16-bit 44.1kHz)
+                        bestVariant = flacVariants.reduce((prev, current) => {
+                            const prevBw = prev.audioBandwidth || prev.bandwidth || 0;
+                            const currBw = current.audioBandwidth || current.bandwidth || 0;
+                            return currBw < prevBw ? current : prev;
+                        }, flacVariants[0]);
+                    }
+                } else {
+                    // Fallback to highest overall
+                    bestVariant = variants.reduce((prev, current) => {
+                        const prevBw = prev.audioBandwidth || prev.bandwidth || 0;
+                        const currBw = current.audioBandwidth || current.bandwidth || 0;
+                        return currBw > prevBw ? current : prev;
+                    }, variants[0]);
+                }
+            }
+
+            this.shakaPlayer.configure({ abr: { enabled: false } });
+
+            if (bestVariant.audioCodec) {
+                this.shakaPlayer.configure({ preferredAudioCodecs: [bestVariant.audioCodec] });
+            }
+            this.shakaPlayer.selectVariantTrack(bestVariant, false, 0); // false = don't clear buffer, smooth transition
+        } catch (e) {
+            console.error('Failed to force quality', e);
+        }
     }
 
     updateMediaSession(track) {
@@ -1623,17 +2203,5 @@ export class Player {
 
         updateBtn(timerBtn);
         updateBtn(timerBtnDesktop);
-    }
-
-    async updateNativeWindow(track) {
-        if (!window.Neutralino) return;
-
-        const trackTitle = getTrackTitle(track);
-        const artist = getTrackArtists(track);
-        try {
-            await Neutralino.window.setTitle(`${trackTitle} • ${artist}`);
-        } catch (e) {
-            console.error('Failed to set window title:', e);
-        }
     }
 }

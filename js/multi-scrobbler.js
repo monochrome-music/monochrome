@@ -32,18 +32,26 @@ export class MultiScrobbler {
         );
     }
 
-    updateNowPlaying(track) {
-        this.lastfm.updateNowPlaying(track);
-        this.listenbrainz.updateNowPlaying(track);
-        this.maloja.updateNowPlaying(track);
-        this.librefm.updateNowPlaying(track);
+    async updateNowPlaying(track) {
+        await Promise.allSettled(
+            [
+                this.lastfm.updateNowPlaying(track),
+                this.listenbrainz.updateNowPlaying(track),
+                this.maloja.updateNowPlaying(track),
+                this.librefm.updateNowPlaying(track),
+            ].map((p) => p.catch(console.error))
+        );
     }
 
-    onTrackChange(track) {
-        this.lastfm.onTrackChange(track);
-        this.listenbrainz.onTrackChange(track);
-        this.maloja.onTrackChange(track);
-        this.librefm.onTrackChange(track);
+    async onTrackChange(track) {
+        await Promise.allSettled(
+            [
+                this.lastfm.onTrackChange(track),
+                this.listenbrainz.onTrackChange(track),
+                this.maloja.onTrackChange(track),
+                this.librefm.onTrackChange(track),
+            ].map((p) => p.catch(console.error))
+        );
     }
 
     onPlaybackStop() {
@@ -55,9 +63,11 @@ export class MultiScrobbler {
 
     // Love/Like tracks on all services that support it
     async loveTrack(track) {
-        await this.lastfm.loveTrack(track);
-        await this.librefm.loveTrack(track);
-        await this.listenbrainz.loveTrack(track);
+        await Promise.allSettled(
+            [this.lastfm.loveTrack(track), this.librefm.loveTrack(track), this.listenbrainz.loveTrack(track)].map((p) =>
+                p.catch(console.error)
+            )
+        );
         // Maloja feedback could be added here when supported
     }
 }

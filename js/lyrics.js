@@ -10,7 +10,7 @@ import {
     SVG_GLOBE,
 } from './icons.js';
 import { sidePanelManager } from './side-panel.js';
-import('@uimaxbai/am-lyrics/am-lyrics.js');
+import('@uimaxbai/am-lyrics/am-lyrics.js').catch(console.error);
 
 // Check if text contains Japanese, Chinese, or Korean characters
 function containsAsianText(text) {
@@ -33,14 +33,17 @@ function trackHasAsianText(track) {
 function cleanTrackerSearch(text) {
     if (!text) return '';
     // chud emojis will NOT be tolerated in my precious genius lyrics worker
-    let cleaned = text.replace(/[\p{Extended_Pictographic}\p{Emoji_Component}\p{Emoji_Presentation}\p{Emoji_Modifier}\p{Emoji_Modifier_Base}\p{Symbol}]/gu, '');
-    
+    let cleaned = text.replace(
+        /[\p{Extended_Pictographic}\p{Emoji_Component}\p{Emoji_Presentation}\p{Emoji_Modifier}\p{Emoji_Modifier_Base}\p{Symbol}]/gu,
+        ''
+    );
+
     cleaned = cleaned.replace(/[\u2600-\u27BF\u2B50\u2B06\u2194\u21AA\u2934\u203C\u2049\u3030\u303D\u3297\u3299]/g, '');
 
     cleaned = cleaned.replace(/\[v\s*\d+\s*\]/gi, '');
 
     cleaned = cleaned.replace(/\s+/g, ' ');
-    
+
     return cleaned.trim();
 }
 
@@ -148,6 +151,16 @@ class GeniusManager {
 }
 
 export class LyricsManager {
+    static #instance = null;
+
+    static get instance() {
+        if (!LyricsManager.#instance) {
+            throw new Error('LyricsManager is not initialized. Call LyricsManager.initialize() first.');
+        }
+        return LyricsManager.#instance;
+    }
+
+    /** @private */
     constructor(api) {
         this.api = api;
         this.currentLyrics = null;
@@ -169,6 +182,13 @@ export class LyricsManager {
         this.isGeniusMode = false;
         this.currentGeniusData = null;
         this.timingOffset = 0; // Offset in milliseconds (positive = delay lyrics, negative = advance lyrics)
+    }
+
+    static async initialize(api) {
+        if (LyricsManager.#instance) {
+            throw new Error('LyricsManager is already initialized');
+        }
+        return (LyricsManager.#instance = new LyricsManager(api));
     }
 
     // Get timing offset for current track
@@ -226,6 +246,7 @@ export class LyricsManager {
             // Monkey-patch XMLHttpRequest to redirect dictionary requests to CDN
             // Kuromoji uses XHR, not fetch, for loading dictionary files
             if (!window._originalXHROpen) {
+                // eslint-disable-next-line @typescript-eslint/unbound-method
                 window._originalXHROpen = XMLHttpRequest.prototype.open;
                 XMLHttpRequest.prototype.open = function (method, url, ...rest) {
                     const urlStr = url.toString();
@@ -244,7 +265,7 @@ export class LyricsManager {
             if (!window._originalFetch) {
                 window._originalFetch = window.fetch;
                 window.fetch = async (url, options) => {
-                    const urlStr = url.toString();
+                    const urlStr = url instanceof URL ? url.toString() : url.url;
                     if (urlStr.includes('/dict/') && urlStr.includes('.dat.gz')) {
                         const filename = urlStr.split('/').pop();
                         const cdnUrl = `https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/${filename}`;
@@ -469,18 +490,24 @@ export class LyricsManager {
         return lrc;
     }
 
-    downloadLRC(lyricsData, track) {
+    getLRC(lyricsData, track) {
         const lrcContent = this.generateLRCContent(lyricsData, track);
         if (!lrcContent) {
             alert('No synced lyrics available for this track');
             return;
         }
 
-        const blob = new Blob([lrcContent], { type: 'application/octet-stream' });
+        return new File([lrcContent], buildTrackFilename(track, 'LOSSLESS').replace(/\.flac$/, '.lrc'), {
+            type: 'application/octet-stream',
+        });
+    }
+
+    downloadLRC(lyricsData, track) {
+        const blob = this.getLRC(lyricsData, track);
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = buildTrackFilename(track, 'LOSSLESS').replace(/\.flac$/, '.lrc');
+        a.download = blob.name;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -501,7 +528,7 @@ export class LyricsManager {
     }
 
     // Setup MutationObserver to convert lyrics in am-lyrics component
-    setupLyricsObserver(amLyricsElement) {
+    async setupLyricsObserver(amLyricsElement) {
         this.stopLyricsObserver();
 
         if (!amLyricsElement) return;
@@ -549,7 +576,7 @@ export class LyricsManager {
                     await this.convertLyricsContent(amLyricsElement);
                 }
                 if (this.isGeniusMode && this.currentGeniusData) {
-                    this.applyGeniusAnnotations(amLyricsElement, this.currentGeniusData.referents);
+                    await this.applyGeniusAnnotations(amLyricsElement, this.currentGeniusData.referents);
                 }
             }, 100);
         });
@@ -565,10 +592,10 @@ export class LyricsManager {
 
         // Initial conversion if Romaji mode is enabled - single attempt, no periodic polling
         if (this.isRomajiMode) {
-            this.convertLyricsContent(amLyricsElement);
+            await this.convertLyricsContent(amLyricsElement);
         }
         if (this.isGeniusMode && this.currentGeniusData) {
-            this.applyGeniusAnnotations(amLyricsElement, this.currentGeniusData.referents);
+            await this.applyGeniusAnnotations(amLyricsElement, this.currentGeniusData.referents);
         }
     }
 
@@ -666,7 +693,7 @@ export class LyricsManager {
         if (amLyricsElement) {
             if (this.isRomajiMode) {
                 // Turning ON: Setup observer and convert immediately
-                this.setupLyricsObserver(amLyricsElement);
+                await this.setupLyricsObserver(amLyricsElement);
                 await this.convertLyricsContent(amLyricsElement);
             } else {
                 // Turning OFF: Stop observer
@@ -1212,7 +1239,7 @@ export function clearFullscreenLyricsSync(container) {
     }
 }
 
-export function clearLyricsPanelSync(audioPlayer, panel) {
+export function clearLyricsPanelSync(_audioPlayer, panel) {
     if (panel && panel.lyricsCleanup) {
         panel.lyricsCleanup();
         panel.lyricsCleanup = null;
