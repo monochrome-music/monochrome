@@ -10700,6 +10700,20 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     opacity: 0.55;
 }
 
+#fullscreen-cover-overlay.queue-panel-active .fullscreen-main-view {
+    grid-template-columns: 1fr;
+    width: min(760px, 100%);
+}
+
+#fullscreen-cover-overlay.queue-panel-active .fullscreen-media-column {
+    justify-self: center;
+    transform: none;
+}
+
+#fullscreen-cover-overlay.queue-panel-active .fullscreen-lyrics-pane {
+    display: none;
+}
+
 @media (max-width: 980px) {
     #fullscreen-cover-overlay .fullscreen-main-view {
         grid-template-columns: 1fr;
@@ -10724,33 +10738,43 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 }
 
 @media (max-width: 768px) {
+    #fullscreen-cover-overlay {
+        --fs-mobile-top-btn-size: 44px;
+        --fs-mobile-top-btn-gap: 0.6rem;
+        --fs-mobile-top-btn-left: calc(1rem + env(safe-area-inset-left));
+    }
+
     #fullscreen-cover-overlay .fullscreen-cover-content {
         padding: 0.75rem 0.75rem calc(0.75rem + env(safe-area-inset-bottom));
     }
 
     #fullscreen-cover-overlay .fullscreen-top-actions {
         top: calc(0.75rem + env(safe-area-inset-top));
-        left: calc(1rem + env(safe-area-inset-left));
-        gap: 0.35rem;
+        left: var(--fs-mobile-top-btn-left);
+        gap: var(--fs-mobile-top-btn-gap);
     }
 
     #fullscreen-cover-overlay .fullscreen-top-actions button,
     #fullscreen-cover-overlay #toggle-ui-btn {
-        width: 44px;
-        height: 44px;
+        width: var(--fs-mobile-top-btn-size);
+        height: var(--fs-mobile-top-btn-size);
         background: rgb(9 12 18 / 0.5);
     }
 
     #fullscreen-cover-overlay #toggle-ui-btn {
         top: calc(0.75rem + env(safe-area-inset-top));
-        left: calc(88px + 1.25rem + env(safe-area-inset-left));
+        left: calc(
+            var(--fs-mobile-top-btn-left) +
+            (var(--fs-mobile-top-btn-size) * 2) +
+            (var(--fs-mobile-top-btn-gap) * 2)
+        );
     }
 
     #fullscreen-cover-overlay .fullscreen-main-view {
         width: 100%;
         gap: 0.85rem;
         padding:
-            calc(4.25rem + env(safe-area-inset-top))
+            calc(7.25rem + env(safe-area-inset-top))
             0.75rem
             calc(1.5rem + env(safe-area-inset-bottom))
             0.75rem;
