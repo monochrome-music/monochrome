@@ -25,7 +25,7 @@ jobs:
                   echo "Files changed in this commit:"
                   echo "$CHANGED"
                   if echo "$CHANGED" | grep -qE '^public/editors-picks\.json$|^public/editors-picks-old/'; then
-                    echo "Detected changes to generated files in this commit — backing off to avoid overwriting manual edits."
+                    echo "Detected changes to generated files in this commit - backing off to avoid overwriting manual edits."
                     echo "skip=true" >> "$GITHUB_OUTPUT"
                   else
                     echo "skip=false" >> "$GITHUB_OUTPUT"
@@ -36,6 +36,10 @@ jobs:
               uses: actions/setup-python@v5
               with:
                   python-version: '3.x'
+
+            - name: Install webp
+              if: steps.backoff.outputs.skip == 'false'
+              run: sudo apt-get update && sudo apt-get install -y webp
 
             - name: Archive current editors picks
               if: steps.backoff.outputs.skip == 'false'
@@ -60,9 +64,19 @@ jobs:
                               label = m.group(1).strip()
                               break
 
-                  # Copy current picks to archive
+                  # Copy current picks to archive, replacing monochrome URLs with UUIDs
                   with open("public/editors-picks.json") as f:
                       current = json.load(f)
+
+                  # Replace cover URLs with original UUIDs
+                  url_pattern = re.compile(r'^https://monochrome\.tf/editors-picks-images/([a-f0-9-]+)\.webp$')
+                  for item in current:
+                      for field in ['cover', 'picture', 'image']:
+                          if field in item and item[field]:
+                              match = url_pattern.match(item[field])
+                              if match:
+                                  item[field] = match.group(1)
+
                   with open(archive_path, "w") as f:
                       json.dump(current, f, indent=4)
 
@@ -89,7 +103,7 @@ jobs:
               run: |
                   git config user.name "github-actions[bot]"
                   git config user.email "github-actions[bot]@users.noreply.github.com"
-                  git add public/editors-picks.json public/editors-picks-old/
+                  git add public/editors-picks.json public/editors-picks-old/ public/editors-picks-images/
                   git diff --staged --quiet && echo "No changes to commit." && exit 0
                   git commit -m "chore: update editors picks"
                   git push
