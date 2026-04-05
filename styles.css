@@ -970,6 +970,7 @@ ul {
     display: grid;
     height: 100vh;
     height: 100dvh;
+    min-height: 0;
     grid-template:
         'sidebar main' 1fr
         'player player' auto / 210px 1fr;
@@ -977,6 +978,7 @@ ul {
 
 .sidebar {
     grid-area: sidebar;
+    min-height: 0;
     background-color: var(--background);
     border-right: 1px solid var(--border);
     padding: 1.25rem;
@@ -1023,7 +1025,10 @@ ul {
 
 .main-content {
     grid-area: main;
+    min-height: 0;
+    min-width: 0;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: var(--spacing-xl);
     scroll-behavior: smooth;
     position: relative;
@@ -3934,7 +3939,26 @@ input:checked + .slider::before {
     filter: var(--cover-filter);
     z-index: -1;
     background-image: var(--bg-image);
-    transition: background-image var(--transition);
+    transition:
+        background-image var(--transition),
+        filter 0.65s ease,
+        opacity 0.65s ease;
+}
+
+#fullscreen-cover-overlay::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 20% 22%, rgb(var(--highlight-rgb) / 0.28), transparent 36%),
+        radial-gradient(circle at 82% 18%, rgb(255 255 255 / 0.09), transparent 28%),
+        linear-gradient(135deg, rgb(10 13 18 / 0.48), rgb(10 13 18 / 0.2) 38%, rgb(var(--highlight-rgb) / 0.12) 100%);
+    opacity: 0.36;
+    pointer-events: none;
+    z-index: 0;
+    transition:
+        opacity 0.65s ease,
+        background 0.65s ease;
 }
 
 #visualizer-container {
@@ -3944,7 +3968,13 @@ input:checked + .slider::before {
     height: 100%;
     z-index: 0;
     pointer-events: none;
-    transition: opacity 0.3s ease;
+    filter: blur(14px) saturate(0.84) brightness(0.8);
+    transform: scale(1.04);
+    opacity: 0.82;
+    transition:
+        opacity 0.65s ease,
+        filter 0.65s ease,
+        transform 0.65s ease;
 }
 
 #visualizer-canvas {
@@ -3963,6 +3993,7 @@ input:checked + .slider::before {
     height: 100%;
     position: relative;
     padding: 1rem;
+    overflow: hidden;
 }
 
 /* UI Toggle Button for Visualizer Mode - Rightmost position */
@@ -4083,9 +4114,20 @@ input:checked + .slider::before {
 /* When UI is hidden, only toggle button stays visible at right edge (when .visible class is added) */
 
 #fullscreen-cover-overlay.ui-hidden .fullscreen-lyrics-toggle,
-#fullscreen-cover-overlay.ui-hidden #close-fullscreen-cover-btn {
+#fullscreen-cover-overlay.ui-hidden .fullscreen-top-actions {
     opacity: 0;
     pointer-events: none;
+}
+
+#fullscreen-cover-overlay.ui-hidden::before,
+#fullscreen-cover-overlay.ui-hidden::after {
+    opacity: 0;
+}
+
+#fullscreen-cover-overlay.ui-hidden #visualizer-container {
+    filter: none;
+    transform: none;
+    opacity: 1;
 }
 
 body:has(#fullscreen-cover-overlay.ui-hidden.inline-lyrics) #side-panel[data-view='lyrics'] {
@@ -4108,7 +4150,7 @@ body:has(#fullscreen-cover-overlay.ui-hidden.inline-lyrics) #side-panel[data-vie
 #fullscreen-cover-overlay.controls-idle #fullscreen-next-track,
 #fullscreen-cover-overlay.controls-idle #toggle-ui-btn,
 #fullscreen-cover-overlay.controls-idle .fullscreen-lyrics-toggle,
-#fullscreen-cover-overlay.controls-idle #close-fullscreen-cover-btn {
+#fullscreen-cover-overlay.controls-idle .fullscreen-top-actions {
     opacity: 0;
     pointer-events: none;
     transition:
@@ -4135,7 +4177,7 @@ body:has(#fullscreen-cover-overlay.ui-hidden.inline-lyrics) #side-panel[data-vie
 
 #fullscreen-cover-overlay.controls-idle #toggle-ui-btn,
 #fullscreen-cover-overlay.controls-idle .fullscreen-lyrics-toggle,
-#fullscreen-cover-overlay.controls-idle #close-fullscreen-cover-btn {
+#fullscreen-cover-overlay.controls-idle .fullscreen-top-actions {
     transform: translateY(-0.5rem);
 }
 
@@ -4144,7 +4186,7 @@ body:has(#fullscreen-cover-overlay.ui-hidden.inline-lyrics) #side-panel[data-vie
 #fullscreen-cover-overlay:not(.controls-idle) #fullscreen-next-track,
 #fullscreen-cover-overlay:not(.controls-idle) #toggle-ui-btn,
 #fullscreen-cover-overlay:not(.controls-idle) .fullscreen-lyrics-toggle,
-#fullscreen-cover-overlay:not(.controls-idle) #close-fullscreen-cover-btn {
+#fullscreen-cover-overlay:not(.controls-idle) .fullscreen-top-actions {
     opacity: 1;
     transform: translateY(0);
     transition:
@@ -5022,7 +5064,7 @@ body:has(#fullscreen-cover-overlay.ui-hidden.inline-lyrics) #side-panel[data-vie
 
 #download-notifications {
     position: fixed;
-    bottom: 120px;
+    bottom: calc(max(env(safe-area-inset-bottom), 0px) + 12px);
     right: 20px;
     z-index: 20000;
     max-width: 350px;
@@ -6841,7 +6883,7 @@ img[src=''] {
     }
 
     #download-notifications {
-        bottom: 10px;
+        bottom: calc(max(env(safe-area-inset-bottom), 0px) + 10px);
         right: 10px;
         left: 10px;
         max-width: none;
@@ -10087,4 +10129,515 @@ body:has(#side-panel.active[data-view='queue']) #close-fullscreen-cover-btn {
 
 .contrib {
     font-size: 10px;
+}
+
+/* Fullscreen layout rebuild on PR 378 base */
+#fullscreen-cover-overlay .fullscreen-shell {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    min-height: 0;
+    overflow: hidden;
+}
+
+#fullscreen-cover-overlay .fullscreen-main-view {
+    width: min(1240px, 100%);
+    height: 100%;
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(360px, 430px) minmax(420px, 1fr);
+    gap: clamp(1.5rem, 3vw, 3rem);
+    align-items: center;
+    justify-content: center;
+    padding: clamp(4rem, 7vh, 5rem) clamp(2rem, 4vw, 3rem) clamp(3rem, 6vh, 4rem) clamp(4rem, 7vw, 6.25rem);
+    position: relative;
+    z-index: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+#fullscreen-cover-overlay .fullscreen-media-column,
+#fullscreen-cover-overlay .fullscreen-lyrics-pane {
+    min-height: 0;
+}
+
+#fullscreen-cover-overlay .fullscreen-media-column {
+    width: min(420px, 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 0.95rem;
+    justify-self: center;
+    transform: translateX(clamp(0.75rem, 1.2vw, 1.4rem));
+}
+
+#fullscreen-cover-overlay .fullscreen-artwork-card {
+    width: min(420px, 100%);
+    aspect-ratio: 1 / 1;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.26);
+}
+
+#fullscreen-cover-overlay #fullscreen-cover-image {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    max-width: none;
+    max-height: none;
+    object-fit: cover;
+    border-radius: 18px;
+    transform: none !important;
+}
+
+#fullscreen-cover-overlay .fullscreen-track-info {
+    width: min(420px, 100%);
+    display: block;
+    text-align: left;
+    max-width: none;
+    padding: 0.15rem 0 0;
+    background: none;
+    border: 0;
+    box-shadow: none;
+    backdrop-filter: none;
+}
+
+#fullscreen-cover-overlay .fullscreen-track-text {
+    min-width: 0;
+}
+
+#fullscreen-cover-overlay #fullscreen-track-title {
+    margin: 0;
+    font-size: clamp(1.15rem, 1.5vw, 1.42rem);
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+}
+
+#fullscreen-cover-overlay #fullscreen-track-artist {
+    margin: 0.12rem 0 0;
+    font-size: 0.94rem;
+    color: rgb(255 255 255 / 0.74);
+}
+
+#fullscreen-cover-overlay #toggle-fullscreen-lyrics-btn,
+#fullscreen-cover-overlay .fullscreen-lyrics-toggle {
+    display: none !important;
+}
+
+#fullscreen-cover-overlay .fullscreen-actions {
+    display: flex !important;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.9rem;
+}
+
+#fullscreen-cover-overlay .fullscreen-actions .btn-icon {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border-radius: 999px;
+    color: rgb(255 255 255 / 0.74);
+    background: transparent;
+    transition:
+        color 0.2s ease,
+        background-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+#fullscreen-cover-overlay .fullscreen-actions .btn-icon:hover {
+    color: rgb(255 255 255 / 0.96);
+    background: rgb(255 255 255 / 0.08);
+    transform: scale(1.03);
+}
+
+#fullscreen-cover-overlay #fullscreen-next-track {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: 0.85rem;
+    color: rgb(255 255 255 / 0.56);
+}
+
+#fullscreen-cover-overlay #fullscreen-next-track .label {
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+#fullscreen-cover-overlay #fullscreen-next-track .value {
+    font-size: 0.84rem;
+    color: rgb(255 255 255 / 0.74);
+}
+
+#fullscreen-cover-overlay .fullscreen-top-actions {
+    position: absolute;
+    top: 1.25rem;
+    left: calc(1.5rem + env(safe-area-inset-left));
+    right: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    z-index: 12;
+}
+
+#fullscreen-cover-overlay .fullscreen-top-actions button {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 999px;
+    padding: 0;
+    background: rgb(9 12 18 / 0.34);
+    color: rgb(255 255 255 / 0.72);
+    backdrop-filter: blur(10px);
+    transition:
+        color 0.2s ease,
+        background-color 0.2s ease,
+        opacity 0.2s ease;
+}
+
+#fullscreen-cover-overlay .fullscreen-top-actions #fs-visualizer-btn {
+    order: 2;
+}
+
+#fullscreen-cover-overlay .fullscreen-top-actions #fs-visualizer-btn,
+#fullscreen-cover-overlay .fullscreen-top-actions #close-fullscreen-cover-btn {
+    position: static;
+    top: auto;
+    right: auto;
+    left: auto;
+    bottom: auto;
+    margin: 0;
+    opacity: 1;
+}
+
+#fullscreen-cover-overlay .fullscreen-top-actions #close-fullscreen-cover-btn {
+    order: 1;
+}
+
+#fullscreen-cover-overlay #toggle-ui-btn {
+    top: 1.25rem;
+    left: calc(80px + 2.3rem + env(safe-area-inset-left));
+    right: auto;
+    width: 40px;
+    height: 40px;
+    background: rgb(9 12 18 / 0.34);
+    color: rgb(255 255 255 / 0.72);
+    backdrop-filter: blur(10px);
+    opacity: 1;
+    z-index: 12;
+}
+
+#fullscreen-cover-overlay .fullscreen-controls {
+    width: min(420px, 100%);
+    margin-top: 0;
+    align-items: center;
+    gap: 0.85rem;
+    position: relative;
+}
+
+#fullscreen-cover-overlay .fullscreen-buttons {
+    width: 100%;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+#fullscreen-cover-overlay .fullscreen-buttons button {
+    width: 40px;
+    height: 40px;
+    color: rgb(255 255 255 / 0.72);
+    border-radius: 999px;
+    padding: 0;
+    transition:
+        color 0.2s ease,
+        transform 0.2s ease,
+        background-color 0.2s ease,
+        opacity 0.2s ease;
+}
+
+#fullscreen-cover-overlay .fullscreen-buttons button:hover {
+    color: rgb(255 255 255 / 0.94);
+    background: rgb(255 255 255 / 0.08);
+    transform: scale(1.04);
+}
+
+#fullscreen-cover-overlay .fullscreen-buttons button.active {
+    color: rgb(var(--highlight-rgb) / 0.98);
+}
+
+#fullscreen-cover-overlay .fullscreen-buttons #fs-play-pause-btn {
+    width: 54px;
+    height: 54px;
+    background: rgb(255 255 255 / 0.96);
+    color: rgb(11 15 21 / 0.92);
+    box-shadow: 0 12px 28px rgb(0 0 0 / 0.2);
+}
+
+#fullscreen-cover-overlay .fullscreen-buttons #fs-play-pause-btn:hover {
+    background: rgb(255 255 255 / 1);
+    transform: scale(1.02);
+}
+
+#fullscreen-cover-overlay .fullscreen-volume-container {
+    width: 238px;
+    max-width: 100%;
+    align-self: center;
+    justify-content: center;
+    margin-top: 0.2rem;
+    margin-inline: auto;
+    position: relative;
+}
+
+#fullscreen-cover-overlay .fs-visualizer-btn,
+#fullscreen-cover-overlay .fs-volume-btn {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    color: rgb(255 255 255 / 0.62);
+}
+
+#fullscreen-cover-overlay .fs-visualizer-btn:hover,
+#fullscreen-cover-overlay .fs-volume-btn:hover {
+    background: transparent;
+    color: rgb(255 255 255 / 0.9);
+}
+
+#fullscreen-cover-overlay .fs-visualizer-btn.active {
+    color: rgb(var(--highlight-rgb) / 0.96);
+}
+
+#fullscreen-cover-overlay .fs-volume-btn {
+    position: absolute;
+    left: -2.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+#fullscreen-cover-overlay .fs-volume-btn:hover {
+    transform: translateY(-50%);
+}
+
+#fullscreen-cover-overlay .fs-volume-bar {
+    width: 238px;
+    height: 4px;
+    background: rgb(255 255 255 / 0.24);
+    margin-inline: auto;
+}
+
+#fullscreen-cover-overlay .fs-volume-bar:hover {
+    height: 4px;
+}
+
+#fullscreen-cover-overlay .fs-volume-fill,
+#fullscreen-cover-overlay .fullscreen-progress-container .progress-fill {
+    background: rgb(255 255 255 / 0.92);
+}
+
+#fullscreen-cover-overlay .fullscreen-progress-container {
+    color: rgb(255 255 255 / 0.62);
+    font-size: 0.78rem;
+}
+
+#fullscreen-cover-overlay .fullscreen-progress-container .progress-bar {
+    height: 4px;
+    background: rgb(255 255 255 / 0.2);
+}
+
+#fullscreen-cover-overlay .fullscreen-progress-container .progress-bar:hover {
+    height: 4px;
+}
+
+#fullscreen-cover-overlay .fullscreen-progress-container .progress-bar:hover .progress-fill,
+#fullscreen-cover-overlay .fs-volume-bar:hover .fs-volume-fill {
+    background: rgb(var(--highlight-rgb) / 0.94);
+}
+
+#fullscreen-cover-overlay .fullscreen-progress-container .progress-bar:hover .progress-fill::after,
+#fullscreen-cover-overlay .fullscreen-progress-container .progress-bar:active .progress-fill::after,
+#fullscreen-cover-overlay .fs-volume-bar:hover .fs-volume-fill::after,
+#fullscreen-cover-overlay .fs-volume-bar:active .fs-volume-fill::after {
+    width: 10px;
+    height: 10px;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 0.28);
+}
+
+#fullscreen-cover-overlay .fullscreen-lyrics-pane {
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-start;
+    overflow: hidden;
+}
+
+#fullscreen-cover-overlay .fullscreen-lyrics-shell,
+#fullscreen-cover-overlay .fullscreen-lyrics-content,
+#fullscreen-cover-overlay .fullscreen-lyrics-content am-lyrics {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+    backdrop-filter: none !important;
+}
+
+#fullscreen-cover-overlay .fullscreen-lyrics-shell {
+    width: min(860px, 100%);
+    min-height: 0;
+    margin-left: clamp(4rem, 8vw, 8rem);
+}
+
+#fullscreen-cover-overlay .fullscreen-lyrics-content {
+    min-height: 0;
+    height: 100%;
+    position: relative;
+    padding-left: clamp(2.5rem, 4vw, 4rem);
+    mask-image: none;
+    overflow: visible;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+#fullscreen-cover-overlay .fullscreen-lyrics-content::-webkit-scrollbar {
+    display: none;
+}
+
+#fullscreen-cover-overlay .fullscreen-lyrics-content am-lyrics {
+    --am-lyrics-highlight-color: #f6f4ef;
+    --lyrics-scroll-padding-top: 18%;
+    --lyplus-blur-amount: 0.16em;
+    --lyplus-blur-amount-near: 0.085em;
+    height: 100%;
+    width: 100%;
+    font-family:
+        'SF Pro Display',
+        Inter,
+        sans-serif;
+    --lyplus-font-size-base: clamp(34px, 3vw, 52px);
+    --lyplus-padding-line: 8px;
+    --lyplus-text-color: rgba(246, 244, 239, 0.08);
+    --lyplus-active-color: #f6f4ef;
+    line-height: 1.32;
+    letter-spacing: -0.04em;
+    font-weight: 600;
+    isolation: isolate;
+}
+
+#fullscreen-cover-overlay .fullscreen-lyrics-content::after {
+    content: none;
+}
+
+#fullscreen-cover-overlay .fullscreen-lyrics-empty,
+#fullscreen-cover-overlay .fullscreen-lyrics-content .lyrics-loading,
+#fullscreen-cover-overlay .fullscreen-lyrics-content .lyrics-error {
+    padding: clamp(5rem, 14vh, 7rem) 0 0 clamp(2rem, 5vw, 4.5rem);
+    background: none;
+    border: 0;
+}
+
+#fullscreen-cover-overlay.lyrics-unavailable .fullscreen-lyrics-pane {
+    opacity: 0.55;
+}
+
+@media (max-width: 980px) {
+    #fullscreen-cover-overlay .fullscreen-main-view {
+        grid-template-columns: 1fr;
+        width: min(760px, 100%);
+        gap: 1rem;
+        align-items: start;
+        padding:
+            calc(4.5rem + env(safe-area-inset-top))
+            clamp(1rem, 4vw, 1.5rem)
+            calc(1.5rem + env(safe-area-inset-bottom))
+            clamp(1rem, 4vw, 1.5rem);
+    }
+
+    #fullscreen-cover-overlay .fullscreen-media-column {
+        justify-self: center;
+        transform: none;
+    }
+
+    #fullscreen-cover-overlay .fullscreen-lyrics-pane {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    #fullscreen-cover-overlay .fullscreen-cover-content {
+        padding: 0.75rem 0.75rem calc(0.75rem + env(safe-area-inset-bottom));
+    }
+
+    #fullscreen-cover-overlay .fullscreen-top-actions {
+        top: calc(0.75rem + env(safe-area-inset-top));
+        left: calc(1rem + env(safe-area-inset-left));
+        gap: 0.35rem;
+    }
+
+    #fullscreen-cover-overlay .fullscreen-top-actions button,
+    #fullscreen-cover-overlay #toggle-ui-btn {
+        width: 44px;
+        height: 44px;
+        background: rgb(9 12 18 / 0.5);
+    }
+
+    #fullscreen-cover-overlay #toggle-ui-btn {
+        top: calc(0.75rem + env(safe-area-inset-top));
+        left: calc(88px + 1.25rem + env(safe-area-inset-left));
+    }
+
+    #fullscreen-cover-overlay .fullscreen-main-view {
+        width: 100%;
+        gap: 0.85rem;
+        padding:
+            calc(4.25rem + env(safe-area-inset-top))
+            0.75rem
+            calc(1.5rem + env(safe-area-inset-bottom))
+            0.75rem;
+    }
+
+    #fullscreen-cover-overlay .fullscreen-track-info,
+    #fullscreen-cover-overlay .fullscreen-controls,
+    #fullscreen-cover-overlay .fullscreen-media-column {
+        width: min(100%, 460px);
+    }
+
+    #fullscreen-cover-overlay .fullscreen-actions {
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+    }
+
+    #fullscreen-cover-overlay .fullscreen-actions .btn-icon {
+        background: rgb(255 255 255 / 0.06);
+    }
+
+    #fullscreen-cover-overlay .fullscreen-progress-container {
+        gap: 0.65rem;
+    }
+
+    #fullscreen-cover-overlay .fullscreen-buttons {
+        gap: 0.2rem;
+    }
+
+    #fullscreen-cover-overlay .fullscreen-buttons button {
+        width: 38px;
+        height: 38px;
+    }
+
+    #fullscreen-cover-overlay .fullscreen-buttons #fs-play-pause-btn {
+        width: 52px;
+        height: 52px;
+    }
+
+    #fullscreen-cover-overlay .fullscreen-volume-container {
+        width: min(220px, calc(100% - 2.75rem));
+    }
+
+    #fullscreen-cover-overlay .fs-volume-btn {
+        left: -2.25rem;
+    }
+
+    #fullscreen-cover-overlay .fs-volume-bar {
+        width: 100%;
+    }
 }
