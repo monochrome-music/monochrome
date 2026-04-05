@@ -291,5 +291,23 @@
                 "LOSSLESS"
             ]
         }
+    },
+    {
+        "type": "album",
+        "id": 151728406,
+        "title": "Niagara",
+        "artist": {
+            "id": 7607680,
+            "name": "redveil"
+        },
+        "releaseDate": "2020-08-25",
+        "cover": "14690142-7fc8-4557-8a61-0721b7884822",
+        "explicit": true,
+        "audioQuality": "LOSSLESS",
+        "mediaMetadata": {
+            "tags": [
+                "LOSSLESS"
+            ]
+        }
     }
 ]
