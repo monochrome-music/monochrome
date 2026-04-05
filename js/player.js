@@ -487,7 +487,7 @@ export class Player {
         const timeRemaining = duration - currentTime;
 
         // Preload if we are in last 30 seconds of song
-        const shouldPreload = (duration > 0 && timeRemaining <= 30);
+        const shouldPreload = duration > 0 && timeRemaining <= 30;
 
         if (shouldPreload) {
             this._pendingPreload = false;
@@ -537,7 +537,7 @@ export class Player {
                                 albumPeakAmplitude: trackData.info.albumPeakAmplitude,
                             };
                         }
-                    } catch(e) {} // Fail silently
+                    } catch (_e) {} // Fail silently
                 }
 
                 this.preloadCache.set(track.id, streamInfo);
@@ -546,30 +546,45 @@ export class Player {
                 // Warm connection and pre-fetch
                 if (!streamUrl.startsWith('blob:')) {
                     if (streamUrl.includes('.mpd') || streamUrl.includes('.m3u8')) {
-                        if (this.shakaInitialized && this.shakaPlayer && typeof this.shakaPlayer.preload === 'function') {
+                        if (
+                            this.shakaInitialized &&
+                            this.shakaPlayer &&
+                            typeof this.shakaPlayer.preload === 'function'
+                        ) {
                             try {
                                 let preloadConfig = undefined;
                                 if (typeof this.shakaPlayer.getConfiguration === 'function') {
                                     preloadConfig = this.shakaPlayer.getConfiguration();
-                                    const stats = typeof this.shakaPlayer.getStats === 'function' ? this.shakaPlayer.getStats() : null;
+                                    const stats =
+                                        typeof this.shakaPlayer.getStats === 'function'
+                                            ? this.shakaPlayer.getStats()
+                                            : null;
                                     if (stats && stats.estimatedBandwidth) {
                                         preloadConfig.abr.defaultBandwidthEstimate = stats.estimatedBandwidth;
                                     }
-                                    
+
                                     // Lock the preload to the exact current audio codec to prevent ABR mismatch,
                                     // which forces the player to discard and re-fetch chunks on slow connections.
                                     preloadConfig.abr.enabled = false;
                                     try {
-                                        const variants = typeof this.shakaPlayer.getVariantTracks === 'function' ? this.shakaPlayer.getVariantTracks() : [];
-                                        const activeVariant = variants.find(v => v.active);
+                                        const variants =
+                                            typeof this.shakaPlayer.getVariantTracks === 'function'
+                                                ? this.shakaPlayer.getVariantTracks()
+                                                : [];
+                                        const activeVariant = variants.find((v) => v.active);
                                         if (activeVariant && activeVariant.audioCodec) {
                                             preloadConfig.preferredAudioCodecs = [activeVariant.audioCodec];
                                         }
-                                    } catch (e) {}
+                                    } catch (_e) {}
                                 }
-                                const preloadManager = await this.shakaPlayer.preload(streamUrl, null, null, preloadConfig);
+                                const preloadManager = await this.shakaPlayer.preload(
+                                    streamUrl,
+                                    null,
+                                    null,
+                                    preloadConfig
+                                );
                                 streamInfo.preloadManager = preloadManager;
-                            } catch (e) {
+                            } catch (_e) {
                                 // Ignore preload errors, will just load fresh
                             }
                         } else {
@@ -801,7 +816,7 @@ export class Player {
             this.hls.destroy();
             this.hls = null;
         }
-        
+
         // Retain the initialized Shaka player if we are remaining on the same HTMLMediaElement
         if (this.shakaInitialized && this.shakaPlayer) {
             if (this.shakaPlayer.getMediaElement() !== activeElement) {
@@ -1015,14 +1030,17 @@ export class Player {
                 } else if (streamUrl.startsWith('blob:') || streamUrl.includes('.mpd')) {
                     await this.shakaPlayer.attach(activeElement);
 
-                    const loadTarget = track.type == 'video' && this.preloadCache.has(track.id) ? 
-                        (this.preloadCache.get(track.id).preloadManager || streamUrl) : streamUrl;
+                    const loadTarget =
+                        track.type == 'video' && this.preloadCache.has(track.id)
+                            ? this.preloadCache.get(track.id).preloadManager || streamUrl
+                            : streamUrl;
 
                     try {
                         await this.shakaPlayer.load(loadTarget);
                     } catch (e) {
-                         console.error("PreloadManager load Error:", e); if (loadTarget !== streamUrl) await this.shakaPlayer.load(streamUrl);
-                         else throw e;
+                        console.error('PreloadManager load Error:', e);
+                        if (loadTarget !== streamUrl) await this.shakaPlayer.load(streamUrl);
+                        else throw e;
                     }
 
                     this.shakaInitialized = true;
@@ -1097,8 +1115,9 @@ export class Player {
                             await this.shakaPlayer.load(loadTarget);
                         }
                     } catch (e) {
-                         console.error("PreloadManager load Error:", e); if (loadTarget !== streamUrl) await this.shakaPlayer.load(streamUrl);
-                         else throw e;
+                        console.error('PreloadManager load Error:', e);
+                        if (loadTarget !== streamUrl) await this.shakaPlayer.load(streamUrl);
+                        else throw e;
                     }
 
                     this.shakaInitialized = true;
@@ -1109,7 +1128,7 @@ export class Player {
 
                     this.updateAdaptiveQualityBadge();
 
-                    // Instantly trigger playback rather than explicitly waiting for 'canplay' 
+                    // Instantly trigger playback rather than explicitly waiting for 'canplay'
                     // which delays the event loop and natively adds gap/latency
                     await this.safePlay(activeElement);
                 } else {
