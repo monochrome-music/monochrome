@@ -1302,6 +1302,7 @@ export class UIRenderer {
         // Setup UI toggle button
         this.setupUIToggleButton(overlay);
         this.setupControlsAutoHide(overlay);
+        this.setupFullscreenSidePanelSync(overlay);
         await this.refreshFullscreenVisualizerState(activeElement);
     }
 
@@ -1367,6 +1368,16 @@ export class UIRenderer {
         if (this.uiToggleMouseTimer) {
             clearTimeout(this.uiToggleMouseTimer);
             this.uiToggleMouseTimer = null;
+        }
+
+        if (this.controlsIdleCleanup) {
+            this.controlsIdleCleanup();
+            this.controlsIdleCleanup = null;
+        }
+
+        if (this.fullscreenSidePanelSyncCleanup) {
+            this.fullscreenSidePanelSyncCleanup();
+            this.fullscreenSidePanelSyncCleanup = null;
         }
     }
 
@@ -1573,6 +1584,26 @@ export class UIRenderer {
             overlay.classList.remove('controls-idle');
         };
     }
+
+    setupFullscreenSidePanelSync(overlay) {
+        if (this.fullscreenSidePanelSyncCleanup) {
+            this.fullscreenSidePanelSyncCleanup();
+        }
+
+        const syncState = () => {
+            overlay.classList.toggle('queue-panel-active', sidePanelManager.isActive('queue'));
+        };
+
+        const handleChange = () => syncState();
+        window.addEventListener('side-panel-changed', handleChange);
+        syncState();
+
+        this.fullscreenSidePanelSyncCleanup = () => {
+            window.removeEventListener('side-panel-changed', handleChange);
+            overlay.classList.remove('queue-panel-active');
+        };
+    }
+
     setupFullscreenControls() {
         const playBtn = document.getElementById('fs-play-pause-btn');
         const prevBtn = document.getElementById('fs-prev-btn');
