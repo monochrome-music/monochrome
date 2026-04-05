@@ -152,7 +152,7 @@ async function fetchcontributors() {
             const userDIV = document.createElement('div');
             userDIV.innerHTML = `
             <a href="${user.html_url}" target="_blank">
-            <img src="${user.avatar_url}&s=50" alt="${user.login}" width="50" height="50" style="border-radius: 50%;">
+            <img src="${user.avatar_url}&s=50" alt="${user.login}" width="50" height="50" style="border-radius: 50%;" loading="lazy">
             <span>${user.login}</span>
             <span class="contrib">Contributions: ${user.contributions}</span>
             </a>
