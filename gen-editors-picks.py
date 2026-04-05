@@ -107,7 +107,7 @@ def uuid_to_path_segments(uuid):
 
 
 def download_and_process_cover(cover_uuid):
-    url = f"https://resources.tidal.com/images/{uuid_to_path_segments(cover_uuid)}/640x640.jpg"
+    url = f"https://resources.tidal.com/images/{uuid_to_path_segments(cover_uuid)}/320x320.jpg"
     
     with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
         tmp_path = tmp.name
@@ -121,7 +121,7 @@ def download_and_process_cover(cover_uuid):
         output_path = os.path.join(IMAGES_DIR, f"{cover_uuid}.webp")
         
         subprocess.run(
-            ['cwebp', '-q', '50', '-resize', '500', '500', tmp_path, '-o', output_path],
+            ['cwebp', '-q', '50', tmp_path, '-o', output_path],
             check=True,
             capture_output=True
         )
