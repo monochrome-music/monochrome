@@ -1,0 +1,27 @@
+target: static
+assert:
+    assertions:
+        # Performance
+        - first-contentful-paint:warn < 3000
+        - interactive:warn < 7000
+        - lcp-lazy-loaded:off
+        - speed-index:warn < 5000
+
+        # Accessibility (warn if below 85)
+        - accessibility:warn < 85
+
+        # Best Practices
+        - best-practices:warn < 85
+
+        # SEO
+        - seo:warn < 85
+
+upload:
+    target: temporary-public-storage
+
+collect:
+    numberOfRuns: 3
+    settings:
+        preset: desktop
+        # Headless Chrome for CI
+        chromeFlags: '--no-sandbox --disable-gpu'
