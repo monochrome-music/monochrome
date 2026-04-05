@@ -3239,6 +3239,8 @@ export class UIRenderer {
         const titleEl = document.getElementById('album-detail-title');
         const metaEl = document.getElementById('album-detail-meta');
         const prodEl = document.getElementById('album-detail-producer');
+        const rateCriticsEl = document.getElementById('album-detail-ratings-critics');
+        const rateUsersEl = document.getElementById('album-detail-ratings-users');
         const tracklistContainer = document.getElementById('album-detail-tracklist');
         const playBtn = document.getElementById('play-album-btn');
         if (playBtn) playBtn.innerHTML = `${SVG_PLAY(20)}<span>Play Album</span>`;
@@ -3252,6 +3254,8 @@ export class UIRenderer {
         titleEl.innerHTML = '<div class="skeleton" style="height: 48px; width: 300px; max-width: 90%;"></div>';
         metaEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 200px; max-width: 80%;"></div>';
         prodEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 200px; max-width: 80%;"></div>';
+        rateCriticsEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 200px; max-width: 80%;"></div>';
+        rateUsersEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 200px; max-width: 80%;"></div>';
         tracklistContainer.innerHTML = `
             <div class="track-list-header">
                 <span style="width: 40px; text-align: center;">#</span>
@@ -3361,6 +3365,23 @@ export class UIRenderer {
             prodEl.innerHTML =
                 `By <a href="/artist/${album.artist.id}">${album.artist.name}</a>` +
                 (firstCopyright ? ` • ${firstCopyright}` : '');
+
+            async function fetchAotyWorker(album, artist) {
+                try {
+                    const response = await fetch(
+                        `https://aoty-critics.samidy.workers.dev/?artist=${artist}&album=${album}`
+                    );
+                    const data = await response.json();
+
+                    rateCriticsEl.innerHTML = `<a href="${data.url}" style="color: var(--muted-foreground);">Critic Score: <span style="text-decoration: underline;">${data.critic.score}</span>, Based on ${data.critic.count} reviews</a>`;
+                    rateUsersEl.innerHTML = `<a href="${data.url}" style="color: var(--muted-foreground);">User Score: <span style="text-decoration: underline;">${data.user.score}</span>, Based on ${data.user.count} reviews</a>`;
+                } catch (e) {
+                    rateCriticsEl.innerHTML = `<a style="color: var(--muted-foreground);">Unable to Fetch Critic Score</a>`;
+                    rateUsersEl.innerHTML = `<a style="color: var(--muted-foreground);">Unable to Fetch User Score</a>`;
+                }
+            }
+
+            fetchAotyWorker(album.title, album.artist.name);
 
             tracklistContainer.innerHTML = `
                 <div class="track-list-header">
