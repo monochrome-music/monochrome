@@ -223,6 +223,13 @@ export class MusicAPI {
         return this.tidalAPI.getCoverUrl(this.stripProviderPrefix(id), size);
     }
 
+    getCoverSrcset(id) {
+        if (typeof id === 'string' && id.startsWith('blob:')) {
+            return '';
+        }
+        return this.tidalAPI.getCoverSrcset(this.stripProviderPrefix(id));
+    }
+
     getVideoCoverUrl(imageId, size = '1280') {
         if (!imageId) {
             return null;
@@ -258,6 +265,10 @@ export class MusicAPI {
 
     getArtistPictureUrl(id, size = '320') {
         return this.tidalAPI.getArtistPictureUrl(this.stripProviderPrefix(id), size);
+    }
+
+    getArtistPictureSrcset(id) {
+        return this.tidalAPI.getArtistPictureSrcset(this.stripProviderPrefix(id));
     }
 
     extractStreamUrlFromManifest(manifest) {

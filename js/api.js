@@ -1952,6 +1952,19 @@ export class LosslessAPI {
         return `https://resources.tidal.com/images/${formattedId}/${size}x${size}.jpg`;
     }
 
+    getCoverSrcset(id) {
+        if (
+            !id ||
+            (typeof id === 'string' && (id.startsWith('http') || id.startsWith('blob:') || id.startsWith('assets/')))
+        ) {
+            return '';
+        }
+
+        const formattedId = String(id).replace(/-/g, '/');
+        const baseUrl = `https://resources.tidal.com/images/${formattedId}`;
+        return `${baseUrl}/160x160.jpg 160w, ${baseUrl}/320x320.jpg 320w, ${baseUrl}/640x640.jpg 640w`;
+    }
+
     getArtistPictureUrl(id, size = '320') {
         if (!id) {
             return `https://picsum.photos/seed/${Math.random()}/${size}`;
@@ -1963,6 +1976,16 @@ export class LosslessAPI {
 
         const formattedId = String(id).replace(/-/g, '/');
         return `https://resources.tidal.com/images/${formattedId}/${size}x${size}.jpg`;
+    }
+
+    getArtistPictureSrcset(id) {
+        if (!id || (typeof id === 'string' && (id.startsWith('blob:') || id.startsWith('assets/')))) {
+            return '';
+        }
+
+        const formattedId = String(id).replace(/-/g, '/');
+        const baseUrl = `https://resources.tidal.com/images/${formattedId}`;
+        return `${baseUrl}/160x160.jpg 160w, ${baseUrl}/320x320.jpg 320w, ${baseUrl}/640x640.jpg 640w`;
     }
 
     getVideoCoverUrl(imageId, size = '1280') {
