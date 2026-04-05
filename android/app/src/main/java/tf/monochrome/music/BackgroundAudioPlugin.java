@@ -32,11 +32,16 @@ public class BackgroundAudioPlugin extends Plugin {
         }
     }
 
-    @PluginMethod
+    `@PluginMethod`
     public void stop(PluginCall call) {
-        Intent intent = new Intent(getContext(), AudioPlaybackService.class);
-        intent.setAction("STOP");
-        getContext().stopService(intent);
-        call.resolve();
+        try {
+            Intent intent = new Intent(getContext(), AudioPlaybackService.class);
+            intent.setAction("STOP");
+            // Use startService so onStartCommand receives the STOP action
+            getContext().startService(intent);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject("Failed to stop audio service: " + e.getMessage(), e);
+        }
     }
 }
