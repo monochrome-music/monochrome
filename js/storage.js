@@ -1724,7 +1724,9 @@ export const equalizerSettings = {
             const stored = localStorage.getItem(this.GEQ_GAINS_KEY);
             if (stored) {
                 const parsed = JSON.parse(stored);
-                if (Array.isArray(parsed) && parsed.length === 16) return parsed;
+                if (Array.isArray(parsed) && parsed.length === 16) {
+                    return parsed.map((v) => (Number.isFinite(v) ? v : 0));
+                }
             }
         } catch {
             /* ignore */
@@ -1743,7 +1745,11 @@ export const equalizerSettings = {
     getGraphicEqPreamp() {
         try {
             const val = localStorage.getItem(this.GEQ_PREAMP_KEY);
-            return val !== null ? parseFloat(val) : 0;
+            if (val !== null) {
+                const num = parseFloat(val);
+                return Number.isFinite(num) ? num : 0;
+            }
+            return 0;
         } catch {
             return 0;
         }
