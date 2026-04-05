@@ -11,6 +11,8 @@ export { default as SVG_CLOCK } from '!lucide/clock.svg?svg&icon';
 export { default as SVG_CLOSE } from '!lucide/x.svg?svg&icon';
 export { default as SVG_DISC } from '!lucide/disc.svg?svg&icon';
 export { default as SVG_DOWNLOAD } from '!lucide/download.svg?svg&icon';
+export { default as SVG_EYE } from '!lucide/eye.svg?svg&icon';
+export { default as SVG_EYE_OFF } from '!lucide/eye-off.svg?svg&icon';
 export { default as SVG_EQUAL } from '!lucide/equal.svg?svg&icon';
 export { default as SVG_FACEBOOK } from '../images/facebook.svg?svg&icon';
 export { default as SVG_FOLDER_PLUS } from '!lucide/folder-plus.svg?svg&icon';
