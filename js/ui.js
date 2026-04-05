@@ -155,8 +155,6 @@ export class UIRenderer {
         this.renderLock = false;
         this.lastRecommendedTracks = [];
         this.currentArtistId = null;
-        this.fullscreenLyricsVisible = true;
-        this.fullscreenPlaybackStateCleanup = null;
 
         // Listen for dynamic color reset events
         window.addEventListener('reset-dynamic-color', () => {
