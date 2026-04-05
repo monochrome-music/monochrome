@@ -99,15 +99,20 @@ export class Player {
         }
 
         const waitForImagesLoading = () => {
-            const images = Array.from(document.images).filter(img => !img.complete);
+            const images = Array.from(document.images).filter((img) => !img.complete);
             if (images.length === 0) return Promise.resolve();
-            return Promise.all(images.map(img => new Promise(res => {
-                img.onload = img.onerror = res;
-            })));
+            return Promise.all(
+                images.map(
+                    (img) =>
+                        new Promise((res) => {
+                            img.onload = img.onerror = res;
+                        })
+                )
+            );
         };
 
         if (document.readyState !== 'complete') {
-            await new Promise(resolve => window.addEventListener('load', resolve));
+            await new Promise((resolve) => window.addEventListener('load', resolve));
         }
         await waitForImagesLoading();
 
