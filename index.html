@@ -81,9 +81,22 @@
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" href="/assets/logo.svg" type="image/svg+xml" />
         <link
+            rel="preload"
+            as="style"
+            href="https://api.fonts.coollabs.io/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        />
+        <link
             href="https://api.fonts.coollabs.io/css2?family=Inter:wght@400;500;600;700;800&display=swap"
             rel="stylesheet"
+            media="print"
+            onload="this.media='all'"
         />
+        <noscript>
+            <link
+                href="https://api.fonts.coollabs.io/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+                rel="stylesheet"
+            />
+        </noscript>
         <link rel="stylesheet" href="/styles.css" />
     </head>
 
@@ -1751,7 +1764,7 @@
                             </p>
                         </div>
 
-                        <section class="content-section" id="home-editors-picks-section-empty" style="margin-top: 0">
+                        <section class="content-section" id="home-editors-picks-section-empty" style="margin-top: 0; display: none;">
                             <div
                                 style="
                                     display: flex;
@@ -5530,7 +5543,7 @@
 
             <footer class="now-playing-bar">
                 <div class="track-info">
-                    <img src="/assets/appicon.png" alt="Current Track Cover" class="cover" />
+                    <img src="/assets/appicon.png" alt="Current Track Cover" class="cover" fetchpriority="high" />
                     <div class="details">
                         <div class="title">Select a song</div>
                         <div class="album"></div>
