@@ -4187,6 +4187,7 @@ input:checked + .slider::before {
 #fullscreen-cover-overlay.controls-idle {
     cursor: none;
 }
+
 #fullscreen-cover-image {
     max-width: 55vw;
     max-height: 45vh;
@@ -10319,7 +10320,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     aspect-ratio: 1 / 1;
     border-radius: 18px;
     overflow: hidden;
-    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.26);
+    box-shadow: 0 28px 80px rgb(0, 0, 0, 0.26);
 }
 
 #fullscreen-cover-overlay #fullscreen-cover-image {
@@ -10663,16 +10664,16 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     --lyrics-scroll-padding-top: 18%;
     --lyplus-blur-amount: 0.16em;
     --lyplus-blur-amount-near: 0.085em;
+
     height: 100%;
     width: 100%;
-    font-family:
-        'SF Pro Display',
-        Inter,
-        sans-serif;
+    font-family: 'SF Pro Display', Inter, sans-serif;
+
     --lyplus-font-size-base: clamp(34px, 3vw, 52px);
     --lyplus-padding-line: 8px;
-    --lyplus-text-color: rgba(246, 244, 239, 0.08);
+    --lyplus-text-color: rgb(246, 244, 239, 0.08);
     --lyplus-active-color: #f6f4ef;
+
     line-height: 1.32;
     letter-spacing: -0.04em;
     font-weight: 600;
@@ -10715,11 +10716,8 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
         width: min(760px, 100%);
         gap: 1rem;
         align-items: start;
-        padding:
-            calc(4.5rem + env(safe-area-inset-top))
-            clamp(1rem, 4vw, 1.5rem)
-            calc(1.5rem + env(safe-area-inset-bottom))
-            clamp(1rem, 4vw, 1.5rem);
+        padding: calc(4.5rem + env(safe-area-inset-top)) clamp(1rem, 4vw, 1.5rem)
+            calc(1.5rem + env(safe-area-inset-bottom));
     }
 
     #fullscreen-cover-overlay .fullscreen-media-column {
@@ -10759,20 +10757,14 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     #fullscreen-cover-overlay #toggle-ui-btn {
         top: calc(0.75rem + env(safe-area-inset-top));
         left: calc(
-            var(--fs-mobile-top-btn-left) +
-            (var(--fs-mobile-top-btn-size) * 2) +
-            (var(--fs-mobile-top-btn-gap) * 2)
+            var(--fs-mobile-top-btn-left) + (var(--fs-mobile-top-btn-size) * 2) + (var(--fs-mobile-top-btn-gap) * 2)
         );
     }
 
     #fullscreen-cover-overlay .fullscreen-main-view {
         width: 100%;
         gap: 0.85rem;
-        padding:
-            calc(7.25rem + env(safe-area-inset-top))
-            0.75rem
-            calc(1.5rem + env(safe-area-inset-bottom))
-            0.75rem;
+        padding: calc(7.25rem + env(safe-area-inset-top)) 0.75rem calc(1.5rem + env(safe-area-inset-bottom));
     }
 
     #fullscreen-cover-overlay .fullscreen-track-info,

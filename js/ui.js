@@ -1307,7 +1307,9 @@ export class UIRenderer {
             nextTrackEl.classList.remove('animate-in');
         }
 
-        const canRenderLyrics = Boolean(lyricsManager && activeElement && lyricsPane && lyricsContent && track.type !== 'video');
+        const canRenderLyrics = Boolean(
+            lyricsManager && activeElement && lyricsPane && lyricsContent && track.type !== 'video'
+        );
         if (canRenderLyrics) {
             lyricsToggleBtn.style.display = 'none';
             overlay.classList.remove('lyrics-unavailable');
@@ -1318,7 +1320,8 @@ export class UIRenderer {
             overlay.classList.add('lyrics-unavailable');
             if (lyricsContent) {
                 clearFullscreenLyricsSync(lyricsContent);
-                lyricsContent.innerHTML = '<div class="fullscreen-lyrics-empty">Lyrics are not available for this track.</div>';
+                lyricsContent.innerHTML =
+                    '<div class="fullscreen-lyrics-empty">Lyrics are not available for this track.</div>';
             }
         }
 
@@ -1372,7 +1375,10 @@ export class UIRenderer {
         if (playerBar) playerBar.style.removeProperty('display');
         const mainContent = document.querySelector('.main-content');
         if (mainContent instanceof HTMLElement) {
-            if (typeof this.fullscreenMainContentOverflow === 'string' && this.fullscreenMainContentOverflow.length > 0) {
+            if (
+                typeof this.fullscreenMainContentOverflow === 'string' &&
+                this.fullscreenMainContentOverflow.length > 0
+            ) {
                 mainContent.style.overflowY = this.fullscreenMainContentOverflow;
             } else {
                 mainContent.style.removeProperty('overflow-y');
