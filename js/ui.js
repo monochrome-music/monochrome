@@ -545,7 +545,7 @@ export class UIRenderer {
         type = 'album'
     ) {
         let size = '320';
-        if (this.currentPage === 'search' || className === 'track-item-cover') {
+        if (className === 'track-item-cover') {
             size = '80';
         } else if (type === 'artist') {
             size = '160';
