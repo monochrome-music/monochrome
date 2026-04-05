@@ -15,6 +15,17 @@ export class SidePanelManager {
         }
     }
 
+    emitChange() {
+        window.dispatchEvent(
+            new CustomEvent('side-panel-changed', {
+                detail: {
+                    active: this.panel.classList.contains('active'),
+                    view: this.currentView,
+                },
+            })
+        );
+    }
+
     initResizer() {
         this.resizerElement.addEventListener('mousedown', this.startResize.bind(this));
 
@@ -86,6 +97,7 @@ export class SidePanelManager {
         if (renderContentCallback) renderContentCallback(this.contentElement);
 
         this.panel.classList.add('active');
+        this.emitChange();
     }
 
     close() {
@@ -105,6 +117,7 @@ export class SidePanelManager {
 
         this.panel.classList.remove('active');
         this.currentView = null;
+        this.emitChange();
         // Optionally clear content after transition
         setTimeout(() => {
             if (!this.panel.classList.contains('active')) {
