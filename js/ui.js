@@ -1532,29 +1532,20 @@ export class UIRenderer {
             updateToggleButtonIcon();
 
             if (isUIHidden) {
-                hideButton();
+                showButton();
             } else {
                 showButton();
             }
         };
 
-        // Mouse move handler
         const handleMouseMove = (e) => {
-            const rect = overlay.getBoundingClientRect();
-            const isNearTopRight = e.clientY < 100 && e.clientX > rect.width - 150;
-
-            if (isUIHidden) {
-                if (overlay.classList.contains('is-video-mode')) {
-                    if (isNearTopRight) {
-                        showButton();
-                    } else {
-                        hideButton();
-                    }
-                } else if (isNearTopRight) {
-                    showButton();
-                } else {
-                    hideButton();
-                }
+            if (!isUIHidden) return;
+            const btnRect = toggleBtn.getBoundingClientRect();
+            const nearBtn = e.clientY < 100 && Math.abs(e.clientX - (btnRect.left + btnRect.width / 2)) < 150;
+            if (nearBtn) {
+                showButton();
+            } else {
+                hideButton();
             }
         };
 

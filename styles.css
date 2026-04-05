@@ -10224,6 +10224,20 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     order: 1;
 }
 
+#fullscreen-cover-overlay.ui-hidden .fullscreen-top-actions {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+}
+
+#fullscreen-cover-overlay.ui-hidden .fullscreen-top-actions button,
+#fullscreen-cover-overlay.ui-hidden .fullscreen-top-actions #close-fullscreen-cover-btn,
+#fullscreen-cover-overlay.ui-hidden .fullscreen-top-actions #fs-visualizer-btn {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+}
+
 #fullscreen-cover-overlay #toggle-ui-btn {
     top: 1.25rem;
     left: calc(80px + 2.3rem + env(safe-area-inset-left));
