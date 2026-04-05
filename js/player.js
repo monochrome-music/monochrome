@@ -307,8 +307,10 @@ export class Player {
 
                 if (coverEl) {
                     const videoCoverUrl = track.videoUrl || track.videoCoverUrl || track.album?.videoCoverUrl || null;
+                    const coverId = track.image || track.cover || track.album?.cover;
                     const coverUrl =
-                        videoCoverUrl || this.api.getCoverUrl(track.image || track.cover || track.album?.cover);
+                        videoCoverUrl || this.api.getCoverUrl(coverId);
+                    const coverSrcset = videoCoverUrl ? null : this.api.getCoverSrcset(coverId);
 
                     if (videoCoverUrl) {
                         if (coverEl.tagName === 'IMG') {
@@ -326,14 +328,24 @@ export class Player {
                             coverEl.src = videoCoverUrl;
                         }
                     } else {
+                        const setImgSrcset = (img) => {
+                            if (img.getAttribute('src') !== coverUrl) img.src = coverUrl;
+                            if (coverSrcset) {
+                                img.setAttribute('srcset', coverSrcset);
+                                img.setAttribute('sizes', '(max-width: 640px) 160px, (max-width: 1024px) 320px, 640px');
+                            } else {
+                                img.removeAttribute('srcset');
+                                img.removeAttribute('sizes');
+                            }
+                        };
                         if (coverEl.tagName === 'VIDEO') {
                             const img = document.createElement('img');
-                            img.src = coverUrl;
                             img.className = coverEl.className;
                             img.id = coverEl.id;
+                            setImgSrcset(img);
                             coverEl.replaceWith(img);
                         } else {
-                            coverEl.src = coverUrl;
+                            setImgSrcset(coverEl);
                         }
                     }
                 }
@@ -870,8 +882,19 @@ export class Player {
         } else {
             if (coverEl) {
                 coverEl.style.display = 'block';
-                const coverUrl = this.api.getCoverUrl(track.image || track.cover || track.album?.cover);
-                if (coverEl.src !== coverUrl) coverEl.src = coverUrl;
+                const coverId = track.image || track.cover || track.album?.cover;
+                const coverUrl = this.api.getCoverUrl(coverId);
+                const coverSrcset = this.api.getCoverSrcset(coverId);
+                if (coverEl.getAttribute('src') !== coverUrl) {
+                    coverEl.src = coverUrl;
+                    if (coverSrcset) {
+                        coverEl.setAttribute('srcset', coverSrcset);
+                        coverEl.setAttribute('sizes', '(max-width: 640px) 160px, (max-width: 1024px) 320px, 640px');
+                    } else {
+                        coverEl.removeAttribute('srcset');
+                        coverEl.removeAttribute('sizes');
+                    }
+                }
             }
             if (this.audio) {
                 const isInFullscreen = document.getElementById('fullscreen-cover-overlay')?.style.display === 'flex';
