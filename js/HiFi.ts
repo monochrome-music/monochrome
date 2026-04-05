@@ -1,11 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-
 import { EventEmitter } from 'events';
+import type { PlaybackInfo } from './container-classes';
 
 type Params = Record<string, string | number | undefined | null>;
 
@@ -17,7 +11,31 @@ class ResponseError extends Error {
     }
 }
 
-export class TidalResponse extends Response {
+/**
+ * A generic response interface that types the return value of `.json()` as `T`.
+ *
+ * Extends the standard `Response` interface with a typed `.json()` method so callers
+ * can receive properly-typed data without manual casting.
+ *
+ * @typeParam T - The expected shape of the parsed JSON body.
+ */
+export interface TypedResponse<T> extends Response {
+    /** Returns a promise that resolves with the response body parsed as JSON, typed as `T`. */
+    json(): Promise<T>;
+}
+
+/**
+ * A typed extension of the standard `Response` class returned by all TIDAL API methods.
+ *
+ * The generic type parameter `T` controls the type returned by `.json()`, enabling
+ * full type safety on API responses without manual casts.
+ *
+ * @typeParam T - The expected JSON body type. Defaults to `unknown`.
+ */
+export class TidalResponse<T = unknown> extends Response implements TypedResponse<T> {
+    /** Returns a promise that resolves with the response body parsed as JSON, typed as `T`. */
+    declare json: () => Promise<T>;
+
     constructor(response: Response);
     constructor(body: BodyInit, init?: ResponseInit);
     constructor(body: BodyInit | Response, init?: ResponseInit) {
@@ -31,6 +49,1033 @@ export class TidalResponse extends Response {
             super(body, init);
         }
     }
+}
+
+// ─── Route response interfaces ───────────────────────────────────────────────
+
+/**
+ * Base interface shared by all versioned TIDAL API responses.
+ * Every response envelope includes a `version` string matching {@link HiFiClient.API_VERSION}.
+ */
+export interface VersionedResponse {
+    /** The API version string, e.g. `"2.7"`. */
+    version: string;
+}
+
+// ─── Shared sub-types (derived from live API samples) ────────────────────────
+
+/**
+ * Minimal artist reference as it appears inside track and album objects.
+ * For the full artist profile returned by the `/artist` route, see {@link TidalArtistProfile}.
+ */
+export interface TidalArtistRef {
+    /** Numeric TIDAL artist ID. */
+    id: number;
+    /** Artist display name. */
+    name: string;
+    /** TIDAL handle, or `null` if not set. */
+    handle: string | null;
+    /** Artist role in this context, e.g. `"MAIN"`. */
+    type: string;
+    /** Picture UUID, or `null` if no image is available. */
+    picture: string | null;
+}
+
+/**
+ * A single artist-role entry as returned inside {@link TidalArtistProfile}.
+ */
+export interface TidalArtistRole {
+    /** Internal category identifier (`-1` for the primary artist role). */
+    categoryId: number;
+    /** Human-readable role label, e.g. `"Artist"`, `"Producer"`. */
+    category: string;
+}
+
+/**
+ * Full artist profile as returned by the `/artist/?id=` route.
+ * Contains fields not present on the minimal {@link TidalArtistRef} seen inside tracks/albums.
+ */
+export interface TidalArtistProfile {
+    /** Numeric TIDAL artist ID. */
+    id: number;
+    /** Artist display name. */
+    name: string;
+    /** Roles this artist holds on TIDAL, e.g. `["ARTIST", "CONTRIBUTOR"]`. */
+    artistTypes: string[];
+    /** Canonical TIDAL artist URL. */
+    url: string;
+    /** Picture UUID, or `null` if no image is available. */
+    picture: string | null;
+    /** Fallback album cover UUID used when no artist picture exists, or `null`. */
+    selectedAlbumCoverFallback: string | null;
+    /** Popularity score (0–100). */
+    popularity: number;
+    /** List of credited roles for this artist. */
+    artistRoles: TidalArtistRole[];
+    /** Map of mix type → mix ID, e.g. `{ "ARTIST_MIX": "000ff..." }`. */
+    mixes: Record<string, string>;
+    /** TIDAL handle, or `null` if not set. */
+    handle: string | null;
+    /** Associated TIDAL user ID, or `null`. */
+    userId: number | null;
+    /** Whether the artist is currently spotlighted. */
+    spotlighted: boolean;
+}
+
+/**
+ * Media metadata object attached to tracks and albums.
+ */
+export interface TidalMediaMetadata {
+    /** Quality tags, e.g. `["LOSSLESS"]`, `["HIRES_LOSSLESS"]`. */
+    tags: string[];
+}
+
+/**
+ * Slim album reference embedded inside a track object.
+ */
+export interface TidalTrackAlbumRef {
+    /** Numeric TIDAL album ID. */
+    id: number;
+    /** Album title. */
+    title: string;
+    /** Cover image UUID. */
+    cover: string;
+    /** Vibrant accent colour hex string derived from the cover art. */
+    vibrantColor: string;
+    /** Video cover UUID, or `null`. */
+    videoCover: string | null;
+}
+
+/**
+ * Full track object as returned by the `/info` route and embedded in albums, playlists, and mixes.
+ *
+ * @remarks
+ * Fields `bpm`, `key`, and `keyScale` are nullable — they are absent for some tracks.
+ * `version` is present in the payload but may be `null`.
+ */
+export interface TidalTrack {
+    /** Numeric TIDAL track ID. */
+    id: number;
+    /** Track title. */
+    title: string;
+    /** Duration in seconds. */
+    duration: number;
+    /** Track replay-gain value in dB. */
+    replayGain: number;
+    /** Track peak amplitude (0–1). */
+    peak: number;
+    /** Whether the track is available for streaming. */
+    allowStreaming: boolean;
+    /** Whether the stream is ready. */
+    streamReady: boolean;
+    /** Whether the track requires payment to stream. */
+    payToStream: boolean;
+    /** Whether the track is available for ad-supported streaming. */
+    adSupportedStreamReady: boolean;
+    /** Whether the track is available for DJ use. */
+    djReady: boolean;
+    /** Whether stem files are available. */
+    stemReady: boolean;
+    /** ISO-8601 timestamp from which the stream became available. */
+    streamStartDate: string;
+    /** Whether a premium subscription is required. */
+    premiumStreamingOnly: boolean;
+    /** Track number within its volume. */
+    trackNumber: number;
+    /** Disc/volume number. */
+    volumeNumber: number;
+    /** Version suffix (e.g. `"Remastered"`), or `null`. */
+    version: string | null;
+    /** Popularity score (0–100). */
+    popularity: number;
+    /** Copyright notice. */
+    copyright: string;
+    /** Beats per minute, or `null` if unavailable. */
+    bpm: number | null;
+    /** Musical key (e.g. `"Bb"`), or `null` if unavailable. */
+    key: string | null;
+    /** Key scale (`"MAJOR"` / `"MINOR"`), or `null` if unavailable. */
+    keyScale: string | null;
+    /** Canonical TIDAL track URL. */
+    url: string;
+    /** International Standard Recording Code. */
+    isrc: string;
+    /** Whether the track metadata can be edited. */
+    editable: boolean;
+    /** Whether the track contains explicit content. */
+    explicit: boolean;
+    /** Highest available audio quality, e.g. `"LOSSLESS"`, `"HI_RES_LOSSLESS"`. */
+    audioQuality: string;
+    /** Available audio modes, e.g. `["STEREO"]`. */
+    audioModes: string[];
+    /** Media metadata including quality tags. */
+    mediaMetadata: TidalMediaMetadata;
+    /** Whether this is a user-uploaded track. */
+    upload: boolean;
+    /** Access type, e.g. `"PUBLIC"`. */
+    accessType: string;
+    /** Whether the track is currently spotlighted. */
+    spotlighted: boolean;
+    /** Primary artist. */
+    artist: TidalArtistRef;
+    /** All credited artists. */
+    artists: TidalArtistRef[];
+    /** Album this track belongs to. */
+    album: TidalTrackAlbumRef;
+    /** Map of mix type → mix ID, e.g. `{ "TRACK_MIX": "001e91..." }`. */
+    mixes: Record<string, string>;
+}
+
+/**
+ * A track as it appears inside a playlist, extending {@link TidalTrack} with
+ * playlist-specific fields added by the TIDAL API.
+ */
+export interface TidalPlaylistTrack extends TidalTrack {
+    /** Track description text, or `null`. */
+    description: string | null;
+    /** ISO-8601 timestamp when this track was added to the playlist. */
+    dateAdded: string;
+    /** Position index within the playlist. */
+    index: number;
+    /** Unique item UUID within the playlist. */
+    itemUuid: string;
+}
+
+/**
+ * Full album object as returned by the `/artist/?f=` discography route and
+ * embedded in search results.
+ *
+ * @remarks
+ * `artist` is present in discography responses but absent in some search results;
+ * it is therefore typed as optional.
+ * `version` and `videoCover` are present in the payload but may be `null`.
+ */
+export interface TidalAlbum {
+    /** Numeric TIDAL album ID. */
+    id: number;
+    /** Album title. */
+    title: string;
+    /** Total duration in seconds. */
+    duration: number;
+    /** Whether the stream is ready. */
+    streamReady: boolean;
+    /** Whether the album requires payment to stream. */
+    payToStream: boolean;
+    /** Whether the album is available for ad-supported streaming. */
+    adSupportedStreamReady: boolean;
+    /** Whether the album is available for DJ use. */
+    djReady: boolean;
+    /** Whether stem files are available. */
+    stemReady: boolean;
+    /** ISO-8601 timestamp from which the stream became available. */
+    streamStartDate: string;
+    /** Whether streaming is allowed. */
+    allowStreaming: boolean;
+    /** Whether a premium subscription is required. */
+    premiumStreamingOnly: boolean;
+    /** Number of tracks on the album. */
+    numberOfTracks: number;
+    /** Number of videos on the album. */
+    numberOfVideos: number;
+    /** Number of discs/volumes. */
+    numberOfVolumes: number;
+    /** Release date string, e.g. `"2025-02-14"`. */
+    releaseDate: string;
+    /** Copyright notice. */
+    copyright: string;
+    /** Release type, e.g. `"ALBUM"`, `"EP"`, `"SINGLE"`. */
+    type: string;
+    /** Version suffix, or `null`. */
+    version: string | null;
+    /** Canonical TIDAL album URL. */
+    url: string;
+    /** Cover image UUID. */
+    cover: string;
+    /** Vibrant accent colour hex string. */
+    vibrantColor: string;
+    /** Video cover UUID, or `null`. */
+    videoCover: string | null;
+    /** Whether the album contains explicit content. */
+    explicit: boolean;
+    /** UPC barcode. */
+    upc: string;
+    /** Popularity score (0–100). */
+    popularity: number;
+    /** Highest available audio quality. */
+    audioQuality: string;
+    /** Available audio modes. */
+    audioModes: string[];
+    /** Media metadata including quality tags. */
+    mediaMetadata: TidalMediaMetadata;
+    /** Whether this is a user-uploaded album. */
+    upload: boolean;
+    /** Primary artist (present in discography responses; absent in some search results). */
+    artist?: TidalArtistRef;
+    /** All credited artists. */
+    artists: TidalArtistRef[];
+}
+
+/**
+ * A video item as returned inside search results and the topvideos page modules.
+ */
+export interface TidalVideoItem {
+    /** Numeric TIDAL video ID. */
+    id: number;
+    /** Video title. */
+    title: string;
+    /** Duration in seconds. */
+    duration: number;
+    /** Version suffix, or `null`. */
+    version: string | null;
+    /** Canonical TIDAL video URL. */
+    url: string;
+    /** All credited artists. */
+    artists: TidalArtistRef[];
+    /** Associated album, or `null`. */
+    album: TidalTrackAlbumRef | null;
+    /** Whether the video contains explicit content. */
+    explicit: boolean;
+    /** Disc/volume number. */
+    volumeNumber: number;
+    /** Track number on the disc. */
+    trackNumber: number;
+    /** Popularity score (0–100). */
+    popularity: number;
+    /** Double-precision popularity score (present in topvideos). */
+    doublePopularity?: number;
+    /** Whether streaming is allowed. */
+    allowStreaming: boolean;
+    /** Whether the stream is ready. */
+    streamReady: boolean;
+    /** ISO-8601 timestamp from which streaming became available. */
+    streamStartDate: string;
+    /** Whether the video is available for ad-supported streaming. */
+    adSupportedStreamReady: boolean;
+    /** Whether the video is available for DJ use. */
+    djReady: boolean;
+    /** Whether stem files are available. */
+    stemReady: boolean;
+    /** Thumbnail image UUID. */
+    imageId: string;
+    /** Image path (present in some search results), or `null`. */
+    imagePath?: string | null;
+    /** Vibrant accent colour hex string. */
+    vibrantColor: string;
+    /** Release date string. */
+    releaseDate: string;
+    /** Content type, e.g. `"Music Video"`. */
+    type: string;
+    /** Ad tag URL, or `null`. */
+    adsUrl: string | null;
+    /** Whether ads are pre-paywall only. */
+    adsPrePaywallOnly: boolean;
+    /** Playback quality label (present in some search results), e.g. `"MP4_1080P"`. */
+    quality?: string;
+}
+
+/**
+ * A page module object as returned inside {@link TopVideosResponse.videos}.
+ *
+ * @remarks
+ * The `/topvideos` route processes a TIDAL pages API response. When the page
+ * contains `VIDEO_LIST`-type modules (which do not match the `VIDEO_PLAYLIST` /
+ * `VIDEO_ROW` / `PAGED_LIST` extraction path) the entire module object is pushed
+ * into the output array. The actual video items are nested inside `pagedList.items`.
+ */
+export interface TidalVideoPageModule {
+    /** Base-64 encoded module identifier. */
+    id: string;
+    /** Module type, e.g. `"VIDEO_LIST"`. */
+    type: string;
+    /** Column width percentage. */
+    width: number;
+    /** Scroll direction, e.g. `"VERTICAL"`. */
+    scroll: string;
+    /** Module title. */
+    title: string;
+    /** Module description. */
+    description: string;
+    /** "Show more" link data, or `null`. */
+    showMore: string | null;
+    /** Paged list of video items. */
+    pagedList: {
+        /** Internal API path for paged data. */
+        dataApiPath: string;
+        /** Page size. */
+        limit: number;
+        /** Current offset. */
+        offset: number;
+        /** Total number of items available. */
+        totalNumberOfItems: number;
+        /** Video items on this page. */
+        items: TidalVideoItem[];
+    };
+    /** Whether the module supports paging. */
+    supportsPaging: boolean;
+    /** Whether to show table headers. */
+    showTableHeaders: boolean;
+    /** List display format. */
+    listFormat: string;
+    /** Layout hint, or `null`. */
+    layout: string | null;
+    /** Whether quick-play is enabled. */
+    quickPlay: boolean;
+    /** Pre-title label, or `null`. */
+    preTitle: string | null;
+}
+
+/**
+ * A similar album entry as returned by the TIDAL OpenAPI `/album/similar` endpoint.
+ *
+ * @remarks
+ * This shape differs substantially from a standard {@link TidalAlbum}: `duration` is an
+ * ISO 8601 duration string (e.g. `"PT1H14M30S"`), `copyright` is an object, and several
+ * fields (`barcodeId`, `mediaTags`, `availability`, `albumType`) have no equivalent in the
+ * standard album object.
+ */
+export interface TidalSimilarAlbum {
+    /** Numeric TIDAL album ID. */
+    id: number;
+    /** Album title. */
+    title: string;
+    /** UPC/EAN barcode identifier. */
+    barcodeId: string;
+    /** Number of discs/volumes. */
+    numberOfVolumes: number;
+    /** Total number of tracks (called `numberOfItems` in this endpoint). */
+    numberOfItems: number;
+    /** ISO 8601 duration string, e.g. `"PT1H14M30S"`. */
+    duration: string;
+    /** Whether the album contains explicit content. */
+    explicit: boolean;
+    /** Release date string, e.g. `"2015-10-09"`. */
+    releaseDate: string;
+    /** Copyright information. */
+    copyright: { text: string };
+    /** Popularity score (0–1 float). */
+    popularity: number;
+    /** Access type, e.g. `"PUBLIC"`. */
+    accessType: string;
+    /** Availability modes, e.g. `["STREAM", "DJ"]`. */
+    availability: string[];
+    /** Quality tags, e.g. `["LOSSLESS", "HIRES_LOSSLESS"]`. */
+    mediaTags: string[];
+    /** External link entries (e.g. TIDAL sharing URL). */
+    externalLinks: Array<{ href: string; meta: { type: string } }>;
+    /** Release type, e.g. `"ALBUM"`. */
+    type: string;
+    /** Album type classification, e.g. `"ALBUM"`. */
+    albumType: string;
+    /** ISO-8601 creation timestamp (present for some albums). */
+    createdAt?: string;
+    /** Cover image UUID. */
+    cover: string;
+    /** Abbreviated artist list for this album. */
+    artists: Array<{ id: number; name: string }>;
+    /** Canonical TIDAL album URL. */
+    url: string;
+}
+
+// ─── Response interfaces ──────────────────────────────────────────────────────
+
+/**
+ * Response returned by the root `/` route.
+ * Contains a link to the upstream HiFi API repository.
+ */
+export interface RootResponse extends VersionedResponse {
+    /** URL of the upstream HiFi API repository. */
+    Repo: string;
+}
+
+/**
+ * Response returned by the `/info` route.
+ * Contains full TIDAL track metadata.
+ */
+export interface InfoResponse extends VersionedResponse {
+    /** Full metadata for the requested track. */
+    data: TidalTrack;
+}
+
+/**
+ * Response returned by the `/track` route.
+ * Contains playback/stream information for a track.
+ *
+ * @remarks `data` is typed as {@link PlaybackInfo} from `container-classes`, whose
+ * fields match the live API sample exactly.
+ */
+export interface TrackResponse extends VersionedResponse {
+    /** Playback info including manifest, quality, and replay-gain data. */
+    data: PlaybackInfo;
+}
+
+/**
+ * Response returned by the `/recommendations` route.
+ * Contains a paginated list of recommended tracks for a given track ID.
+ *
+ * @remarks No live API sample is available for this route.
+ */
+export interface RecommendationsResponse extends VersionedResponse {
+    /** Raw TIDAL v1 recommendations payload. */
+    data: unknown;
+}
+
+/**
+ * A similar-artist entry as returned by the TIDAL OpenAPI `/artist/similar` endpoint.
+ */
+export interface SimilarArtist {
+    /** Numeric TIDAL artist ID. */
+    id: number;
+    /** Artist display name. */
+    name: string;
+    /** Picture UUID, or `null` if no image is available. */
+    picture: string | null;
+    /** Canonical TIDAL artist URL. */
+    url: string;
+    /** Relation type, e.g. `"SIMILAR_ARTIST"`. */
+    relationType: string;
+    /** Popularity score (0–1 float). */
+    popularity: number;
+    /** External link entries (e.g. TIDAL sharing URL). */
+    externalLinks: Array<{ href: string; meta: { type: string } }>;
+    /** Whether the artist is spotlighted. */
+    spotlighted: boolean;
+    /** Whether artist contributions are enabled. */
+    contributionsEnabled: boolean;
+}
+
+/**
+ * Response returned by the `/artist/similar` route.
+ * Contains a list of artists similar to the requested artist.
+ */
+export interface SimilarArtistsResponse extends VersionedResponse {
+    /** List of similar artists. */
+    artists: SimilarArtist[];
+}
+
+/**
+ * Response returned by the `/album/similar` route.
+ * Contains a list of albums similar to the requested album.
+ */
+export interface SimilarAlbumsResponse extends VersionedResponse {
+    /** List of similar albums. */
+    albums: TidalSimilarAlbum[];
+}
+
+/**
+ * Artist cover image URL at 750 px resolution.
+ * Returned inside {@link ArtistByIdResponse}.
+ */
+export interface ArtistCover {
+    /** The TIDAL artist ID. */
+    id: number;
+    /** The artist display name. */
+    name: string;
+    /** 750×750 JPEG cover URL. */
+    '750': string;
+}
+
+/**
+ * Response returned by the `/artist` route when an `id` query parameter is supplied.
+ * Contains the artist's full profile and optional cover image URL.
+ */
+export interface ArtistByIdResponse extends VersionedResponse {
+    /** Full TIDAL artist profile data. */
+    artist: TidalArtistProfile;
+    /** Cover image URL at 750 px, or `null` if no picture is available. */
+    cover: ArtistCover | null;
+}
+
+/**
+ * Response returned by the `/artist` route when an `f` query parameter is supplied.
+ * Contains the artist's discography and, when `skip_tracks` is false, their top tracks.
+ */
+export interface ArtistDiscographyResponse extends VersionedResponse {
+    /** Paginated album list for the artist. */
+    albums: { items: TidalAlbum[] };
+    /**
+     * Top tracks for the artist across all albums.
+     * Absent when the request includes `skip_tracks=true`.
+     */
+    tracks?: TidalTrack[];
+}
+
+/**
+ * Union of the two possible response shapes from the `/artist` route.
+ * Use {@link ArtistByIdResponse} (has `artist`) when querying by `id`,
+ * or {@link ArtistDiscographyResponse} (has `albums`) when querying by `f`.
+ */
+export type ArtistResponse = ArtistByIdResponse | ArtistDiscographyResponse;
+
+/**
+ * Artist biography as returned by the TIDAL API.
+ */
+export interface ArtistBiography {
+    /** Provider or publication source of the biography text, e.g. `"TiVo"`. */
+    source: string;
+    /** ISO-8601 timestamp of the last biography update. */
+    lastUpdated: string;
+    /** Full biography text. */
+    text: string;
+    /** Short biography summary (may be an empty string). */
+    summary: string;
+}
+
+/**
+ * Response returned by the `/artist/bio` route.
+ * Contains the biography text for the requested artist.
+ */
+export interface ArtistBioResponse extends VersionedResponse {
+    /** Biography data for the requested artist. */
+    data: ArtistBiography;
+}
+
+/**
+ * A single cover-image entry with pre-built URLs at multiple resolutions.
+ * Returned inside {@link CoverResponse}.
+ */
+export interface CoverEntry {
+    /** The TIDAL track or album ID associated with this cover. */
+    id: number;
+    /** The track or album title associated with this cover. */
+    name: string;
+    /** 1280×1280 JPEG cover URL. */
+    '1280': string;
+    /** 640×640 JPEG cover URL. */
+    '640': string;
+    /** 80×80 JPEG cover URL. */
+    '80': string;
+}
+
+/**
+ * Response returned by the `/cover` route.
+ * Contains one or more cover-image entries matching the query.
+ */
+export interface CoverResponse extends VersionedResponse {
+    /** Resolved cover image entries. */
+    covers: CoverEntry[];
+}
+
+/**
+ * A paginated result bucket as returned inside {@link SearchResponse.data}.
+ */
+export interface TidalSearchBucket<T> {
+    /** Maximum number of items per page. */
+    limit: number;
+    /** Current page offset. */
+    offset: number;
+    /** Total number of matching items. */
+    totalNumberOfItems: number;
+    /** Items on this page. */
+    items: T[];
+}
+
+/**
+ * Response returned by the `/search` route.
+ *
+ * @remarks
+ * Two distinct query formats exist:
+ * - `?q=` (general search): returns `topHit` and combined buckets for artists, albums, tracks, videos, playlists.
+ * - `?v=` (video-focused search): returns `topHits` (plural), `genres`, and the same buckets.
+ */
+export interface SearchResponse extends VersionedResponse {
+    /** Combined search result buckets. */
+    data: {
+        /** Matching artist results. */
+        artists?: TidalSearchBucket<TidalArtistProfile>;
+        /** Matching album results. */
+        albums?: TidalSearchBucket<TidalAlbum>;
+        /** Matching track results. */
+        tracks?: TidalSearchBucket<TidalTrack>;
+        /** Matching video results. */
+        videos?: TidalSearchBucket<TidalVideoItem>;
+        /** Matching playlist results. */
+        playlists?: TidalSearchBucket<TidalPlaylist>;
+        /** Genre results (present for `?v=` video searches). */
+        genres?: TidalSearchBucket<TidalGenre>;
+        /** Single top-hit result (present for `?q=` general searches). */
+        topHit?: { value: TidalTrack | TidalArtistProfile | TidalAlbum | TidalVideoItem; type: string };
+        /** Multiple top-hit results (present for `?v=` video searches). */
+        topHits?: Array<TidalTrack | TidalArtistProfile | TidalAlbum | TidalVideoItem>;
+    };
+}
+
+/**
+ * An album with its full track listing, as returned by the `/album` route.
+ *
+ * @remarks
+ * Each element of `items` wraps the track in an envelope `{ item, type }`.
+ */
+export interface TidalAlbumWithTracks extends TidalAlbum {
+    /** Ordered list of track envelopes. */
+    items: Array<{ item: TidalTrack; type: string }>;
+}
+
+/**
+ * Response returned by the `/album` route.
+ * Contains album metadata together with its full track listing.
+ */
+export interface AlbumResponse extends VersionedResponse {
+    /** Album data including all tracks as `items`. */
+    data: TidalAlbumWithTracks;
+}
+
+/**
+ * A promoted artist entry as it appears inside {@link TidalPlaylist}.
+ */
+export interface TidalPromotedArtist {
+    /** Numeric TIDAL artist ID. */
+    id: number;
+    /** Artist display name. */
+    name: string;
+    /** TIDAL handle, or `null`. */
+    handle: string | null;
+    /** Artist role, e.g. `"MAIN"`. */
+    type: string;
+    /** Picture UUID, or `null`. */
+    picture: string | null;
+}
+
+/**
+ * A TIDAL playlist as returned by the `/playlist` route.
+ */
+export interface TidalPlaylist {
+    /** Unique playlist UUID. */
+    uuid: string;
+    /** Playlist display title. */
+    title: string;
+    /** Total number of tracks in the playlist. */
+    numberOfTracks: number;
+    /** Total number of videos in the playlist. */
+    numberOfVideos: number;
+    /** Playlist creator. */
+    creator: { id: number };
+    /** Playlist description text. */
+    description: string;
+    /** Total playlist duration in seconds. */
+    duration: number;
+    /** ISO-8601 timestamp of the last update. */
+    lastUpdated: string;
+    /** ISO-8601 creation timestamp. */
+    created: string;
+    /** Playlist type, e.g. `"EDITORIAL"`. */
+    type: string;
+    /** Whether the playlist is publicly accessible. */
+    publicPlaylist: boolean;
+    /** Canonical TIDAL URL for this playlist. */
+    url: string;
+    /** Rectangular cover image UUID. */
+    image: string;
+    /** Playlist popularity score. */
+    popularity: number;
+    /** Square cover image UUID, or `undefined` if not set. */
+    squareImage?: string;
+    /** Custom image URL override, or `null`. */
+    customImageUrl: string | null;
+    /** Artists featured/promoted in the playlist header. */
+    promotedArtists: TidalPromotedArtist[];
+    /** ISO-8601 timestamp when the most recent item was added. */
+    lastItemAddedAt: string;
+}
+
+/**
+ * A single item in a TIDAL playlist.
+ */
+export interface PlaylistItem {
+    /** The track object, augmented with playlist-specific fields. */
+    item: TidalPlaylistTrack;
+    /** Item type string, e.g. `"track"`. */
+    type: string;
+    /** Cut data associated with the item, or `null`. */
+    cut: string | null;
+}
+
+/**
+ * Response returned by the `/playlist` route.
+ * Contains the playlist metadata and its item list.
+ */
+export interface PlaylistResponse extends VersionedResponse {
+    /** Playlist metadata. */
+    playlist: TidalPlaylist;
+    /** Ordered list of playlist items. */
+    items: PlaylistItem[];
+}
+
+/**
+ * A TIDAL mix header as parsed from a `/pages/mix` response.
+ *
+ * @remarks No live API sample is available for this route.
+ */
+export interface Mix {
+    /** Mix identifier. */
+    id: string;
+    /** Mix display title. */
+    title: string;
+    /** Optional mix subtitle. */
+    subTitle?: string;
+}
+
+/**
+ * Response returned by the `/mix` route.
+ * Contains the mix header and its constituent tracks.
+ *
+ * @remarks No live API sample is available for this route; the shape is inferred
+ * from the TIDAL pages API structure.
+ */
+export interface MixResponse extends VersionedResponse {
+    /** Mix metadata. */
+    mix: unknown;
+    /** Ordered list of tracks in this mix. */
+    items: TidalTrack[];
+}
+
+/**
+ * Lyrics data as returned by the TIDAL API.
+ *
+ * @remarks No live API sample is available for this route.
+ */
+export interface Lyrics {
+    /** The TIDAL track ID these lyrics belong to. */
+    trackId: number;
+    /** Name of the lyrics provider. */
+    lyricsProvider: string;
+    /** Provider's common-track identifier. */
+    providerCommontrackId: string;
+    /** Provider's lyrics-specific identifier. */
+    providerLyricsId: string;
+    /** Full unsynced lyrics text. */
+    lyrics: string;
+    /** Time-synced subtitle text (LRC format). */
+    subtitles: string;
+    /** Whether the lyrics text reads right-to-left. */
+    isRightToLeft: boolean;
+}
+
+/**
+ * Response returned by the `/lyrics` route.
+ * Contains the lyrics data for the requested track.
+ *
+ * @remarks No live API sample is available for this route.
+ */
+export interface LyricsResponse extends VersionedResponse {
+    /** Lyrics data for the requested track. */
+    lyrics: unknown;
+}
+
+/**
+ * Video playback info as returned by the TIDAL API for the `/video` route.
+ */
+export interface VideoPlaybackInfo {
+    /** The TIDAL video ID. */
+    videoId: number;
+    /** Stream type, e.g. `"ON_DEMAND"`. */
+    streamType: string;
+    /** Asset presentation type, e.g. `"FULL"`. */
+    assetPresentation: string;
+    /** Requested video quality, e.g. `"HIGH"`. */
+    videoQuality: string;
+    /** MIME type of the manifest, e.g. `"application/vnd.tidal.emu"`. */
+    manifestMimeType: string;
+    /** Hash of the manifest content. */
+    manifestHash: string;
+    /** Base-64 encoded manifest. */
+    manifest: string;
+}
+
+/**
+ * Response returned by the `/video` route.
+ * Contains playback information for the requested video.
+ */
+export interface VideoResponse extends VersionedResponse {
+    /** Video playback info. */
+    video: VideoPlaybackInfo;
+}
+
+/**
+ * Response returned by the `/topvideos` route.
+ *
+ * @remarks
+ * The `videos` array contains the video items extracted from the page modules'
+ * `pagedList.items` arrays. Individual video objects matching {@link TidalVideoItem}
+ * are pushed into this array at runtime.
+ */
+export interface TopVideosResponse extends VersionedResponse {
+    /** Video items extracted from the page modules. */
+    videos: TidalVideoItem[];
+    /** Total number of video items before pagination. */
+    total: number;
+}
+
+/**
+ * Audio normalisation data embedded in a track manifest attributes object.
+ */
+export interface TidalAudioNormData {
+    /** Replay gain value in dB. */
+    replayGain: number;
+    /** Peak amplitude (0–1). */
+    peakAmplitude: number;
+}
+
+/**
+ * DRM licence data embedded in a track manifest attributes object.
+ */
+export interface DrmData {
+    /** DRM system identifier, e.g. `"WIDEVINE"`. */
+    drmSystem: string;
+    /** Licence acquisition URL. */
+    licenseUrl: string;
+    /** Certificate URL. */
+    certificateUrl: string;
+    /** DRM initialisation data, or `null`. */
+    initData: string | null;
+}
+
+/**
+ * Attributes of a single track-manifest resource from the TIDAL OpenAPI.
+ *
+ * @remarks
+ * The `uri` field contains the signed manifest URL (rather than an inline Base-64
+ * `manifest` string). `previewReason` is only present for preview-only tracks.
+ */
+export interface TrackManifestAttributes {
+    /** Presentation tier, e.g. `"PREVIEW"` or `"FULL"`. */
+    trackPresentation: string;
+    /** Reason the track is restricted to a preview (only present when `trackPresentation` is `"PREVIEW"`). */
+    previewReason?: string;
+    /** Signed manifest URI. */
+    uri: string;
+    /** Hash of the manifest content. */
+    hash: string;
+    /** Playback formats included in this manifest, e.g. `["HEAACV1", "AACLC", "FLAC"]`. */
+    formats: string[];
+    /** Album-level audio normalisation data. */
+    albumAudioNormalizationData: TidalAudioNormData;
+    /** Track-level audio normalisation data. */
+    trackAudioNormalizationData: TidalAudioNormData;
+    /** DRM data (only present when the track is DRM-protected). */
+    drmData?: DrmData;
+}
+
+/**
+ * A single `trackManifests` resource object from the TIDAL OpenAPI (JSON:API format).
+ */
+export interface TrackManifestResource {
+    /** Resource identifier (track ID as a string). */
+    id: string;
+    /** JSON:API resource type — always `"trackManifests"`. */
+    type: string;
+    /** Manifest attributes. */
+    attributes: TrackManifestAttributes;
+}
+
+/**
+ * The raw JSON:API response envelope returned by the TIDAL OpenAPI track-manifest endpoint.
+ */
+export interface TrackManifestApiResponse {
+    /** The primary track-manifest resource. */
+    data: TrackManifestResource;
+    /** JSON:API links object. */
+    links: { self: string };
+}
+
+/**
+ * Response returned by the `/trackManifests` route.
+ * Wraps the raw JSON:API track-manifest response from the TIDAL OpenAPI.
+ */
+export interface TrackManifestResponse extends VersionedResponse {
+    /** The full JSON:API response object from the TIDAL OpenAPI. */
+    data: TrackManifestApiResponse;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * A genre entry as returned inside `?v=` video search results.
+ */
+export interface TidalGenre {
+    /** Genre identifier. */
+    id: string;
+    /** Genre display name. */
+    name: string;
+}
+
+// ─── Private implementation types ────────────────────────────────────────────
+
+/** A JSON:API reference item (id + type only), used in similar-artist/album payloads. */
+type JsonApiRef = { id: string; type: string };
+
+/** Attribute fields present in TIDAL OpenAPI included resources for similar-artist/album endpoints. */
+interface JsonApiIncludeAttributes {
+    name?: string;
+    popularity?: number;
+    externalLinks?: Array<{ href: string; meta: { type: string } }>;
+    spotlighted?: boolean;
+    contributionsEnabled?: boolean;
+    selectedAlbumCoverFallback?: string | null;
+    files?: Array<{ href: string }>;
+    title?: string;
+    barcodeId?: string;
+    numberOfVolumes?: number;
+    numberOfItems?: number;
+    duration?: string;
+    explicit?: boolean;
+    releaseDate?: string;
+    copyright?: { text: string };
+    accessType?: string;
+    availability?: string[];
+    mediaTags?: string[];
+    albumType?: string;
+    createdAt?: string;
+    type?: string;
+}
+
+/** An included resource node from a TIDAL OpenAPI JSON:API response. */
+interface JsonApiInclude {
+    id: string;
+    type: string;
+    attributes: JsonApiIncludeAttributes;
+    relationships?: Record<string, { data?: JsonApiRef[] }>;
+}
+
+/** A TIDAL OpenAPI JSON:API list response (similar-artists/albums). */
+interface JsonApiListResponse {
+    data?: JsonApiRef[];
+    included?: JsonApiInclude[];
+}
+
+/** A generic paginated list response from TIDAL v1 endpoints. */
+interface TidalListResponse<T> {
+    items?: T[];
+    totalNumberOfItems?: number;
+}
+
+/** A module within a TIDAL pages API row. */
+interface TidalPageModule {
+    type: string;
+    mix?: Mix;
+    item?: TidalVideoItem;
+    pagedList?: { items: Array<{ item?: TidalTrack | TidalVideoItem }> };
+}
+
+/** A row within a TIDAL pages API response. */
+interface TidalPageRow {
+    modules?: TidalPageModule[];
+}
+
+/** Response shape from TIDAL v1 pages endpoints (mix, top videos, album pages). */
+interface TidalPagesApiResponse {
+    rows?: TidalPageRow[];
+}
+
+/** Type guard: returns true if the given page-module item is a {@link TidalTrack}. */
+function isTidalTrack(v: TidalTrack | TidalVideoItem | { item?: TidalTrack | TidalVideoItem }): v is TidalTrack {
+    return 'trackNumber' in v;
+}
+
+/** Type guard: returns true if the given page-module item is a {@link TidalVideoItem}. */
+function isTidalVideoItem(
+    v: TidalTrack | TidalVideoItem | { item?: TidalTrack | TidalVideoItem }
+): v is TidalVideoItem {
+    return 'imageId' in v;
 }
 
 export enum HiFiClientEvents {
@@ -59,7 +1104,7 @@ class HiFiClient {
     #token: string | null = null;
     #refreshToken: string | null = null;
     #appTokenExpiry = 0;
-    #tokenPromise: Promise<string> | null = null;
+    #tokenPromise: Promise<string | null> | null = null;
     #albumTracksActive = 0;
     readonly #albumTracksMax = 20;
     readonly #albumTracksQueue: Array<() => void> = [];
@@ -72,18 +1117,19 @@ class HiFiClient {
     on(event: HiFiClientEvents.TokenUpdate, listener: (token: string | null) => void): void;
     on(event: HiFiClientEvents.TokenExpiryUpdate, listener: (expiry: number) => void): void;
     on(event: HiFiClientEvents.RefreshTokenUpdate, listener: (refreshToken: string | null) => void): void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     on(event: HiFiClientEvents, listener: (...args: any[]) => void) {
         this.#emitter.addListener(HiFiClientEvents[event], listener);
     }
 
-    off(event: HiFiClientEvents, listener: (...args: any[]) => void) {
+    off(event: HiFiClientEvents, listener: (...args: (string | number | null)[]) => void) {
         this.#emitter.removeListener(HiFiClientEvents[event], listener);
     }
 
     #emit(event: HiFiClientEvents.TokenUpdate, token: string | null): void;
     #emit(event: HiFiClientEvents.TokenExpiryUpdate, expiry: number): void;
     #emit(event: HiFiClientEvents.RefreshTokenUpdate, refreshToken: string | null): void;
-    #emit(event: HiFiClientEvents, data: any) {
+    #emit(event: HiFiClientEvents, data: string | number | null) {
         this.#emitter.emit(HiFiClientEvents[event], data);
     }
 
@@ -132,8 +1178,8 @@ class HiFiClient {
         });
     }
 
-    static #jsonResponse(data: any) {
-        return new Response(JSON.stringify(data), {
+    static #jsonResponse<T>(data: T): TidalResponse<T> {
+        return new TidalResponse<T>(JSON.stringify(data), {
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -155,10 +1201,18 @@ class HiFiClient {
         return u.toString();
     }
 
+    /**
+     * Manually sets the access token, expiry, and optional refresh token on this client.
+     *
+     * Useful when tokens have been obtained externally (e.g. from a server-side OAuth flow)
+     * and need to be injected into the client.
+     *
+     * @param options - Token values to apply.
+     */
     setToken({ token, tokenExpiry, refreshToken }: HiFiClient.TokenOptions & HiFiClient.RefreshTokenOptions) {
-        this.token = token;
-        this.appTokenExpiry = tokenExpiry;
-        this.refreshToken = refreshToken;
+        this.token = token || null;
+        this.appTokenExpiry = tokenExpiry || 0;
+        this.refreshToken = refreshToken || null;
     }
 
     static #basicAuth(username: string, password: string) {
@@ -180,7 +1234,7 @@ class HiFiClient {
         }): Promise<string | null> {
         if (!force && this.token && (this.appTokenExpiry < 0 || Date.now() < this.appTokenExpiry)) return this.token;
 
-        return await (this.#tokenPromise ??= (async () => {
+        return await (this.#tokenPromise ??= (async (): Promise<string | null> => {
             try {
                 const params = new URLSearchParams({
                     client_id: clientId,
@@ -210,13 +1264,13 @@ class HiFiClient {
                     throw new Error(`Failed to obtain app token: ${res.status} ${txt}`);
                 }
 
-                const json = await res.json();
+                const json = (await res.json()) as { access_token?: string; expires_in?: number };
                 const token = json.access_token;
                 const expires_in = json.expires_in ?? 3600;
-                this.token = token;
+                this.token = token || null;
                 this.appTokenExpiry = Date.now() + (expires_in - 60) * 1000;
 
-                return token;
+                return token || null;
             } finally {
                 this.#tokenPromise = null;
             }
@@ -226,12 +1280,12 @@ class HiFiClient {
     static #getOptions({
         locale = 'en_US',
         countryCode = 'US',
-        baseUrl = null,
+        baseUrl = '',
         clientId = HiFiClient.BROWSER_CLIENT_ID,
         clientSecret = HiFiClient.BROWSER_CLIENT_SECRET,
-        token,
-        tokenExpiry,
-        refreshToken,
+        token = '',
+        tokenExpiry = 0,
+        refreshToken = '',
         storage = [],
     }: HiFiClient.ConstructorOptions = {}): WithRequiredKeys<HiFiClient.ConstructorOptions> {
         return {
@@ -247,6 +1301,16 @@ class HiFiClient {
         };
     }
 
+    /**
+     * Obtains (or refreshes) the TIDAL application access token.
+     *
+     * If a non-expired token is already held and `force` is `false`, the cached
+     * token is returned immediately without a network request.
+     *
+     * @param force - When `true`, forces a token refresh even if the current token is still valid.
+     * @param signal - Optional {@link AbortSignal} to cancel the token request.
+     * @returns The access token string, or `null` if one could not be obtained.
+     */
     async fetchToken(force: boolean = false, signal: AbortSignal | undefined = undefined) {
         return await this.#fetchAppToken({
             clientId: this.#clientId,
@@ -297,14 +1361,14 @@ class HiFiClient {
         return res;
     }
 
-    async #fetchJson<T = any>(
+    async #fetchJson<T = unknown>(
         url: string,
         params?: Params | URLSearchParams,
         signal: AbortSignal = new AbortController().signal
     ): Promise<T> {
         const res = await this.#fetchAuthenticated(url, params, signal);
 
-        return res.json();
+        return res.json() as Promise<T>;
     }
 
     constructor(options: HiFiClient.ConstructorOptions = {}) {
@@ -312,18 +1376,28 @@ class HiFiClient {
             HiFiClient.#getOptions(options);
         this.#locale = locale;
         this.#countryCode = countryCode;
-        this.#baseUrl = baseUrl;
+        this.#baseUrl = baseUrl || null;
         this.#clientId = clientId;
         this.#clientSecret = clientSecret;
-        this.token = token;
-        this.appTokenExpiry = tokenExpiry;
-        this.refreshToken = refreshToken;
+        this.token = token || null;
+        this.appTokenExpiry = tokenExpiry || 0;
+        this.refreshToken = refreshToken || null;
 
         for (const store of !Array.isArray(storage) ? [storage] : storage) {
             this.#useStorage(store);
         }
     }
 
+    /**
+     * Creates and initialises the singleton {@link HiFiClient} instance.
+     *
+     * Throws if {@link HiFiClient.initialize} has already been called.  After
+     * initialisation the instance can be retrieved via {@link HiFiClient.instance}.
+     *
+     * @param options - Constructor options including optional credentials and locale settings.
+     * @returns The newly created {@link HiFiClient} instance.
+     * @throws If a singleton instance already exists.
+     */
     static async initialize(options: HiFiClient.ConstructorOptions & { signal?: AbortSignal } = {}) {
         if (HiFiClient.#instance) {
             throw new Error('HiFiClient is already initialized');
@@ -361,13 +1435,34 @@ class HiFiClient {
         }
     }
 
-    async getInfo(id: number, signal?: AbortSignal) {
+    /**
+     * Fetches full track metadata for the given track ID.
+     *
+     * @param id - TIDAL track ID.
+     * @param signal - Optional {@link AbortSignal} to cancel the request.
+     * @returns A {@link TidalResponse} whose `.json()` resolves to an {@link InfoResponse}.
+     */
+    async getInfo(id: number, signal?: AbortSignal): Promise<TidalResponse<InfoResponse>> {
         const url = `https://api.tidal.com/v1/tracks/${id}/`;
-        const data = await this.#fetchJson(url, { countryCode: this.#countryCode }, signal);
+        const data = await this.#fetchJson<TidalTrack>(url, { countryCode: this.#countryCode }, signal);
         return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data });
     }
 
-    async getTrack(id: number, quality = 'HI_RES_LOSSLESS', immersiveAudio: boolean = false, signal?: AbortSignal) {
+    /**
+     * Fetches playback/stream info for the given track ID.
+     *
+     * @param id - TIDAL track ID.
+     * @param quality - Audio quality string, e.g. `"HI_RES_LOSSLESS"` (default).
+     * @param immersiveAudio - Whether to request immersive audio (Dolby Atmos / 360). Defaults to `false`.
+     * @param signal - Optional {@link AbortSignal} to cancel the request.
+     * @returns A {@link TidalResponse} whose `.json()` resolves to a {@link TrackResponse}.
+     */
+    async getTrack(
+        id: number,
+        quality = 'HI_RES_LOSSLESS',
+        immersiveAudio: boolean = false,
+        signal?: AbortSignal
+    ): Promise<TidalResponse<TrackResponse>> {
         const url = `https://api.tidal.com/v1/tracks/${id}/playbackinfo`;
         const params = {
             audioquality: quality,
@@ -376,10 +1471,18 @@ class HiFiClient {
             countryCode: this.#countryCode,
             immersiveAudio: String(immersiveAudio),
         };
-        const data = await this.#fetchJson(url, params, signal);
+        const data = await this.#fetchJson<PlaybackInfo>(url, params, signal);
         return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data });
     }
 
+    /**
+     * Fetches the MPEG-DASH (or alternative) track manifest from the TIDAL OpenAPI.
+     *
+     * @param id - TIDAL track ID.
+     * @param options - Optional manifest request options (formats, adaptive, manifestType, etc.).
+     * @param signal - Optional {@link AbortSignal} to cancel the request.
+     * @returns A {@link TidalResponse} whose `.json()` resolves to a {@link TrackManifestResponse}.
+     */
     async getTrackManifest(
         id: number,
         {
@@ -390,7 +1493,7 @@ class HiFiClient {
             usage = 'PLAYBACK',
         }: HiFiClient.GetTrackManifestOptions = {},
         signal?: AbortSignal
-    ) {
+    ): Promise<TidalResponse<TrackManifestResponse>> {
         const url = `https://openapi.tidal.com/v2/trackManifests/${id}`;
         const params = new URLSearchParams({
             adaptive: String(adaptive),
@@ -403,7 +1506,7 @@ class HiFiClient {
             params.append('formats', format);
         }
 
-        const res = await this.#fetchJson(url, params, signal);
+        const res = await this.#fetchJson<TrackManifestApiResponse>(url, params, signal);
         const drmData = res.data.attributes.drmData;
 
         if (drmData && this.#baseUrl) {
@@ -415,17 +1518,45 @@ class HiFiClient {
         return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data: res });
     }
 
-    async getWidevine() {
+    /**
+     * Fetches a raw Widevine licence response from the TIDAL API.
+     *
+     * @returns The raw {@link Response} from the Widevine endpoint.
+     */
+    async getWidevine(): Promise<Response> {
         return await this.#fetchAuthenticated('https://api.tidal.com/v2/widevine');
     }
 
-    async getRecommendations(id: number, signal?: AbortSignal) {
+    /**
+     * Fetches track recommendations for the given track ID.
+     *
+     * @param id - TIDAL track ID.
+     * @param signal - Optional {@link AbortSignal} to cancel the request.
+     * @returns A {@link TidalResponse} whose `.json()` resolves to a {@link RecommendationsResponse}.
+     */
+    async getRecommendations(id: number, signal?: AbortSignal): Promise<TidalResponse<RecommendationsResponse>> {
         const url = `https://api.tidal.com/v1/tracks/${id}/recommendations`;
-        const data = await this.#fetchJson(url, { limit: '20', countryCode: this.#countryCode }, signal);
+        const data = await this.#fetchJson<{ items: TidalTrack[]; totalNumberOfItems: number }>(
+            url,
+            { limit: '20', countryCode: this.#countryCode },
+            signal
+        );
         return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data });
     }
 
-    async getSimilarArtists(id: number, cursor?: string | number | null, signal?: AbortSignal) {
+    /**
+     * Fetches artists similar to the given artist ID.
+     *
+     * @param id - TIDAL artist ID.
+     * @param cursor - Optional pagination cursor from a previous response.
+     * @param signal - Optional {@link AbortSignal} to cancel the request.
+     * @returns A {@link TidalResponse} whose `.json()` resolves to a {@link SimilarArtistsResponse}.
+     */
+    async getSimilarArtists(
+        id: number,
+        cursor?: string | number | null,
+        signal?: AbortSignal
+    ): Promise<TidalResponse<SimilarArtistsResponse>> {
         const url = `https://openapi.tidal.com/v2/artists/${id}/relationships/similarArtists`;
         const params: Params = {
             'page[cursor]': cursor ?? undefined,
@@ -433,19 +1564,19 @@ class HiFiClient {
             include: 'similarArtists,similarArtists.profileArt',
         };
 
-        const payload = await this.#fetchJson(url, params, signal);
-        const included = Array.isArray(payload?.included) ? payload.included : [];
-        const artists_map: Record<string, any> = {};
-        const artworks_map: Record<string, any> = {};
+        const payload = await this.#fetchJson<JsonApiListResponse>(url, params, signal);
+        const included: JsonApiInclude[] = Array.isArray(payload?.included) ? payload.included : [];
+        const artists_map: Record<string, JsonApiInclude> = {};
+        const artworks_map: Record<string, JsonApiInclude> = {};
         for (const i of included) {
             if (i.type === 'artists') artists_map[i.id] = i;
             if (i.type === 'artworks') artworks_map[i.id] = i;
         }
 
-        const resolveArtist = (entry: any) => {
+        const resolveArtist = (entry: JsonApiRef): SimilarArtist => {
             const aid = entry.id;
-            const inc = artists_map[aid] || {};
-            const attr = inc.attributes || {};
+            const inc = artists_map[aid] ?? ({} as JsonApiInclude);
+            const attr = inc.attributes ?? ({} as JsonApiIncludeAttributes);
 
             let pic_id: string | null = null;
             const art_data = inc.relationships?.profileArt?.data;
@@ -459,20 +1590,37 @@ class HiFiClient {
 
             return {
                 ...attr,
-                id: String(aid).match(/^\d+$/) ? Number(aid) : aid,
-                picture: pic_id || attr.selectedAlbumCoverFallback,
+                id: Number(aid),
+                name: attr.name ?? '',
+                picture: pic_id ?? attr.selectedAlbumCoverFallback ?? null,
                 url: `http://www.tidal.com/artist/${aid}`,
                 relationType: 'SIMILAR_ARTIST',
+                popularity: attr.popularity ?? 0,
+                externalLinks: attr.externalLinks ?? [],
+                spotlighted: attr.spotlighted ?? false,
+                contributionsEnabled: attr.contributionsEnabled ?? false,
             };
         };
 
         return HiFiClient.#jsonResponse({
             version: HiFiClient.API_VERSION,
-            artists: (payload?.data || []).map(resolveArtist),
+            artists: (payload?.data ?? []).map(resolveArtist),
         });
     }
 
-    async getSimilarAlbums(id: number, cursor?: string | number | null, signal?: AbortSignal) {
+    /**
+     * Fetches albums similar to the given album ID.
+     *
+     * @param id - TIDAL album ID.
+     * @param cursor - Optional pagination cursor from a previous response.
+     * @param signal - Optional {@link AbortSignal} to cancel the request.
+     * @returns A {@link TidalResponse} whose `.json()` resolves to a {@link SimilarAlbumsResponse}.
+     */
+    async getSimilarAlbums(
+        id: number,
+        cursor?: string | number | null,
+        signal?: AbortSignal
+    ): Promise<TidalResponse<SimilarAlbumsResponse>> {
         const url = `https://openapi.tidal.com/v2/albums/${id}/relationships/similarAlbums`;
         const params: Params = {
             'page[cursor]': cursor ?? undefined,
@@ -480,21 +1628,21 @@ class HiFiClient {
             include: 'similarAlbums,similarAlbums.coverArt,similarAlbums.artists',
         };
 
-        const payload = await this.#fetchJson(url, params, signal);
-        const included = Array.isArray(payload?.included) ? payload.included : [];
-        const albums_map: Record<string, any> = {};
-        const artworks_map: Record<string, any> = {};
-        const artists_map: Record<string, any> = {};
+        const payload = await this.#fetchJson<JsonApiListResponse>(url, params, signal);
+        const included: JsonApiInclude[] = Array.isArray(payload?.included) ? payload.included : [];
+        const albums_map: Record<string, JsonApiInclude> = {};
+        const artworks_map: Record<string, JsonApiInclude> = {};
+        const artists_map: Record<string, JsonApiInclude> = {};
         for (const i of included) {
             if (i.type === 'albums') albums_map[i.id] = i;
             if (i.type === 'artworks') artworks_map[i.id] = i;
             if (i.type === 'artists') artists_map[i.id] = i;
         }
 
-        const resolveAlbum = (entry: any) => {
+        const resolveAlbum = (entry: JsonApiRef): TidalSimilarAlbum => {
             const aid = entry.id;
-            const inc = albums_map[aid] || {};
-            const attr = inc.attributes || {};
+            const inc = albums_map[aid] ?? ({} as JsonApiInclude);
+            const attr = inc.attributes ?? ({} as JsonApiIncludeAttributes);
 
             let cover_id: string | null = null;
             const art_data = inc.relationships?.coverArt?.data;
@@ -506,16 +1654,15 @@ class HiFiClient {
                 }
             }
 
-            const artist_list: any[] = [];
+            const artist_list: Array<{ id: number; name: string }> = [];
             const artists_data = inc.relationships?.artists?.data;
             if (Array.isArray(artists_data)) {
                 for (const a_entry of artists_data) {
                     const a_obj = artists_map[a_entry.id];
                     if (a_obj) {
-                        const a_id = a_obj.id;
                         artist_list.push({
-                            id: String(a_id).match(/^\d+$/) ? Number(a_id) : a_id,
-                            name: a_obj.attributes?.name,
+                            id: Number(a_obj.id),
+                            name: a_obj.attributes?.name ?? '',
                         });
                     }
                 }
@@ -523,31 +1670,52 @@ class HiFiClient {
 
             return {
                 ...attr,
-                id: String(aid).match(/^\d+$/) ? Number(aid) : aid,
-                cover: cover_id,
+                id: Number(aid),
+                title: attr.title ?? '',
+                cover: cover_id ?? '',
                 artists: artist_list,
                 url: `http://www.tidal.com/album/${aid}`,
-            };
+            } as TidalSimilarAlbum;
         };
 
         return HiFiClient.#jsonResponse({
             version: HiFiClient.API_VERSION,
-            albums: (payload?.data || []).map(resolveAlbum),
+            albums: (payload?.data ?? []).map(resolveAlbum),
         });
     }
 
+    /**
+     * Fetches artist data including profile information, discography, and/or top tracks.
+     *
+     * When `id` is supplied, returns the artist's profile and a cover-image entry
+     * ({@link ArtistByIdResponse}).
+     *
+     * When `f` is supplied, returns the artist's full discography and, if `skip_tracks`
+     * is `false`, the tracks from all albums ({@link ArtistDiscographyResponse}).
+     *
+     * @param id - TIDAL artist ID for profile lookup.
+     * @param f - TIDAL artist ID for discography/tracks lookup.
+     * @param skip_tracks - When `true`, fetches only top tracks instead of all album tracks.
+     * @param signal - Optional {@link AbortSignal} to cancel the request.
+     * @param options - Optional pagination options (`offset`, `limit`) for track fetching.
+     * @returns A {@link TidalResponse} whose `.json()` resolves to an {@link ArtistResponse}.
+     */
     async getArtist(
         id?: number | null,
         f?: number | null,
         skip_tracks = false,
         signal?: AbortSignal,
         options?: { offset?: number; limit?: number }
-    ) {
+    ): Promise<TidalResponse<ArtistResponse>> {
         if (!id && !f) throw new ResponseError(400, 'Provide id or f query param');
 
         if (id) {
             const artist_url = `https://api.tidal.com/v1/artists/${id}`;
-            const artist_data = await this.#fetchJson(artist_url, { countryCode: this.#countryCode }, signal);
+            const artist_data = await this.#fetchJson<TidalArtistProfile>(
+                artist_url,
+                { countryCode: this.#countryCode },
+                signal
+            );
 
             let picture = artist_data.picture;
             const fallback = artist_data.selectedAlbumCoverFallback;
@@ -556,7 +1724,7 @@ class HiFiClient {
                 picture = fallback;
             }
 
-            let cover = null;
+            let cover: ArtistCover | null = null;
             if (picture) {
                 const slug = picture.replace(/-/g, '/');
                 cover = {
@@ -573,9 +1741,13 @@ class HiFiClient {
         const albums_url = `https://api.tidal.com/v1/artists/${f}/albums`;
         const common_params: Params = { countryCode: this.#countryCode, limit: 50 };
 
-        const tasks: Promise<any>[] = [
-            this.#fetchJson(albums_url, common_params, signal),
-            this.#fetchJson(albums_url, { ...common_params, filter: 'EPSANDSINGLES' }, signal),
+        const tasks: Array<Promise<TidalListResponse<TidalAlbum> | TidalListResponse<TidalTrack>>> = [
+            this.#fetchJson<TidalListResponse<TidalAlbum>>(albums_url, common_params, signal),
+            this.#fetchJson<TidalListResponse<TidalAlbum>>(
+                albums_url,
+                { ...common_params, filter: 'EPSANDSINGLES' },
+                signal
+            ),
         ];
 
         if (skip_tracks) {
@@ -585,24 +1757,28 @@ class HiFiClient {
             if (offset !== undefined) {
                 toptracks_params.offset = offset;
             }
-            tasks.push(this.#fetchJson(`https://api.tidal.com/v1/artists/${f}/toptracks`, toptracks_params, signal));
+            tasks.push(
+                this.#fetchJson<TidalListResponse<TidalTrack>>(
+                    `https://api.tidal.com/v1/artists/${f}/toptracks`,
+                    toptracks_params,
+                    signal
+                )
+            );
         }
 
-        const results = await Promise.all(tasks.map((p) => p.catch((e) => e)));
+        const results = await Promise.all(tasks.map((p) => p.catch((e: Error) => e)));
 
-        const unique_releases: any[] = [];
-        const seen_ids = new Set<any>();
+        const unique_releases: TidalAlbum[] = [];
+        const seen_ids = new Set<number>();
 
         for (const res of results.slice(0, 2)) {
             if (res && !(res instanceof Error)) {
-                const data = res;
-                const items = Array.isArray(data?.items) ? data.items : data || [];
-                if (Array.isArray(items)) {
-                    for (const item of items) {
-                        if (item && item.id && !seen_ids.has(item.id)) {
-                            unique_releases.push(item);
-                            seen_ids.add(item.id);
-                        }
+                const data = res as TidalListResponse<TidalAlbum>;
+                const items = data?.items ?? [];
+                for (const item of items) {
+                    if (item && item.id && !seen_ids.has(item.id)) {
+                        unique_releases.push(item);
+                        seen_ids.add(item.id);
                     }
                 }
             }
@@ -612,11 +1788,12 @@ class HiFiClient {
         const page_data = { items: unique_releases };
 
         if (skip_tracks) {
-            let top_tracks: any[] = [];
+            let top_tracks: TidalTrack[] = [];
             if (results.length > 2) {
                 const res = results[2];
                 if (res && !(res instanceof Error)) {
-                    top_tracks = Array.isArray(res.items) ? res.items : res || [];
+                    const data = res as TidalListResponse<TidalTrack>;
+                    top_tracks = data?.items ?? [];
                 }
             }
 
@@ -626,26 +1803,27 @@ class HiFiClient {
         if (!album_ids.length)
             return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, albums: page_data, tracks: [] });
 
-        const fetchAlbumTracks = async (album_id: number) => {
+        const fetchAlbumTracks = async (album_id: number): Promise<TidalTrack[]> => {
             return await this.#withAlbumTrackSlot(async () => {
-                const album_data = await this.#fetchJson(
+                const album_data = await this.#fetchJson<TidalPagesApiResponse>(
                     'https://api.tidal.com/v1/pages/album',
                     { albumId: album_id, countryCode: this.#countryCode, deviceType: 'BROWSER' },
                     signal
                 );
                 const rows = Array.isArray(album_data?.rows) ? album_data.rows : [];
                 if (rows.length < 2) return [];
-                const modules = rows[1].modules || [];
+                const modules = rows[1].modules ?? [];
                 if (!modules || modules.length === 0) return [];
-                const paged_list = modules[0].pagedList || {};
-                const items = paged_list.items || [];
-                const tracks = items.map((t: any) => (t.item ? t.item : t));
-                return tracks;
+                const paged_list = modules[0].pagedList ?? { items: [] };
+                const items = paged_list.items ?? [];
+                return items.map((t) => t.item ?? t).filter((t): t is TidalTrack => isTidalTrack(t));
             });
         };
 
-        const trackResults = await Promise.all(album_ids.map((aid) => fetchAlbumTracks(aid).catch(() => [])));
-        const tracks: any[] = [];
+        const trackResults = await Promise.all(
+            album_ids.map((aid) => fetchAlbumTracks(aid).catch((): TidalTrack[] => []))
+        );
+        const tracks: TidalTrack[] = [];
         for (const t of trackResults) {
             if (Array.isArray(t)) tracks.push(...t);
         }
@@ -653,54 +1831,71 @@ class HiFiClient {
         return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, albums: page_data, tracks });
     }
 
-    async getArtistBiography(artistId: number, signal?: AbortSignal) {
+    /**
+     * Fetches the biography text for the given artist ID.
+     *
+     * @param artistId - TIDAL artist ID.
+     * @param signal - Optional {@link AbortSignal} to cancel the request.
+     * @returns A {@link TidalResponse} whose `.json()` resolves to an {@link ArtistBioResponse}.
+     */
+    async getArtistBiography(artistId: number, signal?: AbortSignal): Promise<TidalResponse<ArtistBioResponse>> {
         const url = `https://api.tidal.com/v1/artists/${artistId}/bio`;
         const params = {
             locale: this.#locale,
             countryCode: this.#countryCode,
         };
-        const data = await this.#fetchJson(url, params, signal);
+        const data = await this.#fetchJson<ArtistBiography>(url, params, signal);
 
         return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data: data });
     }
 
-    #buildCoverEntry(cover_slug: string, name?: string | null, track_id?: number | null) {
+    #buildCoverEntry(cover_slug: string, name?: string | null, track_id?: number | null): CoverEntry {
         const slug = cover_slug.replace(/-/g, '/');
         return {
-            id: track_id,
-            name,
+            id: track_id ?? 0,
+            name: name ?? '',
             '1280': `https://resources.tidal.com/images/${slug}/1280x1280.jpg`,
             '640': `https://resources.tidal.com/images/${slug}/640x640.jpg`,
             '80': `https://resources.tidal.com/images/${slug}/80x80.jpg`,
         };
     }
 
-    async getCover(id?: number | null, q?: string | null, signal?: AbortSignal) {
+    /**
+     * Fetches cover-image URLs for a track (by `id`) or a search query (`q`).
+     *
+     * @param id - TIDAL track ID; if provided, returns the cover for that track's album.
+     * @param q - Free-text search query; returns covers for matching tracks.
+     * @param signal - Optional {@link AbortSignal} to cancel the request.
+     * @returns A {@link TidalResponse} whose `.json()` resolves to a {@link CoverResponse}.
+     * @throws {@link ResponseError} with status 400 if neither `id` nor `q` is provided.
+     * @throws {@link ResponseError} with status 404 if no cover could be found.
+     */
+    async getCover(id?: number | null, q?: string | null, signal?: AbortSignal): Promise<TidalResponse<CoverResponse>> {
         if (!id && !q) throw new ResponseError(400, 'Provide id or q query param');
 
         if (id) {
-            const track_data = await this.#fetchJson(
+            const track_data = await this.#fetchJson<TidalTrack>(
                 `https://api.tidal.com/v1/tracks/${id}/`,
                 { countryCode: this.#countryCode },
                 signal
             );
-            const album = track_data.album || {};
+            const album = track_data.album ?? ({} as TidalTrackAlbumRef);
             const cover_slug = album.cover;
             if (!cover_slug) throw new ResponseError(404, 'Cover not found');
             const entry = this.#buildCoverEntry(cover_slug, album.title || track_data.title, album.id || id);
             return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, covers: [entry] });
         }
 
-        const search_data = await this.#fetchJson(
+        const search_data = await this.#fetchJson<{ items: TidalTrack[] }>(
             'https://api.tidal.com/v1/search/tracks',
             { countryCode: this.#countryCode, query: q, limit: 10 },
             signal
         );
         const items = Array.isArray(search_data?.items) ? search_data.items.slice(0, 10) : [];
         if (!items.length) throw new ResponseError(404, 'Cover not found');
-        const covers: any[] = [];
+        const covers: CoverEntry[] = [];
         for (const track of items) {
-            const album = track.album || {};
+            const album = track.album ?? ({} as TidalTrackAlbumRef);
             const cover_slug = album.cover;
             if (!cover_slug) continue;
             covers.push(this.#buildCoverEntry(cover_slug, track.title, track.id));
@@ -709,26 +1904,52 @@ class HiFiClient {
         return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, covers });
     }
 
+    /**
+     * Performs a TIDAL search. Exactly one search option must be provided.
+     *
+     * | Option | Description |
+     * |--------|-------------|
+     * | `q`    | General search across artists, albums, tracks, videos, and playlists. |
+     * | `s`    | Track-specific text search. |
+     * | `a`    | Top-hits search scoped to artists and tracks. |
+     * | `al`   | Top-hits search scoped to albums. |
+     * | `v`    | Top-hits search scoped to videos. |
+     * | `p`    | Top-hits search scoped to playlists. |
+     * | `i`    | ISRC-based track lookup (falls back to text search). |
+     *
+     * @param options - Search parameters; at least one of `q`, `s`, `a`, `al`, `v`, `p`, or `i` is required.
+     * @param signal - Optional {@link AbortSignal} to cancel the request.
+     * @returns A {@link TidalResponse} whose `.json()` resolves to a {@link SearchResponse}.
+     */
     async search(
         options: {
+            /** General search query (artists, albums, tracks, videos, playlists). */
             q?: string;
+            /** Track text search query. */
             s?: string;
+            /** Artist/track top-hits query. */
             a?: string;
+            /** Album top-hits query. */
             al?: string;
+            /** Video top-hits query. */
             v?: string;
+            /** Playlist top-hits query. */
             p?: string;
+            /** ISRC code for exact track lookup. */
             i?: string;
+            /** Result offset for pagination. */
             offset?: number;
+            /** Maximum number of results to return. */
             limit?: number;
         },
         signal?: AbortSignal
-    ) {
+    ): Promise<TidalResponse<SearchResponse>> {
         const { q, s, a, al, v, p, i, offset = 0, limit = 25 } = options;
 
         if (i) {
             // try filtered track search first
             try {
-                const res = await this.#fetchJson(
+                const res = await this.#fetchJson<SearchResponse['data']>(
                     'https://api.tidal.com/v1/tracks',
                     {
                         'filter[isrc]': i,
@@ -739,11 +1960,11 @@ class HiFiClient {
                     signal
                 );
                 return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data: res });
-            } catch (err: any) {
-                if (err.status && ![400, 404].includes(err.status)) throw err;
+            } catch (err: unknown) {
+                if (err instanceof ResponseError && ![400, 404].includes(err.status)) throw err;
                 // fallback to text search
             }
-            const fallback = await this.#fetchJson(
+            const fallback = await this.#fetchJson<SearchResponse['data']>(
                 'https://api.tidal.com/v1/search/tracks',
                 {
                     query: i,
@@ -793,7 +2014,7 @@ class HiFiClient {
 
         for (const [val, url, params] of mapping) {
             if (val) {
-                const data = await this.#fetchJson(url, params, signal);
+                const data = await this.#fetchJson<SearchResponse['data']>(url, params, signal);
                 return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data });
             }
         }
@@ -801,18 +2022,29 @@ class HiFiClient {
         throw new Error('Provide one of s, a, al, v, p, or i');
     }
 
-    async getAlbum(id: number, limit = 100, offset = 0, signal?: AbortSignal) {
+    /**
+     * Fetches album metadata together with its full track listing.
+     *
+     * @param id - TIDAL album ID.
+     * @param limit - Maximum number of tracks to fetch. Defaults to `100`.
+     * @param offset - Track list offset for pagination. Defaults to `0`.
+     * @param signal - Optional {@link AbortSignal} to cancel the request.
+     * @returns A {@link TidalResponse} whose `.json()` resolves to an {@link AlbumResponse}.
+     */
+    async getAlbum(id: number, limit = 100, offset = 0, signal?: AbortSignal): Promise<TidalResponse<AlbumResponse>> {
         const albumUrl = `https://api.tidal.com/v1/albums/${id}`;
         const itemsUrl = `https://api.tidal.com/v1/albums/${id}/items`;
-        const tasks: Promise<any>[] = [this.#fetchJson(albumUrl, { countryCode: this.#countryCode }, signal)];
+        type ItemsPage = { items?: Array<{ item: TidalTrack; type: string }> };
+        const albumTask = this.#fetchJson<TidalAlbum>(albumUrl, { countryCode: this.#countryCode }, signal);
+        const itemsTasks: Array<Promise<ItemsPage>> = [];
 
         let remaining = limit;
         let currentOffset = offset;
         const maxChunk = 100;
         while (remaining > 0) {
             const chunk = Math.min(remaining, maxChunk);
-            tasks.push(
-                this.#fetchJson(
+            itemsTasks.push(
+                this.#fetchJson<ItemsPage>(
                     itemsUrl,
                     { countryCode: this.#countryCode, limit: chunk, offset: currentOffset },
                     signal
@@ -822,71 +2054,118 @@ class HiFiClient {
             remaining -= chunk;
         }
 
-        const results = await Promise.all(tasks);
-        const albumData = results[0];
-        const pages = results.slice(1);
-        const allItems: any[] = [];
+        const [albumRaw, ...pages] = await Promise.all([albumTask, ...itemsTasks]);
+        const allItems: Array<{ item: TidalTrack; type: string }> = [];
         for (const p of pages) {
-            const pageItems = (p && p.items) || p;
+            const pageItems = p?.items ?? [];
             if (Array.isArray(pageItems)) allItems.push(...pageItems);
         }
-        albumData.items = allItems;
+        const albumData: TidalAlbumWithTracks = { ...albumRaw, items: allItems };
         return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, data: albumData });
     }
 
-    async getMix(id: string, signal?: AbortSignal) {
+    /**
+     * Fetches the header and track list for a TIDAL mix.
+     *
+     * @param id - TIDAL mix ID string.
+     * @param signal - Optional {@link AbortSignal} to cancel the request.
+     * @returns A {@link TidalResponse} whose `.json()` resolves to a {@link MixResponse}.
+     */
+    async getMix(id: string, signal?: AbortSignal): Promise<TidalResponse<MixResponse>> {
         const url = 'https://api.tidal.com/v1/pages/mix';
-        const data = await this.#fetchJson(
+        const data = await this.#fetchJson<TidalPagesApiResponse>(
             url,
             { mixId: id, countryCode: this.#countryCode, deviceType: 'BROWSER' },
             signal
         );
-        let header = {},
-            items: any[] = [];
-        const rows = data.rows || [];
+        let header: unknown = {};
+        let items: TidalTrack[] = [];
+        const rows = data.rows ?? [];
+
         for (const row of rows) {
-            for (const module of row.modules || []) {
-                if (module.type === 'MIX_HEADER') header = module.mix || {};
-                if (module.type === 'TRACK_LIST') items = (module.pagedList || {}).items || [];
+            for (const module of row.modules ?? []) {
+                if (module.type === 'MIX_HEADER') header = module.mix ?? {};
+                if (module.type === 'TRACK_LIST') items = ((module.pagedList || {}).items as TidalTrack[]) ?? [];
             }
         }
         return HiFiClient.#jsonResponse({
             version: HiFiClient.API_VERSION,
             mix: header,
-            items: items.map((it: any) => (it.item ? it.item : it)),
+            items,
         });
     }
 
-    async getPlaylist(id: string, limit = 100, offset = 0, signal?: AbortSignal) {
+    /**
+     * Fetches playlist metadata together with its item list.
+     *
+     * @param id - TIDAL playlist UUID string.
+     * @param limit - Maximum number of items to fetch. Defaults to `100`.
+     * @param offset - Item list offset for pagination. Defaults to `0`.
+     * @param signal - Optional {@link AbortSignal} to cancel the request.
+     * @returns A {@link TidalResponse} whose `.json()` resolves to a {@link PlaylistResponse}.
+     */
+    async getPlaylist(
+        id: string,
+        limit = 100,
+        offset = 0,
+        signal?: AbortSignal
+    ): Promise<TidalResponse<PlaylistResponse>> {
         const playlistUrl = `https://api.tidal.com/v1/playlists/${id}`;
         const itemsUrl = `https://api.tidal.com/v1/playlists/${id}/items`;
         const [playlistData, itemsData] = await Promise.all([
-            this.#fetchJson(playlistUrl, { countryCode: this.#countryCode }, signal),
-            this.#fetchJson(itemsUrl, { countryCode: this.#countryCode, limit, offset }, signal),
+            this.#fetchJson<TidalPlaylist>(playlistUrl, { countryCode: this.#countryCode }, signal),
+            this.#fetchJson<{ items: PlaylistItem[] }>(
+                itemsUrl,
+                { countryCode: this.#countryCode, limit, offset },
+                signal
+            ),
         ]);
-        const items = (itemsData && itemsData.items) || itemsData;
+        const items = itemsData?.items ?? [];
         return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, playlist: playlistData, items });
     }
 
     // simplified artist/cover/lyrics/video/topvideos/similar methods (same pattern)
-    async getLyrics(id: number, signal?: AbortSignal) {
+    /**
+     * Fetches the lyrics for the given track ID.
+     *
+     * @param id - TIDAL track ID.
+     * @param signal - Optional {@link AbortSignal} to cancel the request.
+     * @returns A {@link TidalResponse} whose `.json()` resolves to a {@link LyricsResponse}.
+     * @throws An error with `status = 404` if lyrics are unavailable for the track.
+     */
+    async getLyrics(id: number, signal?: AbortSignal): Promise<TidalResponse<LyricsResponse>> {
         const url = `https://api.tidal.com/v1/tracks/${id}/lyrics`;
-        const data = await this.#fetchJson(
+        const data = await this.#fetchJson<Lyrics>(
             url,
             { countryCode: this.#countryCode, locale: 'en_US', deviceType: 'BROWSER' },
             signal
         );
         if (!data) {
-            const err: any = new Error('Lyrics not found');
-            err.status = 404;
+            const err = Object.assign(new Error('Lyrics not found'), { status: 404 });
             throw err;
         }
         return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, lyrics: data });
     }
 
-    async getVideo(id: number, quality = 'HIGH', mode = 'STREAM', presentation = 'FULL', signal?: AbortSignal) {
+    /**
+     * Fetches video playback info for the given video ID.
+     *
+     * @param id - TIDAL video ID.
+     * @param quality - Video quality string, e.g. `"HIGH"` (default).
+     * @param mode - Playback mode, e.g. `"STREAM"` (default).
+     * @param presentation - Asset presentation, e.g. `"FULL"` (default).
+     * @param signal - Optional {@link AbortSignal} to cancel the request.
+     * @returns A {@link TidalResponse} whose `.json()` resolves to a {@link VideoResponse}.
+     */
+    async getVideo(
+        id: number,
+        quality = 'HIGH',
+        mode = 'STREAM',
+        presentation = 'FULL',
+        signal?: AbortSignal
+    ): Promise<TidalResponse<VideoResponse>> {
         const url = `https://api.tidal.com/v1/videos/${id}/playbackinfo`;
-        const data = await this.#fetchJson(
+        const data = await this.#fetchJson<VideoPlaybackInfo>(
             url,
             { videoquality: quality, playbackmode: mode, assetpresentation: presentation },
             signal
@@ -894,23 +2173,34 @@ class HiFiClient {
         return HiFiClient.#jsonResponse({ version: HiFiClient.API_VERSION, video: data });
     }
 
+    /**
+     * Fetches a paginated list of recommended videos from TIDAL.
+     *
+     * @param options - Optional locale, device type, and pagination parameters.
+     * @param signal - Optional {@link AbortSignal} to cancel the request.
+     * @returns A {@link TidalResponse} whose `.json()` resolves to a {@link TopVideosResponse}.
+     */
     async getTopVideos(
         { countryCode = 'US', locale = 'en_US', deviceType = 'BROWSER', limit = 25, offset = 0 } = {},
         signal?: AbortSignal
-    ) {
+    ): Promise<TidalResponse<TopVideosResponse>> {
         const url = 'https://api.tidal.com/v1/pages/mymusic_recommended_videos';
-        const data = await this.#fetchJson(url, { countryCode, locale, deviceType }, signal);
-        const rows = data.rows || [];
-        const videos: any[] = [];
+        const data = await this.#fetchJson<TidalPagesApiResponse>(url, { countryCode, locale, deviceType }, signal);
+        const rows = data.rows ?? [];
+        const videos: TidalVideoItem[] = [];
         for (const row of rows) {
-            for (const module of row.modules || []) {
+            for (const module of row.modules ?? []) {
                 const mt = module.type;
                 if (['VIDEO_PLAYLIST', 'VIDEO_ROW', 'PAGED_LIST'].includes(mt)) {
-                    const items = (module.pagedList || {}).items || [];
-                    for (const item of items) videos.push(item.item || item);
+                    const items = module.pagedList?.items ?? [];
+                    for (const item of items) {
+                        const v = item.item ?? item;
+                        videos.push(v as TidalVideoItem);
+                    }
                 } else if (mt === 'VIDEO' || (mt && mt.toLowerCase().includes('video'))) {
-                    const it = module.item || module;
-                    if (typeof it === 'object') videos.push(it);
+                    const it = module.item;
+                    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+                    videos.push(it as TidalVideoItem);
                 }
             }
         }
@@ -921,8 +2211,21 @@ class HiFiClient {
         });
     }
 
-    // generic helper that accepts local route strings like "/info/?id=123" or full URLs
-    async query(pathOrUrl: string, signal?: AbortSignal) {
+    /**
+     * Dispatches a local route string (e.g. `"/info/?id=123"`) to the appropriate
+     * {@link HiFiClient} method and returns a {@link TidalResponse}.
+     *
+     * This is a convenience method that mirrors an HTTP-router interface so external
+     * code can call the API with path-style strings.  Because the route is resolved
+     * at runtime the response is untyped (`TidalResponse<unknown>`); prefer calling
+     * the individual typed methods directly when the route is known at compile time.
+     *
+     * @param pathOrUrl - A local route path such as `"/track/?id=123"`, or a full URL.
+     * @param signal - Optional {@link AbortSignal} to cancel the request.
+     * @returns A {@link TidalResponse} wrapping the route handler's response.
+     * @throws An error if the pathname does not match any known route.
+     */
+    async query(pathOrUrl: string, signal?: AbortSignal): Promise<TidalResponse> {
         // normalize: if starts with http use as-is, else treat as local route
         try {
             const u = new URL(pathOrUrl, 'http://localhost');
@@ -1039,7 +2342,9 @@ class HiFiClient {
                     throw new Error(`Unknown route: ${pathname}`);
             }
         } catch (err) {
-            console.error(err?.message || err, err?.message ? err : undefined);
+            const message = (err as { message?: string }).message ?? String(err);
+            console.error(message, err);
+
             throw err;
         }
     }
