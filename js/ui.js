@@ -2621,7 +2621,7 @@ export class UIRenderer {
                                     audioQuality: item.audioQuality,
                                     mediaMetadata: item.mediaMetadata,
                                     type: 'ALBUM',
-                                    _lazy: cardsHTML.length >= 6
+                                    _lazy: cardsHTML.length >= 6,
                                 };
                                 cardsHTML.push(this.createAlbumCardHTML(album));
                                 itemsToStore.push({ el: null, data: album, type: 'album' });
@@ -2652,7 +2652,7 @@ export class UIRenderer {
                                         releaseDate: item.releaseDate,
                                         type: 'ALBUM',
                                         _href: `/userplaylist/${item.id}`,
-                                        _lazy: cardsHTML.length >= 6
+                                        _lazy: cardsHTML.length >= 6,
                                     })
                                 );
                                 itemsToStore.push({ el: null, data: playlist, type: 'user-playlist' });
@@ -2664,7 +2664,7 @@ export class UIRenderer {
                                     id: item.id,
                                     name: item.name,
                                     picture: item.picture,
-                                    _lazy: cardsHTML.length >= 6
+                                    _lazy: cardsHTML.length >= 6,
                                 };
                                 cardsHTML.push(this.createArtistCardHTML(artist));
                                 itemsToStore.push({ el: null, data: artist, type: 'artist' });
