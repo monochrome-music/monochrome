@@ -7,11 +7,16 @@ import re
 import sys
 import hashlib
 import time
+import os
+import subprocess
+import shutil
+import tempfile
 
 INPUT_FILE = "editors-picks-input.txt"
+IMAGES_DIR = "public/editors-picks-images"
 COUNTRY = "US"
 
-# Tidal internal token — replace when expired
+# Tidal internal token replace when expired
 TIDAL_TOKEN = "eyJraWQiOiJ2OU1GbFhqWSIsImFsZyI6IkVTMjU2In0.eyJ0eXBlIjoibzJfYWNjZXNzIiwic2NvcGUiOiIiLCJnVmVyIjowLCJzVmVyIjowLCJjaWQiOjEzNTU3LCJhdCI6IklOVEVSTkFMIiwiZXhwIjoxNzc1MjQ2NzQ2LCJpc3MiOiJodHRwczovL2F1dGgudGlkYWwuY29tL3YxIn0.ksUE4yhQ39IG7oHWk8DyJ91dwIoDVWGzvTAnpeDJ5p-_Gp0F_yO858xDO11AINBaahQCq0jlbqWqIaTqCTOjqg"
 
 TIDAL_HEADERS = {
@@ -83,6 +88,61 @@ def fetch_podcast(feed_id):
     return podcast_get(f"/podcasts/byfeedid?id={feed_id}&pretty")
 
 
+# ── Image processing ───────────────────────────────────────────────────────────
+
+def clear_images_dir():
+    if os.path.exists(IMAGES_DIR):
+        shutil.rmtree(IMAGES_DIR)
+    os.makedirs(IMAGES_DIR, exist_ok=True)
+
+
+def is_uuid_cover(cover_value):
+    if not cover_value:
+        return False
+    return bool(re.match(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$', cover_value))
+
+
+def uuid_to_path_segments(uuid):
+    return uuid.replace('-', '/')
+
+
+def download_and_process_cover(cover_uuid):
+    url = f"https://resources.tidal.com/images/{uuid_to_path_segments(cover_uuid)}/640x640.jpg"
+    
+    with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
+        tmp_path = tmp.name
+    
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req) as resp:
+            with open(tmp_path, 'wb') as f:
+                shutil.copyfileobj(resp, f)
+        
+        output_path = os.path.join(IMAGES_DIR, f"{cover_uuid}.webp")
+        
+        subprocess.run(
+            ['cwebp', '-q', '50', '-resize', '500', '500', tmp_path, '-o', output_path],
+            check=True,
+            capture_output=True
+        )
+        
+        return f"https://monochrome.tf/editors-picks-images/{cover_uuid}.webp"
+    except Exception as e:
+        print(f"Error processing cover {cover_uuid}: {e}", file=sys.stderr)
+        return None
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+
+def process_cover(cover_value):
+    if not cover_value:
+        return cover_value
+    if is_uuid_cover(cover_value):
+        return download_and_process_cover(cover_value)
+    return cover_value
+
+
 # ── Transformers ──────────────────────────────────────────────────────────────
 
 def transform_album(d):
@@ -95,7 +155,7 @@ def transform_album(d):
             "name": d.get("artist", {}).get("name"),
         },
         "releaseDate": d.get("releaseDate"),
-        "cover": d.get("cover"),
+        "cover": process_cover(d.get("cover")),
         "explicit": d.get("explicit"),
         "audioQuality": d.get("audioQuality"),
         "mediaMetadata": d.get("mediaMetadata"),
@@ -107,7 +167,7 @@ def transform_artist(d):
         "type": "artist",
         "id": d.get("id"),
         "name": d.get("name"),
-        "picture": d.get("picture"),
+        "picture": process_cover(d.get("picture")),
     }
 
 
@@ -124,7 +184,7 @@ def transform_track(d):
         "album": {
             "id": album.get("id"),
             "title": album.get("title"),
-            "cover": album.get("cover"),
+            "cover": process_cover(album.get("cover")),
         },
         "duration": d.get("duration"),
         "explicit": d.get("explicit"),
@@ -140,7 +200,7 @@ def transform_playlist(d):
         "type": "playlist",
         "id": d.get("uuid"),
         "title": d.get("title"),
-        "cover": cover,
+        "cover": process_cover(cover),
         "numberOfTracks": d.get("numberOfTracks", 0),
     }
 
@@ -153,7 +213,7 @@ def transform_userplaylist(d):
         "type": "user-playlist",
         "id": d.get("uuid"),
         "name": d.get("title"),
-        "cover": cover,
+        "cover": process_cover(cover),
         "numberOfTracks": d.get("numberOfTracks", 0),
         "username": creator.get("name"),
     }
@@ -198,6 +258,8 @@ def read_items(path):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
+clear_images_dir()
+
 FETCHERS = {
     "album":       (fetch_album,       transform_album),
     "artist":      (fetch_artist,      transform_artist),
@@ -212,7 +274,7 @@ picks = []
 
 for item_type, item_id in items:
     if item_type not in FETCHERS:
-        print(f"Unknown type '{item_type}' for id {item_id!r} — skipping", file=sys.stderr)
+        print(f"Unknown type '{item_type}' for id {item_id!r} - skipping", file=sys.stderr)
         continue
     fetch_fn, transform_fn = FETCHERS[item_type]
     data = fetch_fn(item_id)
