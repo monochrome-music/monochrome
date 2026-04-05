@@ -5,6 +5,7 @@ import path from 'path';
 import uploadPlugin from './vite-plugin-upload.js';
 import blobAssetPlugin from './vite-plugin-blob.js';
 import svgUse from './vite-plugin-svg-use.js';
+import purgecss from 'vite-plugin-purgecss';
 import { execSync } from 'child_process';
 import { playwright } from '@vitest/browser-playwright';
 
@@ -66,8 +67,14 @@ export default defineConfig((_options) => {
             outDir: 'dist',
             emptyOutDir: true,
             sourcemap: true,
+            rollupOptions: {
+                treeshake: true,
+            },
         },
         plugins: [
+            purgecss({
+                variables: true,
+            }),
             authGatePlugin(),
             uploadPlugin(),
             blobAssetPlugin(),

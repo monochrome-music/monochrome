@@ -577,7 +577,8 @@ export class UIRenderer {
             const formattedId = String(cover).replace(/-/g, '/');
             const tidalUrl = `https://resources.tidal.com/images/${formattedId}/320x320.jpg`;
             const wsrvUrl = `https://wsrv.nl/?url=${encodeURIComponent(tidalUrl)}&w=250&h=250&output=webp`;
-            return `<img src="${wsrvUrl}" class="${className}" alt="${alt}" loading="${loading}">`;
+            const fetchPriorityAttr = loading === 'eager' ? ' fetchpriority="high"' : '';
+            return `<img src="${wsrvUrl}" class="${className}" alt="${alt}" loading="${loading}"${fetchPriorityAttr}>`;
         }
 
         return `<img src="${imageUrl}" class="${className}" alt="${alt}" loading="${loading}">`;
