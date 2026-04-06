@@ -949,9 +949,9 @@ export const visualizerSettings = {
 
     getPreset() {
         try {
-            return localStorage.getItem(this.PRESET_KEY) || 'butterchurn';
+            return localStorage.getItem(this.PRESET_KEY) || 'kawarp';
         } catch {
-            return 'butterchurn';
+            return 'kawarp';
         }
     },
 
