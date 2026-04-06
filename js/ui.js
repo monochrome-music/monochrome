@@ -1336,9 +1336,7 @@ export class UIRenderer {
             nextTrackEl.classList.remove('animate-in');
         }
 
-        const canRenderLyrics = Boolean(
-            lyricsManager && activeElement && lyricsPane && lyricsContent && track.type !== 'video'
-        );
+        const canRenderLyrics = Boolean(lyricsManager && activeElement && lyricsPane && lyricsContent && track.type !== 'video');
         if (canRenderLyrics) {
             this.fullscreenLyricsVisible = true;
             if (lyricsToggleBtn) lyricsToggleBtn.style.removeProperty('display');
@@ -1351,8 +1349,7 @@ export class UIRenderer {
             overlay.classList.add('lyrics-unavailable');
             if (lyricsContent) {
                 clearFullscreenLyricsSync(lyricsContent);
-                lyricsContent.innerHTML =
-                    '<div class="fullscreen-lyrics-empty">Lyrics are not available for this track.</div>';
+                lyricsContent.innerHTML = '<div class="fullscreen-lyrics-empty">Lyrics are not available for this track.</div>';
             }
         }
         this.updateFullscreenLyricsVisibility(overlay);
@@ -1364,8 +1361,15 @@ export class UIRenderer {
         }
         const mainContent = document.querySelector('.main-content');
         if (mainContent instanceof HTMLElement) {
-            this.fullscreenMainContentOverflow = mainContent.style.overflowY;
-            mainContent.style.overflowY = 'hidden';
+            const computedStyles = window.getComputedStyle(mainContent);
+            this.fullscreenMainContentOverflow = {
+                overflow: mainContent.style.overflow,
+                overflowX: mainContent.style.overflowX,
+                overflowY: mainContent.style.overflowY,
+                computedOverflowX: computedStyles.overflowX,
+                computedOverflowY: computedStyles.overflowY,
+            };
+            mainContent.style.overflow = 'hidden';
         }
 
         this.setupFullscreenControls();
@@ -1414,6 +1418,14 @@ export class UIRenderer {
                 lyricsToggleBtn.style.removeProperty('display');
             }
         });
+    }
+
+    toggleFullscreenLyrics(overlay = document.getElementById('fullscreen-cover-overlay')) {
+        if (!overlay || overlay.classList.contains('lyrics-unavailable')) return false;
+
+        this.fullscreenLyricsVisible = !this.fullscreenLyricsVisible;
+        this.updateFullscreenLyricsVisibility(overlay);
+        return true;
     }
 
     updateFullscreenQualityBadgePlacement(track, overlay = document.getElementById('fullscreen-cover-overlay')) {
@@ -1492,12 +1504,32 @@ export class UIRenderer {
         if (playerBar) playerBar.style.removeProperty('display');
         const mainContent = document.querySelector('.main-content');
         if (mainContent instanceof HTMLElement) {
-            if (
-                typeof this.fullscreenMainContentOverflow === 'string' &&
-                this.fullscreenMainContentOverflow.length > 0
-            ) {
-                mainContent.style.overflowY = this.fullscreenMainContentOverflow;
+            const previousOverflow = this.fullscreenMainContentOverflow;
+            if (previousOverflow && typeof previousOverflow === 'object') {
+                if (previousOverflow.overflow) {
+                    mainContent.style.overflow = previousOverflow.overflow;
+                } else {
+                    mainContent.style.removeProperty('overflow');
+                }
+
+                if (previousOverflow.overflowX) {
+                    mainContent.style.overflowX = previousOverflow.overflowX;
+                } else if (previousOverflow.computedOverflowX && previousOverflow.computedOverflowX !== 'visible') {
+                    mainContent.style.overflowX = previousOverflow.computedOverflowX;
+                } else {
+                    mainContent.style.removeProperty('overflow-x');
+                }
+
+                if (previousOverflow.overflowY) {
+                    mainContent.style.overflowY = previousOverflow.overflowY;
+                } else if (previousOverflow.computedOverflowY && previousOverflow.computedOverflowY !== 'visible') {
+                    mainContent.style.overflowY = previousOverflow.computedOverflowY;
+                } else {
+                    mainContent.style.removeProperty('overflow-y');
+                }
             } else {
+                mainContent.style.removeProperty('overflow');
+                mainContent.style.removeProperty('overflow-x');
                 mainContent.style.removeProperty('overflow-y');
             }
             this.fullscreenMainContentOverflow = null;
@@ -1574,7 +1606,6 @@ export class UIRenderer {
         }
 
         if (this.visualizer) {
-            this.visualizer.applyPresetOverride('kawarp');
             await this.visualizer.start();
             overlay.classList.add('visualizer-active');
         }
@@ -1905,9 +1936,7 @@ export class UIRenderer {
         const handleToggle = (event) => {
             event.preventDefault();
             event.stopPropagation();
-            if (overlay.classList.contains('lyrics-unavailable')) return;
-            this.fullscreenLyricsVisible = !this.fullscreenLyricsVisible;
-            this.updateFullscreenLyricsVisibility(overlay);
+            this.toggleFullscreenLyrics(overlay);
         };
 
         toggleButtons.forEach((toggleBtn) => toggleBtn.addEventListener('click', handleToggle));

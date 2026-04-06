@@ -299,6 +299,13 @@ function initializeKeyboardShortcuts(player, _audioPlayer) {
         },
         lyrics: () => {
             trackKeyboardShortcut('L');
+            const overlay = document.getElementById('fullscreen-cover-overlay');
+            const isFullscreenOpen = overlay && getComputedStyle(overlay).display !== 'none';
+
+            if (isFullscreenOpen && UIRenderer.instance?.toggleFullscreenLyrics(overlay)) {
+                return;
+            }
+
             document.getElementById('toggle-lyrics-btn')?.click();
         },
         search: () => {
@@ -359,6 +366,19 @@ function initializeKeyboardShortcuts(player, _audioPlayer) {
             }
         }
     });
+}
+
+async function closeFullscreenOverlay() {
+    if (UIRenderer.instance?.dismissFullscreenCover) {
+        await UIRenderer.instance.dismissFullscreenCover({ animate: false });
+        return;
+    }
+
+    if (window.location.hash === '#fullscreen') {
+        window.history.back();
+    } else {
+        UIRenderer.instance?.closeFullscreenCover();
+    }
 }
 
 function showOfflineNotification() {
@@ -736,11 +756,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else if (mode === 'cover') {
             const overlay = document.getElementById('fullscreen-cover-overlay');
             if (overlay && overlay.style.display === 'flex') {
-                if (window.location.hash === '#fullscreen') {
-                    window.history.back();
-                } else {
-                    UIRenderer.instance.closeFullscreenCover();
-                }
+                await closeFullscreenOverlay();
             } else {
                 const nextTrack = Player.instance.getNextTrack();
                 UIRenderer.instance.showFullscreenCover(
@@ -764,13 +780,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (shareBtn) shareBtn.style.display = e.target.checked ? 'flex' : 'none';
     });
 
-    document.getElementById('close-fullscreen-cover-btn')?.addEventListener('click', () => {
+    document.getElementById('close-fullscreen-cover-btn')?.addEventListener('click', async () => {
         trackCloseFullscreenCover();
-        if (window.location.hash === '#fullscreen') {
-            window.history.back();
-        } else {
-            UIRenderer.instance.closeFullscreenCover();
-        }
+        await closeFullscreenOverlay();
     });
 
     document.getElementById('fullscreen-cover-overlay')?.addEventListener('click', (e) => {
@@ -785,11 +797,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         switch (action) {
             case 'exit':
-                if (window.location.hash === '#fullscreen') {
-                    window.history.back();
-                } else {
-                    UIRenderer.instance.closeFullscreenCover();
-                }
+                closeFullscreenOverlay();
                 break;
             case 'hide-ui':
                 if (overlay) {
@@ -831,11 +839,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             case 'nothing':
                 break;
             default:
-                if (window.location.hash === '#fullscreen') {
-                    window.history.back();
-                } else {
-                    UIRenderer.instance.closeFullscreenCover();
-                }
+                closeFullscreenOverlay();
         }
     });
 
