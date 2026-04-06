@@ -5,6 +5,8 @@ import path from 'path';
 import uploadPlugin from './vite-plugin-upload.js';
 import blobAssetPlugin from './vite-plugin-blob.js';
 import svgUse from './vite-plugin-svg-use.js';
+// import purgecss from 'vite-plugin-purgecss';
+import purgecss from 'vite-plugin-purgecss';
 import { execSync } from 'child_process';
 import { playwright } from '@vitest/browser-playwright';
 
@@ -66,8 +68,35 @@ export default defineConfig((_options) => {
             outDir: 'dist',
             emptyOutDir: true,
             sourcemap: true,
+            minify: 'terser',
+            terserOptions: {
+                compress: {
+                    drop_console: true,
+                    drop_debugger: true,
+                },
+            },
+            rollupOptions: {
+                treeshake: true,
+            },
         },
         plugins: [
+            purgecss({
+                variables: false, // DO NOT REMOVE UNUSED VARIABLES (breaks web components like am-lyrics)
+                safelist: {
+                    standard: [
+                        /^am-lyrics/,
+                        /^lyplus-/,
+                        'sidepanel',
+                        'side-panel',
+                        'active',
+                        'show',
+                        /^data-/,
+                        /^modal-/,
+                    ],
+                    deep: [/^am-lyrics/],
+                    greedy: [/^lyplus-/, /sidepanel/, /side-panel/],
+                },
+            }),
             authGatePlugin(),
             uploadPlugin(),
             blobAssetPlugin(),

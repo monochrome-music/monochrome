@@ -1073,18 +1073,20 @@ export class LosslessAPI {
         entries.forEach((entry) => scan(entry, visited));
         scan(primaryData, visited);
 
+        const matchesArtistId = (item) => {
+            const candidateIds = [
+                item.artist?.id,
+                ...(Array.isArray(item.artists) ? item.artists.map((a) => a.id) : []),
+            ].filter((id) => id != null);
+            return candidateIds.some((id) => Number(id) === Number(artistId));
+        };
+
         if (!options.lightweight) {
             try {
                 const videoSearch = await this.searchVideos(artist.name);
                 if (videoSearch && videoSearch.items) {
-                    const numericArtistId = Number(artistId);
                     for (const item of videoSearch.items) {
-                        const itemArtistId = item.artist?.id;
-                        const matchesArtist =
-                            itemArtistId === numericArtistId ||
-                            (Array.isArray(item.artists) && item.artists.some((a) => a.id === numericArtistId));
-
-                        if (matchesArtist && !videoMap.has(item.id)) {
+                        if (matchesArtistId(item) && !videoMap.has(item.id)) {
                             videoMap.set(item.id, item);
                         }
                     }
@@ -1094,7 +1096,7 @@ export class LosslessAPI {
             }
         }
 
-        const rawReleases = Array.from(albumMap.values());
+        const rawReleases = Array.from(albumMap.values()).filter(matchesArtistId);
         const allReleases = this.deduplicateAlbums(rawReleases).sort(
             (a, b) => new Date(b.releaseDate || 0) - new Date(a.releaseDate || 0)
         );
@@ -1103,6 +1105,7 @@ export class LosslessAPI {
         const albums = allReleases.filter((a) => !eps.includes(a));
 
         const topTracks = Array.from(trackMap.values())
+            .filter(matchesArtistId)
             .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
             .slice(0, 15);
 
@@ -1952,6 +1955,19 @@ export class LosslessAPI {
         return `https://resources.tidal.com/images/${formattedId}/${size}x${size}.jpg`;
     }
 
+    getCoverSrcset(id) {
+        if (
+            !id ||
+            (typeof id === 'string' && (id.startsWith('http') || id.startsWith('blob:') || id.startsWith('assets/')))
+        ) {
+            return '';
+        }
+
+        const formattedId = String(id).replace(/-/g, '/');
+        const baseUrl = `https://resources.tidal.com/images/${formattedId}`;
+        return `${baseUrl}/160x160.jpg 160w, ${baseUrl}/320x320.jpg 320w, ${baseUrl}/640x640.jpg 640w`;
+    }
+
     getArtistPictureUrl(id, size = '320') {
         if (!id) {
             return `https://picsum.photos/seed/${Math.random()}/${size}`;
@@ -1963,6 +1979,16 @@ export class LosslessAPI {
 
         const formattedId = String(id).replace(/-/g, '/');
         return `https://resources.tidal.com/images/${formattedId}/${size}x${size}.jpg`;
+    }
+
+    getArtistPictureSrcset(id) {
+        if (!id || (typeof id === 'string' && (id.startsWith('blob:') || id.startsWith('assets/')))) {
+            return '';
+        }
+
+        const formattedId = String(id).replace(/-/g, '/');
+        const baseUrl = `https://resources.tidal.com/images/${formattedId}`;
+        return `${baseUrl}/160x160.jpg 160w, ${baseUrl}/320x320.jpg 320w, ${baseUrl}/640x640.jpg 640w`;
     }
 
     getVideoCoverUrl(imageId, size = '1280') {

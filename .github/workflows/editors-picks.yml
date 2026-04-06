@@ -37,10 +37,6 @@ jobs:
               with:
                   python-version: '3.x'
 
-            - name: Install webp
-              if: steps.backoff.outputs.skip == 'false'
-              run: sudo apt-get update && sudo apt-get install -y webp
-
             - name: Archive current editors picks
               if: steps.backoff.outputs.skip == 'false'
               run: |
@@ -68,14 +64,19 @@ jobs:
                   with open("public/editors-picks.json") as f:
                       current = json.load(f)
 
-                  # Replace cover URLs with original UUIDs
-                  url_pattern = re.compile(r'^https://monochrome\.tf/editors-picks-images/([a-f0-9-]+)\.webp$')
+                  # Replace cover URLs with original UUIDs (handles both legacy and intermediate formats)
+                  url_pattern1 = re.compile(r'^https://monochrome\.tf/editors-picks-images/([a-f0-9-]+)\.webp$')
+                  url_pattern2 = re.compile(r'^https://wsrv\.nl/\?url=https://resources\.tidal\.com/images/([a-f0-9/]+)/320x320\.jpg&w=250&h=250&output=webp$')
                   for item in current:
                       for field in ['cover', 'picture', 'image']:
                           if field in item and item[field]:
-                              match = url_pattern.match(item[field])
-                              if match:
-                                  item[field] = match.group(1)
+                              m1 = url_pattern1.match(item[field])
+                              if m1:
+                                  item[field] = m1.group(1)
+                                  continue
+                              m2 = url_pattern2.match(item[field])
+                              if m2:
+                                  item[field] = m2.group(1).replace("/", "-")
 
                   with open(archive_path, "w") as f:
                       json.dump(current, f, indent=4)
@@ -103,7 +104,8 @@ jobs:
               run: |
                   git config user.name "github-actions[bot]"
                   git config user.email "github-actions[bot]@users.noreply.github.com"
-                  git add public/editors-picks.json public/editors-picks-old/ public/editors-picks-images/
+                  git pull --rebase origin main
+                  git add public/editors-picks.json public/editors-picks-old/
                   git diff --staged --quiet && echo "No changes to commit." && exit 0
                   git commit -m "chore: update editors picks"
                   git push

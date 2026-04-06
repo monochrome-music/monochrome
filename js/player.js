@@ -98,6 +98,24 @@ export class Player {
             });
         }
 
+        const waitForImagesLoading = () => {
+            const images = Array.from(document.images).filter((img) => !img.complete);
+            if (images.length === 0) return Promise.resolve();
+            return Promise.all(
+                images.map(
+                    (img) =>
+                        new Promise((res) => {
+                            img.onload = img.onerror = res;
+                        })
+                )
+            );
+        };
+
+        if (document.readyState !== 'complete') {
+            await new Promise((resolve) => window.addEventListener('load', resolve));
+        }
+        await waitForImagesLoading();
+
         // Initialize Shaka player
         const shaka = await import('shaka-player');
         shaka.polyfill.installAll();
@@ -148,9 +166,13 @@ export class Player {
             await this.saveQueueState();
         });
 
-        // Handle visibility change for iOS - AudioContext gets suspended when screen locks
+        // Handle visibility change - AudioContext can be suspended when backgrounded
         document.addEventListener('visibilitychange', async () => {
             const el = this.activeElement;
+            if (document.visibilityState === 'hidden' && !el.paused) {
+                // Proactively resume context when going to background to prevent suspension
+                void audioContextManager.resume();
+            }
             if (document.visibilityState === 'visible' && !el.paused) {
                 // Ensure audio context is resumed when user returns to the app
                 if (!audioContextManager.isReady()) {
@@ -307,8 +329,9 @@ export class Player {
 
                 if (coverEl) {
                     const videoCoverUrl = track.videoUrl || track.videoCoverUrl || track.album?.videoCoverUrl || null;
-                    const coverUrl =
-                        videoCoverUrl || this.api.getCoverUrl(track.image || track.cover || track.album?.cover);
+                    const coverId = track.image || track.cover || track.album?.cover;
+                    const coverUrl = videoCoverUrl || this.api.getCoverUrl(coverId);
+                    const coverSrcset = videoCoverUrl ? null : this.api.getCoverSrcset(coverId);
 
                     if (videoCoverUrl) {
                         if (coverEl.tagName === 'IMG') {
@@ -326,14 +349,24 @@ export class Player {
                             coverEl.src = videoCoverUrl;
                         }
                     } else {
+                        const setImgSrcset = (img) => {
+                            if (img.getAttribute('src') !== coverUrl) img.src = coverUrl;
+                            if (coverSrcset) {
+                                img.setAttribute('srcset', coverSrcset);
+                                img.setAttribute('sizes', '(max-width: 640px) 160px, (max-width: 1024px) 320px, 640px');
+                            } else {
+                                img.removeAttribute('srcset');
+                                img.removeAttribute('sizes');
+                            }
+                        };
                         if (coverEl.tagName === 'VIDEO') {
                             const img = document.createElement('img');
-                            img.src = coverUrl;
                             img.className = coverEl.className;
                             img.id = coverEl.id;
+                            setImgSrcset(img);
                             coverEl.replaceWith(img);
                         } else {
-                            coverEl.src = coverUrl;
+                            setImgSrcset(coverEl);
                         }
                     }
                 }
@@ -870,8 +903,19 @@ export class Player {
         } else {
             if (coverEl) {
                 coverEl.style.display = 'block';
-                const coverUrl = this.api.getCoverUrl(track.image || track.cover || track.album?.cover);
-                if (coverEl.src !== coverUrl) coverEl.src = coverUrl;
+                const coverId = track.image || track.cover || track.album?.cover;
+                const coverUrl = this.api.getCoverUrl(coverId);
+                const coverSrcset = this.api.getCoverSrcset(coverId);
+                if (coverEl.getAttribute('src') !== coverUrl) {
+                    coverEl.src = coverUrl;
+                    if (coverSrcset) {
+                        coverEl.setAttribute('srcset', coverSrcset);
+                        coverEl.setAttribute('sizes', '(max-width: 640px) 160px, (max-width: 1024px) 320px, 640px');
+                    } else {
+                        coverEl.removeAttribute('srcset');
+                        coverEl.removeAttribute('sizes');
+                    }
+                }
             }
             if (this.audio) {
                 const isInFullscreen = document.getElementById('fullscreen-cover-overlay')?.style.display === 'flex';
@@ -2054,7 +2098,41 @@ export class Player {
 
     updateMediaSessionPlaybackState() {
         if (!('mediaSession' in navigator)) return;
-        navigator.mediaSession.playbackState = this.activeElement.paused ? 'paused' : 'playing';
+        const isPlaying = !this.activeElement.paused;
+        navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+
+        // Start/stop Android foreground service to prevent background audio throttling
+        this._updateBackgroundAudioService(isPlaying);
+    }
+
+    /**
+     * On Android (Capacitor), start or stop the foreground service that keeps
+     * the WebView alive so Web Audio EQ processing isn't throttled.
+     */
+    _updateBackgroundAudioService(isPlaying) {
+        if (this._bgAudioPending) return;
+        this._bgAudioPending = true;
+
+        // Lazy-load Capacitor core; no-op on web/iOS
+        void (async () => {
+            try {
+                const { Capacitor } = await import('@capacitor/core');
+                if (Capacitor.getPlatform() !== 'android') return;
+                const { registerPlugin } = await import('@capacitor/core');
+                if (!this._bgAudioPlugin) {
+                    this._bgAudioPlugin = registerPlugin('BackgroundAudio');
+                }
+                if (isPlaying) {
+                    await this._bgAudioPlugin.start();
+                } else {
+                    await this._bgAudioPlugin.stop();
+                }
+            } catch {
+                // Not running in Capacitor or plugin unavailable — ignore
+            } finally {
+                this._bgAudioPending = false;
+            }
+        })();
     }
 
     updateMediaSessionPositionState() {

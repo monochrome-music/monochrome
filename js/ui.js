@@ -94,7 +94,6 @@ const setFullscreenUIToggleIcon = (button, visualizerOnlyMode) => {
 };
 
 const isMobileFullscreenViewport = () => window.matchMedia('(max-width: 768px)').matches;
-
 function sortTracks(tracks, sortType) {
     if (sortType === 'custom') return [...tracks];
     const sorted = [...tracks];
@@ -541,11 +540,44 @@ export class UIRenderer {
         `;
     }
 
-    getCoverHTML(cover, alt, className = 'card-image', loading = 'lazy', videoCoverUrl = null) {
-        const imageUrl = this.api.getCoverUrl(cover);
+    getCoverHTML(
+        cover,
+        alt,
+        className = 'card-image',
+        loading = 'lazy',
+        videoCoverUrl = null,
+        isEditorsPick = false,
+        type = 'album'
+    ) {
+        let size = '320';
+        if (className === 'track-item-cover') {
+            size = '80';
+        } else if (type === 'artist') {
+            size = '160';
+        }
+
+        const imageUrl =
+            type === 'artist' ? this.api.getArtistPictureUrl(cover, size) : this.api.getCoverUrl(cover, size);
+
         if (videoCoverUrl) {
             return `<video src="${videoCoverUrl}" poster="${imageUrl}" class="${className}" alt="${alt}" preload="metadata" playsinline muted></video>`;
         }
+
+        if (
+            isEditorsPick &&
+            cover &&
+            typeof cover === 'string' &&
+            !cover.startsWith('http') &&
+            !cover.startsWith('blob:') &&
+            !cover.startsWith('assets/')
+        ) {
+            const formattedId = String(cover).replace(/-/g, '/');
+            const tidalUrl = `https://resources.tidal.com/images/${formattedId}/320x320.jpg`;
+            const wsrvUrl = `https://wsrv.nl/?url=${encodeURIComponent(tidalUrl)}&w=250&h=250&output=webp`;
+            const fetchPriorityAttr = loading === 'eager' ? ' fetchpriority="high"' : '';
+            return `<img src="${wsrvUrl}" class="${className}" alt="${alt}" loading="${loading}"${fetchPriorityAttr}>`;
+        }
+
         return `<img src="${imageUrl}" class="${className}" alt="${alt}" loading="${loading}">`;
     }
 
@@ -575,7 +607,7 @@ export class UIRenderer {
 
         const cardContent = `
             <div class="card-info">
-                <h4 class="card-title">${title}</h4>
+                <h3 class="card-title">${title}</h3>
                 ${subtitle ? `<p class="card-subtitle">${subtitle}</p>` : ''}
             </div>`;
 
@@ -656,7 +688,15 @@ export class UIRenderer {
     createUserPlaylistCardHTML(playlist, customSubtitle = null) {
         let imageHTML = '';
         if (playlist.cover) {
-            imageHTML = `<img src="${playlist.cover}" alt="${playlist.name}" class="card-image" loading="lazy">`;
+            imageHTML = this.getCoverHTML(
+                playlist.cover,
+                escapeHtml(playlist.name),
+                'card-image',
+                playlist._lazy === false ? 'eager' : 'lazy',
+                null,
+                playlist._isEditorsPick || false,
+                'album'
+            );
         } else {
             const tracks = playlist.tracks || [];
             let uniqueCovers = playlist.images || [];
@@ -747,8 +787,10 @@ export class UIRenderer {
                 album.cover,
                 escapeHtml(album.title),
                 'card-image',
-                'lazy',
-                album.videoCoverUrl
+                album._lazy === false ? 'eager' : 'lazy',
+                album.videoCoverUrl,
+                album._isEditorsPick || false,
+                'album'
             ),
             actionButtonsHTML: `
                 <button class="like-btn card-like-btn" data-action="toggle-like" data-type="album" title="Add to Liked">
@@ -819,7 +861,15 @@ export class UIRenderer {
             href: `/artist/${artist.id}`,
             title: escapeHtml(artist.name),
             subtitle: '',
-            imageHTML: `<img src="${this.api.getArtistPictureUrl(artist.picture)}" alt="${escapeHtml(artist.name)}" class="card-image" loading="lazy">`,
+            imageHTML: this.getCoverHTML(
+                artist.picture,
+                escapeHtml(artist.name),
+                'card-image',
+                artist._lazy === false ? 'eager' : 'lazy',
+                null,
+                artist._isEditorsPick || false,
+                'artist'
+            ),
             actionButtonsHTML: `
                 <button class="like-btn card-like-btn" data-action="toggle-like" data-type="artist" title="Add to Liked">
                     ${this.createHeartIcon(false)}
@@ -1337,6 +1387,7 @@ export class UIRenderer {
         this.setupFullscreenDismissHandle(overlay);
         this.setupFullscreenLyricsToggle(overlay);
         await this.refreshFullscreenVisualizerState(activeElement);
+        await this.refreshFullscreenVisualizerState(activeElement);
     }
 
     updateFullscreenLyricsVisibility(overlay = document.getElementById('fullscreen-cover-overlay')) {
@@ -1544,8 +1595,7 @@ export class UIRenderer {
         const visualizerBtn = document.getElementById('fs-visualizer-btn');
         const toggleBtn = document.getElementById('toggle-ui-btn');
         const isVideoTrack = this.player?.currentTrack?.type === 'video';
-        const enabled =
-            !isVideoTrack && !this.fullscreenVisualizerSuppressed && !isMobileFullscreenViewport();
+        const enabled = !isVideoTrack && !this.fullscreenVisualizerSuppressed && !isMobileFullscreenViewport();
 
         if (!overlay) return;
 
@@ -1630,7 +1680,6 @@ export class UIRenderer {
                 }
 
                 this.fullscreenVisualizerSuppressed = false;
-                visualizerSettings.setEnabled(true);
                 await this.refreshFullscreenVisualizerState(this.player?.activeElement);
 
                 if (!overlay.classList.contains('visualizer-active')) {
@@ -1840,7 +1889,6 @@ export class UIRenderer {
             toggleBtn.removeEventListener('click', handleToggle);
         };
     }
-
     setupFullscreenControls() {
         const playBtn = document.getElementById('fs-play-pause-btn');
         const prevBtn = document.getElementById('fs-prev-btn');
@@ -3012,6 +3060,8 @@ export class UIRenderer {
                                     audioQuality: item.audioQuality,
                                     mediaMetadata: item.mediaMetadata,
                                     type: 'ALBUM',
+                                    _lazy: cardsHTML.length >= 6,
+                                    _isEditorsPick: true,
                                 };
                                 cardsHTML.push(this.createAlbumCardHTML(album));
                                 itemsToStore.push({ el: null, data: album, type: 'album' });
@@ -3019,6 +3069,8 @@ export class UIRenderer {
                                 // Fall back to API call for legacy format
                                 const result = await this.api.getAlbum(item.id);
                                 if (result && result.album) {
+                                    result.album._lazy = cardsHTML.length >= 6;
+                                    result.album._isEditorsPick = true;
                                     cardsHTML.push(this.createAlbumCardHTML(result.album));
                                     itemsToStore.push({ el: null, data: result.album, type: 'album' });
                                 }
@@ -3041,6 +3093,8 @@ export class UIRenderer {
                                         releaseDate: item.releaseDate,
                                         type: 'ALBUM',
                                         _href: `/userplaylist/${item.id}`,
+                                        _lazy: cardsHTML.length >= 6,
+                                        _isEditorsPick: true,
                                     })
                                 );
                                 itemsToStore.push({ el: null, data: playlist, type: 'user-playlist' });
@@ -3052,6 +3106,8 @@ export class UIRenderer {
                                     id: item.id,
                                     name: item.name,
                                     picture: item.picture,
+                                    _lazy: cardsHTML.length >= 6,
+                                    _isEditorsPick: true,
                                 };
                                 cardsHTML.push(this.createArtistCardHTML(artist));
                                 itemsToStore.push({ el: null, data: artist, type: 'artist' });
@@ -3059,6 +3115,8 @@ export class UIRenderer {
                                 // Fall back to API call
                                 const artist = await this.api.getArtist(item.id);
                                 if (artist) {
+                                    artist._lazy = cardsHTML.length >= 6;
+                                    artist._isEditorsPick = true;
                                     cardsHTML.push(this.createArtistCardHTML(artist));
                                     itemsToStore.push({ el: null, data: artist, type: 'artist' });
                                 }
@@ -3075,6 +3133,8 @@ export class UIRenderer {
                                     audioQuality: item.audioQuality,
                                     mediaMetadata: item.mediaMetadata,
                                     duration: item.duration,
+                                    _lazy: cardsHTML.length >= 6,
+                                    _isEditorsPick: true,
                                 };
                                 cardsHTML.push(this.createTrackCardHTML(track));
                                 itemsToStore.push({ el: null, data: track, type: 'track' });
@@ -3082,6 +3142,8 @@ export class UIRenderer {
                                 // Fall back to API call
                                 const track = await this.api.getTrackMetadata(item.id);
                                 if (track) {
+                                    track._lazy = cardsHTML.length >= 6;
+                                    track._isEditorsPick = true;
                                     cardsHTML.push(this.createTrackCardHTML(track));
                                     itemsToStore.push({ el: null, data: track, type: 'track' });
                                 }
@@ -3094,6 +3156,8 @@ export class UIRenderer {
                                     cover: item.cover,
                                     tracks: item.tracks || [],
                                     numberOfTracks: item.numberOfTracks || (item.tracks ? item.tracks.length : 0),
+                                    _lazy: cardsHTML.length >= 6,
+                                    _isEditorsPick: true,
                                 };
                                 const subtitle = item.username ? `by ${item.username}` : null;
                                 cardsHTML.push(this.createUserPlaylistCardHTML(playlist, subtitle));
@@ -3101,6 +3165,8 @@ export class UIRenderer {
                             } else {
                                 const playlist = await syncManager.getPublicPlaylist(item.id);
                                 if (playlist) {
+                                    playlist._lazy = cardsHTML.length >= 6;
+                                    playlist._isEditorsPick = true;
                                     const subtitle = item.username ? `by ${item.username}` : null;
                                     cardsHTML.push(this.createUserPlaylistCardHTML(playlist, subtitle));
                                     itemsToStore.push({ el: null, data: playlist, type: 'user-playlist' });
@@ -3625,6 +3691,8 @@ export class UIRenderer {
         const titleEl = document.getElementById('album-detail-title');
         const metaEl = document.getElementById('album-detail-meta');
         const prodEl = document.getElementById('album-detail-producer');
+        const rateCriticsEl = document.getElementById('album-detail-ratings-critics');
+        const rateUsersEl = document.getElementById('album-detail-ratings-users');
         const tracklistContainer = document.getElementById('album-detail-tracklist');
         const playBtn = document.getElementById('play-album-btn');
         if (playBtn) playBtn.innerHTML = `${SVG_PLAY(20)}<span>Play Album</span>`;
@@ -3638,6 +3706,8 @@ export class UIRenderer {
         titleEl.innerHTML = '<div class="skeleton" style="height: 48px; width: 300px; max-width: 90%;"></div>';
         metaEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 200px; max-width: 80%;"></div>';
         prodEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 200px; max-width: 80%;"></div>';
+        rateCriticsEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 200px; max-width: 80%;"></div>';
+        rateUsersEl.innerHTML = '<div class="skeleton" style="height: 16px; width: 200px; max-width: 80%;"></div>';
         tracklistContainer.innerHTML = `
             <div class="track-list-header">
                 <span style="width: 40px; text-align: center;">#</span>
@@ -3747,6 +3817,23 @@ export class UIRenderer {
             prodEl.innerHTML =
                 `By <a href="/artist/${album.artist.id}">${album.artist.name}</a>` +
                 (firstCopyright ? ` • ${firstCopyright}` : '');
+
+            async function fetchAotyWorker(album, artist) {
+                try {
+                    const response = await fetch(
+                        `https://aoty-critics.samidy.workers.dev/?artist=${artist}&album=${album}`
+                    );
+                    const data = await response.json();
+
+                    rateCriticsEl.innerHTML = `<a href="${data.url}" target="_blank" style="color: var(--muted-foreground);">Critic Score: <span style="text-decoration: underline;">${data.critic.score}</span>, Based on ${data.critic.count} reviews</a>`;
+                    rateUsersEl.innerHTML = `<a href="${data.url}" target="_blank" style="color: var(--muted-foreground);">User Score: <span style="text-decoration: underline;">${data.user.score}</span>, Based on ${data.user.count} reviews</a>`;
+                } catch (e) {
+                    rateCriticsEl.innerHTML = `<a style="color: var(--muted-foreground);">Unable to Fetch Critic Score</a>`;
+                    rateUsersEl.innerHTML = `<a style="color: var(--muted-foreground);">Unable to Fetch User Score</a>`;
+                }
+            }
+
+            fetchAotyWorker(album.title, album.artist.name);
 
             tracklistContainer.innerHTML = `
                 <div class="track-list-header">
