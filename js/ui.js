@@ -1392,13 +1392,16 @@ export class UIRenderer {
     updateFullscreenLyricsVisibility(overlay = document.getElementById('fullscreen-cover-overlay')) {
         if (!overlay) return;
 
-        const lyricsToggleBtn = document.getElementById('toggle-fullscreen-lyrics-btn');
+        const lyricsToggleButtons = [
+            document.getElementById('toggle-fullscreen-lyrics-btn'),
+            document.getElementById('toggle-fullscreen-lyrics-mobile-btn'),
+        ].filter(Boolean);
         const lyricsUnavailable = overlay.classList.contains('lyrics-unavailable');
         const shouldShowLyrics = this.fullscreenLyricsVisible && !lyricsUnavailable;
 
         overlay.classList.toggle('lyrics-hidden', !shouldShowLyrics);
 
-        if (lyricsToggleBtn) {
+        lyricsToggleButtons.forEach((lyricsToggleBtn) => {
             lyricsToggleBtn.classList.toggle('active', shouldShowLyrics);
             lyricsToggleBtn.title = shouldShowLyrics ? 'Hide Lyrics' : 'Show Lyrics';
             lyricsToggleBtn.setAttribute('aria-pressed', shouldShowLyrics ? 'true' : 'false');
@@ -1407,7 +1410,7 @@ export class UIRenderer {
             } else {
                 lyricsToggleBtn.style.removeProperty('display');
             }
-        }
+        });
     }
 
     async dismissFullscreenCover({ animate = true } = {}) {
@@ -1870,8 +1873,11 @@ export class UIRenderer {
             this.fullscreenLyricsToggleCleanup = null;
         }
 
-        const toggleBtn = document.getElementById('toggle-fullscreen-lyrics-btn');
-        if (!toggleBtn) return;
+        const toggleButtons = [
+            document.getElementById('toggle-fullscreen-lyrics-btn'),
+            document.getElementById('toggle-fullscreen-lyrics-mobile-btn'),
+        ].filter(Boolean);
+        if (toggleButtons.length === 0) return;
 
         const handleToggle = (event) => {
             event.preventDefault();
@@ -1881,11 +1887,11 @@ export class UIRenderer {
             this.updateFullscreenLyricsVisibility(overlay);
         };
 
-        toggleBtn.addEventListener('click', handleToggle);
+        toggleButtons.forEach((toggleBtn) => toggleBtn.addEventListener('click', handleToggle));
         this.updateFullscreenLyricsVisibility(overlay);
 
         this.fullscreenLyricsToggleCleanup = () => {
-            toggleBtn.removeEventListener('click', handleToggle);
+            toggleButtons.forEach((toggleBtn) => toggleBtn.removeEventListener('click', handleToggle));
         };
     }
     setupFullscreenControls() {
