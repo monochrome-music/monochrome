@@ -4094,6 +4094,111 @@ export class UIRenderer {
         }
     }
 
+    async renderLabelPage(labelName) {
+        this.showPage('label');
+
+        const nameEl = document.getElementById('label-detail-name');
+        const metaEl = document.getElementById('label-detail-meta');
+        const albumsContainer = document.getElementById('label-detail-albums');
+        const loadMoreBtn = document.getElementById('label-load-more');
+
+        nameEl.innerHTML = `<div class="skeleton" style="height: 48px; width: 300px; max-width: 90%;"></div>`;
+        metaEl.textContent = '';
+        albumsContainer.innerHTML = `<div class="card-grid">${this.createSkeletonCards(12)}</div>`;
+        loadMoreBtn.style.display = 'none';
+
+        let offset = 0;
+        const limit = 24;
+        let totalQobuz = 0;
+        let totalMatched = 0;
+
+        const cacheKey = `label_albums_${labelName}`;
+
+        const fetchPage = async (pageOffset) => {
+            const pageCacheKey = `${cacheKey}_${pageOffset}`;
+            const cached = await this.api.cache.get('label', pageCacheKey);
+            if (cached) return cached;
+
+            const url = `/api/label?name=${encodeURIComponent(labelName)}&offset=${pageOffset}&limit=${limit}`;
+            const res = await fetch(url);
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.error || `HTTP ${res.status}`);
+            }
+            const data = await res.json();
+            await this.api.cache.set('label', pageCacheKey, data);
+            return data;
+        };
+
+        const renderAlbums = (albums, append = false) => {
+            const html = albums.map((a) => this.createAlbumCardHTML(a)).join('');
+            if (append) {
+                albumsContainer.insertAdjacentHTML('beforeend', html);
+            } else {
+                albumsContainer.innerHTML = html;
+            }
+        };
+
+        try {
+            const data = await fetchPage(0);
+            totalQobuz = data.total;
+            totalMatched += data.matched;
+
+            nameEl.textContent = data.label?.name || labelName;
+            document.title = `${data.label?.name || labelName} — Monochrome`;
+
+            if (!data.albums.length) {
+                albumsContainer.innerHTML = `<p style="opacity: 0.6; padding: 1rem 0;">No albums from this label found on TIDAL.</p>`;
+                metaEl.textContent = 'No matches found';
+                return;
+            }
+
+            renderAlbums(data.albums);
+            metaEl.textContent = `${totalMatched} of ${totalQobuz} releases found on TIDAL`;
+
+            if (data.hasMore) {
+                loadMoreBtn.style.display = '';
+                loadMoreBtn.onclick = async () => {
+                    offset += limit;
+                    loadMoreBtn.disabled = true;
+                    loadMoreBtn.textContent = 'Loading…';
+                    try {
+                        const more = await fetchPage(offset);
+                        totalMatched += more.matched;
+                        renderAlbums(more.albums, true);
+                        metaEl.textContent = `${totalMatched} of ${totalQobuz} releases found on TIDAL`;
+                        if (!more.hasMore) {
+                            loadMoreBtn.style.display = 'none';
+                        } else {
+                            loadMoreBtn.disabled = false;
+                            loadMoreBtn.textContent = 'Load more';
+                        }
+                    } catch (err) {
+                        loadMoreBtn.disabled = false;
+                        loadMoreBtn.textContent = 'Load more';
+                        console.error('Failed to load more label albums:', err);
+                    }
+                };
+            }
+        } catch (err) {
+            if (err.message.includes('not found') || err.message.includes('404')) {
+                nameEl.textContent = labelName;
+                albumsContainer.innerHTML = `<p style="opacity: 0.6; padding: 1rem 0;">Label not found on Qobuz.</p>`;
+                metaEl.textContent = '';
+            } else {
+                nameEl.textContent = labelName;
+                albumsContainer.innerHTML = `
+                    <div style="opacity: 0.6; padding: 1rem 0;">
+                        <p>Failed to load label catalog.</p>
+                        <button class="btn-secondary" id="label-retry-btn" style="margin-top: 0.5rem;">Retry</button>
+                    </div>`;
+                document.getElementById('label-retry-btn')?.addEventListener('click', () => this.renderLabelPage(labelName));
+                metaEl.textContent = '';
+            }
+            console.error('renderLabelPage error:', err);
+        }
+    }
+
     async renderArtistPage(artistId, provider = null) {
         this.showPage('artist');
         this.currentArtistId = artistId;
