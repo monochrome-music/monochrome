@@ -1303,8 +1303,7 @@ export class UIRenderer {
             await this.extractAndApplyColor(this.api.getCoverUrl(track.album?.cover, '80'));
         }
 
-        const qualityBadge = this.getFullscreenQualityBadgeHTML(track);
-        title.innerHTML = `${escapeHtml(track.title)} ${qualityBadge}`;
+        this.updateFullscreenQualityBadgePlacement(track, overlay);
         artist.textContent = getTrackArtists(track);
 
         if (nextTrack) {
@@ -1400,6 +1399,7 @@ export class UIRenderer {
         const shouldShowLyrics = this.fullscreenLyricsVisible && !lyricsUnavailable;
 
         overlay.classList.toggle('lyrics-hidden', !shouldShowLyrics);
+        this.updateFullscreenQualityBadgePlacement(this.player?.currentTrack, overlay);
 
         lyricsToggleButtons.forEach((lyricsToggleBtn) => {
             lyricsToggleBtn.classList.toggle('active', shouldShowLyrics);
@@ -1411,6 +1411,22 @@ export class UIRenderer {
                 lyricsToggleBtn.style.removeProperty('display');
             }
         });
+    }
+
+    updateFullscreenQualityBadgePlacement(track, overlay = document.getElementById('fullscreen-cover-overlay')) {
+        if (!track || !overlay) return;
+
+        const title = document.getElementById('fullscreen-track-title');
+        const mobileQuality = document.getElementById('fullscreen-mobile-quality');
+        if (!title) return;
+
+        const qualityBadge = this.getFullscreenQualityBadgeHTML(track);
+        const useMobileBadgeOnly = window.matchMedia('(max-width: 768px)').matches && overlay.classList.contains('lyrics-hidden');
+
+        title.innerHTML = useMobileBadgeOnly ? escapeHtml(track.title) : `${escapeHtml(track.title)} ${qualityBadge}`;
+        if (mobileQuality) {
+            mobileQuality.innerHTML = useMobileBadgeOnly ? qualityBadge : '';
+        }
     }
 
     async dismissFullscreenCover({ animate = true } = {}) {
