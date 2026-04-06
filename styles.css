@@ -3920,29 +3920,25 @@ input:checked + .slider::before {
     justify-content: center;
     animation: fade-in 0.3s ease;
     overflow: hidden;
-    background-color: var(--background);
-
-    /* Use a CSS variable for the image so we can set it in JS */
-    --bg-image: none;
+    background-color: rgb(11 13 17);
 
     /* Reserve space above taskbar / system UI so volume controls stay visible (fixes #322) */
     padding-bottom: max(env(safe-area-inset-bottom), 1.5rem);
+    --fullscreen-drag-progress: 0;
+    --fs-accent-rgb: var(--highlight-rgb);
 }
 
 #fullscreen-cover-overlay::before {
     content: '';
     position: absolute;
-    inset: -20px;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    filter: var(--cover-filter);
+    inset: 0;
+    background:
+        radial-gradient(circle at 50% 50%, rgb(255 255 255 / 0.035), transparent 58%),
+        linear-gradient(180deg, rgb(6 8 12 / 0.12), rgb(6 8 12 / 0.34));
     z-index: -1;
-    background-image: var(--bg-image);
     transition:
-        background-image var(--transition),
-        filter 0.65s ease,
         opacity 0.65s ease;
+    opacity: calc(1 - (var(--fullscreen-drag-progress, 0) * 0.32));
 }
 
 #fullscreen-cover-overlay::after {
@@ -3950,10 +3946,10 @@ input:checked + .slider::before {
     position: absolute;
     inset: 0;
     background:
-        radial-gradient(circle at 20% 22%, rgb(var(--highlight-rgb) / 0.28), transparent 36%),
+        radial-gradient(circle at 20% 22%, rgb(var(--fs-accent-rgb) / 0.28), transparent 36%),
         radial-gradient(circle at 82% 18%, rgb(255 255 255 / 0.09), transparent 28%),
-        linear-gradient(135deg, rgb(10 13 18 / 0.48), rgb(10 13 18 / 0.2) 38%, rgb(var(--highlight-rgb) / 0.12) 100%);
-    opacity: 0.36;
+        linear-gradient(135deg, rgb(10 13 18 / 0.48), rgb(10 13 18 / 0.2) 38%, rgb(var(--fs-accent-rgb) / 0.12) 100%);
+    opacity: calc(0.36 - (var(--fullscreen-drag-progress, 0) * 0.26));
     pointer-events: none;
     z-index: 0;
     transition:
@@ -3968,9 +3964,9 @@ input:checked + .slider::before {
     height: 100%;
     z-index: 0;
     pointer-events: none;
-    filter: blur(14px) saturate(0.84) brightness(0.8);
-    transform: scale(1.04);
-    opacity: 0.82;
+    filter: blur(8px) saturate(0.9) brightness(0.8);
+    transform: scale(1.03);
+    opacity: 0.8;
     transition:
         opacity 0.65s ease,
         filter 0.65s ease,
@@ -3994,6 +3990,51 @@ input:checked + .slider::before {
     position: relative;
     padding: 1rem;
     overflow: hidden;
+    transform: translateY(var(--fullscreen-drag-offset, 0px));
+    opacity: calc(1 - (var(--fullscreen-drag-progress, 0) * 0.16));
+    transition:
+        transform 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.22s ease;
+    will-change: transform, opacity;
+}
+
+#fullscreen-dismiss-handle {
+    position: absolute;
+    top: calc(0.75rem + env(safe-area-inset-top));
+    left: 50%;
+    width: 3.25rem;
+    height: 1rem;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    background: transparent;
+    transform: translateX(-50%);
+    z-index: 14;
+    display: none;
+    cursor: grab;
+    touch-action: none;
+}
+
+#fullscreen-dismiss-handle::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 3rem;
+    height: 0.3rem;
+    border-radius: 999px;
+    transform: translate(-50%, -50%);
+    background: rgb(255 255 255 / 0.28);
+    box-shadow: 0 2px 12px rgb(0 0 0 / 0.25);
+}
+
+#fullscreen-cover-overlay.fullscreen-dragging .fullscreen-cover-content {
+    transition: none;
+}
+
+#fullscreen-cover-overlay.fullscreen-dismissing .fullscreen-cover-content {
+    transform: translateY(calc(100% + 3rem));
+    opacity: 0;
 }
 
 /* UI Toggle Button for Visualizer Mode - Rightmost position */
@@ -10049,19 +10090,25 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 }
 
 #fullscreen-cover-overlay .fullscreen-main-view {
-    width: min(1240px, 100%);
+    --fs-media-column-size: minmax(340px, 430px);
+    --fs-lyrics-column-size: minmax(520px, 760px);
+    width: min(1480px, 100%);
     height: 100%;
     flex: 1;
     display: grid;
-    grid-template-columns: minmax(360px, 430px) minmax(420px, 1fr);
-    gap: clamp(1.5rem, 3vw, 3rem);
+    grid-template-columns: var(--fs-media-column-size) var(--fs-lyrics-column-size);
+    gap: clamp(2rem, 4vw, 4.5rem);
     align-items: center;
     justify-content: center;
-    padding: clamp(4rem, 7vh, 5rem) clamp(2rem, 4vw, 3rem) clamp(3rem, 6vh, 4rem) clamp(4rem, 7vw, 6.25rem);
+    padding: clamp(4rem, 7vh, 5rem) clamp(3rem, 6vw, 5rem) clamp(3rem, 6vh, 4rem);
     position: relative;
     z-index: 1;
     min-height: 0;
     overflow: hidden;
+    transition:
+        grid-template-columns 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+        width 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+        gap 0.34s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 #fullscreen-cover-overlay .fullscreen-media-column,
@@ -10075,7 +10122,11 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     flex-direction: column;
     gap: 0.95rem;
     justify-self: center;
-    transform: translateX(clamp(0.75rem, 1.2vw, 1.4rem));
+    transform: none;
+    transition:
+        width 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.24s ease;
 }
 
 #fullscreen-cover-overlay .fullscreen-artwork-card {
@@ -10128,7 +10179,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 
 #fullscreen-cover-overlay #toggle-fullscreen-lyrics-btn,
 #fullscreen-cover-overlay .fullscreen-lyrics-toggle {
-    display: none !important;
+    display: flex;
 }
 
 #fullscreen-cover-overlay .fullscreen-actions {
@@ -10206,9 +10257,10 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 }
 
 #fullscreen-cover-overlay .fullscreen-top-actions #fs-visualizer-btn {
-    order: 2;
+    order: 3;
 }
 
+#fullscreen-cover-overlay .fullscreen-top-actions #toggle-fullscreen-lyrics-btn,
 #fullscreen-cover-overlay .fullscreen-top-actions #fs-visualizer-btn,
 #fullscreen-cover-overlay .fullscreen-top-actions #close-fullscreen-cover-btn {
     position: static;
@@ -10218,6 +10270,15 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     bottom: auto;
     margin: 0;
     opacity: 1;
+}
+
+#fullscreen-cover-overlay .fullscreen-top-actions #toggle-fullscreen-lyrics-btn {
+    order: 2;
+}
+
+#fullscreen-cover-overlay .fullscreen-top-actions #toggle-fullscreen-lyrics-btn.active {
+    color: rgb(255 255 255 / 0.96);
+    background: rgb(255 255 255 / 0.12);
 }
 
 #fullscreen-cover-overlay .fullscreen-top-actions #close-fullscreen-cover-btn {
@@ -10240,7 +10301,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 
 #fullscreen-cover-overlay #toggle-ui-btn {
     top: 1.25rem;
-    left: calc(80px + 2.3rem + env(safe-area-inset-left));
+    left: calc(9.9rem + env(safe-area-inset-left));
     right: auto;
     width: 40px;
     height: 40px;
@@ -10285,7 +10346,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 }
 
 #fullscreen-cover-overlay .fullscreen-buttons button.active {
-    color: rgb(var(--highlight-rgb) / 0.98);
+    color: rgb(var(--fs-accent-rgb) / 0.98);
 }
 
 #fullscreen-cover-overlay .fullscreen-buttons #fs-play-pause-btn {
@@ -10326,7 +10387,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 }
 
 #fullscreen-cover-overlay .fs-visualizer-btn.active {
-    color: rgb(var(--highlight-rgb) / 0.96);
+    color: rgb(var(--fs-accent-rgb) / 0.96);
 }
 
 #fullscreen-cover-overlay .fs-volume-btn {
@@ -10372,7 +10433,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 
 #fullscreen-cover-overlay .fullscreen-progress-container .progress-bar:hover .progress-fill,
 #fullscreen-cover-overlay .fs-volume-bar:hover .fs-volume-fill {
-    background: rgb(var(--highlight-rgb) / 0.94);
+    background: rgb(var(--fs-accent-rgb) / 0.94);
 }
 
 #fullscreen-cover-overlay .fullscreen-progress-container .progress-bar:hover .progress-fill::after,
@@ -10389,6 +10450,13 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     align-items: stretch;
     justify-content: flex-start;
     overflow: hidden;
+    min-width: 0;
+    opacity: 1;
+    transform: translateX(0);
+    transition:
+        opacity 0.24s ease,
+        transform 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+        visibility 0s linear 0s;
 }
 
 #fullscreen-cover-overlay .fullscreen-lyrics-shell,
@@ -10404,14 +10472,14 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 #fullscreen-cover-overlay .fullscreen-lyrics-shell {
     width: min(860px, 100%);
     min-height: 0;
-    margin-left: clamp(4rem, 8vw, 8rem);
+    margin-left: 0;
 }
 
 #fullscreen-cover-overlay .fullscreen-lyrics-content {
     min-height: 0;
     height: 100%;
     position: relative;
-    padding-left: clamp(2.5rem, 4vw, 4rem);
+    padding-left: clamp(0.5rem, 1.6vw, 1.5rem);
     mask-image: none;
     overflow: visible;
     scrollbar-width: none;
@@ -10459,6 +10527,34 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     opacity: 0.55;
 }
 
+#fullscreen-cover-overlay.lyrics-hidden .fullscreen-main-view {
+    --fs-media-column-size: minmax(420px, 760px);
+    --fs-lyrics-column-size: minmax(0, 0fr);
+    width: min(760px, 100%);
+    gap: 0;
+}
+
+#fullscreen-cover-overlay.lyrics-hidden .fullscreen-media-column {
+    justify-self: center;
+    width: min(520px, 100%);
+    transform: translateX(clamp(2rem, 4vw, 3.5rem));
+}
+
+#fullscreen-cover-overlay.lyrics-hidden .fullscreen-lyrics-pane {
+    opacity: 0;
+    transform: translateX(2rem);
+    visibility: hidden;
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #fullscreen-cover-overlay .fullscreen-main-view,
+    #fullscreen-cover-overlay .fullscreen-media-column,
+    #fullscreen-cover-overlay .fullscreen-lyrics-pane {
+        transition: none !important;
+    }
+}
+
 #fullscreen-cover-overlay.queue-panel-active .fullscreen-main-view {
     grid-template-columns: 1fr;
     width: min(760px, 100%);
@@ -10475,110 +10571,217 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 
 @media (max-width: 980px) {
     #fullscreen-cover-overlay .fullscreen-main-view {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr) auto;
         width: min(760px, 100%);
-        gap: 1rem;
-        align-items: start;
+        gap: 1.25rem;
+        align-items: stretch;
         padding:
-            calc(4.5rem + env(safe-area-inset-top))
-            clamp(1rem, 4vw, 1.5rem)
+            calc(5rem + env(safe-area-inset-top))
+            clamp(1rem, 4vw, 1.75rem)
             calc(1.5rem + env(safe-area-inset-bottom))
-            clamp(1rem, 4vw, 1.5rem);
+            clamp(1rem, 4vw, 1.75rem);
     }
 
     #fullscreen-cover-overlay .fullscreen-media-column {
         justify-self: center;
         transform: none;
+        width: min(100%, 620px);
     }
 
     #fullscreen-cover-overlay .fullscreen-lyrics-pane {
-        display: none;
+        display: flex;
+        width: min(100%, 620px);
+        justify-self: center;
+        min-height: min(48vh, 440px);
+    }
+
+    #fullscreen-cover-overlay .fullscreen-lyrics-shell {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    #fullscreen-cover-overlay .fullscreen-lyrics-content {
+        padding-left: 0;
     }
 }
 
 @media (max-width: 768px) {
     #fullscreen-cover-overlay {
-        --fs-mobile-top-btn-size: 44px;
+        --fs-mobile-top-btn-size: 42px;
         --fs-mobile-top-btn-gap: 0.6rem;
         --fs-mobile-top-btn-left: calc(1rem + env(safe-area-inset-left));
     }
 
     #fullscreen-cover-overlay .fullscreen-cover-content {
-        padding: 0.75rem 0.75rem calc(0.75rem + env(safe-area-inset-bottom));
+        padding: 0 calc(0.9rem + env(safe-area-inset-right)) calc(0.9rem + env(safe-area-inset-bottom))
+            calc(0.9rem + env(safe-area-inset-left));
+    }
+
+    #fullscreen-dismiss-handle {
+        display: block;
     }
 
     #fullscreen-cover-overlay .fullscreen-top-actions {
-        top: calc(0.75rem + env(safe-area-inset-top));
-        left: var(--fs-mobile-top-btn-left);
-        gap: var(--fs-mobile-top-btn-gap);
+        display: none;
     }
 
-    #fullscreen-cover-overlay .fullscreen-top-actions button,
+    #fullscreen-cover-overlay .fullscreen-lyrics-toggle,
     #fullscreen-cover-overlay #toggle-ui-btn {
-        width: var(--fs-mobile-top-btn-size);
-        height: var(--fs-mobile-top-btn-size);
-        background: rgb(9 12 18 / 0.5);
-    }
-
-    #fullscreen-cover-overlay #toggle-ui-btn {
-        top: calc(0.75rem + env(safe-area-inset-top));
-        left: calc(
-            var(--fs-mobile-top-btn-left) +
-            (var(--fs-mobile-top-btn-size) * 2) +
-            (var(--fs-mobile-top-btn-gap) * 2)
-        );
+        display: none !important;
     }
 
     #fullscreen-cover-overlay .fullscreen-main-view {
         width: 100%;
-        gap: 0.85rem;
+        height: 100%;
+        grid-template-columns: minmax(78px, 92px) minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        grid-template-areas:
+            'art info'
+            'lyrics lyrics'
+            'controls controls';
+        gap: 1rem 0.9rem;
         padding:
-            calc(7.25rem + env(safe-area-inset-top))
-            0.75rem
-            calc(1.5rem + env(safe-area-inset-bottom))
-            0.75rem;
+            calc(4.45rem + env(safe-area-inset-top))
+            0
+            calc(0.8rem + env(safe-area-inset-bottom))
+            0;
     }
 
-    #fullscreen-cover-overlay .fullscreen-track-info,
-    #fullscreen-cover-overlay .fullscreen-controls,
     #fullscreen-cover-overlay .fullscreen-media-column {
-        width: min(100%, 460px);
+        display: contents;
+        width: auto;
+    }
+
+    #fullscreen-cover-overlay .fullscreen-artwork-card {
+        grid-area: art;
+        width: 100%;
+        max-width: 92px;
+        border-radius: 12px;
+        align-self: start;
+        margin-left: 0.95rem;
+        box-shadow: 0 20px 48px rgb(0 0 0 / 0.34);
+    }
+
+    #fullscreen-cover-overlay #fullscreen-cover-image {
+        border-radius: 12px;
+    }
+
+    #fullscreen-cover-overlay .fullscreen-track-info {
+        grid-area: info;
+        width: 100%;
+        min-width: 0;
+        align-self: center;
+        display: grid;
+        gap: 0.3rem;
+        padding-top: 0.2rem;
+        padding-left: 0.95rem;
+    }
+
+    #fullscreen-cover-overlay .fullscreen-track-text {
+        display: grid;
+        gap: 0.14rem;
+    }
+
+    #fullscreen-cover-overlay #fullscreen-track-title {
+        font-size: clamp(1.1rem, 4.7vw, 1.34rem);
+        line-height: 1.04;
+    }
+
+    #fullscreen-cover-overlay #fullscreen-track-artist {
+        margin-top: 0;
+        font-size: 0.92rem;
+        color: rgb(255 255 255 / 0.7);
     }
 
     #fullscreen-cover-overlay .fullscreen-actions {
+        display: none !important;
+    }
+
+    #fullscreen-cover-overlay #fullscreen-next-track {
+        display: none !important;
+    }
+
+    #fullscreen-cover-overlay .fullscreen-lyrics-pane {
+        grid-area: lyrics;
         width: 100%;
-        flex-wrap: wrap;
-        gap: 0.45rem;
+        min-height: 0;
+        justify-self: stretch;
     }
 
-    #fullscreen-cover-overlay .fullscreen-actions .btn-icon {
-        background: rgb(255 255 255 / 0.06);
+    #fullscreen-cover-overlay .fullscreen-lyrics-shell {
+        min-height: 0;
+        position: relative;
+        background: transparent !important;
+        box-shadow: none !important;
+        border-radius: 0;
+        overflow: visible;
     }
 
-    #fullscreen-cover-overlay .fullscreen-progress-container {
-        gap: 0.65rem;
+    #fullscreen-cover-overlay .fullscreen-lyrics-content {
+        height: 100%;
+        padding: 0 0 0.2rem;
+        overflow: hidden;
+        mask-image: linear-gradient(180deg, transparent 0%, black 10%, black 88%, transparent 100%);
     }
 
-    #fullscreen-cover-overlay .fullscreen-buttons {
-        gap: 0.2rem;
+    #fullscreen-cover-overlay .fullscreen-lyrics-content am-lyrics {
+        --lyrics-scroll-padding-top: 18%;
+        --lyplus-font-size-base: clamp(1.75rem, 7vw, 2.35rem);
+        --lyplus-padding-line: 6px;
+        --lyplus-text-color: rgba(246, 244, 239, 0.16);
+        --lyplus-blur-amount: 0.16em;
+        --lyplus-blur-amount-near: 0.08em;
+        line-height: 1.2;
     }
 
-    #fullscreen-cover-overlay .fullscreen-buttons button {
-        width: 38px;
-        height: 38px;
+    #fullscreen-cover-overlay .fullscreen-lyrics-empty,
+    #fullscreen-cover-overlay .fullscreen-lyrics-content .lyrics-loading,
+    #fullscreen-cover-overlay .fullscreen-lyrics-content .lyrics-error {
+        padding: 2.5rem 1.2rem 0;
     }
 
-    #fullscreen-cover-overlay .fullscreen-buttons #fs-play-pause-btn {
-        width: 52px;
-        height: 52px;
+    #fullscreen-cover-overlay .fullscreen-controls {
+        grid-area: controls;
+        width: 100%;
+        max-width: none;
+        margin-top: 0;
+        padding: 0.15rem 0 0;
+        gap: 0.9rem;
     }
 
     #fullscreen-cover-overlay .fullscreen-volume-container {
-        width: min(220px, calc(100% - 2.75rem));
+        display: none;
+    }
+
+    #fullscreen-cover-overlay .fullscreen-progress-container {
+        gap: 0.55rem;
+        font-size: 0.72rem;
+    }
+
+    #fullscreen-cover-overlay .fullscreen-buttons {
+        gap: 0.1rem;
+        justify-content: space-between;
+    }
+
+    #fullscreen-cover-overlay .fullscreen-buttons button {
+        width: 42px;
+        height: 42px;
+    }
+
+    #fullscreen-cover-overlay .fullscreen-buttons #fs-play-pause-btn {
+        width: 62px;
+        height: 62px;
+        box-shadow: 0 14px 28px rgb(0 0 0 / 0.3);
+    }
+
+    #fullscreen-cover-overlay .fullscreen-volume-container {
+        width: min(280px, calc(100% - 3rem));
+        margin-top: 0;
     }
 
     #fullscreen-cover-overlay .fs-volume-btn {
-        left: -2.25rem;
+        left: -2.5rem;
     }
 
     #fullscreen-cover-overlay .fs-volume-bar {
