@@ -86,8 +86,8 @@ export class Visualizer {
         this.audioContext = audioContextManager.getAudioContext();
         this.analyser = audioContextManager.getAnalyser();
 
-        if (this.analyser) {
-            this.bufferLength = this.analyser.frequencyBinCount;
+        this.bufferLength = this.analyser?.frequencyBinCount || 512;
+        if (!this.dataArray || this.dataArray.length !== this.bufferLength) {
             this.dataArray = new Uint8Array(this.bufferLength);
         }
     }
@@ -153,23 +153,24 @@ export class Visualizer {
     }
 
     async start() {
-        if (this.isActive) return;
+        if (this.isActive) return true;
 
         if (!this.ctx) {
             this.initContext();
         }
-        if (!this.audioContext) {
+        if (!this.audioContext && !this.analyser) {
             await this.init();
         }
 
-        if (!this.analyser) {
-            return;
+        const canRunWithoutAnalyser = !!this.activePreset?.managesOwnContext;
+        if (!this.analyser && !canRunWithoutAnalyser) {
+            return false;
         }
 
         this.isActive = true;
 
-        if (this.audioContext.state === 'suspended') {
-            this.audioContext.resume();
+        if (this.audioContext?.state === 'suspended') {
+            await this.audioContext.resume();
         }
 
         this.updateDimming();
@@ -182,12 +183,19 @@ export class Visualizer {
         // Initialize presets that need lazy init (Butterchurn, Kawarp)
         if (this.activePreset.lazyInit) {
             const sourceNode = audioContextManager.getSourceNode();
-            this.activePreset.lazyInit(this.canvas, this.audioContext, sourceNode).then(() => {
-                this.resize();
-            });
+            await this.activePreset.lazyInit(this.canvas, this.audioContext, sourceNode);
+            this.resize();
+        }
+
+        if (this.activePreset.managesOwnContext && this.activePreset.isInitialized === false) {
+            this.isActive = false;
+            this.canvas.style.display = 'none';
+            window.removeEventListener('resize', this._resizeBound);
+            return false;
         }
 
         this.animate();
+        return true;
     }
 
     stop() {
@@ -223,57 +231,48 @@ export class Visualizer {
         if (!this.isActive) return;
         this.animationId = requestAnimationFrame(this.animate);
 
-        // ===== AUDIO ANALYSIS =====
-        this.analyser.getByteFrequencyData(this.dataArray);
-
-        // Bass (dynamic bins based on sample rate)
-        const volume = 10 * Math.max(this.audio.volume, 0.1);
-
-        // Robust bass detection: sum bins up to ~250Hz
-        const binSize = this.audioContext.sampleRate / this.analyser.fftSize;
-        const startBin = 1; // Skip DC offset
-        // Calculate how many bins cover the bass range (up to 250Hz)
-        let numBins = Math.floor(250 / binSize);
-        if (numBins < 1) numBins = 1; // Ensure at least one bin is checked
-
-        let maxVal = 0;
-        for (let i = 0; i < numBins && startBin + i < this.dataArray.length; i++) {
-            const val = this.dataArray[startBin + i];
-            if (val > maxVal) maxVal = val;
-        }
-
-        // Normalize: (Max / 255) / Volume
-        let bass = maxVal / 255 / volume;
-
-        const intensity = bass * bass * 10;
         const stats = this.stats;
 
-        stats.energyAverage = stats.energyAverage * 0.99 + intensity * 0.01;
-        stats.upbeatSmoother = stats.upbeatSmoother * 0.92 + intensity * 0.08;
+        if (this.analyser && this.dataArray && this.audioContext) {
+            this.analyser.getByteFrequencyData(this.dataArray);
 
-        // ===== SENSITIVITY =====
-        let sensitivity = visualizerSettings.getSensitivity();
-        if (visualizerSettings.isSmartIntensityEnabled()) {
-            if (stats.energyAverage > 0.4) {
-                sensitivity = 0.7;
-            } else if (stats.energyAverage > 0.2) {
-                sensitivity = 0.1 + ((stats.energyAverage - 0.2) / 0.2) * 0.6;
-            } else {
-                sensitivity = 0.1;
+            const volume = 10 * Math.max(this.audio.volume, 0.1);
+            const binSize = this.audioContext.sampleRate / this.analyser.fftSize;
+            const startBin = 1;
+            let numBins = Math.floor(250 / binSize);
+            if (numBins < 1) numBins = 1;
+
+            let maxVal = 0;
+            for (let i = 0; i < numBins && startBin + i < this.dataArray.length; i++) {
+                const val = this.dataArray[startBin + i];
+                if (val > maxVal) maxVal = val;
             }
-        }
 
-        // ===== KICK DETECTION =====
-        const now = performance.now();
-        let threshold = stats.energyAverage < 0.3 ? 0.5 + (0.3 - stats.energyAverage) * 2 : 0.5;
+            const bass = maxVal / 255 / volume;
+            const intensity = bass * bass * 10;
 
-        // Lower threshold for more responsive kick
-        if (intensity > threshold * 0.7) {
-            if (intensity > stats.lastIntensity + 0.03 && now - stats.lastBeatTime > 50) {
-                stats.kick = 1.0;
-                stats.lastBeatTime = now;
-            } else {
-                if (stats.upbeatSmoother > 0.6 && stats.energyAverage > 0.4) {
+            stats.energyAverage = stats.energyAverage * 0.99 + intensity * 0.01;
+            stats.upbeatSmoother = stats.upbeatSmoother * 0.92 + intensity * 0.08;
+
+            let sensitivity = visualizerSettings.getSensitivity();
+            if (visualizerSettings.isSmartIntensityEnabled()) {
+                if (stats.energyAverage > 0.4) {
+                    sensitivity = 0.7;
+                } else if (stats.energyAverage > 0.2) {
+                    sensitivity = 0.1 + ((stats.energyAverage - 0.2) / 0.2) * 0.6;
+                } else {
+                    sensitivity = 0.1;
+                }
+            }
+
+            const now = performance.now();
+            const threshold = stats.energyAverage < 0.3 ? 0.5 + (0.3 - stats.energyAverage) * 2 : 0.5;
+
+            if (intensity > threshold * 0.7) {
+                if (intensity > stats.lastIntensity + 0.03 && now - stats.lastBeatTime > 50) {
+                    stats.kick = 1.0;
+                    stats.lastBeatTime = now;
+                } else if (stats.upbeatSmoother > 0.6 && stats.energyAverage > 0.4) {
                     const upbeatLevel = (stats.upbeatSmoother - 0.6) / 0.4;
                     if (stats.kick < upbeatLevel) {
                         stats.kick = upbeatLevel;
@@ -283,14 +282,21 @@ export class Visualizer {
                 } else {
                     stats.kick *= 0.9;
                 }
+            } else {
+                stats.kick *= 0.95;
             }
-        } else {
-            stats.kick *= 0.95;
-        }
 
-        stats.lastIntensity = intensity;
-        stats.intensity = intensity;
-        stats.sensitivity = sensitivity;
+            stats.lastIntensity = intensity;
+            stats.intensity = intensity;
+            stats.sensitivity = sensitivity;
+        } else {
+            stats.kick *= 0.92;
+            stats.intensity *= 0.92;
+            stats.energyAverage *= 0.98;
+            stats.upbeatSmoother *= 0.95;
+            stats.sensitivity = visualizerSettings.getSensitivity();
+            this.dataArray?.fill(0);
+        }
 
         // ===== COLORS (CACHED) =====
         const color = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#ffffff';

@@ -13,7 +13,9 @@ import {
     calculateTotalDuration,
     formatDuration,
     escapeHtml,
+    decodeHtml,
     getShareUrl,
+    createModal,
 } from './utils.js';
 import { openLyricsPanel, renderLyricsInFullscreen, clearFullscreenLyricsSync } from './lyrics.js';
 import {
@@ -34,6 +36,7 @@ import { syncManager } from './accounts/pocketbase.js';
 import { authManager } from './accounts/auth.js';
 import { partyManager } from './listening-party.js';
 import { Visualizer } from './visualizer.js';
+import { audioContextManager } from './audio-context.js';
 import { navigate } from './router.js';
 import { sidePanelManager } from './side-panel.js';
 import {
@@ -1316,7 +1319,7 @@ export class UIRenderer {
 
     async showFullscreenCover(track, nextTrack, lyricsManager, activeElement) {
         if (!track) return;
-        this.fullscreenVisualizerSuppressed = isMobileFullscreenViewport();
+        this.fullscreenVisualizerSuppressed = false;
         if (window.location.hash !== '#fullscreen') {
             window.history.pushState({ fullscreen: true }, '', '#fullscreen');
         }
@@ -1364,8 +1367,15 @@ export class UIRenderer {
         }
         const mainContent = document.querySelector('.main-content');
         if (mainContent instanceof HTMLElement) {
-            this.fullscreenMainContentOverflow = mainContent.style.overflowY;
-            mainContent.style.overflowY = 'hidden';
+            const computedStyles = window.getComputedStyle(mainContent);
+            this.fullscreenMainContentOverflow = {
+                overflow: mainContent.style.overflow,
+                overflowX: mainContent.style.overflowX,
+                overflowY: mainContent.style.overflowY,
+                computedOverflowX: computedStyles.overflowX,
+                computedOverflowY: computedStyles.overflowY,
+            };
+            mainContent.style.overflow = 'hidden';
         }
 
         this.setupFullscreenControls();
@@ -1414,6 +1424,14 @@ export class UIRenderer {
                 lyricsToggleBtn.style.removeProperty('display');
             }
         });
+    }
+
+    toggleFullscreenLyrics(overlay = document.getElementById('fullscreen-cover-overlay')) {
+        if (!overlay || overlay.classList.contains('lyrics-unavailable')) return false;
+
+        this.fullscreenLyricsVisible = !this.fullscreenLyricsVisible;
+        this.updateFullscreenLyricsVisibility(overlay);
+        return true;
     }
 
     updateFullscreenQualityBadgePlacement(track, overlay = document.getElementById('fullscreen-cover-overlay')) {
@@ -1492,12 +1510,32 @@ export class UIRenderer {
         if (playerBar) playerBar.style.removeProperty('display');
         const mainContent = document.querySelector('.main-content');
         if (mainContent instanceof HTMLElement) {
-            if (
-                typeof this.fullscreenMainContentOverflow === 'string' &&
-                this.fullscreenMainContentOverflow.length > 0
-            ) {
-                mainContent.style.overflowY = this.fullscreenMainContentOverflow;
+            const previousOverflow = this.fullscreenMainContentOverflow;
+            if (previousOverflow && typeof previousOverflow === 'object') {
+                if (previousOverflow.overflow) {
+                    mainContent.style.overflow = previousOverflow.overflow;
+                } else {
+                    mainContent.style.removeProperty('overflow');
+                }
+
+                if (previousOverflow.overflowX) {
+                    mainContent.style.overflowX = previousOverflow.overflowX;
+                } else if (previousOverflow.computedOverflowX && previousOverflow.computedOverflowX !== 'visible') {
+                    mainContent.style.overflowX = previousOverflow.computedOverflowX;
+                } else {
+                    mainContent.style.removeProperty('overflow-x');
+                }
+
+                if (previousOverflow.overflowY) {
+                    mainContent.style.overflowY = previousOverflow.overflowY;
+                } else if (previousOverflow.computedOverflowY && previousOverflow.computedOverflowY !== 'visible') {
+                    mainContent.style.overflowY = previousOverflow.computedOverflowY;
+                } else {
+                    mainContent.style.removeProperty('overflow-y');
+                }
             } else {
+                mainContent.style.removeProperty('overflow');
+                mainContent.style.removeProperty('overflow-x');
                 mainContent.style.removeProperty('overflow-y');
             }
             this.fullscreenMainContentOverflow = null;
@@ -1563,7 +1601,17 @@ export class UIRenderer {
     }
 
     async startFullscreenVisualizer(activeElement, overlay) {
-        if (!activeElement) return;
+        if (!activeElement || !overlay) return false;
+
+        if (audioContextManager.isReady()) {
+            audioContextManager.changeSource(activeElement);
+            await audioContextManager.resume();
+        } else {
+            audioContextManager.init(activeElement);
+            if (audioContextManager.isReady()) {
+                await audioContextManager.resume();
+            }
+        }
 
         if (!this.visualizer) {
             const canvas = document.getElementById('visualizer-canvas');
@@ -1571,25 +1619,28 @@ export class UIRenderer {
                 this.visualizer = new Visualizer(canvas, activeElement);
                 await this.visualizer.initPresets();
             }
+        } else {
+            this.visualizer.audio = activeElement;
         }
 
         if (this.visualizer) {
-            this.visualizer.applyPresetOverride('kawarp');
-            await this.visualizer.start();
-            overlay.classList.add('visualizer-active');
+            const started = await this.visualizer.start();
+            overlay.classList.toggle('visualizer-active', started);
+            return started;
         }
+
+        overlay.classList.remove('visualizer-active');
+        return false;
     }
 
     async ensureVisualizerPermission(activeElement, overlay, { closeOnCancel = false } = {}) {
         if (localStorage.getItem('epilepsy-warning-dismissed') === 'true') {
-            await this.startFullscreenVisualizer(activeElement, overlay);
-            return true;
+            return await this.startFullscreenVisualizer(activeElement, overlay);
         }
 
         const modal = document.getElementById('epilepsy-warning-modal');
         if (!modal) {
-            await this.startFullscreenVisualizer(activeElement, overlay);
-            return true;
+            return await this.startFullscreenVisualizer(activeElement, overlay);
         }
 
         return await new Promise((resolve) => {
@@ -1601,8 +1652,7 @@ export class UIRenderer {
             acceptBtn.onclick = async () => {
                 modal.classList.remove('active');
                 localStorage.setItem('epilepsy-warning-dismissed', 'true');
-                await this.startFullscreenVisualizer(activeElement, overlay);
-                resolve(true);
+                resolve(await this.startFullscreenVisualizer(activeElement, overlay));
             };
 
             cancelBtn.onclick = () => {
@@ -1610,7 +1660,7 @@ export class UIRenderer {
                 if (closeOnCancel) {
                     this.closeFullscreenCover();
                 }
-                resolve(false);
+                resolve(null);
             };
         });
     }
@@ -1620,7 +1670,7 @@ export class UIRenderer {
         const visualizerBtn = document.getElementById('fs-visualizer-btn');
         const toggleBtn = document.getElementById('toggle-ui-btn');
         const isVideoTrack = this.player?.currentTrack?.type === 'video';
-        const enabled = !isVideoTrack && !this.fullscreenVisualizerSuppressed && !isMobileFullscreenViewport();
+        const enabled = !isVideoTrack && visualizerSettings.isEnabled() && !this.fullscreenVisualizerSuppressed;
 
         if (!overlay) return;
 
@@ -1645,8 +1695,10 @@ export class UIRenderer {
         }
 
         const allowed = await this.ensureVisualizerPermission(activeElement, overlay, { closeOnCancel });
-        if (!allowed) {
-            this.fullscreenVisualizerSuppressed = true;
+        if (allowed !== true) {
+            if (allowed === null) {
+                this.fullscreenVisualizerSuppressed = true;
+            }
             overlay.classList.remove('visualizer-active');
             if (this.visualizer) {
                 this.visualizer.stop();
@@ -1905,9 +1957,7 @@ export class UIRenderer {
         const handleToggle = (event) => {
             event.preventDefault();
             event.stopPropagation();
-            if (overlay.classList.contains('lyrics-unavailable')) return;
-            this.fullscreenLyricsVisible = !this.fullscreenLyricsVisible;
-            this.updateFullscreenLyricsVisibility(overlay);
+            this.toggleFullscreenLyrics(overlay);
         };
 
         toggleButtons.forEach((toggleBtn) => toggleBtn.addEventListener('click', handleToggle));
@@ -3849,15 +3899,75 @@ export class UIRenderer {
             async function fetchAotyWorker(album, artist) {
                 try {
                     const response = await fetch(
-                        `https://aoty-critics.samidy.workers.dev/?artist=${artist}&album=${album}`
+                        `https://aoty-api.hnh65483.workers.dev/?artist=${artist}&album=${album}`
                     );
                     const data = await response.json();
 
-                    rateCriticsEl.innerHTML = `<a href="${data.url}" target="_blank" style="color: var(--muted-foreground);">Critic Score: <span style="text-decoration: underline;">${data.critic.score}</span>, Based on ${data.critic.count} reviews</a>`;
+                    const critviews = data.critic.reviews || [];
+
+                    rateCriticsEl.innerHTML = `<a href="javascript:void(0)" style="color: var(--muted-foreground); cursor: pointer;">Critic Score: ${data.critic.score}, Based on <span style="text-decoration: underline;">${data.critic.count} reviews</span></a>`;
 
                     if (data.critic.score == 'NR') {
                         rateCriticsEl.innerHTML = `<a style="color: var(--muted-foreground);">Critic Score Not Available Yet</a>`;
+                    } else {
+                        rateCriticsEl.querySelector('a').onclick = () => {
+                            const con = document.createElement('div');
+                            con.style.display = 'flex';
+                            con.style.flexDirection = 'column';
+                            con.style.gap = '1.5rem';
+
+                            critviews.forEach((review) => {
+                                const reviewdiv = document.createElement('div');
+                                reviewdiv.style.display = 'flex';
+                                reviewdiv.style.gap = '1rem';
+                                reviewdiv.style.paddingBottom = '1rem';
+                                reviewdiv.style.borderBottom = '1px solid var(--border)';
+
+                                const publication = decodeHtml(
+                                    review.publication || review.source || 'Unknown Publication'
+                                );
+                                const author = decodeHtml(review.author || '');
+                                const quote = decodeHtml(review.text || review.quote || 'No review text available.');
+
+                                reviewdiv.innerHTML = `
+                                    <img src="${review.image}" width="50" height="50" style="border-radius: 8px; object-fit: cover; background: var(--highlight);" 
+                                         onerror="this.src='images/monochrome-logo.svg'; this.onerror=null;" 
+                                         loading="lazy" 
+                                         referrerpolicy="no-referrer">
+                                    <div style="flex: 1;">
+                                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.25rem;">
+                                            <div class="pub-name" style="font-weight: 600; color: var(--foreground);"></div>
+                                            <div style="font-weight: bold; color: var(--primary-foreground); background: var(--primary); padding: 2px 10px; border-radius: 6px; font-size: 0.85rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">${review.score}</div>
+                                        </div>
+                                        <div class="author-name" style="font-size: 0.8rem; color: var(--muted-foreground); margin-bottom: 0.5rem;"></div>
+                                        <div class="quote-text" style="font-size: 0.95rem; line-height: 1.5; color: var(--muted-foreground); font-style: italic;"></div>
+                                    </div>
+                                `;
+
+                                reviewdiv.querySelector('.pub-name').textContent = publication;
+                                if (author) {
+                                    reviewdiv.querySelector('.author-name').textContent = `By ${author}`;
+                                } else {
+                                    reviewdiv.querySelector('.author-name').remove();
+                                }
+                                reviewdiv.querySelector('.quote-text').textContent = `"${quote}"`;
+
+                                con.appendChild(reviewdiv);
+                            });
+
+                            if (critviews.length === 0) {
+                                con.innerHTML =
+                                    '<div style="text-align: center; padding: 2rem; color: var(--muted-foreground);">No reviews found.</div>';
+                            }
+
+                            createModal({
+                                title: 'Critics Reviews',
+                                content: con,
+                                className: 'extra-wide',
+                            });
+                        };
                     }
+
                     rateUsersEl.innerHTML = `<a href="${data.url}" target="_blank" style="color: var(--muted-foreground);">User Score: <span style="text-decoration: underline;">${data.user.score}</span>, Based on ${data.user.count} reviews</a>`;
                 } catch (e) {
                     rateCriticsEl.innerHTML = `<a style="color: var(--muted-foreground);">Unable to Fetch Critic Score</a>`;
