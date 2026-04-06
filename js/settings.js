@@ -1382,7 +1382,14 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     });
 
     // Legacy EQ Import / Export
-    const GEQ_FREQUENCIES = [25, 40, 63, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000, 16000, 20000];
+    const parseGeqLabelFrequency = (label) => {
+        const normalized = String(label).trim().toLowerCase().replace(/hz$/, '').trim();
+        if (normalized.endsWith('k')) {
+            return Number.parseFloat(normalized.slice(0, -1)) * 1000;
+        }
+        return Number.parseFloat(normalized);
+    };
+    const GEQ_FREQUENCIES = GEQ_LABELS.map((label) => parseGeqLabelFrequency(label));
     const legacyGeqExportBtn = document.getElementById('legacy-geq-export-btn');
     const legacyGeqImportBtn = document.getElementById('legacy-geq-import-btn');
     const legacyGeqImportFile = document.getElementById('legacy-geq-import-file');
@@ -1439,19 +1446,25 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
                     if (importedPoints.length === 0) return;
 
+                    // Filter out invalid frequencies (0, negative, NaN, Infinity)
+                    const validPoints = importedPoints.filter(
+                        (p) => Number.isFinite(p.freq) && p.freq > 0 && Number.isFinite(p.gain)
+                    );
+                    if (validPoints.length === 0) return;
+
                     // Sort by frequency
-                    importedPoints.sort((a, b) => a.freq - b.freq);
+                    validPoints.sort((a, b) => a.freq - b.freq);
 
                     // Map imported points to the 16 GEQ bands using nearest-frequency matching
                     const newGains = GEQ_FREQUENCIES.map((targetFreq) => {
                         // Find the closest imported point by log-frequency distance
-                        let closest = importedPoints[0];
+                        let closest = validPoints[0];
                         let minDist = Math.abs(Math.log10(targetFreq) - Math.log10(closest.freq));
-                        for (let j = 1; j < importedPoints.length; j++) {
-                            const dist = Math.abs(Math.log10(targetFreq) - Math.log10(importedPoints[j].freq));
+                        for (let j = 1; j < validPoints.length; j++) {
+                            const dist = Math.abs(Math.log10(targetFreq) - Math.log10(validPoints[j].freq));
                             if (dist < minDist) {
                                 minDist = dist;
-                                closest = importedPoints[j];
+                                closest = validPoints[j];
                             }
                         }
                         // Clamp to slider range
@@ -1467,7 +1480,10 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                     geqSyncAllSliders();
                     geqPreampSliders.forEach((s) => (s.value = geqPreamp));
                     geqPreampValues.forEach((v) => (v.textContent = `${geqPreamp.toFixed(1)} dB`));
-                    geqPresetSelects.forEach((s) => (s.value = ''));
+                    geqPresetSelects.forEach((s) => {
+                        s.value = '';
+                        s.dispatchEvent(new Event('change'));
+                    });
                 } catch (err) {
                     console.error('[Legacy GEQ Import] Failed:', err);
                 }
@@ -1536,9 +1552,11 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     // Update the preset change handler to also handle custom presets
     geqPresetSelects.forEach((select) => {
         select.addEventListener('change', () => {
-            updateDeleteBtnVisibility();
             const key = select.value;
-            if (!key) return;
+            if (!key) {
+                updateDeleteBtnVisibility();
+                return;
+            }
 
             // Check custom presets first
             const customPresets = getLegacyGeqCustomPresets();
@@ -1547,9 +1565,17 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 equalizerSettings.setGraphicEqGains(geqGains);
                 audioContextManager.setGraphicEqAllGains(geqGains);
                 geqSyncAllSliders();
+                if (customPresets[key].preamp !== undefined) {
+                    geqPreamp = customPresets[key].preamp;
+                    equalizerSettings.setGraphicEqPreamp(geqPreamp);
+                    audioContextManager.setGraphicEqPreamp(geqPreamp);
+                    geqPreampSliders.forEach((s) => (s.value = geqPreamp));
+                    geqPreampValues.forEach((v) => (v.textContent = `${geqPreamp.toFixed(1)} dB`));
+                }
                 geqPresetSelects.forEach((s) => {
                     if (s !== select) s.value = key;
                 });
+                updateDeleteBtnVisibility();
                 return;
             }
         });
@@ -1565,6 +1591,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             presets[id] = {
                 name: sanitized,
                 gains: geqGains.map((g) => Math.round(g * 10) / 10),
+                preamp: Math.round(geqPreamp * 10) / 10,
             };
             saveLegacyGeqCustomPresets(presets);
             refreshLegacyGeqCustomPresetOptions();
