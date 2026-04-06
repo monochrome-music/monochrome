@@ -3936,8 +3936,7 @@ input:checked + .slider::before {
         radial-gradient(circle at 50% 50%, rgb(255 255 255 / 0.035), transparent 58%),
         linear-gradient(180deg, rgb(6 8 12 / 0.12), rgb(6 8 12 / 0.34));
     z-index: -1;
-    transition:
-        opacity 0.65s ease;
+    transition: opacity 0.65s ease;
     opacity: calc(1 - (var(--fullscreen-drag-progress, 0) * 0.32));
 }
 
@@ -10334,7 +10333,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 
 #fullscreen-cover-overlay #toggle-ui-btn {
     top: 1.25rem;
-    left: calc(9.9rem + env(safe-area-inset-left));
+    left: calc(1.5rem + env(safe-area-inset-left) + (40px * 3) + (0.4rem * 3));
     right: auto;
     width: 40px;
     height: 40px;

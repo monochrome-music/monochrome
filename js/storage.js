@@ -1830,7 +1830,8 @@ export const audioEffectsSettings = {
     },
 
     setSpeed(speed) {
-        const validSpeed = Math.max(0.01, Math.min(100, parseFloat(speed) || 1.0));
+        const parsed = parseFloat(speed);
+        const validSpeed = Math.max(0.01, Math.min(100, isNaN(parsed) ? 1.0 : parsed));
         localStorage.setItem(this.SPEED_KEY, validSpeed.toString());
     },
 
