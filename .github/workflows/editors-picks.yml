@@ -97,7 +97,7 @@ jobs:
 
             - name: Generate new editors picks
               if: steps.backoff.outputs.skip == 'false'
-              run: python3 gen-editors-picks.py
+              run: python3 .github/scripts/gen-editors-picks.py
 
             - name: Commit and push
               if: steps.backoff.outputs.skip == 'false'
