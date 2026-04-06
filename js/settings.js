@@ -1479,6 +1479,117 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
+    // Legacy EQ Custom Presets (Save / Delete)
+    const LEGACY_GEQ_CUSTOM_PRESETS_KEY = 'legacy-geq-custom-presets';
+    const legacyGeqSavePresetBtn = document.getElementById('legacy-geq-save-preset-btn');
+    const legacyGeqDeletePresetBtn = document.getElementById('legacy-geq-delete-preset-btn');
+
+    const getLegacyGeqCustomPresets = () => {
+        try {
+            const stored = localStorage.getItem(LEGACY_GEQ_CUSTOM_PRESETS_KEY);
+            return stored ? JSON.parse(stored) : {};
+        } catch {
+            return {};
+        }
+    };
+
+    const saveLegacyGeqCustomPresets = (presets) => {
+        localStorage.setItem(LEGACY_GEQ_CUSTOM_PRESETS_KEY, JSON.stringify(presets));
+    };
+
+    /** Rebuild custom preset options in all legacy GEQ preset dropdowns */
+    const refreshLegacyGeqCustomPresetOptions = () => {
+        const presets = getLegacyGeqCustomPresets();
+        geqPresetSelects.forEach((select) => {
+            // Remove existing custom options
+            select.querySelectorAll('option[data-custom]').forEach((opt) => opt.remove());
+            // Remove existing separator
+            select.querySelectorAll('optgroup[data-custom-group]').forEach((g) => g.remove());
+
+            const entries = Object.entries(presets);
+            if (entries.length === 0) return;
+
+            const group = document.createElement('optgroup');
+            group.label = 'Custom Presets';
+            group.setAttribute('data-custom-group', '');
+            entries.forEach(([id, preset]) => {
+                const opt = document.createElement('option');
+                opt.value = id;
+                opt.textContent = preset.name;
+                opt.setAttribute('data-custom', '');
+                group.appendChild(opt);
+            });
+            select.appendChild(group);
+        });
+    };
+
+    // Populate custom presets on load
+    refreshLegacyGeqCustomPresetOptions();
+
+    /** Show/hide delete button based on whether a custom preset is selected */
+    const updateDeleteBtnVisibility = () => {
+        const val = legacyGeqPresetSelect?.value || '';
+        const isCustom = val.startsWith('geq_custom_');
+        if (legacyGeqDeletePresetBtn) {
+            legacyGeqDeletePresetBtn.style.display = isCustom ? '' : 'none';
+        }
+    };
+
+    // Update the preset change handler to also handle custom presets
+    geqPresetSelects.forEach((select) => {
+        select.addEventListener('change', () => {
+            updateDeleteBtnVisibility();
+            const key = select.value;
+            if (!key) return;
+
+            // Check custom presets first
+            const customPresets = getLegacyGeqCustomPresets();
+            if (customPresets[key]) {
+                geqGains = [...customPresets[key].gains];
+                equalizerSettings.setGraphicEqGains(geqGains);
+                audioContextManager.setGraphicEqAllGains(geqGains);
+                geqSyncAllSliders();
+                geqPresetSelects.forEach((s) => {
+                    if (s !== select) s.value = key;
+                });
+                return;
+            }
+        });
+    });
+
+    if (legacyGeqSavePresetBtn) {
+        legacyGeqSavePresetBtn.addEventListener('click', () => {
+            const name = prompt('Preset name:');
+            if (!name || !name.trim()) return;
+            const sanitized = name.trim().substring(0, 50);
+            const presets = getLegacyGeqCustomPresets();
+            const id = 'geq_custom_' + Date.now();
+            presets[id] = {
+                name: sanitized,
+                gains: geqGains.map((g) => Math.round(g * 10) / 10),
+            };
+            saveLegacyGeqCustomPresets(presets);
+            refreshLegacyGeqCustomPresetOptions();
+            geqPresetSelects.forEach((s) => (s.value = id));
+            updateDeleteBtnVisibility();
+        });
+    }
+
+    if (legacyGeqDeletePresetBtn) {
+        legacyGeqDeletePresetBtn.addEventListener('click', () => {
+            const selected = legacyGeqPresetSelect?.value || '';
+            if (!selected.startsWith('geq_custom_')) return;
+            const presets = getLegacyGeqCustomPresets();
+            const presetName = presets[selected]?.name || selected;
+            if (!confirm(`Delete preset "${presetName}"?`)) return;
+            delete presets[selected];
+            saveLegacyGeqCustomPresets(presets);
+            refreshLegacyGeqCustomPresetOptions();
+            geqPresetSelects.forEach((s) => (s.value = ''));
+            updateDeleteBtnVisibility();
+        });
+    }
+
     // ========================================
     // Precision AutoEQ - Redesigned Equalizer
     // ========================================
