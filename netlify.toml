@@ -6,11 +6,6 @@
   NODE_VERSION = "20"
 
 [[redirects]]
-  from = "/api/label"
-  to = "/.netlify/functions/label"
-  status = 200
-
-[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

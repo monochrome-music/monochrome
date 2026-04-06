@@ -18,3 +18,5 @@ bin/
 auth_storage/
 www
 neutralino.js
+# Local Netlify folder
+.netlify
