@@ -5,6 +5,10 @@
 [build.environment]
   NODE_VERSION = "20"
 
+[[edge_functions]]
+  path = "/api/label"
+  function = "api/label/index"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
