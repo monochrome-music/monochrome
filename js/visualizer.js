@@ -318,4 +318,16 @@ export class Visualizer {
             });
         }
     }
+
+    applyPresetOverride(key) {
+        if (!this.presets?.[key] || this.activePresetKey === key) return;
+
+        if (this.activePreset?.destroy) {
+            this.activePreset.destroy();
+        }
+
+        this._currentContextType = undefined;
+        this.ctx = null;
+        this.activePresetKey = key;
+    }
 }
