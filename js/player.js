@@ -217,6 +217,11 @@ export class Player {
         this.userVolume = Math.max(0, Math.min(1, value));
         localStorage.setItem('volume', this.userVolume);
         this.applyReplayGain();
+        // Always notify the UI — when Web Audio handles volume, the native
+        // `volumechange` event on the <audio> element does NOT fire because
+        // el.volume stays at 1.0.  Dispatching a synthetic event ensures the
+        // volume bar and icon update for keyboard shortcuts, command palette, etc.
+        this.activeElement.dispatchEvent(new Event('volumechange'));
     }
 
     applyReplayGain() {
