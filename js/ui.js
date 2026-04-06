@@ -3907,7 +3907,9 @@ export class UIRenderer {
                                 reviewdiv.style.paddingBottom = '1rem';
                                 reviewdiv.style.borderBottom = '1px solid var(--border)';
 
-                                const publication = decodeHtml(review.publication || review.source || 'Unknown Publication');
+                                const publication = decodeHtml(
+                                    review.publication || review.source || 'Unknown Publication'
+                                );
                                 const author = decodeHtml(review.author || '');
                                 const quote = decodeHtml(review.text || review.quote || 'No review text available.');
 
