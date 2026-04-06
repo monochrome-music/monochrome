@@ -8,8 +8,8 @@ const QOBUZ_BASE = 'https://www.qobuz.com/api.json/0.2';
 
 // --- Levenshtein similarity (0 = totally different, 1 = identical) ---
 function similarity(a, b) {
-    a = a.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
-    b = b.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+    a = a.toLowerCase().replace(/[^a-z0-9 '\-]/g, '').trim();
+    b = b.toLowerCase().replace(/[^a-z0-9 '\-]/g, '').trim();
     if (a === b) return 1;
     if (!a.length || !b.length) return 0;
     const m = a.length, n = b.length;
