@@ -4167,11 +4167,6 @@ input:checked + .slider::before {
     opacity: 1;
 }
 
-body:has(#fullscreen-cover-overlay.ui-hidden.inline-lyrics) #side-panel[data-view='lyrics'] {
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.5s ease;
-}
 #fullscreen-cover-overlay:not(.ui-hidden) .fullscreen-main-view,
 #fullscreen-cover-overlay:not(.ui-hidden) .fullscreen-controls,
 #fullscreen-cover-overlay:not(.ui-hidden) #fullscreen-next-track {

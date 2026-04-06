@@ -1387,7 +1387,6 @@ export class UIRenderer {
         this.setupFullscreenDismissHandle(overlay);
         this.setupFullscreenLyricsToggle(overlay);
         await this.refreshFullscreenVisualizerState(activeElement);
-        await this.refreshFullscreenVisualizerState(activeElement);
     }
 
     updateFullscreenLyricsVisibility(overlay = document.getElementById('fullscreen-cover-overlay')) {
