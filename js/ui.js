@@ -13,7 +13,9 @@ import {
     calculateTotalDuration,
     formatDuration,
     escapeHtml,
+    decodeHtml,
     getShareUrl,
+    createModal,
 } from './utils.js';
 import { openLyricsPanel, renderLyricsInFullscreen, clearFullscreenLyricsSync } from './lyrics.js';
 import {
@@ -1337,7 +1339,9 @@ export class UIRenderer {
             nextTrackEl.classList.remove('animate-in');
         }
 
-        const canRenderLyrics = Boolean(lyricsManager && activeElement && lyricsPane && lyricsContent && track.type !== 'video');
+        const canRenderLyrics = Boolean(
+            lyricsManager && activeElement && lyricsPane && lyricsContent && track.type !== 'video'
+        );
         if (canRenderLyrics) {
             this.fullscreenLyricsVisible = true;
             if (lyricsToggleBtn) lyricsToggleBtn.style.removeProperty('display');
@@ -1350,7 +1354,8 @@ export class UIRenderer {
             overlay.classList.add('lyrics-unavailable');
             if (lyricsContent) {
                 clearFullscreenLyricsSync(lyricsContent);
-                lyricsContent.innerHTML = '<div class="fullscreen-lyrics-empty">Lyrics are not available for this track.</div>';
+                lyricsContent.innerHTML =
+                    '<div class="fullscreen-lyrics-empty">Lyrics are not available for this track.</div>';
             }
         }
         this.updateFullscreenLyricsVisibility(overlay);
@@ -3898,11 +3903,71 @@ export class UIRenderer {
                     );
                     const data = await response.json();
 
-                    rateCriticsEl.innerHTML = `<a href="${data.url}" target="_blank" style="color: var(--muted-foreground);">Critic Score: <span style="text-decoration: underline;">${data.critic.score}</span>, Based on ${data.critic.count} reviews</a>`;
+                    const critviews = data.critic.reviews || [];
+
+                    rateCriticsEl.innerHTML = `<a href="javascript:void(0)" style="color: var(--muted-foreground); cursor: pointer;">Critic Score: ${data.critic.score}, Based on <span style="text-decoration: underline;">${data.critic.count} reviews</span></a>`;
 
                     if (data.critic.score == 'NR') {
                         rateCriticsEl.innerHTML = `<a style="color: var(--muted-foreground);">Critic Score Not Available Yet</a>`;
+                    } else {
+                        rateCriticsEl.querySelector('a').onclick = () => {
+                            const con = document.createElement('div');
+                            con.style.display = 'flex';
+                            con.style.flexDirection = 'column';
+                            con.style.gap = '1.5rem';
+
+                            critviews.forEach((review) => {
+                                const reviewdiv = document.createElement('div');
+                                reviewdiv.style.display = 'flex';
+                                reviewdiv.style.gap = '1rem';
+                                reviewdiv.style.paddingBottom = '1rem';
+                                reviewdiv.style.borderBottom = '1px solid var(--border)';
+
+                                const publication = decodeHtml(
+                                    review.publication || review.source || 'Unknown Publication'
+                                );
+                                const author = decodeHtml(review.author || '');
+                                const quote = decodeHtml(review.text || review.quote || 'No review text available.');
+
+                                reviewdiv.innerHTML = `
+                                    <img src="${review.image}" width="50" height="50" style="border-radius: 8px; object-fit: cover; background: var(--highlight);" 
+                                         onerror="this.src='images/monochrome-logo.svg'; this.onerror=null;" 
+                                         loading="lazy" 
+                                         referrerpolicy="no-referrer">
+                                    <div style="flex: 1;">
+                                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.25rem;">
+                                            <div class="pub-name" style="font-weight: 600; color: var(--foreground);"></div>
+                                            <div style="font-weight: bold; color: var(--primary-foreground); background: var(--primary); padding: 2px 10px; border-radius: 6px; font-size: 0.85rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">${review.score}</div>
+                                        </div>
+                                        <div class="author-name" style="font-size: 0.8rem; color: var(--muted-foreground); margin-bottom: 0.5rem;"></div>
+                                        <div class="quote-text" style="font-size: 0.95rem; line-height: 1.5; color: var(--muted-foreground); font-style: italic;"></div>
+                                    </div>
+                                `;
+
+                                reviewdiv.querySelector('.pub-name').textContent = publication;
+                                if (author) {
+                                    reviewdiv.querySelector('.author-name').textContent = `By ${author}`;
+                                } else {
+                                    reviewdiv.querySelector('.author-name').remove();
+                                }
+                                reviewdiv.querySelector('.quote-text').textContent = `"${quote}"`;
+
+                                con.appendChild(reviewdiv);
+                            });
+
+                            if (critviews.length === 0) {
+                                con.innerHTML =
+                                    '<div style="text-align: center; padding: 2rem; color: var(--muted-foreground);">No reviews found.</div>';
+                            }
+
+                            createModal({
+                                title: 'Critics Reviews',
+                                content: con,
+                                className: 'extra-wide',
+                            });
+                        };
                     }
+
                     rateUsersEl.innerHTML = `<a href="${data.url}" target="_blank" style="color: var(--muted-foreground);">User Score: <span style="text-decoration: underline;">${data.user.score}</span>, Based on ${data.user.count} reviews</a>`;
                 } catch (e) {
                     rateCriticsEl.innerHTML = `<a style="color: var(--muted-foreground);">Unable to Fetch Critic Score</a>`;
