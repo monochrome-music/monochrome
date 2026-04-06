@@ -4,11 +4,11 @@ import { SVG_RIGHT_ARROW } from './icons';
 
 export const apiSettings = {
     STORAGE_KEY: 'monochrome-api-instances-v9',
-    PINNED_INSTANCE: Object.freeze({ url: 'https://hifi.geeked.wtf', version: '2.7' }),
-    defaultInstances: {
-        api: [{ url: 'https://hifi.geeked.wtf', version: '2.7' }],
-        streaming: [{ url: 'https://hifi.geeked.wtf', version: '2.7' }],
-    },
+    INSTANCES_URLS: [
+        'https://tidal-uptime.jiffy-puffs-1j.workers.dev/',
+        'https://tidal-uptime.props-76styles.workers.dev/',
+    ],
+    defaultInstances: { api: [], streaming: [] },
     userInstances: null,
     instancesLoaded: false,
     _loadPromise: null,
@@ -29,13 +29,136 @@ export const apiSettings = {
     },
 
     async loadInstancesFromGitHub() {
-        this.instancesLoaded = true;
-        return this.defaultInstances;
+        if (this.instancesLoaded) {
+            return this.defaultInstances;
+        }
+
+        if (this._loadPromise) {
+            return this._loadPromise;
+        }
+
+        this._loadPromise = (async () => {
+            const cachedData = localStorage.getItem(this.STORAGE_KEY);
+            if (cachedData) {
+                try {
+                    const parsed = JSON.parse(cachedData);
+                    const now = Date.now();
+                    // Check if cached data is less than 15 minutes old
+                    if (parsed.timestamp && now - parsed.timestamp < 15 * 60 * 1000) {
+                        this.defaultInstances = parsed.data;
+                        this.instancesLoaded = true;
+                        this._loadPromise = null;
+                        return this.defaultInstances;
+                    }
+                } catch (e) {
+                    console.warn('Failed to parse cached instances:', e);
+                }
+            }
+
+            let data = null;
+            let fetchError = null;
+
+            // Prefer first URL, only try others as fallback
+            const urls = [...this.INSTANCES_URLS];
+
+            for (const url of urls) {
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    data = await response.json();
+                    break; // Success, exit loop
+                } catch (error) {
+                    console.warn(`Failed to fetch from ${url}:`, error);
+                    fetchError = error;
+                }
+            }
+
+            if (!data) {
+                console.error('Failed to load instances from all uptime APIs:', fetchError);
+                this.defaultInstances = {
+                    api: [
+                        { url: 'https://hifi.geeked.wtf', version: '2.7' },
+                        { url: 'https://eu-central.monochrome.tf', version: '2.7' },
+                        { url: 'https://us-west.monochrome.tf', version: '2.7' },
+                        { url: 'https://api.monochrome.tf', version: '2.5' },
+                        { url: 'https://monochrome-api.samidy.com', version: '2.3' },
+                        { url: 'https://maus.qqdl.site', version: '2.6' },
+                        { url: 'https://vogel.qqdl.site', version: '2.6' },
+                        { url: 'https://katze.qqdl.site', version: '2.6' },
+                        { url: 'https://hund.qqdl.site', version: '2.6' },
+                        { url: 'https://tidal.kinoplus.online', version: '2.2' },
+                        { url: 'https://wolf.qqdl.site', version: '2.2' },
+                    ],
+                    streaming: [
+                        { url: 'https://hifi.geeked.wtf', version: '2.7' },
+                        { url: 'https://maus.qqdl.site', version: '2.6' },
+                        { url: 'https://vogel.qqdl.site', version: '2.6' },
+                        { url: 'https://katze.qqdl.site', version: '2.6' },
+                        { url: 'https://hund.qqdl.site', version: '2.6' },
+                        { url: 'https://wolf.qqdl.site', version: '2.6' },
+                    ],
+                };
+                this.instancesLoaded = true;
+                this._loadPromise = null;
+                return this.defaultInstances;
+            }
+
+            let groupedInstances = { api: [], streaming: [] };
+
+            const isBlockedInstance = (item) => {
+                const url = typeof item === 'string' ? item : item.url;
+                return url && /\.squid\.wtf/i.test(url);
+            };
+
+            if (data.api && Array.isArray(data.api)) {
+                groupedInstances.api = data.api.filter((item) => !isBlockedInstance(item));
+            }
+
+            if (data.streaming && Array.isArray(data.streaming)) {
+                groupedInstances.streaming = data.streaming.filter((item) => !isBlockedInstance(item));
+            } else if (groupedInstances.api.length > 0) {
+                groupedInstances.streaming = [...groupedInstances.api];
+            }
+
+            this.defaultInstances = groupedInstances;
+            this.instancesLoaded = true;
+
+            try {
+                localStorage.setItem(
+                    this.STORAGE_KEY,
+                    JSON.stringify({
+                        timestamp: Date.now(),
+                        data: groupedInstances,
+                    })
+                );
+            } catch (e) {
+                console.warn('Failed to cache instances:', e);
+            }
+
+            this._loadPromise = null;
+            return groupedInstances;
+        })();
+
+        return this._loadPromise;
     },
 
     async getInstances(type = 'api', _sortBySpeed = false) {
-        const instancesObj = await this.loadInstancesFromGitHub();
-        return instancesObj[type] || instancesObj.api || [];
+        let instancesObj;
+
+        instancesObj = await this.loadInstancesFromGitHub();
+        const userInst = this._loadUserInstances();
+
+        const defaultUrls = instancesObj[type] || instancesObj.api || [];
+        const userUrls = userInst[type] || [];
+
+        const combined = [
+            ...userUrls.map((u) => (typeof u === 'string' ? { url: u, isUser: true } : { ...u, isUser: true })),
+            ...defaultUrls,
+        ];
+
+        if (combined.length === 0) return [];
+
+        return combined;
     },
 
     addUserInstance(type, url) {
@@ -68,6 +191,42 @@ export const apiSettings = {
         this.instancesLoaded = false;
         this._loadPromise = null;
         localStorage.removeItem(this.STORAGE_KEY);
+
+        const instances = await this.loadInstancesFromGitHub();
+
+        const shuffle = (array) => {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        };
+
+        const prioritySort = (array) => {
+            const getUrl = (item) => (typeof item === 'string' ? item : item.url || '');
+            const top = [];
+            const middle = [];
+            const bottom = [];
+            for (const item of array) {
+                const url = getUrl(item);
+                if (url.includes('hifi.geeked.wtf')) top.push(item);
+                else if (url.includes('.qqdl.site')) bottom.push(item);
+                else middle.push(item);
+            }
+            return [...top, ...shuffle(middle), ...shuffle(bottom)];
+        };
+
+        if (instances.api && instances.api.length) {
+            instances.api = prioritySort([...instances.api]);
+        }
+
+        if (instances.streaming && instances.streaming.length) {
+            instances.streaming = prioritySort([...instances.streaming]);
+        }
+
+        this.saveInstances(instances);
+
+        // Return API instances for the UI to render (default view)
         return this.getInstances('api');
     },
     saveInstances(instances, type) {
