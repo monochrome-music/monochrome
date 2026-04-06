@@ -34,6 +34,7 @@ import { authManager } from './accounts/auth.js';
 import { partyManager } from './listening-party.js';
 import { Visualizer } from './visualizer.js';
 import { navigate } from './router.js';
+import { extractLabelName } from './label-utils.js';
 import { sidePanelManager } from './side-panel.js';
 import {
     renderUnreleasedPage as renderUnreleasedTrackerPage,
@@ -3297,9 +3298,13 @@ export class UIRenderer {
             metaEl.innerHTML =
                 (dateDisplay ? `${dateDisplay} • ` : '') + `${tracks.length} tracks • ${formatDuration(totalDuration)}`;
 
+            const labelName = extractLabelName(firstCopyright);
+            const labelHtml = labelName
+                ? ` • <a href="/label/${encodeURIComponent(labelName)}" class="label-link" title="${escapeHtml(firstCopyright || '')}">${escapeHtml(labelName)}</a>`
+                : (firstCopyright ? ` • ${escapeHtml(firstCopyright)}` : '');
             prodEl.innerHTML =
-                `By <a href="/artist/${album.artist.id}">${album.artist.name}</a>` +
-                (firstCopyright ? ` • ${firstCopyright}` : '');
+                `By <a href="/artist/${album.artist.id}">${escapeHtml(album.artist.name)}</a>` +
+                labelHtml;
 
             tracklistContainer.innerHTML = `
                 <div class="track-list-header">
