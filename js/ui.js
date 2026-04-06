@@ -3854,6 +3854,10 @@ export class UIRenderer {
                     const data = await response.json();
 
                     rateCriticsEl.innerHTML = `<a href="${data.url}" target="_blank" style="color: var(--muted-foreground);">Critic Score: <span style="text-decoration: underline;">${data.critic.score}</span>, Based on ${data.critic.count} reviews</a>`;
+
+                    if (data.critic.score == "NR") {
+                        rateCriticsEl.innerHTML = `<a style="color: var(--muted-foreground);">Critic Score Not Available Yet</a>`;
+                    }
                     rateUsersEl.innerHTML = `<a href="${data.url}" target="_blank" style="color: var(--muted-foreground);">User Score: <span style="text-decoration: underline;">${data.user.score}</span>, Based on ${data.user.count} reviews</a>`;
                 } catch (e) {
                     rateCriticsEl.innerHTML = `<a style="color: var(--muted-foreground);">Unable to Fetch Critic Score</a>`;
