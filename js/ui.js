@@ -1336,7 +1336,9 @@ export class UIRenderer {
             nextTrackEl.classList.remove('animate-in');
         }
 
-        const canRenderLyrics = Boolean(lyricsManager && activeElement && lyricsPane && lyricsContent && track.type !== 'video');
+        const canRenderLyrics = Boolean(
+            lyricsManager && activeElement && lyricsPane && lyricsContent && track.type !== 'video'
+        );
         if (canRenderLyrics) {
             this.fullscreenLyricsVisible = true;
             if (lyricsToggleBtn) lyricsToggleBtn.style.removeProperty('display');
@@ -1349,7 +1351,8 @@ export class UIRenderer {
             overlay.classList.add('lyrics-unavailable');
             if (lyricsContent) {
                 clearFullscreenLyricsSync(lyricsContent);
-                lyricsContent.innerHTML = '<div class="fullscreen-lyrics-empty">Lyrics are not available for this track.</div>';
+                lyricsContent.innerHTML =
+                    '<div class="fullscreen-lyrics-empty">Lyrics are not available for this track.</div>';
             }
         }
         this.updateFullscreenLyricsVisibility(overlay);
@@ -1421,7 +1424,8 @@ export class UIRenderer {
         if (!title) return;
 
         const qualityBadge = this.getFullscreenQualityBadgeHTML(track);
-        const useMobileBadgeOnly = window.matchMedia('(max-width: 768px)').matches && overlay.classList.contains('lyrics-hidden');
+        const useMobileBadgeOnly =
+            window.matchMedia('(max-width: 768px)').matches && overlay.classList.contains('lyrics-hidden');
 
         title.innerHTML = useMobileBadgeOnly ? escapeHtml(track.title) : `${escapeHtml(track.title)} ${qualityBadge}`;
         if (mobileQuality) {
@@ -1488,7 +1492,10 @@ export class UIRenderer {
         if (playerBar) playerBar.style.removeProperty('display');
         const mainContent = document.querySelector('.main-content');
         if (mainContent instanceof HTMLElement) {
-            if (typeof this.fullscreenMainContentOverflow === 'string' && this.fullscreenMainContentOverflow.length > 0) {
+            if (
+                typeof this.fullscreenMainContentOverflow === 'string' &&
+                this.fullscreenMainContentOverflow.length > 0
+            ) {
                 mainContent.style.overflowY = this.fullscreenMainContentOverflow;
             } else {
                 mainContent.style.removeProperty('overflow-y');
