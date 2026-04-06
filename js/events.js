@@ -545,8 +545,6 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
                 if (player.isFallbackInProgress || canFallback) {
                     return;
                 }
-                console.warn('Skipping to next track due to playback error');
-                setTimeout(() => player.playNext(), 1000);
             }
         });
 
