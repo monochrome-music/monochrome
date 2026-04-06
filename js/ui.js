@@ -1336,7 +1336,9 @@ export class UIRenderer {
             nextTrackEl.classList.remove('animate-in');
         }
 
-        const canRenderLyrics = Boolean(lyricsManager && activeElement && lyricsPane && lyricsContent && track.type !== 'video');
+        const canRenderLyrics = Boolean(
+            lyricsManager && activeElement && lyricsPane && lyricsContent && track.type !== 'video'
+        );
         if (canRenderLyrics) {
             this.fullscreenLyricsVisible = true;
             if (lyricsToggleBtn) lyricsToggleBtn.style.removeProperty('display');
@@ -1349,7 +1351,8 @@ export class UIRenderer {
             overlay.classList.add('lyrics-unavailable');
             if (lyricsContent) {
                 clearFullscreenLyricsSync(lyricsContent);
-                lyricsContent.innerHTML = '<div class="fullscreen-lyrics-empty">Lyrics are not available for this track.</div>';
+                lyricsContent.innerHTML =
+                    '<div class="fullscreen-lyrics-empty">Lyrics are not available for this track.</div>';
             }
         }
         this.updateFullscreenLyricsVisibility(overlay);
