@@ -10655,16 +10655,31 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     }
 
     #fullscreen-cover-overlay .fullscreen-top-actions {
-        display: none;
+        display: flex;
+        top: calc(0.85rem + env(safe-area-inset-top));
+        left: auto;
+        right: calc(3.85rem + env(safe-area-inset-right));
+        gap: 0;
     }
 
     #fullscreen-cover-overlay .fullscreen-lyrics-toggle,
+    #fullscreen-cover-overlay #close-fullscreen-cover-btn,
     #fullscreen-cover-overlay #toggle-ui-btn {
         display: none !important;
     }
 
     #toggle-fullscreen-lyrics-mobile-btn {
         display: flex;
+    }
+
+    #fullscreen-cover-overlay .fullscreen-top-actions #toggle-fullscreen-lyrics-btn {
+        display: none !important;
+    }
+
+    #fullscreen-cover-overlay .fullscreen-top-actions #fs-visualizer-btn {
+        display: flex !important;
+        width: 38px;
+        height: 38px;
     }
 
     #fullscreen-cover-overlay .fullscreen-main-view {

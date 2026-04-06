@@ -34,6 +34,7 @@ import { syncManager } from './accounts/pocketbase.js';
 import { authManager } from './accounts/auth.js';
 import { partyManager } from './listening-party.js';
 import { Visualizer } from './visualizer.js';
+import { audioContextManager } from './audio-context.js';
 import { navigate } from './router.js';
 import { sidePanelManager } from './side-panel.js';
 import {
@@ -1316,7 +1317,7 @@ export class UIRenderer {
 
     async showFullscreenCover(track, nextTrack, lyricsManager, activeElement) {
         if (!track) return;
-        this.fullscreenVisualizerSuppressed = isMobileFullscreenViewport();
+        this.fullscreenVisualizerSuppressed = false;
         if (window.location.hash !== '#fullscreen') {
             window.history.pushState({ fullscreen: true }, '', '#fullscreen');
         }
@@ -1595,7 +1596,17 @@ export class UIRenderer {
     }
 
     async startFullscreenVisualizer(activeElement, overlay) {
-        if (!activeElement) return;
+        if (!activeElement || !overlay) return false;
+
+        if (audioContextManager.isReady()) {
+            audioContextManager.changeSource(activeElement);
+            await audioContextManager.resume();
+        } else {
+            audioContextManager.init(activeElement);
+            if (audioContextManager.isReady()) {
+                await audioContextManager.resume();
+            }
+        }
 
         if (!this.visualizer) {
             const canvas = document.getElementById('visualizer-canvas');
@@ -1603,24 +1614,28 @@ export class UIRenderer {
                 this.visualizer = new Visualizer(canvas, activeElement);
                 await this.visualizer.initPresets();
             }
+        } else {
+            this.visualizer.audio = activeElement;
         }
 
         if (this.visualizer) {
-            await this.visualizer.start();
-            overlay.classList.add('visualizer-active');
+            const started = await this.visualizer.start();
+            overlay.classList.toggle('visualizer-active', started);
+            return started;
         }
+
+        overlay.classList.remove('visualizer-active');
+        return false;
     }
 
     async ensureVisualizerPermission(activeElement, overlay, { closeOnCancel = false } = {}) {
         if (localStorage.getItem('epilepsy-warning-dismissed') === 'true') {
-            await this.startFullscreenVisualizer(activeElement, overlay);
-            return true;
+            return await this.startFullscreenVisualizer(activeElement, overlay);
         }
 
         const modal = document.getElementById('epilepsy-warning-modal');
         if (!modal) {
-            await this.startFullscreenVisualizer(activeElement, overlay);
-            return true;
+            return await this.startFullscreenVisualizer(activeElement, overlay);
         }
 
         return await new Promise((resolve) => {
@@ -1632,8 +1647,7 @@ export class UIRenderer {
             acceptBtn.onclick = async () => {
                 modal.classList.remove('active');
                 localStorage.setItem('epilepsy-warning-dismissed', 'true');
-                await this.startFullscreenVisualizer(activeElement, overlay);
-                resolve(true);
+                resolve(await this.startFullscreenVisualizer(activeElement, overlay));
             };
 
             cancelBtn.onclick = () => {
@@ -1641,7 +1655,7 @@ export class UIRenderer {
                 if (closeOnCancel) {
                     this.closeFullscreenCover();
                 }
-                resolve(false);
+                resolve(null);
             };
         });
     }
@@ -1651,7 +1665,7 @@ export class UIRenderer {
         const visualizerBtn = document.getElementById('fs-visualizer-btn');
         const toggleBtn = document.getElementById('toggle-ui-btn');
         const isVideoTrack = this.player?.currentTrack?.type === 'video';
-        const enabled = !isVideoTrack && !this.fullscreenVisualizerSuppressed && !isMobileFullscreenViewport();
+        const enabled = !isVideoTrack && visualizerSettings.isEnabled() && !this.fullscreenVisualizerSuppressed;
 
         if (!overlay) return;
 
@@ -1676,8 +1690,10 @@ export class UIRenderer {
         }
 
         const allowed = await this.ensureVisualizerPermission(activeElement, overlay, { closeOnCancel });
-        if (!allowed) {
-            this.fullscreenVisualizerSuppressed = true;
+        if (allowed !== true) {
+            if (allowed === null) {
+                this.fullscreenVisualizerSuppressed = true;
+            }
             overlay.classList.remove('visualizer-active');
             if (this.visualizer) {
                 this.visualizer.stop();
