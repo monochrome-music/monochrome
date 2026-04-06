@@ -9,32 +9,58 @@ import hashlib
 import time
 import os
 import tempfile
+import base64
 
 INPUT_FILE = "editors-picks-input.txt"
 COUNTRY = "US"
 
-# Tidal internal token replace when expired
-TIDAL_TOKEN = "eyJraWQiOiJ2OU1GbFhqWSIsImFsZyI6IkVTMjU2In0.eyJ0eXBlIjoibzJfYWNjZXNzIiwic2NvcGUiOiIiLCJnVmVyIjowLCJzVmVyIjowLCJjaWQiOjEzNTU3LCJhdCI6IklOVEVSTkFMIiwiZXhwIjoxNzc1MzY0MTQwLCJpc3MiOiJodHRwczovL2F1dGgudGlkYWwuY29tL3YxIn0.6ui6itHVQ-OXPF0F9mbf5KcKz1fKYJNsa1vBAj60upXpcN-DQG8JPKBlqJN6RuBEH8yhwYj2wh4YJ-TOOuO8DA"
+TIDAL_CLIENT_ID = "txNoH4kkV41MfH25"
+TIDAL_CLIENT_SECRET = "dQjy0MinCEvxi1O4UmxvxWnDjt4cgHBPw8ll6nYBk98="
 
-TIDAL_HEADERS = {
-    "accept": "*/*",
-    "authorization": f"Bearer {TIDAL_TOKEN}",
-}
-
-# PodcastIndex credentials
-PODCAST_API_KEY = "YU5HMSDYBQQVYDF6QN4P"
-PODCAST_API_SECRET = "8hCvpjSL7T$S7^5ftnf5MhqQwYUYVjM^fmUL3Ld$"
-PODCASTINDEX_BASE = "https://api.podcastindex.org/api/1.0"
+_tidal_token = None
 
 
-# ── Tidal helpers ─────────────────────────────────────────────────────────────
+def get_tidal_token():
+    global _tidal_token
+    if _tidal_token:
+        return _tidal_token
+
+    credentials = base64.b64encode(f"{TIDAL_CLIENT_ID}:{TIDAL_CLIENT_SECRET}".encode()).decode()
+    params = urllib.parse.urlencode({
+        "client_id": TIDAL_CLIENT_ID,
+        "client_secret": TIDAL_CLIENT_SECRET,
+        "grant_type": "client_credentials",
+    })
+    req = urllib.request.Request(
+        "https://auth.tidal.com/v1/oauth2/token",
+        data=params.encode(),
+        headers={
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Authorization": f"Basic {credentials}",
+        },
+        method="POST"
+    )
+    try:
+        with urllib.request.urlopen(req) as resp:
+            data = json.loads(resp.read().decode())
+            _tidal_token = data["access_token"]
+            return _tidal_token
+    except Exception as e:
+        print(f"Error getting Tidal token: {e}", file=sys.stderr)
+        return None
+
 
 def tidal_get(path, params=None):
     if params is None:
         params = {}
     params.setdefault("countryCode", COUNTRY)
+
+    token = get_tidal_token()
+    if not token:
+        return None
+
     url = f"https://api.tidal.com/v1/{path}?{urllib.parse.urlencode(params)}"
-    req = urllib.request.Request(url, headers=TIDAL_HEADERS)
+    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
     try:
         with urllib.request.urlopen(req) as resp:
             return json.loads(resp.read().decode())
