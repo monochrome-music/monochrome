@@ -291,7 +291,8 @@ export class Player {
     }
 
     setPlaybackSpeed(speed) {
-        const validSpeed = Math.max(0.01, Math.min(100, parseFloat(speed) || 1.0));
+        const parsed = parseFloat(speed);
+        const validSpeed = Math.max(0.01, Math.min(100, isNaN(parsed) ? 1.0 : parsed));
         audioEffectsSettings.setSpeed(validSpeed);
         this.applyAudioEffects();
     }
