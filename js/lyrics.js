@@ -1013,12 +1013,16 @@ function applyFullscreenLyricsShadowTweaks(amLyrics, container) {
             }
 
             .lyrics-line {
+                transform-origin: left center;
                 transition:
                     opacity 0.42s ease,
                     transform 0.55s cubic-bezier(0.22, 1, 0.36, 1) var(--lyrics-line-delay, 0ms),
                     filter 0.48s cubic-bezier(0.22, 1, 0.36, 1) !important;
             }
 
+            .lyrics-line:not(.active):not(.pre-active) {
+                opacity: 0.44;
+            }
             .lyrics-line-container {
                 transition:
                     transform 0.72s cubic-bezier(0.22, 1, 0.36, 1),
@@ -1032,6 +1036,10 @@ function applyFullscreenLyricsShadowTweaks(amLyrics, container) {
                     transform 0.56s cubic-bezier(0.22, 1, 0.36, 1),
                     background-color 0.22s ease,
                     color 0.22s ease !important;
+            }
+
+            .lyrics-line.active .lyrics-line-container {
+                transform: scale(1.015);
             }
         `;
 
