@@ -7934,6 +7934,8 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     background: rgb(0, 0, 0, 0.15);
     border-radius: var(--radius);
     min-height: 240px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
 }
 
 .graphic-eq-band {
@@ -7986,6 +7988,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
+    flex-wrap: wrap;
 }
 
 .graphic-eq-preamp {
@@ -8032,6 +8035,15 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 
     .graphic-eq-band-value {
         font-size: 0.5rem;
+    }
+
+    .graphic-eq-bottom-row {
+        gap: var(--spacing-sm);
+    }
+
+    .graphic-eq-preamp {
+        min-width: 0;
+        flex-basis: 100%;
     }
 }
 
