@@ -1383,6 +1383,102 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         });
     });
 
+    // Legacy EQ Import / Export
+    const GEQ_FREQUENCIES = [25, 40, 63, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000, 16000, 20000];
+    const legacyGeqExportBtn = document.getElementById('legacy-geq-export-btn');
+    const legacyGeqImportBtn = document.getElementById('legacy-geq-import-btn');
+    const legacyGeqImportFile = document.getElementById('legacy-geq-import-file');
+
+    if (legacyGeqExportBtn) {
+        legacyGeqExportBtn.addEventListener('click', () => {
+            const lines = [`Preamp: ${geqPreamp.toFixed(1)} dB`];
+            GEQ_FREQUENCIES.forEach((freq, i) => {
+                lines.push(`Filter ${i + 1}: ON PK Fc ${freq} Hz Gain ${geqGains[i].toFixed(1)} dB Q 1.41`);
+            });
+            const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'legacy-eq.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+    }
+
+    if (legacyGeqImportBtn && legacyGeqImportFile) {
+        legacyGeqImportBtn.addEventListener('click', () => legacyGeqImportFile.click());
+        legacyGeqImportFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const text = event.target.result;
+                    const lines = text.split('\n');
+                    let preamp = 0;
+                    const importedPoints = [];
+
+                    for (const line of lines) {
+                        const preampMatch = line.match(/Preamp:\s*([-\d.]+)\s*dB/i);
+                        if (preampMatch) {
+                            preamp = parseFloat(preampMatch[1]);
+                            continue;
+                        }
+                        // EqualizerAPO format: Filter N: ON PK Fc XXXX Hz Gain X.X dB Q X.XX
+                        const filterMatch = line.match(
+                            /Filter\s+\d+:\s*ON\s+\w+\s+Fc\s+([\d.]+)\s*Hz\s+Gain\s+([-\d.]+)\s*dB/i
+                        );
+                        if (filterMatch) {
+                            importedPoints.push({ freq: parseFloat(filterMatch[1]), gain: parseFloat(filterMatch[2]) });
+                            continue;
+                        }
+                        // Simple two-column format: freq gain (whitespace/tab/comma separated)
+                        const simpleMatch = line.trim().match(/^([\d.]+)[,\s\t]+([-\d.]+)/);
+                        if (simpleMatch) {
+                            importedPoints.push({ freq: parseFloat(simpleMatch[1]), gain: parseFloat(simpleMatch[2]) });
+                        }
+                    }
+
+                    if (importedPoints.length === 0) return;
+
+                    // Sort by frequency
+                    importedPoints.sort((a, b) => a.freq - b.freq);
+
+                    // Map imported points to the 16 GEQ bands using nearest-frequency matching
+                    const newGains = GEQ_FREQUENCIES.map((targetFreq) => {
+                        // Find the closest imported point by log-frequency distance
+                        let closest = importedPoints[0];
+                        let minDist = Math.abs(Math.log10(targetFreq) - Math.log10(closest.freq));
+                        for (let j = 1; j < importedPoints.length; j++) {
+                            const dist = Math.abs(Math.log10(targetFreq) - Math.log10(importedPoints[j].freq));
+                            if (dist < minDist) {
+                                minDist = dist;
+                                closest = importedPoints[j];
+                            }
+                        }
+                        // Clamp to slider range
+                        return Math.max(parseFloat(geqRange.min), Math.min(parseFloat(geqRange.max), closest.gain));
+                    });
+
+                    geqGains = newGains;
+                    geqPreamp = Math.max(-20, Math.min(20, preamp));
+                    equalizerSettings.setGraphicEqGains(geqGains);
+                    equalizerSettings.setGraphicEqPreamp(geqPreamp);
+                    audioContextManager.setGraphicEqAllGains(geqGains);
+                    audioContextManager.setGraphicEqPreamp(geqPreamp);
+                    geqSyncAllSliders();
+                    geqPreampSliders.forEach((s) => (s.value = geqPreamp));
+                    geqPreampValues.forEach((v) => (v.textContent = `${geqPreamp.toFixed(1)} dB`));
+                    geqPresetSelects.forEach((s) => (s.value = ''));
+                } catch (err) {
+                    console.error('[Legacy GEQ Import] Failed:', err);
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        });
+    }
+
     // ========================================
     // Precision AutoEQ - Redesigned Equalizer
     // ========================================
