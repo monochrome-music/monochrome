@@ -1580,35 +1580,40 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     geqPresetSelects.forEach((select) => {
         select.addEventListener('change', () => {
             const key = select.value;
-            if (key) {
-                // Check custom presets first
-                const customPresets = getLegacyGeqCustomPresets();
-                if (customPresets[key]) {
-                    const gains = customPresets[key]?.gains;
-                    if (!Array.isArray(gains) || gains.length !== GEQ_FREQUENCIES.length) {
-                        updateDeleteBtnVisibility();
-                        return;
-                    }
-                    geqGains = gains.map((g) => {
-                        const n = Number(g);
-                        return Number.isFinite(n)
-                            ? Math.max(parseFloat(geqRange.min), Math.min(parseFloat(geqRange.max), n))
-                            : 0;
-                    });
-                    equalizerSettings.setGraphicEqGains(geqGains);
-                    audioContextManager.setGraphicEqAllGains(geqGains);
-                    geqSyncAllSliders();
-                    if (customPresets[key].preamp !== undefined) {
-                        geqPreamp = customPresets[key].preamp;
-                        equalizerSettings.setGraphicEqPreamp(geqPreamp);
-                        audioContextManager.setGraphicEqPreamp(geqPreamp);
-                        geqPreampSliders.forEach((s) => (s.value = geqPreamp));
-                        geqPreampValues.forEach((v) => (v.textContent = `${geqPreamp.toFixed(1)} dB`));
-                    }
-                    geqPresetSelects.forEach((s) => {
-                        if (s !== select) s.value = key;
-                    });
+            if (!key) {
+                updateDeleteBtnVisibility();
+                return;
+            }
+
+            // Check custom presets first
+            const customPresets = getLegacyGeqCustomPresets();
+            if (customPresets[key]) {
+                const gains = customPresets[key]?.gains;
+                if (!Array.isArray(gains) || gains.length !== GEQ_FREQUENCIES.length) {
+                    updateDeleteBtnVisibility();
+                    return;
                 }
+                geqGains = gains.map((g) => {
+                    const n = Number(g);
+                    return Number.isFinite(n)
+                        ? Math.max(parseFloat(geqRange.min), Math.min(parseFloat(geqRange.max), n))
+                        : 0;
+                });
+                equalizerSettings.setGraphicEqGains(geqGains);
+                audioContextManager.setGraphicEqAllGains(geqGains);
+                geqSyncAllSliders();
+                if (customPresets[key].preamp !== undefined) {
+                    geqPreamp = customPresets[key].preamp;
+                    equalizerSettings.setGraphicEqPreamp(geqPreamp);
+                    audioContextManager.setGraphicEqPreamp(geqPreamp);
+                    geqPreampSliders.forEach((s) => (s.value = geqPreamp));
+                    geqPreampValues.forEach((v) => (v.textContent = `${geqPreamp.toFixed(1)} dB`));
+                }
+                geqPresetSelects.forEach((s) => {
+                    if (s !== select) s.value = key;
+                });
+                updateDeleteBtnVisibility();
+                return;
             }
             updateDeleteBtnVisibility();
         });
