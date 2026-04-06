@@ -131,8 +131,9 @@ async function fetchcontributors() {
         const response = await fetch('https://api.samidy.com/api/contributors');
         if (!response.ok) return;
         const data1 = await response.json();
+        if (!Array.isArray(data1)) return;
 
-        const data = data1.filter(
+        let data = data1.filter(
             (user) => user.type !== 'Bot' && user.login !== 'edidealt' && user.login !== 'satanyahoo'
         );
 
@@ -142,6 +143,8 @@ async function fetchcontributors() {
             edideaur.contributions += data1.find((u) => u.login === 'satanyahoo')?.contributions || 0;
         }
 
+        data.sort((a, b) => b.contributions - a.contributions);
+
         const con = document.querySelector('.about-contributors');
         if (!con) return;
 
@@ -149,14 +152,22 @@ async function fetchcontributors() {
             const userDIV = document.createElement('div');
             userDIV.innerHTML = `
             <a href="${user.html_url}" target="_blank">
-            <img src="${user.avatar_url}" alt="${user.login}" width="50" style="border-radius: 50%;">
+            <img src="${user.avatar_url}&s=50" alt="${user.login}" width="50" height="50" style="border-radius: 50%;" loading="lazy">
             <span>${user.login}</span>
             <span class="contrib">Contributions: ${user.contributions}</span>
             </a>
             `;
             con.appendChild(userDIV);
         });
-    } catch (e) {}
+    } catch (e) {
+        const con = document.querySelector('.about-contributors-failed');
+        if (!con) return;
+        const userDIV = document.createElement('div');
+        userDIV.innerHTML = `
+        <h4 style="text-align: center; color: var(--muted-foreground);">Failed to Fetch Contributor List</h4>
+        `;
+        con.appendChild(userDIV);
+    }
 }
 
 async function loadMetadataModule() {
@@ -2894,7 +2905,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (user) {
                 const data = await syncManager.getUserData();
                 if (data && data.profile && data.profile.avatar_url) {
-                    headerAccountImg.src = data.profile.avatar_url;
+                    headerAccountImg.src = data.profile.avatar_url + '&s=100';
                     headerAccountImg.style.display = 'block';
                     headerAccountIcon.style.display = 'none';
                     return;

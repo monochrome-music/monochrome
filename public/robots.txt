@@ -1,0 +1,11 @@
+# robots.txt for https://monochrome.tf/
+
+User-agent: *
+Allow: /
+
+# Avoid indexing internal endpoints and auth flows.
+Disallow: /functions/
+Disallow: /api/
+Disallow: /auth/
+
+Sitemap: https://monochrome.tf/sitemap.xml

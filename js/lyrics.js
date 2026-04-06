@@ -10,7 +10,28 @@ import {
     SVG_GLOBE,
 } from './icons.js';
 import { sidePanelManager } from './side-panel.js';
-import('@uimaxbai/am-lyrics/am-lyrics.js').catch(console.error);
+
+const loadAmLyrics = () => {
+    const images = Array.from(document.images).filter((img) => !img.complete);
+    if (images.length === 0) {
+        import('@uimaxbai/am-lyrics/am-lyrics.js').catch(console.error);
+    } else {
+        Promise.all(
+            images.map(
+                (img) =>
+                    new Promise((res) => {
+                        img.onload = img.onerror = res;
+                    })
+            )
+        ).then(() => import('@uimaxbai/am-lyrics/am-lyrics.js').catch(console.error));
+    }
+};
+
+if (document.readyState === 'complete') {
+    loadAmLyrics();
+} else {
+    window.addEventListener('load', loadAmLyrics);
+}
 
 // Check if text contains Japanese, Chinese, or Korean characters
 function containsAsianText(text) {
@@ -278,13 +299,13 @@ export class LyricsManager {
 
             // Load Kuroshiro from CDN
             if (!window.Kuroshiro) {
-                await this.loadScript('https://unpkg.com/kuroshiro@1.2.0/dist/kuroshiro.min.js');
+                await this.loadScript('https://cdn.jsdelivr.net/npm/kuroshiro@1.2.0/dist/kuroshiro.min.js');
             }
 
             // Load Kuromoji analyzer from CDN
             if (!window.KuromojiAnalyzer) {
                 await this.loadScript(
-                    'https://unpkg.com/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js'
+                    'https://cdn.jsdelivr.net/npm/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js'
                 );
             }
 
@@ -1002,7 +1023,6 @@ function applyFullscreenLyricsShadowTweaks(amLyrics, container) {
             .lyrics-line:not(.active):not(.pre-active) {
                 opacity: 0.44;
             }
-
             .lyrics-line-container {
                 transition:
                     transform 0.72s cubic-bezier(0.22, 1, 0.36, 1),

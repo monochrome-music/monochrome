@@ -8,36 +8,59 @@ import sys
 import hashlib
 import time
 import os
-import subprocess
-import shutil
 import tempfile
+import base64
 
 INPUT_FILE = "editors-picks-input.txt"
-IMAGES_DIR = "public/editors-picks-images"
 COUNTRY = "US"
 
-# Tidal internal token replace when expired
-TIDAL_TOKEN = "eyJraWQiOiJ2OU1GbFhqWSIsImFsZyI6IkVTMjU2In0.eyJ0eXBlIjoibzJfYWNjZXNzIiwic2NvcGUiOiIiLCJnVmVyIjowLCJzVmVyIjowLCJjaWQiOjEzNTU3LCJhdCI6IklOVEVSTkFMIiwiZXhwIjoxNzc1MzY0MTQwLCJpc3MiOiJodHRwczovL2F1dGgudGlkYWwuY29tL3YxIn0.6ui6itHVQ-OXPF0F9mbf5KcKz1fKYJNsa1vBAj60upXpcN-DQG8JPKBlqJN6RuBEH8yhwYj2wh4YJ-TOOuO8DA"
+TIDAL_CLIENT_ID = "txNoH4kkV41MfH25"
+TIDAL_CLIENT_SECRET = "dQjy0MinCEvxi1O4UmxvxWnDjt4cgHBPw8ll6nYBk98="
 
-TIDAL_HEADERS = {
-    "accept": "*/*",
-    "authorization": f"Bearer {TIDAL_TOKEN}",
-}
-
-# PodcastIndex credentials
-PODCAST_API_KEY = "YU5HMSDYBQQVYDF6QN4P"
-PODCAST_API_SECRET = "8hCvpjSL7T$S7^5ftnf5MhqQwYUYVjM^fmUL3Ld$"
-PODCASTINDEX_BASE = "https://api.podcastindex.org/api/1.0"
+_tidal_token = None
 
 
-# ── Tidal helpers ─────────────────────────────────────────────────────────────
+def get_tidal_token():
+    global _tidal_token
+    if _tidal_token:
+        return _tidal_token
+
+    credentials = base64.b64encode(f"{TIDAL_CLIENT_ID}:{TIDAL_CLIENT_SECRET}".encode()).decode()
+    params = urllib.parse.urlencode({
+        "client_id": TIDAL_CLIENT_ID,
+        "client_secret": TIDAL_CLIENT_SECRET,
+        "grant_type": "client_credentials",
+    })
+    req = urllib.request.Request(
+        "https://auth.tidal.com/v1/oauth2/token",
+        data=params.encode(),
+        headers={
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Authorization": f"Basic {credentials}",
+        },
+        method="POST"
+    )
+    try:
+        with urllib.request.urlopen(req) as resp:
+            data = json.loads(resp.read().decode())
+            _tidal_token = data["access_token"]
+            return _tidal_token
+    except Exception as e:
+        print(f"Error getting Tidal token: {e}", file=sys.stderr)
+        return None
+
 
 def tidal_get(path, params=None):
     if params is None:
         params = {}
     params.setdefault("countryCode", COUNTRY)
+
+    token = get_tidal_token()
+    if not token:
+        return None
+
     url = f"https://api.tidal.com/v1/{path}?{urllib.parse.urlencode(params)}"
-    req = urllib.request.Request(url, headers=TIDAL_HEADERS)
+    req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
     try:
         with urllib.request.urlopen(req) as resp:
             return json.loads(resp.read().decode())
@@ -90,59 +113,6 @@ def fetch_podcast(feed_id):
 
 # ── Image processing ───────────────────────────────────────────────────────────
 
-def clear_images_dir():
-    if os.path.exists(IMAGES_DIR):
-        shutil.rmtree(IMAGES_DIR)
-    os.makedirs(IMAGES_DIR, exist_ok=True)
-
-
-def is_uuid_cover(cover_value):
-    if not cover_value:
-        return False
-    return bool(re.match(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$', cover_value))
-
-
-def uuid_to_path_segments(uuid):
-    return uuid.replace('-', '/')
-
-
-def download_and_process_cover(cover_uuid):
-    url = f"https://resources.tidal.com/images/{uuid_to_path_segments(cover_uuid)}/320x320.jpg"
-    
-    with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp:
-        tmp_path = tmp.name
-    
-    try:
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req) as resp:
-            with open(tmp_path, 'wb') as f:
-                shutil.copyfileobj(resp, f)
-        
-        output_path = os.path.join(IMAGES_DIR, f"{cover_uuid}.webp")
-        
-        subprocess.run(
-            ['cwebp', '-q', '50', tmp_path, '-o', output_path],
-            check=True,
-            capture_output=True
-        )
-        
-        return f"https://monochrome.tf/editors-picks-images/{cover_uuid}.webp"
-    except Exception as e:
-        print(f"Error processing cover {cover_uuid}: {e}", file=sys.stderr)
-        return None
-    finally:
-        if os.path.exists(tmp_path):
-            os.remove(tmp_path)
-
-
-def process_cover(cover_value):
-    if not cover_value:
-        return cover_value
-    if is_uuid_cover(cover_value):
-        return download_and_process_cover(cover_value)
-    return cover_value
-
-
 # ── Transformers ──────────────────────────────────────────────────────────────
 
 def transform_album(d):
@@ -155,7 +125,7 @@ def transform_album(d):
             "name": d.get("artist", {}).get("name"),
         },
         "releaseDate": d.get("releaseDate"),
-        "cover": process_cover(d.get("cover")),
+        "cover": d.get("cover"),
         "explicit": d.get("explicit"),
         "audioQuality": d.get("audioQuality"),
         "mediaMetadata": d.get("mediaMetadata"),
@@ -167,7 +137,7 @@ def transform_artist(d):
         "type": "artist",
         "id": d.get("id"),
         "name": d.get("name"),
-        "picture": process_cover(d.get("picture")),
+        "picture": d.get("picture"),
     }
 
 
@@ -184,7 +154,7 @@ def transform_track(d):
         "album": {
             "id": album.get("id"),
             "title": album.get("title"),
-            "cover": process_cover(album.get("cover")),
+            "cover": album.get("cover"),
         },
         "duration": d.get("duration"),
         "explicit": d.get("explicit"),
@@ -200,7 +170,7 @@ def transform_playlist(d):
         "type": "playlist",
         "id": d.get("uuid"),
         "title": d.get("title"),
-        "cover": process_cover(cover),
+        "cover": cover,
         "numberOfTracks": d.get("numberOfTracks", 0),
     }
 
@@ -213,7 +183,7 @@ def transform_userplaylist(d):
         "type": "user-playlist",
         "id": d.get("uuid"),
         "name": d.get("title"),
-        "cover": process_cover(cover),
+        "cover": cover,
         "numberOfTracks": d.get("numberOfTracks", 0),
         "username": creator.get("name"),
     }
@@ -257,8 +227,6 @@ def read_items(path):
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
-
-clear_images_dir()
 
 FETCHERS = {
     "album":       (fetch_album,       transform_album),

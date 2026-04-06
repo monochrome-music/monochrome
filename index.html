@@ -3,32 +3,99 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-        <title>Monochrome Music</title>
+        <title>Monochrome</title>
         <link rel="canonical" href="https://monochrome.tf/" />
+        <link rel="alternate" hreflang="en" href="https://monochrome.tf/" />
         <meta name="theme-color" content="#000000" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <base href="/" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Monochrome" />
-        <meta name="description" content="A minimalist music streaming application" />
+        <meta
+            name="description"
+            content="Stream and download millions of Hi-Res FLACs, unreleased songs and music videos, all for free on Monochrome."
+        />
+        <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+        <meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+        <meta property="og:type" content="website" />
+        <meta property="og:locale" content="en_US" />
+        <meta property="og:site_name" content="Monochrome" />
+        <meta property="og:title" content="Monochrome" />
+        <meta
+            property="og:description"
+            content="Stream and download millions of Hi-Res FLACs, unreleased songs and music videos, all for free on Monochrome."
+        />
+        <meta property="og:url" content="https://monochrome.tf/" />
+        <meta property="og:image" content="https://monochrome.tf/assets/banner.jpg" />
+        <meta property="og:image:type" content="image/jpeg" />
+        <meta property="og:image:alt" content="Monochrome banner" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:url" content="https://monochrome.tf/" />
+        <meta name="twitter:title" content="Monochrome" />
+        <meta
+            name="twitter:description"
+            content="Stream and download millions of Hi-Res FLACs, unreleased songs and music videos, all for free on Monochrome."
+        />
+        <meta name="twitter:image" content="https://monochrome.tf/assets/banner-twitter.jpg" />
+        <meta name="twitter:image:alt" content="Monochrome banner" />
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "WebSite",
+                "name": "Monochrome",
+                "url": "https://monochrome.tf/",
+                "description": "Stream and download millions of Hi-Res FLACs, unreleased songs and music videos, all for free on Monochrome.",
+                "potentialAction": {
+                    "@type": "SearchAction",
+                    "target": "https://monochrome.tf/search/{search_term_string}",
+                    "query-input": "required name=search_term_string"
+                }
+            }
+        </script>
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "WebApplication",
+                "name": "Monochrome",
+                "url": "https://monochrome.tf/",
+                "applicationCategory": "MusicApplication",
+                "operatingSystem": "Web Browser",
+                "image": "https://monochrome.tf/assets/logo.svg",
+                "description": "Stream and download millions of Hi-Res FLACs, unreleased songs and music videos, all for free on Monochrome."
+            }
+        </script>
+        <!-- bini's seo thing -->
+        <meta
+            name="ahrefs-site-verification"
+            content="889c6a5c1584832256b87bb36beaa665b40bb6e201582d416f04d074794044ef"
+        />
+        <meta name="google-site-verification" content="ChAPlKFJ5Dk2YbWhiUfnH5sHgCC8SnNdCBtjVcahArY" />
 
         <!-- Preconnect to critical third-party origins -->
         <link rel="preconnect" href="https://api.fonts.coollabs.io" crossorigin />
-        <link rel="preconnect" href="https://ws.audioscrobbler.com" crossorigin />
-        <link rel="preconnect" href="https://libre.fm" crossorigin />
-        <link rel="preconnect" href="https://api.listenbrainz.org" crossorigin />
         <link rel="preconnect" href="https://resources.tidal.com" crossorigin />
-        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-        <link rel="preconnect" href="https://unpkg.com" crossorigin />
 
         <link rel="apple-touch-icon" href="/assets/logo.svg" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" href="/assets/logo.svg" type="image/svg+xml" />
         <link
+            rel="preload"
+            as="style"
+            href="https://api.fonts.coollabs.io/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        />
+        <link
             href="https://api.fonts.coollabs.io/css2?family=Inter:wght@400;500;600;700;800&display=swap"
             rel="stylesheet"
+            media="print"
+            onload="this.media = 'all'"
         />
+        <noscript>
+            <link
+                href="https://api.fonts.coollabs.io/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+                rel="stylesheet"
+            />
+        </noscript>
         <link rel="stylesheet" href="/styles.css" />
     </head>
 
@@ -214,6 +281,7 @@
                                     <button id="fs-repeat-btn" title="Repeat">
                                         <use svg="!lucide/repeat.svg" size="24" />
                                     </button>
+                                    <button id="fs-quality-btn" class="fs-quality-btn" title="Quality" style="display: none">
                                     <button id="fs-quality-btn" class="fs-quality-btn" title="Quality" style="display: none">
                                         <use svg="!lucide/pencil-line.svg" size="20" />
                                         <span class="fs-quality-label">Auto</span>
@@ -1719,7 +1787,11 @@
                             </p>
                         </div>
 
-                        <section class="content-section" id="home-editors-picks-section-empty" style="margin-top: 0">
+                        <section
+                            class="content-section"
+                            id="home-editors-picks-section-empty"
+                            style="margin-top: 0; display: none"
+                        >
                             <div
                                 style="
                                     display: flex;
@@ -2269,6 +2341,9 @@
                             <h1 class="title" id="album-detail-title"></h1>
                             <div class="meta" id="album-detail-meta"></div>
                             <div class="meta" id="album-detail-producer"></div>
+                            <br />
+                            <div class="ratings" id="album-detail-ratings-critics"></div>
+                            <div class="ratings" id="album-detail-ratings-users"></div>
                             <div class="detail-header-actions">
                                 <button id="play-album-btn" class="btn-primary" title="Play Album">
                                     <use svg="./images/play.svg" size="20" />
@@ -4067,6 +4142,7 @@
                                     <!-- Mode Toggle + How To -->
                                     <div class="autoeq-mode-row">
                                         <div class="autoeq-mode-toggle">
+                                            <button class="autoeq-mode-btn" data-mode="legacy">Legacy EQ</button>
                                             <button class="autoeq-mode-btn active" data-mode="autoeq">AutoEQ</button>
                                             <button class="autoeq-mode-btn" data-mode="parametric">
                                                 Parametric EQ
@@ -4203,6 +4279,66 @@
                                         </div>
                                     </div>
 
+                                    <!-- Legacy 16-Band Graphic EQ (visible in legacy mode) -->
+                                    <div class="graphic-eq-section" id="graphic-eq-section" style="display: none">
+                                        <div class="graphic-eq-preset-row">
+                                            <label for="legacy-graphic-eq-preset-select" class="graphic-eq-preset-label"
+                                                >Preset</label
+                                            >
+                                            <select
+                                                id="legacy-graphic-eq-preset-select"
+                                                class="graphic-eq-preset-select"
+                                            >
+                                                <option value="">Custom</option>
+                                                <option value="flat">Flat</option>
+                                                <option value="bass_boost">Bass Boost</option>
+                                                <option value="bass_reducer">Bass Reducer</option>
+                                                <option value="treble_boost">Treble Boost</option>
+                                                <option value="treble_reducer">Treble Reducer</option>
+                                                <option value="vocal_boost">Vocal Boost</option>
+                                                <option value="loudness">Loudness</option>
+                                                <option value="rock">Rock</option>
+                                                <option value="pop">Pop</option>
+                                                <option value="classical">Classical</option>
+                                                <option value="jazz">Jazz</option>
+                                                <option value="electronic">Electronic</option>
+                                                <option value="hip_hop">Hip-Hop</option>
+                                                <option value="r_and_b">R&amp;B</option>
+                                                <option value="acoustic">Acoustic</option>
+                                                <option value="podcast">Speech</option>
+                                            </select>
+                                        </div>
+                                        <div class="graphic-eq-bands" id="legacy-graphic-eq-bands">
+                                            <!-- 16 vertical sliders generated by JS -->
+                                        </div>
+                                        <div class="graphic-eq-bottom-row">
+                                            <div class="graphic-eq-preamp">
+                                                <label
+                                                    for="legacy-graphic-eq-preamp-slider"
+                                                    class="graphic-eq-preamp-label"
+                                                    >Preamp</label
+                                                >
+                                                <input
+                                                    type="range"
+                                                    id="legacy-graphic-eq-preamp-slider"
+                                                    class="graphic-eq-preamp-slider"
+                                                    min="-20"
+                                                    max="20"
+                                                    step="0.1"
+                                                    value="0"
+                                                />
+                                                <span
+                                                    class="graphic-eq-preamp-value"
+                                                    id="legacy-graphic-eq-preamp-value"
+                                                    >0 dB</span
+                                                >
+                                            </div>
+                                            <button id="legacy-graphic-eq-reset-btn" class="btn-secondary">
+                                                Reset
+                                            </button>
+                                        </div>
+                                    </div>
+
                                     <!-- Frequency Response Graph -->
                                     <div class="autoeq-graph-section">
                                         <div class="autoeq-graph-header">
@@ -4249,29 +4385,42 @@
 
                                     <!-- Database Browser -->
                                     <div class="autoeq-database-section" id="autoeq-database-section">
-                                        <div class="autoeq-database-header">
+                                        <div class="autoeq-database-header" id="autoeq-database-toggle">
                                             <div>
                                                 <h4 class="autoeq-database-title">Database</h4>
                                                 <span class="autoeq-database-subtitle">AutoEq Repo</span>
                                             </div>
-                                            <span class="autoeq-database-count" id="autoeq-database-count"></span>
-                                        </div>
-                                        <div class="autoeq-database-search">
-                                            <use svg="!lucide/search.svg" size="16" />
-                                            <input
-                                                type="text"
-                                                id="autoeq-headphone-search"
-                                                placeholder="Search model (e.g. HD 600)..."
-                                                autocomplete="off"
-                                                aria-label="Search headphone model"
-                                            />
-                                        </div>
-                                        <div class="autoeq-database-content">
-                                            <div class="autoeq-database-list" id="autoeq-database-list">
-                                                <!-- Dynamically populated -->
+                                            <div class="autoeq-database-header-right">
+                                                <span class="autoeq-database-count" id="autoeq-database-count"></span>
+                                                <button
+                                                    class="autoeq-collapse-btn"
+                                                    id="autoeq-database-collapse"
+                                                    aria-label="Collapse database"
+                                                    aria-expanded="true"
+                                                    aria-controls="autoeq-database-body"
+                                                >
+                                                    <use svg="!lucide/chevron-up.svg" size="18" />
+                                                </button>
                                             </div>
-                                            <div class="autoeq-database-alpha-index" id="autoeq-alpha-index">
-                                                <!-- A-Z generated by JS -->
+                                        </div>
+                                        <div class="autoeq-database-body" id="autoeq-database-body">
+                                            <div class="autoeq-database-search">
+                                                <use svg="!lucide/search.svg" size="16" />
+                                                <input
+                                                    type="text"
+                                                    id="autoeq-headphone-search"
+                                                    placeholder="Search model (e.g. HD 600)..."
+                                                    autocomplete="off"
+                                                    aria-label="Search headphone model"
+                                                />
+                                            </div>
+                                            <div class="autoeq-database-content">
+                                                <div class="autoeq-database-list" id="autoeq-database-list">
+                                                    <!-- Dynamically populated -->
+                                                </div>
+                                                <div class="autoeq-database-alpha-index" id="autoeq-alpha-index">
+                                                    <!-- A-Z generated by JS -->
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -5379,6 +5528,7 @@
                         <h3 style="text-align: center">Contributors List:</h3>
                         <br />
                         <div class="about-contributors"></div>
+                        <div class="about-contributors-failed"></div>
                         <div class="about-footer">
                             <p class="version">Version 2.5.0</p>
                             <p class="version" id="about-commit-info"></p>
@@ -5498,7 +5648,7 @@
 
             <footer class="now-playing-bar">
                 <div class="track-info">
-                    <img src="/assets/appicon.png" alt="Current Track Cover" class="cover" />
+                    <img src="/assets/appicon.png" alt="Current Track Cover" class="cover" fetchpriority="high" />
                     <div class="details">
                         <div class="title">Select a song</div>
                         <div class="album"></div>
@@ -5597,8 +5747,6 @@
                 </div>
             </footer>
         </div>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/pocketbase@0.21.3/dist/pocketbase.umd.js"></script>
         <script type="module" src="/js/app.js"></script>
     </body>
 </html>
