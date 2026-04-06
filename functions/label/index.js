@@ -183,7 +183,7 @@ export async function onRequest(context) {
     try {
         token = await getQobuzToken(env);
     } catch (err) {
-        return new Response(JSON.stringify({ error: 'Qobuz authentication failed', detail: err.message }), {
+        return new Response(JSON.stringify({ error: 'Qobuz authentication failed' }), {
             status: 503,
             headers: corsHeaders,
         });
@@ -207,7 +207,7 @@ export async function onRequest(context) {
     try {
         label = await withReauth(t => findQobuzLabel(name, env, t));
     } catch (err) {
-        return new Response(JSON.stringify({ error: 'Qobuz label search failed', detail: err.message }), {
+        return new Response(JSON.stringify({ error: 'Qobuz label search failed' }), {
             status: 502,
             headers: corsHeaders,
         });
@@ -224,7 +224,7 @@ export async function onRequest(context) {
     try {
         qobuzResult = await withReauth(t => getQobuzLabelAlbums(label.id, offset, limit, env, t));
     } catch (err) {
-        return new Response(JSON.stringify({ error: 'Failed to fetch label albums', detail: err.message }), {
+        return new Response(JSON.stringify({ error: 'Failed to fetch label albums' }), {
             status: 502,
             headers: corsHeaders,
         });

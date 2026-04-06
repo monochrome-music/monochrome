@@ -4104,7 +4104,7 @@ export class UIRenderer {
 
         nameEl.innerHTML = `<div class="skeleton" style="height: 48px; width: 300px; max-width: 90%;"></div>`;
         metaEl.textContent = '';
-        albumsContainer.innerHTML = `<div class="card-grid">${this.createSkeletonCards(12)}</div>`;
+        albumsContainer.innerHTML = this.createSkeletonCards(12);
         loadMoreBtn.style.display = 'none';
 
         let offset = 0;
@@ -4137,6 +4137,13 @@ export class UIRenderer {
             } else {
                 albumsContainer.innerHTML = html;
             }
+            albums.forEach((album) => {
+                const el = albumsContainer.querySelector(`[data-album-id="${album.id}"]`);
+                if (el) {
+                    trackDataStore.set(el, album);
+                    this.updateLikeState(el, 'album', album.id);
+                }
+            });
         };
 
         try {
@@ -4167,7 +4174,7 @@ export class UIRenderer {
                         totalMatched += more.matched;
                         renderAlbums(more.albums, true);
                         metaEl.textContent = `${totalMatched} of ${totalQobuz} releases found on TIDAL`;
-                        if (!more.hasMore) {
+                        if (!more.hasMore || !more.albums.length) {
                             loadMoreBtn.style.display = 'none';
                         } else {
                             loadMoreBtn.disabled = false;
