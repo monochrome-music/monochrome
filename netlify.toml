@@ -5,9 +5,13 @@
 [build.environment]
   NODE_VERSION = "20"
 
-[[edge_functions]]
-  path = "/api/label"
-  function = "api/label/index"
+[functions]
+  directory = "netlify/functions"
+
+[[redirects]]
+  from = "/api/label"
+  to = "/.netlify/functions/label"
+  status = 200
 
 [[redirects]]
   from = "/*"
