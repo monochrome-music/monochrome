@@ -7894,6 +7894,148 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 }
 
 /* ========================================
+   16-Band Graphic Equalizer (Legacy EQ)
+   ======================================== */
+.graphic-eq-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.graphic-eq-preset-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.graphic-eq-preset-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--foreground);
+    white-space: nowrap;
+}
+
+.graphic-eq-preset-select {
+    flex: 1;
+    padding: 8px 12px;
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-size: 0.85rem;
+}
+
+.graphic-eq-bands {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 2px;
+    padding: var(--spacing-md) var(--spacing-sm);
+    background: rgb(0, 0, 0, 0.15);
+    border-radius: var(--radius);
+    min-height: 240px;
+}
+
+.graphic-eq-band {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.graphic-eq-band-value {
+    font-size: 0.65rem;
+    color: var(--foreground);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    min-height: 14px;
+    opacity: 0.7;
+}
+
+.graphic-eq-band-slider-wrap {
+    position: relative;
+    height: 160px;
+    width: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.graphic-eq-band-slider-wrap input[type='range'] {
+    writing-mode: vertical-lr;
+    direction: rtl;
+    width: 28px;
+    height: 100%;
+    accent-color: var(--foreground);
+    cursor: pointer;
+    margin: 0;
+    padding: 0;
+}
+
+.graphic-eq-band-label {
+    font-size: 0.6rem;
+    color: var(--muted-foreground);
+    white-space: nowrap;
+    text-align: center;
+    letter-spacing: -0.02em;
+}
+
+.graphic-eq-bottom-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.graphic-eq-preamp {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex: 1;
+}
+
+.graphic-eq-preamp-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    white-space: nowrap;
+}
+
+.graphic-eq-preamp-slider {
+    flex: 1;
+    height: 4px;
+    accent-color: var(--highlight);
+}
+
+.graphic-eq-preamp-value {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    min-width: 45px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 600px) {
+    .graphic-eq-bands {
+        min-height: 180px;
+    }
+
+    .graphic-eq-band-slider-wrap {
+        height: 130px;
+        width: 22px;
+    }
+
+    .graphic-eq-band-label {
+        font-size: 0.5rem;
+    }
+
+    .graphic-eq-band-value {
+        font-size: 0.5rem;
+    }
+}
+
+/* ========================================
    Precision AutoEQ - Redesigned Equalizer
    ======================================== */
 .equalizer-container {
