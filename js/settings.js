@@ -1422,27 +1422,35 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 try {
                     const text = event.target.result;
                     const lines = text.split('\n');
-                    let preamp = 0;
+                    let preamp = geqPreamp;
+                    let hasPreamp = false;
                     const importedPoints = [];
 
                     for (const line of lines) {
                         const preampMatch = line.match(/Preamp:\s*([-\d.]+)\s*dB/i);
                         if (preampMatch) {
                             preamp = parseFloat(preampMatch[1]);
+                            hasPreamp = true;
                             continue;
                         }
                         // EqualizerAPO format: Filter N: ON PK Fc XXXX Hz Gain X.X dB Q X.XX
                         const filterMatch = line.match(
-                            /Filter\s+\d+:\s*ON\s+\w+\s+Fc\s+([\d.]+)\s*Hz\s+Gain\s+([-\d.]+)\s*dB/i
+                            /Filter\s+\d+:\s*ON\s+\w+\s+Fc\s+([\d.]+[kK]?)\s*(?:Hz)?\s+Gain\s+([+-]?[\d.]+)\s*dB/i
                         );
                         if (filterMatch) {
-                            importedPoints.push({ freq: parseFloat(filterMatch[1]), gain: parseFloat(filterMatch[2]) });
+                            importedPoints.push({
+                                freq: parseGeqLabelFrequency(filterMatch[1]),
+                                gain: parseFloat(filterMatch[2]),
+                            });
                             continue;
                         }
                         // Simple two-column format: freq gain (whitespace/tab/comma separated)
-                        const simpleMatch = line.trim().match(/^([\d.]+)[,\s\t]+([-\d.]+)/);
+                        const simpleMatch = line.trim().match(/^([\d.]+[kK]?)\s*(?:Hz|kHz)?\s*[,\s\t]+([+-]?[\d.]+)/);
                         if (simpleMatch) {
-                            importedPoints.push({ freq: parseFloat(simpleMatch[1]), gain: parseFloat(simpleMatch[2]) });
+                            importedPoints.push({
+                                freq: parseGeqLabelFrequency(simpleMatch[1]),
+                                gain: parseFloat(simpleMatch[2]),
+                            });
                         }
                     }
 
@@ -1474,14 +1482,16 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                     });
 
                     geqGains = newGains;
-                    geqPreamp = Math.max(-20, Math.min(20, preamp));
                     equalizerSettings.setGraphicEqGains(geqGains);
-                    equalizerSettings.setGraphicEqPreamp(geqPreamp);
                     audioContextManager.setGraphicEqAllGains(geqGains);
-                    audioContextManager.setGraphicEqPreamp(geqPreamp);
                     geqSyncAllSliders();
-                    geqPreampSliders.forEach((s) => (s.value = geqPreamp));
-                    geqPreampValues.forEach((v) => (v.textContent = `${geqPreamp.toFixed(1)} dB`));
+                    if (hasPreamp) {
+                        geqPreamp = Math.max(-20, Math.min(20, preamp));
+                        equalizerSettings.setGraphicEqPreamp(geqPreamp);
+                        audioContextManager.setGraphicEqPreamp(geqPreamp);
+                        geqPreampSliders.forEach((s) => (s.value = geqPreamp));
+                        geqPreampValues.forEach((v) => (v.textContent = `${geqPreamp.toFixed(1)} dB`));
+                    }
                     geqPresetSelects.forEach((s) => {
                         s.value = '';
                         s.dispatchEvent(new Event('change'));
@@ -1496,7 +1506,17 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     }
 
     // Legacy EQ Custom Presets (Save / Delete)
-    const LEGACY_GEQ_CUSTOM_PRESETS_KEY = 'legacy-geq-custom-presets';
+    const LEGACY_GEQ_CUSTOM_PRESETS_KEY = 'monochrome-legacy-geq-custom-presets';
+    // Migrate from old key if present
+    try {
+        const oldData = localStorage.getItem('legacy-geq-custom-presets');
+        if (oldData && !localStorage.getItem(LEGACY_GEQ_CUSTOM_PRESETS_KEY)) {
+            localStorage.setItem(LEGACY_GEQ_CUSTOM_PRESETS_KEY, oldData);
+            localStorage.removeItem('legacy-geq-custom-presets');
+        }
+    } catch {
+        /* ignore */
+    }
     const legacyGeqSavePresetBtn = document.getElementById('legacy-geq-save-preset-btn');
     const legacyGeqDeletePresetBtn = document.getElementById('legacy-geq-delete-preset-btn');
 
@@ -1510,7 +1530,12 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     };
 
     const saveLegacyGeqCustomPresets = (presets) => {
-        localStorage.setItem(LEGACY_GEQ_CUSTOM_PRESETS_KEY, JSON.stringify(presets));
+        try {
+            localStorage.setItem(LEGACY_GEQ_CUSTOM_PRESETS_KEY, JSON.stringify(presets));
+        } catch (e) {
+            console.error('[Legacy GEQ] Failed to save presets:', e);
+            alert('Failed to save preset. Storage may be full.');
+        }
     };
 
     /** Rebuild custom preset options in all legacy GEQ preset dropdowns */
@@ -1555,31 +1580,36 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     geqPresetSelects.forEach((select) => {
         select.addEventListener('change', () => {
             const key = select.value;
-            if (!key) {
-                updateDeleteBtnVisibility();
-                return;
-            }
-
-            // Check custom presets first
-            const customPresets = getLegacyGeqCustomPresets();
-            if (customPresets[key]) {
-                geqGains = [...customPresets[key].gains];
-                equalizerSettings.setGraphicEqGains(geqGains);
-                audioContextManager.setGraphicEqAllGains(geqGains);
-                geqSyncAllSliders();
-                if (customPresets[key].preamp !== undefined) {
-                    geqPreamp = customPresets[key].preamp;
-                    equalizerSettings.setGraphicEqPreamp(geqPreamp);
-                    audioContextManager.setGraphicEqPreamp(geqPreamp);
-                    geqPreampSliders.forEach((s) => (s.value = geqPreamp));
-                    geqPreampValues.forEach((v) => (v.textContent = `${geqPreamp.toFixed(1)} dB`));
+            if (key) {
+                // Check custom presets first
+                const customPresets = getLegacyGeqCustomPresets();
+                if (customPresets[key]) {
+                    const gains = customPresets[key]?.gains;
+                    if (!Array.isArray(gains) || gains.length !== GEQ_FREQUENCIES.length) {
+                        updateDeleteBtnVisibility();
+                        return;
+                    }
+                    geqGains = gains.map((g) => {
+                        const n = Number(g);
+                        return Number.isFinite(n)
+                            ? Math.max(parseFloat(geqRange.min), Math.min(parseFloat(geqRange.max), n))
+                            : 0;
+                    });
+                    equalizerSettings.setGraphicEqGains(geqGains);
+                    audioContextManager.setGraphicEqAllGains(geqGains);
+                    geqSyncAllSliders();
+                    if (customPresets[key].preamp !== undefined) {
+                        geqPreamp = customPresets[key].preamp;
+                        equalizerSettings.setGraphicEqPreamp(geqPreamp);
+                        audioContextManager.setGraphicEqPreamp(geqPreamp);
+                        geqPreampSliders.forEach((s) => (s.value = geqPreamp));
+                        geqPreampValues.forEach((v) => (v.textContent = `${geqPreamp.toFixed(1)} dB`));
+                    }
+                    geqPresetSelects.forEach((s) => {
+                        if (s !== select) s.value = key;
+                    });
                 }
-                geqPresetSelects.forEach((s) => {
-                    if (s !== select) s.value = key;
-                });
-                updateDeleteBtnVisibility();
-                return;
-            }
+            updateDeleteBtnVisibility();
         });
     });
 
