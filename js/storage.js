@@ -1866,6 +1866,96 @@ export const monoAudioSettings = {
     },
 };
 
+export const binauralDspSettings = {
+    STORAGE_KEY: 'binaural-dsp',
+
+    _getAll() {
+        try {
+            return JSON.parse(localStorage.getItem(this.STORAGE_KEY)) || {};
+        } catch {
+            return {};
+        }
+    },
+
+    _setAll(obj) {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(obj));
+    },
+
+    isEnabled() {
+        return this._getAll().enabled === true;
+    },
+
+    setEnabled(enabled) {
+        const all = this._getAll();
+        all.enabled = !!enabled;
+        this._setAll(all);
+    },
+
+    getCrossfeedEnabled() {
+        const val = this._getAll().crossfeedEnabled;
+        return val === undefined ? true : val;
+    },
+
+    setCrossfeedEnabled(enabled) {
+        const all = this._getAll();
+        all.crossfeedEnabled = !!enabled;
+        this._setAll(all);
+    },
+
+    getCrossfeedLevel() {
+        return this._getAll().crossfeedLevel || 'medium';
+    },
+
+    setCrossfeedLevel(level) {
+        const all = this._getAll();
+        all.crossfeedLevel = level;
+        this._setAll(all);
+    },
+
+    getHrtfPreset() {
+        return this._getAll().hrtfPreset || 'studio';
+    },
+
+    setHrtfPreset(preset) {
+        const all = this._getAll();
+        all.hrtfPreset = preset;
+        this._setAll(all);
+    },
+
+    getWideningEnabled() {
+        const val = this._getAll().wideningEnabled;
+        return val === undefined ? true : val;
+    },
+
+    setWideningEnabled(enabled) {
+        const all = this._getAll();
+        all.wideningEnabled = !!enabled;
+        this._setAll(all);
+    },
+
+    getWideningAmount() {
+        const val = this._getAll().wideningAmount;
+        return val === undefined ? 1.0 : val;
+    },
+
+    setWideningAmount(amount) {
+        const all = this._getAll();
+        all.wideningAmount = Math.max(0, Math.min(2, amount));
+        this._setAll(all);
+    },
+
+    getAutoEnableForSpatial() {
+        const val = this._getAll().autoEnableForSpatial;
+        return val === undefined ? true : val;
+    },
+
+    setAutoEnableForSpatial(enabled) {
+        const all = this._getAll();
+        all.autoEnableForSpatial = !!enabled;
+        this._setAll(all);
+    },
+};
+
 export const exponentialVolumeSettings = {
     STORAGE_KEY: 'exponential-volume-enabled',
 

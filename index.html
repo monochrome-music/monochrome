@@ -4161,6 +4161,128 @@
 
                                 <div class="setting-item">
                                     <div class="info">
+                                        <span class="label">Binaural / Spatial DSP</span>
+                                        <span class="description"
+                                            >Multichannel HRTF rendering for Atmos &amp; 3D Audio, crossfeed
+                                            for stereo</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="binaural-dsp-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+
+                                <div
+                                    class="binaural-dsp-container"
+                                    id="binaural-dsp-container"
+                                    style="display: none"
+                                >
+                                    <div class="binaural-status" id="binaural-status">
+                                        <span class="binaural-mode-label">Mode: Stereo</span>
+                                    </div>
+
+                                    <div class="binaural-sub-setting">
+                                        <div class="info">
+                                            <span class="label">Auto-enable for Spatial Audio</span>
+                                            <span class="description"
+                                                >Automatically activate when Atmos or 3D content is
+                                                detected</span
+                                            >
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input
+                                                type="checkbox"
+                                                id="binaural-auto-spatial-toggle"
+                                                checked
+                                            />
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+
+                                    <div class="binaural-sub-setting">
+                                        <div class="info">
+                                            <span class="label">Crossfeed</span>
+                                            <span class="description"
+                                                >Simulate speaker presentation on headphones</span
+                                            >
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input
+                                                type="checkbox"
+                                                id="binaural-crossfeed-toggle"
+                                                checked
+                                            />
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+
+                                    <div class="binaural-sub-setting" id="crossfeed-level-row">
+                                        <div class="info">
+                                            <span class="label">Crossfeed Level</span>
+                                        </div>
+                                        <select id="binaural-crossfeed-level">
+                                            <option value="low">Low</option>
+                                            <option value="medium" selected>Medium</option>
+                                            <option value="high">High</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="binaural-sub-setting">
+                                        <div class="info">
+                                            <span class="label">HRTF Preset</span>
+                                            <span class="description"
+                                                >Virtual speaker angle for multichannel rendering</span
+                                            >
+                                        </div>
+                                        <select id="binaural-hrtf-preset">
+                                            <option value="intimate">Intimate (&plusmn;22&deg;)</option>
+                                            <option value="studio" selected>
+                                                Studio (&plusmn;30&deg;)
+                                            </option>
+                                            <option value="wide">Wide (&plusmn;45&deg;)</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="binaural-sub-setting">
+                                        <div class="info">
+                                            <span class="label">Stereo Width</span>
+                                            <span class="description"
+                                                >Adjust spatial width (0 = mono, 1 = neutral, 2 =
+                                                wide)</span
+                                            >
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input
+                                                type="checkbox"
+                                                id="binaural-widening-toggle"
+                                                checked
+                                            />
+                                            <span class="slider"></span>
+                                        </label>
+                                    </div>
+
+                                    <div class="binaural-sub-setting" id="widening-slider-row">
+                                        <div class="info">
+                                            <span class="label">Width Amount</span>
+                                            <span class="binaural-width-value" id="binaural-width-value"
+                                                >1.0</span
+                                            >
+                                        </div>
+                                        <input
+                                            type="range"
+                                            id="binaural-widening-slider"
+                                            min="0"
+                                            max="2"
+                                            step="0.05"
+                                            value="1.0"
+                                            class="binaural-slider"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div class="setting-item">
+                                    <div class="info">
                                         <span class="label">EQ Studio</span>
                                         <span class="description"
                                             >Multi-mode equalizer with AutoEQ, M/S processing &amp; room
