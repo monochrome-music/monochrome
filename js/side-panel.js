@@ -15,6 +15,17 @@ export class SidePanelManager {
         }
     }
 
+    emitChange() {
+        window.dispatchEvent(
+            new CustomEvent('side-panel-changed', {
+                detail: {
+                    active: this.panel.classList.contains('active'),
+                    view: this.currentView,
+                },
+            })
+        );
+    }
+
     initResizer() {
         this.resizerElement.addEventListener('mousedown', this.startResize.bind(this));
 
@@ -86,6 +97,7 @@ export class SidePanelManager {
         if (renderContentCallback) renderContentCallback(this.contentElement);
 
         this.panel.classList.add('active');
+        this.emitChange();
     }
 
     close() {
@@ -105,6 +117,7 @@ export class SidePanelManager {
 
         this.panel.classList.remove('active');
         this.currentView = null;
+        this.emitChange();
         // Optionally clear content after transition
         setTimeout(() => {
             if (!this.panel.classList.contains('active')) {
@@ -118,25 +131,25 @@ export class SidePanelManager {
         return this.currentView === view && this.panel.classList.contains('active');
     }
 
-    refresh(view, renderControlsCallback, renderContentCallback, options = {}) {
+    async refresh(view, renderControlsCallback, renderContentCallback, options = {}) {
         if (this.isActive(view)) {
             if (renderControlsCallback) {
                 this.controlsElement.innerHTML = '';
-                renderControlsCallback(this.controlsElement);
+                await renderControlsCallback(this.controlsElement);
             }
             if (renderContentCallback) {
                 if (!options.noClear) {
                     this.contentElement.innerHTML = '';
                 }
-                renderContentCallback(this.contentElement);
+                await renderContentCallback(this.contentElement);
             }
         }
     }
 
-    updateContent(view, renderContentCallback) {
+    async updateContent(view, renderContentCallback) {
         if (this.isActive(view)) {
             this.contentElement.innerHTML = '';
-            renderContentCallback(this.contentElement);
+            await renderContentCallback(this.contentElement);
         }
     }
 }

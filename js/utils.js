@@ -381,6 +381,13 @@ export const escapeHtml = (unsafe) => {
         .replace(/'/g, '&#039;');
 };
 
+export const decodeHtml = (html) => {
+    if (!html) return '';
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    return div.textContent;
+};
+
 export const getTrackTitle = (track, { fallback = 'Unknown Title' } = {}) => {
     if (!track?.title) return fallback;
     return track?.version ? `${track.title} (${track.version})` : track.title;
@@ -616,10 +623,10 @@ export const getShareUrl = (path) => {
 };
 
 /**
- * Builds a full artist string by combining the track's listed artists
+ * Builds a full artist array by combining the track's listed artists
  * with any featured artists parsed from the title (feat./with).
  */
-export function getFullArtistString(track) {
+export function getFullArtistArray(track) {
     const knownArtists =
         Array.isArray(track.artists) && track.artists.length > 0
             ? track.artists.map((a) => (typeof a === 'string' ? a : a.name) || '').filter(Boolean)
@@ -646,6 +653,16 @@ export function getFullArtistString(track) {
         }
     }
 
+    return knownArtists;
+}
+
+/**
+ * Builds a full artist string by combining the track's listed artists
+ * with any featured artists parsed from the title (feat./with).
+ */
+export function getFullArtistString(track) {
+    const knownArtists = getFullArtistArray(track);
+
     return knownArtists.join('; ') || null;
 }
 
@@ -654,7 +671,7 @@ export function fetchBlob(url) {
 }
 
 export async function fetchBlobURL(url) {
-    return await URL.createObjectURL(await fetchBlob(url));
+    return URL.createObjectURL(await fetchBlob(url));
 }
 
 export function getMimeType(data) {
@@ -767,4 +784,40 @@ export function replaceTokens(template, tokens) {
     return template.replace(/{([^{}]+)}/g, (match, key) => {
         return key in tokens ? tokens[key] : match;
     });
+}
+
+export function createModal({ title, content, className = '', onClose }) {
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.style.zIndex = '10000';
+
+    modal.innerHTML = `
+        <div class="modal-overlay"></div>
+        <div class="modal-content ${className}" style="display: flex; flex-direction: column;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">
+                <h3 style="margin: 0;">${title}</h3>
+                <button class="btn-close" style="background: none; border: none; font-size: 2rem; cursor: pointer; color: var(--foreground); padding: 0.2rem 0.5rem; line-height: 1;">&times;</button>
+            </div>
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto; padding-right: 0.5rem;"></div>
+        </div>
+    `;
+
+    const body = modal.querySelector('.modal-body');
+    if (typeof content === 'string') {
+        body.innerHTML = content;
+    } else if (content instanceof HTMLElement) {
+        body.appendChild(content);
+    }
+
+    document.body.appendChild(modal);
+
+    const close = () => {
+        modal.remove();
+        if (onClose) onClose();
+    };
+
+    modal.querySelector('.modal-overlay').onclick = close;
+    modal.querySelector('.btn-close').onclick = close;
+
+    return { modal, close };
 }

@@ -204,13 +204,13 @@ export class DashDownloader {
         const resolveTemplate = (template: string, number: number, time: number): string => {
             return template
                 .replace(/\$RepresentationID\$/g, repId ?? '')
-                .replace(/\$Number(?:%0([0-9]+)d)?\$/g, (_, width) => {
+                .replace(/\$Number(?:%0([0-9]+)d)?\$/g, (_, width: string) => {
                     if (width) {
                         return number.toString().padStart(parseInt(width), '0');
                     }
                     return number.toString();
                 })
-                .replace(/\$Time(?:%0([0-9]+)d)?\$/g, (_, width) => {
+                .replace(/\$Time(?:%0([0-9]+)d)?\$/g, (_, width: string) => {
                     if (width) {
                         return time.toString().padStart(parseInt(width), '0');
                     }

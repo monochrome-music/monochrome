@@ -50,7 +50,7 @@ export async function onRequest(context) {
                 const title = feed.title;
                 const author = feed.author || feed.ownerName || '';
                 const episodeCount = feed.episodeCount || 0;
-                const rawDescription = feed.description || '';
+                const _rawDescription = feed.description || '';
                 const description = author
                     ? `Podcast by ${author} • ${episodeCount} Episodes\nListen on Monochrome`
                     : `Podcast • ${episodeCount} Episodes\nListen on Monochrome`;

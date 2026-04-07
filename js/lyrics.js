@@ -10,7 +10,28 @@ import {
     SVG_GLOBE,
 } from './icons.js';
 import { sidePanelManager } from './side-panel.js';
-import('@uimaxbai/am-lyrics/am-lyrics.js');
+
+const loadAmLyrics = () => {
+    const images = Array.from(document.images).filter((img) => !img.complete);
+    if (images.length === 0) {
+        import('@uimaxbai/am-lyrics/am-lyrics.js').catch(console.error);
+    } else {
+        Promise.all(
+            images.map(
+                (img) =>
+                    new Promise((res) => {
+                        img.onload = img.onerror = res;
+                    })
+            )
+        ).then(() => import('@uimaxbai/am-lyrics/am-lyrics.js').catch(console.error));
+    }
+};
+
+if (document.readyState === 'complete') {
+    loadAmLyrics();
+} else {
+    window.addEventListener('load', loadAmLyrics);
+}
 
 // Check if text contains Japanese, Chinese, or Korean characters
 function containsAsianText(text) {
@@ -246,6 +267,7 @@ export class LyricsManager {
             // Monkey-patch XMLHttpRequest to redirect dictionary requests to CDN
             // Kuromoji uses XHR, not fetch, for loading dictionary files
             if (!window._originalXHROpen) {
+                // eslint-disable-next-line @typescript-eslint/unbound-method
                 window._originalXHROpen = XMLHttpRequest.prototype.open;
                 XMLHttpRequest.prototype.open = function (method, url, ...rest) {
                     const urlStr = url.toString();
@@ -264,7 +286,7 @@ export class LyricsManager {
             if (!window._originalFetch) {
                 window._originalFetch = window.fetch;
                 window.fetch = async (url, options) => {
-                    const urlStr = url.toString();
+                    const urlStr = url instanceof URL ? url.toString() : url.url;
                     if (urlStr.includes('/dict/') && urlStr.includes('.dat.gz')) {
                         const filename = urlStr.split('/').pop();
                         const cdnUrl = `https://cdn.jsdelivr.net/npm/kuromoji@0.1.2/dict/${filename}`;
@@ -277,13 +299,13 @@ export class LyricsManager {
 
             // Load Kuroshiro from CDN
             if (!window.Kuroshiro) {
-                await this.loadScript('https://unpkg.com/kuroshiro@1.2.0/dist/kuroshiro.min.js');
+                await this.loadScript('https://cdn.jsdelivr.net/npm/kuroshiro@1.2.0/dist/kuroshiro.min.js');
             }
 
             // Load Kuromoji analyzer from CDN
             if (!window.KuromojiAnalyzer) {
                 await this.loadScript(
-                    'https://unpkg.com/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js'
+                    'https://cdn.jsdelivr.net/npm/kuroshiro-analyzer-kuromoji@1.1.0/dist/kuroshiro-analyzer-kuromoji.min.js'
                 );
             }
 
@@ -527,7 +549,7 @@ export class LyricsManager {
     }
 
     // Setup MutationObserver to convert lyrics in am-lyrics component
-    setupLyricsObserver(amLyricsElement) {
+    async setupLyricsObserver(amLyricsElement) {
         this.stopLyricsObserver();
 
         if (!amLyricsElement) return;
@@ -575,7 +597,7 @@ export class LyricsManager {
                     await this.convertLyricsContent(amLyricsElement);
                 }
                 if (this.isGeniusMode && this.currentGeniusData) {
-                    this.applyGeniusAnnotations(amLyricsElement, this.currentGeniusData.referents);
+                    await this.applyGeniusAnnotations(amLyricsElement, this.currentGeniusData.referents);
                 }
             }, 100);
         });
@@ -591,10 +613,10 @@ export class LyricsManager {
 
         // Initial conversion if Romaji mode is enabled - single attempt, no periodic polling
         if (this.isRomajiMode) {
-            this.convertLyricsContent(amLyricsElement);
+            await this.convertLyricsContent(amLyricsElement);
         }
         if (this.isGeniusMode && this.currentGeniusData) {
-            this.applyGeniusAnnotations(amLyricsElement, this.currentGeniusData.referents);
+            await this.applyGeniusAnnotations(amLyricsElement, this.currentGeniusData.referents);
         }
     }
 
@@ -692,7 +714,7 @@ export class LyricsManager {
         if (amLyricsElement) {
             if (this.isRomajiMode) {
                 // Turning ON: Setup observer and convert immediately
-                this.setupLyricsObserver(amLyricsElement);
+                await this.setupLyricsObserver(amLyricsElement);
                 await this.convertLyricsContent(amLyricsElement);
             } else {
                 // Turning OFF: Stop observer
@@ -963,6 +985,82 @@ themeObserver.observe(document.documentElement, {
     attributeFilter: ['data-theme', 'style'],
 });
 
+function applyFullscreenLyricsShadowTweaks(amLyrics, container) {
+    if (!amLyrics || container?.id !== 'fullscreen-lyrics-content') return;
+
+    const injectStyle = () => {
+        const root = amLyrics.shadowRoot;
+        if (!root) return false;
+
+        let styleEl = root.getElementById('monochrome-fullscreen-lyrics-tweaks');
+        if (!styleEl) {
+            styleEl = document.createElement('style');
+            styleEl.id = 'monochrome-fullscreen-lyrics-tweaks';
+            root.appendChild(styleEl);
+        }
+
+        styleEl.textContent = `
+            .lyrics-container {
+                scrollbar-width: none !important;
+                -ms-overflow-style: none !important;
+            }
+
+            .lyrics-container::-webkit-scrollbar {
+                width: 0 !important;
+                height: 0 !important;
+                display: none !important;
+                background: transparent !important;
+            }
+
+            .lyrics-line {
+                transform-origin: left center;
+                transition:
+                    opacity 0.42s ease,
+                    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1) var(--lyrics-line-delay, 0ms),
+                    filter 0.48s cubic-bezier(0.22, 1, 0.36, 1) !important;
+            }
+
+            .lyrics-line:not(.active):not(.pre-active) {
+                opacity: 0.44;
+            }
+            .lyrics-line-container {
+                transition:
+                    transform 0.72s cubic-bezier(0.22, 1, 0.36, 1),
+                    background-color 0.3s ease,
+                    color 0.3s ease !important;
+            }
+
+            .lyrics-line.active .lyrics-line-container,
+            .lyrics-line.pre-active .lyrics-line-container {
+                transition:
+                    transform 0.56s cubic-bezier(0.22, 1, 0.36, 1),
+                    background-color 0.22s ease,
+                    color 0.22s ease !important;
+            }
+
+            .lyrics-line.active .lyrics-line-container {
+                transform: scale(1.015);
+            }
+        `;
+
+        return true;
+    };
+
+    if (injectStyle()) return;
+
+    let attempts = 0;
+    const maxAttempts = 24;
+    const tryInject = () => {
+        if (injectStyle()) return;
+        attempts += 1;
+        if (attempts < maxAttempts) {
+            requestAnimationFrame(tryInject);
+        }
+    };
+
+    requestAnimationFrame(tryInject);
+}
+
 async function renderLyricsComponent(container, track, audioPlayer, lyricsManager) {
     container.innerHTML = '<div class="lyrics-loading">Loading lyrics...</div>';
 
@@ -1005,6 +1103,7 @@ async function renderLyricsComponent(container, track, audioPlayer, lyricsManage
         amLyrics.style.width = '100%';
 
         container.appendChild(amLyrics);
+        applyFullscreenLyricsShadowTweaks(amLyrics, container);
 
         lyricsManager.setupLyricsObserver(amLyrics);
 
@@ -1238,7 +1337,7 @@ export function clearFullscreenLyricsSync(container) {
     }
 }
 
-export function clearLyricsPanelSync(audioPlayer, panel) {
+export function clearLyricsPanelSync(_audioPlayer, panel) {
     if (panel && panel.lyricsCleanup) {
         panel.lyricsCleanup();
         panel.lyricsCleanup = null;

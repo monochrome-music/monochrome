@@ -1,4 +1,4 @@
-import { normalizePath, Plugin } from 'vite';
+import { normalizePath, type Plugin, type ResolvedConfig } from 'vite';
 import path from 'path';
 import fs from 'fs';
 import { optimize } from 'svgo';
@@ -30,7 +30,7 @@ function parseAttrs(str: string): Record<string, string> {
  * Merge attributes into root <svg>
  */
 function mergeSvgAttributes(svg: string, attrs: Record<string, string>) {
-    return svg.replace(/<svg([^>]*)>/i, (match, existingAttrs) => {
+    return svg.replace(/<svg([^>]*)>/i, (_match, existingAttrs: string | undefined) => {
         // Size is shorthand for setting both width and height to the same value
         if (attrs['size']) {
             attrs['width'] = attrs['size'];
@@ -40,7 +40,7 @@ function mergeSvgAttributes(svg: string, attrs: Record<string, string>) {
 
         const map = new Map<string, string>();
 
-        for (const [, name, value] of existingAttrs.matchAll(ATTR_REGEX)) {
+        for (const [, name, value] of (existingAttrs ?? '').matchAll(ATTR_REGEX)) {
             map.set(name, value);
         }
 
@@ -104,7 +104,7 @@ function loadSvg<S extends boolean = true, T = S extends true ? string : Promise
  * Main plugin
  */
 export default function viteSvgUsePlugin(): Plugin {
-    let config: any;
+    let config: ResolvedConfig;
     const watched = new Set<string>();
 
     /**
@@ -117,10 +117,8 @@ export default function viteSvgUsePlugin(): Plugin {
         }
         // Check for alias
         if (config && config.resolve && config.resolve.alias) {
-            for (const [_, { find, replacement }] of Object.entries<{ find: string; replacement: string }>(
-                config.resolve.alias
-            )) {
-                if (src.startsWith(find)) {
+            for (const [_, { find, replacement }] of config.resolve.alias.entries()) {
+                if (typeof find === 'string' ? src.startsWith(find) : find.test(src)) {
                     // Remove alias prefix and resolve
                     const aliasedPath = src.replace(find, replacement);
                     return normalizePath(path.resolve(root, aliasedPath.replace(/^\//, '')));
@@ -144,23 +142,26 @@ export default function viteSvgUsePlugin(): Plugin {
         transformIndexHtml: {
             order: 'pre',
             async handler(html, ctx) {
-                return html.replace(SVG_USE_REGEX, (full, before, src, after) => {
-                    const attrs = {
-                        ...parseAttrs(before || ''),
-                        ...parseAttrs(after || ''),
-                    };
+                return html.replace(
+                    SVG_USE_REGEX,
+                    (_full, before: string | undefined, src: string | undefined, after: string | undefined) => {
+                        const attrs = {
+                            ...parseAttrs(before || ''),
+                            ...parseAttrs(after || ''),
+                        };
 
-                    delete attrs['use'];
+                        delete attrs['use'];
 
-                    const filePath = resolveSvg(config.root, ctx.filename || '', src);
+                        const filePath = resolveSvg(config.root, ctx.filename || '', src);
 
-                    watched.add(filePath);
+                        watched.add(filePath);
 
-                    let svg = loadSvg(filePath);
-                    svg = mergeSvgAttributes(optimize(svg).data, attrs);
+                        let svg = loadSvg(filePath);
+                        svg = mergeSvgAttributes(optimize(svg).data, attrs);
 
-                    return svg;
-                });
+                        return svg;
+                    }
+                );
             },
         },
 

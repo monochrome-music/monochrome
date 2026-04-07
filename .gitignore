@@ -4,7 +4,6 @@ dist
 .DS_Store
 *.local
 .vite
-.vscode
 .claude
 # Docker
 .env
@@ -18,5 +17,9 @@ bin/
 auth_storage/
 www
 neutralino.js
+<<<<<<< HEAD
 # Local Netlify folder
 .netlify
+=======
+package-lock.json
+>>>>>>> upstream/main

@@ -1,0 +1,43 @@
+name: Lighthouse
+
+on:
+    workflow_dispatch:
+    push:
+        branches: [main]
+
+jobs:
+    lighthouse:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'npm'
+
+            - name: Install dependencies
+              run: npm install
+
+            - name: Build
+              run: npm run build
+
+            - name: Preview build
+              run: npm run preview &
+              continue-on-error: true
+
+            - name: Wait for preview server
+              run: sleep 10
+
+            - name: Run Lighthouse
+              run: |
+                  npx lhci autorun --config=.lhci.yml || true
+
+            - name: Upload results
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: lighthouse-results
+                  path: .lighthouseci/

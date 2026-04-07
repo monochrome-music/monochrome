@@ -4,8 +4,45 @@ import { LosslessAPI } from './api.js';
 import { PodcastsAPI } from './podcasts-api.js';
 import { musicProviderSettings } from './storage.js';
 
+/**
+ * MusicAPI - Singleton class that provides a unified interface for accessing music streaming services.
+ *
+ * Supports multiple providers (primarily Tidal) and includes functionality for searching,
+ * retrieving metadata, streaming, and managing playlists, artists, albums, tracks, and podcasts.
+ *
+ * @class MusicAPI
+ * @classdesc Manages API interactions with music providers and provides caching mechanisms
+ * for cover artwork and video metadata.
+ *
+ * @example
+ * // Initialize the MusicAPI
+ * await MusicAPI.initialize(settings);
+ *
+ * // Get the singleton instance
+ * const api = MusicAPI.instance;
+ *
+ * // Search for tracks
+ * const results = await api.search('query');
+ *
+ * // Get a specific track
+ * const track = await api.getTrack('track-id');
+ *
+ * // Get stream URL
+ * const streamUrl = await api.getStreamUrl('track-id', 'HIGH');
+ *
+ * @property {LosslessAPI} tidalAPI - The Tidal API instance
+ * @property {PodcastsAPI} podcastsAPI - The Podcasts API instance
+ * @property {Object} _settings - Configuration settings
+ * @property {Map} videoArtworkCache - Cache for video artwork data
+ *
+ * @throws {Error} Throws if instance is accessed before initialization
+ * @throws {Error} Throws if initialize is called more than once
+ */
 export class MusicAPI {
     static #instance = null;
+    /**
+     * @type {MusicAPI}
+     */
     static get instance() {
         if (!MusicAPI.#instance) {
             throw new Error('MusicAPI not initialized. Call MusicAPI.initialize(settings) first.');
@@ -35,7 +72,7 @@ export class MusicAPI {
     }
 
     // Get the appropriate API based on provider
-    getAPI(provider = null) {
+    getAPI() {
         return this.tidalAPI;
     }
 
@@ -101,31 +138,31 @@ export class MusicAPI {
     }
 
     // Get methods
-    async getTrack(id, quality, provider = null) {
+    async getTrack(id, quality) {
         const api = this.getAPI();
         const cleanId = this.stripProviderPrefix(id);
         return api.getTrack(cleanId, quality);
     }
 
-    async getTrackMetadata(id, provider = null) {
+    async getTrackMetadata(id) {
         const api = this.getAPI();
         const cleanId = this.stripProviderPrefix(id);
         return api.getTrackMetadata(cleanId);
     }
 
-    async getAlbum(id, provider = null) {
+    async getAlbum(id) {
         const api = this.getAPI();
         const cleanId = this.stripProviderPrefix(id);
         return api.getAlbum(cleanId);
     }
 
-    async getArtist(id, provider = null) {
+    async getArtist(id) {
         const api = this.getAPI();
         const cleanId = this.stripProviderPrefix(id);
         return api.getArtist(cleanId);
     }
 
-    async getArtistBiography(id, provider = null) {
+    async getArtistBiography(id) {
         const api = this.getAPI();
         const cleanId = this.stripProviderPrefix(id);
         if (typeof api.getArtistBiography === 'function') {
@@ -134,13 +171,13 @@ export class MusicAPI {
         return null;
     }
 
-    async getVideo(id, provider = null) {
+    async getVideo(id) {
         const api = this.getAPI();
         const cleanId = this.stripProviderPrefix(id);
         return api.getVideo(cleanId);
     }
 
-    async getVideoStreamUrl(id, provider = null) {
+    async getVideoStreamUrl(id) {
         const api = this.getAPI();
         const cleanId = this.stripProviderPrefix(id);
         if (typeof api.getVideoStreamUrl === 'function') {
@@ -157,7 +194,7 @@ export class MusicAPI {
         return this.tidalAPI.getPlaylist(id);
     }
 
-    async getMix(id, _provider = null) {
+    async getMix(id) {
         // Mixes are always Tidal for now
         return this.tidalAPI.getMix(id);
     }
@@ -172,7 +209,7 @@ export class MusicAPI {
     }
 
     // Stream methods
-    async getStreamUrl(id, quality, provider = null) {
+    async getStreamUrl(id, quality) {
         const api = this.getAPI();
         const cleanId = this.stripProviderPrefix(id);
         return api.getStreamUrl(cleanId, quality);
@@ -184,6 +221,13 @@ export class MusicAPI {
             return id;
         }
         return this.tidalAPI.getCoverUrl(this.stripProviderPrefix(id), size);
+    }
+
+    getCoverSrcset(id) {
+        if (typeof id === 'string' && id.startsWith('blob:')) {
+            return '';
+        }
+        return this.tidalAPI.getCoverSrcset(this.stripProviderPrefix(id));
     }
 
     getVideoCoverUrl(imageId, size = '1280') {
@@ -221,6 +265,10 @@ export class MusicAPI {
 
     getArtistPictureUrl(id, size = '320') {
         return this.tidalAPI.getArtistPictureUrl(this.stripProviderPrefix(id), size);
+    }
+
+    getArtistPictureSrcset(id) {
+        return this.tidalAPI.getArtistPictureSrcset(this.stripProviderPrefix(id));
     }
 
     extractStreamUrlFromManifest(manifest) {

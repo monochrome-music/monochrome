@@ -4,7 +4,7 @@
         "module": "ESNext",
         "moduleResolution": "Bundler",
         "lib": ["ESNext", "DOM", "DOM.Iterable", "webworker"],
-        "types": ["vite/client", "node", "./js/global.d.ts"],
+        "types": ["vite/client", "node", "@types/wicg-file-system-access"],
         "baseUrl": ".",
         "paths": {
             "!/*": ["node_modules/*"]
@@ -18,5 +18,6 @@
         "ignoreDeprecations": "6.0",
         "noEmit": true
     },
-    "include": ["js/**/*.ts", "js/**/*.d.ts"]
+    "include": ["**/*.ts", "*.ts", "**/*.js", "*.js"],
+    "exclude": ["**/node_modules/*"]
 }

@@ -102,8 +102,6 @@ export class MusicDatabase {
     async addToHistory(track) {
         const storeName = 'history_tracks';
         const minified = this._minifyItem(track.type || 'track', track);
-        const timestamp = Date.now();
-        const entry = { ...minified, timestamp };
 
         const db = await this.open();
 
@@ -112,25 +110,34 @@ export class MusicDatabase {
             const store = transaction.objectStore(storeName);
             const index = store.index('timestamp');
 
-            const cursorReq = index.openCursor(null, 'prev');
+            const lastReq = index.openCursor(null, 'prev');
+            let lastTimestamp = 0;
 
-            cursorReq.onsuccess = (e) => {
+            lastReq.onsuccess = (e) => {
                 const cursor = e.target.result;
-                if (cursor) {
-                    const lastTrack = cursor.value;
-                    if (lastTrack.id === track.id) {
-                        store.delete(cursor.primaryKey);
-                    }
+                if (cursor && lastTimestamp === 0) {
+                    lastTimestamp = cursor.value.timestamp;
                 }
-                store.put(entry);
+
+                const timestamp = Math.max(Date.now(), lastTimestamp + 1);
+                const entry = { ...minified, timestamp };
+
+                const dedupeReq = index.openCursor(null, 'prev');
+                dedupeReq.onsuccess = (e2) => {
+                    const dedupeCursor = e2.target.result;
+                    if (dedupeCursor) {
+                        const trackInHistory = dedupeCursor.value;
+                        if (trackInHistory.id === track.id) {
+                            store.delete(dedupeCursor.primaryKey);
+                        }
+                        dedupeCursor.continue();
+                    } else {
+                        store.put(entry);
+                        resolve(entry);
+                    }
+                };
             };
 
-            cursorReq.onerror = (_e) => {
-                // If cursor fails, just try to put (fallback)
-                store.put(entry);
-            };
-
-            transaction.oncomplete = () => resolve(entry);
             transaction.onerror = (e) => reject(e.target.error);
         });
     }
@@ -786,7 +793,6 @@ export class MusicDatabase {
                     }
 
                     // Return lightweight copy without tracks
-                    // eslint-disable-next-line no-unused-vars
                     const { tracks, ...minified } = playlist;
                     return minified;
                 });

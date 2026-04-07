@@ -1,5 +1,6 @@
 package tf.monochrome.music;
 
+<<<<<<< HEAD
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -7,10 +8,15 @@ import android.content.ServiceConnection;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
+=======
+import android.os.Bundle;
+
+>>>>>>> upstream/main
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
 
+<<<<<<< HEAD
     private MusicService musicService;
     private boolean serviceBound = false;
 
@@ -53,5 +59,11 @@ public class MainActivity extends BridgeActivity {
             serviceBound = false;
         }
         super.onDestroy();
+=======
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        registerPlugin(BackgroundAudioPlugin.class);
+        super.onCreate(savedInstanceState);
+>>>>>>> upstream/main
     }
 }

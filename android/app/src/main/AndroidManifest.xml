@@ -25,6 +25,7 @@
             </intent-filter>
         </activity>
 
+<<<<<<< HEAD
         <service android:name=".MusicService"
             android:foregroundServiceType="mediaPlayback"
             android:exported="true">
@@ -39,6 +40,12 @@
                 <action android:name="android.intent.action.MEDIA_BUTTON" />
             </intent-filter>
         </receiver>
+=======
+        <service
+            android:name=".AudioPlaybackService"
+            android:foregroundServiceType="mediaPlayback"
+            android:exported="false" />
+>>>>>>> upstream/main
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -51,6 +58,10 @@
 
     <!-- Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
+<<<<<<< HEAD
+=======
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+>>>>>>> upstream/main
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
 </manifest>

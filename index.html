@@ -11,24 +11,90 @@
         <base href="/" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Monochrome" />
-        <meta name="description" content="A minimalist music streaming application" />
+        <meta
+            name="description"
+            content="Stream and download millions of Hi-Res FLACs, unreleased songs and music videos, all for free on Monochrome."
+        />
+        <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+        <meta name="googlebot" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+        <meta property="og:type" content="website" />
+        <meta property="og:locale" content="en_US" />
+        <meta property="og:site_name" content="Monochrome" />
+        <meta property="og:title" content="Monochrome" />
+        <meta
+            property="og:description"
+            content="Stream and download millions of Hi-Res FLACs, unreleased songs and music videos, all for free on Monochrome."
+        />
+        <meta property="og:url" content="https://monochrome.tf/" />
+        <meta property="og:image" content="https://monochrome.tf/assets/banner.jpg" />
+        <meta property="og:image:type" content="image/jpeg" />
+        <meta property="og:image:alt" content="Monochrome banner" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:url" content="https://monochrome.tf/" />
+        <meta name="twitter:title" content="Monochrome" />
+        <meta
+            name="twitter:description"
+            content="Stream and download millions of Hi-Res FLACs, unreleased songs and music videos, all for free on Monochrome."
+        />
+        <meta name="twitter:image" content="https://monochrome.tf/assets/banner-twitter.jpg" />
+        <meta name="twitter:image:alt" content="Monochrome banner" />
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "WebSite",
+                "name": "Monochrome",
+                "url": "https://monochrome.tf/",
+                "description": "Stream and download millions of Hi-Res FLACs, unreleased songs and music videos, all for free on Monochrome.",
+                "potentialAction": {
+                    "@type": "SearchAction",
+                    "target": "https://monochrome.tf/search/{search_term_string}",
+                    "query-input": "required name=search_term_string"
+                }
+            }
+        </script>
+        <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "WebApplication",
+                "name": "Monochrome",
+                "url": "https://monochrome.tf/",
+                "applicationCategory": "MusicApplication",
+                "operatingSystem": "Web Browser",
+                "image": "https://monochrome.tf/assets/logo.svg",
+                "description": "Stream and download millions of Hi-Res FLACs, unreleased songs and music videos, all for free on Monochrome."
+            }
+        </script>
+        <!-- bini's seo thing -->
+        <meta
+            name="ahrefs-site-verification"
+            content="889c6a5c1584832256b87bb36beaa665b40bb6e201582d416f04d074794044ef"
+        />
+        <meta name="google-site-verification" content="ChAPlKFJ5Dk2YbWhiUfnH5sHgCC8SnNdCBtjVcahArY" />
 
         <!-- Preconnect to critical third-party origins -->
         <link rel="preconnect" href="https://api.fonts.coollabs.io" crossorigin />
-        <link rel="preconnect" href="https://ws.audioscrobbler.com" crossorigin />
-        <link rel="preconnect" href="https://libre.fm" crossorigin />
-        <link rel="preconnect" href="https://api.listenbrainz.org" crossorigin />
         <link rel="preconnect" href="https://resources.tidal.com" crossorigin />
-        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-        <link rel="preconnect" href="https://unpkg.com" crossorigin />
 
         <link rel="apple-touch-icon" href="/assets/logo.svg" />
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" href="/assets/logo.svg" type="image/svg+xml" />
         <link
+            rel="preload"
+            as="style"
+            href="https://api.fonts.coollabs.io/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        />
+        <link
             href="https://api.fonts.coollabs.io/css2?family=Inter:wght@400;500;600;700;800&display=swap"
             rel="stylesheet"
+            media="print"
+            onload="this.media = 'all'"
         />
+        <noscript>
+            <link
+                href="https://api.fonts.coollabs.io/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+                rel="stylesheet"
+            />
+        </noscript>
         <link rel="stylesheet" href="/styles.css" />
     </head>
 
@@ -138,83 +204,123 @@
                         z-index: 0;
                     "
                 ></div>
+                <button id="fullscreen-dismiss-handle" type="button" aria-label="Dismiss fullscreen"></button>
+                <button
+                    id="toggle-fullscreen-lyrics-mobile-btn"
+                    class="fullscreen-mobile-lyrics-toggle"
+                    title="Hide Lyrics"
+                >
+                    <use svg="!lucide/mic-vocal.svg" size="18" />
+                </button>
                 <button id="toggle-ui-btn" class="fullscreen-ui-toggle" title="Toggle UI">
-                    <use svg="!lucide/x.svg" size="24" />
+                    <use svg="!lucide/eye-off.svg" size="24" />
                 </button>
-                <button id="toggle-fullscreen-lyrics-btn" class="fullscreen-lyrics-toggle" title="Toggle Lyrics">
-                    <use svg="!lucide/mic-vocal.svg" size="24" />
-                </button>
-                <button id="close-fullscreen-cover-btn" title="Close">&times;</button>
-                <div class="fullscreen-main-view">
-                    <img
-                        id="fullscreen-cover-image"
-                        src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
-                        alt="Album Cover"
-                    />
+                <div class="fullscreen-top-actions">
+                    <button id="toggle-fullscreen-lyrics-btn" class="fullscreen-lyrics-toggle" title="Hide Lyrics">
+                        <use svg="!lucide/mic-vocal.svg" size="20" />
+                    </button>
+                    <button id="fs-visualizer-btn" class="fs-visualizer-btn" title="Disable Visualizer">
+                        <use svg="!lucide/audio-lines.svg" size="20" />
+                    </button>
+                    <button id="close-fullscreen-cover-btn" title="Close"><use svg="!lucide/x.svg" size="24" /></button>
+                </div>
+                <div class="fullscreen-shell">
+                    <div class="fullscreen-main-view">
+                        <div class="fullscreen-media-column">
+                            <div class="fullscreen-artwork-card">
+                                <img
+                                    id="fullscreen-cover-image"
+                                    src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+                                    alt="Album Cover"
+                                />
+                            </div>
 
-                    <div class="fullscreen-track-info">
-                        <h2 id="fullscreen-track-title"></h2>
-                        <h3 id="fullscreen-track-artist"></h3>
-                        <div class="fullscreen-actions">
-                            <button id="fs-like-btn" class="btn-icon like-btn" title="Like">
-                                <use svg="!lucide/heart.svg" class="heart-icon" size="24" />
-                            </button>
-                            <button id="fs-add-playlist-btn" class="btn-icon" title="Add to Playlist">
-                                <use svg="!lucide/square-pen.svg" size="24" />
-                            </button>
-                            <button id="fs-download-btn" class="btn-icon" title="Download">
-                                <use svg="!lucide/download.svg" size="24" />
-                            </button>
-                            <button id="fs-cast-btn" class="btn-icon" title="Cast">
-                                <use svg="!lucide/cast.svg" size="24" />
-                            </button>
-                            <button id="fs-queue-btn" class="btn-icon" title="Queue">
-                                <use svg="!lucide/list.svg" size="24" />
-                            </button>
-                        </div>
-                        <div id="fullscreen-next-track" style="display: none">
-                            <span class="label">Up Next: </span>
-                            <span class="value"></span>
-                        </div>
-                    </div>
-                    <div class="fullscreen-controls">
-                        <div class="fullscreen-progress-container">
-                            <span id="fs-current-time">0:00</span>
-                            <div id="fs-progress-bar" class="progress-bar">
-                                <div id="fs-progress-fill" class="progress-fill"></div>
+                            <div class="fullscreen-track-info">
+                                <div class="fullscreen-track-text">
+                                    <h2 id="fullscreen-track-title"></h2>
+                                    <h3 id="fullscreen-track-artist"></h3>
+                                </div>
+                                <div class="fullscreen-actions">
+                                    <button id="fs-like-btn" class="btn-icon like-btn" title="Like">
+                                        <use svg="!lucide/heart.svg" class="heart-icon" size="24" />
+                                    </button>
+                                    <button id="fs-add-playlist-btn" class="btn-icon" title="Add to Playlist">
+                                        <use svg="!lucide/square-pen.svg" size="24" />
+                                    </button>
+                                    <button id="fs-download-btn" class="btn-icon" title="Download">
+                                        <use svg="!lucide/download.svg" size="24" />
+                                    </button>
+                                    <button id="fs-cast-btn" class="btn-icon" title="Cast">
+                                        <use svg="!lucide/cast.svg" size="24" />
+                                    </button>
+                                    <button id="fs-queue-btn" class="btn-icon" title="Queue">
+                                        <use svg="!lucide/list.svg" size="24" />
+                                    </button>
+                                </div>
+                                <div id="fullscreen-next-track" style="display: none">
+                                    <span class="label">Up Next</span>
+                                    <span class="value"></span>
+                                </div>
                             </div>
-                            <span id="fs-total-duration">0:00</span>
-                        </div>
-                        <div class="fullscreen-buttons">
-                            <button id="fs-shuffle-btn" title="Shuffle">
-                                <use svg="!lucide/shuffle.svg" size="24" />
-                            </button>
-                            <button id="fs-prev-btn" title="Previous">
-                                <use svg="!lucide/arrow-left-to-line.svg" size="24" />
-                            </button>
-                            <button id="fs-play-pause-btn" class="play-pause-btn" title="Play">
-                                <use svg="./images/play-large.svg" size="32" />
-                            </button>
-                            <button id="fs-next-btn" title="Next">
-                                <use svg="!lucide/arrow-right-to-line.svg" size="24" />
-                            </button>
-                            <button id="fs-repeat-btn" title="Repeat">
-                                <use svg="!lucide/repeat.svg" size="24" />
-                            </button>
-                            <button id="fs-quality-btn" class="fs-quality-btn" title="Quality" style="display: none">
-                                <use svg="!lucide/pencil-line.svg" size="20" />
-                                <span class="fs-quality-label">Auto</span>
-                            </button>
-                            <div id="fs-quality-menu" class="fs-quality-menu" style="display: none"></div>
-                        </div>
-                        <div class="fullscreen-volume-container">
-                            <button id="fs-volume-btn" class="fs-volume-btn" title="Mute">
-                                <use svg="!lucide/volume-1.svg" size="24" />
-                            </button>
-                            <div id="fs-volume-bar" class="fs-volume-bar">
-                                <div id="fs-volume-fill" class="fs-volume-fill"></div>
+
+                            <div class="fullscreen-controls">
+                                <div
+                                    id="fullscreen-mobile-quality"
+                                    class="fullscreen-mobile-quality"
+                                    aria-hidden="true"
+                                ></div>
+                                <div class="fullscreen-progress-container">
+                                    <span id="fs-current-time">0:00</span>
+                                    <div id="fs-progress-bar" class="progress-bar">
+                                        <div id="fs-progress-fill" class="progress-fill"></div>
+                                    </div>
+                                    <span id="fs-total-duration">0:00</span>
+                                </div>
+                                <div class="fullscreen-buttons">
+                                    <button id="fs-shuffle-btn" title="Shuffle">
+                                        <use svg="!lucide/shuffle.svg" size="24" />
+                                    </button>
+                                    <button id="fs-prev-btn" title="Previous">
+                                        <use svg="!lucide/arrow-left-to-line.svg" size="24" />
+                                    </button>
+                                    <button id="fs-play-pause-btn" class="play-pause-btn" title="Play">
+                                        <use svg="./images/play-large.svg" size="32" />
+                                    </button>
+                                    <button id="fs-next-btn" title="Next">
+                                        <use svg="!lucide/arrow-right-to-line.svg" size="24" />
+                                    </button>
+                                    <button id="fs-repeat-btn" title="Repeat">
+                                        <use svg="!lucide/repeat.svg" size="24" />
+                                    </button>
+                                    <button
+                                        id="fs-quality-btn"
+                                        class="fs-quality-btn"
+                                        title="Quality"
+                                        style="display: none"
+                                    >
+                                        <use svg="!lucide/pencil-line.svg" size="20" />
+                                        <span class="fs-quality-label">Auto</span>
+                                    </button>
+                                    <div id="fs-quality-menu" class="fs-quality-menu" style="display: none"></div>
+                                </div>
+                                <div class="fullscreen-volume-container">
+                                    <button id="fs-volume-btn" class="fs-volume-btn" title="Mute">
+                                        <use svg="!lucide/volume-1.svg" size="24" />
+                                    </button>
+                                    <div id="fs-volume-bar" class="fs-volume-bar">
+                                        <div id="fs-volume-fill" class="fs-volume-fill"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+
+                        <aside id="fullscreen-lyrics-pane" class="fullscreen-lyrics-pane">
+                            <div class="fullscreen-lyrics-shell">
+                                <div id="fullscreen-lyrics-content" class="fullscreen-lyrics-content">
+                                    <div class="fullscreen-lyrics-empty">Lyrics appear here.</div>
+                                </div>
+                            </div>
+                        </aside>
                     </div>
                 </div>
             </div>
@@ -1702,7 +1808,11 @@
                             </p>
                         </div>
 
-                        <section class="content-section" id="home-editors-picks-section-empty" style="margin-top: 0">
+                        <section
+                            class="content-section"
+                            id="home-editors-picks-section-empty"
+                            style="margin-top: 0; display: none"
+                        >
                             <div
                                 style="
                                     display: flex;
@@ -2252,6 +2362,9 @@
                             <h1 class="title" id="album-detail-title"></h1>
                             <div class="meta" id="album-detail-meta"></div>
                             <div class="meta" id="album-detail-producer"></div>
+                            <br />
+                            <div class="ratings" id="album-detail-ratings-critics"></div>
+                            <div class="ratings" id="album-detail-ratings-users"></div>
                             <div class="detail-header-actions">
                                 <button id="play-album-btn" class="btn-primary" title="Play Album">
                                     <use svg="./images/play.svg" size="20" />
@@ -2988,6 +3101,54 @@
                                         <input type="checkbox" id="dynamic-color-toggle" checked />
                                         <span class="slider"></span>
                                     </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">No Round Album Cover</span>
+                                        <span class="description">Do not round the album cover in fullscreen view</span>
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="fullscreen-cover-no-round-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Vanilla Tilt Album Cover</span>
+                                        <span class="description"
+                                            >Enable 3D tilt effect on the album cover in fullscreen view</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="fullscreen-cover-vanilla-tilt-toggle" checked />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Tilt Distance</span>
+                                        <span class="description">Max tilt distance (default: 10)</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        id="fullscreen-cover-tilt-distance"
+                                        min="0"
+                                        max="30"
+                                        value="10"
+                                    />
+                                </div>
+                                <div class="setting-item">
+                                    <div class="info">
+                                        <span class="label">Tilt Speed</span>
+                                        <span class="description">Tilt animation speed in ms (default: 240)</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        id="fullscreen-cover-tilt-speed"
+                                        min="50"
+                                        max="1000"
+                                        value="240"
+                                    />
                                 </div>
                             </div>
 
@@ -4029,6 +4190,7 @@
                                     <!-- Mode Toggle + How To -->
                                     <div class="autoeq-mode-row">
                                         <div class="autoeq-mode-toggle">
+                                            <button class="autoeq-mode-btn" data-mode="legacy">Legacy EQ</button>
                                             <button class="autoeq-mode-btn active" data-mode="autoeq">AutoEQ</button>
                                             <button class="autoeq-mode-btn" data-mode="parametric">
                                                 Parametric EQ
@@ -4045,23 +4207,23 @@
                                         </button>
 
                                         <div class="eq-howto-tab autoeq" id="eq-howto-autoeq">
-                                            <h4>AutoEQ &mdash; Headphone Correction</h4>
+                                            <h4>AutoEQ - Headphone Correction</h4>
                                             <ol>
                                                 <li>
                                                     <b>Select your headphone</b> from the dropdown or search the
                                                     database below.
                                                 </li>
                                                 <li>
-                                                    <b>Pick a target curve</b> &mdash; Harman is the most popular. You
-                                                    can also import a custom target.
+                                                    <b>Pick a target curve</b> - Harman is the most popular. You can
+                                                    also import a custom target.
                                                 </li>
                                                 <li>
                                                     Adjust <b>filter bands</b> (more = finer correction, 10 is a good
                                                     default).
                                                 </li>
                                                 <li>
-                                                    Click <b>AutoEQ</b> &mdash; the algorithm generates parametric
-                                                    filters that shape your headphone's response toward the target.
+                                                    Click <b>AutoEQ</b> - the algorithm generates parametric filters
+                                                    that shape your headphone's response toward the target.
                                                 </li>
                                                 <li>
                                                     The <b>pink corrected curve</b> on the graph shows the predicted
@@ -4088,7 +4250,7 @@
                                             id="eq-howto-parametric"
                                             style="display: none"
                                         >
-                                            <h4>Parametric EQ &mdash; Manual Control</h4>
+                                            <h4>Parametric EQ - Manual Control</h4>
                                             <ol>
                                                 <li>
                                                     Each band supports <b>peaking, low-shelf, and high-shelf</b> filter
@@ -4126,7 +4288,7 @@
                                         </div>
 
                                         <div class="eq-howto-tab speaker" id="eq-howto-speaker" style="display: none">
-                                            <h4>Speaker EQ &mdash; Room Correction</h4>
+                                            <h4>Speaker EQ - Room Correction</h4>
                                             <ol>
                                                 <li>Select your <b>speaker config</b> (2.0, 5.1, or 7.1).</li>
                                                 <li>
@@ -4134,18 +4296,17 @@
                                                     a time.
                                                 </li>
                                                 <li>
-                                                    <b>Measure</b>: click the mic button &mdash; pink noise plays for 5
+                                                    <b>Measure</b>: click the mic button - pink noise plays for 5
                                                     seconds while your microphone captures the room response. Or
                                                     <b>import</b> a measurement file from REW or similar.
                                                 </li>
                                                 <li>
-                                                    Pick a <b>target</b> &mdash; Harman In-Room is recommended for
-                                                    speakers.
+                                                    Pick a <b>target</b> - Harman In-Room is recommended for speakers.
                                                 </li>
                                                 <li>
                                                     Set <b>Bass Limit</b> (don't EQ below this) and
-                                                    <b>Room Limit</b> (don't EQ above this) &mdash; the colored lines on
-                                                    the graph show the active range.
+                                                    <b>Room Limit</b> (don't EQ above this) - the colored lines on the
+                                                    graph show the active range.
                                                 </li>
                                                 <li>
                                                     Click <b>AutoEQ</b> to generate correction filters for that channel.
@@ -4163,6 +4324,66 @@
                                                 Tip: Place your mic at the listening position. Measure each speaker
                                                 separately for best results.
                                             </p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Legacy 16-Band Graphic EQ (visible in legacy mode) -->
+                                    <div class="graphic-eq-section" id="graphic-eq-section" style="display: none">
+                                        <div class="graphic-eq-preset-row">
+                                            <label for="legacy-graphic-eq-preset-select" class="graphic-eq-preset-label"
+                                                >Preset</label
+                                            >
+                                            <select
+                                                id="legacy-graphic-eq-preset-select"
+                                                class="graphic-eq-preset-select"
+                                            >
+                                                <option value="">Custom</option>
+                                                <option value="flat">Flat</option>
+                                                <option value="bass_boost">Bass Boost</option>
+                                                <option value="bass_reducer">Bass Reducer</option>
+                                                <option value="treble_boost">Treble Boost</option>
+                                                <option value="treble_reducer">Treble Reducer</option>
+                                                <option value="vocal_boost">Vocal Boost</option>
+                                                <option value="loudness">Loudness</option>
+                                                <option value="rock">Rock</option>
+                                                <option value="pop">Pop</option>
+                                                <option value="classical">Classical</option>
+                                                <option value="jazz">Jazz</option>
+                                                <option value="electronic">Electronic</option>
+                                                <option value="hip_hop">Hip-Hop</option>
+                                                <option value="r_and_b">R&amp;B</option>
+                                                <option value="acoustic">Acoustic</option>
+                                                <option value="podcast">Speech</option>
+                                            </select>
+                                        </div>
+                                        <div class="graphic-eq-bands" id="legacy-graphic-eq-bands">
+                                            <!-- 16 vertical sliders generated by JS -->
+                                        </div>
+                                        <div class="graphic-eq-bottom-row">
+                                            <div class="graphic-eq-preamp">
+                                                <label
+                                                    for="legacy-graphic-eq-preamp-slider"
+                                                    class="graphic-eq-preamp-label"
+                                                    >Preamp</label
+                                                >
+                                                <input
+                                                    type="range"
+                                                    id="legacy-graphic-eq-preamp-slider"
+                                                    class="graphic-eq-preamp-slider"
+                                                    min="-20"
+                                                    max="20"
+                                                    step="0.1"
+                                                    value="0"
+                                                />
+                                                <span
+                                                    class="graphic-eq-preamp-value"
+                                                    id="legacy-graphic-eq-preamp-value"
+                                                    >0 dB</span
+                                                >
+                                            </div>
+                                            <button id="legacy-graphic-eq-reset-btn" class="btn-secondary">
+                                                Reset
+                                            </button>
                                         </div>
                                     </div>
 
@@ -4212,29 +4433,42 @@
 
                                     <!-- Database Browser -->
                                     <div class="autoeq-database-section" id="autoeq-database-section">
-                                        <div class="autoeq-database-header">
+                                        <div class="autoeq-database-header" id="autoeq-database-toggle">
                                             <div>
                                                 <h4 class="autoeq-database-title">Database</h4>
                                                 <span class="autoeq-database-subtitle">AutoEq Repo</span>
                                             </div>
-                                            <span class="autoeq-database-count" id="autoeq-database-count"></span>
-                                        </div>
-                                        <div class="autoeq-database-search">
-                                            <use svg="!lucide/search.svg" size="16" />
-                                            <input
-                                                type="text"
-                                                id="autoeq-headphone-search"
-                                                placeholder="Search model (e.g. HD 600)..."
-                                                autocomplete="off"
-                                                aria-label="Search headphone model"
-                                            />
-                                        </div>
-                                        <div class="autoeq-database-content">
-                                            <div class="autoeq-database-list" id="autoeq-database-list">
-                                                <!-- Dynamically populated -->
+                                            <div class="autoeq-database-header-right">
+                                                <span class="autoeq-database-count" id="autoeq-database-count"></span>
+                                                <button
+                                                    class="autoeq-collapse-btn"
+                                                    id="autoeq-database-collapse"
+                                                    aria-label="Collapse database"
+                                                    aria-expanded="true"
+                                                    aria-controls="autoeq-database-body"
+                                                >
+                                                    <use svg="!lucide/chevron-up.svg" size="18" />
+                                                </button>
                                             </div>
-                                            <div class="autoeq-database-alpha-index" id="autoeq-alpha-index">
-                                                <!-- A-Z generated by JS -->
+                                        </div>
+                                        <div class="autoeq-database-body" id="autoeq-database-body">
+                                            <div class="autoeq-database-search">
+                                                <use svg="!lucide/search.svg" size="16" />
+                                                <input
+                                                    type="text"
+                                                    id="autoeq-headphone-search"
+                                                    placeholder="Search model (e.g. HD 600)..."
+                                                    autocomplete="off"
+                                                    aria-label="Search headphone model"
+                                                />
+                                            </div>
+                                            <div class="autoeq-database-content">
+                                                <div class="autoeq-database-list" id="autoeq-database-list">
+                                                    <!-- Dynamically populated -->
+                                                </div>
+                                                <div class="autoeq-database-alpha-index" id="autoeq-alpha-index">
+                                                    <!-- A-Z generated by JS -->
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -4874,6 +5108,20 @@
                             <div class="settings-group">
                                 <div class="setting-item">
                                     <div class="info">
+                                        <span class="label">Write Artists Separately</span>
+                                        <span class="description"
+                                            >Write artists separately to metadata. Requires player support.</span
+                                        >
+                                    </div>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="write-artists-separately-toggle" />
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="settings-group">
+                                <div class="setting-item">
+                                    <div class="info">
                                         <span class="label">Download Lyrics</span>
                                         <span class="description"
                                             >Include .lrc files when downloading tracks/albums</span
@@ -5193,6 +5441,58 @@
                                         </button>
                                     </div>
                                 </div>
+                                <div id="blocked-content-list" style="display: none">
+                                    <p
+                                        id="blocked-empty-message"
+                                        style="
+                                            display: none;
+                                            color: var(--muted-foreground);
+                                            font-size: 0.875rem;
+                                            padding: 0.5rem 0;
+                                        "
+                                    >
+                                        Nothing blocked yet.
+                                    </p>
+                                    <div id="blocked-artists-section" style="display: none">
+                                        <h4
+                                            style="
+                                                font-size: 0.75rem;
+                                                text-transform: uppercase;
+                                                color: var(--muted-foreground);
+                                                margin: 0.75rem 0 0.25rem;
+                                            "
+                                        >
+                                            Artists
+                                        </h4>
+                                        <ul id="blocked-artists-list" class="blocked-items-list"></ul>
+                                    </div>
+                                    <div id="blocked-albums-section" style="display: none">
+                                        <h4
+                                            style="
+                                                font-size: 0.75rem;
+                                                text-transform: uppercase;
+                                                color: var(--muted-foreground);
+                                                margin: 0.75rem 0 0.25rem;
+                                            "
+                                        >
+                                            Albums
+                                        </h4>
+                                        <ul id="blocked-albums-list" class="blocked-items-list"></ul>
+                                    </div>
+                                    <div id="blocked-tracks-section" style="display: none">
+                                        <h4
+                                            style="
+                                                font-size: 0.75rem;
+                                                text-transform: uppercase;
+                                                color: var(--muted-foreground);
+                                                margin: 0.75rem 0 0.25rem;
+                                            "
+                                        >
+                                            Tracks
+                                        </h4>
+                                        <ul id="blocked-tracks-list" class="blocked-items-list"></ul>
+                                    </div>
+                                </div>
                             </div>
                             <p
                                 id="settings-commit-info"
@@ -5274,6 +5574,11 @@
                             <a href="https://prigoana.com/" style="text-decoration: underline">Edideaur</a> &
                             <a href="https://samidy.com" style="text-decoration: underline">Samidy</a>
                         </p>
+                        <br />
+                        <h3 style="text-align: center">Contributors List:</h3>
+                        <br />
+                        <div class="about-contributors"></div>
+                        <div class="about-contributors-failed"></div>
                         <div class="about-footer">
                             <p class="version">Version 2.5.0</p>
                             <p class="version" id="about-commit-info"></p>
@@ -5394,7 +5699,7 @@
 
             <footer class="now-playing-bar">
                 <div class="track-info">
-                    <img src="/assets/appicon.png" alt="Current Track Cover" class="cover" />
+                    <img src="/assets/appicon.png" alt="Current Track Cover" class="cover" fetchpriority="high" />
                     <div class="details">
                         <div class="title">Select a song</div>
                         <div class="album"></div>
@@ -5493,7 +5798,6 @@
                 </div>
             </footer>
         </div>
-        <script src="https://cdn.jsdelivr.net/npm/pocketbase@0.21.3/dist/pocketbase.umd.js"></script>
         <script type="module" src="/js/app.js"></script>
     </body>
 </html>
