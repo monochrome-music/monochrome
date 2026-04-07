@@ -1752,8 +1752,8 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     let graphAnimFrame = null;
 
     // dB zoom state (half-range values, user-adjustable via scroll on Y axis)
-    let graphDbHalfAutoEQ = 25;
-    let graphDbHalfParametric = 35;
+    let graphDbHalfAutoEQ = 16;
+    let graphDbHalfParametric = 16;
 
     /** Get the active bands for the current mode */
     const getActiveBands = () => {
@@ -2211,11 +2211,24 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
 
+                // Show M/S channel label inside node for non-stereo bands
+                const bandChannel = band.channel || 'stereo';
+                if (bandChannel !== 'stereo') {
+                    ctx.save();
+                    ctx.font = `bold ${isDragged ? 10 : isHovered ? 9 : 7}px system-ui, sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = isDragged ? nodeColor : '#fff';
+                    ctx.fillText(bandChannel === 'mid' ? 'M' : 'S', x, y + 0.5);
+                    ctx.restore();
+                }
+
                 // Show tooltip on drag
                 if (isDragged) {
                     ctx.save();
                     ctx.font = 'bold 11px system-ui, sans-serif';
-                    const line1 = `${Math.round(band.freq)} Hz  ${band.gain > 0 ? '+' : ''}${band.gain.toFixed(1)} dB  Q${band.q.toFixed(2)}`;
+                    const chLabel = bandChannel !== 'stereo' ? ` [${bandChannel.toUpperCase()}]` : '';
+                    const line1 = `${Math.round(band.freq)} Hz  ${band.gain > 0 ? '+' : ''}${band.gain.toFixed(1)} dB  Q${band.q.toFixed(2)}${chLabel}`;
                     const line2 = `Sum: ${nodeGain > 0 ? '+' : ''}${nodeGain.toFixed(1)} dB`;
                     const tw1 = ctx.measureText(line1).width;
                     const tw2 = ctx.measureText(line2).width;
@@ -2371,56 +2384,15 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     // ========================================
     if (autoeqCanvas) {
         autoeqCanvas.addEventListener('mousedown', (e) => {
+            hideEqContextMenu();
+            hideEmptyContextMenu();
             const coords = getCanvasCoords(e);
-            let nodeIdx = findClosestNode(coords.x, coords.y, 18);
+            const nodeIdx = findClosestNode(coords.x, coords.y, 18);
             if (nodeIdx >= 0) {
                 // Clicked directly on a node - start dragging
                 draggedNode = nodeIdx;
                 autoeqCanvas.style.cursor = 'grabbing';
                 e.preventDefault();
-            } else {
-                // Clicked empty space - find nearest node (no threshold) and snap it
-                nodeIdx = findClosestNode(coords.x, coords.y, Infinity);
-                if (nodeIdx >= 0) {
-                    const bands = getActiveBands();
-                    if (bands && bands[nodeIdx]) {
-                        const rect = autoeqCanvas.getBoundingClientRect();
-                        const padLeft = 40,
-                            padRight = 10,
-                            padTop = 10,
-                            padBottom = 30;
-                        const w = rect.width - padLeft - padRight;
-                        const h = rect.height - padTop - padBottom;
-                        const isParam = currentMode === 'parametric';
-                        const dbCenter = isParam ? 0 : 75;
-                        const dbHalf = isParam ? graphDbHalfParametric : graphDbHalfAutoEQ;
-                        const dbMin = dbCenter - dbHalf;
-                        const dbMax = dbCenter + dbHalf;
-
-                        // Snap frequency to click position
-                        const freq = xToFreq(coords.x - padLeft, w);
-                        bands[nodeIdx].freq = Math.max(20, Math.min(20000, freq));
-
-                        // Snap gain to click position
-                        if (isParam) {
-                            const newGain = yToDb(coords.y - padTop, h, dbMin, dbMax);
-                            bands[nodeIdx].gain = Math.max(-30, Math.min(30, Math.round(newGain * 10) / 10));
-                        } else {
-                            const corrGain = interpolate(bands[nodeIdx].freq, autoeqCorrectedCurve || []);
-                            const newDb = yToDb(coords.y - padTop, h, dbMin, dbMax);
-                            const gainDelta = newDb - corrGain;
-                            bands[nodeIdx].gain = Math.max(-30, Math.min(30, bands[nodeIdx].gain + gainDelta * 0.3));
-                        }
-
-                        draggedNode = nodeIdx;
-                        autoeqCanvas.style.cursor = 'grabbing';
-                        computeCorrectedCurve();
-                        applyBandsToAudio(bands);
-                        drawAutoEQGraph();
-                        renderBandControls(bands);
-                        e.preventDefault();
-                    }
-                }
             }
         });
 
@@ -2530,6 +2502,197 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             drawAutoEQGraph();
         });
 
+        // ========================================
+        // EQ Node Right-Click Context Menu
+        // ========================================
+        const eqCtxMenu = document.getElementById('eq-node-context-menu');
+        let contextMenuNodeIdx = null;
+
+        const hideEqContextMenu = () => {
+            if (eqCtxMenu) eqCtxMenu.style.display = 'none';
+            contextMenuNodeIdx = null;
+        };
+
+        const showEqContextMenu = (x, y, nodeIdx) => {
+            if (!eqCtxMenu) return;
+            const bands = getActiveBands();
+            if (!bands || !bands[nodeIdx]) return;
+
+            contextMenuNodeIdx = nodeIdx;
+            const band = bands[nodeIdx];
+
+            // Update active states for filter type items
+            eqCtxMenu.querySelectorAll('.eq-ctx-type').forEach((li) => {
+                const action = li.dataset.action;
+                const isActive =
+                    (action === 'eq-type-lowshelf' && band.type === 'lowshelf') ||
+                    (action === 'eq-type-peaking' && band.type === 'peaking') ||
+                    (action === 'eq-type-highshelf' && band.type === 'highshelf');
+                li.classList.toggle('eq-ctx-active', isActive);
+            });
+
+            // Update active states for channel items (per-band M/S mode)
+            const bandChannel = band.channel || 'stereo';
+            eqCtxMenu.querySelectorAll('.eq-ctx-channel').forEach((li) => {
+                const action = li.dataset.action;
+                const isActive =
+                    (action === 'eq-channel-stereo' && bandChannel === 'stereo') ||
+                    (action === 'eq-channel-mid' && bandChannel === 'mid') ||
+                    (action === 'eq-channel-side' && bandChannel === 'side');
+                li.classList.toggle('eq-ctx-active', isActive);
+            });
+
+            // Position menu at cursor, clamped to viewport
+            eqCtxMenu.style.display = 'block';
+            const menuRect = eqCtxMenu.getBoundingClientRect();
+            const clampedX = Math.min(x, window.innerWidth - menuRect.width - 4);
+            const clampedY = Math.min(y, window.innerHeight - menuRect.height - 4);
+            eqCtxMenu.style.left = `${clampedX}px`;
+            eqCtxMenu.style.top = `${clampedY}px`;
+        };
+
+        if (eqCtxMenu) {
+            // Handle menu item clicks
+            eqCtxMenu.addEventListener('click', (e) => {
+                const li = e.target.closest('li[data-action]');
+                if (!li) return;
+
+                const action = li.dataset.action;
+                const bands = getActiveBands();
+
+                // Filter type actions
+                if (action.startsWith('eq-type-') && contextMenuNodeIdx !== null && bands && bands[contextMenuNodeIdx]) {
+                    const typeMap = {
+                        'eq-type-lowshelf': 'lowshelf',
+                        'eq-type-peaking': 'peaking',
+                        'eq-type-highshelf': 'highshelf',
+                    };
+                    const newType = typeMap[action];
+                    if (newType) {
+                        bands[contextMenuNodeIdx].type = newType;
+                        computeCorrectedCurve();
+                        applyBandsToAudio(bands);
+                        renderBandControls(bands);
+                        drawAutoEQGraph();
+                    }
+                }
+
+                // Channel actions (per-band M/S mode)
+                if (action.startsWith('eq-channel-') && contextMenuNodeIdx !== null && bands && bands[contextMenuNodeIdx]) {
+                    const channelMap = {
+                        'eq-channel-stereo': 'stereo',
+                        'eq-channel-mid': 'mid',
+                        'eq-channel-side': 'side',
+                    };
+                    const newChannel = channelMap[action];
+                    if (newChannel) {
+                        bands[contextMenuNodeIdx].channel = newChannel;
+                        computeCorrectedCurve();
+                        applyBandsToAudio(bands);
+                        renderBandControls(bands);
+                        drawAutoEQGraph();
+                    }
+                }
+
+                hideEqContextMenu();
+            });
+        }
+
+        // Empty-space context menu (Add Node)
+        const eqEmptyCtxMenu = document.getElementById('eq-empty-context-menu');
+        let pendingAddCoords = null;
+
+        const hideEmptyContextMenu = () => {
+            if (eqEmptyCtxMenu) eqEmptyCtxMenu.style.display = 'none';
+            pendingAddCoords = null;
+        };
+
+        const showEmptyContextMenu = (clientX, clientY, canvasCoords) => {
+            if (!eqEmptyCtxMenu) return;
+            pendingAddCoords = canvasCoords;
+            eqEmptyCtxMenu.style.display = 'block';
+            const menuRect = eqEmptyCtxMenu.getBoundingClientRect();
+            eqEmptyCtxMenu.style.left = `${Math.min(clientX, window.innerWidth - menuRect.width - 4)}px`;
+            eqEmptyCtxMenu.style.top = `${Math.min(clientY, window.innerHeight - menuRect.height - 4)}px`;
+        };
+
+        if (eqEmptyCtxMenu) {
+            eqEmptyCtxMenu.addEventListener('click', (e) => {
+                const li = e.target.closest('li[data-action]');
+                if (!li || li.dataset.action !== 'eq-add-node' || !pendingAddCoords) return;
+
+                const isParam = currentMode === 'parametric';
+                let bands = getActiveBands();
+                if (!bands) {
+                    if (currentMode === 'autoeq') {
+                        autoeqCurrentBands = [];
+                        bands = autoeqCurrentBands;
+                    } else { hideEmptyContextMenu(); return; }
+                }
+                if (bands.length >= 32) { hideEmptyContextMenu(); return; }
+
+                const rect = autoeqCanvas.getBoundingClientRect();
+                const padLeft = 40, padRight = 10, padTop = 10, padBottom = 30;
+                const w = rect.width - padLeft - padRight;
+                const h = rect.height - padTop - padBottom;
+                const dbCenter = isParam ? 0 : 75;
+                const dbHalf = isParam ? graphDbHalfParametric : graphDbHalfAutoEQ;
+                const dbMin = dbCenter - dbHalf;
+                const dbMax = dbCenter + dbHalf;
+                const freq = Math.max(20, Math.min(20000, Math.round(xToFreq(pendingAddCoords.x - padLeft, w))));
+                const gain = Math.max(-30, Math.min(30,
+                    Math.round((yToDb(pendingAddCoords.y - padTop, h, dbMin, dbMax) - dbCenter) * 10) / 10
+                ));
+
+                bands.push({ id: bands.length, type: 'peaking', freq, gain, q: 1.0, enabled: true, channel: 'stereo' });
+                setActiveBands(bands);
+                computeCorrectedCurve();
+                applyBandsToAudio(bands);
+                renderBandControls(bands);
+                drawAutoEQGraph();
+                hideEmptyContextMenu();
+            });
+        }
+
+        // Right-click on canvas: show node menu or empty-space menu
+        autoeqCanvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            hideEmptyContextMenu();
+            hideEqContextMenu();
+            const coords = getCanvasCoords(e);
+            const nodeIdx = findClosestNode(coords.x, coords.y, 18);
+            if (nodeIdx >= 0) {
+                showEqContextMenu(e.clientX, e.clientY, nodeIdx);
+            } else {
+                showEmptyContextMenu(e.clientX, e.clientY, coords);
+            }
+        });
+
+        // Dismiss context menus when clicking outside the EQ graph area
+        document.addEventListener(
+            'mousedown',
+            (e) => {
+                const graphWrapper = document.getElementById('autoeq-graph-wrapper');
+                if (
+                    contextMenuNodeIdx !== null &&
+                    eqCtxMenu &&
+                    !eqCtxMenu.contains(e.target) &&
+                    (!graphWrapper || !graphWrapper.contains(e.target))
+                ) {
+                    hideEqContextMenu();
+                }
+                if (
+                    pendingAddCoords &&
+                    eqEmptyCtxMenu &&
+                    !eqEmptyCtxMenu.contains(e.target) &&
+                    (!graphWrapper || !graphWrapper.contains(e.target))
+                ) {
+                    hideEmptyContextMenu();
+                }
+            },
+            { signal: graphSignal }
+        );
+
         autoeqCanvas.addEventListener('dblclick', (e) => {
             e.preventDefault();
             const coords = getCanvasCoords(e);
@@ -2585,7 +2748,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                     -30,
                     Math.min(30, Math.round((yToDb(coords.y - padTop, h, dbMin, dbMax) - dbCenter) * 10) / 10)
                 );
-                bands.push({ id: bands.length, type: 'peaking', freq, gain, q: 1.0, enabled: true });
+                bands.push({ id: bands.length, type: 'peaking', freq, gain, q: 1.0, enabled: true, channel: 'stereo' });
             }
 
             setActiveBands(bands);
@@ -2630,7 +2793,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             { passive: false }
         );
 
-        // Touch support - snap nearest node on empty space touch, continue drag outside canvas
+        // Touch support - drag nodes on direct touch, continue drag outside canvas
         let touchNodeIdx = -1;
         autoeqCanvas.addEventListener(
             'touchstart',
@@ -2642,46 +2805,6 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 if (touchNodeIdx >= 0) {
                     draggedNode = touchNodeIdx;
                     e.preventDefault();
-                } else {
-                    // Snap nearest node to touch position
-                    touchNodeIdx = findClosestNode(coords.x, coords.y, Infinity);
-                    if (touchNodeIdx >= 0) {
-                        const bands = getActiveBands();
-                        if (bands && bands[touchNodeIdx]) {
-                            const padLeft = 40,
-                                padRight = 10,
-                                padTop = 10,
-                                padBottom = 30;
-                            const w = rect.width - padLeft - padRight;
-                            const h = rect.height - padTop - padBottom;
-                            const isParam = currentMode === 'parametric';
-                            const dbCenter = isParam ? 0 : 75;
-                            const dbHalf = isParam ? graphDbHalfParametric : graphDbHalfAutoEQ;
-                            const dbMin = dbCenter - dbHalf;
-                            const dbMax = dbCenter + dbHalf;
-
-                            const freq = xToFreq(coords.x - padLeft, w);
-                            bands[touchNodeIdx].freq = Math.max(20, Math.min(20000, freq));
-                            if (isParam) {
-                                const newGain = yToDb(coords.y - padTop, h, dbMin, dbMax);
-                                bands[touchNodeIdx].gain = Math.max(-30, Math.min(30, Math.round(newGain * 10) / 10));
-                            } else {
-                                const corrGain = interpolate(bands[touchNodeIdx].freq, autoeqCorrectedCurve || []);
-                                const newDb = yToDb(coords.y - padTop, h, dbMin, dbMax);
-                                const gainDelta = newDb - corrGain;
-                                bands[touchNodeIdx].gain = Math.max(
-                                    -30,
-                                    Math.min(30, bands[touchNodeIdx].gain + gainDelta * 0.3)
-                                );
-                            }
-                            draggedNode = touchNodeIdx;
-                            computeCorrectedCurve();
-                            applyBandsToAudio(bands);
-                            drawAutoEQGraph();
-                            renderBandControls(bands);
-                            e.preventDefault();
-                        }
-                    }
                 }
             },
             { passive: false }
@@ -2861,7 +2984,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             const defaultBands = [];
             for (let i = 0; i < 10; i++) {
                 const freq = 20 * Math.pow(20000 / 20, i / 9);
-                defaultBands.push({ id: i, type: 'peaking', freq: Math.round(freq), gain: 0, q: 1.0, enabled: true });
+                defaultBands.push({ id: i, type: 'peaking', freq: Math.round(freq), gain: 0, q: 1.0, enabled: true, channel: 'stereo' });
             }
             parametricBands = defaultBands;
             applyBandsToAudio(parametricBands);
@@ -3750,6 +3873,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 gain: 0,
                 q: 1.41,
                 enabled: true,
+                channel: 'stereo',
             })),
             preamp: 0,
         };
@@ -3955,12 +4079,145 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     // ========================================
     // Parametric EQ Preset Selector
     // ========================================
+
+    // Mid/Side presets define complete band arrays with per-band channel modes
+    const MS_PRESETS = {
+        shelf_warm: {
+            name: 'Warm',
+            bands: [
+                { id: 0, type: 'lowshelf', freq: 200, gain: 3.0, q: 0.7, enabled: true, channel: 'stereo' },
+                { id: 1, type: 'highshelf', freq: 6000, gain: -2.0, q: 0.6, enabled: true, channel: 'stereo' },
+                { id: 2, type: 'peaking', freq: 3000, gain: -1.0, q: 1.2, enabled: true, channel: 'stereo' },
+                { id: 3, type: 'peaking', freq: 800, gain: 0.5, q: 0.8, enabled: true, channel: 'stereo' },
+            ],
+        },
+        shelf_bright: {
+            name: 'Bright & Airy',
+            bands: [
+                { id: 0, type: 'highshelf', freq: 8000, gain: 3.0, q: 0.5, enabled: true, channel: 'stereo' },
+                { id: 1, type: 'lowshelf', freq: 150, gain: -1.5, q: 0.6, enabled: true, channel: 'stereo' },
+                { id: 2, type: 'peaking', freq: 5000, gain: 1.0, q: 1.5, enabled: true, channel: 'stereo' },
+                { id: 3, type: 'peaking', freq: 2500, gain: 0.5, q: 1.0, enabled: true, channel: 'stereo' },
+            ],
+        },
+        shelf_hifi: {
+            name: 'Hi-Fi',
+            bands: [
+                { id: 0, type: 'lowshelf', freq: 80, gain: 2.5, q: 0.7, enabled: true, channel: 'stereo' },
+                { id: 1, type: 'highshelf', freq: 10000, gain: 2.0, q: 0.5, enabled: true, channel: 'stereo' },
+                { id: 2, type: 'peaking', freq: 400, gain: -1.0, q: 1.0, enabled: true, channel: 'stereo' },
+                { id: 3, type: 'peaking', freq: 3000, gain: 0.5, q: 1.5, enabled: true, channel: 'stereo' },
+            ],
+        },
+        shelf_dark: {
+            name: 'Dark & Smooth',
+            bands: [
+                { id: 0, type: 'highshelf', freq: 5000, gain: -3.0, q: 0.5, enabled: true, channel: 'stereo' },
+                { id: 1, type: 'lowshelf', freq: 150, gain: 2.0, q: 0.7, enabled: true, channel: 'stereo' },
+                { id: 2, type: 'peaking', freq: 2500, gain: -1.5, q: 1.2, enabled: true, channel: 'stereo' },
+                { id: 3, type: 'peaking', freq: 600, gain: 0.5, q: 0.8, enabled: true, channel: 'stereo' },
+            ],
+        },
+        shelf_radio: {
+            name: 'Radio Ready',
+            bands: [
+                { id: 0, type: 'lowshelf', freq: 100, gain: 2.0, q: 0.7, enabled: true, channel: 'stereo' },
+                { id: 1, type: 'peaking', freq: 3000, gain: 2.0, q: 1.8, enabled: true, channel: 'stereo' },
+                { id: 2, type: 'highshelf', freq: 10000, gain: 1.5, q: 0.5, enabled: true, channel: 'stereo' },
+                { id: 3, type: 'peaking', freq: 500, gain: -1.5, q: 1.0, enabled: true, channel: 'stereo' },
+                { id: 4, type: 'peaking', freq: 7000, gain: -0.5, q: 2.0, enabled: true, channel: 'stereo' },
+            ],
+        },
+        ms_vocal_clarity: {
+            name: 'M/S Vocal Clarity',
+            bands: [
+                { id: 0, type: 'lowshelf', freq: 100, gain: -3.5, q: 0.6, enabled: true, channel: 'side' },
+                { id: 1, type: 'peaking', freq: 3500, gain: 2.0, q: 2.0, enabled: true, channel: 'mid' },
+                { id: 2, type: 'peaking', freq: 350, gain: -1.5, q: 1.2, enabled: true, channel: 'mid' },
+                { id: 3, type: 'peaking', freq: 3000, gain: -1.5, q: 1.5, enabled: true, channel: 'side' },
+                { id: 4, type: 'highshelf', freq: 12000, gain: 1.5, q: 0.5, enabled: true, channel: 'side' },
+                { id: 5, type: 'peaking', freq: 5000, gain: 1.0, q: 2.0, enabled: true, channel: 'mid' },
+            ],
+        },
+        ms_wide_stereo: {
+            name: 'M/S Wide Stereo',
+            bands: [
+                { id: 0, type: 'lowshelf', freq: 100, gain: -4.0, q: 0.6, enabled: true, channel: 'side' },
+                { id: 1, type: 'peaking', freq: 1200, gain: 1.5, q: 1.0, enabled: true, channel: 'side' },
+                { id: 2, type: 'highshelf', freq: 10000, gain: 2.0, q: 0.5, enabled: true, channel: 'side' },
+                { id: 3, type: 'peaking', freq: 5000, gain: 1.0, q: 1.2, enabled: true, channel: 'side' },
+                { id: 4, type: 'peaking', freq: 800, gain: -1.0, q: 1.0, enabled: true, channel: 'mid' },
+                { id: 5, type: 'lowshelf', freq: 60, gain: 1.0, q: 0.7, enabled: true, channel: 'mid' },
+            ],
+        },
+        ms_mono_bass: {
+            name: 'M/S Mono Bass',
+            bands: [
+                { id: 0, type: 'lowshelf', freq: 120, gain: -5.0, q: 0.5, enabled: true, channel: 'side' },
+                { id: 1, type: 'peaking', freq: 60, gain: 2.5, q: 0.7, enabled: true, channel: 'mid' },
+                { id: 2, type: 'peaking', freq: 120, gain: 1.0, q: 1.2, enabled: true, channel: 'mid' },
+                { id: 3, type: 'peaking', freq: 400, gain: 1.0, q: 0.8, enabled: true, channel: 'side' },
+                { id: 4, type: 'highshelf', freq: 10000, gain: 1.0, q: 0.7, enabled: true, channel: 'stereo' },
+            ],
+        },
+        ms_master_polish: {
+            name: 'M/S Master Polish',
+            bands: [
+                { id: 0, type: 'lowshelf', freq: 100, gain: -3.5, q: 0.5, enabled: true, channel: 'side' },
+                { id: 1, type: 'peaking', freq: 60, gain: 1.5, q: 0.7, enabled: true, channel: 'mid' },
+                { id: 2, type: 'peaking', freq: 350, gain: -1.0, q: 1.2, enabled: true, channel: 'mid' },
+                { id: 3, type: 'peaking', freq: 3000, gain: 1.5, q: 2.0, enabled: true, channel: 'mid' },
+                { id: 4, type: 'peaking', freq: 3000, gain: -1.0, q: 1.5, enabled: true, channel: 'side' },
+                { id: 5, type: 'highshelf', freq: 12000, gain: 2.0, q: 0.5, enabled: true, channel: 'side' },
+                { id: 6, type: 'peaking', freq: 7000, gain: -0.5, q: 2.0, enabled: true, channel: 'stereo' },
+                { id: 7, type: 'peaking', freq: 500, gain: -0.5, q: 0.8, enabled: true, channel: 'mid' },
+            ],
+        },
+        ms_rock_master: {
+            name: 'M/S Rock Master',
+            bands: [
+                { id: 0, type: 'lowshelf', freq: 100, gain: -4.0, q: 0.5, enabled: true, channel: 'side' },
+                { id: 1, type: 'peaking', freq: 3500, gain: -2.5, q: 2.0, enabled: true, channel: 'side' },
+                { id: 2, type: 'peaking', freq: 2500, gain: 1.5, q: 1.8, enabled: true, channel: 'mid' },
+                { id: 3, type: 'peaking', freq: 60, gain: 1.5, q: 0.7, enabled: true, channel: 'mid' },
+                { id: 4, type: 'highshelf', freq: 10000, gain: 1.5, q: 0.5, enabled: true, channel: 'side' },
+                { id: 5, type: 'peaking', freq: 400, gain: -1.0, q: 1.0, enabled: true, channel: 'mid' },
+                { id: 6, type: 'peaking', freq: 800, gain: 1.0, q: 1.0, enabled: true, channel: 'side' },
+            ],
+        },
+        ms_hiphop: {
+            name: 'M/S Hip-Hop',
+            bands: [
+                { id: 0, type: 'lowshelf', freq: 60, gain: 2.5, q: 0.5, enabled: true, channel: 'mid' },
+                { id: 1, type: 'lowshelf', freq: 100, gain: -4.5, q: 0.5, enabled: true, channel: 'side' },
+                { id: 2, type: 'peaking', freq: 3500, gain: 1.5, q: 2.0, enabled: true, channel: 'mid' },
+                { id: 3, type: 'peaking', freq: 7000, gain: 1.5, q: 1.0, enabled: true, channel: 'side' },
+                { id: 4, type: 'highshelf', freq: 12000, gain: 1.5, q: 0.5, enabled: true, channel: 'side' },
+                { id: 5, type: 'peaking', freq: 300, gain: -1.0, q: 1.0, enabled: true, channel: 'mid' },
+                { id: 6, type: 'peaking', freq: 500, gain: -0.5, q: 0.8, enabled: true, channel: 'mid' },
+            ],
+        },
+    };
+
     const parametricPresetSelect = document.getElementById('parametric-preset-select');
     if (parametricPresetSelect) {
         parametricPresetSelect.addEventListener('change', () => {
             const presetKey = parametricPresetSelect.value;
             if (!presetKey) return; // "Custom" selected
 
+            // Check for M/S preset first (replaces entire band array)
+            const msPreset = MS_PRESETS[presetKey];
+            if (msPreset) {
+                parametricBands = msPreset.bands.map((b) => ({ ...b }));
+                setActiveBands(parametricBands);
+                applyBandsToAudio(parametricBands);
+                renderBandControls(parametricBands);
+                computeCorrectedCurve();
+                drawAutoEQGraph();
+                return;
+            }
+
+            // Standard gain-only preset
             ensureParametricBands();
             const bandCount = parametricBands.length;
             const presets = getPresetsForBandCount(bandCount);
@@ -3969,6 +4226,8 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
             parametricBands.forEach((band, i) => {
                 band.gain = preset.gains[i] || 0;
+                band.channel = 'stereo';
+                band.type = 'peaking';
             });
 
             applyBandsToAudio(parametricBands);
@@ -5036,7 +5295,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 setActiveBands(bands);
             }
             if (bands.length >= 32) return;
-            bands.push({ id: bands.length, type: 'peaking', freq: 1000, gain: 0, q: 1.0, enabled: true });
+            bands.push({ id: bands.length, type: 'peaking', freq: 1000, gain: 0, q: 1.0, enabled: true, channel: 'stereo' });
             applyBandsToAudio(bands);
             renderBandControls(bands);
             computeCorrectedCurve();

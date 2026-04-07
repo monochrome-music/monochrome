@@ -173,6 +173,24 @@
             </ul>
         </div>
 
+        <div id="eq-node-context-menu">
+            <ul>
+                <li data-action="eq-channel-stereo" class="eq-ctx-channel">Stereo</li>
+                <li data-action="eq-channel-mid" class="eq-ctx-channel">Mid</li>
+                <li data-action="eq-channel-side" class="eq-ctx-channel">Side</li>
+                <li class="separator"></li>
+                <li data-action="eq-type-lowshelf" class="eq-ctx-type">Low Shelf</li>
+                <li data-action="eq-type-peaking" class="eq-ctx-type">Peaking</li>
+                <li data-action="eq-type-highshelf" class="eq-ctx-type">High Shelf</li>
+            </ul>
+        </div>
+
+        <div id="eq-empty-context-menu">
+            <ul>
+                <li data-action="eq-add-node">Add Node</li>
+            </ul>
+        </div>
+
         <div id="side-panel" class="side-panel">
             <div id="side-panel-resizer" class="side-panel-resizer"></div>
             <div class="panel-header">
@@ -4240,9 +4258,17 @@
                                                     result.
                                                 </li>
                                                 <li>
-                                                    <b>Double-click an empty area</b> on the graph to add a new filter
-                                                    band at that frequency. <b>Double-click an existing node</b> to
-                                                    remove it.
+                                                    <b>Drag nodes</b> to adjust frequency and gain.
+                                                    <b>Scroll on a node</b> to adjust Q (bandwidth).
+                                                </li>
+                                                <li>
+                                                    <b>Right-click a node</b> to change its filter type
+                                                    (Peaking, Low Shelf, High Shelf) or channel mode
+                                                    (Stereo, Mid, Side).
+                                                </li>
+                                                <li>
+                                                    <b>Right-click empty space</b> or <b>double-click</b> to add a
+                                                    node. <b>Double-click a node</b> to remove it.
                                                 </li>
                                                 <li>
                                                     <b>Save</b> the profile so you can switch between headphones
@@ -4263,25 +4289,25 @@
                                             <h4>Parametric EQ - Manual Control</h4>
                                             <ol>
                                                 <li>
-                                                    Each band supports <b>peaking, low-shelf, and high-shelf</b> filter
-                                                    types with frequency, gain, and Q (width).
+                                                    Each band supports <b>Peaking, Low Shelf, and High Shelf</b> filter
+                                                    types with frequency, gain, and Q (bandwidth).
                                                 </li>
                                                 <li>
-                                                    <b>Drag nodes</b> on the graph to adjust frequency and gain
-                                                    visually.
+                                                    <b>Drag nodes</b> on the graph to adjust frequency and gain.
+                                                    <b>Scroll on a node</b> to adjust Q.
                                                 </li>
                                                 <li>
-                                                    <b>Double-click an empty area</b> on the graph to add a new band at
-                                                    that exact frequency and gain.
-                                                    <b>Double-click an existing node</b> to delete it.
+                                                    <b>Right-click a node</b> to change its filter type or set its
+                                                    channel mode to <b>Stereo</b>, <b>Mid</b>, or <b>Side</b>.
+                                                </li>
+                                                <li>
+                                                    <b>Right-click empty space</b> or <b>double-click</b> to add a
+                                                    node at that position.
+                                                    <b>Double-click a node</b> to delete it.
                                                 </li>
                                                 <li>
                                                     Use <b>+ Add Band / - Remove Band</b> to change the number of
                                                     filters.
-                                                </li>
-                                                <li>
-                                                    Pick a <b>preset</b> (Bass Boost, Vocal, etc.) as a starting point,
-                                                    then fine-tune.
                                                 </li>
                                                 <li>
                                                     <b>Import/Export</b> settings in EqualizerAPO format for use in
@@ -4293,7 +4319,15 @@
                                                 </li>
                                             </ol>
                                             <p class="eq-howto-tip">
-                                                Tip: Lower Q = wider curve. Higher Q = narrower surgical cut.
+                                                Tip: Lower Q = wider curve, higher Q = narrower surgical cut.
+                                            </p>
+                                            <p class="eq-howto-tip">
+                                                Mid/Side tips: Set a band to <b>Mid</b> to EQ only the
+                                                center image (vocals, bass, kick). Set it to <b>Side</b> to
+                                                EQ only the stereo width (reverb, ambience, panned instruments).
+                                                Try cutting low-end on Side below 200 Hz for tighter, mono-compatible
+                                                bass - or boost presence on Mid around 2-5 kHz to bring vocals forward
+                                                without touching the sides.
                                             </p>
                                         </div>
 
@@ -4322,9 +4356,12 @@
                                                     Click <b>AutoEQ</b> to generate correction filters for that channel.
                                                 </li>
                                                 <li>
-                                                    <b>Double-click an empty area</b> on the graph to add a filter band
-                                                    at that frequency. <b>Double-click an existing node</b> to remove
-                                                    it.
+                                                    <b>Drag nodes</b> to fine-tune. <b>Scroll on a node</b> to adjust Q.
+                                                    <b>Right-click a node</b> to change type or channel mode.
+                                                </li>
+                                                <li>
+                                                    <b>Right-click empty space</b> or <b>double-click</b> to add a
+                                                    node. <b>Double-click a node</b> to remove it.
                                                 </li>
                                                 <li>
                                                     Repeat for each channel, then <b>Export JSON</b> with all channels.
@@ -4979,6 +5016,19 @@
                                                         <option value="r_and_b">R&amp;B</option>
                                                         <option value="acoustic">Acoustic</option>
                                                         <option value="podcast">Speech</option>
+                                                        <option disabled>── Shelf ──</option>
+                                                        <option value="shelf_warm">Warm</option>
+                                                        <option value="shelf_bright">Bright & Airy</option>
+                                                        <option value="shelf_hifi">Hi-Fi</option>
+                                                        <option value="shelf_dark">Dark & Smooth</option>
+                                                        <option value="shelf_radio">Radio Ready</option>
+                                                        <option disabled>── Mid/Side ──</option>
+                                                        <option value="ms_vocal_clarity">M/S Vocal Clarity</option>
+                                                        <option value="ms_wide_stereo">M/S Wide Stereo</option>
+                                                        <option value="ms_mono_bass">M/S Mono Bass</option>
+                                                        <option value="ms_master_polish">M/S Master Polish</option>
+                                                        <option value="ms_rock_master">M/S Rock Master</option>
+                                                        <option value="ms_hiphop">M/S Hip-Hop</option>
                                                     </select>
                                                 </div>
                                             </div>
