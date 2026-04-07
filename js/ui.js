@@ -4100,7 +4100,7 @@ export class UIRenderer {
         const btn = document.getElementById('labels-search-btn');
         const go = () => {
             const q = input.value.trim();
-            if (q) window.location.href = `/label/${encodeURIComponent(q)}`;
+            if (q) navigate(`/label/${encodeURIComponent(q)}`);
         };
         btn.onclick = go;
         input.onkeydown = (e) => { if (e.key === 'Enter') go(); };
@@ -4128,19 +4128,13 @@ export class UIRenderer {
         const cacheKey = `label_albums_${labelName}`;
 
         const fetchPage = async (pageOffset) => {
-            const pageCacheKey = `${cacheKey}_${pageOffset}`;
-            const cached = await this.api.cache.get('label', pageCacheKey);
-            if (cached) return cached;
-
             const url = `/api/label?name=${encodeURIComponent(labelName)}&offset=${pageOffset}&limit=${limit}`;
             const res = await fetch(url);
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
                 throw new Error(err.error || `HTTP ${res.status}`);
             }
-            const data = await res.json();
-            await this.api.cache.set('label', pageCacheKey, data);
-            return data;
+            return res.json();
         };
 
         const renderAlbums = (albums, append = false) => {
