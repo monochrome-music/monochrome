@@ -28,27 +28,42 @@ function similarity(a, b) {
 }
 
 
+// Strip common label suffixes to improve fuzzy matching
+// e.g. "Freude am Tanzen Recordings" → "Freude am Tanzen"
+function normalizeLabelName(name) {
+    return name
+        .replace(/\s+(recordings?|records?|music|entertainment|label|group|inc\.?|ltd\.?|llc\.?|gmbh|b\.v\.?)$/i, '')
+        .trim();
+}
+
 async function findQobuzLabel(name, token) {
-    // Qobuz has no label search endpoint — search albums and extract label from results
-    const url = new URL(`${QOBUZ_BASE}/catalog/search`);
-    url.searchParams.set('query', name);
-    url.searchParams.set('type', 'albums');
-    url.searchParams.set('limit', '20');
-    url.searchParams.set('app_id', process.env.QOBUZ_APP_ID);
-    const res = await fetch(url, { headers: { 'X-User-Auth-Token': token } });
-    if (!res.ok) throw new Error(`Qobuz search failed: ${res.status}`);
-    const data = await res.json();
-    const items = data.albums?.items || [];
-    // Collect unique labels from results and find best name match
+    // Search with both original and normalized name to maximise hit rate
+    const queries = [name];
+    const normalized = normalizeLabelName(name);
+    if (normalized !== name) queries.push(normalized);
+
     const seen = new Map();
-    for (const album of items) {
-        if (album.label?.id && !seen.has(album.label.id)) {
-            seen.set(album.label.id, { ...album.label, score: similarity(album.label.name, name) });
+    for (const query of queries) {
+        const url = new URL(`${QOBUZ_BASE}/catalog/search`);
+        url.searchParams.set('query', query);
+        url.searchParams.set('type', 'albums');
+        url.searchParams.set('limit', '20');
+        url.searchParams.set('app_id', process.env.QOBUZ_APP_ID);
+        const res = await fetch(url, { headers: { 'X-User-Auth-Token': token } });
+        if (!res.ok) continue;
+        const data = await res.json();
+        for (const album of data.albums?.items || []) {
+            if (album.label?.id && !seen.has(album.label.id)) {
+                // Score against both original and normalized name, take best
+                const s1 = similarity(album.label.name, name);
+                const s2 = similarity(normalizeLabelName(album.label.name), normalized);
+                seen.set(album.label.id, { ...album.label, score: Math.max(s1, s2) });
+            }
         }
     }
     if (!seen.size) return null;
     const scored = [...seen.values()].sort((a, b) => b.score - a.score);
-    return scored[0].score >= 0.7 ? scored[0] : null;
+    return scored[0].score >= 0.6 ? scored[0] : null;
 }
 
 async function getQobuzLabelAlbums(labelId, labelName, offset, limit, token) {
