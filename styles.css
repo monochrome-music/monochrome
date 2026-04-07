@@ -7902,6 +7902,29 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     gap: var(--spacing-md);
 }
 
+.graphic-eq-config-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+.graphic-eq-config-row label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.geq-config-input {
+    width: 70px;
+    padding: 4px 6px;
+    border: 1px solid var(--border-color, #444);
+    border-radius: 4px;
+    background: var(--bg-secondary, #222);
+    color: inherit;
+    font-size: 0.85rem;
+}
+
 .graphic-eq-preset-row {
     display: flex;
     align-items: center;
