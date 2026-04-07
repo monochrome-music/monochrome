@@ -2253,16 +2253,17 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 const x = gx(band.freq);
                 // In parametric mode: node Y = band's individual response at its freq (basically its gain)
                 // In AutoEQ mode: node Y = corrected curve value at band freq (shifted)
-                let nodeGain;
+                let nodeGain, sumGain;
                 if (isParametricMode) {
-                    // Sum all bands' response at this frequency
-                    let totalGain = 0;
+                    // Node sits at individual band gain; sum is for tooltip only
+                    nodeGain = band.gain;
+                    sumGain = 0;
                     for (const b of activeBands) {
-                        if (b.enabled) totalGain += calculateBiquadResponse(band.freq, b, sampleRate);
+                        if (b.enabled) sumGain += calculateBiquadResponse(band.freq, b, sampleRate);
                     }
-                    nodeGain = totalGain;
                 } else {
                     nodeGain = interpolate(band.freq, autoeqCorrectedCurve) + graphShift;
+                    sumGain = nodeGain;
                 }
                 const y = gy(nodeGain);
 
@@ -2331,7 +2332,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                     ctx.font = 'bold 11px system-ui, sans-serif';
                     const chLabel = bandChannel !== 'stereo' ? ` [${bandChannel.toUpperCase()}]` : '';
                     const line1 = `${Math.round(band.freq)} Hz  ${band.gain > 0 ? '+' : ''}${band.gain.toFixed(1)} dB  Q${band.q.toFixed(2)}${chLabel}`;
-                    const line2 = `Sum: ${nodeGain > 0 ? '+' : ''}${nodeGain.toFixed(1)} dB`;
+                    const line2 = `Sum: ${sumGain > 0 ? '+' : ''}${sumGain.toFixed(1)} dB`;
                     const tw1 = ctx.measureText(line1).width;
                     const tw2 = ctx.measureText(line2).width;
                     const tw = Math.max(tw1, tw2) + 12;
@@ -2445,10 +2446,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             const x = padLeft + freqToX(band.freq, w);
             let nodeGain;
             if (isParam) {
-                nodeGain = 0;
-                for (const b of activeBands) {
-                    if (b.enabled) nodeGain += calculateBiquadResponse(band.freq, b, sampleRate);
-                }
+                nodeGain = band.gain;
             } else {
                 nodeGain = interpolate(band.freq, autoeqCorrectedCurve) + graphShift;
             }
