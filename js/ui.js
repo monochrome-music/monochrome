@@ -4128,7 +4128,7 @@ export class UIRenderer {
         const cacheKey = `label_albums_${labelName}`;
 
         const fetchPage = async (pageOffset) => {
-            const url = `/api/label?name=${encodeURIComponent(labelName)}&offset=${pageOffset}&limit=${limit}`;
+            const url = `/.netlify/functions/label?name=${encodeURIComponent(labelName)}&offset=${pageOffset}&limit=${limit}`;
             const res = await fetch(url);
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
