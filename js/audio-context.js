@@ -148,13 +148,15 @@ class AudioContextManager {
         // Callbacks for audio graph changes (for visualizers like Butterchurn)
         this._graphChangeCallbacks = [];
 
-        // --- Graphic EQ (16-band, separate chain) ---
+        // --- Graphic EQ (configurable bands, separate chain) ---
         this.geqFilters = [];
         this.geqPreampNode = null;
         this.geqOutputNode = null;
         this.isGraphicEQEnabled = equalizerSettings.isGraphicEqEnabled();
-        this.geqFrequencies = [25, 40, 63, 100, 160, 250, 400, 630, 1000, 1600, 2500, 4000, 6300, 10000, 16000, 20000];
-        this.geqGains = equalizerSettings.getGraphicEqGains();
+        this.geqBandCount = equalizerSettings.getGraphicEqBandCount();
+        this.geqFreqRange = equalizerSettings.getGraphicEqFreqRange();
+        this.geqFrequencies = generateFrequencies(this.geqBandCount, this.geqFreqRange.min, this.geqFreqRange.max);
+        this.geqGains = equalizerSettings.getGraphicEqGains(this.geqBandCount);
         this.geqPreamp = equalizerSettings.getGraphicEqPreamp();
 
         // Load saved settings
@@ -1090,11 +1092,12 @@ class AudioContextManager {
         this.geqOutputNode = this.audioContext.createGain();
         this.geqOutputNode.gain.value = 1;
 
+        const geqQ = 2.5 * Math.sqrt(16 / this.geqBandCount);
         this.geqFilters = this.geqFrequencies.map((freq, i) => {
             const filter = this.audioContext.createBiquadFilter();
             filter.type = 'peaking';
             filter.frequency.value = freq;
-            filter.Q.value = 2.5; // constant Q for 16-band
+            filter.Q.value = geqQ;
             filter.gain.value = this.geqGains[i] || 0;
             return filter;
         });
@@ -1136,7 +1139,7 @@ class AudioContextManager {
     }
 
     setGraphicEqBandGain(bandIndex, gainDb) {
-        if (bandIndex < 0 || bandIndex >= 16) return;
+        if (bandIndex < 0 || bandIndex >= this.geqBandCount) return;
         this.geqGains[bandIndex] = Math.max(-30, Math.min(30, gainDb));
         if (this.geqFilters[bandIndex] && this.audioContext) {
             const now = this.audioContext.currentTime;
@@ -1149,13 +1152,58 @@ class AudioContextManager {
         if (!Array.isArray(gains)) return;
         const now = this.audioContext?.currentTime || 0;
         gains.forEach((g, i) => {
-            if (i >= 16) return;
+            if (i >= this.geqBandCount) return;
             this.geqGains[i] = Math.max(-30, Math.min(30, g));
             if (this.geqFilters[i]) {
                 this.geqFilters[i].gain.setTargetAtTime(this.geqGains[i], now, 0.01);
             }
         });
         equalizerSettings.setGraphicEqGains([...this.geqGains]);
+    }
+
+    setGraphicEqBandCount(count) {
+        const newCount = Math.max(3, Math.min(32, parseInt(count, 10) || 16));
+        if (newCount === this.geqBandCount) return;
+
+        const oldGains = this.geqGains;
+        this.geqBandCount = newCount;
+        this.geqFrequencies = generateFrequencies(newCount, this.geqFreqRange.min, this.geqFreqRange.max);
+        this.geqGains = equalizerSettings._interpolateGains(oldGains, newCount);
+
+        equalizerSettings.setGraphicEqBandCount(newCount);
+        equalizerSettings.setGraphicEqGains(this.geqGains);
+
+        if (this.isInitialized && this.audioContext) {
+            this._destroyGraphicEQ();
+            this._createGraphicEQ();
+            this._connectGraph();
+        }
+    }
+
+    setGraphicEqFreqRange(minFreq, maxFreq) {
+        const newMin = Math.max(10, Math.min(96000, parseInt(minFreq, 10) || 25));
+        const newMax = Math.max(10, Math.min(96000, parseInt(maxFreq, 10) || 20000));
+        if (newMin >= newMax) return;
+        if (newMin === this.geqFreqRange.min && newMax === this.geqFreqRange.max) return;
+
+        this.geqFreqRange = { min: newMin, max: newMax };
+        this.geqFrequencies = generateFrequencies(this.geqBandCount, newMin, newMax);
+
+        equalizerSettings.setGraphicEqFreqRange(newMin, newMax);
+
+        if (this.isInitialized && this.audioContext) {
+            this._destroyGraphicEQ();
+            this._createGraphicEQ();
+            this._connectGraph();
+        }
+    }
+
+    getGraphicEqFrequencies() {
+        return this.geqFrequencies;
+    }
+
+    getGraphicEqBandCount() {
+        return this.geqBandCount;
     }
 
     setGraphicEqPreamp(db) {

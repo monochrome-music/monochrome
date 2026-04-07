@@ -1236,26 +1236,29 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     }
 
     // ========================================
-    // 16-Band Graphic Equalizer (Legacy EQ mode)
+    // Graphic Equalizer (Legacy EQ mode) - Configurable Bands
     // ========================================
-    const GEQ_LABELS = [
-        '25',
-        '40',
-        '63',
-        '100',
-        '160',
-        '250',
-        '400',
-        '630',
-        '1K',
-        '1.6K',
-        '2.5K',
-        '4K',
-        '6.3K',
-        '10K',
-        '16K',
-        '20K',
-    ];
+    let geqBandCount = equalizerSettings.getGraphicEqBandCount();
+    let geqFreqRange = equalizerSettings.getGraphicEqFreqRange();
+
+    const formatGeqFreq = (freq) => {
+        if (freq >= 10000) return (freq / 1000).toFixed(0) + 'K';
+        if (freq >= 1000) return (freq / 1000).toFixed(freq % 1000 === 0 ? 0 : 1) + 'K';
+        return freq.toString();
+    };
+
+    const generateGeqFrequencies = (count, min, max) => {
+        const freqs = [];
+        for (let i = 0; i < count; i++) {
+            const t = i / (count - 1);
+            freqs.push(Math.round(min * Math.pow(max / min, t)));
+        }
+        return freqs;
+    };
+
+    let GEQ_FREQUENCIES = generateGeqFrequencies(geqBandCount, geqFreqRange.min, geqFreqRange.max);
+    let GEQ_LABELS = GEQ_FREQUENCIES.map(formatGeqFreq);
+
     const geqBandsContainer = document.getElementById('graphic-eq-bands');
     const geqPreampSlider = document.getElementById('graphic-eq-preamp-slider');
     const geqPreampValue = document.getElementById('graphic-eq-preamp-value');
@@ -1268,11 +1271,15 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     const legacyGeqPresetSelect = document.getElementById('legacy-graphic-eq-preset-select');
     const legacyGeqResetBtn = document.getElementById('legacy-graphic-eq-reset-btn');
 
+    const geqBandCountInput = document.getElementById('legacy-geq-band-count');
+    const geqFreqMinInput = document.getElementById('legacy-geq-freq-min');
+    const geqFreqMaxInput = document.getElementById('legacy-geq-freq-max');
+
     const geqPreampSliders = [geqPreampSlider, legacyGeqPreampSlider].filter(Boolean);
     const geqPreampValues = [geqPreampValue, legacyGeqPreampValue].filter(Boolean);
     const geqPresetSelects = [geqPresetSelect, legacyGeqPresetSelect].filter(Boolean);
 
-    let geqGains = equalizerSettings.getGraphicEqGains() || new Array(16).fill(0);
+    let geqGains = equalizerSettings.getGraphicEqGains(geqBandCount) || new Array(geqBandCount).fill(0);
     let geqPreamp = equalizerSettings.getGraphicEqPreamp() || 0;
     const geqRange = equalizerSettings.getRange();
 
@@ -1288,7 +1295,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         });
     };
 
-    // Build 16 vertical slider bands into a container
+    // Build vertical slider bands into a container
     const buildGeqBands = (container, idPrefix) => {
         if (!container) return;
         container.innerHTML = '';
@@ -1359,7 +1366,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         select.addEventListener('change', () => {
             const key = select.value;
             if (!key) return;
-            const presets = getPresetsForBandCount(16);
+            const presets = getPresetsForBandCount(geqBandCount);
             const preset = presets[key];
             if (!preset) return;
             geqGains = [...preset.gains];
@@ -1375,13 +1382,56 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     // Wire up reset buttons
     [geqResetBtn, legacyGeqResetBtn].filter(Boolean).forEach((btn) => {
         btn.addEventListener('click', () => {
-            geqGains = new Array(16).fill(0);
+            geqGains = new Array(geqBandCount).fill(0);
             equalizerSettings.setGraphicEqGains(geqGains);
             audioContextManager.setGraphicEqAllGains(geqGains);
             geqSyncAllSliders();
             geqPresetSelects.forEach((s) => (s.value = 'flat'));
         });
     });
+
+    // Band count and frequency range controls
+    const rebuildGeq = () => {
+        GEQ_FREQUENCIES = generateGeqFrequencies(geqBandCount, geqFreqRange.min, geqFreqRange.max);
+        GEQ_LABELS = GEQ_FREQUENCIES.map(formatGeqFreq);
+        buildGeqBands(geqBandsContainer, 'geq');
+        buildGeqBands(legacyGeqBandsContainer, 'legacy-geq');
+        geqSyncAllSliders();
+    };
+
+    if (geqBandCountInput) {
+        geqBandCountInput.value = geqBandCount;
+        geqBandCountInput.addEventListener('change', () => {
+            const newCount = Math.max(3, Math.min(32, parseInt(geqBandCountInput.value, 10) || 16));
+            geqBandCountInput.value = newCount;
+            if (newCount === geqBandCount) return;
+            geqGains = equalizerSettings._interpolateGains(geqGains, newCount);
+            geqBandCount = newCount;
+            audioContextManager.setGraphicEqBandCount(newCount);
+            rebuildGeq();
+            geqPresetSelects.forEach((s) => (s.value = ''));
+        });
+    }
+
+    if (geqFreqMinInput && geqFreqMaxInput) {
+        geqFreqMinInput.value = geqFreqRange.min;
+        geqFreqMaxInput.value = geqFreqRange.max;
+
+        const handleFreqRangeChange = () => {
+            const newMin = Math.max(10, Math.min(96000, parseInt(geqFreqMinInput.value, 10) || 25));
+            const newMax = Math.max(10, Math.min(96000, parseInt(geqFreqMaxInput.value, 10) || 20000));
+            geqFreqMinInput.value = newMin;
+            geqFreqMaxInput.value = newMax;
+            if (newMin >= newMax) return;
+            if (newMin === geqFreqRange.min && newMax === geqFreqRange.max) return;
+            geqFreqRange = { min: newMin, max: newMax };
+            audioContextManager.setGraphicEqFreqRange(newMin, newMax);
+            rebuildGeq();
+        };
+
+        geqFreqMinInput.addEventListener('change', handleFreqRangeChange);
+        geqFreqMaxInput.addEventListener('change', handleFreqRangeChange);
+    }
 
     // Legacy EQ Import / Export
     const parseGeqLabelFrequency = (label) => {
@@ -1395,7 +1445,6 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         }
         return Number.parseFloat(withoutHz);
     };
-    const GEQ_FREQUENCIES = GEQ_LABELS.map((label) => parseGeqLabelFrequency(label));
     const legacyGeqExportBtn = document.getElementById('legacy-geq-export-btn');
     const legacyGeqExportCsvBtn = document.getElementById('legacy-geq-export-csv-btn');
     const legacyGeqImportBtn = document.getElementById('legacy-geq-import-btn');
@@ -1405,7 +1454,8 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         legacyGeqExportBtn.addEventListener('click', () => {
             const lines = [`Preamp: ${geqPreamp.toFixed(1)} dB`];
             GEQ_FREQUENCIES.forEach((freq, i) => {
-                lines.push(`Filter ${i + 1}: ON PK Fc ${freq} Hz Gain ${geqGains[i].toFixed(1)} dB Q 1.41`);
+                const q = (2.5 * Math.sqrt(16 / geqBandCount)).toFixed(2);
+                lines.push(`Filter ${i + 1}: ON PK Fc ${freq} Hz Gain ${geqGains[i].toFixed(1)} dB Q ${q}`);
             });
             const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
             const url = URL.createObjectURL(blob);
@@ -1484,7 +1534,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                     // Sort by frequency
                     validPoints.sort((a, b) => a.freq - b.freq);
 
-                    // Map imported points to the 16 GEQ bands using nearest-frequency matching
+                    // Map imported points to the GEQ bands using nearest-frequency matching
                     const newGains = GEQ_FREQUENCIES.map((targetFreq) => {
                         // Find the closest imported point by log-frequency distance
                         let closest = validPoints[0];
@@ -1608,11 +1658,14 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             const customPresets = getLegacyGeqCustomPresets();
             if (customPresets[key]) {
                 const gains = customPresets[key]?.gains;
-                if (!Array.isArray(gains) || gains.length !== GEQ_FREQUENCIES.length) {
+                if (!Array.isArray(gains) || gains.length === 0) {
                     updateDeleteBtnVisibility();
                     return;
                 }
-                geqGains = gains.map((g) => {
+                const adjusted = gains.length !== geqBandCount
+                    ? equalizerSettings._interpolateGains(gains, geqBandCount)
+                    : gains;
+                geqGains = adjusted.map((g) => {
                     const n = Number(g);
                     return Number.isFinite(n)
                         ? Math.max(parseFloat(geqRange.min), Math.min(parseFloat(geqRange.max), n))
@@ -3812,6 +3865,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         const hp = document.getElementById('eq-howto-panel');
         if (hp && hp.style.display !== 'none') {
             const tabs = {
+                legacy: document.getElementById('eq-howto-legacy'),
                 autoeq: document.getElementById('eq-howto-autoeq'),
                 parametric: document.getElementById('eq-howto-parametric'),
                 speaker: document.getElementById('eq-howto-speaker'),
@@ -3834,6 +3888,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     const howtoPanel = document.getElementById('eq-howto-panel');
     const howtoClose = document.getElementById('eq-howto-close');
     const howtoTabs = {
+        legacy: document.getElementById('eq-howto-legacy'),
         autoeq: document.getElementById('eq-howto-autoeq'),
         parametric: document.getElementById('eq-howto-parametric'),
         speaker: document.getElementById('eq-howto-speaker'),
