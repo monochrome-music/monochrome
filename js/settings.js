@@ -1609,6 +1609,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                         if (s !== select) s.value = key;
                     });
                 }
+            }
             updateDeleteBtnVisibility();
         });
     });
