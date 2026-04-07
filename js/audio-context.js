@@ -1014,13 +1014,13 @@ class AudioContextManager {
 
                 // Parse filter lines (handle "Filter:" and "Filter X:" formats)
                 const filterMatch = line.match(
-                    /^Filter\s*\d*:\s*ON\s+(\w+)\s+Fc\s+(\d+)\s+Hz\s+Gain\s*([+-]?\d+\.?\d*)\s*dB\s+Q\s+(\d+\.?\d*)/i
+                    /^Filter\s*\d*:\s*ON\s+(\w+)\s+Fc\s+(\d+)\s+Hz\s+Gain\s*([+-]?\d+\.?\d*)\s*dB(?:\s+Q\s+(\d+\.?\d*))?/i
                 );
                 if (filterMatch) {
                     const type = filterMatch[1].toUpperCase();
                     const freq = parseInt(filterMatch[2], 10);
                     const gain = parseFloat(filterMatch[3]);
-                    const q = parseFloat(filterMatch[4]);
+                    const q = filterMatch[4] ? parseFloat(filterMatch[4]) : Math.SQRT1_2;
                     filters.push({ type, freq, gain, q });
                 }
             }
