@@ -24,8 +24,7 @@ function calculateBiquadResponse(f, band, sr = DEFAULT_SR) {
     const w = (2 * PI * band.freq) / sr;
     const p = (2 * PI * f) / sr;
     const t = band.type[0];
-    // WebAudio ignores Q for shelf filters; use 1/√2 (slope = 1) to match
-    const effectiveQ = t === 'l' || t === 'h' ? Math.SQRT1_2 : band.q;
+    const effectiveQ = band.q;
     const s = Math.sin(w) / (2 * effectiveQ);
     const A = Math.pow(DB_BASE, band.gain / DB_DIVISOR);
     const c = Math.cos(w);

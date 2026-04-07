@@ -5,6 +5,41 @@
 import { isIos } from './platform-detection.js';
 import { equalizerSettings, monoAudioSettings } from './storage.js';
 
+/**
+ * Compute RBJ cookbook IIR coefficients for shelf filters with Q support.
+ * Web Audio API's BiquadFilterNode ignores Q for lowshelf/highshelf,
+ * so we use IIRFilterNode with these coefficients instead.
+ */
+function computeShelfCoefficients(type, freq, gainDb, q, sampleRate) {
+    const A = Math.pow(10, gainDb / 40);
+    const w0 = (2 * Math.PI * freq) / sampleRate;
+    const alpha = Math.sin(w0) / (2 * q);
+    const cosW0 = Math.cos(w0);
+    const sqA = 2 * Math.sqrt(A) * alpha;
+    let b0, b1, b2, a0, a1, a2;
+
+    if (type === 'lowshelf') {
+        b0 = A * (A + 1 - (A - 1) * cosW0 + sqA);
+        b1 = 2 * A * (A - 1 - (A + 1) * cosW0);
+        b2 = A * (A + 1 - (A - 1) * cosW0 - sqA);
+        a0 = A + 1 + (A - 1) * cosW0 + sqA;
+        a1 = -2 * (A - 1 + (A + 1) * cosW0);
+        a2 = A + 1 + (A - 1) * cosW0 - sqA;
+    } else {
+        b0 = A * (A + 1 + (A - 1) * cosW0 + sqA);
+        b1 = -2 * A * (A - 1 + (A + 1) * cosW0);
+        b2 = A * (A + 1 + (A - 1) * cosW0 - sqA);
+        a0 = A + 1 - (A - 1) * cosW0 + sqA;
+        a1 = 2 * (A - 1 - (A + 1) * cosW0);
+        a2 = A + 1 - (A - 1) * cosW0 - sqA;
+    }
+
+    return {
+        feedforward: [b0 / a0, b1 / a0, b2 / a0],
+        feedback: [1, a1 / a0, a2 / a0],
+    };
+}
+
 // Generate frequency array for given number of bands using logarithmic spacing
 function generateFrequencies(bandCount, minFreq = 20, maxFreq = 20000) {
     const frequencies = [];
@@ -245,14 +280,24 @@ class AudioContextManager {
         const gainValue = Math.pow(10, preampValue / 20);
         this.preampNode.gain.value = gainValue;
 
-        // Create biquad filters for each frequency band
+        // Create filters for each frequency band
         this.filters = this.frequencies.map((freq, index) => {
+            const type = (this.currentTypes && this.currentTypes[index]) || 'peaking';
+            const q = this.currentQs && this.currentQs[index] > 0 ? this.currentQs[index] : this._calculateQ(index);
+            const gain = this.currentGains[index] || 0;
+
+            if (type === 'lowshelf' || type === 'highshelf') {
+                const coeffs = computeShelfCoefficients(type, freq, gain, q, this.audioContext.sampleRate);
+                const iir = this.audioContext.createIIRFilter(coeffs.feedforward, coeffs.feedback);
+                iir._shelfType = type;
+                return iir;
+            }
+
             const filter = this.audioContext.createBiquadFilter();
-            filter.type = (this.currentTypes && this.currentTypes[index]) || 'peaking';
+            filter.type = type;
             filter.frequency.value = freq;
-            filter.Q.value =
-                this.currentQs && this.currentQs[index] > 0 ? this.currentQs[index] : this._calculateQ(index);
-            filter.gain.value = this.currentGains[index] || 0;
+            filter.Q.value = q;
+            filter.gain.value = gain;
             return filter;
         });
 
@@ -843,12 +888,41 @@ class AudioContextManager {
             // If filter count matches, update params in-place (no graph rebuild)
             if (this.filters.length === count) {
                 const now = this.audioContext.currentTime;
+                let needsReconnect = false;
                 this.filters.forEach((filter, i) => {
-                    filter.type = newTypes[i] || 'peaking';
-                    filter.frequency.setTargetAtTime(newFrequencies[i], now, 0.005);
-                    filter.gain.setTargetAtTime(newGains[i], now, 0.005);
-                    filter.Q.setTargetAtTime(newQs[i] > 0 ? newQs[i] : this._calculateQ(i), now, 0.005);
+                    const type = newTypes[i] || 'peaking';
+                    const q = newQs[i] > 0 ? newQs[i] : this._calculateQ(i);
+                    const isShelf = type === 'lowshelf' || type === 'highshelf';
+                    const wasShelf = !!filter._shelfType;
+
+                    if (isShelf) {
+                        // IIR filters can't update params — must replace the node
+                        const coeffs = computeShelfCoefficients(type, newFrequencies[i], newGains[i], q, this.audioContext.sampleRate);
+                        const iir = this.audioContext.createIIRFilter(coeffs.feedforward, coeffs.feedback);
+                        iir._shelfType = type;
+                        try { filter.disconnect(); } catch { /* ignore */ }
+                        this.filters[i] = iir;
+                        needsReconnect = true;
+                    } else if (wasShelf) {
+                        // Was shelf IIR, now peaking — create new BiquadFilterNode
+                        const biquad = this.audioContext.createBiquadFilter();
+                        biquad.type = type;
+                        biquad.frequency.value = newFrequencies[i];
+                        biquad.gain.value = newGains[i];
+                        biquad.Q.value = q;
+                        try { filter.disconnect(); } catch { /* ignore */ }
+                        this.filters[i] = biquad;
+                        needsReconnect = true;
+                    } else {
+                        filter.type = type;
+                        filter.frequency.setTargetAtTime(newFrequencies[i], now, 0.005);
+                        filter.gain.setTargetAtTime(newGains[i], now, 0.005);
+                        filter.Q.setTargetAtTime(q, now, 0.005);
+                    }
                 });
+                if (needsReconnect) {
+                    this._connectGraph();
+                }
             } else {
                 // Band count changed — must rebuild
                 this._destroyEQ();
@@ -872,10 +946,16 @@ class AudioContextManager {
         const lines = [`Preamp: ${this.preamp.toFixed(1)} dB`];
         sortedBands.forEach((band, index) => {
             if (index >= count) return;
-            const filterType = band.type === 'lowshelf' ? 'LS' : band.type === 'highshelf' ? 'HS' : 'PK';
-            lines.push(
-                `Filter ${index + 1}: ON ${filterType} Fc ${newFrequencies[index]} Hz Gain ${newGains[index].toFixed(1)} dB Q ${newQs[index].toFixed(2)}`
-            );
+            const filterType = band.type === 'lowshelf' ? 'LSC' : band.type === 'highshelf' ? 'HSC' : 'PK';
+            if (band.type === 'lowshelf' || band.type === 'highshelf') {
+                lines.push(
+                    `Filter ${index + 1}: ON ${filterType} Fc ${newFrequencies[index]} Hz Gain ${newGains[index].toFixed(1)} dB`
+                );
+            } else {
+                lines.push(
+                    `Filter ${index + 1}: ON ${filterType} Fc ${newFrequencies[index]} Hz Gain ${newGains[index].toFixed(1)} dB Q ${newQs[index].toFixed(2)}`
+                );
+            }
         });
 
         return lines.join('\n');
@@ -893,12 +973,18 @@ class AudioContextManager {
         this.frequencies.forEach((freq, index) => {
             const gain = this.currentGains[index] || 0;
             const type = (this.currentTypes && this.currentTypes[index]) || 'peaking';
-            const filterType = type === 'lowshelf' ? 'LS' : type === 'highshelf' ? 'HS' : 'PK';
-            const q = this.currentQs && this.currentQs[index] > 0 ? this.currentQs[index] : this._calculateQ(index);
+            const filterType = type === 'lowshelf' ? 'LSC' : type === 'highshelf' ? 'HSC' : 'PK';
             const filterNum = index + 1;
-            lines.push(
-                `Filter ${filterNum}: ON ${filterType} Fc ${freq} Hz Gain ${gain.toFixed(1)} dB Q ${q.toFixed(2)}`
-            );
+            if (type === 'lowshelf' || type === 'highshelf') {
+                lines.push(
+                    `Filter ${filterNum}: ON ${filterType} Fc ${freq} Hz Gain ${gain.toFixed(1)} dB`
+                );
+            } else {
+                const q = this.currentQs && this.currentQs[index] > 0 ? this.currentQs[index] : this._calculateQ(index);
+                lines.push(
+                    `Filter ${filterNum}: ON ${filterType} Fc ${freq} Hz Gain ${gain.toFixed(1)} dB Q ${q.toFixed(2)}`
+                );
+            }
         });
 
         return lines.join('\n');
