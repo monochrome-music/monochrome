@@ -2914,6 +2914,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             control.className = 'autoeq-band-control';
             control.dataset.band = i;
             const currentType = band.type || 'peaking';
+            const currentChannel = band.channel || 'stereo';
             control.innerHTML = `
                 <div class="autoeq-band-header">
                     <span class="autoeq-band-number">${i + 1}</span>
@@ -2921,6 +2922,11 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                         <option value="peaking"${currentType === 'peaking' ? ' selected' : ''}>PK</option>
                         <option value="lowshelf"${currentType === 'lowshelf' ? ' selected' : ''}>LSF</option>
                         <option value="highshelf"${currentType === 'highshelf' ? ' selected' : ''}>HSF</option>
+                    </select>
+                    <select class="autoeq-channel-select">
+                        <option value="stereo"${currentChannel === 'stereo' ? ' selected' : ''}>ST</option>
+                        <option value="mid"${currentChannel === 'mid' ? ' selected' : ''}>M</option>
+                        <option value="side"${currentChannel === 'side' ? ' selected' : ''}>S</option>
                     </select>
                     <div class="autoeq-band-param">
                         <span class="autoeq-band-param-label">Freq</span>
@@ -2986,6 +2992,16 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 const bands = getActiveBands();
                 if (!bands || !bands[i]) return;
                 bands[i].type = typeSelect.value;
+                computeCorrectedCurve();
+                applyBandsToAudio(bands);
+                scheduleDrawAutoEQGraph();
+            });
+
+            const channelSelect = control.querySelector('.autoeq-channel-select');
+            channelSelect.addEventListener('change', () => {
+                const bands = getActiveBands();
+                if (!bands || !bands[i]) return;
+                bands[i].channel = channelSelect.value;
                 computeCorrectedCurve();
                 applyBandsToAudio(bands);
                 scheduleDrawAutoEQGraph();
