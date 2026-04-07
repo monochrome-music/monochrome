@@ -491,9 +491,29 @@ export class Player {
             if (!window.AndroidBridge) return;
             const el = this.activeElement;
             window.AndroidBridge.onPlaybackStateChanged(el.paused ? 'paused' : 'playing');
+            if (el.duration && isFinite(el.duration)) {
+                window.AndroidBridge.onPositionStateChanged(JSON.stringify({
+                    duration: el.duration,
+                    position: el.currentTime,
+                    playbackRate: el.playbackRate || 1,
+                }));
+            }
+        };
+        const notifyAndroidPosition = () => {
+            if (!window.AndroidBridge) return;
+            const el = this.activeElement;
+            if (el.duration && isFinite(el.duration)) {
+                window.AndroidBridge.onPositionStateChanged(JSON.stringify({
+                    duration: el.duration,
+                    position: el.currentTime,
+                    playbackRate: el.playbackRate || 1,
+                }));
+            }
         };
         this.audio.addEventListener('play', notifyAndroid);
         this.audio.addEventListener('pause', notifyAndroid);
+        this.audio.addEventListener('durationchange', notifyAndroid);
+        this.audio.addEventListener('timeupdate', notifyAndroidPosition);
     }
 
     setQuality(quality) {
