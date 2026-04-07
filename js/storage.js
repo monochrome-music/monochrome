@@ -1735,8 +1735,9 @@ export const equalizerSettings = {
     },
 
     setGraphicEqBandCount(count) {
+        const clamped = Math.max(3, Math.min(32, parseInt(count, 10) || 16));
         try {
-            localStorage.setItem(this.GEQ_BAND_COUNT_KEY, String(count));
+            localStorage.setItem(this.GEQ_BAND_COUNT_KEY, String(clamped));
         } catch { /* ignore */ }
     },
 
@@ -1754,8 +1755,11 @@ export const equalizerSettings = {
     },
 
     setGraphicEqFreqRange(min, max) {
+        const clampedMin = Math.max(10, Math.min(96000, parseInt(min, 10) || 25));
+        const clampedMax = Math.max(10, Math.min(96000, parseInt(max, 10) || 20000));
+        if (clampedMin >= clampedMax) return;
         try {
-            localStorage.setItem(this.GEQ_FREQ_RANGE_KEY, JSON.stringify({ min, max }));
+            localStorage.setItem(this.GEQ_FREQ_RANGE_KEY, JSON.stringify({ min: clampedMin, max: clampedMax }));
         } catch { /* ignore */ }
     },
 
@@ -1779,8 +1783,10 @@ export const equalizerSettings = {
     },
 
     setGraphicEqGains(gains) {
+        if (!Array.isArray(gains)) return;
+        const sanitized = gains.map((v) => (Number.isFinite(v) ? v : 0));
         try {
-            localStorage.setItem(this.GEQ_GAINS_KEY, JSON.stringify(gains));
+            localStorage.setItem(this.GEQ_GAINS_KEY, JSON.stringify(sanitized));
         } catch {
             /* ignore */
         }
@@ -1800,8 +1806,9 @@ export const equalizerSettings = {
     },
 
     setGraphicEqPreamp(db) {
+        const clamped = Math.max(-20, Math.min(20, parseFloat(db) || 0));
         try {
-            localStorage.setItem(this.GEQ_PREAMP_KEY, String(db));
+            localStorage.setItem(this.GEQ_PREAMP_KEY, String(clamped));
         } catch {
             /* ignore */
         }

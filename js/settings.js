@@ -1407,6 +1407,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             if (newCount === geqBandCount) return;
             geqGains = equalizerSettings._interpolateGains(geqGains, newCount);
             geqBandCount = newCount;
+            equalizerSettings.setGraphicEqGains(geqGains);
             audioContextManager.setGraphicEqBandCount(newCount);
             rebuildGeq();
             geqPresetSelects.forEach((s) => (s.value = ''));
@@ -1454,7 +1455,11 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         legacyGeqExportBtn.addEventListener('click', () => {
             const lines = [`Preamp: ${geqPreamp.toFixed(1)} dB`];
             GEQ_FREQUENCIES.forEach((freq, i) => {
-                const q = (2.5 * Math.sqrt(16 / geqBandCount)).toFixed(2);
+                // Q from octave spacing between adjacent bands
+                const prev = GEQ_FREQUENCIES[Math.max(0, i - 1)];
+                const next = GEQ_FREQUENCIES[Math.min(GEQ_FREQUENCIES.length - 1, i + 1)];
+                const octaves = Math.log2(next / prev);
+                const q = (Math.SQRT2 / (2 * Math.sinh((Math.LN2 / 2) * octaves))).toFixed(2);
                 lines.push(`Filter ${i + 1}: ON PK Fc ${freq} Hz Gain ${geqGains[i].toFixed(1)} dB Q ${q}`);
             });
             const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
