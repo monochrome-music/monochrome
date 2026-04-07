@@ -1667,9 +1667,8 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                     updateDeleteBtnVisibility();
                     return;
                 }
-                const adjusted = gains.length !== geqBandCount
-                    ? equalizerSettings._interpolateGains(gains, geqBandCount)
-                    : gains;
+                const adjusted =
+                    gains.length !== geqBandCount ? equalizerSettings._interpolateGains(gains, geqBandCount) : gains;
                 geqGains = adjusted.map((g) => {
                     const n = Number(g);
                     return Number.isFinite(n)
