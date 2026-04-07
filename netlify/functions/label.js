@@ -51,10 +51,10 @@ async function findQobuzLabel(name, token) {
     return scored[0].score >= 0.7 ? scored[0] : null;
 }
 
-async function getQobuzLabelAlbums(labelId, offset, limit, token) {
+async function getQobuzLabelAlbums(labelId, labelName, offset, limit, token) {
     const url = new URL(`${QOBUZ_BASE}/catalog/search`);
     url.searchParams.set('type', 'albums');
-    url.searchParams.set('query', '');
+    url.searchParams.set('query', labelName);
     url.searchParams.set('label_id', String(labelId));
     url.searchParams.set('limit', String(limit));
     url.searchParams.set('offset', String(offset));
@@ -147,7 +147,7 @@ exports.handler = async (event) => {
 
     let qobuzResult;
     try {
-        qobuzResult = await getQobuzLabelAlbums(label.id, offset, limit, token);
+        qobuzResult = await getQobuzLabelAlbums(label.id, label.name, offset, limit, token);
     } catch {
         return { statusCode: 502, headers: corsHeaders, body: JSON.stringify({ error: 'Failed to fetch label albums' }) };
     }
