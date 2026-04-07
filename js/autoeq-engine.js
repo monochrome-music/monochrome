@@ -243,7 +243,7 @@ function runAutoEqAlgorithm(
         if (peakFreq > 5000 && q > 3.0) q = 3.0;
         if (gain > 0 && q > 2.0) q = 2.0;
 
-        const newBand = { id: i, type: 'peaking', freq: peakFreq, gain, q, enabled: true };
+        const newBand = { id: i, type: 'peaking', freq: peakFreq, gain, q, enabled: true, channel: 'stereo' };
 
         // Check cumulative gain at the peak frequency across all existing bands + this one
         let cumulativeGain = gain;

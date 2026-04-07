@@ -1071,6 +1071,7 @@ export const equalizerSettings = {
     GAINS_KEY: 'equalizer-gains',
     BAND_TYPES_KEY: 'equalizer-band-types',
     BAND_QS_KEY: 'equalizer-band-qs',
+    BAND_CHANNELS_KEY: 'equalizer-band-channels',
     PRESET_KEY: 'equalizer-preset',
     CUSTOM_PRESETS_KEY: 'equalizer-custom-presets',
     BAND_COUNT_KEY: 'equalizer-band-count',
@@ -1440,6 +1441,32 @@ export const equalizerSettings = {
             }
         } catch (e) {
             console.warn('[EQ] Failed to save band Qs:', e);
+        }
+    },
+
+    getBandChannels(bandCount) {
+        const count = bandCount || this.getBandCount();
+        try {
+            const stored = localStorage.getItem(this.BAND_CHANNELS_KEY);
+            if (stored) {
+                const channels = JSON.parse(stored);
+                if (Array.isArray(channels) && channels.length === count) {
+                    return channels;
+                }
+            }
+        } catch {
+            /* ignore */
+        }
+        return new Array(count).fill('stereo');
+    },
+
+    setBandChannels(channels) {
+        try {
+            if (Array.isArray(channels) && channels.length >= this.MIN_BANDS && channels.length <= this.MAX_BANDS) {
+                localStorage.setItem(this.BAND_CHANNELS_KEY, JSON.stringify(channels));
+            }
+        } catch (e) {
+            console.warn('[EQ] Failed to save band channels:', e);
         }
     },
 
