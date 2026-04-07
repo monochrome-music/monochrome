@@ -11147,3 +11147,84 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
         width: 100%;
     }
 }
+
+/* ==========================================
+   Binaural / Spatial DSP
+   ========================================== */
+
+.binaural-dsp-container {
+    padding: var(--spacing-md) 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.binaural-status {
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    background: var(--secondary);
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    color: var(--muted-foreground);
+}
+
+.binaural-mode-label {
+    font-weight: 500;
+}
+
+.binaural-sub-setting {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) 0;
+    gap: var(--spacing-md);
+    min-width: 0;
+}
+
+.binaural-sub-setting .info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
+.binaural-sub-setting .label {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.binaural-sub-setting .description {
+    font-size: 0.8rem;
+    color: var(--muted-foreground);
+}
+
+.binaural-sub-setting select {
+    background: var(--secondary);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.binaural-slider {
+    width: 140px;
+    accent-color: var(--primary);
+    cursor: pointer;
+}
+
+.binaural-width-value {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--primary);
+    min-width: 2.5em;
+    text-align: right;
+}
+
+.binaural-badge {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.8;
+    vertical-align: middle;
+}
