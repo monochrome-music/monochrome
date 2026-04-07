@@ -31,5 +31,11 @@ export function extractLabelName(copyright) {
     const divisionMatch = copyright.match(/^([^,℗©\d]+?),\s*a\s+(?:division|subsidiary|label)\s+of/i);
     if (divisionMatch) return divisionMatch[1].trim();
 
+    // Rule 4: bare label name — short string with no year, symbols, or sentence structure
+    const trimmed = copyright.trim();
+    if (trimmed.length > 0 && trimmed.length < 60 && !/\d{4}/.test(trimmed) && !/[℗©]/.test(trimmed) && !trimmed.includes('.')) {
+        return trimmed;
+    }
+
     return null;
 }
