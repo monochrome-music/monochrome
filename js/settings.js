@@ -1397,6 +1397,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     };
     const GEQ_FREQUENCIES = GEQ_LABELS.map((label) => parseGeqLabelFrequency(label));
     const legacyGeqExportBtn = document.getElementById('legacy-geq-export-btn');
+    const legacyGeqExportCsvBtn = document.getElementById('legacy-geq-export-csv-btn');
     const legacyGeqImportBtn = document.getElementById('legacy-geq-import-btn');
     const legacyGeqImportFile = document.getElementById('legacy-geq-import-file');
 
@@ -1411,6 +1412,20 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             const a = document.createElement('a');
             a.href = url;
             a.download = 'legacy-eq.txt';
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 0);
+        });
+    }
+
+    if (legacyGeqExportCsvBtn) {
+        legacyGeqExportCsvBtn.addEventListener('click', () => {
+            const pairs = GEQ_FREQUENCIES.map((freq, i) => `${freq} ${geqGains[i].toFixed(1)}`).join('; ');
+            const lines = [`Preamp: ${geqPreamp.toFixed(1)} dB`, `GraphicEQ: ${pairs}`];
+            const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'legacy-eq-apo.txt';
             a.click();
             setTimeout(() => URL.revokeObjectURL(url), 0);
         });
