@@ -2605,6 +2605,8 @@ body.multi-select-mode .track-item:hover {
 
 .detail-header-info .meta a.label-link {
     color: var(--highlight);
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }
 
 /* Artist Biography Styles */
