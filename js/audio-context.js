@@ -12,6 +12,12 @@ function generateFrequencies(bandCount, minFreq = 20, maxFreq = 20000) {
     const safeMin = Math.max(10, minFreq);
     const safeMax = Math.min(96000, maxFreq);
 
+    if (bandCount <= 1) {
+        // Single band: use geometric mean of range
+        frequencies.push(Math.round(Math.sqrt(safeMin * safeMax)));
+        return frequencies;
+    }
+
     for (let i = 0; i < bandCount; i++) {
         // Logarithmic interpolation
         const t = i / (bandCount - 1);
@@ -175,7 +181,7 @@ class AudioContextManager {
         this.frequencies = generateFrequencies(newCount, this.freqRange.min, this.freqRange.max);
 
         // Interpolate current gains to new band count
-        const newGains = equalizerSettings._interpolateGains(this.currentGains, newCount);
+        const newGains = equalizerSettings.interpolateGains(this.currentGains, newCount);
         this.currentGains = newGains;
         equalizerSettings.setGains(newGains);
 
@@ -1079,7 +1085,7 @@ class AudioContextManager {
         // Ensure gains array matches current band count
         let adjustedGains = gains;
         if (gains.length !== this.bandCount) {
-            adjustedGains = equalizerSettings._interpolateGains(gains, this.bandCount);
+            adjustedGains = equalizerSettings.interpolateGains(gains, this.bandCount);
         }
 
         const now = this.audioContext?.currentTime || 0;
@@ -1535,7 +1541,7 @@ class AudioContextManager {
         const oldGains = this.geqGains;
         this.geqBandCount = newCount;
         this.geqFrequencies = generateFrequencies(newCount, this.geqFreqRange.min, this.geqFreqRange.max);
-        this.geqGains = equalizerSettings._interpolateGains(oldGains, newCount);
+        this.geqGains = equalizerSettings.interpolateGains(oldGains, newCount);
 
         equalizerSettings.setGraphicEqBandCount(newCount);
         equalizerSettings.setGraphicEqGains(this.geqGains);

@@ -65,8 +65,9 @@ export function generateHRTF(audioContext, azimuthDeg, elevationDeg = 0) {
     const contraData = sourceOnRight ? leftData : rightData;
 
     // Generate ipsilateral (near ear) IR — mostly a delayed impulse with slight coloring
-    const ipsiDelay = Math.max(0, sourceOnRight ? 0 : itdSamples);
-    const contraDelay = Math.max(0, sourceOnRight ? itdSamples : 0);
+    // Ipsilateral ear (near source) receives sound first; contralateral ear is delayed by ITD
+    const ipsiDelay = 0;
+    const contraDelay = Math.abs(itdSamples);
 
     // Create frequency-domain representation for head shadow
     const fftSize = IR_LENGTH;

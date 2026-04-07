@@ -1329,7 +1329,7 @@ export const equalizerSettings = {
                     }
                     // If different band count, try to interpolate or return flat
                     if (gains.length > 0) {
-                        return this._interpolateGains(gains, count);
+                        return this.interpolateGains(gains, count);
                     }
                 }
             }
@@ -1425,7 +1425,7 @@ export const equalizerSettings = {
                 }
                 // Interpolate stored Qs to match requested band count instead of discarding
                 if (Array.isArray(qs) && qs.length >= this.MIN_BANDS) {
-                    return this._interpolateGains(qs, count);
+                    return this.interpolateGains(qs, count);
                 }
             }
         } catch {
@@ -1473,7 +1473,7 @@ export const equalizerSettings = {
     /**
      * Interpolate gains array to match target band count
      */
-    _interpolateGains(sourceGains, targetCount) {
+    interpolateGains(sourceGains, targetCount) {
         if (sourceGains.length === targetCount) {
             return [...sourceGains];
         }
@@ -1808,7 +1808,7 @@ export const equalizerSettings = {
                     return parsed.map((v) => (Number.isFinite(v) ? v : 0));
                 }
                 if (Array.isArray(parsed) && parsed.length > 0) {
-                    return this._interpolateGains(parsed, expectedCount);
+                    return this.interpolateGains(parsed, expectedCount);
                 }
             }
         } catch {
@@ -1944,7 +1944,8 @@ export const binauralDspSettings = {
 
     setWideningAmount(amount) {
         const all = this._getAll();
-        all.wideningAmount = Math.max(0, Math.min(2, amount));
+        const n = Number(amount);
+        all.wideningAmount = Number.isFinite(n) ? Math.max(0, Math.min(2, n)) : 1.0;
         this._setAll(all);
     },
 
