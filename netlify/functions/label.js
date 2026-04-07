@@ -80,7 +80,7 @@ async function searchTidalAlbums(query) {
             const res = await fetch(`${base}/search/?al=${encodeURIComponent(query)}`, { signal: AbortSignal.timeout(5000) });
             if (!res.ok) continue;
             const data = await res.json();
-            return data.albums?.items ?? data.items ?? [];
+            return data.data?.albums?.items ?? data.albums?.items ?? data.items ?? [];
         } catch { continue; }
     }
     return [];
