@@ -11179,6 +11179,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     min-width: 0;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .binaural-sub-setting .info {
     display: flex;
     flex-direction: column;
@@ -11186,16 +11187,19 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     flex: 1;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .binaural-sub-setting .label {
     font-weight: 500;
     font-size: 0.9rem;
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .binaural-sub-setting .description {
     font-size: 0.8rem;
     color: var(--muted-foreground);
 }
 
+/* stylelint-disable-next-line no-descending-specificity */
 .binaural-sub-setting select {
     background: var(--secondary);
     color: var(--foreground);
