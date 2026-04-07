@@ -3,7 +3,8 @@
 // Supports 3-32 parametric EQ bands
 
 import { isIos } from './platform-detection.js';
-import { equalizerSettings, monoAudioSettings } from './storage.js';
+import { equalizerSettings, monoAudioSettings, binauralDspSettings } from './storage.js';
+import { BinauralDSP } from './binaural-dsp.js';
 
 /**
  * Compute RBJ cookbook IIR coefficients for shelf filters with Q support.
@@ -137,6 +138,10 @@ class AudioContextManager {
         this.frequencies = generateFrequencies(this.bandCount, this.freqRange.min, this.freqRange.max);
         this.currentGains = new Array(this.bandCount).fill(0);
         this.currentChannels = new Array(this.bandCount).fill('stereo');
+
+        // Binaural DSP state
+        this.binauralDsp = null;
+        this.isBinauralEnabled = binauralDspSettings.isEnabled();
 
         // Callbacks for audio graph changes (for visualizers like Butterchurn)
         this._graphChangeCallbacks = [];
@@ -487,13 +492,38 @@ class AudioContextManager {
             }
 
             if (!this.sources.has(audioElement)) {
-                this.sources.set(audioElement, this.audioContext.createMediaElementSource(audioElement));
+                const src = this.audioContext.createMediaElementSource(audioElement);
+                // Allow multichannel passthrough for Atmos/spatial audio
+                try {
+                    src.channelCount = 6;
+                    src.channelCountMode = 'max';
+                    src.channelInterpretation = 'discrete';
+                } catch {
+                    // Some browsers may not support this
+                }
+                this.sources.set(audioElement, src);
             }
             this.source = this.sources.get(audioElement);
+
+            // Enable multichannel passthrough for Atmos/spatial content
+            try {
+                this.audioContext.destination.channelCount = Math.min(
+                    this.audioContext.destination.maxChannelCount,
+                    8
+                );
+                this.audioContext.destination.channelCountMode = 'explicit';
+                this.audioContext.destination.channelInterpretation = 'discrete';
+            } catch {
+                // Some browsers may not support changing destination channel count
+            }
 
             this.analyser = this.audioContext.createAnalyser();
             this.analyser.fftSize = 1024;
             this.analyser.smoothingTimeConstant = 0.7;
+
+            // Create binaural DSP processor
+            this.binauralDsp = new BinauralDSP(this.audioContext);
+            this._loadBinauralSettings();
 
             this._createEQ();
             this._createGraphicEQ();
@@ -612,6 +642,12 @@ class AudioContextManager {
             safeDisconnect(this.source);
             safeDisconnect(this.monoGainNode);
             safeDisconnect(this.monoMergerNode);
+            // Binaural DSP disconnects internally
+            if (this.binauralDsp) {
+                const { input, output } = this.binauralDsp.getNodes();
+                safeDisconnect(input);
+                safeDisconnect(output);
+            }
             safeDisconnect(this.preampNode);
             this.filters.forEach(safeDisconnect);
             safeDisconnect(this.outputNode);
@@ -650,6 +686,14 @@ class AudioContextManager {
                 this.monoGainNode.connect(this.monoMergerNode, 0, 0);
                 this.monoGainNode.connect(this.monoMergerNode, 0, 1);
                 lastNode = this.monoMergerNode;
+            }
+
+            // Insert binaural DSP before EQ
+            if (this.isBinauralEnabled && this.binauralDsp) {
+                const { input, output } = this.binauralDsp.getNodes();
+                lastNode.connect(input);
+                this.binauralDsp._connectInternal();
+                lastNode = output;
             }
 
             if (this.isEQEnabled && this.filters.length > 0) {
@@ -839,6 +883,126 @@ class AudioContextManager {
         return this.isInitialized && this.isMonoAudioEnabled;
     }
 
+    // ==========================================
+    // Binaural DSP controls
+    // ==========================================
+
+    /**
+     * Toggle binaural DSP on/off
+     */
+    async toggleBinaural(enabled) {
+        this.isBinauralEnabled = enabled;
+        binauralDspSettings.setEnabled(enabled);
+
+        if (this.binauralDsp) {
+            await this.binauralDsp.setEnabled(enabled);
+        }
+
+        if (this.isInitialized) {
+            this._connectGraph();
+        }
+
+        return this.isBinauralEnabled;
+    }
+
+    /**
+     * Check if binaural DSP is active
+     */
+    isBinauralActive() {
+        return this.isInitialized && this.isBinauralEnabled;
+    }
+
+    /**
+     * Set crossfeed enabled state
+     */
+    async setBinauralCrossfeedEnabled(enabled) {
+        binauralDspSettings.setCrossfeedEnabled(enabled);
+        if (this.binauralDsp) {
+            await this.binauralDsp.setCrossfeedEnabled(enabled);
+            if (this.isInitialized) this._connectGraph();
+        }
+    }
+
+    /**
+     * Set crossfeed level
+     * @param {'low'|'medium'|'high'} level
+     */
+    setBinauralCrossfeedLevel(level) {
+        binauralDspSettings.setCrossfeedLevel(level);
+        if (this.binauralDsp) {
+            this.binauralDsp.setCrossfeedLevel(level);
+        }
+    }
+
+    /**
+     * Set HRTF preset
+     * @param {'intimate'|'studio'|'wide'} preset
+     */
+    async setBinauralHrtfPreset(preset) {
+        binauralDspSettings.setHrtfPreset(preset);
+        if (this.binauralDsp) {
+            await this.binauralDsp.setHrtfPreset(preset);
+        }
+    }
+
+    /**
+     * Set stereo widening enabled state
+     */
+    async setBinauralWideningEnabled(enabled) {
+        binauralDspSettings.setWideningEnabled(enabled);
+        if (this.binauralDsp) {
+            await this.binauralDsp.setWideningEnabled(enabled);
+            if (this.isInitialized) this._connectGraph();
+        }
+    }
+
+    /**
+     * Set stereo widening amount
+     * @param {number} amount - 0.0 to 2.0 (1.0 = neutral)
+     */
+    setBinauralWidening(amount) {
+        binauralDspSettings.setWideningAmount(amount);
+        if (this.binauralDsp) {
+            this.binauralDsp.setWideningAmount(amount);
+        }
+    }
+
+    /**
+     * Notify binaural DSP of channel count change (for multichannel detection)
+     * @param {number} channelCount
+     */
+    async notifyBinauralChannelCount(channelCount) {
+        if (this.binauralDsp && this.isBinauralEnabled) {
+            await this.binauralDsp.detectAndConfigure(channelCount);
+            if (this.isInitialized) this._connectGraph();
+        }
+    }
+
+    /**
+     * Get binaural DSP status
+     */
+    getBinauralStatus() {
+        return this.binauralDsp ? this.binauralDsp.getStatus() : null;
+    }
+
+    /**
+     * Load binaural settings from storage and apply to DSP
+     */
+    async _loadBinauralSettings() {
+        if (!this.binauralDsp) return;
+
+        this.isBinauralEnabled = binauralDspSettings.isEnabled();
+        this.binauralDsp.crossfeedEnabled = binauralDspSettings.getCrossfeedEnabled();
+        this.binauralDsp.crossfeedLevel = binauralDspSettings.getCrossfeedLevel();
+        this.binauralDsp.hrtfPreset = binauralDspSettings.getHrtfPreset();
+        this.binauralDsp.wideningEnabled = binauralDspSettings.getWideningEnabled();
+        this.binauralDsp.wideningAmount = binauralDspSettings.getWideningAmount();
+
+        if (this.isBinauralEnabled) {
+            await this.binauralDsp.setEnabled(true);
+        }
+    }
+
     /**
      * Get current gain range
      */
@@ -998,6 +1162,7 @@ class AudioContextManager {
         this.msEnabled = this.currentChannels.some((ch) => ch === 'mid' || ch === 'side');
         this.isMonoAudioEnabled = monoAudioSettings.isEnabled();
         this.preamp = equalizerSettings.getPreamp();
+        this.isBinauralEnabled = binauralDspSettings.isEnabled();
     }
 
     /**
