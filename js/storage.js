@@ -1700,10 +1700,12 @@ export const equalizerSettings = {
         localStorage.removeItem(this.AUTOEQ_LAST_HEADPHONE_KEY);
     },
 
-    // --- Graphic EQ (16-band) separate storage ---
+    // --- Graphic EQ separate storage ---
     GEQ_ENABLED_KEY: 'graphic-eq-enabled',
     GEQ_GAINS_KEY: 'graphic-eq-gains',
     GEQ_PREAMP_KEY: 'graphic-eq-preamp',
+    GEQ_BAND_COUNT_KEY: 'graphic-eq-band-count',
+    GEQ_FREQ_RANGE_KEY: 'graphic-eq-freq-range',
 
     isGraphicEqEnabled() {
         try {
@@ -1721,19 +1723,59 @@ export const equalizerSettings = {
         }
     },
 
-    getGraphicEqGains() {
+    getGraphicEqBandCount() {
+        try {
+            const val = localStorage.getItem(this.GEQ_BAND_COUNT_KEY);
+            if (val !== null) {
+                const num = parseInt(val, 10);
+                if (num >= 3 && num <= 32) return num;
+            }
+        } catch { /* ignore */ }
+        return 16;
+    },
+
+    setGraphicEqBandCount(count) {
+        try {
+            localStorage.setItem(this.GEQ_BAND_COUNT_KEY, String(count));
+        } catch { /* ignore */ }
+    },
+
+    getGraphicEqFreqRange() {
+        try {
+            const stored = localStorage.getItem(this.GEQ_FREQ_RANGE_KEY);
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (parsed && Number.isFinite(parsed.min) && Number.isFinite(parsed.max)) {
+                    return parsed;
+                }
+            }
+        } catch { /* ignore */ }
+        return { min: 25, max: 20000 };
+    },
+
+    setGraphicEqFreqRange(min, max) {
+        try {
+            localStorage.setItem(this.GEQ_FREQ_RANGE_KEY, JSON.stringify({ min, max }));
+        } catch { /* ignore */ }
+    },
+
+    getGraphicEqGains(bandCount) {
         try {
             const stored = localStorage.getItem(this.GEQ_GAINS_KEY);
             if (stored) {
                 const parsed = JSON.parse(stored);
-                if (Array.isArray(parsed) && parsed.length === 16) {
+                const expectedCount = bandCount || this.getGraphicEqBandCount();
+                if (Array.isArray(parsed) && parsed.length === expectedCount) {
                     return parsed.map((v) => (Number.isFinite(v) ? v : 0));
+                }
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    return this._interpolateGains(parsed, expectedCount);
                 }
             }
         } catch {
             /* ignore */
         }
-        return new Array(16).fill(0);
+        return new Array(bandCount || this.getGraphicEqBandCount()).fill(0);
     },
 
     setGraphicEqGains(gains) {

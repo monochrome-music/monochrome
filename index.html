@@ -4174,6 +4174,54 @@
                                             &times;
                                         </button>
 
+                                        <div
+                                            class="eq-howto-tab legacy"
+                                            id="eq-howto-legacy"
+                                            style="display: none"
+                                        >
+                                            <h4>Legacy EQ - Graphic Equalizer</h4>
+                                            <ol>
+                                                <li>
+                                                    Set the <b>number of bands</b> (3-32) and
+                                                    <b>frequency range</b> (Min/Max Hz) at the top to
+                                                    customize the equalizer layout.
+                                                </li>
+                                                <li>
+                                                    <b>Drag the sliders</b> to boost or cut each frequency
+                                                    band. Bands are spaced logarithmically across your range.
+                                                </li>
+                                                <li>
+                                                    Pick a <b>preset</b> (Bass Boost, Rock, Vocal, etc.) as a
+                                                    starting point - presets auto-scale to your band count.
+                                                </li>
+                                                <li>
+                                                    Adjust the <b>preamp</b> slider to raise or lower the overall
+                                                    level - reduce it if you hear distortion from large boosts.
+                                                </li>
+                                                <li>
+                                                    <b>Save</b> your own custom presets with a name so you can
+                                                    recall them later.
+                                                </li>
+                                                <li>
+                                                    <b>Export</b> saves the EQ in EqualizerAPO text format.
+                                                    <b>Export APO</b> saves a GraphicEQ config line you can paste
+                                                    directly into Equalizer APO's config.txt.
+                                                </li>
+                                                <li>
+                                                    <b>Import</b> loads EQ settings from EqualizerAPO text files
+                                                    or simple frequency/gain CSV files - points are mapped to
+                                                    your current bands automatically.
+                                                </li>
+                                                <li>
+                                                    Click <b>Reset</b> to flatten all bands back to 0 dB.
+                                                </li>
+                                            </ol>
+                                            <p class="eq-howto-tip">
+                                                Tip: Cut problem frequencies rather than boosting others - it
+                                                sounds cleaner and avoids clipping.
+                                            </p>
+                                        </div>
+
                                         <div class="eq-howto-tab autoeq" id="eq-howto-autoeq">
                                             <h4>AutoEQ - Headphone Correction</h4>
                                             <ol>
@@ -4297,6 +4345,35 @@
 
                                     <!-- Legacy 16-Band Graphic EQ (visible in legacy mode) -->
                                     <div class="graphic-eq-section" id="graphic-eq-section" style="display: none">
+                                        <div class="graphic-eq-config-row">
+                                            <label>Bands</label>
+                                            <input
+                                                type="number"
+                                                id="legacy-geq-band-count"
+                                                min="3"
+                                                max="32"
+                                                value="16"
+                                                class="geq-config-input"
+                                            />
+                                            <label>Min Hz</label>
+                                            <input
+                                                type="number"
+                                                id="legacy-geq-freq-min"
+                                                min="10"
+                                                max="96000"
+                                                value="25"
+                                                class="geq-config-input"
+                                            />
+                                            <label>Max Hz</label>
+                                            <input
+                                                type="number"
+                                                id="legacy-geq-freq-max"
+                                                min="10"
+                                                max="96000"
+                                                value="20000"
+                                                class="geq-config-input"
+                                            />
+                                        </div>
                                         <div class="graphic-eq-preset-row">
                                             <label for="legacy-graphic-eq-preset-select" class="graphic-eq-preset-label"
                                                 >Preset</label
