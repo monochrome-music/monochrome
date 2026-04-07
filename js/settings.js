@@ -1350,14 +1350,14 @@ export async function initializeSettings(scrobbler, player, api, ui) {
     };
 
     const generateGeqFrequencies = (count, min, max) => {
+        if (count <= 0) return [];
+        if (count === 1) return [Math.min(Math.max(Math.round(min), min), max)];
+
         const freqs = [];
         for (let i = 0; i < count; i++) {
             const t = i / (count - 1);
-            let freq = Math.round(min * Math.pow(max / min, t));
-            // Ensure strictly increasing — rounding can produce duplicates at high band counts
-            if (freqs.length > 0 && freq <= freqs[freqs.length - 1]) {
-                freq = freqs[freqs.length - 1] + 1;
-            }
+            const rawFreq = min * Math.pow(max / min, t);
+            const freq = Math.min(max, Math.max(min, Math.round(rawFreq)));
             freqs.push(freq);
         }
         return freqs;
