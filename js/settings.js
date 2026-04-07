@@ -35,6 +35,7 @@ import {
     analyticsSettings,
     modalSettings,
     preferDolbyAtmosSettings,
+    binauralDspSettings,
     fullscreenCoverNoRoundSettings,
     fullscreenCoverVanillaTiltSettings,
     fullscreenCoverTiltDistanceSettings,
@@ -1153,6 +1154,106 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             audioContextManager.toggleMonoAudio(enabled);
         });
     }
+
+    // ========================================
+    // Binaural / Spatial DSP
+    // ========================================
+    const binauralToggle = document.getElementById('binaural-dsp-toggle');
+    const binauralContainer = document.getElementById('binaural-dsp-container');
+    const binauralAutoSpatialToggle = document.getElementById('binaural-auto-spatial-toggle');
+    const binauralCrossfeedToggle = document.getElementById('binaural-crossfeed-toggle');
+    const binauralCrossfeedLevel = document.getElementById('binaural-crossfeed-level');
+    const crossfeedLevelRow = document.getElementById('crossfeed-level-row');
+    const binauralHrtfPreset = document.getElementById('binaural-hrtf-preset');
+    const binauralWideningToggle = document.getElementById('binaural-widening-toggle');
+    const binauralWideningSlider = document.getElementById('binaural-widening-slider');
+    const binauralWidthValue = document.getElementById('binaural-width-value');
+    const wideningSliderRow = document.getElementById('widening-slider-row');
+
+    if (binauralToggle && binauralContainer) {
+        const isEnabled = binauralDspSettings.isEnabled();
+        binauralToggle.checked = isEnabled;
+        binauralContainer.style.display = isEnabled ? 'block' : 'none';
+
+        binauralToggle.addEventListener('change', async (e) => {
+            const enabled = e.target.checked;
+            binauralContainer.style.display = enabled ? 'block' : 'none';
+            await audioContextManager.toggleBinaural(enabled);
+        });
+    }
+
+    if (binauralAutoSpatialToggle) {
+        binauralAutoSpatialToggle.checked = binauralDspSettings.getAutoEnableForSpatial();
+        binauralAutoSpatialToggle.addEventListener('change', (e) => {
+            binauralDspSettings.setAutoEnableForSpatial(e.target.checked);
+        });
+    }
+
+    if (binauralCrossfeedToggle) {
+        binauralCrossfeedToggle.checked = binauralDspSettings.getCrossfeedEnabled();
+        if (crossfeedLevelRow) {
+            crossfeedLevelRow.style.display = binauralCrossfeedToggle.checked ? 'flex' : 'none';
+        }
+        binauralCrossfeedToggle.addEventListener('change', async (e) => {
+            const enabled = e.target.checked;
+            if (crossfeedLevelRow) {
+                crossfeedLevelRow.style.display = enabled ? 'flex' : 'none';
+            }
+            await audioContextManager.setBinauralCrossfeedEnabled(enabled);
+        });
+    }
+
+    if (binauralCrossfeedLevel) {
+        binauralCrossfeedLevel.value = binauralDspSettings.getCrossfeedLevel();
+        binauralCrossfeedLevel.addEventListener('change', (e) => {
+            audioContextManager.setBinauralCrossfeedLevel(e.target.value);
+        });
+    }
+
+    if (binauralHrtfPreset) {
+        binauralHrtfPreset.value = binauralDspSettings.getHrtfPreset();
+        binauralHrtfPreset.addEventListener('change', async (e) => {
+            await audioContextManager.setBinauralHrtfPreset(e.target.value);
+        });
+    }
+
+    if (binauralWideningToggle) {
+        binauralWideningToggle.checked = binauralDspSettings.getWideningEnabled();
+        if (wideningSliderRow) {
+            wideningSliderRow.style.display = binauralWideningToggle.checked ? 'flex' : 'none';
+        }
+        binauralWideningToggle.addEventListener('change', async (e) => {
+            const enabled = e.target.checked;
+            if (wideningSliderRow) {
+                wideningSliderRow.style.display = enabled ? 'flex' : 'none';
+            }
+            await audioContextManager.setBinauralWideningEnabled(enabled);
+        });
+    }
+
+    if (binauralWideningSlider && binauralWidthValue) {
+        binauralWideningSlider.value = binauralDspSettings.getWideningAmount();
+        binauralWidthValue.textContent = parseFloat(binauralWideningSlider.value).toFixed(2);
+        binauralWideningSlider.addEventListener('input', (e) => {
+            const amount = parseFloat(e.target.value);
+            binauralWidthValue.textContent = amount.toFixed(2);
+            audioContextManager.setBinauralWidening(amount);
+        });
+    }
+
+    // Listen for binaural mode changes (multichannel detection)
+    window.addEventListener('binaural-mode-changed', (e) => {
+        const statusEl = document.getElementById('binaural-status');
+        if (statusEl) {
+            const { mode, channels } = e.detail;
+            const label = statusEl.querySelector('.binaural-mode-label');
+            if (label) {
+                label.textContent = mode === 'multichannel'
+                    ? `Mode: Multichannel (${channels > 6 ? '7.1' : '5.1'} → Binaural)`
+                    : 'Mode: Stereo';
+            }
+        }
+    });
 
     // Exponential Volume Toggle
     const exponentialVolumeToggle = document.getElementById('exponential-volume-toggle');
