@@ -1603,7 +1603,11 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                     audioContextManager.setGraphicEqAllGains(geqGains);
                     geqSyncAllSliders();
                     if (customPresets[key].preamp !== undefined) {
-                        geqPreamp = customPresets[key].preamp;
+                        const preampSliderMin = geqPreampSliders.length > 0 ? parseFloat(geqPreampSliders[0].min) : geqPreamp;
+                        const preampSliderMax = geqPreampSliders.length > 0 ? parseFloat(geqPreampSliders[0].max) : geqPreamp;
+                        const rawPreamp = Number(customPresets[key].preamp);
+                        const safePreamp = Number.isFinite(rawPreamp) ? rawPreamp : 0;
+                        geqPreamp = Math.max(preampSliderMin, Math.min(preampSliderMax, safePreamp));
                         equalizerSettings.setGraphicEqPreamp(geqPreamp);
                         audioContextManager.setGraphicEqPreamp(geqPreamp);
                         geqPreampSliders.forEach((s) => (s.value = geqPreamp));
