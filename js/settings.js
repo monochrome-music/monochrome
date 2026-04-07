@@ -3954,6 +3954,9 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
         // Graph visible in all modes except legacy
         if (graphSection) graphSection.style.display = mode === 'legacy' ? 'none' : '';
+        // Legend only relevant in modes with Original/Target/Corrected curves
+        const graphLegend = document.querySelector('.autoeq-graph-legend');
+        if (graphLegend) graphLegend.style.display = (mode === 'autoeq' || mode === 'speaker') ? '' : 'none';
         // Only show shared AutoEq button in AutoEQ mode
         if (autoeqRunBtn) autoeqRunBtn.style.display = mode === 'autoeq' ? '' : 'none';
 
