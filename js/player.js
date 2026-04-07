@@ -1897,7 +1897,8 @@ export class Player {
 
                         const binauralActive = audioContextManager.isBinauralActive();
                         badgeEl.className = 'quality-badge quality-atmos shaka-quality-badge';
-                        badgeEl.innerHTML = SVG_ATMOS(20) + (binauralActive ? ' <span class="binaural-badge">Binaural</span>' : '');
+                        badgeEl.innerHTML =
+                            SVG_ATMOS(20) + (binauralActive ? ' <span class="binaural-badge">Binaural</span>' : '');
                     } else {
                         // Notify binaural DSP that we're in stereo mode
                         audioContextManager.notifyBinauralChannelCount(2);
