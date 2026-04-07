@@ -201,7 +201,7 @@ export class Equalizer {
         this.frequencyLabels = generateFrequencyLabels(this.frequencies);
 
         // Interpolate current gains to new band count
-        const newGains = equalizerSettings._interpolateGains(this.currentGains, newCount);
+        const newGains = equalizerSettings.interpolateGains(this.currentGains, newCount);
         this.currentGains = newGains;
         equalizerSettings.setGains(newGains);
 
@@ -455,7 +455,7 @@ export class Equalizer {
         // Ensure gains array matches current band count
         let adjustedGains = gains;
         if (gains.length !== this.bandCount) {
-            adjustedGains = equalizerSettings._interpolateGains(gains, this.bandCount);
+            adjustedGains = equalizerSettings.interpolateGains(gains, this.bandCount);
         }
 
         const now = this.audioContext?.currentTime || 0;
