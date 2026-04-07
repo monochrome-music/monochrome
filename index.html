@@ -1565,6 +1565,12 @@
                                     <span>Unreleased</span>
                                 </a>
                             </li>
+                            <li class="nav-item" id="sidebar-nav-labels">
+                                <a href="/labels">
+                                    <use svg="!lucide/tag.svg" size="24" />
+                                    <span>Labels</span>
+                                </a>
+                            </li>
                             <li class="nav-item" id="sidebar-nav-donate">
                                 <a id="sidebar-donate-link" href="/donate">
                                     <use svg="!lucide/hand-heart.svg" size="24" />
@@ -2468,6 +2474,18 @@
                     </header>
                     <div id="mix-detail-tracklist" class="track-list"></div>
                 </section>
+
+                <div id="page-labels" class="page">
+                    <header class="detail-header" style="align-items: flex-start; padding-bottom: 1.5rem;">
+                        <div class="detail-header-info" style="width: 100%;">
+                            <h1 class="title">Labels</h1>
+                            <div style="margin-top: 1rem; display: flex; gap: 0.5rem; max-width: 480px;">
+                                <input id="labels-search-input" class="search-input" type="text" placeholder="Search for a label…" style="flex: 1;" />
+                                <button id="labels-search-btn" class="btn-primary">Browse</button>
+                            </div>
+                        </div>
+                    </header>
+                </div>
 
                 <div id="page-label" class="page">
                     <header class="detail-header" style="align-items: flex-start; padding-bottom: 1.5rem;">

@@ -4094,6 +4094,19 @@ export class UIRenderer {
         }
     }
 
+    renderLabelsPage() {
+        this.showPage('labels');
+        const input = document.getElementById('labels-search-input');
+        const btn = document.getElementById('labels-search-btn');
+        const go = () => {
+            const q = input.value.trim();
+            if (q) window.location.href = `/label/${encodeURIComponent(q)}`;
+        };
+        btn.onclick = go;
+        input.onkeydown = (e) => { if (e.key === 'Enter') go(); };
+        input.focus();
+    }
+
     async renderLabelPage(labelName) {
         this.showPage('label');
 

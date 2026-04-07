@@ -59,6 +59,9 @@ export function createRouter(ui) {
                 await ui.renderArtistPage(id, provider);
                 break;
             }
+            case 'labels':
+                await ui.renderLabelsPage();
+                break;
             case 'label':
                 await ui.renderLabelPage(decodeURIComponent(param));
                 break;
