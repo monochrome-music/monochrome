@@ -1,9 +1,12 @@
 // netlify/functions/label.js
 
-let qobuzToken = null;
-let qobuzTokenExpiry = 0;
-
 const QOBUZ_BASE = 'https://www.qobuz.com/api.json/0.2';
+
+function getQobuzToken() {
+    const token = process.env.QOBUZ_USER_AUTH_TOKEN;
+    if (!token) throw new Error('QOBUZ_USER_AUTH_TOKEN not set');
+    return token;
+}
 
 function similarity(a, b) {
     a = a.toLowerCase().replace(/[^a-z0-9 '\-]/g, '').trim();
@@ -24,38 +27,28 @@ function similarity(a, b) {
     return 1 - dp[m][n] / Math.max(m, n);
 }
 
-async function getQobuzToken() {
-    if (qobuzToken && Date.now() < qobuzTokenExpiry) return qobuzToken;
-    const res = await fetch(`${QOBUZ_BASE}/user/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-            app_id: process.env.QOBUZ_APP_ID,
-            username: process.env.QOBUZ_USER_EMAIL,
-            password: process.env.QOBUZ_USER_PASSWORD,
-            email: process.env.QOBUZ_USER_EMAIL,
-        }),
-    });
-    if (!res.ok) throw new Error(`Qobuz auth failed: ${res.status}`);
-    const data = await res.json();
-    qobuzToken = data.user_auth_token;
-    qobuzTokenExpiry = Date.now() + 23 * 60 * 60 * 1000;
-    return qobuzToken;
-}
 
 async function findQobuzLabel(name, token) {
-    const url = new URL(`${QOBUZ_BASE}/label/search`);
+    // Qobuz has no label search endpoint — search albums and extract label from results
+    const url = new URL(`${QOBUZ_BASE}/catalog/search`);
     url.searchParams.set('query', name);
-    url.searchParams.set('limit', '10');
+    url.searchParams.set('type', 'albums');
+    url.searchParams.set('limit', '20');
     url.searchParams.set('app_id', process.env.QOBUZ_APP_ID);
     const res = await fetch(url, { headers: { 'X-User-Auth-Token': token } });
-    if (!res.ok) throw new Error(`Qobuz label search failed: ${res.status}`);
+    if (!res.ok) throw new Error(`Qobuz search failed: ${res.status}`);
     const data = await res.json();
-    const labels = data.labels?.items || data.items || [];
-    if (!labels.length) return null;
-    const scored = labels.map(l => ({ ...l, score: similarity(l.name, name) }));
-    scored.sort((a, b) => b.score - a.score);
-    return scored[0].score >= 0.8 ? scored[0] : null;
+    const items = data.albums?.items || [];
+    // Collect unique labels from results and find best name match
+    const seen = new Map();
+    for (const album of items) {
+        if (album.label?.id && !seen.has(album.label.id)) {
+            seen.set(album.label.id, { ...album.label, score: similarity(album.label.name, name) });
+        }
+    }
+    if (!seen.size) return null;
+    const scored = [...seen.values()].sort((a, b) => b.score - a.score);
+    return scored[0].score >= 0.7 ? scored[0] : null;
 }
 
 async function getQobuzLabelAlbums(labelId, offset, limit, token) {
@@ -135,26 +128,14 @@ exports.handler = async (event) => {
 
     let token;
     try {
-        token = await getQobuzToken();
+        token = getQobuzToken();
     } catch {
-        return { statusCode: 503, headers: corsHeaders, body: JSON.stringify({ error: 'Qobuz authentication failed' }) };
+        return { statusCode: 503, headers: corsHeaders, body: JSON.stringify({ error: 'Qobuz token not configured' }) };
     }
-
-    const withReauth = async (fn) => {
-        try { return await fn(token); }
-        catch (err) {
-            if (err.message.includes('401')) {
-                qobuzToken = null;
-                token = await getQobuzToken();
-                return fn(token);
-            }
-            throw err;
-        }
-    };
 
     let label;
     try {
-        label = await withReauth(t => findQobuzLabel(name, t));
+        label = await findQobuzLabel(name, token);
     } catch {
         return { statusCode: 502, headers: corsHeaders, body: JSON.stringify({ error: 'Qobuz label search failed' }) };
     }
@@ -165,7 +146,7 @@ exports.handler = async (event) => {
 
     let qobuzResult;
     try {
-        qobuzResult = await withReauth(t => getQobuzLabelAlbums(label.id, offset, limit, t));
+        qobuzResult = await getQobuzLabelAlbums(label.id, offset, limit, token);
     } catch {
         return { statusCode: 502, headers: corsHeaders, body: JSON.stringify({ error: 'Failed to fetch label albums' }) };
     }
