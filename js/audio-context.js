@@ -731,7 +731,11 @@ class AudioContextManager {
         const coeffs = computeShelfCoefficients(type, freq, gain, q, this.audioContext.sampleRate);
         const iir = this.audioContext.createIIRFilter(coeffs.feedforward, coeffs.feedback);
         iir._shelfType = type;
-        try { filter.disconnect(); } catch { /* ignore */ }
+        try {
+            filter.disconnect();
+        } catch {
+            /* ignore */
+        }
         this.filters[index] = iir;
     }
 
@@ -939,10 +943,20 @@ class AudioContextManager {
 
                     if (isShelf) {
                         // IIR filters can't update params — must replace the node
-                        const coeffs = computeShelfCoefficients(type, newFrequencies[i], newGains[i], q, this.audioContext.sampleRate);
+                        const coeffs = computeShelfCoefficients(
+                            type,
+                            newFrequencies[i],
+                            newGains[i],
+                            q,
+                            this.audioContext.sampleRate
+                        );
                         const iir = this.audioContext.createIIRFilter(coeffs.feedforward, coeffs.feedback);
                         iir._shelfType = type;
-                        try { filter.disconnect(); } catch { /* ignore */ }
+                        try {
+                            filter.disconnect();
+                        } catch {
+                            /* ignore */
+                        }
                         this.filters[i] = iir;
                         needsReconnect = true;
                     } else if (wasShelf) {
@@ -952,7 +966,11 @@ class AudioContextManager {
                         biquad.frequency.value = newFrequencies[i];
                         biquad.gain.value = newGains[i];
                         biquad.Q.value = q;
-                        try { filter.disconnect(); } catch { /* ignore */ }
+                        try {
+                            filter.disconnect();
+                        } catch {
+                            /* ignore */
+                        }
                         this.filters[i] = biquad;
                         needsReconnect = true;
                     } else {

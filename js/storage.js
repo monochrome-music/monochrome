@@ -1730,7 +1730,9 @@ export const equalizerSettings = {
                 const num = parseInt(val, 10);
                 if (num >= 3 && num <= 32) return num;
             }
-        } catch { /* ignore */ }
+        } catch {
+            /* ignore */
+        }
         return 16;
     },
 
@@ -1738,7 +1740,9 @@ export const equalizerSettings = {
         const clamped = Math.max(3, Math.min(32, parseInt(count, 10) || 16));
         try {
             localStorage.setItem(this.GEQ_BAND_COUNT_KEY, String(clamped));
-        } catch { /* ignore */ }
+        } catch {
+            /* ignore */
+        }
     },
 
     getGraphicEqFreqRange() {
@@ -1750,7 +1754,9 @@ export const equalizerSettings = {
                     return parsed;
                 }
             }
-        } catch { /* ignore */ }
+        } catch {
+            /* ignore */
+        }
         return { min: 25, max: 20000 };
     },
 
@@ -1760,7 +1766,9 @@ export const equalizerSettings = {
         if (clampedMin >= clampedMax) return;
         try {
             localStorage.setItem(this.GEQ_FREQ_RANGE_KEY, JSON.stringify({ min: clampedMin, max: clampedMax }));
-        } catch { /* ignore */ }
+        } catch {
+            /* ignore */
+        }
     },
 
     getGraphicEqGains(bandCount) {
