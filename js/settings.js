@@ -1512,7 +1512,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             const newCount = Math.max(3, Math.min(32, parseInt(geqBandCountInput.value, 10) || 16));
             geqBandCountInput.value = newCount;
             if (newCount === geqBandCount) return;
-            geqGains = equalizerSettings._interpolateGains(geqGains, newCount);
+            geqGains = equalizerSettings.interpolateGains(geqGains, newCount);
             geqBandCount = newCount;
             equalizerSettings.setGraphicEqGains(geqGains);
             audioContextManager.setGraphicEqBandCount(newCount);
@@ -1778,7 +1778,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                     return;
                 }
                 const adjusted =
-                    gains.length !== geqBandCount ? equalizerSettings._interpolateGains(gains, geqBandCount) : gains;
+                    gains.length !== geqBandCount ? equalizerSettings.interpolateGains(gains, geqBandCount) : gains;
                 geqGains = adjusted.map((g) => {
                     const n = Number(g);
                     return Number.isFinite(n)
@@ -2446,7 +2446,6 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             else if (meas) graphShift = 75 - getNormalizationOffset(meas);
         }
 
-        const sampleRate = autoeqSampleRate ? parseInt(autoeqSampleRate.value, 10) : 48000;
         let closest = -1,
             closestDist = Infinity;
         activeBands.forEach((band, i) => {
