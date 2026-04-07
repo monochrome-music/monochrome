@@ -2603,11 +2603,6 @@ body.multi-select-mode .track-item:hover {
     color: var(--highlight);
 }
 
-.detail-header-info .meta a.label-link {
-    color: var(--highlight);
-    text-decoration: underline;
-    text-underline-offset: 3px;
-}
 
 /* Artist Biography Styles */
 .artist-bio {
