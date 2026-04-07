@@ -1353,7 +1353,12 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         const freqs = [];
         for (let i = 0; i < count; i++) {
             const t = i / (count - 1);
-            freqs.push(Math.round(min * Math.pow(max / min, t)));
+            let freq = Math.round(min * Math.pow(max / min, t));
+            // Ensure strictly increasing — rounding can produce duplicates at high band counts
+            if (freqs.length > 0 && freq <= freqs[freqs.length - 1]) {
+                freq = freqs[freqs.length - 1] + 1;
+            }
+            freqs.push(freq);
         }
         return freqs;
     };
@@ -1561,7 +1566,9 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 const prev = GEQ_FREQUENCIES[Math.max(0, i - 1)];
                 const next = GEQ_FREQUENCIES[Math.min(GEQ_FREQUENCIES.length - 1, i + 1)];
                 const octaves = Math.log2(next / prev);
-                const q = (Math.SQRT2 / (2 * Math.sinh((Math.LN2 / 2) * octaves))).toFixed(2);
+                const q = octaves > 0
+                    ? (Math.SQRT2 / (2 * Math.sinh((Math.LN2 / 2) * octaves))).toFixed(2)
+                    : Math.SQRT2.toFixed(2);
                 lines.push(`Filter ${i + 1}: ON PK Fc ${freq} Hz Gain ${geqGains[i].toFixed(1)} dB Q ${q}`);
             });
             const blob = new Blob([lines.join('\n')], { type: 'text/plain' });

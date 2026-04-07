@@ -1878,7 +1878,11 @@ export const binauralDspSettings = {
     },
 
     _setAll(obj) {
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(obj));
+        try {
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(obj));
+        } catch {
+            // QuotaExceededError — storage full
+        }
     },
 
     isEnabled() {

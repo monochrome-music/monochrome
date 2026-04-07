@@ -89,6 +89,13 @@ export class BinauralDSP {
     }
 
     /**
+     * Reconnect internal graph (public API for external callers).
+     */
+    reconnect() {
+        this._connectInternal();
+    }
+
+    /**
      * Connect internal graph based on current state.
      */
     _connectInternal() {
@@ -595,6 +602,7 @@ export class BinauralDSP {
      */
     async detectAndConfigure(channelCount) {
         const prevMode = this.mode;
+        const prevChannels = this.channelCount;
         this.channelCount = channelCount;
 
         if (channelCount > 2) {
@@ -603,13 +611,13 @@ export class BinauralDSP {
             this.mode = 'stereo';
         }
 
-        if (this.enabled && this.mode !== prevMode) {
+        if (this.enabled && (this.mode !== prevMode || channelCount !== prevChannels)) {
             await this._ensureNodesCreated();
             this._connectInternal();
 
             window.dispatchEvent(
                 new CustomEvent('binaural-mode-changed', {
-                    detail: { mode: this.mode, channels: channelCount },
+                    detail: { mode: this.mode, channels: this.channelCount },
                 })
             );
         }

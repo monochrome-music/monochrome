@@ -6,11 +6,6 @@ import { isIos } from './platform-detection.js';
 import { equalizerSettings, monoAudioSettings, binauralDspSettings } from './storage.js';
 import { BinauralDSP } from './binaural-dsp.js';
 
-/**
- * Compute RBJ cookbook IIR coefficients for shelf filters with Q support.
- * Web Audio API's BiquadFilterNode ignores Q for lowshelf/highshelf,
- * so we use IIRFilterNode with these coefficients instead.
- */
 // Generate frequency array for given number of bands using logarithmic spacing
 function generateFrequencies(bandCount, minFreq = 20, maxFreq = 20000) {
     const frequencies = [];
@@ -493,14 +488,6 @@ class AudioContextManager {
 
             if (!this.sources.has(audioElement)) {
                 const src = this.audioContext.createMediaElementSource(audioElement);
-                // Allow multichannel passthrough for Atmos/spatial audio
-                try {
-                    src.channelCount = 6;
-                    src.channelCountMode = 'max';
-                    src.channelInterpretation = 'discrete';
-                } catch {
-                    // Some browsers may not support this
-                }
                 this.sources.set(audioElement, src);
             }
             this.source = this.sources.get(audioElement);
@@ -520,7 +507,7 @@ class AudioContextManager {
 
             // Create binaural DSP processor
             this.binauralDsp = new BinauralDSP(this.audioContext);
-            this._loadBinauralSettings();
+            void this._loadBinauralSettings();
 
             this._createEQ();
             this._createGraphicEQ();
@@ -689,7 +676,7 @@ class AudioContextManager {
             if (this.isBinauralEnabled && this.binauralDsp) {
                 const { input, output } = this.binauralDsp.getNodes();
                 lastNode.connect(input);
-                this.binauralDsp._connectInternal();
+                this.binauralDsp.reconnect();
                 lastNode = output;
             }
 
@@ -1432,6 +1419,10 @@ class AudioContextManager {
             this.currentQs = qs;
             this.currentGains = gains;
 
+            // Reset M/S channel assignments — imported config has no channel info
+            this.currentChannels = new Array(this.bandCount).fill('stereo');
+            this.msEnabled = false;
+
             // Rebuild EQ chain to apply new frequencies, types, and Qs
             if (this.isInitialized && this.audioContext) {
                 this._destroyMSFilters();
@@ -1446,6 +1437,7 @@ class AudioContextManager {
             equalizerSettings.setGains(this.currentGains);
             equalizerSettings.setBandTypes(this.currentTypes);
             equalizerSettings.setBandQs(this.currentQs);
+            equalizerSettings.setBandChannels(this.currentChannels);
 
             return true;
         } catch (e) {

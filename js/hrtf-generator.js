@@ -48,7 +48,7 @@ function calculateHeadShadow(frequency, azimuthRad) {
  * @param {number} [elevationDeg=0] - Elevation in degrees (currently simplified)
  * @returns {Promise<AudioBuffer>} Stereo AudioBuffer with HRTF IR
  */
-export async function generateHRTF(audioContext, azimuthDeg, elevationDeg = 0) {
+export function generateHRTF(audioContext, azimuthDeg, elevationDeg = 0) {
     const sampleRate = audioContext.sampleRate;
     const buffer = audioContext.createBuffer(2, IR_LENGTH, sampleRate);
 
