@@ -326,7 +326,7 @@ class AudioContextManager {
             const type = (this.currentTypes && this.currentTypes[i]) || 'peaking';
             const q = this.currentQs && this.currentQs[i] > 0 ? this.currentQs[i] : this._calculateQ(i);
             const ch = (this.currentChannels && this.currentChannels[i]) || 'stereo';
-            const gain = ch === 'side' ? 0 : (this.currentGains[i] || 0);
+            const gain = ch === 'side' ? 0 : this.currentGains[i] || 0;
             const filter = this.audioContext.createBiquadFilter();
             filter.type = type;
             filter.frequency.value = freq;
@@ -339,7 +339,7 @@ class AudioContextManager {
             const type = (this.currentTypes && this.currentTypes[i]) || 'peaking';
             const q = this.currentQs && this.currentQs[i] > 0 ? this.currentQs[i] : this._calculateQ(i);
             const ch = (this.currentChannels && this.currentChannels[i]) || 'stereo';
-            const gain = ch === 'mid' ? 0 : (this.currentGains[i] || 0);
+            const gain = ch === 'mid' ? 0 : this.currentGains[i] || 0;
             const filter = this.audioContext.createBiquadFilter();
             filter.type = type;
             filter.frequency.value = freq;
@@ -353,7 +353,13 @@ class AudioContextManager {
      * Destroy M/S parallel filter chains
      */
     _destroyMSFilters() {
-        const sd = (node) => { try { node?.disconnect(); } catch { /* */ } };
+        const sd = (node) => {
+            try {
+                node?.disconnect();
+            } catch {
+                /* */
+            }
+        };
         this.midFilters.forEach(sd);
         this.sideFilters.forEach(sd);
         this.midFilters = [];
@@ -660,15 +666,15 @@ class AudioContextManager {
                     // Encode L/R → M/S
                     lastNode.connect(this.msSplitter);
 
-                    this.msSplitter.connect(this.msEncoderMidL, 0);  // L → Mid
-                    this.msSplitter.connect(this.msEncoderMidR, 1);  // R → Mid
+                    this.msSplitter.connect(this.msEncoderMidL, 0); // L → Mid
+                    this.msSplitter.connect(this.msEncoderMidR, 1); // R → Mid
                     this.msEncoderMidL.connect(this.msMidInput);
-                    this.msEncoderMidR.connect(this.msMidInput);     // Mid = (L+R)*0.5
+                    this.msEncoderMidR.connect(this.msMidInput); // Mid = (L+R)*0.5
 
                     this.msSplitter.connect(this.msEncoderSideL, 0); // L → Side
                     this.msSplitter.connect(this.msEncoderSideR, 1); // R → Side (-0.5)
                     this.msEncoderSideL.connect(this.msSideInput);
-                    this.msEncoderSideR.connect(this.msSideInput);   // Side = (L-R)*0.5
+                    this.msEncoderSideR.connect(this.msSideInput); // Side = (L-R)*0.5
 
                     // Mid filter chain
                     this.msMidInput.connect(this.midFilters[0]);
@@ -688,12 +694,12 @@ class AudioContextManager {
                     this.midOutputNode.connect(this.msDecoderMidToL);
                     this.sideOutputNode.connect(this.msDecoderSideToL);
                     this.msDecoderMidToL.connect(this.msLMix);
-                    this.msDecoderSideToL.connect(this.msLMix);      // L = Mid + Side
+                    this.msDecoderSideToL.connect(this.msLMix); // L = Mid + Side
 
                     this.midOutputNode.connect(this.msDecoderMidToR);
                     this.sideOutputNode.connect(this.msDecoderSideToR);
                     this.msDecoderMidToR.connect(this.msRMix);
-                    this.msDecoderSideToR.connect(this.msRMix);      // R = Mid - Side
+                    this.msDecoderSideToR.connect(this.msRMix); // R = Mid - Side
 
                     this.msLMix.connect(this.msMerger, 0, 0);
                     this.msRMix.connect(this.msMerger, 0, 1);
@@ -1089,7 +1095,8 @@ class AudioContextManager {
         this.msEnabled = needsMS;
 
         if (this.isInitialized && this.audioContext) {
-            const needsRebuild = msChanged || this.filters.length !== count || (needsMS && this.midFilters.length !== count);
+            const needsRebuild =
+                msChanged || this.filters.length !== count || (needsMS && this.midFilters.length !== count);
 
             if (needsRebuild) {
                 // M/S state changed or band count changed — full rebuild
@@ -1108,11 +1115,11 @@ class AudioContextManager {
                 this._updateFilterChain(this.filters, newFrequencies, newTypes, newQs, newGains, now);
 
                 // Update mid filters (gain = 0 for side-only bands)
-                const midGains = newGains.map((g, i) => newChannels[i] === 'side' ? 0 : g);
+                const midGains = newGains.map((g, i) => (newChannels[i] === 'side' ? 0 : g));
                 this._updateFilterChain(this.midFilters, newFrequencies, newTypes, newQs, midGains, now);
 
                 // Update side filters (gain = 0 for mid-only bands)
-                const sideGains = newGains.map((g, i) => newChannels[i] === 'mid' ? 0 : g);
+                const sideGains = newGains.map((g, i) => (newChannels[i] === 'mid' ? 0 : g));
                 this._updateFilterChain(this.sideFilters, newFrequencies, newTypes, newQs, sideGains, now);
             } else if (this.filters.length === count) {
                 // Normal stereo — update in-place
