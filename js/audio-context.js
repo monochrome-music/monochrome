@@ -897,10 +897,20 @@ class AudioContextManager {
 
                     if (isShelf) {
                         // IIR filters can't update params — must replace the node
-                        const coeffs = computeShelfCoefficients(type, newFrequencies[i], newGains[i], q, this.audioContext.sampleRate);
+                        const coeffs = computeShelfCoefficients(
+                            type,
+                            newFrequencies[i],
+                            newGains[i],
+                            q,
+                            this.audioContext.sampleRate
+                        );
                         const iir = this.audioContext.createIIRFilter(coeffs.feedforward, coeffs.feedback);
                         iir._shelfType = type;
-                        try { filter.disconnect(); } catch { /* ignore */ }
+                        try {
+                            filter.disconnect();
+                        } catch {
+                            /* ignore */
+                        }
                         this.filters[i] = iir;
                         needsReconnect = true;
                     } else if (wasShelf) {
@@ -910,7 +920,11 @@ class AudioContextManager {
                         biquad.frequency.value = newFrequencies[i];
                         biquad.gain.value = newGains[i];
                         biquad.Q.value = q;
-                        try { filter.disconnect(); } catch { /* ignore */ }
+                        try {
+                            filter.disconnect();
+                        } catch {
+                            /* ignore */
+                        }
                         this.filters[i] = biquad;
                         needsReconnect = true;
                     } else {
@@ -976,9 +990,7 @@ class AudioContextManager {
             const filterType = type === 'lowshelf' ? 'LSC' : type === 'highshelf' ? 'HSC' : 'PK';
             const filterNum = index + 1;
             if (type === 'lowshelf' || type === 'highshelf') {
-                lines.push(
-                    `Filter ${filterNum}: ON ${filterType} Fc ${freq} Hz Gain ${gain.toFixed(1)} dB`
-                );
+                lines.push(`Filter ${filterNum}: ON ${filterType} Fc ${freq} Hz Gain ${gain.toFixed(1)} dB`);
             } else {
                 const q = this.currentQs && this.currentQs[index] > 0 ? this.currentQs[index] : this._calculateQ(index);
                 lines.push(

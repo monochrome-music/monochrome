@@ -630,7 +630,9 @@ export class Equalizer {
                 lines.push(`Filter ${filterNum}: ON ${typeStr} Fc ${freq} Hz Gain ${gain.toFixed(1)} dB`);
             } else {
                 const q = filter ? filter.Q.value : this._calculateQ(index);
-                lines.push(`Filter ${filterNum}: ON ${typeStr} Fc ${freq} Hz Gain ${gain.toFixed(1)} dB Q ${q.toFixed(2)}`);
+                lines.push(
+                    `Filter ${filterNum}: ON ${typeStr} Fc ${freq} Hz Gain ${gain.toFixed(1)} dB Q ${q.toFixed(2)}`
+                );
             }
         });
 
