@@ -2206,6 +2206,7 @@ export const sidebarSectionSettings = {
     DEFAULT_ORDER: [
         'sidebar-nav-home',
         'sidebar-nav-library',
+        'sidebar-nav-labels',
         'sidebar-nav-recent',
         'sidebar-nav-unreleased',
         'sidebar-nav-donate',
@@ -2341,8 +2342,20 @@ export const sidebarSectionSettings = {
         const baseOrder = this.DEFAULT_ORDER;
         const safeOrder = Array.isArray(order) ? order.filter((id) => baseOrder.includes(id)) : [];
         const uniqueOrder = [...new Set(safeOrder)];
-        const missing = baseOrder.filter((id) => !uniqueOrder.includes(id));
-        return [...uniqueOrder, ...missing];
+        // Insert missing items at their default position rather than appending at end
+        const result = [...uniqueOrder];
+        baseOrder.forEach((id, defaultIdx) => {
+            if (!result.includes(id)) {
+                // Find the latest preceding default item that exists in result
+                let insertAfter = -1;
+                for (let i = defaultIdx - 1; i >= 0; i--) {
+                    const pos = result.indexOf(baseOrder[i]);
+                    if (pos !== -1) { insertAfter = pos; break; }
+                }
+                result.splice(insertAfter + 1, 0, id);
+            }
+        });
+        return result;
     },
 
     getOrder() {
