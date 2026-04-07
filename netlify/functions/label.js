@@ -52,14 +52,15 @@ async function findQobuzLabel(name, token) {
 }
 
 async function getQobuzLabelAlbums(labelId, offset, limit, token) {
-    const url = new URL(`${QOBUZ_BASE}/label/get`);
-    url.searchParams.set('label_id', labelId);
-    url.searchParams.set('extras', 'albums');
-    url.searchParams.set('albums_limit', String(limit));
-    url.searchParams.set('albums_offset', String(offset));
+    const url = new URL(`${QOBUZ_BASE}/catalog/search`);
+    url.searchParams.set('type', 'albums');
+    url.searchParams.set('query', '');
+    url.searchParams.set('label_id', String(labelId));
+    url.searchParams.set('limit', String(limit));
+    url.searchParams.set('offset', String(offset));
     url.searchParams.set('app_id', process.env.QOBUZ_APP_ID);
     const res = await fetch(url, { headers: { 'X-User-Auth-Token': token } });
-    if (!res.ok) throw new Error(`Qobuz label/get failed: ${res.status}`);
+    if (!res.ok) throw new Error(`Qobuz label albums failed: ${res.status}`);
     const data = await res.json();
     return { albums: data.albums?.items || [], total: data.albums?.total || 0 };
 }
