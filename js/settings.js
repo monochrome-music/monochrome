@@ -1412,7 +1412,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             a.href = url;
             a.download = 'legacy-eq.txt';
             a.click();
-            URL.revokeObjectURL(url);
+            setTimeout(() => URL.revokeObjectURL(url), 0);
         });
     }
 
