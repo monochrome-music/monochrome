@@ -2561,7 +2561,12 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 const bands = getActiveBands();
 
                 // Filter type actions
-                if (action.startsWith('eq-type-') && contextMenuNodeIdx !== null && bands && bands[contextMenuNodeIdx]) {
+                if (
+                    action.startsWith('eq-type-') &&
+                    contextMenuNodeIdx !== null &&
+                    bands &&
+                    bands[contextMenuNodeIdx]
+                ) {
                     const typeMap = {
                         'eq-type-lowshelf': 'lowshelf',
                         'eq-type-peaking': 'peaking',
@@ -2578,7 +2583,12 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 }
 
                 // Channel actions (per-band M/S mode)
-                if (action.startsWith('eq-channel-') && contextMenuNodeIdx !== null && bands && bands[contextMenuNodeIdx]) {
+                if (
+                    action.startsWith('eq-channel-') &&
+                    contextMenuNodeIdx !== null &&
+                    bands &&
+                    bands[contextMenuNodeIdx]
+                ) {
                     const channelMap = {
                         'eq-channel-stereo': 'stereo',
                         'eq-channel-mid': 'mid',
@@ -2627,12 +2637,21 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                     if (currentMode === 'autoeq') {
                         autoeqCurrentBands = [];
                         bands = autoeqCurrentBands;
-                    } else { hideEmptyContextMenu(); return; }
+                    } else {
+                        hideEmptyContextMenu();
+                        return;
+                    }
                 }
-                if (bands.length >= 32) { hideEmptyContextMenu(); return; }
+                if (bands.length >= 32) {
+                    hideEmptyContextMenu();
+                    return;
+                }
 
                 const rect = autoeqCanvas.getBoundingClientRect();
-                const padLeft = 40, padRight = 10, padTop = 10, padBottom = 30;
+                const padLeft = 40,
+                    padRight = 10,
+                    padTop = 10,
+                    padBottom = 30;
                 const w = rect.width - padLeft - padRight;
                 const h = rect.height - padTop - padBottom;
                 const dbCenter = isParam ? 0 : 75;
@@ -2640,9 +2659,10 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 const dbMin = dbCenter - dbHalf;
                 const dbMax = dbCenter + dbHalf;
                 const freq = Math.max(20, Math.min(20000, Math.round(xToFreq(pendingAddCoords.x - padLeft, w))));
-                const gain = Math.max(-30, Math.min(30,
-                    Math.round((yToDb(pendingAddCoords.y - padTop, h, dbMin, dbMax) - dbCenter) * 10) / 10
-                ));
+                const gain = Math.max(
+                    -30,
+                    Math.min(30, Math.round((yToDb(pendingAddCoords.y - padTop, h, dbMin, dbMax) - dbCenter) * 10) / 10)
+                );
 
                 bands.push({ id: bands.length, type: 'peaking', freq, gain, q: 1.0, enabled: true, channel: 'stereo' });
                 setActiveBands(bands);
@@ -2984,7 +3004,15 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             const defaultBands = [];
             for (let i = 0; i < 10; i++) {
                 const freq = 20 * Math.pow(20000 / 20, i / 9);
-                defaultBands.push({ id: i, type: 'peaking', freq: Math.round(freq), gain: 0, q: 1.0, enabled: true, channel: 'stereo' });
+                defaultBands.push({
+                    id: i,
+                    type: 'peaking',
+                    freq: Math.round(freq),
+                    gain: 0,
+                    q: 1.0,
+                    enabled: true,
+                    channel: 'stereo',
+                });
             }
             parametricBands = defaultBands;
             applyBandsToAudio(parametricBands);
@@ -5295,7 +5323,15 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 setActiveBands(bands);
             }
             if (bands.length >= 32) return;
-            bands.push({ id: bands.length, type: 'peaking', freq: 1000, gain: 0, q: 1.0, enabled: true, channel: 'stereo' });
+            bands.push({
+                id: bands.length,
+                type: 'peaking',
+                freq: 1000,
+                gain: 0,
+                q: 1.0,
+                enabled: true,
+                channel: 'stereo',
+            });
             applyBandsToAudio(bands);
             renderBandControls(bands);
             computeCorrectedCurve();
