@@ -1885,7 +1885,7 @@ export class Player {
                     if (isAtmosPlaying) {
                         // Auto-enable binaural DSP for spatial content
                         if (binauralDspSettings.getAutoEnableForSpatial() && !binauralDspSettings.isEnabled()) {
-                            audioContextManager.toggleBinaural(true);
+                            void audioContextManager.toggleBinaural(true);
                             // Update toggle in settings UI if visible
                             const toggle = document.getElementById('binaural-dsp-toggle');
                             if (toggle) toggle.checked = true;
@@ -1893,7 +1893,7 @@ export class Player {
                             if (container) container.style.display = 'block';
                         }
                         // Notify binaural DSP of multichannel content (Atmos is typically 5.1+)
-                        audioContextManager.notifyBinauralChannelCount(6);
+                        void audioContextManager.notifyBinauralChannelCount(6);
 
                         const binauralActive = audioContextManager.isBinauralActive();
                         badgeEl.className = 'quality-badge quality-atmos shaka-quality-badge';
@@ -1901,7 +1901,7 @@ export class Player {
                             SVG_ATMOS(20) + (binauralActive ? ' <span class="binaural-badge">Binaural</span>' : '');
                     } else {
                         // Notify binaural DSP that we're in stereo mode
-                        audioContextManager.notifyBinauralChannelCount(2);
+                        void audioContextManager.notifyBinauralChannelCount(2);
                         badgeEl.className = 'quality-badge quality-hires shaka-quality-badge';
                         badgeEl.textContent = text;
                     }

@@ -621,11 +621,10 @@ export class Equalizer {
 
         this.frequencies.forEach((freq, index) => {
             const gain = this.currentGains[index] || 0;
-            const filter = this.filters[index];
-            const type = filter ? filter.type : 'peaking';
+            const type = this.currentTypes[index] || 'peaking';
             const typeMap = { peaking: 'PK', lowshelf: 'LSC', highshelf: 'HSC' };
             const typeStr = typeMap[type] || 'PK';
-            const q = filter ? filter.Q.value : this._calculateQ(index);
+            const q = this.currentQs[index] || this._calculateQ(index);
             const filterNum = index + 1;
             lines.push(`Filter ${filterNum}: ON ${typeStr} Fc ${freq} Hz Gain ${gain.toFixed(1)} dB Q ${q.toFixed(2)}`);
         });
