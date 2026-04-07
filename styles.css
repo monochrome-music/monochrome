@@ -9085,7 +9085,8 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     opacity: 0.6;
 }
 
-.autoeq-type-select {
+.autoeq-type-select,
+.autoeq-channel-select {
     padding: 0.15rem 0.3rem;
     font-size: 0.7rem;
     font-weight: 600;
@@ -9098,11 +9099,13 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     flex-shrink: 0;
 }
 
-.autoeq-type-select:hover {
+.autoeq-type-select:hover,
+.autoeq-channel-select:hover {
     border-color: var(--primary);
 }
 
-.autoeq-type-select:focus {
+.autoeq-type-select:focus,
+.autoeq-channel-select:focus {
     border-color: var(--ring);
 }
 
