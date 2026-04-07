@@ -1449,11 +1449,11 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                             continue;
                         }
                         // Simple two-column format: freq gain (whitespace/tab/comma separated)
-                        const simpleMatch = line.trim().match(/^([\d.]+[kK]?)\s*(?:Hz|kHz)?\s*[,\s\t]+([+-]?[\d.]+)/);
+                        const simpleMatch = line.trim().match(/^([\d.]+)\s*([kK])?(?:Hz)?\s*[,\s\t]+([+-]?[\d.]+)/);
                         if (simpleMatch) {
                             importedPoints.push({
-                                freq: parseGeqLabelFrequency(simpleMatch[1]),
-                                gain: parseFloat(simpleMatch[2]),
+                                freq: parseGeqLabelFrequency(`${simpleMatch[1]}${simpleMatch[2] || ''}`),
+                                gain: parseFloat(simpleMatch[3]),
                             });
                         }
                     }
