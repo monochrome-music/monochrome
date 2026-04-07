@@ -718,6 +718,23 @@ class AudioContextManager {
     /**
      * Set gain for a specific band
      */
+    /**
+     * Replace an IIR shelf filter node with updated coefficients and reconnect the chain.
+     */
+    _replaceShelfFilter(index) {
+        const filter = this.filters[index];
+        if (!filter?._shelfType || !this.audioContext) return;
+        const type = this.currentTypes?.[index] || filter._shelfType;
+        const freq = this.frequencies[index];
+        const gain = this.currentGains[index] || 0;
+        const q = this.currentQs?.[index] > 0 ? this.currentQs[index] : this._calculateQ(index);
+        const coeffs = computeShelfCoefficients(type, freq, gain, q, this.audioContext.sampleRate);
+        const iir = this.audioContext.createIIRFilter(coeffs.feedforward, coeffs.feedback);
+        iir._shelfType = type;
+        try { filter.disconnect(); } catch { /* ignore */ }
+        this.filters[index] = iir;
+    }
+
     setBandGain(bandIndex, gainDb) {
         if (bandIndex < 0 || bandIndex >= this.bandCount) return;
 
@@ -725,8 +742,13 @@ class AudioContextManager {
         this.currentGains[bandIndex] = clampedGain;
 
         if (this.filters[bandIndex] && this.audioContext) {
-            const now = this.audioContext.currentTime;
-            this.filters[bandIndex].gain.setTargetAtTime(clampedGain, now, 0.01);
+            if (this.filters[bandIndex]._shelfType) {
+                this._replaceShelfFilter(bandIndex);
+                this._connectGraph();
+            } else {
+                const now = this.audioContext.currentTime;
+                this.filters[bandIndex].gain.setTargetAtTime(clampedGain, now, 0.01);
+            }
         }
 
         equalizerSettings.setGains(this.currentGains);
@@ -745,15 +767,25 @@ class AudioContextManager {
         }
 
         const now = this.audioContext?.currentTime || 0;
+        let needsReconnect = false;
 
         adjustedGains.forEach((gain, index) => {
             const clampedGain = this._clampGain(gain);
             this.currentGains[index] = clampedGain;
 
             if (this.filters[index]) {
-                this.filters[index].gain.setTargetAtTime(clampedGain, now, 0.01);
+                if (this.filters[index]._shelfType) {
+                    this._replaceShelfFilter(index);
+                    needsReconnect = true;
+                } else {
+                    this.filters[index].gain.setTargetAtTime(clampedGain, now, 0.01);
+                }
             }
         });
+
+        if (needsReconnect) {
+            this._connectGraph();
+        }
 
         equalizerSettings.setGains(this.currentGains);
     }
@@ -949,15 +981,9 @@ class AudioContextManager {
         sortedBands.forEach((band, index) => {
             if (index >= count) return;
             const filterType = band.type === 'lowshelf' ? 'LSC' : band.type === 'highshelf' ? 'HSC' : 'PK';
-            if (band.type === 'lowshelf' || band.type === 'highshelf') {
-                lines.push(
-                    `Filter ${index + 1}: ON ${filterType} Fc ${newFrequencies[index]} Hz Gain ${newGains[index].toFixed(1)} dB`
-                );
-            } else {
-                lines.push(
-                    `Filter ${index + 1}: ON ${filterType} Fc ${newFrequencies[index]} Hz Gain ${newGains[index].toFixed(1)} dB Q ${newQs[index].toFixed(2)}`
-                );
-            }
+            lines.push(
+                `Filter ${index + 1}: ON ${filterType} Fc ${newFrequencies[index]} Hz Gain ${newGains[index].toFixed(1)} dB Q ${newQs[index].toFixed(2)}`
+            );
         });
 
         return lines.join('\n');
@@ -976,17 +1002,11 @@ class AudioContextManager {
             const gain = this.currentGains[index] || 0;
             const type = (this.currentTypes && this.currentTypes[index]) || 'peaking';
             const filterType = type === 'lowshelf' ? 'LSC' : type === 'highshelf' ? 'HSC' : 'PK';
+            const q = this.currentQs && this.currentQs[index] > 0 ? this.currentQs[index] : this._calculateQ(index);
             const filterNum = index + 1;
-            if (type === 'lowshelf' || type === 'highshelf') {
-                lines.push(
-                    `Filter ${filterNum}: ON ${filterType} Fc ${freq} Hz Gain ${gain.toFixed(1)} dB`
-                );
-            } else {
-                const q = this.currentQs && this.currentQs[index] > 0 ? this.currentQs[index] : this._calculateQ(index);
-                lines.push(
-                    `Filter ${filterNum}: ON ${filterType} Fc ${freq} Hz Gain ${gain.toFixed(1)} dB Q ${q.toFixed(2)}`
-                );
-            }
+            lines.push(
+                `Filter ${filterNum}: ON ${filterType} Fc ${freq} Hz Gain ${gain.toFixed(1)} dB Q ${q.toFixed(2)}`
+            );
         });
 
         return lines.join('\n');
@@ -1067,7 +1087,8 @@ class AudioContextManager {
                 this._connectGraph();
             }
 
-            // Persist all band settings
+            // Persist all band settings including custom frequencies
+            equalizerSettings.setCustomFrequencies(this.frequencies);
             equalizerSettings.setGains(this.currentGains);
             equalizerSettings.setBandTypes(this.currentTypes);
             equalizerSettings.setBandQs(this.currentQs);

@@ -2210,17 +2210,23 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                 // Show tooltip on drag
                 if (isDragged) {
                     ctx.save();
-                    ctx.fillStyle = 'rgba(0,0,0,0.8)';
-                    const txt = `${Math.round(band.freq)} Hz  ${band.gain > 0 ? '+' : ''}${band.gain.toFixed(1)} dB  Q${band.q.toFixed(2)}`;
                     ctx.font = 'bold 11px system-ui, sans-serif';
-                    const tw = ctx.measureText(txt).width + 12;
-                    const tx = Math.min(x - tw / 2, rect.width - tw - 5);
-                    const ty = y - 28;
-                    ctx.fillRect(tx, ty, tw, 20);
+                    const line1 = `${Math.round(band.freq)} Hz  ${band.gain > 0 ? '+' : ''}${band.gain.toFixed(1)} dB  Q${band.q.toFixed(2)}`;
+                    const line2 = `Sum: ${nodeGain > 0 ? '+' : ''}${nodeGain.toFixed(1)} dB`;
+                    const tw1 = ctx.measureText(line1).width;
+                    const tw2 = ctx.measureText(line2).width;
+                    const tw = Math.max(tw1, tw2) + 12;
+                    const th = 34;
+                    const tx = Math.max(5, Math.min(x - tw / 2, rect.width - tw - 5));
+                    const ty = y - 44;
+                    ctx.fillStyle = 'rgba(0,0,0,0.8)';
+                    ctx.fillRect(tx, ty, tw, th);
                     ctx.fillStyle = '#fff';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText(txt, tx + tw / 2, ty + 10);
+                    ctx.fillText(line1, tx + tw / 2, ty + 10);
+                    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                    ctx.fillText(line2, tx + tw / 2, ty + 24);
                     ctx.restore();
                 }
             });
