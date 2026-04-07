@@ -2024,8 +2024,8 @@ export class UIRenderer {
             shuffleBtn.classList.toggle('active', this.player.shuffleActive);
         };
 
-        repeatBtn.onclick = () => {
-            const mode = this.player.toggleRepeat();
+        repeatBtn.onclick = async () => {
+            const mode = await this.player.toggleRepeat();
             repeatBtn.classList.toggle('active', mode !== 0);
             if (mode === 2) {
                 repeatBtn.innerHTML = SVG_REPEAT_ONE(24);

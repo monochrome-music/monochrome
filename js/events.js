@@ -585,7 +585,7 @@ export function initializePlayerEvents(player, audioPlayer, scrobbler, ui) {
 
     repeatBtn.addEventListener('click', async () => {
         await hapticLight();
-        const mode = player.toggleRepeat();
+        const mode = await player.toggleRepeat();
         trackToggleRepeat(mode === REPEAT_MODE.OFF ? 'off' : mode === REPEAT_MODE.ALL ? 'all' : 'one');
         repeatBtn.classList.toggle('active', mode !== REPEAT_MODE.OFF);
         repeatBtn.classList.toggle('repeat-one', mode === REPEAT_MODE.ONE);
