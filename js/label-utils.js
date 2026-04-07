@@ -17,7 +17,8 @@ export function extractLabelName(copyright) {
     if (licenseMatch) return licenseMatch[1].trim();
 
     // Rule 2: "℗ YYYY Label Name" — label directly after phonogram symbol + year
-    const phonogramMatch = copyright.match(/[℗©]\s*\d{4}\s+(.+?)(?:\s*,|\s*\.|$)/);
+    // Also handles (P) and (C) ASCII variants
+    const phonogramMatch = copyright.match(/(?:[℗©]|\([PC]\))\s*\d{4}\s+(.+?)(?:\s*,|\s*\.|$)/i);
     if (phonogramMatch) {
         const candidate = phonogramMatch[1].trim();
         // Skip if it looks like a person's name followed by more text (e.g. "Barry Gibb and...")
