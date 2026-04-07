@@ -1385,14 +1385,19 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
     // Legacy EQ Import / Export
     const parseGeqLabelFrequency = (label) => {
-        const normalized = String(label).trim().toLowerCase().replace(/hz$/, '').trim();
-        if (normalized.endsWith('k')) {
-            return Number.parseFloat(normalized.slice(0, -1)) * 1000;
+        const normalized = String(label).trim().toLowerCase().replace(/\s+/g, '');
+        if (normalized.endsWith('khz')) {
+            return Number.parseFloat(normalized.slice(0, -3)) * 1000;
         }
-        return Number.parseFloat(normalized);
+        const withoutHz = normalized.replace(/hz$/, '');
+        if (withoutHz.endsWith('k')) {
+            return Number.parseFloat(withoutHz.slice(0, -1)) * 1000;
+        }
+        return Number.parseFloat(withoutHz);
     };
     const GEQ_FREQUENCIES = GEQ_LABELS.map((label) => parseGeqLabelFrequency(label));
     const legacyGeqExportBtn = document.getElementById('legacy-geq-export-btn');
+    const legacyGeqExportCsvBtn = document.getElementById('legacy-geq-export-csv-btn');
     const legacyGeqImportBtn = document.getElementById('legacy-geq-import-btn');
     const legacyGeqImportFile = document.getElementById('legacy-geq-import-file');
 
@@ -1408,7 +1413,21 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             a.href = url;
             a.download = 'legacy-eq.txt';
             a.click();
-            URL.revokeObjectURL(url);
+            setTimeout(() => URL.revokeObjectURL(url), 0);
+        });
+    }
+
+    if (legacyGeqExportCsvBtn) {
+        legacyGeqExportCsvBtn.addEventListener('click', () => {
+            const pairs = GEQ_FREQUENCIES.map((freq, i) => `${freq} ${geqGains[i].toFixed(1)}`).join('; ');
+            const lines = [`Preamp: ${geqPreamp.toFixed(1)} dB`, `GraphicEQ: ${pairs}`];
+            const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'legacy-eq-apo.txt';
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 0);
         });
     }
 
@@ -1445,11 +1464,11 @@ export async function initializeSettings(scrobbler, player, api, ui) {
                             continue;
                         }
                         // Simple two-column format: freq gain (whitespace/tab/comma separated)
-                        const simpleMatch = line.trim().match(/^([\d.]+[kK]?)\s*(?:Hz|kHz)?\s*[,\s\t]+([+-]?[\d.]+)/);
+                        const simpleMatch = line.trim().match(/^([\d.]+)\s*([kK])?(?:Hz)?\s*[,\s\t]+([+-]?[\d.]+)/);
                         if (simpleMatch) {
                             importedPoints.push({
-                                freq: parseGeqLabelFrequency(simpleMatch[1]),
-                                gain: parseFloat(simpleMatch[2]),
+                                freq: parseGeqLabelFrequency(`${simpleMatch[1]}${simpleMatch[2] || ''}`),
+                                gain: parseFloat(simpleMatch[3]),
                             });
                         }
                     }
