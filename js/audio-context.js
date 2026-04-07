@@ -875,6 +875,7 @@ class AudioContextManager {
         if (!bands || bands.length === 0) return '';
 
         const enabledBands = bands.filter((b) => b.enabled);
+        if (enabledBands.length === 0) return '';
         const count = Math.max(equalizerSettings.MIN_BANDS, Math.min(equalizerSettings.MAX_BANDS, enabledBands.length));
 
         // Calculate preamp: negative of cumulative peak gain across all bands to prevent clipping
@@ -899,13 +900,20 @@ class AudioContextManager {
         // Sort bands by frequency so index order is deterministic
         const sortedBands = [...enabledBands].sort((a, b) => a.freq - b.freq);
 
-        // Build normalized band descriptor arrays
-        const newFrequencies = sortedBands
-            .slice(0, count)
-            .map((b) => Math.round(Math.min(b.freq, (this.audioContext?.sampleRate ?? 48000) / 2 - 1)));
-        const newTypes = sortedBands.slice(0, count).map((b) => b.type || 'peaking');
-        const newQs = sortedBands.slice(0, count).map((b) => b.q);
-        const newGains = sortedBands.slice(0, count).map((b) => this._clampGain(b.gain));
+        // Build normalized band descriptor arrays, pad if fewer enabled bands than minimum
+        const maxFreq = (this.audioContext?.sampleRate ?? 48000) / 2 - 1;
+        const slicedBands = sortedBands.slice(0, count);
+        const newFrequencies = slicedBands.map((b) => Math.round(Math.min(b.freq, maxFreq)));
+        const newTypes = slicedBands.map((b) => b.type || 'peaking');
+        const newQs = slicedBands.map((b) => b.q);
+        const newGains = slicedBands.map((b) => this._clampGain(b.gain));
+        while (newFrequencies.length < count) {
+            const lastFreq = newFrequencies[newFrequencies.length - 1] || 1000;
+            newFrequencies.push(Math.round(Math.min(lastFreq * 2, maxFreq)));
+            newTypes.push('peaking');
+            newQs.push(1.0);
+            newGains.push(0);
+        }
 
         // Update band count via class setter to trigger equalizer-band-count-changed event
         if (count !== this.bandCount) {
@@ -1075,10 +1083,29 @@ class AudioContextManager {
                 HSC: 'highshelf',
                 HSF: 'highshelf',
             };
-            this.frequencies = sliced.map((f) => f.freq);
-            this.currentTypes = sliced.map((f) => typeMap[f.type] || 'peaking');
-            this.currentQs = sliced.map((f) => f.q);
-            this.currentGains = sliced.map((f) => this._clampGain(f.gain));
+
+            // Pad arrays to bandCount if import has fewer filters than minimum
+            const padCount = this.bandCount - sliced.length;
+            const freqs = sliced.map((f) => f.freq);
+            const types = sliced.map((f) => typeMap[f.type] || 'peaking');
+            const qs = sliced.map((f) => f.q);
+            const gains = sliced.map((f) => this._clampGain(f.gain));
+            if (padCount > 0) {
+                const lastFreq = freqs[freqs.length - 1] || 1000;
+                const maxFreq = (this.audioContext?.sampleRate ?? 48000) / 2 - 1;
+                for (let p = 0; p < padCount; p++) {
+                    const padFreq = Math.min(lastFreq * Math.pow(2, p + 1), maxFreq);
+                    freqs.push(Math.round(padFreq));
+                    types.push('peaking');
+                    qs.push(this._calculateQ(freqs.length - 1));
+                    gains.push(0);
+                }
+            }
+
+            this.frequencies = freqs;
+            this.currentTypes = types;
+            this.currentQs = qs;
+            this.currentGains = gains;
 
             // Rebuild EQ chain to apply new frequencies, types, and Qs
             if (this.isInitialized && this.audioContext) {
