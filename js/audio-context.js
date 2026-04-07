@@ -507,10 +507,7 @@ class AudioContextManager {
 
             // Enable multichannel passthrough for Atmos/spatial content
             try {
-                this.audioContext.destination.channelCount = Math.min(
-                    this.audioContext.destination.maxChannelCount,
-                    8
-                );
+                this.audioContext.destination.channelCount = Math.min(this.audioContext.destination.maxChannelCount, 8);
                 this.audioContext.destination.channelCountMode = 'explicit';
                 this.audioContext.destination.channelInterpretation = 'discrete';
             } catch {
