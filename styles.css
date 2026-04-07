@@ -3753,7 +3753,9 @@ input:checked + .slider::before {
 }
 
 #context-menu,
-#sort-menu {
+#sort-menu,
+#eq-node-context-menu,
+#eq-empty-context-menu {
     display: none;
     position: fixed;
     background-color: var(--card);
@@ -3768,12 +3770,16 @@ input:checked + .slider::before {
 }
 
 #context-menu ul,
-#sort-menu ul {
+#sort-menu ul,
+#eq-node-context-menu ul,
+#eq-empty-context-menu ul {
     list-style: none;
 }
 
 #context-menu li,
-#sort-menu li {
+#sort-menu li,
+#eq-node-context-menu li,
+#eq-empty-context-menu li {
     padding: 0.5rem 0.75rem;
     margin-right: 8px;
     cursor: pointer;
@@ -3795,7 +3801,9 @@ input:checked + .slider::before {
 }
 
 #context-menu li:hover,
-#sort-menu li:hover {
+#sort-menu li:hover,
+#eq-node-context-menu li:hover,
+#eq-empty-context-menu li:hover {
     background-color: var(--secondary);
     transform: translateX(4px);
 
@@ -3803,7 +3811,8 @@ input:checked + .slider::before {
     color: var(--foreground);
 }
 
-#context-menu li.separator {
+#context-menu li.separator,
+#eq-node-context-menu li.separator {
     height: 1px;
     background-color: var(--border);
     margin: 0.5rem 0;
@@ -3812,9 +3821,15 @@ input:checked + .slider::before {
     pointer-events: none;
 }
 
-#context-menu li.separator:hover {
+#context-menu li.separator:hover,
+#eq-node-context-menu li.separator:hover {
     background-color: var(--border);
     transform: none;
+}
+
+#eq-node-context-menu li.eq-ctx-active {
+    color: var(--primary);
+    font-weight: 600;
 }
 
 .blocked-items-list {
@@ -8105,9 +8120,9 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     width: 30px;
     height: 30px;
     border-radius: 50%;
-    border: 1px solid var(--border);
-    background: var(--input);
-    color: var(--muted-foreground);
+    border: 1px solid var(--highlight);
+    background: rgb(var(--highlight-rgb), 0.12);
+    color: var(--highlight);
     font-size: 0.8rem;
     font-weight: 700;
     cursor: pointer;
@@ -8116,9 +8131,9 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 }
 
 .eq-howto-btn:hover {
-    border-color: var(--primary);
-    color: var(--primary);
-    background: rgb(var(--highlight-rgb), 0.08);
+    border-color: var(--highlight);
+    color: var(--primary-foreground);
+    background: var(--highlight);
 }
 
 .eq-howto-panel {
@@ -8277,7 +8292,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     position: relative;
     width: 100%;
     height: 300px;
-    background: var(--background);
+    background: color-mix(in srgb, var(--background) 25%, #111);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow: hidden;
