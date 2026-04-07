@@ -91,8 +91,7 @@ export async function generateHRTF(audioContext, azimuthDeg, elevationDeg = 0) {
             const notchFreq = 8000 + elevationDeg * 50; // Shifts with elevation
             const notchWidth = 2000;
             const notchDepth = 0.15 * Math.abs(Math.sin(elevRad + 0.3));
-            const notchFactor =
-                1.0 - notchDepth * Math.exp(-Math.pow((freq - notchFreq) / notchWidth, 2));
+            const notchFactor = 1.0 - notchDepth * Math.exp(-Math.pow((freq - notchFreq) / notchWidth, 2));
 
             const phase = 2 * Math.PI * freq * (t - ipsiDelay / sampleRate);
             sum += ((ipsiGain * notchFactor) / halfFFT) * Math.cos(phase);
@@ -109,7 +108,7 @@ export async function generateHRTF(audioContext, azimuthDeg, elevationDeg = 0) {
             const shadowGain = calculateHeadShadow(freq, azimuthRad);
 
             const phase = 2 * Math.PI * freq * (t - contraDelay / sampleRate);
-            sum += ((shadowGain) / halfFFT) * Math.cos(phase);
+            sum += (shadowGain / halfFFT) * Math.cos(phase);
         }
         contraData[i] = sum;
     }
@@ -134,9 +133,9 @@ export async function generateHRTF(audioContext, azimuthDeg, elevationDeg = 0) {
  * HRTF angle presets for virtual speaker configurations.
  */
 export const HRTF_PRESETS = {
-    intimate: { label: 'Intimate', angleScale: 0.73 },  // ±22° front
-    studio: { label: 'Studio', angleScale: 1.0 },       // ±30° front (standard)
-    wide: { label: 'Wide', angleScale: 1.5 },           // ±45° front
+    intimate: { label: 'Intimate', angleScale: 0.73 }, // ±22° front
+    studio: { label: 'Studio', angleScale: 1.0 }, // ±30° front (standard)
+    wide: { label: 'Wide', angleScale: 1.5 }, // ±45° front
 };
 
 /**

@@ -1248,9 +1248,10 @@ export async function initializeSettings(scrobbler, player, api, ui) {
             const { mode, channels } = e.detail;
             const label = statusEl.querySelector('.binaural-mode-label');
             if (label) {
-                label.textContent = mode === 'multichannel'
-                    ? `Mode: Multichannel (${channels > 6 ? '7.1' : '5.1'} → Binaural)`
-                    : 'Mode: Stereo';
+                label.textContent =
+                    mode === 'multichannel'
+                        ? `Mode: Multichannel (${channels > 6 ? '7.1' : '5.1'} → Binaural)`
+                        : 'Mode: Stereo';
             }
         }
     });
