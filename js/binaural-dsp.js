@@ -232,7 +232,11 @@ export class BinauralDSP {
      */
     _disconnectAll() {
         const sd = (node) => {
-            try { node?.disconnect(); } catch { /* */ }
+            try {
+                node?.disconnect();
+            } catch {
+                /* */
+            }
         };
 
         sd(this.inputNode);
@@ -340,14 +344,25 @@ export class BinauralDSP {
 
     _destroyCrossfeedNodes() {
         const nodes = [
-            this._cfSplitter, this._cfMerger,
-            this._cfDirectL, this._cfDirectR,
-            this._cfCrossLR, this._cfCrossRL,
-            this._cfFilterLR, this._cfFilterRL,
-            this._cfDelayLR, this._cfDelayRL,
+            this._cfSplitter,
+            this._cfMerger,
+            this._cfDirectL,
+            this._cfDirectR,
+            this._cfCrossLR,
+            this._cfCrossRL,
+            this._cfFilterLR,
+            this._cfFilterRL,
+            this._cfDelayLR,
+            this._cfDelayRL,
             this._cfOutputNode,
         ];
-        nodes.forEach((n) => { try { n?.disconnect(); } catch { /* */ } });
+        nodes.forEach((n) => {
+            try {
+                n?.disconnect();
+            } catch {
+                /* */
+            }
+        });
         this._cfSplitter = null;
         this._cfMerger = null;
         this._cfDirectL = null;
@@ -416,7 +431,13 @@ export class BinauralDSP {
     }
 
     _destroyMultichannelNodes() {
-        const sd = (n) => { try { n?.disconnect(); } catch { /* */ } };
+        const sd = (n) => {
+            try {
+                n?.disconnect();
+            } catch {
+                /* */
+            }
+        };
         sd(this._mcSplitter);
         sd(this._mcMerger);
         sd(this._mcLfeGain);
@@ -499,15 +520,31 @@ export class BinauralDSP {
 
     _destroyWidenerNodes() {
         const nodes = [
-            this._wSplitter, this._wOutputMerger,
-            this._wMidL, this._wMidR, this._wSideL, this._wSideR,
-            this._wMidGain, this._wSideGain,
-            this._wMidMix, this._wSideMix,
-            this._wDecoderMidToL, this._wDecoderSideToL,
-            this._wDecoderMidToR, this._wDecoderSideToR,
-            this._wLMix, this._wRMix, this._wOutputNode,
+            this._wSplitter,
+            this._wOutputMerger,
+            this._wMidL,
+            this._wMidR,
+            this._wSideL,
+            this._wSideR,
+            this._wMidGain,
+            this._wSideGain,
+            this._wMidMix,
+            this._wSideMix,
+            this._wDecoderMidToL,
+            this._wDecoderSideToL,
+            this._wDecoderMidToR,
+            this._wDecoderSideToR,
+            this._wLMix,
+            this._wRMix,
+            this._wOutputNode,
         ];
-        nodes.forEach((n) => { try { n?.disconnect(); } catch { /* */ } });
+        nodes.forEach((n) => {
+            try {
+                n?.disconnect();
+            } catch {
+                /* */
+            }
+        });
         this._wSplitter = null;
         this._wOutputMerger = null;
         this._wMidL = null;
@@ -570,9 +607,11 @@ export class BinauralDSP {
             await this._ensureNodesCreated();
             this._connectInternal();
 
-            window.dispatchEvent(new CustomEvent('binaural-mode-changed', {
-                detail: { mode: this.mode, channels: channelCount },
-            }));
+            window.dispatchEvent(
+                new CustomEvent('binaural-mode-changed', {
+                    detail: { mode: this.mode, channels: channelCount },
+                })
+            );
         }
     }
 
