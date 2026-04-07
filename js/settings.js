@@ -1385,11 +1385,15 @@ export async function initializeSettings(scrobbler, player, api, ui) {
 
     // Legacy EQ Import / Export
     const parseGeqLabelFrequency = (label) => {
-        const normalized = String(label).trim().toLowerCase().replace(/hz$/, '').trim();
-        if (normalized.endsWith('k')) {
-            return Number.parseFloat(normalized.slice(0, -1)) * 1000;
+        const normalized = String(label).trim().toLowerCase().replace(/\s+/g, '');
+        if (normalized.endsWith('khz')) {
+            return Number.parseFloat(normalized.slice(0, -3)) * 1000;
         }
-        return Number.parseFloat(normalized);
+        const withoutHz = normalized.replace(/hz$/, '');
+        if (withoutHz.endsWith('k')) {
+            return Number.parseFloat(withoutHz.slice(0, -1)) * 1000;
+        }
+        return Number.parseFloat(withoutHz);
     };
     const GEQ_FREQUENCIES = GEQ_LABELS.map((label) => parseGeqLabelFrequency(label));
     const legacyGeqExportBtn = document.getElementById('legacy-geq-export-btn');
