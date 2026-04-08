@@ -1,5 +1,3 @@
-import { trackCloseSidePanel, trackCloseQueue, trackCloseLyrics } from './analytics.js';
-
 export class SidePanelManager {
     constructor() {
         this.panel = document.getElementById('side-panel');
@@ -103,15 +101,9 @@ export class SidePanelManager {
     close() {
         // Track side panel close
         if (this.currentView) {
-            trackCloseSidePanel();
-            if (this.currentView === 'queue') {
-                trackCloseQueue();
-            } else if (this.currentView === 'lyrics') {
+            if (this.currentView === 'lyrics') {
                 // Get current track from audio player context
                 const audioPlayer = document.getElementById('audio-player');
-                if (audioPlayer && audioPlayer._currentTrack) {
-                    trackCloseLyrics(audioPlayer._currentTrack);
-                }
             }
         }
 
