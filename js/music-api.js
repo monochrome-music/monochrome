@@ -262,7 +262,7 @@ export class MusicAPI {
             this.videoArtworkCache.set(cacheKey, result);
             return result;
             */
-            throw new Error("Video artwork is disabled for now.");
+            throw new Error('Video artwork is disabled for now.');
         } catch (error) {
             console.warn('Failed to fetch video artwork:', error);
             return null;
