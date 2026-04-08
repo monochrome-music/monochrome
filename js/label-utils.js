@@ -28,6 +28,8 @@ export function extractLabelName(copyright) {
 
     // Strip leading boilerplate phrases: "This compilation", "Originally released YYYY", etc.
     s = s.replace(/^(this\s+compilation|originally\s+(released|recorded)\s+\d{4}[^.]*?\.\s*)/i, '').trim();
+    // Strip "All rights reserved" sentences
+    s = s.replace(/all\s+rights\s+reserved[^.]*\./gi, '').trim();
 
     // Rule 1: symbol/year + label + "under license to X" → return the label BEFORE "under license"
     const symbolYearLicenseMatch = s.match(/(?:[℗©]|\([PC]\))\s*(?:\d{4}[\s,]*)+(.+?),\s*under\s+(?:exclusive\s+)?license/i);
@@ -64,8 +66,10 @@ export function extractLabelName(copyright) {
     const underLicenseFromMatch = s.match(/^([^,℗©\d(]+?),\s*under\s+(?:exclusive\s+)?license/i);
     if (underLicenseFromMatch) return underLicenseFromMatch[1].trim();
 
-    // Rule 6: bare label name — no year, no symbols, no sentence punctuation
-    if (!/\d{4}/.test(s) && !/[℗©]/.test(s) && !/\([PC]\)/i.test(s) && !s.includes('.') && s.length < 80) {
+    // Rule 6: bare label name — no year, no symbols
+    // Allow dots inside the string (e.g. "CULT.beat", "XL Recordings Ltd.")
+    // but reject if it looks like a sentence (ends with ". Word" pattern)
+    if (!/\d{4}/.test(s) && !/[℗©]/.test(s) && !/\([PC]\)/i.test(s) && !/\.\s+[A-Z]/.test(s) && s.length < 80) {
         return s;
     }
 
