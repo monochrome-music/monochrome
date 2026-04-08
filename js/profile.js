@@ -197,10 +197,11 @@ export async function loadProfile(username) {
 
             const img = document.createElement('img');
             img.src = statusObj.image;
-            img.style.cssText = 'width: 20px; height: 20px; border-radius: 2px; vertical-align: middle; margin-right: 0.5rem;';
+            img.style.cssText =
+                'width: 20px; height: 20px; border-radius: 2px; vertical-align: middle; margin-right: 0.5rem;';
 
             const link = document.createElement('a');
-            if (statusObj.link.startsWith("/")) {
+            if (statusObj.link.startsWith('/')) {
                 link.href = statusObj.link;
             }
             link.className = 'status-link';
