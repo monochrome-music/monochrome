@@ -1892,8 +1892,12 @@ export class Player {
                             const container = document.getElementById('binaural-dsp-container');
                             if (container) container.style.display = 'block';
                         }
-                        // Notify binaural DSP of multichannel content (Atmos is typically 5.1+)
-                        void audioContextManager.notifyBinauralChannelCount(6);
+                        // Notify binaural DSP of the actual multichannel layout when Shaka exposes it.
+                        const atmosChannelCount =
+                            Number.isFinite(activeVariant.channelsCount) && activeVariant.channelsCount > 0
+                                ? activeVariant.channelsCount
+                                : 6;
+                        void audioContextManager.notifyBinauralChannelCount(atmosChannelCount);
 
                         const binauralActive = audioContextManager.isBinauralActive();
                         badgeEl.className = 'quality-badge quality-atmos shaka-quality-badge';
