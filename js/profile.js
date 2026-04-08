@@ -188,12 +188,27 @@ export async function loadProfile(username) {
         const statusEl = document.getElementById('profile-status');
         try {
             const statusObj = JSON.parse(profile.status);
-            statusEl.innerHTML = `
-                <span style="opacity: 0.7; margin-right: 0.25rem;">Listening to:</span>
-                <img src="${statusObj.image}" style="width: 20px; height: 20px; border-radius: 2px; vertical-align: middle; margin-right: 0.5rem;">
-                <a href="${statusObj.link}" class="status-link" style="color: inherit; text-decoration: none; font-weight: 500;">${statusObj.text}</a>
-            `;
-            statusEl.querySelector('.status-link').onclick = (e) => {
+
+            statusEl.replaceChildren();
+
+            const label = document.createElement('span');
+            label.style.cssText = 'opacity: 0.7; margin-right: 0.25rem;';
+            label.textContent = 'Listening to:';
+
+            const img = document.createElement('img');
+            img.src = statusObj.image;
+            img.style.cssText = 'width: 20px; height: 20px; border-radius: 2px; vertical-align: middle; margin-right: 0.5rem;';
+
+            const link = document.createElement('a');
+            if (statusObj.link.startsWith("/")) {
+                link.href = statusObj.link;
+            }
+            link.className = 'status-link';
+            link.style.cssText = 'color: inherit; text-decoration: none; font-weight: 500;';
+            link.textContent = statusObj.text;
+
+            statusEl.append(label, img, link);
+            link.onclick = (e) => {
                 e.preventDefault();
                 navigate(statusObj.link);
             };
