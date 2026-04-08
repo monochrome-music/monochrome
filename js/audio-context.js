@@ -373,15 +373,13 @@ class AudioContextManager {
     }
 
     /**
-     * Update a filter chain in-place. Returns true if reconnect is needed.
+     * Update an existing filter chain in place.
      * @param {Array} chain - Filter array to update (this.filters, this.midFilters, or this.sideFilters)
      * @param {Array} freqs - New frequencies
      * @param {Array} types - New filter types
      * @param {Array} qs - New Q values
      * @param {Array} gains - New gain values
      * @param {number} now - Current audio context time
-     * @param {string} [prop] - Property name on this to update replaced filters (e.g. 'midFilters')
-     * @returns {boolean} Whether graph reconnection is needed
      */
     _updateFilterChain(chain, freqs, types, qs, gains, now) {
         chain.forEach((filter, i) => {
