@@ -129,7 +129,7 @@ async function matchOnTidal(qAlbum) {
         const score = similarity(qAlbum.title, ta.title || '') * 0.6 + similarity(artistName, tArtist) * 0.4;
         if (score > bestScore) { bestScore = score; best = ta; }
     }
-    if (bestScore < 0.75) return null;
+    if (bestScore < 0.6) return null;
     const cover = best.cover ?? best.album?.cover ?? best.image ?? null;
     return {
         id: String(best.id),
