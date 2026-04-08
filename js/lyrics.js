@@ -74,8 +74,13 @@ class GeniusManager {
         this.loading = false;
     }
 
+    // idgaf anymore im js hardcoding this lmaooo
     getToken() {
-        return 'QmS9OvsS-7ifRBKx_ochIPQU7oejIS9Eo_z5iWHmCPyhwLVQID3pYTHJmJTa6z8z'; // idgaf anymore im js hardcoding this lmaooo
+        const hostname = window.location.hostname;
+        if (hostname.endsWith('monochrome.tf') || hostname === 'monochrome.tf') {
+            return 'OpITG-h86oehKYuJJ5QVY5F-HxUWXb31EwGKarx2Tle3W9rBUVnMaUL9qo_Oh9Q7';
+        }
+        return 'QmS9OvsS-7ifRBKx_ochIPQU7oejIS9Eo_z5iWHmCPyhwLVQID3pYTHJmJTa6z8z';
     }
 
     async searchTrack(title, artist) {
