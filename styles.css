@@ -10096,7 +10096,9 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     text-align: center;
     overflow: hidden;
     background: var(--card);
-    transition: transform 0.2s ease, border-color 0.2s ease;
+    transition:
+        transform 0.2s ease,
+        border-color 0.2s ease;
 }
 
 .about-contributors div:hover {
@@ -10146,14 +10148,17 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     .about-contributors {
         gap: 8px;
     }
+
     .about-contributors div {
         width: calc(50% - 8px);
         min-width: 0;
         padding: 12px;
     }
+
     .about-contributors span {
         font-size: 13px;
     }
+
     .about-contributors .contrib {
         font-size: 11px;
     }
