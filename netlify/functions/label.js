@@ -63,7 +63,9 @@ async function findQobuzLabel(name, token) {
     }
     if (!seen.size) return null;
     const scored = [...seen.values()].sort((a, b) => b.score - a.score);
-    return scored[0].score >= 0.6 ? scored[0] : null;
+    // Short label names need higher threshold to avoid false matches (e.g. "SARAW" → "Sarah Records")
+    const minScore = name.length <= 6 ? 0.85 : 0.6;
+    return scored[0].score >= minScore ? scored[0] : null;
 }
 
 async function getQobuzLabelAlbums(labelId, labelName, offset, limit, token) {
