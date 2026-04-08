@@ -27,6 +27,10 @@ vi.mock('../storage.js', () => ({
         isPreservePitchEnabled: vi.fn(() => true),
         setPreservePitch: vi.fn(),
     },
+    binauralDspSettings: {
+        isEnabled: vi.fn(() => false),
+        getAutoEnableForSpatial: vi.fn(() => false),
+    },
     radioSettings: { isEnabled: vi.fn(() => false) },
     contentBlockingSettings: {
         shouldHideTrack: vi.fn(() => false),
