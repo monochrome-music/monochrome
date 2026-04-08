@@ -87,6 +87,7 @@ const syncManager = {
         const userPlaylists = this.safeParseInternal(record.user_playlists, 'user_playlists', {});
         const userFolders = this.safeParseInternal(record.user_folders, 'user_folders', {});
         const favoriteAlbums = this.safeParseInternal(record.favorite_albums, 'favorite_albums', []);
+        const savedLabels = this.safeParseInternal(record.saved_labels, 'saved_labels', []);
 
         const profile = {
             username: record.username || this.pb.authStore.model?.username || record.firebase_id,
@@ -99,6 +100,7 @@ const syncManager = {
             privacy: this.safeParseInternal(record.privacy, 'privacy', { playlists: 'public', lastfm: 'public' }),
             lastfm_username: record.lastfm_username,
             favorite_albums: favoriteAlbums,
+            saved_labels: savedLabels,
         };
 
         return { library, history, userPlaylists, userFolders, profile };
@@ -513,6 +515,20 @@ const syncManager = {
         } catch {
             return null;
         }
+    },
+
+    async getSavedLabels() {
+        const user = authManager.user;
+        if (!user) return null;
+        const record = await this._getUserRecord(user.$id);
+        if (!record) return null;
+        return this.safeParseInternal(record.saved_labels, 'saved_labels', []);
+    },
+
+    async setSavedLabels(labels) {
+        const user = authManager.user;
+        if (!user) return;
+        await this._updateUserJSON(user.$id, 'saved_labels', labels);
     },
 
     async updateProfile(data) {

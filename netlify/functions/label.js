@@ -37,6 +37,25 @@ function normalizeLabelName(name) {
 }
 
 async function findQobuzLabel(name, token) {
+    // Try slug-based direct lookup first (works for obscure labels like "SARAW"
+    // that don't surface in catalog/search results). Slug = lowercase, spaces→hyphens.
+    const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    try {
+        const slugUrl = new URL(`${QOBUZ_BASE}/label/get`);
+        slugUrl.searchParams.set('slug', slug);
+        slugUrl.searchParams.set('extra', 'albums');
+        slugUrl.searchParams.set('albums_limit', '1');
+        slugUrl.searchParams.set('app_id', process.env.QOBUZ_APP_ID);
+        const slugRes = await fetch(slugUrl, { headers: { 'X-User-Auth-Token': token } });
+        if (slugRes.ok) {
+            const slugData = await slugRes.json();
+            const l = slugData.label ?? slugData;
+            if (l?.id && l?.name && l.name.toLowerCase() === name.toLowerCase()) {
+                return { id: l.id, name: l.name, slug: l.slug };
+            }
+        }
+    } catch { /* fall through to text search */ }
+
     // Search with both original and normalized name to maximise hit rate
     const queries = [name];
     const normalized = normalizeLabelName(name);
@@ -47,7 +66,7 @@ async function findQobuzLabel(name, token) {
         const url = new URL(`${QOBUZ_BASE}/catalog/search`);
         url.searchParams.set('query', query);
         url.searchParams.set('type', 'albums');
-        url.searchParams.set('limit', '20');
+        url.searchParams.set('limit', '50');
         url.searchParams.set('app_id', process.env.QOBUZ_APP_ID);
         const res = await fetch(url, { headers: { 'X-User-Auth-Token': token } });
         if (!res.ok) continue;
@@ -62,6 +81,12 @@ async function findQobuzLabel(name, token) {
         }
     }
     if (!seen.size) return null;
+
+    // Exact case-insensitive match wins regardless of Levenshtein score
+    const nameLower = name.toLowerCase();
+    const exactMatch = [...seen.values()].find(l => l.name.toLowerCase() === nameLower);
+    if (exactMatch) return exactMatch;
+
     const scored = [...seen.values()].sort((a, b) => b.score - a.score);
     // Short label names need higher threshold to avoid false matches (e.g. "SARAW" → "Sarah Records")
     const minScore = name.length <= 6 ? 0.85 : 0.6;

@@ -2921,8 +2921,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     headerAccountImg.src = data.profile.avatar_url + '&s=100';
                     headerAccountImg.style.display = 'block';
                     headerAccountIcon.style.display = 'none';
-                    return;
                 }
+                // Sync saved labels from cloud to localStorage on login
+                UIRenderer.instance?.loadSavedLabelsFromCloud();
+                if (data && data.profile && data.profile.avatar_url) return;
             }
             headerAccountImg.style.display = 'none';
             headerAccountIcon.style.display = 'flex';

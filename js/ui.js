@@ -4777,6 +4777,43 @@ export class UIRenderer {
         }
     }
 
+    getSavedLabels() {
+        try { return JSON.parse(localStorage.getItem('saved_labels') || '[]'); } catch { return []; }
+    }
+
+    _persistSavedLabels(labels) {
+        localStorage.setItem('saved_labels', JSON.stringify(labels));
+        // Sync to PocketBase in background if logged in
+        if (authManager.user) syncManager.setSavedLabels(labels).catch(() => {});
+    }
+
+    saveLabel(name) {
+        const saved = this.getSavedLabels();
+        if (!saved.includes(name)) { saved.push(name); this._persistSavedLabels(saved); }
+    }
+
+    unsaveLabel(name) {
+        this._persistSavedLabels(this.getSavedLabels().filter(n => n !== name));
+    }
+
+    isLabelSaved(name) {
+        return this.getSavedLabels().includes(name);
+    }
+
+    async loadSavedLabelsFromCloud() {
+        if (!authManager.user) return;
+        try {
+            const cloud = await syncManager.getSavedLabels();
+            if (!cloud) return;
+            // Merge: union of cloud + local
+            const local = this.getSavedLabels();
+            const merged = [...new Set([...cloud, ...local])];
+            localStorage.setItem('saved_labels', JSON.stringify(merged));
+            // Push merged back if different from cloud
+            if (merged.length !== cloud.length) syncManager.setSavedLabels(merged).catch(() => {});
+        } catch { /* non-critical */ }
+    }
+
     renderLabelsPage() {
         this.showPage('labels');
         const input = document.getElementById('labels-search-input');
@@ -4787,6 +4824,37 @@ export class UIRenderer {
         };
         btn.onclick = go;
         input.onkeydown = (e) => { if (e.key === 'Enter') go(); };
+
+        // Render saved labels chips
+        const listEl = document.getElementById('saved-labels-list');
+        const chipsEl = document.getElementById('saved-labels-chips');
+        const saved = this.getSavedLabels();
+        if (saved.length) {
+            chipsEl.innerHTML = saved.map(name =>
+                `<span class="label-chip" data-label="${name}" style="display:inline-flex;align-items:center;gap:0.35rem;padding:0.3rem 0.75rem;border-radius:999px;background:var(--card-bg,rgba(255,255,255,0.08));cursor:pointer;font-size:0.875rem;">
+                    ${name}
+                    <span class="label-chip-remove" data-label="${name}" title="Remove" style="opacity:0.5;font-size:0.75rem;line-height:1;padding:0 0.1rem;">✕</span>
+                </span>`
+            ).join('');
+            listEl.style.display = '';
+
+            chipsEl.querySelectorAll('.label-chip').forEach(chip => {
+                chip.addEventListener('click', (e) => {
+                    if (e.target.closest('.label-chip-remove')) return;
+                    navigate(`/label/${encodeURIComponent(chip.dataset.label)}`);
+                });
+            });
+            chipsEl.querySelectorAll('.label-chip-remove').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.unsaveLabel(btn.dataset.label);
+                    this.renderLabelsPage();
+                });
+            });
+        } else {
+            listEl.style.display = 'none';
+        }
+
         input.focus();
     }
 
@@ -4840,8 +4908,27 @@ export class UIRenderer {
             totalMatched += data.matched;
             nextOffset = data.nextOffset ?? limit;
 
-            nameEl.textContent = data.label?.name || labelName;
-            document.title = `${data.label?.name || labelName} — Monochrome`;
+            const resolvedName = data.label?.name || labelName;
+            nameEl.textContent = resolvedName;
+            document.title = `${resolvedName} — Monochrome`;
+
+            // Wire save button
+            const saveBtn = document.getElementById('label-save-btn');
+            if (saveBtn) {
+                const updateSaveBtn = () => {
+                    const saved = this.isLabelSaved(resolvedName);
+                    saveBtn.title = saved ? 'Remove from saved' : 'Save label';
+                    saveBtn.querySelector('i')?.setAttribute('data-lucide', saved ? 'bookmark-check' : 'bookmark');
+                    saveBtn.style.opacity = saved ? '1' : '0.5';
+                    if (window.lucide) lucide.createIcons({ nodes: [saveBtn] });
+                };
+                updateSaveBtn();
+                saveBtn.onclick = () => {
+                    if (this.isLabelSaved(resolvedName)) this.unsaveLabel(resolvedName);
+                    else this.saveLabel(resolvedName);
+                    updateSaveBtn();
+                };
+            }
 
             if (!data.albums.length) {
                 albumsContainer.innerHTML = `<p style="opacity: 0.6; padding: 1rem 0;">No albums from this label found on TIDAL.</p>`;
