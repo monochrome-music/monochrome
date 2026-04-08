@@ -4804,7 +4804,7 @@ export class UIRenderer {
         loadMoreBtn.style.display = 'none';
 
         let nextOffset = 0;
-        const limit = 24;
+        const limit = 100;
         let totalQobuz = 0;
         let totalMatched = 0;
 

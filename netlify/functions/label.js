@@ -153,7 +153,7 @@ exports.handler = async (event) => {
     const params = event.queryStringParameters || {};
     const name = params.name?.trim();
     const offset = parseInt(params.offset || '0', 10);
-    const limit = Math.min(parseInt(params.limit || '24', 10), 50);
+    const limit = Math.min(parseInt(params.limit || '24', 10), 200);
 
     if (!name) {
         return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Missing name parameter' }) };
