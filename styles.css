@@ -11234,6 +11234,16 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     min-width: 0;
 }
 
+.binaural-sub-setting select {
+    background: var(--secondary);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
 .binaural-sub-setting .info {
     display: flex;
     flex-direction: column;
@@ -11249,16 +11259,6 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 .binaural-sub-setting .description {
     font-size: 0.8rem;
     color: var(--muted-foreground);
-}
-
-.binaural-sub-setting select {
-    background: var(--secondary);
-    color: var(--foreground);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: var(--spacing-xs) var(--spacing-sm);
-    font-size: 0.85rem;
-    cursor: pointer;
 }
 
 .binaural-slider {
