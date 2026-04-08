@@ -12,7 +12,6 @@ import { downloadQualitySettings, contentBlockingSettings } from './storage.js';
 import { db } from './db.js';
 import { syncManager } from './accounts/pocketbase.js';
 import { showNotification, downloadTracks } from './downloads.js';
-import { trackSearchTabChange, trackOpenQueue } from './analytics.js';
 import {
     SVG_CLOSE,
     SVG_BIN,
@@ -474,7 +473,6 @@ export function initializeUIInteractions(player, api, ui) {
     };
 
     const openQueuePanel = () => {
-        trackOpenQueue();
         sidePanelManager.open('queue', 'Queue', renderQueueControls, renderQueueContent);
 
         setTimeout(() => {
@@ -535,9 +533,6 @@ export function initializeUIInteractions(player, api, ui) {
         tab.addEventListener('click', () => {
             const page = tab.closest('.page');
             if (!page) return;
-
-            // Track tab change
-            trackSearchTabChange(tab.dataset.tab);
 
             page.querySelectorAll('.search-tab').forEach((t) => t.classList.remove('active'));
             page.querySelectorAll('.search-tab-content').forEach((c) => c.classList.remove('active'));
