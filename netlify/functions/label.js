@@ -67,17 +67,34 @@ async function findQobuzLabel(name, token) {
 }
 
 async function getQobuzLabelAlbums(labelId, labelName, offset, limit, token) {
-    const url = new URL(`${QOBUZ_BASE}/catalog/search`);
-    url.searchParams.set('type', 'albums');
-    url.searchParams.set('query', labelName);
+    // Use label/get with extra=albums for strict label-only results
+    const url = new URL(`${QOBUZ_BASE}/label/get`);
     url.searchParams.set('label_id', String(labelId));
-    url.searchParams.set('limit', String(limit));
-    url.searchParams.set('offset', String(offset));
+    url.searchParams.set('extra', 'albums');
+    url.searchParams.set('albums_limit', String(limit));
+    url.searchParams.set('albums_offset', String(offset));
     url.searchParams.set('app_id', process.env.QOBUZ_APP_ID);
     const res = await fetch(url, { headers: { 'X-User-Auth-Token': token } });
-    if (!res.ok) throw new Error(`Qobuz label albums failed: ${res.status}`);
+    if (!res.ok) throw new Error(`Qobuz label/get failed: ${res.status}`);
     const data = await res.json();
-    return { albums: data.albums?.items || [], total: data.albums?.total || 0 };
+
+    // label/get returns albums under data.albums.items
+    if (data.albums?.items?.length) {
+        return { albums: data.albums.items, total: data.albums.total || 0 };
+    }
+
+    // Fallback: catalog/search with label_id (less strict but works)
+    const fallback = new URL(`${QOBUZ_BASE}/catalog/search`);
+    fallback.searchParams.set('type', 'albums');
+    fallback.searchParams.set('query', labelName);
+    fallback.searchParams.set('label_id', String(labelId));
+    fallback.searchParams.set('limit', String(limit));
+    fallback.searchParams.set('offset', String(offset));
+    fallback.searchParams.set('app_id', process.env.QOBUZ_APP_ID);
+    const res2 = await fetch(fallback, { headers: { 'X-User-Auth-Token': token } });
+    if (!res2.ok) throw new Error(`Qobuz catalog/search failed: ${res2.status}`);
+    const data2 = await res2.json();
+    return { albums: data2.albums?.items || [], total: data2.albums?.total || 0 };
 }
 
 const TIDAL_INSTANCES = [
