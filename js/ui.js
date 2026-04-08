@@ -1324,6 +1324,7 @@ export class UIRenderer {
             window.history.pushState({ fullscreen: true }, '', '#fullscreen');
         }
         const overlay = document.getElementById('fullscreen-cover-overlay');
+        const isAlreadyOpen = overlay && window.getComputedStyle(overlay).display !== 'none';
         const nextTrackEl = document.getElementById('fullscreen-next-track');
         const lyricsPane = document.getElementById('fullscreen-lyrics-pane');
         const lyricsContent = document.getElementById('fullscreen-lyrics-content');
@@ -1366,7 +1367,7 @@ export class UIRenderer {
             sidePanelManager.close();
         }
         const mainContent = document.querySelector('.main-content');
-        if (mainContent instanceof HTMLElement) {
+        if (mainContent instanceof HTMLElement && !isAlreadyOpen) {
             const computedStyles = window.getComputedStyle(mainContent);
             this.fullscreenMainContentOverflow = {
                 overflow: mainContent.style.overflow,
