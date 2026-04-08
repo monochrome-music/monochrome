@@ -160,24 +160,44 @@ exports.handler = async (event) => {
         return { statusCode: 404, headers: corsHeaders, body: JSON.stringify({ error: 'Label not found on Qobuz', label: null, albums: [], total: 0 }) };
     }
 
-    let qobuzResult;
+    // Scan Qobuz pages until we collect `limit` matched TIDAL albums.
+    // This avoids returning sparse pages when most Qobuz albums don't match.
+    const matched = [];
+    let qobuzOffset = offset;
+    let qobuzTotal = null;
+    const SCAN_BATCH = 50; // fetch 50 from Qobuz at a time
+    const MAX_SCANNED = 300; // never scan more than 300 Qobuz albums per request
+
     try {
-        qobuzResult = await getQobuzLabelAlbums(label.id, label.name, offset, limit, token);
+        while (matched.length < limit && qobuzOffset - offset < MAX_SCANNED) {
+            const batch = await getQobuzLabelAlbums(label.id, label.name, qobuzOffset, SCAN_BATCH, token);
+            if (qobuzTotal === null) qobuzTotal = batch.total;
+            if (!batch.albums.length) break;
+
+            const batchMatched = (await Promise.all(
+                batch.albums.map(qa => matchOnTidal(qa).catch(() => null))
+            )).filter(Boolean);
+
+            matched.push(...batchMatched);
+            qobuzOffset += SCAN_BATCH;
+
+            if (qobuzOffset >= batch.total) break;
+        }
     } catch {
         return { statusCode: 502, headers: corsHeaders, body: JSON.stringify({ error: 'Failed to fetch label albums' }) };
     }
 
-    const matched = (await Promise.all(qobuzResult.albums.map(qa => matchOnTidal(qa).catch(() => null)))).filter(Boolean);
-    const hasMore = offset + limit < qobuzResult.total;
+    const hasMore = qobuzTotal !== null && qobuzOffset < qobuzTotal;
 
     return {
         statusCode: 200,
         headers: { ...corsHeaders, 'Cache-Control': 'public, max-age=86400' },
         body: JSON.stringify({
             label: { id: label.id, name: label.name },
-            albums: matched,
-            total: qobuzResult.total,
-            matched: matched.length,
+            albums: matched.slice(0, limit),
+            total: qobuzTotal ?? 0,
+            matched: matched.slice(0, limit).length,
+            nextOffset: qobuzOffset,
             offset, limit, hasMore,
         }),
     };

@@ -4803,12 +4803,10 @@ export class UIRenderer {
         albumsContainer.innerHTML = this.createSkeletonCards(12);
         loadMoreBtn.style.display = 'none';
 
-        let offset = 0;
+        let nextOffset = 0;
         const limit = 24;
         let totalQobuz = 0;
         let totalMatched = 0;
-
-        const cacheKey = `label_albums_${labelName}`;
 
         const fetchPage = async (pageOffset) => {
             const url = `/.netlify/functions/label?name=${encodeURIComponent(labelName)}&offset=${pageOffset}&limit=${limit}`;
@@ -4840,6 +4838,7 @@ export class UIRenderer {
             const data = await fetchPage(0);
             totalQobuz = data.total;
             totalMatched += data.matched;
+            nextOffset = data.nextOffset ?? limit;
 
             nameEl.textContent = data.label?.name || labelName;
             document.title = `${data.label?.name || labelName} — Monochrome`;
@@ -4851,19 +4850,19 @@ export class UIRenderer {
             }
 
             renderAlbums(data.albums);
-            metaEl.textContent = `${totalMatched} of ${totalQobuz} releases found on TIDAL`;
+            metaEl.textContent = `${totalMatched} albums from this label on TIDAL`;
 
             if (data.hasMore) {
                 loadMoreBtn.style.display = '';
                 loadMoreBtn.onclick = async () => {
-                    offset += limit;
                     loadMoreBtn.disabled = true;
                     loadMoreBtn.textContent = 'Loading…';
                     try {
-                        const more = await fetchPage(offset);
+                        const more = await fetchPage(nextOffset);
                         totalMatched += more.matched;
+                        nextOffset = more.nextOffset ?? (nextOffset + limit);
                         renderAlbums(more.albums, true);
-                        metaEl.textContent = `${totalMatched} of ${totalQobuz} releases found on TIDAL`;
+                        metaEl.textContent = `${totalMatched} albums from this label on TIDAL`;
                         if (!more.hasMore || !more.albums.length) {
                             loadMoreBtn.style.display = 'none';
                         } else {
