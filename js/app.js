@@ -1044,6 +1044,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
+    document.getElementById('now-playing-youtube-btn')?.addEventListener('click', () => {
+        const track = Player.instance.currentTrack;
+        if (!track) return;
+        const artist = track.artists?.[0]?.name ?? track.artist?.name ?? '';
+        const title = track.title ?? '';
+        const query = encodeURIComponent(`${artist} ${title}`.trim());
+        window.open(`https://www.youtube.com/results?search_query=${query}`, '_blank', 'noopener');
+    });
+
     document.getElementById('download-current-btn')?.addEventListener('click', async () => {
         if (Player.instance.currentTrack) {
             await handleTrackAction(
