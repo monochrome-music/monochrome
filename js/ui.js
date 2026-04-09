@@ -4926,9 +4926,9 @@ export class UIRenderer {
                 const updateSaveBtn = () => {
                     const saved = this.isLabelSaved(resolvedName);
                     saveBtn.title = saved ? 'Remove from saved' : 'Save label';
-                    saveBtn.querySelector('i')?.setAttribute('data-lucide', saved ? 'bookmark-check' : 'bookmark');
-                    saveBtn.style.opacity = saved ? '1' : '0.5';
-                    if (window.lucide) lucide.createIcons({ nodes: [saveBtn] });
+                    const useEl = saveBtn.querySelector('use');
+                    if (useEl) useEl.setAttribute('svg', saved ? '!lucide/bookmark-check.svg' : '!lucide/bookmark.svg');
+                    saveBtn.style.opacity = saved ? '1' : '0.7';
                 };
                 updateSaveBtn();
                 saveBtn.onclick = () => {
