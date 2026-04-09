@@ -37,38 +37,48 @@ function normalizeLabelName(name) {
 }
 
 async function findQobuzLabel(name, token) {
-    // Try slug-based direct lookup first (works for obscure labels like "SARAW"
-    // that don't surface in catalog/search results). Slug = lowercase, spaces→hyphens.
-    const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-    try {
-        const slugUrl = new URL(`${QOBUZ_BASE}/label/get`);
-        slugUrl.searchParams.set('slug', slug);
-        slugUrl.searchParams.set('extra', 'albums');
-        slugUrl.searchParams.set('albums_limit', '1');
-        slugUrl.searchParams.set('app_id', process.env.QOBUZ_APP_ID);
-        const slugRes = await fetch(slugUrl, { headers: { 'X-User-Auth-Token': token } });
-        if (slugRes.ok) {
-            const slugData = await slugRes.json();
-            // Response may be { label: {...} } or the label object directly
-            const l = slugData.label ?? slugData;
-            if (l?.id && l?.name) {
-                const score = similarity(l.name, name);
-                // Accept if exact match or very high similarity (slug lookup is already targeted)
-                if (l.name.toLowerCase() === name.toLowerCase() || score >= 0.8) {
-                    console.log(`[label] Slug lookup matched: "${l.name}" for query "${name}"`);
-                    return { id: l.id, name: l.name, slug: l.slug };
+    // Try slug-based direct lookup first (works for obscure labels that don't
+    // surface in catalog/search). Try multiple slug variants to handle special chars.
+    const makeSlug = (s) => s.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const slugVariants = [...new Set([
+        makeSlug(name),
+        makeSlug(normalizeLabelName(name)),
+        // For names starting with punctuation like "!K7", also try without it
+        makeSlug(name.replace(/^[^a-zA-Z0-9]+/, '')),
+    ])].filter(Boolean);
+
+    for (const slug of slugVariants) {
+        try {
+            const slugUrl = new URL(`${QOBUZ_BASE}/label/get`);
+            slugUrl.searchParams.set('slug', slug);
+            slugUrl.searchParams.set('extra', 'albums');
+            slugUrl.searchParams.set('albums_limit', '1');
+            slugUrl.searchParams.set('app_id', process.env.QOBUZ_APP_ID);
+            const slugRes = await fetch(slugUrl, { headers: { 'X-User-Auth-Token': token } });
+            if (slugRes.ok) {
+                const slugData = await slugRes.json();
+                const l = slugData.label ?? slugData;
+                if (l?.id && l?.name) {
+                    const score = similarity(l.name, name);
+                    if (l.name.toLowerCase() === name.toLowerCase() || score >= 0.8) {
+                        console.log(`[label] Slug "${slug}" matched: "${l.name}" for query "${name}"`);
+                        return { id: l.id, name: l.name, slug: l.slug };
+                    }
+                    console.log(`[label] Slug "${slug}" returned "${l.name}" (score ${score.toFixed(2)}) — rejecting`);
                 }
-                console.log(`[label] Slug lookup returned "${l.name}" (score ${score.toFixed(2)}) for query "${name}" — rejecting`);
             }
+        } catch (e) {
+            console.log(`[label] Slug lookup error for "${slug}":`, e.message);
         }
-    } catch (e) {
-        console.log(`[label] Slug lookup error for "${slug}":`, e.message);
     }
 
-    // Search with both original and normalized name to maximise hit rate
+    // Search with original, normalized, and leading-punctuation-stripped variants
     const queries = [name];
     const normalized = normalizeLabelName(name);
     if (normalized !== name) queries.push(normalized);
+    // e.g. "!K7 Records" → also search "K7 Records"
+    const stripped = name.replace(/^[^a-zA-Z0-9]+/, '').trim();
+    if (stripped !== name && stripped !== normalized && stripped.length > 0) queries.push(stripped);
 
     const seen = new Map();
     for (const query of queries) {

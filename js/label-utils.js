@@ -67,10 +67,11 @@ export function extractLabelName(copyright) {
     if (underLicenseFromMatch) return underLicenseFromMatch[1].trim();
 
     // Rule 6: bare label name — no year, no symbols
-    // Allow dots inside the string (e.g. "CULT.beat", "XL Recordings Ltd.")
-    // but reject if it looks like a sentence (ends with ". Word" pattern)
+    // Allow dots inside the string (e.g. "CULT.beat", "minim.all", "GRe.FACE")
+    // but reject if it looks like a sentence (". Word" mid-string pattern)
+    // Strip a lone trailing dot (e.g. "Sendero." → "Sendero")
     if (!/\d{4}/.test(s) && !/[℗©]/.test(s) && !/\([PC]\)/i.test(s) && !/\.\s+[A-Z]/.test(s) && s.length < 80) {
-        return s;
+        return s.replace(/\.$/, '').trim();
     }
 
     return null;
