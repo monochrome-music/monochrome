@@ -4975,7 +4975,7 @@ export class UIRenderer {
         } catch (err) {
             if (err.message.includes('not found') || err.message.includes('404')) {
                 nameEl.textContent = labelName;
-                albumsContainer.innerHTML = `<p style="opacity: 0.6; padding: 1rem 0;">Label not found on Qobuz.</p>`;
+                albumsContainer.innerHTML = `<p style="opacity: 0.6; padding: 1rem 0;">Label not found on Qobuz. Try pasting the Qobuz label URL (e.g. https://play.qobuz.com/label/12345) into the search box.</p>`;
                 metaEl.textContent = '';
             } else {
                 nameEl.textContent = labelName;
