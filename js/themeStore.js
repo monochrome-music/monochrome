@@ -416,7 +416,15 @@ export class ThemeStore {
                     const customUrl = urlMatch[1].trim().replace(/['"]/g, '');
                     console.log(`Applying custom font URL: ${customUrl}`);
 
-                    if (customUrl.match(/\.(css)$/i) || customUrl.includes('fonts.googleapis.com')) {
+                    let isGoogleFontsHost = false;
+                    try {
+                        const parsedUrl = new URL(customUrl, window.location.href);
+                        isGoogleFontsHost = parsedUrl.hostname === 'fonts.googleapis.com';
+                    } catch (_e) {
+                        isGoogleFontsHost = false;
+                    }
+
+                    if (customUrl.match(/\.(css)$/i) || isGoogleFontsHost) {
                         if (!link) {
                             link = document.createElement('link');
                             link.id = FONT_LINK_ID;

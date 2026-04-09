@@ -50,7 +50,6 @@ import {
     createProjectCardHTML,
     createTrackFromSong,
 } from './tracker.js';
-import { trackSearch, trackChangeSort } from './analytics.js';
 
 fontSettings.applyFont().catch(console.error);
 fontSettings.applyFontSize();
@@ -1327,6 +1326,7 @@ export class UIRenderer {
             window.history.pushState({ fullscreen: true }, '', '#fullscreen');
         }
         const overlay = document.getElementById('fullscreen-cover-overlay');
+        const isAlreadyOpen = overlay && window.getComputedStyle(overlay).display !== 'none';
         const nextTrackEl = document.getElementById('fullscreen-next-track');
         const lyricsPane = document.getElementById('fullscreen-lyrics-pane');
         const lyricsContent = document.getElementById('fullscreen-lyrics-content');
@@ -1369,7 +1369,7 @@ export class UIRenderer {
             sidePanelManager.close();
         }
         const mainContent = document.querySelector('.main-content');
-        if (mainContent instanceof HTMLElement) {
+        if (mainContent instanceof HTMLElement && !isAlreadyOpen) {
             const computedStyles = window.getComputedStyle(mainContent);
             this.fullscreenMainContentOverflow = {
                 overflow: mainContent.style.overflow,
@@ -3610,7 +3610,6 @@ export class UIRenderer {
 
             // Track search with results
             const totalResults = finalTracks.length + finalArtists.length + finalAlbums.length + finalPlaylists.length;
-            trackSearch(query, totalResults);
 
             if (finalTracks.length) {
                 await this.renderListWithTracks(tracksContainer, finalTracks, true, false, false, true);
@@ -5892,7 +5891,6 @@ export class UIRenderer {
                 const handleSort = async (ev) => {
                     const li = ev.target.closest('li');
                     if (li && li.dataset.sort) {
-                        trackChangeSort(li.dataset.sort);
                         await onSort(li.dataset.sort);
                         closeMenu();
                     }
