@@ -24,7 +24,12 @@ function similarity(a, b) {
                 : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
         }
     }
-    return 1 - dp[m][n] / Math.max(m, n);
+    const levenshtein = 1 - dp[m][n] / Math.max(m, n);
+    // Weight by sqrt of length ratio to penalise length mismatches without being too harsh
+    // "ukiyo"(5) vs "ukioto"(6): 0.67 * sqrt(0.83) = 0.61 — still too close, but combined with
+    // the threshold this will reject borderline false matches while keeping good ones
+    const lenRatio = Math.min(m, n) / Math.max(m, n);
+    return levenshtein * Math.sqrt(lenRatio);
 }
 
 
@@ -109,7 +114,7 @@ async function findQobuzLabel(name, token) {
     const scored = [...seen.values()].sort((a, b) => b.score - a.score);
     // Use 0.6 threshold for all names — exact match above already handles false positives
     // like "SARAW" → "Sarah Records" (not exact, so won't reach here with a passing score)
-    return scored[0].score >= 0.6 ? scored[0] : null;
+    return scored[0].score >= 0.65 ? scored[0] : null;
 }
 
 async function getQobuzLabelAlbums(labelId, labelName, offset, limit, token) {
