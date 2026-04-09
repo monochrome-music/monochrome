@@ -4820,7 +4820,11 @@ export class UIRenderer {
         const btn = document.getElementById('labels-search-btn');
         const go = () => {
             const q = input.value.trim();
-            if (q) navigate(`/label/${encodeURIComponent(q)}`);
+            if (!q) return;
+            // If user pastes a Qobuz label URL, extract the ID for direct lookup
+            const urlMatch = q.match(/play\.qobuz\.com\/label\/(\d+)/);
+            if (urlMatch) navigate(`/label-id/${urlMatch[1]}`);
+            else navigate(`/label/${encodeURIComponent(q)}`);
         };
         btn.onclick = go;
         input.onkeydown = (e) => { if (e.key === 'Enter') go(); };
@@ -4858,7 +4862,7 @@ export class UIRenderer {
         input.focus();
     }
 
-    async renderLabelPage(labelName) {
+    async renderLabelPage(labelName, opts = {}) {
         this.showPage('label');
 
         const nameEl = document.getElementById('label-detail-name');
@@ -4877,7 +4881,11 @@ export class UIRenderer {
         let totalMatched = 0;
 
         const fetchPage = async (pageOffset) => {
-            const url = `/.netlify/functions/label?name=${encodeURIComponent(labelName)}&offset=${pageOffset}&limit=${limit}`;
+            const base = `/.netlify/functions/label`;
+            const qs = opts.directId
+                ? `?id=${opts.directId}&offset=${pageOffset}&limit=${limit}`
+                : `?name=${encodeURIComponent(labelName)}&offset=${pageOffset}&limit=${limit}`;
+            const url = base + qs;
             const res = await fetch(url);
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
@@ -4975,7 +4983,7 @@ export class UIRenderer {
                         <p>Failed to load label catalog.</p>
                         <button class="btn-secondary" id="label-retry-btn" style="margin-top: 0.5rem;">Retry</button>
                     </div>`;
-                document.getElementById('label-retry-btn')?.addEventListener('click', () => this.renderLabelPage(labelName));
+                document.getElementById('label-retry-btn')?.addEventListener('click', () => this.renderLabelPage(labelName, opts));
                 metaEl.textContent = '';
             }
             console.error('renderLabelPage error:', err);

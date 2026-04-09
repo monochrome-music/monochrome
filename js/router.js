@@ -65,6 +65,9 @@ export function createRouter(ui) {
             case 'label':
                 await ui.renderLabelPage(decodeURIComponent(param));
                 break;
+            case 'label-id':
+                await ui.renderLabelPage(param, { directId: parseInt(param, 10) });
+                break;
             case 'playlist': {
                 const { provider, id } = extractProviderAndId(param);
                 await ui.renderPlaylistPage(id, 'api', provider);

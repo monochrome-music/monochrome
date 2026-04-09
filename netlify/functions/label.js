@@ -197,12 +197,25 @@ const corsHeaders = {
 
 exports.handler = async (event) => {
     const params = event.queryStringParameters || {};
-    const name = params.name?.trim();
     const offset = parseInt(params.offset || '0', 10);
     const limit = Math.min(parseInt(params.limit || '24', 10), 200);
 
-    if (!name) {
-        return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Missing name parameter' }) };
+    // Accept either ?name=LabelName or ?id=1347492 (Qobuz label ID)
+    // Also accept a Qobuz URL as the name param: "https://play.qobuz.com/label/1347492"
+    let name = params.name?.trim();
+    let directId = params.id ? parseInt(params.id, 10) : null;
+
+    // If name looks like a Qobuz label URL, extract the ID
+    if (name) {
+        const urlIdMatch = name.match(/play\.qobuz\.com\/label\/(\d+)/);
+        if (urlIdMatch) {
+            directId = parseInt(urlIdMatch[1], 10);
+            name = null; // will fetch name from Qobuz
+        }
+    }
+
+    if (!name && !directId) {
+        return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Missing name or id parameter' }) };
     }
 
     let token;
@@ -213,10 +226,30 @@ exports.handler = async (event) => {
     }
 
     let label;
-    try {
-        label = await findQobuzLabel(name, token);
-    } catch {
-        return { statusCode: 502, headers: corsHeaders, body: JSON.stringify({ error: 'Qobuz label search failed' }) };
+    if (directId) {
+        // Direct ID lookup — skip discovery entirely
+        try {
+            const url = new URL(`${QOBUZ_BASE}/label/get`);
+            url.searchParams.set('label_id', String(directId));
+            url.searchParams.set('extra', 'albums');
+            url.searchParams.set('albums_limit', '1');
+            url.searchParams.set('app_id', process.env.QOBUZ_APP_ID);
+            const res = await fetch(url, { headers: { 'X-User-Auth-Token': token } });
+            if (res.ok) {
+                const data = await res.json();
+                const l = data.label ?? data;
+                if (l?.id && l?.name) label = { id: l.id, name: l.name, slug: l.slug };
+            }
+        } catch {}
+        if (!label) {
+            return { statusCode: 404, headers: corsHeaders, body: JSON.stringify({ error: 'Label not found on Qobuz', label: null, albums: [], total: 0 }) };
+        }
+    } else {
+        try {
+            label = await findQobuzLabel(name, token);
+        } catch {
+            return { statusCode: 502, headers: corsHeaders, body: JSON.stringify({ error: 'Qobuz label search failed' }) };
+        }
     }
 
     if (!label) {
