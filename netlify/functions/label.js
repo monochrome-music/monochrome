@@ -49,12 +49,21 @@ async function findQobuzLabel(name, token) {
         const slugRes = await fetch(slugUrl, { headers: { 'X-User-Auth-Token': token } });
         if (slugRes.ok) {
             const slugData = await slugRes.json();
+            // Response may be { label: {...} } or the label object directly
             const l = slugData.label ?? slugData;
-            if (l?.id && l?.name && l.name.toLowerCase() === name.toLowerCase()) {
-                return { id: l.id, name: l.name, slug: l.slug };
+            if (l?.id && l?.name) {
+                const score = similarity(l.name, name);
+                // Accept if exact match or very high similarity (slug lookup is already targeted)
+                if (l.name.toLowerCase() === name.toLowerCase() || score >= 0.8) {
+                    console.log(`[label] Slug lookup matched: "${l.name}" for query "${name}"`);
+                    return { id: l.id, name: l.name, slug: l.slug };
+                }
+                console.log(`[label] Slug lookup returned "${l.name}" (score ${score.toFixed(2)}) for query "${name}" — rejecting`);
             }
         }
-    } catch { /* fall through to text search */ }
+    } catch (e) {
+        console.log(`[label] Slug lookup error for "${slug}":`, e.message);
+    }
 
     // Search with both original and normalized name to maximise hit rate
     const queries = [name];
@@ -88,9 +97,9 @@ async function findQobuzLabel(name, token) {
     if (exactMatch) return exactMatch;
 
     const scored = [...seen.values()].sort((a, b) => b.score - a.score);
-    // Short label names need higher threshold to avoid false matches (e.g. "SARAW" → "Sarah Records")
-    const minScore = name.length <= 6 ? 0.85 : 0.6;
-    return scored[0].score >= minScore ? scored[0] : null;
+    // Use 0.6 threshold for all names — exact match above already handles false positives
+    // like "SARAW" → "Sarah Records" (not exact, so won't reach here with a passing score)
+    return scored[0].score >= 0.6 ? scored[0] : null;
 }
 
 async function getQobuzLabelAlbums(labelId, labelName, offset, limit, token) {
