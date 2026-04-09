@@ -4928,7 +4928,7 @@ export class UIRenderer {
                 const updateSaveBtn = () => {
                     const saved = this.isLabelSaved(resolvedName);
                     saveBtn.title = saved ? 'Remove from saved' : 'Save label';
-                    saveBtn.innerHTML = saved ? SVG_BOOKMARK_CHECK : SVG_BOOKMARK;
+                    saveBtn.innerHTML = saved ? SVG_BOOKMARK_CHECK(22) : SVG_BOOKMARK(22);
                     saveBtn.style.opacity = saved ? '1' : '0.6';
                 };
                 updateSaveBtn();
