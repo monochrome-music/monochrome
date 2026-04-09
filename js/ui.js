@@ -69,6 +69,8 @@ import {
     SVG_SORT,
     SVG_BIN,
     SVG_TRASH,
+    SVG_BOOKMARK,
+    SVG_BOOKMARK_CHECK,
     SVG_GLOBE,
     SVG_INSTAGRAM,
     SVG_FACEBOOK,
@@ -4926,9 +4928,8 @@ export class UIRenderer {
                 const updateSaveBtn = () => {
                     const saved = this.isLabelSaved(resolvedName);
                     saveBtn.title = saved ? 'Remove from saved' : 'Save label';
-                    const useEl = saveBtn.querySelector('use');
-                    if (useEl) useEl.setAttribute('svg', saved ? '!lucide/bookmark-check.svg' : '!lucide/bookmark.svg');
-                    saveBtn.style.opacity = saved ? '1' : '0.7';
+                    saveBtn.innerHTML = saved ? SVG_BOOKMARK_CHECK : SVG_BOOKMARK;
+                    saveBtn.style.opacity = saved ? '1' : '0.6';
                 };
                 updateSaveBtn();
                 saveBtn.onclick = () => {
