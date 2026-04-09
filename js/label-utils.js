@@ -70,7 +70,11 @@ export function extractLabelName(copyright) {
     // Allow dots inside the string (e.g. "CULT.beat", "minim.all", "GRe.FACE")
     // but reject if it looks like a sentence (". Word" mid-string pattern)
     // Strip a lone trailing dot (e.g. "Sendero." → "Sendero")
-    if (!/\d{4}/.test(s) && !/[℗©]/.test(s) && !/\([PC]\)/i.test(s) && !/\.\s+[A-Z]/.test(s) && s.length < 80) {
+    // Reject if it looks like a sentence: ". Capital" mid-string (not at the end)
+    // "Kick and Beat. Rec" is NOT a sentence — "Rec" is an abbreviation, not a new sentence
+    // So only reject if there's a ". Capital" that isn't a known abbreviation context
+    const looksLikeSentence = /\.\s+[A-Z][a-z]{2,}/.test(s); // ". Word" where Word is 3+ lowercase chars (real word)
+    if (!/\d{4}/.test(s) && !/[℗©]/.test(s) && !/\([PC]\)/i.test(s) && !looksLikeSentence && s.length < 80) {
         return s.replace(/\.$/, '').trim();
     }
 
