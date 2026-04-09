@@ -49,24 +49,68 @@ async function getQobuzToken(env) {
     return qobuzToken;
 }
 
+// Strip common label suffixes to improve fuzzy matching
+function normalizeLabelName(name) {
+    return name
+        .replace(/\s+(recordings?|records?|music|entertainment|label|group|inc\.?|ltd\.?|llc\.?|gmbh|b\.v\.?)$/i, '')
+        .trim();
+}
+
 // --- Qobuz label search by name → label_id ---
 async function findQobuzLabel(name, env, token) {
-    const url = new URL(`${QOBUZ_BASE}/label/search`);
-    url.searchParams.set('query', name);
-    url.searchParams.set('limit', '10');
-    url.searchParams.set('app_id', env.QOBUZ_APP_ID);
+    // Try slug-based direct lookup first (works for obscure labels that don't
+    // surface in catalog/search). Slug = lowercase, spaces→hyphens.
+    const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    try {
+        const slugUrl = new URL(`${QOBUZ_BASE}/label/get`);
+        slugUrl.searchParams.set('slug', slug);
+        slugUrl.searchParams.set('extra', 'albums');
+        slugUrl.searchParams.set('albums_limit', '1');
+        slugUrl.searchParams.set('app_id', env.QOBUZ_APP_ID);
+        const slugRes = await fetch(slugUrl, { headers: { 'X-User-Auth-Token': token } });
+        if (slugRes.ok) {
+            const slugData = await slugRes.json();
+            const l = slugData.label ?? slugData;
+            if (l?.id && l?.name && l.name.toLowerCase() === name.toLowerCase()) {
+                return { id: l.id, name: l.name, slug: l.slug };
+            }
+        }
+    } catch { /* fall through to text search */ }
 
-    const res = await fetch(url, { headers: { 'X-User-Auth-Token': token } });
-    if (!res.ok) throw new Error(`Qobuz label search failed: ${res.status}`);
-    const data = await res.json();
+    // Search with both original and normalized name to maximise hit rate
+    const queries = [name];
+    const normalized = normalizeLabelName(name);
+    if (normalized !== name) queries.push(normalized);
 
-    const labels = data.labels?.items || data.items || [];
-    if (!labels.length) return null;
+    const seen = new Map();
+    for (const query of queries) {
+        const url = new URL(`${QOBUZ_BASE}/catalog/search`);
+        url.searchParams.set('query', query);
+        url.searchParams.set('type', 'albums');
+        url.searchParams.set('limit', '50');
+        url.searchParams.set('app_id', env.QOBUZ_APP_ID);
+        const res = await fetch(url, { headers: { 'X-User-Auth-Token': token } });
+        if (!res.ok) continue;
+        const data = await res.json();
+        for (const album of data.albums?.items || []) {
+            if (album.label?.id && !seen.has(album.label.id)) {
+                const s1 = similarity(album.label.name, name);
+                const s2 = similarity(normalizeLabelName(album.label.name), normalized);
+                seen.set(album.label.id, { ...album.label, score: Math.max(s1, s2) });
+            }
+        }
+    }
+    if (!seen.size) return null;
 
-    // Pick best name match
-    const scored = labels.map(l => ({ ...l, score: similarity(l.name, name) }));
-    scored.sort((a, b) => b.score - a.score);
-    return scored[0].score >= 0.8 ? scored[0] : null;
+    // Exact case-insensitive match wins regardless of Levenshtein score
+    const nameLower = name.toLowerCase();
+    const exactMatch = [...seen.values()].find(l => l.name.toLowerCase() === nameLower);
+    if (exactMatch) return exactMatch;
+
+    const scored = [...seen.values()].sort((a, b) => b.score - a.score);
+    // Short label names need higher threshold to avoid false matches
+    const minScore = name.length <= 6 ? 0.85 : 0.6;
+    return scored[0].score >= minScore ? scored[0] : null;
 }
 
 // --- Qobuz label albums ---
