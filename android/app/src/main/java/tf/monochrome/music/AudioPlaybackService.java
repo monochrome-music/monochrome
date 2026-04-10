@@ -49,7 +49,7 @@ public class AudioPlaybackService extends Service {
 
         acquireWakeLock();
 
-        // If the system kills this service, don't restart it automatically —
+        // If the system kills this service, don't restart it automatically -
         // MainActivity will re-start it when audio resumes.
         return START_NOT_STICKY;
     }

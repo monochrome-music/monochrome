@@ -48,10 +48,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
         switch type {
         case .began:
-            // Interruption began — system pauses audio automatically
+            // Interruption began - system pauses audio automatically
             break
         case .ended:
-            // Interruption ended — reactivate session so playback can resume
+            // Interruption ended - reactivate session so playback can resume
             if let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt {
                 let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
                 if options.contains(.shouldResume) {
@@ -75,7 +75,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         }
 
         if reason == .oldDeviceUnavailable {
-            // Headphones/Bluetooth disconnected — reactivate session to keep background alive
+            // Headphones/Bluetooth disconnected - reactivate session to keep background alive
             do {
                 try AVAudioSession.sharedInstance().setActive(true)
             } catch {
