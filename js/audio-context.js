@@ -1252,7 +1252,7 @@ class AudioContextManager {
                 msChanged || this.filters.length !== count || (needsMS && this.midFilters.length !== count);
 
             if (needsRebuild) {
-                // M/S state changed or band count changed — full rebuild
+                // M/S state changed or band count changed - full rebuild
                 this._destroyMSFilters();
                 this._destroyEQ();
                 this._createEQ();
@@ -1261,7 +1261,7 @@ class AudioContextManager {
                 }
                 this._connectGraph();
             } else if (needsMS) {
-                // M/S active — update both parallel chains in-place
+                // M/S active - update both parallel chains in-place
                 const now = this.audioContext.currentTime;
 
                 // Update main filters (not connected in M/S mode, kept in sync for stereo fallback)
@@ -1275,11 +1275,11 @@ class AudioContextManager {
                 const sideGains = newGains.map((g, i) => (newChannels[i] === 'mid' ? 0 : g));
                 this._updateFilterChain(this.sideFilters, newFrequencies, newTypes, newQs, sideGains, now);
             } else if (this.filters.length === count) {
-                // Normal stereo — update in-place
+                // Normal stereo - update in-place
                 const now = this.audioContext.currentTime;
                 this._updateFilterChain(this.filters, newFrequencies, newTypes, newQs, newGains, now);
             } else {
-                // Band count changed — must rebuild
+                // Band count changed - must rebuild
                 this._destroyMSFilters();
                 this._destroyEQ();
                 this._createEQ();
@@ -1423,7 +1423,7 @@ class AudioContextManager {
             this.currentQs = qs;
             this.currentGains = gains;
 
-            // Reset M/S channel assignments — imported config has no channel info
+            // Reset M/S channel assignments - imported config has no channel info
             this.currentChannels = new Array(this.bandCount).fill('stereo');
             this.msEnabled = false;
 
