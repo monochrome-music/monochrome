@@ -1354,7 +1354,7 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         for (let i = 0; i < count; i++) {
             const t = i / (count - 1);
             let freq = Math.round(min * Math.pow(max / min, t));
-            // Ensure strictly increasing — rounding can produce duplicates at high band counts
+            // Ensure strictly increasing - rounding can produce duplicates at high band counts
             if (freqs.length > 0 && freq <= freqs[freqs.length - 1]) {
                 freq = freqs[freqs.length - 1] + 1;
             }

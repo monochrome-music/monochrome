@@ -410,7 +410,7 @@ export class BinauralDSP {
         for (let i = 0; i < numChannels; i++) {
             const chInfo = CHANNEL_ANGLES_51[i];
             if (chInfo.isLFE) {
-                // Placeholder — LFE uses gain node instead
+                // Placeholder - LFE uses gain node instead
                 this._mcConvolversL.push(null);
                 this._mcConvolversR.push(null);
                 continue;

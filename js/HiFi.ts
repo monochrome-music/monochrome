@@ -108,7 +108,7 @@ export interface TidalArtistProfile {
     picture: string | null;
     /** Fallback album cover UUID used when no artist picture exists, or `null`. */
     selectedAlbumCoverFallback: string | null;
-    /** Popularity score (0–100). */
+    /** Popularity score (0-100). */
     popularity: number;
     /** List of credited roles for this artist. */
     artistRoles: TidalArtistRole[];
@@ -150,7 +150,7 @@ export interface TidalTrackAlbumRef {
  * Full track object as returned by the `/info` route and embedded in albums, playlists, and mixes.
  *
  * @remarks
- * Fields `bpm`, `key`, and `keyScale` are nullable — they are absent for some tracks.
+ * Fields `bpm`, `key`, and `keyScale` are nullable - they are absent for some tracks.
  * `version` is present in the payload but may be `null`.
  */
 export interface TidalTrack {
@@ -162,7 +162,7 @@ export interface TidalTrack {
     duration: number;
     /** Track replay-gain value in dB. */
     replayGain: number;
-    /** Track peak amplitude (0–1). */
+    /** Track peak amplitude (0-1). */
     peak: number;
     /** Whether the track is available for streaming. */
     allowStreaming: boolean;
@@ -186,7 +186,7 @@ export interface TidalTrack {
     volumeNumber: number;
     /** Version suffix (e.g. `"Remastered"`), or `null`. */
     version: string | null;
-    /** Popularity score (0–100). */
+    /** Popularity score (0-100). */
     popularity: number;
     /** Copyright notice. */
     copyright: string;
@@ -299,7 +299,7 @@ export interface TidalAlbum {
     explicit: boolean;
     /** UPC barcode. */
     upc: string;
-    /** Popularity score (0–100). */
+    /** Popularity score (0-100). */
     popularity: number;
     /** Highest available audio quality. */
     audioQuality: string;
@@ -339,7 +339,7 @@ export interface TidalVideoItem {
     volumeNumber: number;
     /** Track number on the disc. */
     trackNumber: number;
-    /** Popularity score (0–100). */
+    /** Popularity score (0-100). */
     popularity: number;
     /** Double-precision popularity score (present in topvideos). */
     doublePopularity?: number;
@@ -452,7 +452,7 @@ export interface TidalSimilarAlbum {
     releaseDate: string;
     /** Copyright information. */
     copyright: { text: string };
-    /** Popularity score (0–1 float). */
+    /** Popularity score (0-1 float). */
     popularity: number;
     /** Access type, e.g. `"PUBLIC"`. */
     accessType: string;
@@ -533,7 +533,7 @@ export interface SimilarArtist {
     url: string;
     /** Relation type, e.g. `"SIMILAR_ARTIST"`. */
     relationType: string;
-    /** Popularity score (0–1 float). */
+    /** Popularity score (0-1 float). */
     popularity: number;
     /** External link entries (e.g. TIDAL sharing URL). */
     externalLinks: Array<{ href: string; meta: { type: string } }>;
@@ -911,7 +911,7 @@ export interface TopVideosResponse extends VersionedResponse {
 export interface TidalAudioNormData {
     /** Replay gain value in dB. */
     replayGain: number;
-    /** Peak amplitude (0–1). */
+    /** Peak amplitude (0-1). */
     peakAmplitude: number;
 }
 
@@ -961,7 +961,7 @@ export interface TrackManifestAttributes {
 export interface TrackManifestResource {
     /** Resource identifier (track ID as a string). */
     id: string;
-    /** JSON:API resource type — always `"trackManifests"`. */
+    /** JSON:API resource type - always `"trackManifests"`. */
     type: string;
     /** Manifest attributes. */
     attributes: TrackManifestAttributes;

@@ -2150,7 +2150,7 @@ export class Player {
                     await this._bgAudioPlugin.stop();
                 }
             } catch {
-                // Not running in Capacitor or plugin unavailable — ignore
+                // Not running in Capacitor or plugin unavailable - ignore
             } finally {
                 this._bgAudioPending = false;
             }
