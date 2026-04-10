@@ -10,6 +10,7 @@
         "@capacitor/core": "^8.2.0",
         "@capacitor/haptics": "^8.0.1",
         "@capacitor/ios": "^8.2.0",
+        "@capgo/capacitor-media-session": "^8.0.19",
         "@dantheman827/taglib-ts": "^0.1.5",
         "@ffmpeg/core": "^0.12.10",
         "@ffmpeg/ffmpeg": "^0.12.15",
@@ -18,7 +19,7 @@
         "@svta/common-media-library": "^0.18.1",
         "@types/wicg-file-system-access": "^2023.10.7",
         "@typescript-eslint/eslint-plugin": "^8.57.2",
-        "@uimaxbai/am-lyrics": "^1.1.7",
+        "@uimaxbai/am-lyrics": "^1.1.8",
         "@vitest/web-worker": "^4.1.2",
         "appwrite": "^23.0.0",
         "butterchurn": "^2.6.7",
@@ -276,6 +277,8 @@
     "@capacitor/haptics": ["@capacitor/haptics@8.0.2", "", { "peerDependencies": { "@capacitor/core": ">=8.0.0" } }, "sha512-c2hZzRR5Fk1tbTvhG1jhh2XBAf3EhnIerMIb2sl7Mt41Gxx1fhBJFDa0/BI1IbY4loVepyyuqNC9820/GZuoWQ=="],
 
     "@capacitor/ios": ["@capacitor/ios@8.3.0", "", { "peerDependencies": { "@capacitor/core": "^8.3.0" } }, "sha512-5Rtwv8SITKlYTt8lAZG+khnVIdzPtqbocH3eP+JkEmX1vpSMwx4TOKtT8OBz8gpQ+pUJDRp7DBYOv3U6l/obCw=="],
+
+    "@capgo/capacitor-media-session": ["@capgo/capacitor-media-session@8.0.19", "", { "peerDependencies": { "@capacitor/core": ">=8.0.0" } }, "sha512-m0eCJvnuYpxz3wj3Snc1kIHCr45XQOBgPwOhkId/xXZ01DzXsOpw/lIT8Fl/Y1AscpNxs2fF5Qoj4E8QMIyJJg=="],
 
     "@cloudflare/workerd-darwin-64": ["@cloudflare/workerd-darwin-64@1.20260401.1", "", { "os": "darwin", "cpu": "x64" }, "sha512-ZSmceM70jH6k+/62VkEcmMNzrpr4kSctkX5Lsgqv38KktfhPY/hsh75y1lRoPWS3H3kgMa4p2pUSlidZR1u2hw=="],
 
@@ -675,7 +678,7 @@
 
     "@typescript-eslint/visitor-keys": ["@typescript-eslint/visitor-keys@8.58.0", "", { "dependencies": { "@typescript-eslint/types": "8.58.0", "eslint-visitor-keys": "^5.0.0" } }, "sha512-XJ9UD9+bbDo4a4epraTwG3TsNPeiB9aShrUneAVXy8q4LuwowN+qu89/6ByLMINqvIMeI9H9hOHQtg/ijrYXzQ=="],
 
-    "@uimaxbai/am-lyrics": ["@uimaxbai/am-lyrics@1.1.7", "", { "dependencies": { "@babel/runtime": "^7.27.6", "lit": "^3.1.4" }, "peerDependencies": { "@lit/react": "^1.0.0", "react": ">=17.0.0" }, "optionalPeers": ["@lit/react", "react"] }, "sha512-hEwPl4dFmJ08sJf4VBaR7k7yxA3BNaoINS89j0KrkSFJYpCkohHDy24AIfzEMonPloJ3H6HBA55nCFMnAzm50w=="],
+    "@uimaxbai/am-lyrics": ["@uimaxbai/am-lyrics@1.1.8", "", { "dependencies": { "@babel/runtime": "^7.27.6", "lit": "^3.1.4" }, "peerDependencies": { "@lit/react": "^1.0.0", "react": ">=17.0.0" }, "optionalPeers": ["@lit/react", "react"] }, "sha512-VcbrlB2cOmkOjElmivf2SZujDmj8UAUaBkXyIfJ8dYq/Iv4H3PxmQY/s9VaRfF6UTnCgfix8ZPll1T1MA8eS4A=="],
 
     "@vitest/browser": ["@vitest/browser@4.1.2", "", { "dependencies": { "@blazediff/core": "1.9.1", "@vitest/mocker": "4.1.2", "@vitest/utils": "4.1.2", "magic-string": "^0.30.21", "pngjs": "^7.0.0", "sirv": "^3.0.2", "tinyrainbow": "^3.1.0", "ws": "^8.19.0" }, "peerDependencies": { "vitest": "4.1.2" } }, "sha512-CwdIf90LNf1Zitgqy63ciMAzmyb4oIGs8WZ40VGYrWkssQKeEKr32EzO8MKUrDPPcPVHFI9oQ5ni2Hp24NaNRQ=="],
 
