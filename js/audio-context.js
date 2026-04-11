@@ -476,7 +476,7 @@ class AudioContextManager {
         this.audio = audioElement;
 
         if (isIos && !window.MediaSource && !window.ManagedMediaSource) {
-            console.log('[AudioContext] Skipping Web Audio on iOS without MSE support');
+            console.log('[AudioContext] Skipping Web Audio on iOS without MSE for lock screen compatibility');
             return;
         }
 
@@ -819,6 +819,8 @@ class AudioContextManager {
 
     /**
      * Check if a media element is currently routed through this Web Audio graph.
+     * Native Apple HLS playback can bypass createMediaElementSource(), so this
+     * returns false for that path to preserve direct element-volume handling.
      * @param {HTMLMediaElement} audioElement
      * @returns {boolean}
      */
