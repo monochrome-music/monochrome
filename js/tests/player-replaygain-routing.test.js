@@ -110,7 +110,6 @@ describe('Player replay gain volume routing', () => {
         `;
 
         audioElement = document.getElementById('audio-player');
-        Player._instance = null;
         player = new Player(audioElement, {
             getCoverUrl: vi.fn(),
             getCoverSrcset: vi.fn(),
