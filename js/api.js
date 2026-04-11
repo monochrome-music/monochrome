@@ -1478,7 +1478,8 @@ export class LosslessAPI {
         let isUsingManifestEndpoint = false;
 
         try {
-            const manifestType = isIos || isSafari ? 'HLS' : 'MPEG_DASH';
+            const hasMSE = typeof window !== 'undefined' && (!!window.MediaSource || !!window.ManagedMediaSource);
+            const manifestType = (!hasMSE && (isIos || isSafari)) ? 'HLS' : 'MPEG_DASH';
             const isApple = isIos || isSafari;
 
             let canPlayAtmos = false;
