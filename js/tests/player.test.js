@@ -44,6 +44,10 @@ vi.mock('../storage.js', () => ({
     lastFMStorage: { isEnabled: vi.fn(() => false) },
     nowPlayingSettings: { getMode: vi.fn(() => 'cover') },
     gaplessPlaybackSettings: { isEnabled: vi.fn(() => true) },
+    binauralDspSettings: {
+        isEnabled: vi.fn(() => false),
+        getAutoEnableForSpatial: vi.fn(() => false),
+    },
 }));
 
 vi.mock('../db.js', () => ({
