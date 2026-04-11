@@ -3754,7 +3754,9 @@ input:checked + .slider::before {
 }
 
 #context-menu,
-#sort-menu {
+#sort-menu,
+#eq-node-context-menu,
+#eq-empty-context-menu {
     display: none;
     position: fixed;
     background-color: var(--card);
@@ -3769,12 +3771,16 @@ input:checked + .slider::before {
 }
 
 #context-menu ul,
-#sort-menu ul {
+#sort-menu ul,
+#eq-node-context-menu ul,
+#eq-empty-context-menu ul {
     list-style: none;
 }
 
 #context-menu li,
-#sort-menu li {
+#sort-menu li,
+#eq-node-context-menu li,
+#eq-empty-context-menu li {
     padding: 0.5rem 0.75rem;
     margin-right: 8px;
     cursor: pointer;
@@ -3796,7 +3802,9 @@ input:checked + .slider::before {
 }
 
 #context-menu li:hover,
-#sort-menu li:hover {
+#sort-menu li:hover,
+#eq-node-context-menu li:hover,
+#eq-empty-context-menu li:hover {
     background-color: var(--secondary);
     transform: translateX(4px);
 
@@ -3804,7 +3812,8 @@ input:checked + .slider::before {
     color: var(--foreground);
 }
 
-#context-menu li.separator {
+#context-menu li.separator,
+#eq-node-context-menu li.separator {
     height: 1px;
     background-color: var(--border);
     margin: 0.5rem 0;
@@ -3813,9 +3822,15 @@ input:checked + .slider::before {
     pointer-events: none;
 }
 
-#context-menu li.separator:hover {
+#context-menu li.separator:hover,
+#eq-node-context-menu li.separator:hover {
     background-color: var(--border);
     transform: none;
+}
+
+#eq-node-context-menu li.eq-ctx-active {
+    color: var(--primary);
+    font-weight: 600;
 }
 
 .blocked-items-list {
@@ -7895,6 +7910,183 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 }
 
 /* ========================================
+   16-Band Graphic Equalizer (Legacy EQ)
+   ======================================== */
+.graphic-eq-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.graphic-eq-config-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+}
+
+.graphic-eq-config-row label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.geq-config-input {
+    width: 70px;
+    padding: 4px 6px;
+    border: 1px solid var(--border-color, #444);
+    border-radius: 4px;
+    background: var(--bg-secondary, #222);
+    color: inherit;
+    font-size: 0.85rem;
+}
+
+.graphic-eq-preset-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.graphic-eq-preset-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--foreground);
+    white-space: nowrap;
+}
+
+.graphic-eq-preset-select {
+    flex: 1;
+    padding: 8px 12px;
+    background: var(--input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--foreground);
+    font-size: 0.85rem;
+}
+
+.graphic-eq-bands {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 2px;
+    padding: var(--spacing-md) var(--spacing-sm);
+    background: rgb(0, 0, 0, 0.15);
+    border-radius: var(--radius);
+    min-height: 240px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+}
+
+.graphic-eq-band {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.graphic-eq-band-value {
+    font-size: 0.65rem;
+    color: var(--foreground);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    min-height: 14px;
+    opacity: 0.7;
+}
+
+.graphic-eq-band-slider-wrap {
+    position: relative;
+    height: 160px;
+    width: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.graphic-eq-band-slider-wrap input[type='range'] {
+    writing-mode: vertical-lr;
+    direction: rtl;
+    width: 28px;
+    height: 100%;
+    accent-color: var(--foreground);
+    cursor: pointer;
+    margin: 0;
+    padding: 0;
+}
+
+.graphic-eq-band-label {
+    font-size: 0.6rem;
+    color: var(--muted-foreground);
+    white-space: nowrap;
+    text-align: center;
+    letter-spacing: -0.02em;
+}
+
+.graphic-eq-bottom-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
+}
+
+.graphic-eq-preamp {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    flex: 1;
+}
+
+.graphic-eq-preamp-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    white-space: nowrap;
+}
+
+.graphic-eq-preamp-slider {
+    flex: 1;
+    height: 4px;
+    accent-color: var(--highlight);
+}
+
+.graphic-eq-preamp-value {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    min-width: 45px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 600px) {
+    .graphic-eq-bands {
+        min-height: 180px;
+    }
+
+    .graphic-eq-band-slider-wrap {
+        height: 130px;
+        width: 22px;
+    }
+
+    .graphic-eq-band-label {
+        font-size: 0.5rem;
+    }
+
+    .graphic-eq-band-value {
+        font-size: 0.5rem;
+    }
+
+    .graphic-eq-bottom-row {
+        gap: var(--spacing-sm);
+    }
+
+    .graphic-eq-preamp {
+        min-width: 0;
+        flex-basis: 100%;
+    }
+}
+
+/* ========================================
    Precision AutoEQ - Redesigned Equalizer
    ======================================== */
 .equalizer-container {
@@ -7929,9 +8121,9 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     width: 30px;
     height: 30px;
     border-radius: 50%;
-    border: 1px solid var(--border);
-    background: var(--input);
-    color: var(--muted-foreground);
+    border: 1px solid var(--highlight);
+    background: rgb(var(--highlight-rgb), 0.12);
+    color: var(--highlight);
     font-size: 0.8rem;
     font-weight: 700;
     cursor: pointer;
@@ -7940,9 +8132,9 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
 }
 
 .eq-howto-btn:hover {
-    border-color: var(--primary);
-    color: var(--primary);
-    background: rgb(var(--highlight-rgb), 0.08);
+    border-color: var(--highlight);
+    color: var(--primary-foreground);
+    background: var(--highlight);
 }
 
 .eq-howto-panel {
@@ -8101,7 +8293,7 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     position: relative;
     width: 100%;
     height: 300px;
-    background: var(--background);
+    background: color-mix(in srgb, var(--background) 25%, #111);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow: hidden;
@@ -8894,7 +9086,8 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     opacity: 0.6;
 }
 
-.autoeq-type-select {
+.autoeq-type-select,
+.autoeq-channel-select {
     padding: 0.15rem 0.3rem;
     font-size: 0.7rem;
     font-weight: 600;
@@ -8907,11 +9100,13 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     flex-shrink: 0;
 }
 
-.autoeq-type-select:hover {
+.autoeq-type-select:hover,
+.autoeq-channel-select:hover {
     border-color: var(--primary);
 }
 
-.autoeq-type-select:focus {
+.autoeq-type-select:focus,
+.autoeq-channel-select:focus {
     border-color: var(--ring);
 }
 
@@ -11007,4 +11202,85 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     #fullscreen-cover-overlay .fs-volume-bar {
         width: 100%;
     }
+}
+
+/* ==========================================
+   Binaural / Spatial DSP
+   ========================================== */
+
+.binaural-dsp-container {
+    padding: var(--spacing-md) 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.binaural-status {
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    background: var(--secondary);
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    color: var(--muted-foreground);
+}
+
+.binaural-mode-label {
+    font-weight: 500;
+}
+
+.binaural-sub-setting {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) 0;
+    gap: var(--spacing-md);
+    min-width: 0;
+}
+
+.binaural-sub-setting select {
+    background: var(--secondary);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.binaural-sub-setting .info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
+.binaural-sub-setting .label {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.binaural-sub-setting .description {
+    font-size: 0.8rem;
+    color: var(--muted-foreground);
+}
+
+.binaural-slider {
+    width: 140px;
+    accent-color: var(--primary);
+    cursor: pointer;
+}
+
+.binaural-width-value {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--primary);
+    min-width: 2.5em;
+    text-align: right;
+}
+
+.binaural-badge {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.8;
+    vertical-align: middle;
 }
