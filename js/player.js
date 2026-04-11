@@ -257,7 +257,7 @@ export class Player {
         const el = this.activeElement;
 
         // Apply to audio element and/or Web Audio graph
-        if (audioContextManager.isReady()) {
+        if (audioContextManager.isElementRoutedToAudioContext(el)) {
             el.volume = 1.0;
             audioContextManager.setVolume(effectiveVolume);
         } else {

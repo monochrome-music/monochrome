@@ -2,7 +2,7 @@
 // Shared Audio Context Manager - handles EQ and provides context for visualizer
 // Supports 3-32 parametric EQ bands
 
-import { isIos } from './platform-detection.js';
+import { isIos, isSafari } from './platform-detection.js';
 import { equalizerSettings, monoAudioSettings, binauralDspSettings } from './storage.js';
 import { BinauralDSP } from './binaural-dsp.js';
 
@@ -815,6 +815,24 @@ class AudioContextManager {
      */
     isReady() {
         return this.isInitialized && this.audioContext !== null;
+    }
+
+    /**
+     * Check if a media element is currently routed through this Web Audio graph.
+     * @param {HTMLMediaElement} audioElement
+     * @returns {boolean}
+     */
+    isElementRoutedToAudioContext(audioElement = this.audio) {
+        if (!this.isReady() || !audioElement) return false;
+        if (this.audio !== audioElement) return false;
+        if (!this.source || this.sources.get(audioElement) !== this.source) return false;
+
+        const sourceUrl = (audioElement.currentSrc || audioElement.src || '').toLowerCase();
+        const isNativeAppleHls =
+            (isIos || isSafari) &&
+            (sourceUrl.includes('.m3u8') || sourceUrl.includes('application/vnd.apple.mpegurl'));
+
+        return !isNativeAppleHls;
     }
 
     /**

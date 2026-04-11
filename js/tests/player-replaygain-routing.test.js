@@ -1,13 +1,12 @@
-import { expect, test, describe, beforeEach, vi, afterEach } from 'vitest';
+import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Player } from '../player.js';
-import { REPEAT_MODE } from '../utils.js';
-import { audioEffectsSettings } from '../storage.js';
+import { audioContextManager } from '../audio-context.js';
 
 vi.mock('../audio-context.js', () => ({
     audioContextManager: {
         init: vi.fn(),
         resume: vi.fn(() => Promise.resolve()),
-        isReady: vi.fn(() => false),
+        isReady: vi.fn(() => true),
         isElementRoutedToAudioContext: vi.fn(() => false),
         setVolume: vi.fn(),
         changeSource: vi.fn(),
@@ -45,10 +44,7 @@ vi.mock('../storage.js', () => ({
     lastFMStorage: { isEnabled: vi.fn(() => false) },
     nowPlayingSettings: { getMode: vi.fn(() => 'cover') },
     gaplessPlaybackSettings: { isEnabled: vi.fn(() => true) },
-    binauralDspSettings: {
-        isEnabled: vi.fn(() => false),
-        getAutoEnableForSpatial: vi.fn(() => false),
-    },
+    binauralDspSettings: { isEnabled: vi.fn(() => false) },
 }));
 
 vi.mock('../db.js', () => ({
@@ -96,12 +92,11 @@ vi.mock('shaka-player', () => ({
     },
 }));
 
-describe('Player', () => {
+describe('Player replay gain volume routing', () => {
     let audioElement;
-    let api;
     let player;
 
-    beforeEach(async () => {
+    beforeEach(() => {
         document.body.innerHTML = `
             <audio id="audio-player"></audio>
             <video id="video-player"></video>
@@ -115,86 +110,38 @@ describe('Player', () => {
         `;
 
         audioElement = document.getElementById('audio-player');
-        api = {
-            getCoverUrl: vi.fn((id) => `url-${id}`),
+        Player._instance = null;
+        player = new Player(audioElement, {
+            getCoverUrl: vi.fn(),
             getCoverSrcset: vi.fn(),
             getStreamUrl: vi.fn(),
-        };
+        });
 
-        Player._instance = null;
+        audioContextManager.setVolume.mockClear();
+        audioContextManager.isElementRoutedToAudioContext.mockClear();
     });
 
     afterEach(() => {
         vi.clearAllMocks();
     });
 
-    test('initialization sets up initial state', async () => {
-        player = new Player(audioElement, api);
-        expect(player.audio).toBe(audioElement);
-        expect(player.api).toBe(api);
-        expect(player.queue).toEqual([]);
-        expect(player.shuffleActive).toBe(false);
+    test('routes through Web Audio gain when the active element is routed to audio context', () => {
+        player.userVolume = 0.55;
+        audioContextManager.isElementRoutedToAudioContext.mockReturnValue(true);
+
+        player.applyReplayGain();
+
+        expect(audioElement.volume).toBe(1);
+        expect(audioContextManager.setVolume).toHaveBeenCalledWith(0.55);
     });
 
-    test('setVolume updates userVolume and localStorage', () => {
-        player = new Player(audioElement, api);
-        player.setVolume(0.5);
-        expect(player.userVolume).toBe(0.5);
-        expect(localStorage.getItem('volume')).toBe('0.5');
-    });
+    test('keeps native media element volume when active element is not routed to audio context', () => {
+        player.userVolume = 0.35;
+        audioContextManager.isElementRoutedToAudioContext.mockReturnValue(false);
 
-    test('shuffle toggles correctly', () => {
-        player = new Player(audioElement, api);
-        player.queue = [{ id: 1 }, { id: 2 }, { id: 3 }];
+        player.applyReplayGain();
 
-        player.toggleShuffle();
-        expect(player.shuffleActive).toBe(true);
-        expect(player.shuffledQueue.length).toBe(3);
-
-        player.toggleShuffle();
-        expect(player.shuffleActive).toBe(false);
-    });
-
-    test('repeat mode cycles correctly', () => {
-        player = new Player(audioElement, api);
-        expect(player.repeatMode).toBe(REPEAT_MODE.OFF);
-
-        player.toggleRepeat();
-        expect(player.repeatMode).toBe(REPEAT_MODE.ALL);
-
-        player.toggleRepeat();
-        expect(player.repeatMode).toBe(REPEAT_MODE.ONE);
-
-        player.toggleRepeat();
-        expect(player.repeatMode).toBe(REPEAT_MODE.OFF);
-    });
-
-    test('addToQueue adds tracks to the end', async () => {
-        player = new Player(audioElement, api);
-        player.queue = [{ id: 1 }];
-
-        await player.addToQueue([{ id: 2 }, { id: 3 }]);
-        expect(player.queue.length).toBe(3);
-        expect(player.queue[2].id).toBe(3);
-    });
-
-    test('clearQueue resets queue state', async () => {
-        player = new Player(audioElement, api);
-        player.queue = [{ id: 1 }];
-        player.currentQueueIndex = 0;
-
-        await player.clearQueue();
-        expect(player.queue).toEqual([]);
-        expect(player.currentQueueIndex).toBe(-1);
-    });
-
-    test('setPlaybackSpeed clamps values', () => {
-        player = new Player(audioElement, api);
-
-        player.setPlaybackSpeed(2.0);
-        expect(audioEffectsSettings.setSpeed).toHaveBeenCalledWith(2.0);
-
-        player.setPlaybackSpeed(0);
-        expect(audioEffectsSettings.setSpeed).toHaveBeenCalledWith(0.01);
+        expect(audioElement.volume).toBe(0.35);
+        expect(audioContextManager.setVolume).not.toHaveBeenCalled();
     });
 });
