@@ -2,7 +2,7 @@
 // Shared Audio Context Manager - handles EQ and provides context for visualizer
 // Supports 3-32 parametric EQ bands
 
-import { isIos } from './platform-detection.js';
+import { isIos, isSafari } from './platform-detection.js';
 import { equalizerSettings, monoAudioSettings, binauralDspSettings } from './storage.js';
 import { BinauralDSP } from './binaural-dsp.js';
 
@@ -475,8 +475,8 @@ class AudioContextManager {
 
         this.audio = audioElement;
 
-        if (isIos) {
-            console.log('[AudioContext] Skipping Web Audio initialization on iOS for lock screen compatibility');
+        if (isIos && !window.MediaSource && !window.ManagedMediaSource) {
+            console.log('[AudioContext] Skipping Web Audio on iOS without MSE for lock screen compatibility');
             return;
         }
 
@@ -772,7 +772,7 @@ class AudioContextManager {
 
         console.log('[AudioContext] Current state:', this.audioContext.state);
 
-        if (this.audioContext.state === 'suspended') {
+        if (this.audioContext.state === 'suspended' || this.audioContext.state === 'interrupted') {
             try {
                 await this.audioContext.resume();
                 console.log('[AudioContext] Resumed successfully, state:', this.audioContext.state);
@@ -815,6 +815,27 @@ class AudioContextManager {
      */
     isReady() {
         return this.isInitialized && this.audioContext !== null;
+    }
+
+    /**
+     * Check if a media element is currently routed through this Web Audio graph.
+     * Native Apple HLS playback can bypass createMediaElementSource(), so this
+     * returns false for that path to preserve direct element-volume handling.
+     * @param {HTMLMediaElement} audioElement
+     * @returns {boolean}
+     */
+    isElementRoutedToAudioContext(audioElement = this.audio) {
+        if (!this.isReady() || !audioElement) return false;
+        if (this.audio !== audioElement) return false;
+        if (!this.source || this.sources.get(audioElement) !== this.source) return false;
+
+        const sourceUrl = (audioElement.currentSrc || audioElement.src || '').toLowerCase();
+        const sourceType = (audioElement.getAttribute('type') || audioElement.type || '').toLowerCase();
+        const isNativeAppleHls =
+            (isIos || isSafari) &&
+            (sourceUrl.includes('.m3u8') || sourceType.includes('application/vnd.apple.mpegurl'));
+
+        return !isNativeAppleHls;
     }
 
     /**
