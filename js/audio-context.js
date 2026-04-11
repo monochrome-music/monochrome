@@ -830,9 +830,10 @@ class AudioContextManager {
         if (!this.source || this.sources.get(audioElement) !== this.source) return false;
 
         const sourceUrl = (audioElement.currentSrc || audioElement.src || '').toLowerCase();
+        const sourceType = (audioElement.getAttribute('type') || audioElement.type || '').toLowerCase();
         const isNativeAppleHls =
             (isIos || isSafari) &&
-            (sourceUrl.includes('.m3u8') || sourceUrl.includes('application/vnd.apple.mpegurl'));
+            (sourceUrl.includes('.m3u8') || sourceType.includes('application/vnd.apple.mpegurl'));
 
         return !isNativeAppleHls;
     }
