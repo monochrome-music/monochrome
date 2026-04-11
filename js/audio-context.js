@@ -475,8 +475,8 @@ class AudioContextManager {
 
         this.audio = audioElement;
 
-        if (isIos) {
-            console.log('[AudioContext] Skipping Web Audio initialization on iOS for lock screen compatibility');
+        if (isIos && !window.MediaSource && !window.ManagedMediaSource) {
+            console.log('[AudioContext] Skipping Web Audio on iOS without MSE support');
             return;
         }
 
@@ -772,7 +772,7 @@ class AudioContextManager {
 
         console.log('[AudioContext] Current state:', this.audioContext.state);
 
-        if (this.audioContext.state === 'suspended') {
+        if (this.audioContext.state === 'suspended' || this.audioContext.state === 'interrupted') {
             try {
                 await this.audioContext.resume();
                 console.log('[AudioContext] Resumed successfully, state:', this.audioContext.state);
