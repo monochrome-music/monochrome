@@ -11212,26 +11212,16 @@ body:has(#side-panel.active) #close-fullscreen-cover-btn {
     border-bottom: 1px solid var(--border);
 }
 
-.binaural-header-row {
+.binaural-status {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
-    margin-bottom: var(--spacing-md);
-}
-
-.binaural-status {
+    justify-content: space-between;
     padding: var(--spacing-sm) var(--spacing-md);
     margin-bottom: var(--spacing-md);
     background: var(--secondary);
     border-radius: var(--radius-md);
     font-size: 0.85rem;
     color: var(--muted-foreground);
-}
-
-/* stylelint-disable-next-line no-descending-specificity */
-.binaural-header-row .binaural-status {
-    flex: 1;
-    margin-bottom: 0;
 }
 
 .binaural-mode-label {
