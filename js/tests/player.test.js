@@ -192,9 +192,9 @@ describe('Player', () => {
         player = new Player(audioElement, api);
 
         player.setPlaybackSpeed(2.0);
-        expect(audioEffectsSettings.setSpeed).toHaveBeenCalledWith(2.0);
+        expect(audioEffectsSettings.setSpeed.mock.calls[0]).toEqual([2.0]);
 
         player.setPlaybackSpeed(0);
-        expect(audioEffectsSettings.setSpeed).toHaveBeenCalledWith(0.01);
+        expect(audioEffectsSettings.setSpeed.mock.calls[1]).toEqual([0.01]);
     });
 });

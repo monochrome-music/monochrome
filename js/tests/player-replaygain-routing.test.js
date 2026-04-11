@@ -132,7 +132,7 @@ describe('Player replay gain volume routing', () => {
         player.applyReplayGain();
 
         expect(audioElement.volume).toBe(1);
-        expect(audioContextManager.setVolume).toHaveBeenCalledWith(0.55);
+        expect(audioContextManager.setVolume.mock.calls).toEqual([[0.55]]);
     });
 
     test('keeps native media element volume when active element is not routed to audio context', () => {
@@ -142,6 +142,6 @@ describe('Player replay gain volume routing', () => {
         player.applyReplayGain();
 
         expect(audioElement.volume).toBe(0.35);
-        expect(audioContextManager.setVolume).not.toHaveBeenCalled();
+        expect(audioContextManager.setVolume.mock.calls).toHaveLength(0);
     });
 });
