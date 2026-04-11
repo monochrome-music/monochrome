@@ -83,10 +83,19 @@ export default defineConfig((_options) => {
             purgecss({
                 variables: false, // DO NOT REMOVE UNUSED VARIABLES (breaks web components like am-lyrics)
                 safelist: {
-                    standard: [/^am-lyrics/, /^lyplus-/, 'sidepanel', 'side-panel', 'active', 'show', /^data-/, /^modal-/],
+                    standard: [
+                        /^am-lyrics/,
+                        /^lyplus-/,
+                        'sidepanel',
+                        'side-panel',
+                        'active',
+                        'show',
+                        /^data-/,
+                        /^modal-/,
+                    ],
                     deep: [/^am-lyrics/],
-                    greedy: [/^lyplus-/, /sidepanel/, /side-panel/]
-                }
+                    greedy: [/^lyplus-/, /sidepanel/, /side-panel/],
+                },
             }),
             authGatePlugin(),
             uploadPlugin(),
