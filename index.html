@@ -4174,8 +4174,71 @@
                                 </div>
 
                                 <div class="binaural-dsp-container" id="binaural-dsp-container" style="display: none">
-                                    <div class="binaural-status" id="binaural-status">
-                                        <span class="binaural-mode-label">Mode: Stereo</span>
+                                    <div class="binaural-header-row">
+                                        <div class="binaural-status" id="binaural-status">
+                                            <span class="binaural-mode-label">Mode: Stereo</span>
+                                        </div>
+                                        <button class="eq-howto-btn" id="binaural-howto-btn" title="How to use">?</button>
+                                    </div>
+
+                                    <div class="eq-howto-panel" id="binaural-howto-panel" style="display: none">
+                                        <button class="eq-howto-close" id="binaural-howto-close" aria-label="Close tutorial">
+                                            &times;
+                                        </button>
+
+                                        <div class="eq-howto-tab">
+                                            <h4>Binaural / Spatial DSP - How to Use</h4>
+                                            <ol>
+                                                <li>
+                                                    <b>Enable Binaural DSP</b> with the main toggle. The system
+                                                    auto-detects whether your content is stereo or multichannel
+                                                    (5.1/7.1/Atmos) and switches mode accordingly.
+                                                </li>
+                                                <li>
+                                                    <b>Crossfeed</b> blends a filtered, delayed copy of each channel
+                                                    into the opposite ear - simulating speakers in a room instead of
+                                                    hard-panned headphone separation.
+                                                </li>
+                                                <li>
+                                                    Pick a <b>Crossfeed Level</b>: <b>Low</b> for a subtle blend,
+                                                    <b>Medium</b> (default) for natural speaker feel, <b>High</b> for
+                                                    a more blended, mono-like presentation.
+                                                </li>
+                                                <li>
+                                                    <b>HRTF Preset</b> controls virtual speaker angle for multichannel
+                                                    content: <b>Intimate</b> (&plusmn;22&deg;) places speakers close,
+                                                    <b>Studio</b> (&plusmn;30&deg;) mimics a mix room,
+                                                    <b>Wide</b> (&plusmn;45&deg;) gives an expansive soundstage.
+                                                </li>
+                                                <li>
+                                                    <b>Stereo Width</b> adjusts the spatial image using Mid/Side
+                                                    processing. Drag the <b>Width Amount</b> slider:
+                                                    <b>0</b> = full mono, <b>1.0</b> = unaltered, <b>2.0</b> = extra
+                                                    wide.
+                                                </li>
+                                                <li>
+                                                    <b>Auto-enable for Spatial Audio</b> automatically activates HRTF
+                                                    rendering when Atmos or multichannel content is detected - no
+                                                    manual switching needed.
+                                                </li>
+                                            </ol>
+                                            <p class="eq-howto-tip">
+                                                Tip: Crossfeed reduces listening fatigue on headphones during long
+                                                sessions. Start with <b>Medium</b> and adjust to taste.
+                                            </p>
+                                            <p class="eq-howto-tip">
+                                                Tip: For multichannel content (Atmos, 5.1, 7.1), the HRTF engine
+                                                synthesizes head-related transfer functions per channel - including
+                                                interaural time &amp; level differences and pinna coloring - so
+                                                spatial cues translate naturally to headphones.
+                                            </p>
+                                            <p class="eq-howto-tip">
+                                                Tip: Width below 1.0 narrows the stereo image (useful for poorly
+                                                mixed tracks). Width above 1.0 widens it - but going too far can
+                                                cause phase issues. Stay around <b>1.1-1.4</b> for a subtle
+                                                enhancement.
+                                            </p>
+                                        </div>
                                     </div>
 
                                     <div class="binaural-sub-setting">

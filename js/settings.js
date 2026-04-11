@@ -1241,6 +1241,22 @@ export async function initializeSettings(scrobbler, player, api, ui) {
         });
     }
 
+    // Binaural How-To Panel
+    const binauralHowtoBtn = document.getElementById('binaural-howto-btn');
+    const binauralHowtoPanel = document.getElementById('binaural-howto-panel');
+    const binauralHowtoClose = document.getElementById('binaural-howto-close');
+    if (binauralHowtoBtn && binauralHowtoPanel) {
+        binauralHowtoBtn.addEventListener('click', () => {
+            const visible = binauralHowtoPanel.style.display !== 'none';
+            binauralHowtoPanel.style.display = visible ? 'none' : '';
+        });
+        if (binauralHowtoClose) {
+            binauralHowtoClose.addEventListener('click', () => {
+                binauralHowtoPanel.style.display = 'none';
+            });
+        }
+    }
+
     // Listen for binaural mode changes (multichannel detection)
     window.addEventListener('binaural-mode-changed', (e) => {
         const statusEl = document.getElementById('binaural-status');
