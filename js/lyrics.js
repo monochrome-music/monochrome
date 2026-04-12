@@ -1080,7 +1080,7 @@ async function renderLyricsComponent(container, track, audioPlayer, lyricsManage
         const artist = getTrackArtists(track);
         const album = track.album?.title;
         const durationMs = track.duration ? Math.round(track.duration * 1000) : undefined;
-        const isrc = track.isrc || '';
+        const isrc = (track.isrc || track.mediaMetadata?.isrc || track.audioQuality?.isrc || '').trim();
 
         const isTracker = track.isTracker || (track.id && String(track.id).startsWith('tracker-'));
         let queryTitle = title;
@@ -1101,7 +1101,7 @@ async function renderLyricsComponent(container, track, audioPlayer, lyricsManage
         if (isrc) amLyrics.setAttribute('isrc', isrc);
 
         amLyrics.setAttribute('highlight-color', getLyricsHighlightColor());
-        amLyrics.setAttribute('hover-background-color', 'rgba(59, 130, 246, 0.14)');
+        amLyrics.setAttribute('hover-background-color', 'color-mix(in srgb, var(--primary) 16%, transparent)');
         amLyrics.setAttribute('autoscroll', '');
         amLyrics.setAttribute('interpolate', '');
         amLyrics.style.height = '100%';
