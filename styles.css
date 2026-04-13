@@ -2577,7 +2577,6 @@ body.multi-select-mode .track-item:hover {
     min-height: 550px;
     display: flex;
     align-items: flex-end;
-    background-color: var(--card);
 }
 
 @media (max-width: 1024px) {
