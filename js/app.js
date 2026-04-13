@@ -513,7 +513,7 @@ document.addEventListener('DOMContentLoaded', async () => {
      *   visited the local tab yet).
      */
     async function scanLocalMediaFolder(onlyIfAlreadyScanned = false) {
-        // Skip the scan if the user has never visited the local tab – they'll
+        // Skip the scan if the user has never visited the local tab - they'll
         // get a fresh scan when they navigate there for the first time.
         if (onlyIfAlreadyScanned && !window.localFilesCache) return;
 

@@ -201,7 +201,7 @@ export class Equalizer {
         this.frequencyLabels = generateFrequencyLabels(this.frequencies);
 
         // Interpolate current gains to new band count
-        const newGains = equalizerSettings._interpolateGains(this.currentGains, newCount);
+        const newGains = equalizerSettings.interpolateGains(this.currentGains, newCount);
         this.currentGains = newGains;
         equalizerSettings.setGains(newGains);
 
@@ -455,7 +455,7 @@ export class Equalizer {
         // Ensure gains array matches current band count
         let adjustedGains = gains;
         if (gains.length !== this.bandCount) {
-            adjustedGains = equalizerSettings._interpolateGains(gains, this.bandCount);
+            adjustedGains = equalizerSettings.interpolateGains(gains, this.bandCount);
         }
 
         const now = this.audioContext?.currentTime || 0;
@@ -621,9 +621,12 @@ export class Equalizer {
 
         this.frequencies.forEach((freq, index) => {
             const gain = this.currentGains[index] || 0;
-            const q = this.filters[index] ? this.filters[index].Q.value : this._calculateQ(index);
+            const type = this.currentTypes[index] || 'peaking';
+            const typeMap = { peaking: 'PK', lowshelf: 'LSC', highshelf: 'HSC' };
+            const typeStr = typeMap[type] || 'PK';
+            const q = this.currentQs[index] || this._calculateQ(index);
             const filterNum = index + 1;
-            lines.push(`Filter ${filterNum}: ON PK Fc ${freq} Hz Gain ${gain.toFixed(1)} dB Q ${q.toFixed(2)}`);
+            lines.push(`Filter ${filterNum}: ON ${typeStr} Fc ${freq} Hz Gain ${gain.toFixed(1)} dB Q ${q.toFixed(2)}`);
         });
 
         return lines.join('\n');
@@ -653,13 +656,13 @@ export class Equalizer {
 
                 // Parse filter lines (handle "Filter:" and "Filter X:" formats)
                 const filterMatch = line.match(
-                    /^Filter\s*\d*:\s*ON\s+(\w+)\s+Fc\s+(\d+)\s+Hz\s+Gain\s*([+-]?\d+\.?\d*)\s*dB\s+Q\s+(\d+\.?\d*)/i
+                    /^Filter\s*\d*:\s*ON\s+(\w+)\s+Fc\s+(\d+)\s+Hz\s+Gain\s*([+-]?\d+\.?\d*)\s*dB(?:\s+Q\s+(\d+\.?\d*))?/i
                 );
                 if (filterMatch) {
                     const type = filterMatch[1].toUpperCase();
                     const freq = parseInt(filterMatch[2], 10);
                     const gain = parseFloat(filterMatch[3]);
-                    const q = parseFloat(filterMatch[4]);
+                    const q = filterMatch[4] ? parseFloat(filterMatch[4]) : Math.SQRT1_2;
                     filters.push({ type, freq, gain, q });
                 }
             }
