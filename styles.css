@@ -2602,9 +2602,45 @@ body.multi-select-mode .track-item:hover {
 
 @media (max-width: 480px) {
     #page-artist .detail-header {
-        margin-top: calc((var(--spacing-sm) + var(--spacing-xl)) * -1);
-        margin-left: calc(var(--spacing-sm) * -1);
-        margin-right: calc(var(--spacing-sm) * -1);
+        margin-top: -5rem;
+        margin-left: -1rem;
+        margin-right: -1rem;
+        padding: 5rem 1rem 2rem 1rem;
+        min-height: 300px;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 1.25rem;
+    }
+
+    #page-artist .detail-header-image {
+        width: 140px;
+        height: 140px;
+        border-width: 3px;
+    }
+
+    #page-artist .detail-header-info .title {
+        font-size: 2rem;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    #page-artist .detail-header-info .meta {
+        justify-content: center;
+        font-size: 0.85rem;
+    }
+
+    #page-artist .detail-header-actions {
+        justify-content: center;
+        margin-top: 1rem;
+    }
+
+    #page-artist .artist-bio {
+        text-align: center;
+        margin-left: auto;
+        margin-right: auto;
+        font-size: 0.85rem;
+        line-height: 1.4;
     }
 }
 
