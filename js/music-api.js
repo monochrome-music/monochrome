@@ -277,6 +277,47 @@ export class MusicAPI {
         return this.tidalAPI.getArtistPictureSrcset(this.stripProviderPrefix(id));
     }
 
+    async getArtistBanner(artistName) {
+        const cacheKey = `banner-${artistName}`.toLowerCase();
+        if (this.videoArtworkCache.has(cacheKey)) {
+            return this.videoArtworkCache.get(cacheKey);
+        }
+
+        try {
+            const url = `https://artwork-boidu-dev.samidy.workers.dev/artist?a=${encodeURIComponent(artistName)}`;
+            const response = await fetch(url);
+            if (!response.ok) return null;
+            const data = await response.json();
+
+            let hlsUrl = null;
+            if (data.animated) {
+                if (typeof data.animated === 'string') {
+                    hlsUrl = data.animated;
+                } else if (typeof data.animated === 'object') {
+                    hlsUrl = data.animated.hls || data.animated.url || data.animated.hlsUrl || data.animated.videoUrl;
+
+                    if (!hlsUrl) {
+                        for (const key in data.animated) {
+                            if (typeof data.animated[key] === 'string' && data.animated[key].includes('.m3u8')) {
+                                hlsUrl = data.animated[key];
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            const result = {
+                hlsUrl: hlsUrl,
+            };
+            this.videoArtworkCache.set(cacheKey, result);
+            return result;
+        } catch (error) {
+            console.warn('Failed to fetch artist banner:', error);
+            return null;
+        }
+    }
+
     extractStreamUrlFromManifest(manifest) {
         return this.tidalAPI.extractStreamUrlFromManifest(manifest);
     }

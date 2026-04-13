@@ -687,6 +687,23 @@ export const cardSettings = {
     },
 };
 
+export const artistBannerSettings = {
+    STORAGE_KEY: 'artist-banners-enabled',
+
+    isEnabled() {
+        try {
+            const val = localStorage.getItem(this.STORAGE_KEY);
+            return val === null ? true : val === 'true';
+        } catch {
+            return true;
+        }
+    },
+
+    setEnabled(enabled) {
+        localStorage.setItem(this.STORAGE_KEY, enabled ? 'true' : 'false');
+    },
+};
+
 export const replayGainSettings = {
     STORAGE_KEY_MODE: 'replay-gain-mode', // 'off', 'track', 'album'
     STORAGE_KEY_PREAMP: 'replay-gain-preamp',
