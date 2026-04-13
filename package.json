@@ -25,7 +25,9 @@
         "type": "git",
         "url": "git+https://github.com/monochrome-music/monochrome.git"
     },
-    "keywords": ["music"],
+    "keywords": [
+        "music"
+    ],
     "author": "",
     "license": "Apache-2.0",
     "bugs": {
