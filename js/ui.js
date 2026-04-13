@@ -1279,18 +1279,35 @@ export class UIRenderer {
             const currentImage = document.getElementById('fullscreen-cover-image');
 
             if (videoCoverUrl) {
+                const isPaused = this.player?.activeElement?.paused ?? true;
                 if (currentImage.tagName === 'IMG') {
                     const video = document.createElement('video');
                     video.src = videoCoverUrl;
-                    video.autoplay = true;
+                    video.autoplay = !isPaused;
                     video.loop = true;
                     video.muted = true;
                     video.playsInline = true;
                     video.preload = 'auto';
                     video.className = currentImage.className;
+                    video.id = currentImage.id;
+                    video.style.objectFit = 'cover';
                     currentImage.replaceWith(video);
+                    if (!isPaused) {
+                        video.play().catch(() => {});
+                    }
                 } else if (currentImage.src !== videoCoverUrl) {
                     currentImage.src = videoCoverUrl;
+                    if (!isPaused) {
+                        currentImage.play().catch(() => {});
+                    } else {
+                        currentImage.pause();
+                    }
+                } else {
+                    if (!isPaused) {
+                        currentImage.play().catch(() => {});
+                    } else {
+                        currentImage.pause();
+                    }
                 }
             } else {
                 if (currentImage.tagName === 'VIDEO') {
