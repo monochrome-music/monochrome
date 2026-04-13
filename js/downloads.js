@@ -499,7 +499,7 @@ async function bulkDownload({
  * to the configured folder (Local Media Folder or saved Folder Picker handle),
  * or `null` if the feature is not active / no folder is configured.
  *
- * In contrast to {@link createBulkWriter}, this never prompts the user – it
+ * In contrast to {@link createBulkWriter}, this never prompts the user - it
  * only succeeds when the folder is already known.
  */
 async function createSingleTrackFolderWriter() {
@@ -533,7 +533,7 @@ async function createSingleTrackFolderWriter() {
                 // fall through to picker
             }
         }
-        // No usable saved handle – open the picker so the user can choose a folder.
+        // No usable saved handle - open the picker so the user can choose a folder.
         try {
             const writer = await FolderPickerWriter.create();
             if (rememberFolder) {
@@ -542,7 +542,7 @@ async function createSingleTrackFolderWriter() {
             return writer;
         } catch (error) {
             if (error instanceof DOMException && error.name === 'AbortError') {
-                // User cancelled the picker – return null so we fall back to the
+                // User cancelled the picker - return null so we fall back to the
                 // normal browser download instead of erroring out.
                 return null;
             }
@@ -578,7 +578,7 @@ async function createBulkWriter(folderName) {
                     // fall through to picker
                 }
             }
-            // No usable handle – prompt and persist
+            // No usable handle - prompt and persist
             try {
                 const writer = await FolderPickerWriter.create();
                 await db.saveSetting('local_folder_handle', writer.getDirHandle());
@@ -590,7 +590,7 @@ async function createBulkWriter(folderName) {
                 return null;
             }
         }
-        // Browser without File System Access API – fall through to ZIP
+        // Browser without File System Access API - fall through to ZIP
     }
 
     // ── Folder Picker method ─────────────────────────────────────────────────

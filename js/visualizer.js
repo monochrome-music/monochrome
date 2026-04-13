@@ -37,7 +37,7 @@ export class Visualizer {
 
         // Pause animation loop when the app is backgrounded so the analyser's
         // FFT reads don't compete with the EQ biquad filter chain for audio
-        // thread time — the main cause of audio skipping with AutoEQ in background.
+        // thread time - the main cause of audio skipping with AutoEQ in background.
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden' && this.isActive) {
                 this._backgroundPaused = true;
